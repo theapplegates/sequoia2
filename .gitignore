@@ -1,0 +1,7 @@
+/target/
+**/*.rs.bk
+*~
+.gdb_history
+.dir-locals.el
+/*.html
+/*.pdf

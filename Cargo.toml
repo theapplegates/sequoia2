@@ -1,0 +1,80 @@
+[package]
+name = "sequoia-sq"
+description = "Command-line frontends for Sequoia"
+version = "0.28.0"
+authors = [
+    "Azul <azul@sequoia-pgp.org>",
+    "Heiko Schaefer <heiko@schaefer.name>",
+    "Igor Matuszewski <igor@sequoia-pgp.org>",
+    "Justus Winter <justus@sequoia-pgp.org>",
+    "Kai Michaelis <kai@sequoia-pgp.org>",
+    "Lars Wirzenius <liw@sequoia-pgp.org>",
+    "Neal H. Walfield <neal@sequoia-pgp.org>",
+    "Nora Widdecke <nora@sequoia-pgp.org>",
+    "Wiktor Kwapisiewicz <wiktor@sequoia-pgp.org>",
+]
+build = "build.rs"
+documentation = "https://docs.rs/sequoia-sq"
+homepage = "https://sequoia-pgp.org/"
+repository = "https://gitlab.com/sequoia-pgp/sequoia"
+readme = "README.md"
+keywords = ["cryptography", "openpgp", "pgp", "encryption", "signing"]
+categories = ["cryptography", "authentication", "command-line-utilities"]
+license = "GPL-2.0-or-later"
+edition = "2021"
+rust-version = "1.60"
+
+[badges]
+gitlab = { repository = "sequoia-pgp/sequoia" }
+maintenance = { status = "actively-developed" }
+
+[dependencies]
+buffered-reader = { path = "../buffered-reader", version = "1.0.0", default-features = false, features = ["compression-deflate"] }
+sequoia-openpgp = { path = "../openpgp", version = "1.1", default-features = false, features = ["compression-deflate"] }
+sequoia-autocrypt = { path = "../autocrypt", version = "0.25", default-features = false, optional = true }
+sequoia-net = { path = "../net", version = "0.26", default-features = false }
+anyhow = "1.0.18"
+chrono = "0.4.10"
+clap = { version = "3", features = ["derive", "env", "wrap_help"] }
+itertools = "0.10"
+tempfile = "3.1"
+term_size = "0.3"
+tokio = { version = "1.13.1" }
+rpassword = "6.0"
+serde_json = "1.0.80"
+serde = { version = "1.0.137", features = ["derive"] }
+roff = "0.2.1"
+
+[build-dependencies]
+anyhow = "1.0.18"
+clap = { version = "3", features = ["derive", "wrap_help"] }
+clap_complete = "3"
+chrono = "0.4.10"
+sequoia-openpgp = { path = "../openpgp", version = "1.13", default-features = false }
+sequoia-net = { path = "../net", version = "0.26", default-features = false }
+subplot-build = "0.5.0"
+cfg-if = "1"
+
+[dev-dependencies]
+subplotlib = "0.5.0"
+fehler = "1.0.0"
+assert_cmd = "2.0.4"
+predicates = "2"
+
+[[bin]]
+name = "sq"
+path = "src/sq.rs"
+bench = false
+
+[features]
+default = [
+    "crypto-nettle",
+    "compression-bzip2",
+    "autocrypt",
+]
+crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
+crypto-openssl = ["sequoia-openpgp/crypto-openssl"]
+crypto-cng = ["sequoia-openpgp/crypto-cng"]
+crypto-rust = ["sequoia-openpgp/crypto-rust"]
+compression-bzip2 = ["sequoia-openpgp/compression-bzip2"]
+autocrypt = ["sequoia-autocrypt"]

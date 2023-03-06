@@ -1,6 +1,7 @@
 #![doc(html_favicon_url = "https://docs.sequoia-pgp.org/favicon.png")]
 #![doc(html_logo_url = "https://docs.sequoia-pgp.org/logo.svg")]
 
+#![allow(rustdoc::bare_urls)]
 #![doc = include_str!(concat!(env!("OUT_DIR"), "/sq-usage.md"))]
 
 use anyhow::Context as _;

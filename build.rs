@@ -44,9 +44,6 @@ fn dump_help(mut cmd: clap::Command) -> Result<()> {
     let mut sink = fs::File::create(&path)
         .with_context(|| format!("trying to create {}", path.display()))?;
 
-    writeln!(sink, "A command-line frontend for Sequoia.")?;
-    writeln!(sink)?;
-    writeln!(sink, "# Usage")?;
     dump_help_inner(&mut sink, &mut cmd, "##")
 }
 
@@ -61,15 +58,22 @@ fn dump_help_inner(
     let _ = cmd.write_long_help(&mut buffer);
     let help = std::str::from_utf8(buffer.as_slice())?;
 
-    writeln!(sink, "```text")?;
+    let mut verbatim = false;
     for line in help.trim_end().split('\n').skip(1) {
+        if ! verbatim && line.starts_with("USAGE:") {
+            writeln!(sink, "```text")?;
+            verbatim = true;
+        }
+
         if line.is_empty() {
             writeln!(sink)?;
         } else {
             writeln!(sink, "{}", line.trim_end())?;
         }
     }
-    writeln!(sink, "```")?;
+    if verbatim {
+        writeln!(sink, "```")?;
+    }
 
     // Recurse.
     for subcommand in cmd

@@ -150,7 +150,7 @@ clippy:
   before_script:
     - *before_script_start
     - apt-get -y install libssl-dev capnproto libsqlite3-dev
-    - rustup default 1.60.0
+    - rustup default 1.63.0
     - rustup component add clippy
     - cargo clippy --version
     - *before_script_end
@@ -175,7 +175,7 @@ windows-msvc-cng:
   before_script:
     # We don't call *before_script_start or *before_script_end as we
     # don't have bash, clang, etc.
-    - rustup default "1.60.0"
+    - rustup default "1.63.0"
     - rustc --version --verbose
     - cargo --version
   script:

@@ -141,7 +141,7 @@ mod integration {
     #[test]
     fn adopt_encryption() -> Result<()> {
         // Adopt an encryption subkey.
-        Command::cargo_bin("sq").unwrap().arg("key").arg("adopt")
+        Command::cargo_bin("sq").unwrap().arg("--no-cert-store").arg("key").arg("adopt")
             .arg(bob())
             .arg("--keyring").arg(alice())
             .arg("--key").arg(alice_encryption().0.to_hex())
@@ -157,7 +157,7 @@ mod integration {
     #[test]
     fn adopt_signing() -> Result<()> {
         // Adopt a signing subkey (subkey has secret key material).
-        Command::cargo_bin("sq").unwrap().arg("key").arg("adopt")
+        Command::cargo_bin("sq").unwrap().arg("--no-cert-store").arg("key").arg("adopt")
             .arg(bob())
             .arg("--keyring").arg(alice())
             .arg("--key").arg(alice_signing().0.to_hex())
@@ -173,7 +173,7 @@ mod integration {
     #[test]
     fn adopt_certification() -> Result<()> {
         // Adopt a certification subkey (subkey has secret key material).
-        Command::cargo_bin("sq").unwrap().arg("key").arg("adopt")
+        Command::cargo_bin("sq").unwrap().arg("--no-cert-store").arg("key").arg("adopt")
             .arg(carol())
             .arg("--keyring").arg(alice())
             .arg("--key").arg(alice_primary().0.to_hex())
@@ -189,7 +189,7 @@ mod integration {
     #[test]
     fn adopt_encryption_and_signing() -> Result<()> {
         // Adopt an encryption subkey and a signing subkey.
-        Command::cargo_bin("sq").unwrap().arg("key").arg("adopt")
+        Command::cargo_bin("sq").unwrap().arg("--no-cert-store").arg("key").arg("adopt")
             .arg(bob())
             .arg("--keyring").arg(alice())
             .arg("--key").arg(alice_signing().0.to_hex())
@@ -209,7 +209,7 @@ mod integration {
     #[test]
     fn adopt_twice() -> Result<()> {
         // Adopt the same an encryption subkey twice.
-        Command::cargo_bin("sq").unwrap().arg("key").arg("adopt")
+        Command::cargo_bin("sq").unwrap().arg("--no-cert-store").arg("key").arg("adopt")
             .arg(bob())
             .arg("--keyring").arg(alice())
             .arg("--key").arg(alice_encryption().0.to_hex())
@@ -226,7 +226,7 @@ mod integration {
     #[test]
     fn adopt_key_appears_twice() -> Result<()> {
         // Adopt the an encryption subkey that appears twice.
-        Command::cargo_bin("sq").unwrap().arg("key").arg("adopt")
+        Command::cargo_bin("sq").unwrap().arg("--no-cert-store").arg("key").arg("adopt")
             .arg(bob())
             .arg("--keyring").arg(alice())
             .arg("--keyring").arg(alice())
@@ -243,7 +243,7 @@ mod integration {
     #[test]
     fn adopt_own_encryption() -> Result<()> {
         // Adopt its own encryption subkey.  This should be a noop.
-        Command::cargo_bin("sq").unwrap().arg("key").arg("adopt")
+        Command::cargo_bin("sq").unwrap().arg("--no-cert-store").arg("key").arg("adopt")
             .arg(alice())
             .arg("--keyring").arg(alice())
             .arg("--key").arg(alice_encryption().0.to_hex())
@@ -259,7 +259,7 @@ mod integration {
     #[test]
     fn adopt_own_primary() -> Result<()> {
         // Adopt own primary key.
-        Command::cargo_bin("sq").unwrap().arg("key").arg("adopt")
+        Command::cargo_bin("sq").unwrap().arg("--no-cert-store").arg("key").arg("adopt")
             .arg(bob())
             .arg("--keyring").arg(bob())
             .arg("--key").arg(bob_primary().0.to_hex())
@@ -275,7 +275,7 @@ mod integration {
     #[test]
     fn adopt_missing() -> Result<()> {
         // Adopt a key that is not present.
-        Command::cargo_bin("sq").unwrap().arg("key").arg("adopt")
+        Command::cargo_bin("sq").unwrap().arg("--no-cert-store").arg("key").arg("adopt")
             .arg(bob())
             .arg("--keyring").arg(bob())
             .arg("--key").arg("1234 5678 90AB CDEF  1234 5678 90AB CDEF")
@@ -288,7 +288,7 @@ mod integration {
     #[test]
     fn adopt_from_multiple() -> Result<()> {
         // Adopt from multiple certificates simultaneously.
-        Command::cargo_bin("sq").unwrap().arg("key").arg("adopt")
+        Command::cargo_bin("sq").unwrap().arg("--no-cert-store").arg("key").arg("adopt")
             .arg(bob())
             .arg("--keyring").arg(alice())
             .arg("--key").arg(alice_signing().0.to_hex())

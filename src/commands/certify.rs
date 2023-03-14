@@ -3,6 +3,7 @@ use std::time::{SystemTime, Duration};
 use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
+use openpgp::KeyHandle;
 use openpgp::Result;
 use openpgp::cert::prelude::*;
 use openpgp::packet::prelude::*;
@@ -10,6 +11,7 @@ use openpgp::packet::signature::subpacket::NotationDataFlags;
 use openpgp::parse::Parse;
 use openpgp::serialize::Serialize;
 use openpgp::types::SignatureType;
+use openpgp::types::KeyFlags;
 
 use crate::Config;
 use crate::parse_duration;
@@ -29,7 +31,13 @@ pub fn certify(config: Config, c: certify::Command)
 
     let certifier = Cert::from_file(certifier)?;
     let private_key_store = c.private_key_store;
-    let cert = Cert::from_file(cert)?;
+    // XXX: Change this interface: it's dangerous to guess whether an
+    // identifier is a file or a key handle.
+    let cert = if let Ok(kh) = cert.parse::<KeyHandle>() {
+        config.lookup_one(&kh, Some(KeyFlags::empty().set_certification()), true)?
+    } else {
+        Cert::from_file(cert)?
+    };
 
     let trust_depth: u8 = c.depth;
     let trust_amount: u8 = c.amount;

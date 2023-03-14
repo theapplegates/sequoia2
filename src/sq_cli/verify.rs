@@ -1,5 +1,8 @@
 use clap::Parser;
 
+use sequoia_openpgp as openpgp;
+use openpgp::KeyHandle;
+
 use crate::sq_cli::types::IoArgs;
 
 #[derive(Parser, Debug)]
@@ -62,11 +65,23 @@ pub struct Command {
         value_name = "CERT_FILE",
         help = "Verifies signatures using the certificate in CERT_FILE",
     )]
-    // TODO: Should at least one sender_cert_file be required? Verification does not make sense
+    // TODO: Should at least one sender_file be required? Verification does not make sense
     // without one, does it?
     // TODO Use PathBuf instead of String. Path representation is platform dependent, so Rust's
     // utf-8 Strings are not quite appropriate.
     // TODO: And adapt load_certs in sq.rs
-    pub sender_cert_file: Vec<String>,
+    pub sender_file: Vec<String>,
+    #[clap(
+        long = "signer-cert",
+        value_name = "FINGERPRINT|KEYID",
+        help = "Verifies signatures using the specified certificate",
+        long_help = "\
+Verifies signatures using the specified certificate.  This reads the
+certificate from the certificate store, and considers it to be
+authenticated.  When this option is not provided, the certificate is
+still read from the certificate store, if it exists, but it is not
+considered authenticated."
+    )]
+    pub sender_certs: Vec<KeyHandle>,
 }
 

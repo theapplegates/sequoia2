@@ -34,6 +34,7 @@ fn sq_sign() {
     // Sign message.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("sign")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton-private.pgp")])
         .args(["--output", &sig.to_string_lossy()])
@@ -68,6 +69,7 @@ fn sq_sign() {
     // Verify signed message.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
         .arg(&*sig.to_string_lossy())
@@ -83,6 +85,7 @@ fn sq_sign_with_notations() {
     // Sign message.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("sign")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton-private.pgp")])
         .args(["--output", &sig.to_string_lossy()])
@@ -145,6 +148,7 @@ fn sq_sign_with_notations() {
     // Verify signed message.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .args(["--known-notation", "foo"])
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
@@ -161,6 +165,7 @@ fn sq_sign_append() {
     // Sign message.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("sign")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton-private.pgp")])
         .args(["--output", &sig0.to_string_lossy()])
@@ -195,6 +200,7 @@ fn sq_sign_append() {
     // Verify signed message.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -205,6 +211,7 @@ fn sq_sign_append() {
     let sig1 = tmp_dir.path().join("sig1");
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("sign")
         .arg("--append")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
@@ -254,6 +261,7 @@ fn sq_sign_append() {
     // Verify both signatures of the signed message.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
         .arg(&*sig1.to_string_lossy())
@@ -261,6 +269,7 @@ fn sq_sign_append() {
         .success();
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
         .arg(&*sig1.to_string_lossy())
@@ -322,6 +331,7 @@ fn sq_sign_append_on_compress_then_sign() {
     // Verify signed message.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -332,6 +342,7 @@ fn sq_sign_append_on_compress_then_sign() {
     let sig1 = tmp_dir.path().join("sig1");
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("sign")
         .arg("--append")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
@@ -384,6 +395,7 @@ fn sq_sign_append_on_compress_then_sign() {
     // Verify both signatures of the signed message.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -392,6 +404,7 @@ fn sq_sign_append_on_compress_then_sign() {
 
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -407,6 +420,7 @@ fn sq_sign_detached() {
     // Sign detached.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("sign")
         .arg("--detached")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton-private.pgp")])
@@ -431,6 +445,7 @@ fn sq_sign_detached() {
     // Verify detached.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
         .args(["--detached", &sig.to_string_lossy()])
@@ -447,6 +462,7 @@ fn sq_sign_detached_append() {
     // Sign detached.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("sign")
         .arg("--detached")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton-private.pgp")])
@@ -471,6 +487,7 @@ fn sq_sign_detached_append() {
     // Verify detached.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
         .args(["--detached", &sig.to_string_lossy()])
@@ -481,6 +498,7 @@ fn sq_sign_detached_append() {
     // Check that we don't blindly overwrite signatures.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("sign")
         .arg("--detached")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
@@ -492,6 +510,7 @@ fn sq_sign_detached_append() {
     // Now add a second signature with --append.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("sign")
         .arg("--detached")
         .arg("--append")
@@ -522,6 +541,7 @@ fn sq_sign_detached_append() {
     // Verify both detached signatures.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
         .args(["--detached", &sig.to_string_lossy()])
@@ -531,6 +551,7 @@ fn sq_sign_detached_append() {
 
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
         .args(["--detached", &sig.to_string_lossy()])
@@ -542,6 +563,7 @@ fn sq_sign_detached_append() {
     // goes wrong.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("sign")
         .arg("--detached")
         .arg("--append")
@@ -578,6 +600,7 @@ fn sq_sign_append_a_notarization() {
     // Now add a third signature with --append to a notarized message.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("sign")
         .arg("--append")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
@@ -638,6 +661,7 @@ fn sq_sign_append_a_notarization() {
     // Verify both notarizations and the signature.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/neal.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -645,6 +669,7 @@ fn sq_sign_append_a_notarization() {
         .success();
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -652,6 +677,7 @@ fn sq_sign_append_a_notarization() {
         .success();
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -667,6 +693,7 @@ fn sq_sign_notarize() {
     // Now add a third signature with --append to a notarized message.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("sign")
         .arg("--notarize")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
@@ -715,6 +742,7 @@ fn sq_sign_notarize() {
     // Verify both notarizations and the signature.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/neal.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -722,6 +750,7 @@ fn sq_sign_notarize() {
         .success();
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -737,6 +766,7 @@ fn sq_sign_notarize_a_notarization() {
     // Now add a third signature with --append to a notarized message.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("sign")
         .arg("--notarize")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
@@ -797,6 +827,7 @@ fn sq_sign_notarize_a_notarization() {
     // Verify both notarizations and the signature.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/neal.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -804,6 +835,7 @@ fn sq_sign_notarize_a_notarization() {
         .success();
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -811,6 +843,7 @@ fn sq_sign_notarize_a_notarization() {
         .success();
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -842,6 +875,7 @@ fn sq_multiple_signers() -> Result<()> {
     // Sign message.
     let assertion = Command::cargo_bin("sq")?
         .args([
+            "--no-cert-store",
             "sign",
             "--signer-file", alice_pgp.to_str().unwrap(),
             "--signer-file", &bob_pgp.to_str().unwrap(),
@@ -884,6 +918,142 @@ fn sq_multiple_signers() -> Result<()> {
     expected.sort();
 
     assert_eq!(sigs, expected);
+
+    Ok(())
+}
+
+#[test]
+fn sq_sign_using_cert_store() -> Result<()> {
+    let dir = TempDir::new()?;
+
+    let certd = dir.path().join("cert.d").display().to_string();
+    std::fs::create_dir(&certd).expect("mkdir works");
+
+    let alice_pgp = dir.path().join("alice.pgp").display().to_string();
+    let msg_pgp = dir.path().join("msg.pgp").display().to_string();
+
+    // Generate a key.
+    let mut cmd = Command::cargo_bin("sq")?;
+    cmd.args(["--cert-store", &certd,
+              "key", "generate",
+              "--expires", "never",
+              "--userid", "<alice@example.org>",
+              "--export", &alice_pgp]);
+    cmd.assert().success();
+
+    let alice = Cert::from_file(&alice_pgp)?;
+
+    // Import it.
+    let mut cmd = Command::cargo_bin("sq")?;
+    cmd.args(["--cert-store", &certd,
+              "import", &alice_pgp]);
+    cmd.assert().success();
+
+
+    // Sign a message.
+    Command::cargo_bin("sq")
+        .unwrap()
+        .arg("--no-cert-store")
+        .arg("sign")
+        .args(["--signer-file", &alice_pgp])
+        .args(["--output", &msg_pgp])
+        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
+        .assert()
+        .success();
+
+    // Check that the content is sane.
+    let packets: Vec<Packet> =
+        PacketPile::from_file(&msg_pgp).unwrap().into_children().collect();
+    assert_eq!(packets.len(), 3);
+    if let Packet::OnePassSig(ref ops) = packets[0] {
+        assert!(ops.last());
+        assert_eq!(ops.typ(), SignatureType::Binary);
+    } else {
+        panic!("expected one pass signature");
+    }
+    if let Packet::Literal(_) = packets[1] {
+        // Do nothing.
+    } else {
+        panic!("expected literal");
+    }
+    if let Packet::Signature(ref sig) = packets[2] {
+        assert_eq!(sig.typ(), SignatureType::Binary);
+
+        let alice_signer = alice.with_policy(P, None)?
+            .keys().for_signing().next().expect("have one");
+        assert_eq!(sig.get_issuers().into_iter().next(),
+                   Some(KeyHandle::from(alice_signer.fingerprint())));
+    } else {
+        panic!("expected signature");
+    }
+
+    let content = fs::read(&msg_pgp).unwrap();
+    assert!(&content[..].starts_with(b"-----BEGIN PGP MESSAGE-----\n\n"));
+
+    // Verify the signed message.  First, we specify the certificate
+    // explicitly.
+    Command::cargo_bin("sq")
+        .unwrap()
+        .arg("--no-cert-store")
+        .arg("verify")
+        .args(["--signer-file", &alice_pgp])
+        .arg(&msg_pgp)
+        .assert()
+        .success();
+
+    // Verify the signed message.  Now, we don't specify the
+    // certificate or use a certificate store.
+    let mut cmd = Command::cargo_bin("sq").unwrap();
+    cmd.arg("--no-cert-store")
+        .arg("verify")
+        .arg(&msg_pgp);
+    let output = cmd.output().expect("success");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(! output.status.success(),
+            "stdout:\n{}\nstderr: {}", stdout, stderr);
+
+    assert!(stderr.contains("No key to check checksum from "),
+            "stdout:\n{}\nstderr: {}", stdout, stderr);
+    assert!(stderr.contains("Error: Verification failed"),
+            "stdout:\n{}\nstderr: {}", stdout, stderr);
+
+    // Now we use the certificate store.
+    let mut cmd = Command::cargo_bin("sq").unwrap();
+    cmd.arg("--cert-store").arg(&certd)
+        .arg("verify")
+        .arg(&msg_pgp);
+    let output = cmd.output().expect("success");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(! output.status.success(),
+            "stdout:\n{}\nstderr: {}", stdout, stderr);
+
+    // The default trust model says that certificates from the
+    // certificate store are not authenticated.
+    assert!(stderr.contains("Good checksum from "),
+            "stdout:\n{}\nstderr: {}", stdout, stderr);
+    assert!(stderr.contains("Error: Verification failed"),
+            "stdout:\n{}\nstderr: {}", stdout, stderr);
+
+    // Now we use the certificate store *and* specify the certificate.
+    let mut cmd = Command::cargo_bin("sq").unwrap();
+    cmd.arg("--cert-store").arg(&certd)
+        .arg("verify")
+        .arg("--signer-cert").arg(&alice.fingerprint().to_string())
+        .arg(&msg_pgp);
+    let output = cmd.output().expect("success");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(output.status.success(),
+            "stdout:\n{}\nstderr: {}", stdout, stderr);
+
+    // The default trust model says that certificates from the
+    // certificate store are not authenticated.
+    assert!(stderr.contains("Good signature from "),
+            "stdout:\n{}\nstderr: {}", stdout, stderr);
+    assert!(stderr.contains("1 good signature."),
+            "stdout:\n{}\nstderr: {}", stdout, stderr);
 
     Ok(())
 }

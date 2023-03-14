@@ -23,8 +23,8 @@ use crate::{
     Config,
 };
 
-pub struct SignOpts<'a> {
-    pub config: Config<'a>,
+pub struct SignOpts<'a, 'certdb> {
+    pub config: Config<'certdb>,
     pub private_key_store: Option<&'a str>,
     pub input: &'a mut (dyn io::Read + Sync + Send),
     pub output_path: Option<&'a str>,

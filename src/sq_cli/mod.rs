@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 /// Command-line parser for sq.
 use clap::{Command, CommandFactory, Parser, Subcommand};
 
@@ -10,6 +12,8 @@ pub mod dane;
 mod dearmor;
 mod decrypt;
 pub mod encrypt;
+pub mod export;
+pub mod import;
 pub mod inspect;
 pub mod key;
 pub mod keyring;
@@ -43,9 +47,10 @@ pub fn build() -> Command<'static> {
     about = "A command-line frontend for Sequoia, an implementation of OpenPGP",
     long_about = "A command-line frontend for Sequoia, an implementation of OpenPGP
 
-Functionality is grouped and available using subcommands.  Currently,
-this interface is completely stateless.  Therefore, you need to supply
-all configuration and certificates explicitly on each invocation.
+Functionality is grouped and available using subcommands.  This
+interface is not completely stateless.  In particular, the user's
+default certificate store is used.  This can be disabled using
+\"--no-cert-store\".
 
 OpenPGP data can be provided in binary or ASCII armored form.  This
 will be handled automatically.  Emitted OpenPGP data is ASCII armored
@@ -67,6 +72,25 @@ pub struct SqCommand {
         help = "Overwrites existing files"
     )]
     pub force: bool,
+    #[clap(
+        long,
+        help = "Disables the use of a certificate store",
+        long_help = "\
+Disables the use of a certificate store.  Normally sq uses the user's \
+standard cert-d, which is located in $HOME/.local/share/pgp.cert.d."
+    )]
+    pub no_cert_store: bool,
+    #[clap(
+        long,
+        value_name = "PATH",
+        conflicts_with_all = &[ "no-cert-store" ],
+        help = "Specifies the location of the certificate store",
+        long_help = "\
+Specifies the location of the certificate store.  By default, sq uses \
+the OpenPGP certificate directory at `$HOME/.local/share/pgp.cert.d`, \
+and creates it if it does not exist."
+    )]
+    pub cert_store: Option<PathBuf>,
     #[clap(
         long = "output-format",
         value_name = "FORMAT",
@@ -124,6 +148,8 @@ pub enum SqSubcommands {
 
     Key(key::Command),
     Keyring(keyring::Command),
+    Import(import::Command),
+    Export(export::Command),
     Certify(certify::Command),
 
     #[cfg(feature = "autocrypt")]

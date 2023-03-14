@@ -32,6 +32,9 @@ use openpgp::policy::Policy;
 use openpgp::types::KeyFlags;
 use openpgp::types::RevocationStatus;
 
+use sequoia_cert_store as cert_store;
+use cert_store::Store;
+
 use crate::{
     Config,
 };
@@ -55,6 +58,8 @@ pub mod key;
 pub mod merge_signatures;
 pub use self::merge_signatures::merge_signatures;
 pub mod keyring;
+pub mod import;
+pub mod export;
 pub mod net;
 pub mod certify;
 
@@ -440,9 +445,9 @@ pub fn encrypt(opts: EncryptOpts) -> Result<()> {
     Ok(())
 }
 
-struct VHelper<'a> {
+struct VHelper<'a, 'store> {
     #[allow(dead_code)]
-    config: Config<'a>,
+    config: &'a Config<'store>,
     signatures: usize,
     certs: Option<Vec<Cert>>,
     labels: HashMap<KeyID, String>,
@@ -455,12 +460,12 @@ struct VHelper<'a> {
     broken_signatures: usize,
 }
 
-impl<'a> VHelper<'a> {
-    fn new(config: &Config<'a>, signatures: usize,
+impl<'a, 'store> VHelper<'a, 'store> {
+    fn new(config: &'a Config<'store>, signatures: usize,
            certs: Vec<Cert>)
            -> Self {
         VHelper {
-            config: config.clone(),
+            config: config,
             signatures,
             certs: Some(certs),
             labels: HashMap::new(),
@@ -571,9 +576,9 @@ impl<'a> VHelper<'a> {
     }
 }
 
-impl<'a> VerificationHelper for VHelper<'a> {
-    fn get_certs(&mut self, _ids: &[openpgp::KeyHandle]) -> Result<Vec<Cert>> {
-        let certs = self.certs.take().unwrap();
+impl<'a, 'store> VerificationHelper for VHelper<'a, 'store> {
+    fn get_certs(&mut self, ids: &[openpgp::KeyHandle]) -> Result<Vec<Cert>> {
+        let mut certs = self.certs.take().unwrap();
         // Get all keys.
         let seen: HashSet<_> = certs.iter()
             .flat_map(|cert| {
@@ -582,6 +587,21 @@ impl<'a> VerificationHelper for VHelper<'a> {
 
         // Explicitly provided keys are trusted.
         self.trusted = seen;
+
+        // Look up the ids in the certificate store.
+
+        // Avoid initializing the certificate store if we don't actually
+        // need to.
+        if ! ids.is_empty() {
+            if let Ok(Some(cert_store)) = self.config.cert_store() {
+                for id in ids.iter() {
+                    if let Ok(c) = cert_store.lookup_by_key(id) {
+                        certs.extend(
+                            c.into_iter().filter_map(|c| c.as_cert().ok()));
+                    }
+                }
+            }
+        }
 
         Ok(certs)
     }

@@ -5,6 +5,8 @@
 #![doc = include_str!(concat!(env!("OUT_DIR"), "/sq-usage.md"))]
 
 use anyhow::Context as _;
+
+use std::borrow::Borrow;
 use std::fs::OpenOptions;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -12,11 +14,13 @@ use std::str::FromStr;
 use std::time::Duration;
 use chrono::{DateTime, offset::Utc};
 use itertools::Itertools;
+use once_cell::unsync::OnceCell;
 
 use buffered_reader::{BufferedReader, Dup, File, Generic, Limitor};
 use sequoia_openpgp as openpgp;
 
 use openpgp::{
+    KeyHandle,
     Result,
 };
 use openpgp::{armor, Cert};
@@ -28,10 +32,17 @@ use openpgp::packet::signature::subpacket::NotationDataFlags;
 use openpgp::serialize::{Serialize, stream::{Message, Armorer}};
 use openpgp::cert::prelude::*;
 use openpgp::policy::StandardPolicy as P;
+use openpgp::types::KeyFlags;
+
+use sequoia_cert_store as cert_store;
+use cert_store::Store;
+use cert_store::store::StoreError;
 
 use clap::FromArgMatches;
 use crate::sq_cli::packet;
 use sq_cli::SqSubcommands;
+
+#[macro_use] mod macros;
 
 mod sq_cli;
 mod man;
@@ -43,8 +54,9 @@ pub use output::{wkd::WkdUrlVariant, Model, OutputFormat, OutputVersion};
 fn open_or_stdin(f: Option<&str>)
                  -> Result<Box<dyn BufferedReader<()>>> {
     match f {
-        Some(f) => Ok(Box::new(File::open(f)
-                               .context("Failed to open input file")?)),
+        Some(f) => Ok(Box::new(
+            File::open(f)
+                .with_context(|| format!("Failed to open {}", f))?)),
         None => Ok(Box::new(Generic::new(io::stdin(), None))),
     }
 }
@@ -307,7 +319,6 @@ fn emit_unstable_cli_warning() {
                Use with caution in scripts.\n");
 }
 
-#[derive(Clone)]
 pub struct Config<'a> {
     force: bool,
     output_format: OutputFormat,
@@ -315,9 +326,11 @@ pub struct Config<'a> {
     policy: P<'a>,
     /// Have we emitted the warning yet?
     unstable_cli_warning_emitted: bool,
+    cert_store_path: Option<PathBuf>,
+    cert_store: Option<OnceCell<cert_store::CertStore<'a>>>,
 }
 
-impl Config<'_> {
+impl<'store> Config<'store> {
     /// Opens the file (or stdout) for writing data that is safe for
     /// non-interactive use.
     ///
@@ -385,6 +398,255 @@ impl Config<'_> {
             }
         }
     }
+
+    /// Returns the cert store.
+    ///
+    /// If the cert store is disabled, returns `Ok(None)`.  If it is not yet
+    /// open, opens it.
+    fn cert_store(&self) -> Result<Option<&cert_store::CertStore<'store>>> {
+        let cert_store = if let Some(cert_store) = self.cert_store.as_ref() {
+            cert_store
+        } else {
+            // The cert store is disabled.
+            return Ok(None);
+        };
+
+        if let Some(cert_store) = cert_store.get() {
+            // The cert store is already initialized, return it.
+            return Ok(Some(cert_store));
+        }
+
+        let create_dirs = |path: &Path| -> Result<()> {
+            use std::fs::DirBuilder;
+
+            let mut b = DirBuilder::new();
+            b.recursive(true);
+
+            // Create the parent with the normal umask.
+            if let Some(parent) = path.parent() {
+                // Note: since recursive is turned on, it is not an
+                // error if the directory exists, which is exactly
+                // what we want.
+                b.create(parent)
+                    .with_context(|| {
+                        format!("Creating the directory {:?}", parent)
+                    })?;
+            }
+
+            // Create path with more restrictive permissions.
+            platform!{
+                unix => {
+                    use std::os::unix::fs::DirBuilderExt;
+                    b.mode(0o700);
+                },
+                windows => {
+                },
+            }
+
+            b.create(path)
+                .with_context(|| {
+                    format!("Creating the directory {:?}", path)
+                })?;
+
+            Ok(())
+        };
+
+        // We need to initialize the cert store.
+        let pathbuf;
+        let path = if let Some(path) = self.cert_store_path.as_ref() {
+            path
+        } else {
+            // XXX: openpgp-cert-d doesn't yet export this:
+            // https://gitlab.com/sequoia-pgp/pgp-cert-d/-/issues/34
+            // Remove this when it does.
+            pathbuf = dirs::data_dir()
+                .expect("Unsupported platform")
+                .join("pgp.cert.d");
+            &pathbuf
+        };
+
+        let instance = create_dirs(path)
+            .and_then(|_| cert_store::CertStore::open(path))
+            .with_context(|| {
+                format!("While opening the certificate store at {:?}",
+                        path)
+            })?;
+
+        let _ = cert_store.set(instance);
+        Ok(Some(self.cert_store
+                    .as_ref().expect("enabled")
+                    .get().expect("just configured")))
+    }
+
+    /// Returns the cert store.
+    ///
+    /// If the cert store is disabled, returns an error.
+    fn cert_store_or_else(&self) -> Result<&cert_store::CertStore<'store>> {
+        self.cert_store().and_then(|cert_store| cert_store.ok_or_else(|| {
+            anyhow::anyhow!("Operation requires a certificate store, \
+                             but the certificate store is disabled")
+        }))
+    }
+
+    /// Returns a mutable reference to the cert store.
+    ///
+    /// If the cert store is disabled, returns None.  If it is not yet
+    /// open, opens it.
+    fn cert_store_mut(&mut self)
+        -> Result<Option<&mut cert_store::CertStore<'store>>>
+    {
+        // self.cert_store() will do any required initialization, but
+        // it will return an immutable reference.
+        self.cert_store()?;
+
+        if let Some(cert_store) = self.cert_store.as_mut() {
+            Ok(cert_store.get_mut())
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Returns a mutable reference to the cert store.
+    ///
+    /// If the cert store is disabled, returns an error.
+    fn cert_store_mut_or_else(&mut self) -> Result<&mut cert_store::CertStore<'store>> {
+        self.cert_store_mut().and_then(|cert_store| cert_store.ok_or_else(|| {
+            anyhow::anyhow!("Operation requires a certificate store, \
+                             but the certificate store is disabled")
+        }))
+    }
+
+    /// Looks up an identifier.
+    ///
+    /// This matches on both the primary key and the subkeys.
+    ///
+    /// If `keyflags` is not `None`, then only returns certificates
+    /// where the matching key has at least one of the specified key
+    /// flags.  If `or_by_primary` is set, then certificates with the
+    /// specified key handle and a subkey with the specified flags
+    /// also match.
+    ///
+    /// If `allow_ambiguous` is true, then all matching certificates
+    /// are returned.  Otherwise, if an identifier matches multiple
+    /// certificates an error is returned.
+    ///
+    /// An error is also returned if any of the identifiers does not
+    /// match at least one certificate.
+    fn lookup<'a, I>(&self, khs: I,
+                     keyflags: Option<KeyFlags>,
+                     or_by_primary: bool,
+                     allow_ambiguous: bool)
+              -> Result<Vec<Cert>>
+    where I: IntoIterator,
+          I::Item: Borrow<KeyHandle>,
+    {
+        let mut results = Vec::new();
+
+        for kh in khs {
+            let kh = kh.borrow();
+            match self.cert_store_or_else()?.lookup_by_key(&kh) {
+                Err(err) => {
+                    let err = anyhow::Error::from(err);
+                    return Err(err.context(
+                        format!("Failed to load {} from certificate store", kh)
+                    ));
+                }
+                Ok(certs) => {
+                    let mut certs = certs.into_iter()
+                        .filter_map(|cert| {
+                            match cert.as_cert() {
+                                Ok(cert) => Some(cert),
+                                Err(err) => {
+                                    let err = err.context(
+                                        format!("Failed to parse {} as loaded \
+                                                 from certificate store", kh));
+                                    print_error_chain(&err);
+                                    None
+                                }
+                            }
+                        })
+                        .collect::<Vec<Cert>>();
+
+                    if let Some(keyflags) = keyflags.as_ref() {
+                        certs.retain(|cert| {
+                            // XXX: Respect any subcommand-specific
+                            // reference time.
+                            let vc = match cert.with_policy(&self.policy, None) {
+                                Ok(vc) => vc,
+                                Err(err) => {
+                                    let err = err.context(
+                                        format!("{} is not valid according \
+                                                 to the current policy, ignoring",
+                                                kh));
+                                    print_error_chain(&err);
+                                    return false;
+                                }
+                            };
+
+                            let checked_id = or_by_primary
+                                && vc.key_handle().aliases(kh);
+
+                            for ka in vc.keys() {
+                                if checked_id || ka.key_handle().aliases(kh) {
+                                    if &ka.key_flags().unwrap_or(KeyFlags::empty())
+                                        & keyflags
+                                        != KeyFlags::empty()
+                                    {
+                                        return true;
+                                    }
+                                }
+                            }
+
+                            if checked_id {
+                                eprintln!("Error: {} does not have a key with \
+                                           the required capabilities ({:?})",
+                                          cert.keyid(), keyflags);
+                            } else {
+                                eprintln!("Error: The subkey {} (cert: {}) \
+                                           does not the required capabilities \
+                                           ({:?})",
+                                          kh, cert.keyid(), keyflags);
+                            }
+                            return false;
+                        })
+                    }
+
+                    if ! allow_ambiguous && certs.len() > 1 {
+                        return Err(anyhow::anyhow!(
+                            "{} is ambiguous; it matches: {}",
+                            kh,
+                            certs.into_iter()
+                                .map(|cert| cert.fingerprint().to_string())
+                                .collect::<Vec<String>>()
+                                .join(", ")));
+                    }
+
+                    if certs.len() == 0 {
+                        return Err(StoreError::NotFound(kh.clone()).into());
+                    }
+
+                    results.extend(certs);
+                }
+            }
+        }
+
+        Ok(results)
+    }
+
+    /// Looks up a certificate.
+    ///
+    /// Like `lookup`, but looks up a certificate, which must be
+    /// uniquely identified by `kh` and `keyflags`.
+    fn lookup_one(&self, kh: &KeyHandle,
+                  keyflags: Option<KeyFlags>, or_by_primary: bool)
+        -> Result<Cert>
+    {
+        self.lookup(std::iter::once(kh), keyflags, or_by_primary, false)
+            .map(|certs| {
+                assert_eq!(certs.len(), 1);
+                certs.into_iter().next().expect("have one")
+            })
+    }
 }
 
 // TODO: Use `derive`d command structs. No more values_of
@@ -425,6 +687,12 @@ fn main() -> Result<()> {
         output_version,
         policy: policy.clone(),
         unstable_cli_warning_emitted: false,
+        cert_store_path: c.cert_store.clone(),
+        cert_store: if c.no_cert_store {
+            None
+        } else {
+            Some(OnceCell::new())
+        },
     };
 
     match c.subcommand {
@@ -474,9 +742,16 @@ fn main() -> Result<()> {
                               command.dump, command.hex)?;
         },
         SqSubcommands::Encrypt(command) => {
-            let recipients = load_certs(
-                command.recipients_cert_file.iter().map(|s| s.as_ref()),
-            )?;
+            let mut recipients = load_certs(
+                command.recipients_file.iter().map(|s| s.as_ref()))?;
+            recipients.extend(
+                config.lookup(command.recipients_cert,
+                              Some(KeyFlags::empty()
+                                   .set_storage_encryption()
+                                   .set_transport_encryption()),
+                              true,
+                              false)
+                    .context("--recipient-cert")?);
             let mut input = open_or_stdin(command.io.input.as_deref())?;
 
             let output = config.create_or_stdout_pgp(
@@ -555,7 +830,14 @@ fn main() -> Result<()> {
             };
             let signatures = command.signatures;
             // TODO ugly adaptation to load_certs' signature, fix later
-            let certs = load_certs(command.sender_cert_file.iter().map(|s| s.as_ref()))?;
+            let mut certs = load_certs(
+                command.sender_file.iter().map(|s| s.as_ref()))?;
+            certs.extend(
+                config.lookup(command.sender_certs,
+                              Some(KeyFlags::empty().set_signing()),
+                              true,
+                              false)
+                    .context("--sender-cert")?);
             commands::verify(config, &mut input,
                              detached.as_mut().map(|r| r as &mut (dyn io::Read + Sync + Send)),
                              &mut output, signatures, certs)?;
@@ -632,6 +914,14 @@ fn main() -> Result<()> {
 
         SqSubcommands::Keyring(command) => {
             commands::keyring::dispatch(config, command)?
+        },
+
+        SqSubcommands::Import(command) => {
+            commands::import::dispatch(config, command)?
+        },
+
+        SqSubcommands::Export(command) => {
+            commands::export::dispatch(config, command)?
         },
 
         SqSubcommands::Packet(command) => match command.subcommand {

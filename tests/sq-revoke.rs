@@ -110,6 +110,7 @@ mod integration {
 
         // Build up the command line.
         let mut cmd = Command::cargo_bin("sq")?;
+        cmd.arg("--no-cert-store");
         cmd.arg("revoke");
         if let Some(userid) = userid {
             cmd.args([
@@ -230,7 +231,7 @@ mod integration {
         // Pretty print 'sq revoke''s output for debugging purposes.
         if TRACE {
             let mut cmd = Command::cargo_bin("sq")?;
-            cmd.args([ "inspect" ]);
+            cmd.args([ "--no-cert-store", "inspect" ]);
             cmd.write_stdin(stdout.as_bytes());
             let assertion = cmd.assert().try_success()?;
             eprintln!("Result:\n{}",

@@ -89,8 +89,8 @@ impl PrivateKey for RemotePrivateKey {
     }
 }
 
-struct Helper<'a> {
-    vhelper: VHelper<'a>,
+struct Helper<'a, 'certdb> {
+    vhelper: VHelper<'a, 'certdb>,
     secret_keys: HashMap<KeyID, Box<dyn PrivateKey>>,
     key_identities: HashMap<KeyID, Fingerprint>,
     key_hints: HashMap<KeyID, String>,
@@ -99,8 +99,8 @@ struct Helper<'a> {
     dumper: Option<PacketDumper>,
 }
 
-impl<'a> Helper<'a> {
-    fn new(config: &Config<'a>, private_key_store: Option<&str>,
+impl<'a, 'certdb> Helper<'a, 'certdb> {
+    fn new(config: &'a Config<'certdb>, private_key_store: Option<&str>,
            signatures: usize, certs: Vec<Cert>, secrets: Vec<Cert>,
            session_keys: Vec<sq_cli::types::SessionKey>,
            dump_session_key: bool, dump: bool)
@@ -182,7 +182,7 @@ impl<'a> Helper<'a> {
     }
 }
 
-impl<'a> VerificationHelper for Helper<'a> {
+impl<'a, 'certdb> VerificationHelper for Helper<'a, 'certdb> {
     fn inspect(&mut self, pp: &PacketParser) -> Result<()> {
         if let Some(dumper) = self.dumper.as_mut() {
             dumper.packet(&mut io::stderr(),
@@ -201,7 +201,7 @@ impl<'a> VerificationHelper for Helper<'a> {
     }
 }
 
-impl<'a> DecryptionHelper for Helper<'a> {
+impl<'a, 'certdb> DecryptionHelper for Helper<'a, 'certdb> {
     fn decrypt<D>(&mut self, pkesks: &[PKESK], skesks: &[SKESK],
                   sym_algo: Option<SymmetricAlgorithm>,
                   mut decrypt: D) -> openpgp::Result<Option<Fingerprint>>

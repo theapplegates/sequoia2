@@ -12,6 +12,7 @@ use openpgp::cert::prelude::*;
 use openpgp::KeyHandle;
 use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::packet::signature::subpacket::NotationDataFlags;
+use openpgp::packet::UserID;
 use openpgp::parse::Parse;
 use openpgp::policy::StandardPolicy;
 use openpgp::serialize::Serialize;
@@ -40,6 +41,7 @@ fn sq_certify() -> Result<()> {
     // A simple certification.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("certify")
         .arg(alice_pgp.to_str().unwrap())
         .arg(bob_pgp.to_str().unwrap())
@@ -74,6 +76,7 @@ fn sq_certify() -> Result<()> {
     // No expiry.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("certify")
         .arg(alice_pgp.to_str().unwrap())
         .arg(bob_pgp.to_str().unwrap())
@@ -108,6 +111,7 @@ fn sq_certify() -> Result<()> {
     // Have alice certify bob@example.org for 0xB0B.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("certify")
         .arg(alice_pgp.to_str().unwrap())
         .arg(bob_pgp.to_str().unwrap())
@@ -150,6 +154,7 @@ fn sq_certify() -> Result<()> {
     // It should fail if the User ID doesn't exist.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("certify")
         .arg(alice_pgp.to_str().unwrap())
         .arg(bob_pgp.to_str().unwrap())
@@ -160,6 +165,7 @@ fn sq_certify() -> Result<()> {
     // With a notation.
     Command::cargo_bin("sq")
         .unwrap()
+        .arg("--no-cert-store")
         .arg("certify")
         .args(["--notation", "foo", "bar"])
         .args(["--notation", "!foo", "xyzzy"])
@@ -281,7 +287,8 @@ fn sq_certify_creation_time() -> Result<()>
 
     // Build up the command line.
     let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["certify",
+    cmd.args(["--no-cert-store",
+              "certify",
               &alice_pgp.to_string_lossy(),
               &bob_pgp.to_string_lossy(), bob,
               "--time", iso8601 ]);
@@ -363,7 +370,8 @@ fn sq_certify_with_expired_key() -> Result<()>
 
     // Make sure using an expired key fails by default.
     let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["certify",
+    cmd.args(["--no-cert-store",
+              "certify",
               &alice_pgp.to_string_lossy(),
               &bob_pgp.to_string_lossy(), bob ]);
     cmd.assert().failure();
@@ -371,7 +379,8 @@ fn sq_certify_with_expired_key() -> Result<()>
 
     // Try again.
     let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["certify",
+    cmd.args(["--no-cert-store",
+              "certify",
               "--allow-not-alive-certifier",
               &alice_pgp.to_string_lossy(),
               &bob_pgp.to_string_lossy(), bob ]);
@@ -452,7 +461,8 @@ fn sq_certify_with_revoked_key() -> Result<()>
 
     // Make sure using an expired key fails by default.
     let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["certify",
+    cmd.args(["--no-cert-store",
+              "certify",
               &alice_pgp.to_string_lossy(),
               &bob_pgp.to_string_lossy(), bob ]);
     cmd.assert().failure();
@@ -460,7 +470,8 @@ fn sq_certify_with_revoked_key() -> Result<()>
 
     // Try again.
     let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["certify",
+    cmd.args(["--no-cert-store",
+              "certify",
               "--allow-revoked-certifier",
               &alice_pgp.to_string_lossy(),
               &bob_pgp.to_string_lossy(), bob ]);
@@ -494,6 +505,89 @@ fn sq_certify_with_revoked_key() -> Result<()>
     } else {
         panic!("missing user id");
     }
+
+    Ok(())
+}
+
+// Certify a certificate in the cert store.
+#[test]
+fn sq_certify_using_cert_store() -> Result<()>
+{
+    let dir = TempDir::new()?;
+
+    let certd = dir.path().join("cert.d").display().to_string();
+    std::fs::create_dir(&certd).expect("mkdir works");
+
+    let alice_pgp = dir.path().join("alice.pgp").display().to_string();
+    let bob_pgp = dir.path().join("bob.pgp").display().to_string();
+
+    // Generate keys.
+    let mut cmd = Command::cargo_bin("sq")?;
+    cmd.args(["--cert-store", &certd,
+              "key", "generate",
+              "--expires", "never",
+              "--userid", "<alice@example.org>",
+              "--export", &alice_pgp]);
+    cmd.assert().success();
+
+    let alice = Cert::from_file(&alice_pgp)?;
+
+    let mut cmd = Command::cargo_bin("sq")?;
+    cmd.args(["--cert-store", &certd,
+              "key", "generate",
+              "--expires", "never",
+              "--userid", "<bob@example.org>",
+              "--export", &bob_pgp]);
+    cmd.assert().success();
+
+    let bob = Cert::from_file(&bob_pgp)?;
+
+    // Import bob's (but not alice's!).
+    let mut cmd = Command::cargo_bin("sq")?;
+    cmd.args(["--cert-store", &certd,
+              "import", &bob_pgp]);
+    cmd.assert().success();
+
+
+    // Have alice certify bob.
+    let mut cmd = Command::cargo_bin("sq")?;
+    cmd.args(["--cert-store", &certd,
+              "certify", &alice_pgp,
+              &bob.fingerprint().to_string(),
+              "<bob@example.org>"]);
+
+    let output = cmd.output().expect("success");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(output.status.success());
+
+    // Make sure the certificate on stdout is bob and that alice
+    // signed it.
+    let parser = CertParser::from_bytes(stdout.as_bytes())
+        .expect("valid");
+    let found = parser.collect::<Result<Vec<Cert>>>()
+        .expect("valid");
+
+    assert_eq!(found.len(), 1,
+               "stdout:\n{}\nstderr:\n{}",
+               stdout, stderr);
+    let found = found.into_iter().next().expect("have one");
+
+    assert_eq!(found.fingerprint(), bob.fingerprint());
+    assert_eq!(found.userids().count(), 1);
+
+    let ua = found.userids().next().expect("have one");
+    let certifications: Vec<_> = ua.certifications().collect();
+    assert_eq!(certifications.len(), 1);
+    let certification = certifications.into_iter().next().unwrap();
+
+    assert_eq!(certification.get_issuers().into_iter().next(),
+               Some(KeyHandle::from(alice.fingerprint())));
+    certification.clone().verify_userid_binding(
+        alice.primary_key().key(),
+        bob.primary_key().key(),
+        &UserID::from("<bob@example.org>"))
+        .expect("valid certification");
 
     Ok(())
 }

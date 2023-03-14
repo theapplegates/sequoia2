@@ -1,0 +1,33 @@
+                                                              -*- org -*-
+#+TITLE: sequoia-sq NEWS – history of user-visible changes
+#+STARTUP: content hidestars
+
+* Changes in 0.29
+** New functionality
+   - `sq` now supports and implicitly uses a certificate store.  By
+     default, `sq` uses the standard OpenPGP certificate directory.
+     This is located at `$HOME/.local/share/pgp.cert.d` on XDG
+     compliant systems.
+   - `sq --no-cert-store`: A new switch to disable the use of the
+     certificate store.
+   - `sq --cert-store`: A new option to use an alternate certificate
+     store.  Currently, only OpenPGP certificate directories are
+     supported.
+   - `sq import`: A new command to import certificates into the
+     certificate store.
+   - `sq export`: A new command to export certificates from the
+     certificate store.
+   - `sq encrypt --recipient-cert`: A new option to specify a
+     recipient's certificate by fingerprint or key ID, which is then
+     looked up in the certificate store.
+   - `sq verify --signer-cert`: A new option to specify a signer's
+     certificate by fingerprint or key ID, which is then looked up in
+     the certificate store.
+   - `sq verify` now also implicitly looks for missing certificates in
+     the certificate store.  But, unless they are explicitly named
+     using `--signer-cert`, they are not considered authenticated and
+     the verification will always fail.
+   - `sq certify`: If the certificate to certify is a fingerprint or
+     Key ID, then the corresponding certificate is looked up in the
+     certificate store.
+ * Started the NEWS file.

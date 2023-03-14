@@ -26,7 +26,8 @@ mod integration {
 
         // Build up the command line.
         let mut cmd = Command::cargo_bin("sq")?;
-        cmd.args(["key", "generate",
+        cmd.args(["--no-cert-store",
+                  "key", "generate",
                   "--creation-time", iso8601,
                   "--expires", "never",
                   "--export", &*key_pgp.to_string_lossy()]);

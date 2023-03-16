@@ -131,7 +131,7 @@ impl<'a> std::fmt::Display for SessionKeyDisplay<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Time {
     pub time: DateTime<Utc>,
 }

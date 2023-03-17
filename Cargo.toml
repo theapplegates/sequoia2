@@ -82,3 +82,6 @@ crypto-cng = ["sequoia-openpgp/crypto-cng"]
 crypto-rust = ["sequoia-openpgp/crypto-rust"]
 compression-bzip2 = ["sequoia-openpgp/compression-bzip2"]
 autocrypt = ["sequoia-autocrypt"]
+
+[profile.release]
+debug = true

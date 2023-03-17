@@ -42,14 +42,12 @@ pub struct Command {
     #[clap(
         long = "recipient-cert",
         value_name = "FINGERPRINT|KEYID",
-        multiple_occurrences = true,
         help = "Encrypts to the named certificates",
     )]
     pub recipients_cert: Vec<KeyHandle>,
     #[clap(
         long = "recipient-file",
         value_name = "CERT_RING_FILE",
-        multiple_occurrences = true,
         help = "Encrypts to all certificates in CERT_RING_FILE",
     )]
     pub recipients_file: Vec<String>,
@@ -69,7 +67,6 @@ pub struct Command {
         short = 's',
         long = "symmetric",
         help = "Adds a password to encrypt with",
-        multiple_occurrences = true,
         long_help = "Adds a password to encrypt with.  \
             The message can be decrypted with \
             either one of the recipient's keys, or any password.",

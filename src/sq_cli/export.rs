@@ -65,7 +65,6 @@ pub struct Command {
     #[clap(
         long = "cert",
         value_name = "FINGERPRINT|KEYID",
-        multiple_occurrences = true,
         help = "Returns certificates that \
                 have the specified fingerprint or key ID",
     )]
@@ -74,7 +73,6 @@ pub struct Command {
     #[clap(
         long = "key",
         value_name = "FINGERPRINT|KEYID",
-        multiple_occurrences = true,
         help = "Returns certificates where the primary key or \
                 a subkey has the specified fingerprint or key ID",
     )]
@@ -83,7 +81,6 @@ pub struct Command {
     #[clap(
         long = "userid",
         value_name = "USERID",
-        multiple_occurrences = true,
         help = "Returns certificates that have a User ID that \
                 matches exactly, including case",
     )]
@@ -92,7 +89,6 @@ pub struct Command {
     #[clap(
         long = "grep",
         value_name = "PATTERN",
-        multiple_occurrences = true,
         help = "Returns certificates that have a User ID that \
                 contains the string, case insensitively",
     )]
@@ -101,7 +97,6 @@ pub struct Command {
     #[clap(
         long = "email",
         value_name = "EMAIL",
-        multiple_occurrences = true,
         help = "Returns certificates that have a User ID with \
                 the specified email address, case insensitively",
     )]
@@ -110,7 +105,6 @@ pub struct Command {
     #[clap(
         long = "domain",
         value_name = "DOMAIN",
-        multiple_occurrences = true,
         help = "Returns certificates that have a User ID with \
                 an email address from the specified domain",
     )]

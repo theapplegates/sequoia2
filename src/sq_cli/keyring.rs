@@ -87,7 +87,6 @@ pub struct FilterCommand {
     #[clap(
         long = "userid",
         value_name = "USERID",
-        multiple_occurrences = true,
         help = "Matches on USERID",
         long_help = "Case-sensitively matches on the \
                 user id, requiring an exact match.",
@@ -96,7 +95,6 @@ pub struct FilterCommand {
     #[clap(
         long = "name",
         value_name = "NAME",
-        multiple_occurrences = true,
         help = "Matches on NAME",
         long_help = "Parses user ids into name and email \
             and case-sensitively matches on the \
@@ -106,7 +104,6 @@ pub struct FilterCommand {
     #[clap(
         long = "email",
         value_name = "ADDRESS",
-        multiple_occurrences = true,
         help = "Matches on email ADDRESS",
         long_help = "Parses user ids into name and email \
             address and case-sensitively matches \

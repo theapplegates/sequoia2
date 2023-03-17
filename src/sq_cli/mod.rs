@@ -115,7 +115,6 @@ and creates it if it does not exist."
     #[clap(
         long = "known-notation",
         value_name = "NOTATION",
-        multiple_occurrences = true,
         help = "Adds NOTATION to the list of known notations",
         long_help = "Adds NOTATION to the list of known notations. \
             This is used when validating signatures. \

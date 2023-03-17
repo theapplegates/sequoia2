@@ -8,7 +8,6 @@ use crate::sq_cli::types::NetworkPolicy;
     about = "Interacts with Web Key Directories",
     subcommand_required = true,
     arg_required_else_help = true,
-    setting(clap::AppSettings::DeriveDisplayOrder),
 )]
 pub struct Command {
     #[clap(
@@ -16,7 +15,7 @@ pub struct Command {
         long,
         value_name = "NETWORK-POLICY",
         default_value_t = NetworkPolicy::Encrypted,
-        arg_enum,
+        value_enum,
         help = "Sets the network policy to use",
     )]
     pub network_policy: NetworkPolicy,

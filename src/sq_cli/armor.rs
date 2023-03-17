@@ -37,7 +37,7 @@ pub struct Command {
         value_name = "LABEL",
         help = "Selects the kind of armor header",
         default_value_t = ArmorKind::Auto,
-        arg_enum
+        value_enum
     )]
     pub kind: ArmorKind,
 }

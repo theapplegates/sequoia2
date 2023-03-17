@@ -1,4 +1,5 @@
-use clap::{ArgEnum, Parser};
+use clap::ArgAction::Count;
+use clap::{ValueEnum, Parser};
 
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
@@ -70,9 +71,9 @@ pub struct Command {
         long_help = "Adds a password to encrypt with.  \
             The message can be decrypted with \
             either one of the recipient's keys, or any password.",
-        parse(from_occurrences)
+        action = Count,
     )]
-    pub symmetric: usize,
+    pub symmetric: u8,
     #[clap(
         long = "mode",
         value_name = "MODE",
@@ -85,7 +86,7 @@ pub struct Command {
             selects those for encrypting data at rest, \
             and all selects all encryption-capable \
             subkeys.",
-        arg_enum,
+        value_enum,
     )]
     pub mode: EncryptionMode,
     #[clap(
@@ -93,7 +94,7 @@ pub struct Command {
         value_name = "KIND",
         default_value_t = CompressionMode::Pad,
         help = "Selects compression scheme to use",
-        arg_enum,
+        value_enum,
     )]
     pub compression: CompressionMode,
     #[clap(
@@ -115,14 +116,14 @@ pub struct Command {
     pub use_expired_subkey: bool,
 }
 
-#[derive(ArgEnum, Debug, Clone)]
+#[derive(ValueEnum, Debug, Clone)]
 pub enum EncryptionMode {
     Transport,
     Rest,
     All
 }
 
-#[derive(ArgEnum, Debug, Clone)]
+#[derive(ValueEnum, Debug, Clone)]
 pub enum CompressionMode {
     None,
     Pad,

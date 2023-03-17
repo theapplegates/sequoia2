@@ -16,7 +16,7 @@ pub struct Command {
         value_name = "NETWORK-POLICY",
         default_value_t = NetworkPolicy::Encrypted,
         help = "Sets the network policy to use",
-        arg_enum,
+        value_enum,
     )]
     pub network_policy: NetworkPolicy,
     #[clap(

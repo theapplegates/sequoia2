@@ -17,7 +17,6 @@ as a learning tool.
 ",
     subcommand_required = true,
     arg_required_else_help = true,
-    setting(clap::AppSettings::DeriveDisplayOrder),
     )]
 pub struct Command {
     #[clap(subcommand)]
@@ -202,7 +201,7 @@ pub struct JoinCommand {
         default_value_t = ArmorKind::Auto,
         conflicts_with = "binary",
         help = "Selects the kind of armor header",
-        arg_enum,
+        value_enum,
     )]
     pub kind: ArmorKind,
     #[clap(

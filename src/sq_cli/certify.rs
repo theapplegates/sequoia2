@@ -25,7 +25,7 @@ attest-certification\".
 $ sq certify juliet.pgp romeo.pgp \"<romeo@example.org>\"
 ",
 )]
-#[clap(group(ArgGroup::new("expiration-group").args(&["expires", "expires-in"])))]
+#[clap(group(ArgGroup::new("expiration-group").args(&["expires", "expires_in"])))]
 pub struct Command {
     #[clap(
         short,

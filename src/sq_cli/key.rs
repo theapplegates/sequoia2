@@ -1,4 +1,4 @@
-use clap::{ArgEnum, ArgGroup, Args, Parser, Subcommand};
+use clap::{ValueEnum, ArgGroup, Args, Parser, Subcommand};
 
 use crate::sq_cli::types::{IoArgs, Time};
 
@@ -19,7 +19,6 @@ operations on certificates.
 ",
     subcommand_required = true,
     arg_required_else_help = true,
-    setting(clap::AppSettings::DeriveDisplayOrder),
 )]
 pub struct Command {
     #[clap(subcommand)]
@@ -72,10 +71,10 @@ $ sq key generate --userid \"<juliet@example.org>\" --with-password
 $ sq key generate --userid \"<juliet@example.org>\" --userid \"Juliet Capulet\"
 ",
 )]
-#[clap(group(ArgGroup::new("expiration-group").args(&["expires", "expires-in"])))]
-#[clap(group(ArgGroup::new("cap-sign").args(&["can-sign", "cannot-sign"])))]
-#[clap(group(ArgGroup::new("cap-authenticate").args(&["can-authenticate", "cannot-authenticate"])))]
-#[clap(group(ArgGroup::new("cap-encrypt").args(&["can-encrypt", "cannot-encrypt"])))]
+#[clap(group(ArgGroup::new("expiration-group").args(&["expires", "expires_in"])))]
+#[clap(group(ArgGroup::new("cap-sign").args(&["can_sign", "cannot_sign"])))]
+#[clap(group(ArgGroup::new("cap-authenticate").args(&["can_authenticate", "cannot_authenticate"])))]
+#[clap(group(ArgGroup::new("cap-encrypt").args(&["can_encrypt", "cannot_encrypt"])))]
 pub struct GenerateCommand {
     #[clap(
         short = 'u',
@@ -90,7 +89,7 @@ pub struct GenerateCommand {
         value_name = "CIPHER-SUITE",
         default_value_t = CipherSuite::Cv25519,
         help = "Selects the cryptographic algorithms for the key",
-        arg_enum,
+        value_enum,
     )]
     pub cipher_suite: CipherSuite,
     #[clap(
@@ -169,7 +168,7 @@ $ sq key generate --creation-time 20110609T1938+0200 --export noam.pgp
             suitable for transport encryption, storage \
             encryption, or both. \
             [default: universal]",
-        arg_enum,
+        value_enum,
     )]
     pub can_encrypt: Option<EncryptPurpose>,
     #[clap(
@@ -199,14 +198,14 @@ $ sq key generate --creation-time 20110609T1938+0200 --export noam.pgp
     pub rev_cert: Option<String>
 }
 
-#[derive(ArgEnum, Clone, Debug)]
+#[derive(ValueEnum, Clone, Debug)]
 pub enum CipherSuite {
     Rsa3k,
     Rsa4k,
     Cv25519
 }
 
-#[derive(ArgEnum, Clone, Debug)]
+#[derive(ValueEnum, Clone, Debug)]
 pub enum EncryptPurpose {
     Transport,
     Storage,
@@ -298,7 +297,6 @@ Add User IDs to, or strip User IDs from a key.
 ",
     subcommand_required = true,
     arg_required_else_help = true,
-    setting(clap::AppSettings::DeriveDisplayOrder),
 )]
 pub enum UseridCommand {
     Add(UseridAddCommand),

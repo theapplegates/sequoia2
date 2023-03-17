@@ -452,16 +452,16 @@ impl LeafCommand {
         words.push(cmd.get_name().to_string());
         let mut leaf = Self::new(words);
         if let Some(text) = cmd.get_before_help() {
-            leaf.before_help(text);
+            leaf.before_help(&text.to_string());
         }
         if let Some(text) = cmd.get_after_help() {
-            leaf.after_help(text);
+            leaf.after_help(&text.to_string());
         }
         if let Some(text) = cmd.get_about() {
-            leaf.about(text);
+            leaf.about(&text.to_string());
         }
         if let Some(text) = cmd.get_long_about() {
-            leaf.long_about(text);
+            leaf.long_about(&text.to_string());
         }
         for arg in cmd.get_arguments() {
             if !arg.is_positional() {
@@ -522,7 +522,7 @@ impl CommandOption {
             short: arg.get_short().map(|o| format!("-{}", o)),
             long: arg.get_long().map(|o| format!("--{}", o)),
             value_name,
-            help: arg.get_help().map(|s| s.into()),
+            help: arg.get_help().map(|s| s.to_string()),
         }
     }
 }

@@ -17,7 +17,6 @@ terms keys and certs interchangeably.
 ",
     subcommand_required = true,
     arg_required_else_help = true,
-    setting(clap::AppSettings::DeriveDisplayOrder),
 )]
 pub struct Command {
     #[clap(subcommand)]

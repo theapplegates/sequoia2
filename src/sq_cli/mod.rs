@@ -27,7 +27,7 @@ pub mod wkd;
 
 pub mod types;
 
-pub fn build() -> Command<'static> {
+pub fn build() -> Command {
     let sq_version = Box::leak(
         format!(
             "{} (sequoia-openpgp {}, using {})",
@@ -63,7 +63,6 @@ to refer to OpenPGP keys that do contain secrets.
     subcommand_required = true,
     arg_required_else_help = true,
     disable_colored_help = true,
-    setting(clap::AppSettings::DeriveDisplayOrder)
 )]
 pub struct SqCommand {
     #[clap(
@@ -83,7 +82,7 @@ standard cert-d, which is located in $HOME/.local/share/pgp.cert.d."
     #[clap(
         long,
         value_name = "PATH",
-        conflicts_with_all = &[ "no-cert-store" ],
+        conflicts_with_all = &[ "no_cert_store" ],
         help = "Specifies the location of the certificate store",
         long_help = "\
 Specifies the location of the certificate store.  By default, sq uses \
@@ -94,7 +93,7 @@ and creates it if it does not exist."
     #[clap(
         long = "output-format",
         value_name = "FORMAT",
-        possible_values = ["human-readable", "json"],
+        value_parser = ["human-readable", "json"],
         default_value = "human-readable",
         env = "SQ_OUTPUT_FORMAT",
         help = "Produces output in FORMAT, if possible",

@@ -1,5 +1,5 @@
 use clap::Parser;
-use clap::{ArgEnum, Args, Subcommand};
+use clap::{ValueEnum, Args, Subcommand};
 
 use sequoia_openpgp as openpgp;
 
@@ -44,7 +44,6 @@ $ sq revoke userid --time 20220101 --cert-file juliet.pgp \\
 ",
     subcommand_required = true,
     arg_required_else_help = true,
-    setting(clap::AppSettings::DeriveDisplayOrder),
 )]
 pub struct Command {
     #[clap(subcommand)]
@@ -138,7 +137,7 @@ If the reason happened in the past, you should specify that using the
 --time argument.  This allows OpenPGP implementations to more
 accurately reason about objects whose validity depends on the validity
 of the certificate.",
-    arg_enum,
+    value_enum,
     )]
     pub reason: RevocationReason,
 
@@ -185,7 +184,7 @@ certificate's creation time",
     pub binary: bool,
 }
 
-#[derive(ArgEnum, Clone, Debug)]
+#[derive(ValueEnum, Clone, Debug)]
 pub enum RevocationReason {
     Compromised,
     Superseded,
@@ -294,7 +293,7 @@ If the reason happened in the past, you should specify that using the \
 --time argument.  This allows OpenPGP implementations to more \
 accurately reason about objects whose validity depends on the validity \
 of the certificate.",
-    arg_enum,
+    value_enum,
     )]
     pub reason: RevocationReason,
     #[clap(
@@ -395,7 +394,7 @@ for a User ID, which is not self signed."
     )]
     pub userid: String,
     #[clap(
-        arg_enum,
+        value_enum,
         value_name = "REASON",
         help = "The reason for the revocation",
         long_help =
@@ -460,7 +459,7 @@ certificate's creation time",
     pub binary: bool,
 }
 
-#[derive(ArgEnum, Clone, Debug)]
+#[derive(ValueEnum, Clone, Debug)]
 pub enum UseridRevocationReason {
     Retired,
     Unspecified

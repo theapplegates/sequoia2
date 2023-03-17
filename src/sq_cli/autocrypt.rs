@@ -1,4 +1,4 @@
-use clap::{ArgEnum, Args, Parser, Subcommand};
+use clap::{ValueEnum, Args, Parser, Subcommand};
 
 use crate::sq_cli::types::IoArgs;
 
@@ -96,12 +96,12 @@ pub struct EncodeSenderCommand {
             value_name = "PREFER-ENCRYPT",
             default_value_t = PreferEncryptArgs::NoPreference,
             help = "Sets the prefer-encrypt attribute",
-            arg_enum,
+            value_enum,
         )]
     pub prefer_encrypt: PreferEncryptArgs,
 }
 
-#[derive(ArgEnum, Debug, Clone)]
+#[derive(ValueEnum, Debug, Clone)]
 pub enum PreferEncryptArgs {
     #[clap(name = "nopreference")]
     NoPreference,

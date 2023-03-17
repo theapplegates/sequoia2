@@ -1,6 +1,8 @@
 #![doc(html_favicon_url = "https://docs.sequoia-pgp.org/favicon.png")]
 #![doc(html_logo_url = "https://docs.sequoia-pgp.org/logo.svg")]
 
+#![allow(rustdoc::invalid_rust_codeblocks)]
+#![allow(rustdoc::broken_intra_doc_links)]
 #![allow(rustdoc::bare_urls)]
 #![doc = include_str!(concat!(env!("OUT_DIR"), "/sq-usage.md"))]
 
@@ -770,7 +772,7 @@ fn main() -> Result<()> {
                 private_key_store,
                 input: &mut input,
                 message: output,
-                npasswords: command.symmetric,
+                npasswords: command.symmetric as usize,
                 recipients: &recipients,
                 signers: additional_secrets,
                 mode: command.mode,

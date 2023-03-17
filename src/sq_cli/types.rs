@@ -1,6 +1,6 @@
 use chrono::{offset::Utc, DateTime};
 /// Common types for arguments of sq.
-use clap::{ArgEnum, Args};
+use clap::{ValueEnum, Args};
 
 use openpgp::fmt::hex;
 use openpgp::types::SymmetricAlgorithm;
@@ -19,7 +19,7 @@ pub struct IoArgs {
     pub output: Option<String>,
 }
 
-#[derive(ArgEnum, Debug, Clone)]
+#[derive(ValueEnum, Debug, Clone)]
 pub enum ArmorKind {
     Auto,
     Message,
@@ -45,7 +45,7 @@ impl From<ArmorKind> for Option<openpgp::armor::Kind> {
     }
 }
 
-#[derive(ArgEnum, Clone, Debug)]
+#[derive(ValueEnum, Clone, Debug)]
 pub enum NetworkPolicy {
     Offline,
     Anonymized,

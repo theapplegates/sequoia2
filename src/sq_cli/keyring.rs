@@ -255,7 +255,7 @@ pub struct ListCommand {
     )]
     pub input: Option<String>,
     #[clap(
-        long = "--all-userids",
+        long = "all-userids",
         help = "Lists all user ids",
         long_help = "Lists all user ids, even those that are \
             expired, revoked, or not valid under the \

@@ -922,25 +922,12 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44533bbbb3bb3c1fa17d9f2e4e38bbbaf8396ba82193c4cb1b6445d711445d36"
-dependencies = [
- "atty",
- "humantime 1.3.0",
- "log",
- "regex",
- "termcolor",
-]
-
-[[package]]
-name = "env_logger"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b2cf0344971ee6c64c31be0d530793fba457d322dfec2810c453d0ef228f9c3"
 dependencies = [
  "atty",
- "humantime 2.1.0",
+ "humantime",
  "log",
  "regex",
  "termcolor",
@@ -1411,15 +1398,6 @@ name = "humansize"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "02296996cb8796d7c6e3bc2d9211b7802812d36999a51bb754123ead7d37d026"
-
-[[package]]
-name = "humantime"
-version = "1.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df004cfca50ef23c36850aaaa59ad52cc70d0e90243c3c7737a4dd32dc7a3c4f"
-dependencies = [
- "quick-error",
-]
 
 [[package]]
 name = "humantime"
@@ -2311,16 +2289,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pretty_env_logger"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "926d36b9553851b8b0005f1275891b392ee4d2d833852c417ed025477350fb9d"
-dependencies = [
- "env_logger 0.7.1",
- "log",
-]
-
-[[package]]
 name = "proc-macro-error"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3115,14 +3083,14 @@ checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
 name = "subplot"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b14be17e3a06a320b4d9851ef7f512bcb19e9c931cd2b2493b61b4a7e6aa6d5"
+checksum = "95cfa682b7da7d48f97d2042c5e21f025cf68035544876c2de7bd007779424d9"
 dependencies = [
  "anyhow",
  "base64",
  "clap 3.2.19",
- "env_logger 0.9.0",
+ "env_logger",
  "file_diff",
  "git-testament",
  "lazy_static",
@@ -3130,7 +3098,6 @@ dependencies = [
  "pandoc",
  "pandoc_ast",
  "pikchr",
- "pretty_env_logger",
  "pulldown-cmark",
  "regex",
  "roadmap",
@@ -3148,9 +3115,9 @@ dependencies = [
 
 [[package]]
 name = "subplot-build"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c65e0385a02e0ee2fbf130b67265402f5554ce7b1af36462e201fb20fb168efb"
+checksum = "14c3c09032b72b9229c6d48f3b842ec439de982915295a6854289bc66e8c274a"
 dependencies = [
  "subplot",
  "tempfile",
@@ -3159,9 +3126,9 @@ dependencies = [
 
 [[package]]
 name = "subplotlib"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d42a381ce7bcbef67870adc04e9c7340a5aef3aab0633922494220da2179f3c1"
+checksum = "56e32651107dcf191149190cfe54f41751bb8c4c93021f39435b95aecff6739b"
 dependencies = [
  "base64",
  "fehler",
@@ -3182,9 +3149,9 @@ dependencies = [
 
 [[package]]
 name = "subplotlib-derive"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed6c74877ef4d4bb536eacbb057a52c00d5c4ab855df7b8786f5985add2a3d15"
+checksum = "0c12aaed6f70026bf2c60985e145c8a8309413d8fd34751eacd6b018e272901d"
 dependencies = [
  "fehler",
  "proc-macro2",

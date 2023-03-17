@@ -1,6 +1,7 @@
 title: "Sequoia-PGP sq"
 subtitle: "integration tests, requirements, acceptance criteria"
-author: "The Sequoia-PGP project"
+authors:
+- "The Sequoia-PGP project"
 markdowns:
 - sq-subplot.md
 bindings:

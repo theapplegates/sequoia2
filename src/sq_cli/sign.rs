@@ -115,5 +115,5 @@ pub struct Command {
     // TODO: Is there a better way to express that one notation consists of two arguments, and
     // there may be multiple notations? Like something like Vec<(String, String)>.
     // TODO: Also, no need for the Option
-    pub notation: Option<Vec<String>>,
+    pub notation: Vec<String>,
 }

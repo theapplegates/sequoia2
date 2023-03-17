@@ -83,7 +83,7 @@ pub struct GenerateCommand {
         value_name = "EMAIL",
         help = "Adds a userid to the key"
     )]
-    pub userid: Option<Vec<String>>,
+    pub userid: Vec<String>,
     #[clap(
         short = 'c',
         long = "cipher-suite",

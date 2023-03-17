@@ -134,7 +134,7 @@ $ sq certify --time 20130721T0550+0200 neal.pgp ada.pgp ada
             then it will ignore the signature.  The notation is marked as \
             being human readable."
     )]
-    pub notation: Option<Vec<String>>,
+    pub notation: Vec<String>,
     #[clap(
         long = "expires",
         value_name = "TIME",

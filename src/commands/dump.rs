@@ -75,15 +75,15 @@ pub fn dump<W>(input: &mut (dyn io::Read + Sync + Send),
             Packet::Literal(_) => {
                 let mut prefix = vec![0; 40];
                 let n = pp.read(&mut prefix)?;
-                Some(vec![
+                vec![
                     format!("Content: {:?}{}",
                             String::from_utf8_lossy(&prefix[..n]),
                             if n == prefix.len() { "..." } else { "" }),
-                ])
+                ]
             },
             Packet::SEIP(_) if sk.is_none() => {
                 message_encrypted = true;
-                Some(vec!["No session key supplied".into()])
+                vec!["No session key supplied".into()]
             }
             Packet::SEIP(_) if sk.is_some() => {
                 message_encrypted = true;
@@ -113,11 +113,11 @@ pub fn dump<W>(input: &mut (dyn io::Read + Sync + Send),
                     };
                     fields.push("Decryption failed".into());
                 }
-                Some(fields)
+                fields
             },
             Packet::AED(_) if sk.is_none() => {
                 message_encrypted = true;
-                Some(vec!["No session key supplied".into()])
+                vec!["No session key supplied".into()]
             }
             Packet::AED(_) if sk.is_some() => {
                 message_encrypted = true;
@@ -137,9 +137,9 @@ pub fn dump<W>(input: &mut (dyn io::Read + Sync + Send),
                 } else {
                     fields.push("Decryption failed".into());
                 }
-                Some(fields)
+                fields
             },
-            _ => None,
+            _ => Vec::new(),
         };
 
         let header = pp.header().clone();
@@ -184,13 +184,13 @@ struct Node {
     header: Header,
     packet: Packet,
     map: Option<Map>,
-    additional_fields: Option<Vec<String>>,
+    additional_fields: Vec<String>,
     children: Vec<Node>,
 }
 
 impl Node {
     fn new(header: Header, packet: Packet, map: Option<Map>,
-           additional_fields: Option<Vec<String>>) -> Self {
+           additional_fields: Vec<String>) -> Self {
         Node {
             header,
             packet,
@@ -226,7 +226,7 @@ impl PacketDumper {
 
     pub fn packet(&mut self, output: &mut dyn io::Write, depth: usize,
                   header: Header, p: Packet, map: Option<Map>,
-                  additional_fields: Option<Vec<String>>)
+                  additional_fields: Vec<String>)
                   -> Result<()> {
         let node = Node::new(header, p, map, additional_fields);
         if self.root.is_none() {
@@ -255,7 +255,7 @@ impl PacketDumper {
             format!("{}{} ", indent,
                     if node.children.is_empty() { " " } else { "│" });
         self.dump_packet(output, &indent_node, Some(&node.header), &node.packet,
-                         node.map.as_ref(), node.additional_fields.as_ref())?;
+                         node.map.as_ref(), &node.additional_fields)?;
         if node.children.is_empty() {
             return Ok(());
         }
@@ -275,7 +275,7 @@ impl PacketDumper {
 
     fn dump_packet(&self, mut output: &mut dyn io::Write, i: &str,
                   header: Option<&Header>, p: &Packet, map: Option<&Map>,
-                  additional_fields: Option<&Vec<String>>)
+                  additional_fields: &Vec<String>)
                   -> Result<()> {
         use self::openpgp::Packet::*;
 
@@ -723,10 +723,8 @@ impl PacketDumper {
             u => writeln!(output, "{}    Unknown variant: {:?}", i, u)?,
         }
 
-        if let Some(fields) = additional_fields {
-            for field in fields {
-                writeln!(output, "{}  {}", i, field)?;
-            }
+        for field in additional_fields {
+            writeln!(output, "{}  {}", i, field)?;
         }
 
         writeln!(output, "{}", i)?;
@@ -899,7 +897,7 @@ impl PacketDumper {
                 let indent = format!("{}      ", i);
                 write!(output, "{}", indent)?;
                 self.dump_packet(output, &indent, None, &sig.clone().into(),
-                                 None, None)?;
+                                 None, &Vec::new())?;
             },
             _ => {
                 if s.critical() {

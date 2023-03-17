@@ -40,44 +40,36 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
     match c.subcommand {
         Filter(command) => {
             let any_uid_predicates =
-                command.userid.is_some()
-                || command.name.is_some()
-                || command.email.is_some()
-                || command.domain.is_some();
+                ! command.userid.is_empty()
+                || !command.name.is_empty()
+                || !command.email.is_empty()
+                || !command.domain.is_empty();
             let uid_predicate = |uid: &UserID| {
                 let mut keep = false;
 
-                if let Some(userids) = &command.userid {
-                    for userid in userids {
-                        keep |= uid.value() == userid.as_bytes();
-                    }
+                for userid in &command.userid {
+                    keep |= uid.value() == userid.as_bytes();
                 }
 
-                if let Some(names) = &command.name {
-                    for name in names {
-                        keep |= uid
-                            .name().unwrap_or(None)
-                            .map(|n| &n == name)
-                            .unwrap_or(false);
-                    }
+                for name in &command.name {
+                    keep |= uid
+                        .name().unwrap_or(None)
+                        .map(|n| &n == name)
+                        .unwrap_or(false);
                 }
 
-                if let Some(emails) = &command.email {
-                    for email in emails {
-                        keep |= uid
-                            .email().unwrap_or(None)
-                            .map(|n| &n == email)
-                            .unwrap_or(false);
-                    }
+                for email in &command.email {
+                    keep |= uid
+                        .email().unwrap_or(None)
+                        .map(|n| &n == email)
+                        .unwrap_or(false);
                 }
 
-                if let Some(domains) = &command.domain {
-                    for domain in domains {
-                        keep |= uid
-                            .email().unwrap_or(None)
-                            .map(|n| n.ends_with(&format!("@{}", domain)))
-                            .unwrap_or(false);
-                    }
+                for domain in &command.domain {
+                    keep |= uid
+                        .email().unwrap_or(None)
+                        .map(|n| n.ends_with(&format!("@{}", domain)))
+                        .unwrap_or(false);
                 }
 
                 keep
@@ -86,15 +78,12 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
             let any_ua_predicates = false;
             let ua_predicate = |_ua: &UserAttribute| false;
 
-            let any_key_predicates = command.handle.is_some();
-            let handles: Vec<KeyHandle> =
-                if let Some(handles) = &command.handle {
-                    use std::str::FromStr;
-                    handles.iter().map(|h| KeyHandle::from_str(h))
-                        .collect::<Result<_>>()?
-                } else {
-                    Vec::with_capacity(0)
-                };
+            let any_key_predicates = ! command.handle.is_empty();
+            let handles: Vec<KeyHandle> = {
+                use std::str::FromStr;
+                command.handle.iter().map(|h| KeyHandle::from_str(h))
+                    .collect::<Result<_>>()?
+            };
             let key_predicate = |key: &Key<_, _>| {
                 let mut keep = false;
 

@@ -188,7 +188,7 @@ impl<'a, 'certdb> VerificationHelper for Helper<'a, 'certdb> {
             dumper.packet(&mut io::stderr(),
                           pp.recursion_depth() as usize,
                           pp.header().clone(), pp.packet.clone(),
-                          pp.map().cloned(), None)?;
+                          pp.map().cloned(), Vec::new())?;
         }
         Ok(())
     }

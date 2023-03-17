@@ -791,7 +791,7 @@ fn main() -> Result<()> {
                 load_certs(command.secret_key_file.iter().map(|s| s.as_ref()))?;
             let time = command.time.map(|t| t.time.into());
 
-            let notations = parse_notations(command.notation.unwrap_or_default())?;
+            let notations = parse_notations(command.notation)?;
 
             if let Some(merge) = command.merge {
                 let output = config.create_or_stdout_pgp(output, binary,

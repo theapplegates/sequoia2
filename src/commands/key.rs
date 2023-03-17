@@ -47,12 +47,11 @@ fn generate(
     let mut builder = CertBuilder::new();
 
     // User ID
-    match command.userid {
-        Some(uids) => for uid in uids {
+    if command.userid.is_empty() {
+        eprintln!("No user ID given, using direct key signature");
+    } else {
+        for uid in command.userid {
             builder = builder.add_userid(uid);
-        },
-        None => {
-            eprintln!("No user ID given, using direct key signature");
         }
     }
 

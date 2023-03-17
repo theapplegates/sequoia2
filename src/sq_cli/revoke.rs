@@ -176,7 +176,7 @@ certificate's creation time",
             then it will ignore the signature.  The notation is marked as \
             being human readable."
     )]
-    pub notation: Option<Vec<String>>,
+    pub notation: Vec<String>,
     #[clap(
         short = 'B',
         long,
@@ -330,7 +330,7 @@ certificate's creation time",
             then it will ignore the signature.  The notation is marked as \
             being human readable."
     )]
-    pub notation: Option<Vec<String>>,
+    pub notation: Vec<String>,
     #[clap(
         short = 'B',
         long,
@@ -451,7 +451,7 @@ certificate's creation time",
             then it will ignore the signature.  The notation is marked as \
             being human readable."
     )]
-    pub notation: Option<Vec<String>>,
+    pub notation: Vec<String>,
     #[clap(
         short = 'B',
         long,

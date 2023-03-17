@@ -147,7 +147,7 @@ pub fn certify(config: Config, c: certify::Command)
         (Some(_), Some(_)) => unreachable!("conflicting args"),
     }
 
-    let notations = parse_notations(c.notation.unwrap_or_default())?;
+    let notations = parse_notations(c.notation)?;
     for (critical, n) in notations {
         builder = builder.add_notation(
             n.name(),

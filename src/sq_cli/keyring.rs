@@ -92,7 +92,7 @@ pub struct FilterCommand {
         long_help = "Case-sensitively matches on the \
                 user id, requiring an exact match.",
     )]
-    pub userid: Option<Vec<String>>,
+    pub userid: Vec<String>,
     #[clap(
         long = "name",
         value_name = "NAME",
@@ -102,7 +102,7 @@ pub struct FilterCommand {
             and case-sensitively matches on the \
             name, requiring an exact match.",
     )]
-    pub name: Option<Vec<String>>,
+    pub name: Vec<String>,
     #[clap(
         long = "email",
         value_name = "ADDRESS",
@@ -112,7 +112,7 @@ pub struct FilterCommand {
             address and case-sensitively matches \
             on the email address, requiring an exact match.",
     )]
-    pub email: Option<Vec<String>>,
+    pub email: Vec<String>,
     #[clap(
         long = "domain",
         value_name = "FQDN",
@@ -123,7 +123,7 @@ pub struct FilterCommand {
             on the domain of the email address, \
             requiring an exact match.",
     )]
-    pub domain: Option<Vec<String>>,
+    pub domain: Vec<String>,
     #[clap(
         long = "handle",
         value_name = "FINGERPRINT|KEYID",
@@ -133,7 +133,7 @@ pub struct FilterCommand {
             including those certificates that match the \
             given fingerprint or key id.",
     )]
-    pub handle: Option<Vec<String>>,
+    pub handle: Vec<String>,
     #[clap(
         short = 'P',
         long = "prune-certs",

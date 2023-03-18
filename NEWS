@@ -34,6 +34,11 @@
      option replaces the various subcommand's `--time` argument as
      well as `sq key generate` and `sq key userid add`'s
      `--creation-time` arguments.
+   - Add top-level option, `--trust-root`, to allow the user to
+     specify trust roots.
+   - Extend `sq encrypt` to allow addressing recipients by User ID
+     (`--recipient-userid`) or email address (`--recipient-email`).
+     Only User IDs that can be fully authenticated are considered.
  * Deprecated functionality
    - `sq key generate --creation-time TIME` is deprecated in favor of
      `sq key generate --time TIME`.

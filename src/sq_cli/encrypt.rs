@@ -45,6 +45,21 @@ pub struct Command {
         help = "Emits binary data",
     )]
     pub binary: bool,
+
+    #[clap(
+        long = "recipient-email",
+        value_name = "EMAIL",
+        help = "Encrypts to all certificates that can be authenticated \
+                for the specified email address",
+    )]
+    pub recipients_email: Vec<String>,
+    #[clap(
+        long = "recipient-userid",
+        value_name = "USERID",
+        help = "Encrypts to all certificates that can be authenticated \
+                for the specified User ID",
+    )]
+    pub recipients_userid: Vec<String>,
     #[clap(
         long = "recipient-cert",
         value_name = "FINGERPRINT|KEYID",
@@ -57,6 +72,7 @@ pub struct Command {
         help = "Encrypts to all certificates in CERT_RING_FILE",
     )]
     pub recipients_file: Vec<String>,
+
     #[clap(
         long = "signer-file",
         value_name = "KEY_FILE",

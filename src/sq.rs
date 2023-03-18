@@ -27,6 +27,7 @@ use openpgp::{
 };
 use openpgp::{armor, Cert};
 use openpgp::crypto::Password;
+use openpgp::Fingerprint;
 use openpgp::packet::prelude::*;
 use openpgp::parse::{Parse, PacketParser, PacketParserResult};
 use openpgp::packet::signature::subpacket::NotationData;
@@ -35,10 +36,15 @@ use openpgp::serialize::{Serialize, stream::{Message, Armorer}};
 use openpgp::cert::prelude::*;
 use openpgp::policy::StandardPolicy as P;
 use openpgp::types::KeyFlags;
+use openpgp::types::RevocationStatus;
 
 use sequoia_cert_store as cert_store;
 use cert_store::Store;
 use cert_store::store::StoreError;
+use cert_store::store::UserIDQueryParams;
+
+use sequoia_wot as wot;
+use wot::store::Store as _;
 
 use clap::FromArgMatches;
 use crate::sq_cli::packet;
@@ -572,9 +578,9 @@ impl<'store> Config<'store> {
 
                     if let Some(keyflags) = keyflags.as_ref() {
                         certs.retain(|cert| {
-                            // XXX: Respect any subcommand-specific
-                            // reference time.
-                            let vc = match cert.with_policy(&self.policy, None) {
+                            let vc = match cert.with_policy(
+                                &self.policy, self.time)
+                            {
                                 Ok(vc) => vc,
                                 Err(err) => {
                                     let err = err.context(
@@ -635,6 +641,235 @@ impl<'store> Config<'store> {
 
         Ok(results)
     }
+
+    /// Looks up certificates by User ID or email address.
+    ///
+    /// This only returns certificates that can be authenticate for
+    /// the specified User ID (or email address, if `email` is true).
+    /// If no certificate can be authenticated for some User ID,
+    /// returns an error.  If multiple certificates can be
+    /// authenticated for a given User ID or email address, then
+    /// returns them all.
+    fn lookup_by_userid(&self, trust_roots: &[Fingerprint],
+                        userid: &[String], email: bool)
+        -> Result<Vec<Cert>>
+    {
+        if userid.is_empty() {
+            return Ok(Vec::new())
+        }
+
+        let cert_store = self.cert_store_or_else()?;
+
+        // Build a WoT network.
+
+        let cert_store = wot::store::CertStore::from_store(
+            cert_store, &self.policy, self.time);
+        let n = wot::Network::new(&cert_store)?;
+        let mut q = wot::QueryBuilder::new(&n);
+        q.roots(wot::Roots::new(trust_roots.iter().cloned()));
+        let q = q.build();
+
+        let mut results: Vec<Cert> = Vec::new();
+        // We try hard to not just stop at the first error, but lint
+        // the input so that the user gets as much feedback as
+        // possible.  The first error that we encounter is saved here,
+        // and returned.  The rest are printed directly.
+        let mut error: Option<anyhow::Error> = None;
+
+        // Iterate over each User ID address, find any certificates
+        // associated with the User ID, validate the certificates, and
+        // finally authenticate them for the User ID.
+        for userid in userid.iter() {
+            let matches: Vec<(Fingerprint, UserID)> = if email {
+                if let Err(err) = UserIDQueryParams::is_email(userid) {
+                    eprintln!("{:?} is not a valid email address", userid);
+                    if error.is_none() {
+                        error = Some(err);
+                    }
+
+                    continue;
+                }
+
+                // Get all certificates that are associated with the email
+                // address.
+                cert_store.lookup_synopses_by_email(userid)
+            } else {
+                let userid = UserID::from(&userid[..]);
+                cert_store.lookup_synopses_by_userid(userid.clone())
+                    .into_iter()
+                    .map(|fpr| (fpr, userid.clone()))
+                    .collect()
+            };
+
+            if matches.is_empty() {
+                if error.is_none() {
+                    error = Some(anyhow::anyhow!(
+                        "No certificates are associated with {:?}",
+                        userid));
+                }
+                continue;
+            }
+
+            struct Entry {
+                fpr: Fingerprint,
+                userid: UserID,
+                cert: Result<Cert>,
+            }
+            let entries = matches.into_iter().map(|(fpr, userid)| {
+                // We've got a match, or two, or three...  Lookup the certs.
+                let cert = match cert_store.lookup_by_cert_fpr(&fpr) {
+                    Ok(cert) => cert,
+                    Err(err) => {
+                        let err = err.context(format!(
+                            "Error fetching {} ({:?})",
+                            fpr, String::from_utf8_lossy(userid.value())));
+                        return Entry { fpr, userid, cert: Err(err), };
+                    }
+                };
+
+                // Parse the LazyCerts.
+                let cert = match cert.into_owned().into_cert() {
+                    Ok(cert) => cert,
+                    Err(err) => {
+                        let err = err.context(format!(
+                            "Error parsing {} ({:?})",
+                            fpr, String::from_utf8_lossy(userid.value())));
+                        return Entry { fpr, userid, cert: Err(err), };
+                    }
+                };
+
+                // Check the certs for validity.
+                let vc = match cert.with_policy(&self.policy, self.time) {
+                    Ok(vc) => vc,
+                    Err(err) => {
+                        let err = err.context(format!(
+                            "Certificate {} ({:?}) is invalid",
+                            fpr, String::from_utf8_lossy(userid.value())));
+                        return Entry { fpr, userid, cert: Err(err) };
+                    }
+                };
+
+                if let Err(err) = vc.alive() {
+                    let err = err.context(format!(
+                        "Certificate {} ({:?}) is invalid",
+                        fpr, String::from_utf8_lossy(userid.value())));
+                    return Entry { fpr, userid, cert: Err(err), };
+                }
+
+                if let RevocationStatus::Revoked(_) = vc.revocation_status() {
+                    let err = anyhow::anyhow!(
+                        "Certificate {} ({:?}) is revoked",
+                        fpr, String::from_utf8_lossy(userid.value()));
+                    return Entry { fpr, userid, cert: Err(err), };
+                }
+
+                if let Some(ua) = vc.userids().find(|ua| {
+                    ua.userid() == &userid
+                })
+                {
+                    if let RevocationStatus::Revoked(_) = ua.revocation_status() {
+                        let err = anyhow::anyhow!(
+                            "User ID {:?} on certificate {} is revoked",
+                            String::from_utf8_lossy(userid.value()), fpr);
+                        return Entry { fpr, userid, cert: Err(err), };
+                    }
+                }
+
+                // Authenticate the bindings.
+                let paths = q.authenticate(
+                    &userid, cert.fingerprint(),
+                    // XXX: Make this user configurable.
+                    wot::FULLY_TRUSTED);
+                let r = if paths.amount() < wot::FULLY_TRUSTED {
+                    Err(anyhow::anyhow!(
+                        "{}, {:?} cannot be authenticated at the \
+                         required level ({} of {}).  After checking \
+                         that {} really controls {}, you could certify \
+                         their certificate by running \
+                         `sq certify MY_KEY.pgp {} {}`.",
+                        cert.fingerprint(),
+                        String::from_utf8_lossy(userid.value()),
+                        paths.amount(), wot::FULLY_TRUSTED,
+                        String::from_utf8_lossy(userid.value()),
+                        cert.fingerprint(),
+                        cert.fingerprint(),
+                        String::from_utf8_lossy(userid.value())))
+                } else {
+                    Ok(cert)
+                };
+
+                Entry { fpr, userid, cert: r, }
+            });
+
+            // Partition into good (successfully authenticated) and
+            // bad (an error occurred).
+            let (good, bad): (Vec<Entry>, _)
+                = entries.partition(|entry| entry.cert.is_ok());
+
+            if good.is_empty() {
+                // We've only got errors.
+
+                let err = if bad.is_empty() {
+                    // We got nothing :/.
+                    if email {
+                        anyhow::anyhow!(
+                            "No known certificates have the email address {:?}",
+                            userid)
+                    } else {
+                        anyhow::anyhow!(
+                            "No known certificates have the User ID {:?}",
+                            userid)
+                    }
+                } else {
+                    if email {
+                        anyhow::anyhow!(
+                            "None of the certificates with the email \
+                             address {:?} can be authenticated using \
+                             the configured trust model",
+                            userid)
+                    } else {
+                        anyhow::anyhow!(
+                            "None of the certificates with the User ID \
+                             {:?} can be authenticated using \
+                             the configured trust model",
+                            userid)
+                    }
+                };
+
+                eprintln!("{:?}:\n", err);
+                if error.is_none() {
+                    error = Some(err);
+                }
+
+                // Print the errors.
+                for (i, Entry { fpr, userid, cert }) in bad.into_iter().enumerate() {
+                    eprintln!("{}. When considering {} ({}):",
+                              i + 1, fpr,
+                              String::from_utf8_lossy(userid.value()));
+                    let err = match cert {
+                        Ok(_) => unreachable!(),
+                        Err(err) => err,
+                    };
+
+                    print_error_chain(&err);
+                }
+            } else {
+                // We have at least one authenticated certificate.
+                // Silently ignore any errors.
+                results.extend(
+                    good.into_iter().filter_map(|Entry { cert, .. }| {
+                        cert.ok()
+                    }));
+            }
+        }
+
+        if let Some(error) = error {
+            Err(error)
+        } else {
+            Ok(results)
+        }
+    }
+
 
     /// Looks up a certificate.
     ///
@@ -765,6 +1000,14 @@ fn main() -> Result<()> {
                               true,
                               false)
                     .context("--recipient-cert")?);
+            recipients.extend(
+                config.lookup_by_userid(&c.trust_roots,
+                                        &command.recipients_email, true)
+                    .context("--recipient-email")?);
+            recipients.extend(
+                config.lookup_by_userid(&c.trust_roots,
+                                        &command.recipients_userid, false)
+                    .context("--recipient-userid")?);
             let mut input = open_or_stdin(command.io.input.as_deref())?;
 
             let output = config.create_or_stdout_pgp(

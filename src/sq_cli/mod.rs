@@ -6,6 +6,9 @@ use clap::{Command, CommandFactory, Parser, Subcommand};
 #[cfg(feature = "autocrypt")]
 pub mod autocrypt;
 
+use sequoia_openpgp as openpgp;
+use openpgp::Fingerprint;
+
 pub mod armor;
 pub mod certify;
 pub mod dane;
@@ -149,6 +152,15 @@ $ sq --time 20130721T0550+0200 verify msg.pgp
 ",
     )]
     pub time: Option<String>,
+    #[clap(
+        long = "trust-root",
+        value_name = "FINGERPRINT|KEYID",
+        help = "Considers the specified certificate to be a trust root",
+        long_help = "Considers the specified certificate to be a trust root. \
+                     Trust roots are used by trust models, e.g., the web of \
+                     trust, to authenticate certificates and User IDs."
+    )]
+    pub trust_roots: Vec<Fingerprint>,
     #[clap(subcommand)]
     pub subcommand: SqSubcommands,
 }

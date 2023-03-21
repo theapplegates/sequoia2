@@ -335,8 +335,12 @@ pub struct Config<'a> {
     time: SystemTime,
     /// Have we emitted the warning yet?
     unstable_cli_warning_emitted: bool,
+
     cert_store_path: Option<PathBuf>,
     cert_store: Option<OnceCell<cert_store::CertStore<'a>>>,
+
+    // The value of --trust-root.
+    trust_roots: Vec<Fingerprint>,
 }
 
 impl<'store> Config<'store> {
@@ -941,6 +945,7 @@ fn main() -> Result<()> {
         } else {
             Some(OnceCell::new())
         },
+        trust_roots: c.trust_roots.clone(),
     };
 
     match c.subcommand {
@@ -1358,6 +1363,28 @@ fn test_parse_iso8601() {
     // parse_iso8601("201703", z).unwrap(); // ditto
     parse_iso8601("2017031", z).unwrap();
     // parse_iso8601("2017", z).unwrap(); // ditto
+}
+
+// Sometimes the same error cascades, e.g.:
+//
+// ```
+// $ sq-wot --time 20230110T0406   --keyring sha1.pgp path B5FA089BA76FE3E17DC11660960E53286738F94C 231BC4AB9D8CAB86D1622CE02C0CE554998EECDB FABA8485B2D4D5BF1582AA963A8115E774FA9852 "<carol@example.org>"
+// [ ] FABA8485B2D4D5BF1582AA963A8115E774FA9852 <carol@example.org>: not authenticated (0%)
+//   ◯ B5FA089BA76FE3E17DC11660960E53286738F94C ("<alice@example.org>")
+//   │   No adequate certification found.
+//   │   No binding signature at time 2023-01-10T04:06:00Z
+//   │     No binding signature at time 2023-01-10T04:06:00Z
+//   │     No binding signature at time 2023-01-10T04:06:00Z
+// ...
+// ```
+//
+// Compress these.
+fn error_chain(err: &anyhow::Error) -> Vec<String> {
+    let mut errs = std::iter::once(err.to_string())
+        .chain(err.chain().map(|source| source.to_string()))
+        .collect::<Vec<String>>();
+    errs.dedup();
+    errs
 }
 
 /// Prints the error and causes, if any.

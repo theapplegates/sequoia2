@@ -39,6 +39,12 @@
    - Extend `sq encrypt` to allow addressing recipients by User ID
      (`--recipient-userid`) or email address (`--recipient-email`).
      Only User IDs that can be fully authenticated are considered.
+   - Extend `sq verify` to verify certificates looked up from the
+     certificate store using the web of trust.  If the signature
+     includes a Signer's User ID packet, and the binding can be fully
+     authenticated, consider the signature to be authenticated.  If
+     there is no Signer's User ID packet, consider the signature to be
+     authenticated if any binding can fully be authenticated.
  * Deprecated functionality
    - `sq key generate --creation-time TIME` is deprecated in favor of
      `sq key generate --time TIME`.

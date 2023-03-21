@@ -35,6 +35,9 @@ use openpgp::types::RevocationStatus;
 use sequoia_cert_store as cert_store;
 use cert_store::Store;
 
+use sequoia_wot as wot;
+use wot::store::Store as _;
+
 use crate::{
     Config,
 };
@@ -62,6 +65,8 @@ pub mod import;
 pub mod export;
 pub mod net;
 pub mod certify;
+
+use crate::error_chain;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GetKeysOptions {
@@ -445,6 +450,129 @@ pub fn encrypt(opts: EncryptOpts) -> Result<()> {
     Ok(())
 }
 
+// Prints the path in the web of trust.
+fn print_path(path: &wot::PathLints, target_userid: &UserID, prefix: &str)
+{
+    let certification_count = path.certifications().count();
+
+    eprint!("{}◯ {}", prefix, path.root().key_handle());
+    if certification_count == 0 {
+        eprint!(" {:?}", String::from_utf8_lossy(target_userid.value()));
+    } else if let Some(userid) = path.root().primary_userid() {
+        eprint!(" ({:?})",
+                String::from_utf8_lossy(userid.value()));
+    }
+    eprintln!("");
+
+    for (last, (cert, certification)) in path
+        .certs()
+        .zip(path.certifications())
+        .enumerate()
+        .map(|(j, c)| {
+            if j + 1 == certification_count {
+                (true, c)
+            } else {
+                (false, c)
+            }
+        })
+    {
+        eprint!("{}│  ", prefix);
+        if let Some(certification) = certification.certification() {
+            if certification.amount() < wot::FULLY_TRUSTED {
+                eprint!(" partially certified (amount: {} of {})",
+                        certification.amount(), wot::FULLY_TRUSTED);
+            } else {
+                eprint!(" certified");
+            }
+
+            if last {
+                eprint!(" the following binding");
+            } else {
+                eprint!(" the following certificate");
+            }
+
+            eprint!(" on {}",
+                    chrono::DateTime::<chrono::Utc>::from(
+                       certification.creation_time()).format("%Y-%m-%d"));
+            if let Some(e) = certification.expiration_time() {
+                eprint!(" (expiry: {})",
+                        chrono::DateTime::<chrono::Utc>::from(
+                            e).format("%Y-%m-%d"));
+            }
+            if certification.depth() > 0.into() {
+                eprint!(" as a");
+                if certification.amount() != wot::FULLY_TRUSTED {
+                    eprint!(" partially trusted ({} of {})",
+                            certification.amount(), wot::FULLY_TRUSTED);
+                } else {
+                    eprint!(" fully trusted");
+                }
+                if certification.depth() == 1.into() {
+                    eprint!(" introducer (depth: {})",
+                            certification.depth());
+                } else {
+                    eprint!(" meta-introducer (depth: {})",
+                            certification.depth());
+                }
+            }
+        } else {
+            eprint!(" No adequate certification found.");
+        }
+        eprintln!("");
+
+        for err in cert.errors().iter().chain(cert.lints()) {
+            for (i, msg) in error_chain(err).into_iter().enumerate() {
+                eprintln!("{}│   {}{}",
+                          prefix,
+                          if i == 0 { "" } else { "  " },
+                          msg);
+            }
+        }
+        for err in certification.errors().iter()
+            .chain(certification.lints())
+        {
+            for (i, msg) in error_chain(err).into_iter().enumerate() {
+                eprintln!("{}│   {}{}",
+                          prefix,
+                          if i == 0 { "" } else { "  " },
+                          msg);
+            }
+        }
+
+        eprint!("{}{} {}",
+                prefix,
+                if last { "└" } else { "├" },
+                certification.target());
+
+        if last {
+            eprint!(" {:?}",
+                    String::from_utf8_lossy(target_userid.value()));
+        } else {
+            if let Some(userid) = certification.target_cert()
+                .and_then(|c| c.primary_userid())
+            {
+                eprint!(" ({:?})",
+                        String::from_utf8_lossy(userid.value()));
+            }
+        }
+        eprintln!("");
+
+        if last {
+            let target = path.certs().last().expect("have one");
+            for err in target.errors().iter().chain(target.lints()) {
+                for (i, msg) in error_chain(err).into_iter().enumerate() {
+                    eprintln!("{}    {}{}",
+                              prefix,
+                              if i == 0 { "" } else { "  " },
+                              msg);
+                }
+            }
+        }
+    }
+
+    eprintln!("");
+}
+
 struct VHelper<'a, 'store> {
     #[allow(dead_code)]
     config: &'a Config<'store>,
@@ -492,7 +620,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
 
         let mut dirty = false;
         p(&mut dirty, "good signature", self.good_signatures);
-        p(&mut dirty, "good checksum", self.good_checksums);
+        p(&mut dirty, "unauthenticated checksum", self.good_checksums);
         p(&mut dirty, "unknown checksum", self.unknown_checksums);
         p(&mut dirty, "bad signature", self.bad_signatures);
         p(&mut dirty, "bad checksum", self.bad_checksums);
@@ -503,12 +631,13 @@ impl<'a, 'store> VHelper<'a, 'store> {
     }
 
     fn print_sigs(&mut self, results: &[VerificationResult]) {
+        let reference_time = self.config.time;
+
         use crate::print_error_chain;
         use self::VerificationError::*;
         for result in results {
-            let (issuer, level) = match result {
-                Ok(GoodChecksum { sig, ka, .. }) =>
-                    (ka.key().keyid(), sig.level()),
+            let (sig, ka) = match result {
+                Ok(GoodChecksum { sig, ka, .. }) => (sig, ka),
                 Err(MalformedSignature { error, .. }) => {
                     eprintln!("Malformed signature:");
                     print_error_chain(error);
@@ -555,23 +684,148 @@ impl<'a, 'store> VHelper<'a, 'store> {
                 }
             };
 
-            let trusted = self.trusted.contains(&issuer);
-            let what = match (level == 0, trusted) {
-                (true,  true)  => "signature".into(),
-                (false, true)  => format!("level {} notarization", level),
-                (true,  false) => "checksum".into(),
-                (false, false) =>
-                    format!("level {} notarizing checksum", level),
-            };
+            let cert = ka.cert();
+            let cert_fpr = cert.fingerprint();
+            let issuer = ka.key().keyid();
+            let mut signer_userid = ka.cert().primary_userid()
+                .map(|ua| String::from_utf8_lossy(ua.value()).to_string())
+                .unwrap_or_else(|_| "<unknown>".to_string());
+
+            // Direct trust.
+            let mut trusted = self.trusted.contains(&issuer);
+            let mut prefix = "";
+            if ! trusted && ! self.config.trust_roots.is_empty() {
+                prefix = "  ";
+
+                // Web of trust.
+                eprintln!("Authenticating {} ({:?}) using the web of trust:",
+                          cert_fpr, signer_userid);
+
+                if let Ok(Some(cert_store)) = self.config.cert_store() {
+                    // Build the network.
+                    let cert_store = wot::store::CertStore::from_store(
+                        cert_store, &self.config.policy, reference_time);
+
+                    let userids = if let Some(userid) = sig.signers_user_id() {
+                        let userid = UserID::from(userid);
+                        eprintln!("{}Signature was made by {}",
+                                  prefix,
+                                  String::from_utf8_lossy(userid.value()));
+                        vec![ userid ]
+                    } else {
+                        cert_store.certified_userids_of(&cert_fpr)
+                    };
+
+                    if userids.is_empty() {
+                        eprintln!("{}{} cannot be authenticated.  \
+                                   It has no User IDs",
+                                  prefix, cert_fpr);
+                    } else if let Ok(n) = wot::Network::new(&cert_store) {
+                        let mut q = wot::QueryBuilder::new(&n);
+                        q.roots(wot::Roots::new(
+                            self.config.trust_roots.iter().cloned()));
+                        let q = q.build();
+
+                        let authenticated_userids
+                            = userids.into_iter().filter(|userid| {
+                                let userid_str =
+                                    String::from_utf8_lossy(userid.value());
+
+                                let paths = q.authenticate(
+                                    userid, cert.fingerprint(),
+                                    // XXX: Make this user configurable.
+                                    wot::FULLY_TRUSTED);
+
+                                let amount = paths.amount();
+                                let authenticated = if amount >= wot::FULLY_TRUSTED {
+                                    eprintln!("{}Fully authenticated \
+                                               ({} of {}) {}, {}",
+                                              prefix,
+                                              amount, wot::FULLY_TRUSTED,
+                                              cert_fpr,
+                                              userid_str);
+                                    true
+                                } else if amount > 0 {
+                                    eprintln!("{}Partially authenticated \
+                                               ({} of {}) {}, {:?} ",
+                                              prefix,
+                                              amount, wot::FULLY_TRUSTED,
+                                              cert_fpr,
+                                              userid_str);
+                                    false
+                                } else {
+                                    eprintln!("{}{}: {:?} is unauthenticated \
+                                               and may be an impersonation!",
+                                              prefix,
+                                              cert_fpr,
+                                              userid_str);
+                                    false
+                                };
+
+                                for (i, (path, amount)) in paths.iter().enumerate() {
+                                    let prefix = if paths.len() > 1 {
+                                        eprintln!("{}  Path #{} of {}, \
+                                                  trust amount {}:",
+                                                 prefix,
+                                                 i + 1, paths.len(), amount);
+                                        format!("{}    ", prefix)
+                                    } else {
+                                        format!("{}  ", prefix)
+                                    };
+
+                                    print_path(&path.into(), userid, &prefix)
+                                }
+
+                                authenticated
+                            })
+                            .collect::<Vec<UserID>>();
+
+                        if authenticated_userids.is_empty() {
+                            trusted = false;
+                        } else {
+                            trusted = true;
+                            signer_userid = String::from_utf8_lossy(
+                                authenticated_userids[0].value()).to_string();
+                        }
+                    } else {
+                        eprintln!("Failed to build web of trust network.");
+                    }
+                } else {
+                    eprintln!("Skipping, certificate store has been disabled");
+                }
+            }
 
             let issuer_str = issuer.to_string();
             let label = self.labels.get(&issuer).unwrap_or(&issuer_str);
-            eprintln!("Good {} from {}", what, label);
+
+            let level = sig.level();
+            match (level == 0, trusted) {
+                (true,  true)  => {
+                    eprintln!("{}Good signature from {} ({:?})",
+                              prefix, label, signer_userid);
+                }
+                (false, true)  => {
+                    eprintln!("{}Good level {} notarization from {} ({:?})",
+                              prefix, level, label, signer_userid);
+                }
+                (true,  false) => {
+                    eprintln!("{}Unauthenticated checksum from {} ({:?})",
+                              prefix, label, signer_userid);
+                }
+                (false, false) => {
+                    eprintln!("{}Unauthenticated level {} notarizing \
+                               checksum from {} ({:?})",
+                              prefix, level, label, signer_userid);
+                }
+            };
+
             if trusted {
                 self.good_signatures += 1;
             } else {
                 self.good_checksums += 1;
             }
+
+            eprintln!("");
         }
     }
 }
@@ -628,7 +882,8 @@ impl<'a, 'store> VerificationHelper for VHelper<'a, 'store> {
             Ok(())
         } else {
             self.print_status();
-            Err(anyhow::anyhow!("Verification failed"))
+            Err(anyhow::anyhow!("Verification failed: could not fully \
+                                 authenticate any signatures"))
         }
     }
 }

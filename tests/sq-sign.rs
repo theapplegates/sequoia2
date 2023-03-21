@@ -1031,7 +1031,7 @@ fn sq_sign_using_cert_store() -> Result<()> {
 
     // The default trust model says that certificates from the
     // certificate store are not authenticated.
-    assert!(stderr.contains("Good checksum from "),
+    assert!(stderr.contains("Unauthenticated checksum from "),
             "stdout:\n{}\nstderr: {}", stdout, stderr);
     assert!(stderr.contains("Error: Verification failed"),
             "stdout:\n{}\nstderr: {}", stdout, stderr);
@@ -1054,6 +1054,250 @@ fn sq_sign_using_cert_store() -> Result<()> {
             "stdout:\n{}\nstderr: {}", stdout, stderr);
     assert!(stderr.contains("1 good signature."),
             "stdout:\n{}\nstderr: {}", stdout, stderr);
+
+    Ok(())
+}
+
+// Verify signatures using the web of trust to authenticate the
+// signers.
+#[test]
+fn sq_verify_wot() -> Result<()> {
+    let dir = TempDir::new()?;
+
+    let certd = dir.path().join("cert.d").display().to_string();
+    std::fs::create_dir(&certd).expect("mkdir works");
+
+    let alice_pgp = dir.path().join("alice.pgp").display().to_string();
+    let bob_pgp = dir.path().join("bob.pgp").display().to_string();
+    let carol_pgp = dir.path().join("carol.pgp").display().to_string();
+    let dave_pgp = dir.path().join("dave.pgp").display().to_string();
+    let msg_pgp = dir.path().join("msg.pgp").display().to_string();
+
+    // Imports a certificate.
+    let sq_import = |cert_store: &str, files: &[&str], stdin: Option<&str>| {
+        let mut cmd = Command::cargo_bin("sq").expect("have sq");
+        cmd.args(["--cert-store", cert_store, "import"]);
+        for file in files {
+            cmd.arg(file);
+        }
+        if let Some(stdin) = stdin {
+            cmd.write_stdin(stdin);
+        }
+        cmd.assert().success();
+    };
+
+    // Generates a key.
+    //
+    // If cert_store is not `None`, then the resulting certificate is also
+    // imported.
+    let sq_gen_key = |cert_store: Option<&str>, userids: &[&str], file: &str|
+        -> Cert
+    {
+        let mut cmd = Command::cargo_bin("sq").expect("have sq");
+        cmd.args(["--no-cert-store",
+                  "key", "generate",
+                  "--expires", "never",
+                  "--export", file]);
+        for userid in userids.iter() {
+            cmd.args(["--userid", userid]);
+        }
+        cmd.assert().success();
+
+        if let Some(cert_store) = cert_store {
+            sq_import(cert_store, &[ file ], None);
+        }
+
+        Cert::from_file(file).expect("valid certificate")
+    };
+
+    // Verifies a signed message.
+    let sq_verify = |cert_store: Option<&str>,
+                     trust_roots: &[&str],
+                     signer_files: &[&str],
+                     msg_pgp: &str|
+    {
+        let mut cmd = Command::cargo_bin("sq").expect("have sq");
+        if let Some(cert_store) = cert_store {
+            cmd.args(&["--cert-store", cert_store]);
+        } else {
+            cmd.arg("--no-cert-store");
+        }
+        for trust_root in trust_roots {
+            cmd.args(&["--trust-root", trust_root]);
+        }
+        cmd.arg("verify");
+        for signer_file in signer_files {
+            cmd.args(&["--signer-file", signer_file]);
+        }
+        cmd.arg(msg_pgp);
+        let output = cmd.output().expect("can run");
+
+        (output.status.clone(),
+         String::from_utf8_lossy(&output.stdout).to_string(),
+         String::from_utf8_lossy(&output.stderr).to_string())
+    };
+
+    // Certifies a binding.
+    //
+    // The certification is imported into the cert store.
+    let sq_certify = |cert_store: &str,
+                      key: &str, cert: &str, userid: &str,
+                      trust_amount: Option<usize>|
+    {
+        let mut cmd = Command::cargo_bin("sq").expect("have sq");
+        cmd.args(&["--cert-store", cert_store]);
+        cmd.args(&["certify", key, cert, userid]);
+        if let Some(trust_amount) = trust_amount {
+            cmd.args(&["--amount", &trust_amount.to_string()[..]]);
+        }
+        let output = cmd.output().expect("can run");
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        assert!(output.status.success(),
+                "sq certify\nstdout:\n{}\nstderr:\n{}",
+                stdout, stderr);
+
+        // Import the certification.
+        sq_import(cert_store, &[], Some(&stdout));
+        let output = cmd.output().expect("can run");
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        assert!(output.status.success(),
+                "sq certify | sq import\nstdout:\n{}\nstderr:\n{}",
+                stdout, stderr);
+    };
+
+    let alice = sq_gen_key(Some(&certd), &[ "<alice@example.org>" ], &alice_pgp);
+    let bob = sq_gen_key(Some(&certd), &[ "<bob@example.org>" ], &bob_pgp);
+    let carol = sq_gen_key(Some(&certd), &[ "<carol@example.org>" ], &carol_pgp);
+    let dave = sq_gen_key(Some(&certd), &[ "<dave@example.org>" ], &dave_pgp);
+
+    let alice_fpr = alice.fingerprint().to_string();
+    let bob_fpr = bob.fingerprint().to_string();
+    let carol_fpr = carol.fingerprint().to_string();
+    let dave_fpr = dave.fingerprint().to_string();
+
+    // Sign a message.
+    Command::cargo_bin("sq")
+        .unwrap()
+        .arg("--no-cert-store")
+        .arg("sign")
+        .args(["--signer-file", &bob_pgp])
+        .args(["--signer-file", &carol_pgp])
+        .args(["--signer-file", &dave_pgp])
+        .args(["--output", &msg_pgp])
+        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
+        .assert()
+        .success();
+
+    // When designating the signers using a file, the signers are
+    // fully trusted.
+    {
+        let output = sq_verify(Some(&certd), &[], &[&bob_pgp], &msg_pgp);
+        assert!(output.0.success());
+        let output = sq_verify(Some(&certd), &[], &[&carol_pgp], &msg_pgp);
+        assert!(output.0.success());
+        let output = sq_verify(Some(&certd), &[], &[&dave_pgp], &msg_pgp);
+        assert!(output.0.success());
+
+        // Alice did not sign it so this should fail.
+        let output = sq_verify(Some(&certd), &[], &[&alice_pgp], &msg_pgp);
+        assert!(! output.0.success());
+
+        // But, one good signature is enough.
+        let output = sq_verify(Some(&certd), &[], &[&alice_pgp, &bob_pgp], &msg_pgp);
+        assert!(output.0.success());
+    }
+
+    // When the signers' certificates are found in the cert store, and
+    // they can't be authenticated with the web of trust, the
+    // verification will fail.
+    {
+        let output = sq_verify(Some(&certd), &[], &[], &msg_pgp);
+        assert!(! output.0.success(),
+                "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+        assert!(output.2.contains("Unauthenticated checksum from "),
+                "stdout:\n{}\nstderr:\n{}",
+                output.1, output.2);
+
+        // Specifying a trust root won't help if there is no path to a
+        // signer.
+        let output = sq_verify(Some(&certd), &[&alice_fpr], &[], &msg_pgp);
+        assert!(! output.0.success(),
+                "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+        assert!(output.2.contains("Unauthenticated checksum from "),
+                "stdout:\n{}\nstderr:\n{}",
+                output.1, output.2);
+    }
+
+    // A trust root can certify itself
+    {
+        let output = sq_verify(Some(&certd), &[&bob_fpr], &[], &msg_pgp);
+        assert!(output.0.success(),
+                "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+        assert!(output.2.contains("Good signature from "),
+                "stdout:\n{}\nstderr:\n{}",
+                output.1, output.2);
+
+        let output = sq_verify(
+            Some(&certd), &[&alice_fpr, &bob_fpr], &[], &msg_pgp);
+        assert!(output.0.success(),
+                "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+        assert!(output.2.contains("Good signature from "),
+                "stdout:\n{}\nstderr:\n{}",
+                output.1, output.2);
+    }
+
+    // Have Alice partially certify Bob, and make Alice the trust
+    // root.  The signature should still be bad.
+    {
+        sq_certify(&certd, &alice_pgp,
+                   &bob.fingerprint().to_string(), "<bob@example.org>",
+                   Some(90));
+        let output = sq_verify(Some(&certd), &[&alice_fpr], &[], &msg_pgp);
+        assert!(! output.0.success(),
+                "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+        assert!(output.2.contains("Unauthenticated checksum from "),
+                "stdout:\n{}\nstderr:\n{}",
+                output.1, output.2);
+    }
+
+    // Have Alice also partially certify Carol, and make Alice the
+    // trust root.  Bob and Carol combined don't (currently) make the
+    // signature good.
+    {
+        sq_certify(&certd, &alice_pgp,
+                   &carol_fpr, "<carol@example.org>",
+                   Some(60));
+        let output = sq_verify(Some(&certd), &[&alice_fpr], &[], &msg_pgp);
+        assert!(! output.0.success(),
+                "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+        assert!(output.2.contains("Unauthenticated checksum from "),
+                "stdout:\n{}\nstderr:\n{}",
+                output.1, output.2);
+        assert!(output.2.contains("3 unauthenticated checksums"),
+                "stdout:\n{}\nstderr:\n{}",
+                output.1, output.2);
+    }
+
+    // Have Alice fully certify Dave, and make Alice the trust root.
+    // Now the signature will be considered verified.
+    {
+        sq_certify(&certd, &alice_pgp,
+                   &dave_fpr, "<dave@example.org>",
+                   None);
+        let output = sq_verify(Some(&certd), &[&alice_fpr], &[], &msg_pgp);
+        assert!(output.0.success(),
+                "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+        assert!(output.2.contains("Good signature from "),
+                "stdout:\n{}\nstderr:\n{}",
+                output.1, output.2);
+        assert!(output.2.contains("1 good signature, 2 unauthenticated checksums"),
+                "stdout:\n{}\nstderr:\n{}",
+                output.1, output.2);
+    }
 
     Ok(())
 }

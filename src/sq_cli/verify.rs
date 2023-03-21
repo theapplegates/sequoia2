@@ -25,6 +25,15 @@ In addition to that, the last 25 MiB of the message are withheld,
 i.e. if the message is smaller than 25 MiB, no output is produced, and
 if it is larger, then the output will be truncated.
 
+A signature is considered to have been authenticated if the signer can
+be authenticated.  If the signer is provided via \"--signer-file\",
+then the signer is considered authenticated.  Otherwise, the signer is
+looked up and authenticated using the web of trust.  If at least one
+User ID can be fully authenticated, then the signature is considered
+to have been authenticated.  If the signature includes a Signer User
+ID subpacket, then only that User ID is considered.  Note: the User ID
+need not be self signed.
+
 The converse operation is \"sq sign\".
 
 If you are looking for a standalone program to verify detached

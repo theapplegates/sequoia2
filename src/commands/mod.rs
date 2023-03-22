@@ -65,6 +65,7 @@ pub mod import;
 pub mod export;
 pub mod net;
 pub mod certify;
+pub mod link;
 
 use crate::error_chain;
 
@@ -694,7 +695,8 @@ impl<'a, 'store> VHelper<'a, 'store> {
             // Direct trust.
             let mut trusted = self.trusted.contains(&issuer);
             let mut prefix = "";
-            if ! trusted && ! self.config.trust_roots.is_empty() {
+            let trust_roots = self.config.trust_roots();
+            if ! trusted && ! trust_roots.is_empty() {
                 prefix = "  ";
 
                 // Web of trust.
@@ -722,8 +724,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
                                   prefix, cert_fpr);
                     } else if let Ok(n) = wot::Network::new(&cert_store) {
                         let mut q = wot::QueryBuilder::new(&n);
-                        q.roots(wot::Roots::new(
-                            self.config.trust_roots.iter().cloned()));
+                        q.roots(wot::Roots::new(trust_roots.into_iter()));
                         let q = q.build();
 
                         let authenticated_userids
@@ -811,11 +812,21 @@ impl<'a, 'store> VHelper<'a, 'store> {
                 (true,  false) => {
                     eprintln!("{}Unauthenticated checksum from {} ({:?})",
                               prefix, label, signer_userid);
+                    eprintln!("{}  After checking that {} belongs to {:?}, \
+                               you can authenticate the binding using \
+                               'sq link add {} {:?}'.",
+                              prefix, issuer_str, signer_userid,
+                              issuer_str, signer_userid);
                 }
                 (false, false) => {
                     eprintln!("{}Unauthenticated level {} notarizing \
                                checksum from {} ({:?})",
                               prefix, level, label, signer_userid);
+                    eprintln!("{}  After checking that {} belongs to {:?}, \
+                               you can authenticate the binding using \
+                               'sq link add {} {:?}'.",
+                              prefix, issuer_str, signer_userid,
+                              issuer_str, signer_userid);
                 }
             };
 

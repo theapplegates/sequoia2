@@ -1,0 +1,454 @@
+use std::sync::Mutex;
+
+use tempfile::TempDir;
+use assert_cmd::Command;
+
+use once_cell::sync::OnceCell;
+
+use sequoia_openpgp as openpgp;
+use openpgp::Result;
+use openpgp::Cert;
+use openpgp::parse::Parse;
+
+fn artifact(filename: &str) -> String {
+    format!("tests/data/{}", filename)
+}
+
+// We are going to replace certifications, and we want to make sure
+// that the newest one is the active one.  This means ensuring that
+// the newer one has a newer timestamp.  To avoid sleeping for a
+// second, the resolution of the time stamp, we pass an explicit time
+// to each operation.
+//
+// This function drives the clock forward, and ensures that every
+// operation "happens" at a different point in time.
+static TIME: OnceCell<Mutex<chrono::DateTime<chrono::Utc>>> = OnceCell::new();
+
+fn tick() -> String {
+    let t = TIME.get_or_init(|| Mutex::new(chrono::Utc::now()));
+    let mut t = t.lock().unwrap();
+    *t = *t + chrono::Duration::seconds(1);
+    t.format("%Y-%m-%dT%H:%M:%SZ").to_string()
+}
+
+// Imports a certificate.
+fn sq_import(cert_store: &str, files: &[&str], stdin: Option<&str>)
+{
+    let mut cmd = Command::cargo_bin("sq").expect("have sq");
+    cmd.args(["--cert-store", cert_store, "import"]);
+    for file in files {
+        cmd.arg(file);
+    }
+    eprintln!("{:?}", cmd);
+    if let Some(stdin) = stdin {
+        cmd.write_stdin(stdin);
+    }
+    cmd.assert().success();
+}
+
+// Generates a key.
+//
+// If cert_store is not `None`, then the resulting certificate is also
+// imported.
+fn sq_gen_key(cert_store: Option<&str>, userids: &[&str], file: &str) -> Cert
+{
+    let mut cmd = Command::cargo_bin("sq").expect("have sq");
+    cmd.args(["--no-cert-store",
+              "key", "generate",
+              "--time", &tick(),
+              "--expires", "never",
+              "--export", file]);
+    for userid in userids.iter() {
+        cmd.args(["--userid", userid]);
+    }
+    eprintln!("{:?}", cmd);
+    cmd.assert().success();
+
+    if let Some(cert_store) = cert_store {
+        sq_import(cert_store, &[ file ], None);
+    }
+
+    Cert::from_file(file).expect("valid certificate")
+}
+
+// Verifies a signed message.
+fn sq_verify(cert_store: Option<&str>,
+             trust_roots: &[&str],
+             signer_files: &[&str],
+             msg_pgp: &str,
+             good_sigs: usize, good_checksums: usize)
+{
+    let mut cmd = Command::cargo_bin("sq").expect("have sq");
+    if let Some(cert_store) = cert_store {
+        cmd.args(&["--cert-store", cert_store]);
+    } else {
+        cmd.arg("--no-cert-store");
+    }
+    for trust_root in trust_roots {
+        cmd.args(&["--trust-root", trust_root]);
+    }
+    cmd.args(["verify", "--time", &tick()]);
+    for signer_file in signer_files {
+        cmd.args(&["--signer-file", signer_file]);
+    }
+    cmd.arg(msg_pgp);
+    eprintln!("{:?}", cmd);
+    let output = cmd.output().expect("can run");
+
+    let status = output.status;
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+    if good_sigs > 0 {
+        assert!(status.success(),
+                "\nstdout:\n{}\nstderr:\n{}",
+                stdout, stderr);
+        assert!(stderr.contains(&format!("{} good signature",
+                                         good_sigs)),
+                "stdout:\n{}\nstderr:\n{}",
+                stdout, stderr);
+    } else {
+        assert!(! status.success(),
+                "\nstdout:\n{}\nstderr:\n{}",
+                stdout, stderr);
+    }
+
+    if good_checksums > 0 {
+        assert!(stderr.contains(&format!("{} unauthenticated checksum",
+                                         good_checksums)),
+                "stdout:\n{}\nstderr:\n{}", stdout, stderr);
+    }
+}
+
+// Links a User ID and a certificate.
+fn sq_link(cert_store: &str,
+           cert: &str, userids: &[&str], more_args: &[&str],
+           success: bool)
+{
+    let mut cmd = Command::cargo_bin("sq").expect("have sq");
+    cmd.args(&["--cert-store", cert_store]);
+    cmd.args(&["link", "add", "--time", &tick(), cert]);
+    cmd.args(userids);
+    cmd.args(more_args);
+    eprintln!("{:?}", cmd);
+    let output = cmd.output().expect("can run");
+
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+    if success {
+        assert!(output.status.success(),
+                "'sq link add' failed unexpectedly\
+                 \nstdout:\n{}\nstderr:\n{}",
+                stdout, stderr);
+    } else {
+        assert!(! output.status.success(),
+                "'sq link add' succeeded unexpectedly\
+                 \nstdout:\n{}\nstderr:\n{}",
+                stdout, stderr);
+    }
+}
+
+fn sq_retract(cert_store: &str, cert: &str, userids: &[&str])
+{
+    let mut cmd = Command::cargo_bin("sq").expect("have sq");
+    cmd.args(&["--cert-store", cert_store]);
+    cmd.args(&["link", "retract", "--time", &tick(), cert]);
+    cmd.args(userids);
+    eprintln!("{:?}", cmd);
+    let output = cmd.output().expect("can run");
+
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+    assert!(output.status.success(),
+            "sq link retract\nstdout:\n{}\nstderr:\n{}",
+            stdout, stderr);
+}
+
+// Certifies a binding.
+//
+// The certification is imported into the cert store.
+fn sq_certify(cert_store: &str,
+              key: &str, cert: &str, userid: &str,
+              trust_amount: Option<usize>, depth: Option<usize>)
+{
+    let mut cmd = Command::cargo_bin("sq").expect("have sq");
+    cmd.args(&["--cert-store", cert_store]);
+    cmd.args(&["certify", "--time", &tick(), key, cert, userid]);
+    if let Some(trust_amount) = trust_amount {
+        cmd.args(&["--amount", &trust_amount.to_string()[..]]);
+    }
+    if let Some(depth) = depth {
+        cmd.args(&["--depth", &depth.to_string()[..]]);
+    }
+    eprintln!("{:?}", cmd);
+    let output = cmd.output().expect("can run");
+
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+    assert!(output.status.success(),
+            "sq certify\nstdout:\n{}\nstderr:\n{}",
+            stdout, stderr);
+
+    // Import the certification.
+    sq_import(cert_store, &[], Some(&stdout));
+}
+
+// Verify signatures using the acceptance machinery.
+#[test]
+fn sq_link_add_retract() -> Result<()> {
+    let dir = TempDir::new()?;
+
+    let certd = dir.path().join("cert.d").display().to_string();
+    std::fs::create_dir(&certd).expect("mkdir works");
+
+    struct Data {
+        key_file: String,
+        cert: Cert,
+        sig_file: String,
+    }
+
+    // Four certificates.
+    let alice_pgp = dir.path().join("alice.pgp").display().to_string();
+    let alice_userid = "<alice@example.org>";
+    let alice = Data {
+        key_file: alice_pgp.clone(),
+        cert: sq_gen_key(Some(&certd), &[ alice_userid ], &alice_pgp),
+        sig_file: dir.path().join("alice.sig").display().to_string(),
+    };
+    let alice_fpr = alice.cert.fingerprint().to_string();
+
+    let bob_pgp = dir.path().join("bob.pgp").display().to_string();
+    let bob_userid = "<bob@example.org>";
+    let bob = Data {
+        key_file: bob_pgp.clone(),
+        cert: sq_gen_key(Some(&certd), &[ bob_userid ], &bob_pgp),
+        sig_file: dir.path().join("bob.sig").display().to_string(),
+    };
+    let bob_fpr = bob.cert.fingerprint().to_string();
+
+    let carol_pgp = dir.path().join("carol.pgp").display().to_string();
+    let carol_userid =  "<carol@example.org>";
+    let carol = Data {
+        key_file: carol_pgp.clone(),
+        cert: sq_gen_key(Some(&certd), &[ carol_userid ], &carol_pgp),
+        sig_file: dir.path().join("carol.sig").display().to_string(),
+    };
+    let carol_fpr = carol.cert.fingerprint().to_string();
+
+    let dave_pgp = dir.path().join("dave.pgp").display().to_string();
+    let dave_userid =  "<dave@other.org>";
+    let dave = Data {
+        key_file: dave_pgp.clone(),
+        cert: sq_gen_key(Some(&certd), &[ dave_userid ], &dave_pgp),
+        sig_file: dir.path().join("dave.sig").display().to_string(),
+    };
+    let dave_fpr = dave.cert.fingerprint().to_string();
+
+    let data: &[&Data] = &[ &alice, &bob, &carol, &dave ][..];
+
+    // Have each certificate sign a message.
+    for data in data.iter() {
+        Command::cargo_bin("sq")
+            .unwrap()
+            .arg("--no-cert-store")
+            .arg("sign")
+            .args(["--signer-file", &data.key_file])
+            .args(["--output", &data.sig_file])
+            .args(["--time", &tick()])
+            .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
+            .assert()
+            .success();
+    }
+
+    // None of the certificates can be authenticated so verifying the
+    // messages should fail.
+    for data in data.iter() {
+        sq_verify(Some(&certd), &[], &[], &data.sig_file, 0, 1);
+    }
+
+    // Have Alice certify Bob as a trusted introducer and have Bob
+    // certify Carol.
+    sq_certify(&certd, &alice.key_file,
+               &bob.cert.fingerprint().to_string(), bob_userid,
+               None, Some(1));
+    sq_certify(&certd, &bob.key_file,
+               &carol.cert.fingerprint().to_string(), carol_userid,
+               None, None);
+
+    // We should be able to verify Alice's, Bob's and Carol's
+    // signatures Alice as the trust root.  And Bob's and Carols' with
+    // Bob as the trust root.
+
+    sq_verify(Some(&certd), &[&alice_fpr], &[], &alice.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[&alice_fpr], &[], &bob.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[&alice_fpr], &[], &carol.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[&alice_fpr], &[], &dave.sig_file, 0, 1);
+
+    sq_verify(Some(&certd), &[&bob_fpr], &[], &alice.sig_file, 0, 1);
+    sq_verify(Some(&certd), &[&bob_fpr], &[], &bob.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[&bob_fpr], &[], &carol.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[&bob_fpr], &[], &dave.sig_file, 0, 1);
+
+    sq_verify(Some(&certd), &[&carol_fpr], &[], &alice.sig_file, 0, 1);
+    sq_verify(Some(&certd), &[&carol_fpr], &[], &bob.sig_file, 0, 1);
+    sq_verify(Some(&certd), &[&carol_fpr], &[], &carol.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[&carol_fpr], &[], &dave.sig_file, 0, 1);
+
+    sq_verify(Some(&certd), &[&dave_fpr], &[], &alice.sig_file, 0, 1);
+    sq_verify(Some(&certd), &[&dave_fpr], &[], &bob.sig_file, 0, 1);
+    sq_verify(Some(&certd), &[&dave_fpr], &[], &carol.sig_file, 0, 1);
+    sq_verify(Some(&certd), &[&dave_fpr], &[], &dave.sig_file, 1, 0);
+
+    // Let's accept Alice, but not (yet) as a trusted introducer.  We
+    // should now be able to verify Alice's signature, but not Bob's.
+    sq_link(&certd, &alice_fpr, &[ &alice_userid ], &[], true);
+
+    sq_verify(Some(&certd), &[], &[], &alice.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[], &[], &bob.sig_file, 0, 1);
+
+    // Accept Alice as a trusted introducer.  We should be able to
+    // verify Alice, Bob, and Carol's signatures.
+    sq_link(&certd, &alice_fpr, &[ &alice_userid ], &["--ca", "*"], true);
+
+    sq_verify(Some(&certd), &[], &[], &alice.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[], &[], &bob.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[], &[], &carol.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[], &[], &dave.sig_file, 0, 1);
+
+    // Retract the acceptance for Alice.  If we don't specify a trust
+    // root, none of the signatures should verify.
+    sq_retract(&certd, &alice_fpr, &[ &alice_userid ]);
+
+    for data in data.iter() {
+        sq_verify(Some(&certd), &[], &[], &data.sig_file, 0, 1);
+    }
+
+    // Accept Alice as a trusted introducer again.  We should be able
+    // to verify Alice, Bob, and Carol's signatures.
+    sq_link(&certd, &alice_fpr, &[ &alice_userid ], &["--ca", "*"], true);
+
+    sq_verify(Some(&certd), &[], &[], &alice.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[], &[], &bob.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[], &[], &carol.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[], &[], &dave.sig_file, 0, 1);
+
+    // Have Bob certify Dave.  Now Dave's signature should also
+    // verify.
+    sq_certify(&certd, &bob.key_file,
+               &dave.cert.fingerprint().to_string(), dave_userid,
+               None, None);
+
+    sq_verify(Some(&certd), &[], &[], &alice.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[], &[], &bob.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[], &[], &carol.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[], &[], &dave.sig_file, 1, 0);
+
+    // Change Alice's acceptance to just be a normal certification.
+    // We should only be able to verify her signature.
+    sq_link(&certd, &alice_fpr, &[ &alice_userid ], &[], true);
+
+    sq_verify(Some(&certd), &[], &[], &alice.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[], &[], &bob.sig_file, 0, 1);
+    sq_verify(Some(&certd), &[], &[], &carol.sig_file, 0, 1);
+    sq_verify(Some(&certd), &[], &[], &dave.sig_file, 0, 1);
+
+    // Change Alice's acceptance to be a ca, but only for example.org,
+    // i.e., not for Dave.
+    sq_link(&certd, &alice_fpr, &[ &alice_userid ], &["--ca", "example.org"],
+            true);
+
+    sq_verify(Some(&certd), &[], &[], &alice.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[], &[], &bob.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[], &[], &carol.sig_file, 1, 0);
+    sq_verify(Some(&certd), &[], &[], &dave.sig_file, 0, 1);
+
+
+
+    // Four certificates.
+    let ed_pgp = dir.path().join("ed.pgp").display().to_string();
+    let ed = sq_gen_key(
+        Some(&certd),
+        &[
+            "Ed <ed@example.org>",
+            "Eddie <ed@example.org>",
+            // This is not considered to be an email address as
+            // it is not wrapped in angle brackets.
+            "ed@some.org",
+            // But this is.
+            "<ed@other.org>",
+        ],
+        &ed_pgp);
+    let ed_fpr = ed.fingerprint().to_string();
+    let ed_sig_file = dir.path().join("ed.sig").display().to_string();
+
+    Command::cargo_bin("sq")
+        .unwrap()
+        .arg("--no-cert-store")
+        .arg("sign")
+        .args(["--signer-file", &ed_pgp])
+        .args(["--output", &ed_sig_file])
+        .args(["--time", &tick()])
+        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
+        .assert()
+        .success();
+
+    // If we don't use --petname, than a self-signed User ID must
+    // exist.
+    sq_link(&certd, &ed_fpr, &[ "--userid", "bob@example.com" ], &[], false);
+    sq_verify(Some(&certd), &[], &[], &ed_sig_file, 0, 1);
+
+    sq_link(&certd, &ed_fpr, &[ "--email", "bob@example.com" ], &[], false);
+    sq_verify(Some(&certd), &[], &[], &ed_sig_file, 0, 1);
+
+    sq_link(&certd, &ed_fpr, &[ "bob@example.com" ], &[], false);
+    sq_verify(Some(&certd), &[], &[], &ed_sig_file, 0, 1);
+
+    // We should only create links if all the supplied User IDs are
+    // valid.
+    sq_link(&certd, &ed_fpr, &[
+        "--userid", "ed@some.org", "--userid", "bob@example.com"
+    ], &[], false);
+    sq_verify(Some(&certd), &[], &[], &ed_sig_file, 0, 1);
+
+    sq_link(&certd, &ed_fpr, &[
+        "--userid", "ed@some.org", "--email", "bob@example.com"
+    ], &[], false);
+    sq_verify(Some(&certd), &[], &[], &ed_sig_file, 0, 1);
+
+    sq_link(&certd, &ed_fpr, &[
+        "--userid", "ed@some.org", "bob@example.com"
+    ], &[], false);
+    sq_verify(Some(&certd), &[], &[], &ed_sig_file, 0, 1);
+
+    // Pass an email address to --userid.  This shouldn't match
+    // either.
+    sq_link(&certd, &ed_fpr, &[
+        "--userid", "ed@other.org"
+    ], &[], false);
+    sq_verify(Some(&certd), &[], &[], &ed_sig_file, 0, 1);
+
+    // Link all User IDs individually.
+    sq_link(&certd, &ed_fpr, &[
+        "--email", "ed@other.org",
+        "--email", "ed@example.org",
+        "--userid", "ed@some.org",
+    ], &[], true);
+    sq_verify(Some(&certd), &[], &[], &ed_sig_file, 1, 0);
+
+    // Retract the links one at a time.
+    sq_retract(&certd, &ed_fpr, &[ "ed@other.org" ]);
+    sq_verify(Some(&certd), &[], &[], &ed_sig_file, 1, 0);
+
+    sq_retract(&certd, &ed_fpr, &[ "Ed <ed@example.org>" ]);
+    sq_verify(Some(&certd), &[], &[], &ed_sig_file, 1, 0);
+
+    sq_retract(&certd, &ed_fpr, &[ "Eddie <ed@example.org>" ]);
+    sq_verify(Some(&certd), &[], &[], &ed_sig_file, 1, 0);
+
+    sq_retract(&certd, &ed_fpr, &[ "ed@some.org" ]);
+    // Now the certificate should no longer be authenticated.
+    sq_verify(Some(&certd), &[], &[], &ed_sig_file, 0, 1);
+
+    Ok(())
+}

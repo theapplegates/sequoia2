@@ -45,6 +45,10 @@
      authenticated, consider the signature to be authenticated.  If
      there is no Signer's User ID packet, consider the signature to be
      authenticated if any binding can fully be authenticated.
+   - Add `sq link add`, which uses the local trust root to
+     certify the specified bindings.
+   - Add `sq link retract`, which retracts certifications made by the
+     local trust root on the specified bindings.
  * Deprecated functionality
    - `sq key generate --creation-time TIME` is deprecated in favor of
      `sq key generate --time TIME`.

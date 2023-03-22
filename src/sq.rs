@@ -9,6 +9,7 @@
 use anyhow::Context as _;
 
 use std::borrow::Borrow;
+use std::borrow::Cow;
 use std::fs::OpenOptions;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -26,6 +27,7 @@ use openpgp::{
     Result,
 };
 use openpgp::{armor, Cert};
+use openpgp::cert::raw::RawCertParser;
 use openpgp::crypto::Password;
 use openpgp::Fingerprint;
 use openpgp::packet::prelude::*;
@@ -35,12 +37,15 @@ use openpgp::packet::signature::subpacket::NotationDataFlags;
 use openpgp::serialize::{Serialize, stream::{Message, Armorer}};
 use openpgp::cert::prelude::*;
 use openpgp::policy::StandardPolicy as P;
+use openpgp::serialize::SerializeInto;
 use openpgp::types::KeyFlags;
 use openpgp::types::RevocationStatus;
+use openpgp::types::SignatureType;
 
 use sequoia_cert_store as cert_store;
 use cert_store::Store;
 use cert_store::store::StoreError;
+use cert_store::store::StoreUpdate;
 use cert_store::store::UserIDQueryParams;
 
 use sequoia_wot as wot;
@@ -341,6 +346,8 @@ pub struct Config<'a> {
 
     // The value of --trust-root.
     trust_roots: Vec<Fingerprint>,
+    // The local trust root, as set in the cert store.
+    trust_root_local: OnceCell<Option<Fingerprint>>,
 }
 
 impl<'store> Config<'store> {
@@ -654,8 +661,7 @@ impl<'store> Config<'store> {
     /// returns an error.  If multiple certificates can be
     /// authenticated for a given User ID or email address, then
     /// returns them all.
-    fn lookup_by_userid(&self, trust_roots: &[Fingerprint],
-                        userid: &[String], email: bool)
+    fn lookup_by_userid(&self, userid: &[String], email: bool)
         -> Result<Vec<Cert>>
     {
         if userid.is_empty() {
@@ -670,7 +676,7 @@ impl<'store> Config<'store> {
             cert_store, &self.policy, self.time);
         let n = wot::Network::new(&cert_store)?;
         let mut q = wot::QueryBuilder::new(&n);
-        q.roots(wot::Roots::new(trust_roots.iter().cloned()));
+        q.roots(wot::Roots::new(self.trust_roots().iter().cloned()));
         let q = q.build();
 
         let mut results: Vec<Cert> = Vec::new();
@@ -790,7 +796,7 @@ impl<'store> Config<'store> {
                          required level ({} of {}).  After checking \
                          that {} really controls {}, you could certify \
                          their certificate by running \
-                         `sq certify MY_KEY.pgp {} {}`.",
+                         `sq link add {} {:?}`.",
                         cert.fingerprint(),
                         String::from_utf8_lossy(userid.value()),
                         paths.amount(), wot::FULLY_TRUSTED,
@@ -889,6 +895,151 @@ impl<'store> Config<'store> {
                 certs.into_iter().next().expect("have one")
             })
     }
+
+    const TRUST_ROOT: &'static str = "trust-root";
+
+    /// Returns the local trust root, creating it if necessary.
+    fn local_trust_root(&mut self) -> Result<Cert> {
+        let cert_store = self.cert_store_or_else()?;
+        let certd = if let Some(certd) = cert_store.certd() {
+            certd.certd()
+        } else {
+            return Err(anyhow::anyhow!(
+                "A local trust root is only available when using \
+                 an OpenPGP certificate directory"));
+        };
+
+        let trust_root = match certd.get(Self::TRUST_ROOT) {
+            Ok(Some((_tag, trust_root))) => Some(trust_root),
+            Ok(None) => None,
+            Err(err) => {
+                let err = anyhow::Error::from(err);
+                let mut not_found = false;
+                if let Some(err) = err.downcast_ref::<std::io::Error>() {
+                    if err.kind() == std::io::ErrorKind::NotFound {
+                        not_found = true;
+                    }
+                }
+
+                if ! not_found {
+                    return Err(err).context(
+                        "Looking up trust root in the certificate directory");
+                }
+
+                None
+            }
+        };
+
+        let trust_root: Cert = if let Some(trust_root) = trust_root {
+            Cert::from_bytes(&trust_root)
+                .context("Parsing the trust root in the \
+                          certificate directory")?
+        } else {
+            // There is no trust root.  Create one.
+            //
+            let cert_builder = CertBuilder::new()
+                .set_primary_key_flags(KeyFlags::empty().set_certification())
+                // Set it in the past so that it is possible to use
+                // the trust root when the reference time is in the
+                // past.  Feb 2002.
+                .set_creation_time(
+                    SystemTime::UNIX_EPOCH + Duration::new(1014235320, 0))
+                // The trust root should *not* expire.
+                .set_validity_period(None)
+                .add_userid_with(
+                    "Local Trust Root",
+                    SignatureBuilder::new(SignatureType::GenericCertification)
+                        .set_exportable_certification(false)?,
+                )?;
+
+            let (mut trust_root, _) = cert_builder.generate()?;
+            let trust_root_bytes = trust_root.as_tsk().to_vec()?;
+
+            let tr = &mut trust_root;
+            certd.insert_special(
+                Self::TRUST_ROOT,
+                trust_root_bytes.into_boxed_slice(),
+                move |cert_bytes, disk_bytes| {
+                    if let Some(disk_bytes) = disk_bytes {
+                        // We lost the race.  Abandon cert in favor of
+                        // the one that was written.
+                        *tr = Cert::from_bytes(&disk_bytes)
+                            .context("Parsing the trust root in the \
+                                      certificate directory")?;
+                        Ok(disk_bytes)
+                    } else {
+                        Ok(cert_bytes)
+                    }
+                })
+                .context("Initializing the trust root in \
+                          the certificate directory")?;
+
+            // We also need to insert the trust root into the certificate
+            // store, just without the secret key material.
+            let cert_store = self.cert_store_mut_or_else()?;
+            cert_store.update(Cow::Owned(trust_root.clone().into()))
+                .with_context(|| format!("Inserting the trust root"))?;
+
+            trust_root
+        };
+
+        Ok(trust_root)
+    }
+
+    /// Returns the trust roots, including the cert store's trust
+    /// root, if any.
+    fn trust_roots(&self) -> Vec<Fingerprint> {
+        let trust_root_local = self.trust_root_local.get_or_init(|| {
+            self.cert_store_or_else()
+                .ok()
+                .and_then(|cert_store| cert_store.certd())
+                .and_then(|certd| {
+                    match certd.certd().get(Self::TRUST_ROOT) {
+                        Ok(Some((_tag, cert_bytes))) => Some(cert_bytes),
+                        // Not found.
+                        Ok(None) => None,
+                        Err(err) => {
+                            eprintln!("Error looking up local trust root: {}",
+                                      err);
+                            None
+                        }
+                    }
+                })
+                .and_then(|cert_bytes| {
+                    match RawCertParser::from_bytes(&cert_bytes[..]) {
+                        Ok(mut parser) => {
+                            match parser.next() {
+                                Some(Ok(cert)) => Some(cert.fingerprint()),
+                                Some(Err(err)) => {
+                                    eprintln!("Local trust root is \
+                                               corrupted: {}",
+                                              err);
+                                    None
+                                }
+                                None =>  {
+                                    eprintln!("Local trust root is \
+                                               corrupted: no data");
+                                    None
+                                }
+                            }
+                        }
+                        Err(err) => {
+                            eprintln!("Error parsing local trust root: {}",
+                                      err);
+                            None
+                        }
+                    }
+                })
+        });
+
+        if let Some(trust_root_local) = trust_root_local {
+            self.trust_roots.iter().cloned()
+                .chain(std::iter::once(trust_root_local.clone()))
+                .collect()
+        } else {
+            self.trust_roots.clone()
+        }
+    }
 }
 
 // TODO: Use `derive`d command structs. No more values_of
@@ -946,6 +1097,7 @@ fn main() -> Result<()> {
             Some(OnceCell::new())
         },
         trust_roots: c.trust_roots.clone(),
+        trust_root_local: Default::default(),
     };
 
     match c.subcommand {
@@ -1006,12 +1158,10 @@ fn main() -> Result<()> {
                               false)
                     .context("--recipient-cert")?);
             recipients.extend(
-                config.lookup_by_userid(&c.trust_roots,
-                                        &command.recipients_email, true)
+                config.lookup_by_userid(&command.recipients_email, true)
                     .context("--recipient-email")?);
             recipients.extend(
-                config.lookup_by_userid(&c.trust_roots,
-                                        &command.recipients_userid, false)
+                config.lookup_by_userid(&command.recipients_userid, false)
                     .context("--recipient-userid")?);
             let mut input = open_or_stdin(command.io.input.as_deref())?;
 
@@ -1257,6 +1407,10 @@ fn main() -> Result<()> {
 
         SqSubcommands::Certify(command) => {
             commands::certify::certify(config, command)?
+        }
+
+        SqSubcommands::Link(command) => {
+            commands::link::link(config, command)?
         }
     }
 

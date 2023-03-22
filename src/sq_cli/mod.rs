@@ -21,6 +21,7 @@ pub mod inspect;
 pub mod key;
 pub mod keyring;
 pub mod keyserver;
+pub mod link;
 mod output_versions;
 pub mod packet;
 pub mod revoke;
@@ -188,6 +189,7 @@ pub enum SqSubcommands {
     Import(import::Command),
     Export(export::Command),
     Certify(certify::Command),
+    Link(link::Command),
 
     #[cfg(feature = "autocrypt")]
     Autocrypt(autocrypt::Command),

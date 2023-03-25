@@ -360,7 +360,7 @@ pub fn encrypt(opts: EncryptOpts) -> Result<()> {
     let mut recipient_subkeys: Vec<Recipient> = Vec::new();
     for cert in opts.recipients.iter() {
         let mut count = 0;
-        for key in cert.keys().with_policy(opts.policy, None).alive().revoked(false)
+        for key in cert.keys().with_policy(opts.policy, opts.time).alive().revoked(false)
             .key_flags(&mode).supported().map(|ka| ka.key())
         {
             recipient_subkeys.push(key.into());
@@ -368,7 +368,7 @@ pub fn encrypt(opts: EncryptOpts) -> Result<()> {
         }
         if count == 0 {
             let mut expired_keys = Vec::new();
-            for ka in cert.keys().with_policy(opts.policy, None).revoked(false)
+            for ka in cert.keys().with_policy(opts.policy, opts.time).revoked(false)
                 .key_flags(&mode).supported()
             {
                 let key = ka.key();

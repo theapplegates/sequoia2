@@ -29,6 +29,10 @@ The converse operation is \"sq sign\".
 
 If you are looking for a standalone program to verify detached
 signatures, consider using sequoia-sqv.
+
+\"sq verify\" respects the reference time set by the top-level
+\"--time\" argument.  When set, it verifies the message as of the
+reference time instead of the current time.
 ",
     after_help =
 "EXAMPLES:
@@ -38,6 +42,9 @@ $ sq verify --signer-file juliet.pgp signed-message.pgp
 
 # Verify a detached message
 $ sq verify --signer-file juliet.pgp --detached message.sig message.txt
+
+# Verify a message as of June 9, 2011 at midnight UTC:
+$ sq verify --time 20130721 msg.pgp
 ",
     )]
 pub struct Command {

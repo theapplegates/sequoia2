@@ -642,12 +642,12 @@ pub fn verify(config: Config,
     let helper = VHelper::new(&config, signatures, certs);
     let helper = if let Some(dsig) = detached {
         let mut v = DetachedVerifierBuilder::from_reader(dsig)?
-            .with_policy(&config.policy, None, helper)?;
+            .with_policy(&config.policy, Some(config.time), helper)?;
         v.verify_reader(input)?;
         v.into_helper()
     } else {
         let mut v = VerifierBuilder::from_reader(input)?
-            .with_policy(&config.policy, None, helper)?;
+            .with_policy(&config.policy, Some(config.time), helper)?;
         io::copy(&mut v, output)?;
         v.into_helper()
     };

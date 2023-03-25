@@ -133,7 +133,7 @@ Sets the reference time as an ISO 8601 formatted timestamp.  Normally, \
 commands use the current time as the reference time.  This argument allows \
 the user to use a difference reference time.  For instance, when creating a \
 key using \"sq key generate\", the creation time is normally set to the \
-current time, but can be overriden using this option.  Similarly, when \
+current time, but can be overridden using this option.  Similarly, when \
 verifying a message, the message is verified with respect to the current \
 time.  This option allows the user to use a different time.
 

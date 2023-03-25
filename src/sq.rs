@@ -666,15 +666,7 @@ fn main() -> Result<()> {
         return Ok(())
     }
 
-    let policy = &mut P::new();
-
     let c = sq_cli::SqCommand::from_arg_matches(&sq_cli::build().get_matches())?;
-
-    let known_notations = c.known_notation
-        .iter()
-        .map(|n| n.as_str())
-        .collect::<Vec<&str>>();
-    policy.good_critical_notations(&known_notations);
 
     let time = if let Some(time) = c.time {
         SystemTime::from(
@@ -684,6 +676,14 @@ fn main() -> Result<()> {
     } else {
         SystemTime::now()
     };
+
+    let policy = &mut P::at(time);
+
+    let known_notations = c.known_notation
+        .iter()
+        .map(|n| n.as_str())
+        .collect::<Vec<&str>>();
+    policy.good_critical_notations(&known_notations);
 
     let force = c.force;
     let output_format = OutputFormat::from_str(&c.output_format)?;

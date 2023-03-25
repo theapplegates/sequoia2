@@ -1,6 +1,6 @@
 use clap::{ValueEnum, ArgGroup, Args, Parser, Subcommand};
 
-use crate::sq_cli::types::{IoArgs, Time};
+use crate::sq_cli::types::IoArgs;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -54,6 +54,10 @@ After generating a key, use \"sq key extract-cert\" to get the
 certificate corresponding to the key.  The key must be kept secure,
 while the certificate should be handed out to correspondents, e.g. by
 uploading it to a keyserver.
+
+\"sq key generate\" respects the reference time set by the top-level
+\"--time\" argument.  It sets the creation time of the key, any
+subkeys, and the binding signatures to the reference time.
 ",
     after_help =
 "EXAMPLES:
@@ -69,6 +73,9 @@ $ sq key generate --userid \"<juliet@example.org>\" --with-password
 
 # Generates a key with multiple userids
 $ sq key generate --userid \"<juliet@example.org>\" --userid \"Juliet Capulet\"
+
+# Generates a key whose creation time is June 9, 2011 at midnight UTC
+$ sq key generate --time 20110609 --userid \"Noam\" --export noam.pgp
 ",
 )]
 #[clap(group(ArgGroup::new("expiration-group").args(&["expires", "expires_in"])))]
@@ -97,24 +104,6 @@ pub struct GenerateCommand {
         help = "Protects the key with a password",
     )]
     pub with_password: bool,
-    #[clap(
-        long = "creation-time",
-        value_name = "CREATION_TIME",
-        help = "Sets the key's creation time to TIME (as ISO 8601)",
-        long_help = "\
-Sets the key's creation time to TIME.  TIME is interpreted as an ISO 8601 \
-timestamp.  To set the creation time to June 9, 2011 at midnight UTC, \
-you can do:
-
-$ sq key generate --creation-time 20110609 --export noam.pgp
-
-To include a time, add a T, the time and optionally the timezone (the \
-default timezone is UTC):
-
-$ sq key generate --creation-time 20110609T1938+0200 --export noam.pgp
-",
-    )]
-    pub creation_time: Option<Time>,
     #[clap(
         long = "expires",
         value_name = "TIME",
@@ -312,6 +301,10 @@ pub enum UseridCommand {
 A User ID can contain a name, like \"Juliet\" or an email address, like
 \"<juliet@example.org>\".  Historically, a name and email address were often
 combined as a single User ID, like \"Juliet <juliet@example.org>\".
+
+\"sq userid add\" respects the reference time set by the top-level
+\"--time\" argument.  It sets the creation time of the User ID's
+binding signature to the specified time.
 ",
     after_help =
 "EXAMPLES:
@@ -322,6 +315,11 @@ $ sq key generate --userid \"<juliet@example.org>\" --export juliet.key.pgp
 # Then, this adds a User ID
 $ sq key userid add --userid \"Juliet\" juliet.key.pgp \\
   --output juliet-new.key.pgp
+
+# This adds a User ID whose creation time is set to June 28, 2022 at
+# midnight UTC:
+$ sq key userid add --userid \"Juliet\" --creation-time 20210628 \\
+   juliet.key.pgp --output juliet-new.key.pgp
 ",
 )]
 pub struct UseridAddCommand {
@@ -334,26 +332,6 @@ pub struct UseridAddCommand {
         help = "User ID to add",
     )]
     pub userid: Vec<String>,
-    #[clap(
-        long = "creation-time",
-        value_name = "CREATION_TIME",
-        help = "Sets the binding signature creation time to TIME (as ISO 8601)",
-        long_help = "\
-Sets the creation time of this User ID's binding signature to TIME. \
-TIME is interpreted as an ISO 8601 timestamp.  To set the creation \
-time to June 28, 2022 at midnight UTC, you can do:
-
-$ sq key userid add --userid \"Juliet\" --creation-time 20210628 \\
-   juliet.key.pgp --output juliet-new.key.pgp
-
-To include a time, add a T, the time and optionally the timezone (the \
-default timezone is UTC):
-
-$ sq key userid add --userid \"Juliet\" --creation-time 20210628T1137+0200 \\
-   juliet.key.pgp --output juliet-new.key.pgp
-",
-    )]
-    pub creation_time: Option<Time>,
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",

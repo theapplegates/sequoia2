@@ -17,12 +17,20 @@ This command emits the certificate with the new certification.  The
 updated certificate has to be distributed, preferably by sending it to
 the certificate holder for attestation.  See also \"sq key
 attest-certification\".
+
+\"sq certify\" respects the reference time set by the top-level
+\"--time\" argument.  It sets the certification's creation time to the
+reference time.
 ",
     after_help =
 "EXAMPLES:
 
 # Juliet certifies that Romeo controls romeo.pgp and romeo@example.org
 $ sq certify juliet.pgp romeo.pgp \"<romeo@example.org>\"
+
+# Certify the User ID \"Ada\", and set the certification time to July
+# 21, 2013 at midnight UTC:
+$ sq certify --time 20130721 neal.pgp ada.pgp Ada
 ",
 )]
 #[clap(group(ArgGroup::new("expiration-group").args(&["expires", "expires_in"])))]
@@ -40,24 +48,6 @@ pub struct Command {
         help = "Emits binary data",
     )]
     pub binary: bool,
-    #[clap(
-        long = "time",
-        value_name = "TIME",
-        help = "Sets the certification time to TIME (as ISO 8601)",
-        long_help = "\
-Sets the certification time to TIME.  TIME is interpreted as an ISO 8601 \
-timestamp.  To set the certification time to June 9, 2011 at midnight UTC, \
-you can do:
-
-$ sq certify --time 20130721 neal.pgp ada.pgp ada
-
-To include a time, add a T, the time and optionally the timezone (the \
-default timezone is UTC):
-
-$ sq certify --time 20130721T0550+0200 neal.pgp ada.pgp ada
-",
-    )]
-    pub time: Option<String>,
     #[clap(
         short = 'd',
         long = "depth",

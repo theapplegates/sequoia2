@@ -11,6 +11,10 @@ It is often difficult to tell from cursory inspection using cat(1) or
 file(1) what kind of OpenPGP one is looking at.  This subcommand
 inspects the data and provides a meaningful human-readable description
 of it.
+
+\"sq inspect\" respects the reference time set by the top-level
+\"--time\" argument.  It uses the reference time when determining what
+binding signatures are active.
 ",
     after_help =
 "EXAMPLES:
@@ -26,6 +30,9 @@ $ sq inspect message.pgp
 
 # Inspects a detached signature
 $ sq inspect message.sig
+
+# Show the certificate as it looked on July 21, 2013
+$ sq inspect --time 20130721 cert.pgp
 ",
 )]
 pub struct Command {
@@ -39,22 +46,4 @@ pub struct Command {
         help = "Prints third-party certifications",
     )]
     pub certifications: bool,
-    #[clap(
-        long = "time",
-        value_name = "TIME",
-        help = "Sets the certification time to TIME (as ISO 8601)",
-        long_help = "\
-Sets the certification time to TIME.  TIME is interpreted as an ISO 8601 \
-timestamp.  To set the certification time to July 21, 2013 at midnight UTC, \
-you can do:
-
-$ sq inspect --time 20130721 cert.pgp
-
-To include a time, add a T, the time and optionally the timezone (the \
-default timezone is UTC):
-
-$ sq inspect --time 20130721T0550+0200 cert.pgp
-"
-    )]
-    pub time: Option<String>,
 }

@@ -30,4 +30,13 @@
    - `sq certify`: If the certificate to certify is a fingerprint or
      Key ID, then the corresponding certificate is looked up in the
      certificate store.
+   - Add a global option, `--time`, to set the reference time.  This
+     option replaces the various subcommand's `--time` argument as
+     well as `sq key generate` and `sq key userid add`'s
+     `--creation-time` arguments.
+ * Deprecated functionality
+   - `sq key generate --creation-time TIME` is deprecated in favor of
+     `sq key generate --time TIME`.
+   - `sq key user id --creation-time TIME` is deprecated in favor of
+     `sq user id --time TIME`.
  * Started the NEWS file.

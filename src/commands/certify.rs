@@ -1,7 +1,5 @@
 use std::time::{SystemTime, Duration};
 
-use anyhow::Context;
-
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 use openpgp::Result;
@@ -51,20 +49,12 @@ pub fn certify(config: Config, c: certify::Command)
     let local = c.local;
     let non_revocable = c.non_revocable;
 
-    let time = if let Some(t) = c.time {
-        let time = SystemTime::from(
-            crate::parse_iso8601(
-                &t, chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap())
-                .context(format!("Parsing --time {}", t))?);
-        Some(time)
-    } else {
-        None
-    };
+    let time = config.time;
 
     let expires = c.expires;
     let expires_in = c.expires_in;
 
-    let vc = cert.with_policy(&config.policy, time)?;
+    let vc = cert.with_policy(&config.policy, Some(time))?;
 
     // Find the matching User ID.
     let mut u = None;
@@ -115,9 +105,7 @@ pub fn certify(config: Config, c: certify::Command)
     }
 
     // Creation time.
-    if let Some(time) = time {
-        builder = builder.set_signature_creation_time(time)?;
-    }
+    builder = builder.set_signature_creation_time(time)?;
 
     match (expires, expires_in) {
         (None, None) =>
@@ -128,14 +116,11 @@ pub fn certify(config: Config, c: certify::Command)
             // The default is no expiration; there is nothing to do.
             (),
         (Some(t), None) => {
-            let now = builder.signature_creation_time()
-                .unwrap_or_else(std::time::SystemTime::now);
             let expiration = SystemTime::from(
                 crate::parse_iso8601(
                     &t, chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap())?);
-            let validity = expiration.duration_since(now)?;
-            builder = builder.set_signature_creation_time(now)?
-                .set_signature_validity_period(validity)?;
+            let validity = expiration.duration_since(time)?;
+            builder = builder.set_signature_validity_period(validity)?;
         },
         (None, Some(d)) if d == "never" =>
             // The default is no expiration; there is nothing to do.
@@ -168,7 +153,7 @@ pub fn certify(config: Config, c: certify::Command)
     let signers = get_certification_keys(
         &[certifier], &config.policy,
         private_key_store.as_deref(),
-        time,
+        Some(time),
         Some(&options))?;
     assert_eq!(signers.len(), 1);
     let mut signer = signers.into_iter().next().unwrap();

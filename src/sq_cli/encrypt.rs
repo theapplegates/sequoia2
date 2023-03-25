@@ -4,7 +4,7 @@ use clap::{ValueEnum, Parser};
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
-use crate::sq_cli::types::{IoArgs, Time};
+use crate::sq_cli::types::IoArgs;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -17,6 +17,11 @@ Encrypts a message for any number of recipients and with any number of
 passwords, optionally signing the message in the process.
 
 The converse operation is \"sq decrypt\".
+
+\"sq encrypt\" respects the reference time set by the top-level
+\"--time\" argument.  It uses the reference time when selecting
+encryption keys, and it sets the signature's creation time to the
+reference time.
 ",
     after_help =
 "EXAMPLES:
@@ -97,14 +102,6 @@ pub struct Command {
         value_enum,
     )]
     pub compression: CompressionMode,
-    #[clap(
-        short = 't',
-        long = "time",
-        value_name = "TIME",
-        help = "Chooses keys valid at the specified time and \
-            sets the signature's creation time",
-    )]
-    pub time: Option<Time>,
     #[clap(
         long = "use-expired-subkey",
         help = "Falls back to expired encryption subkeys",

@@ -56,9 +56,7 @@ fn generate(
     }
 
     // Creation time.
-    if let Some(t) = command.creation_time {
-        builder = builder.set_creation_time(SystemTime::from(t.time));
-    };
+    builder = builder.set_creation_time(config.time);
 
     // Expiration.
     match (command.expires, command.expires_in) {
@@ -334,8 +332,7 @@ fn userid_add(config: Config, command: sq_cli::key::UseridAddCommand) -> Result<
             exists.iter().map(|s| format!("{:?}", s)).join(", ")));
     }
 
-    let creation_time =
-        command.creation_time.map(|t| SystemTime::from(t.time));
+    let creation_time = Some(config.time);
 
     // If a password is needed to use the key, the user will be prompted.
     let pk = get_primary_keys(&[key.clone()], &config.policy,

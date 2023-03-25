@@ -62,7 +62,7 @@ pub fn revoke_certificate(config: Config, c: revoke::CertificateCommand) -> Resu
 
     let secret = read_secret(c.secret_key_file.as_deref())?;
 
-    let time = c.time.map(|t| t.time.into());
+    let time = Some(config.time);
 
     let notations = parse_notations(c.notation)?;
 
@@ -97,7 +97,7 @@ pub fn revoke_subkey(config: Config, c: revoke::SubkeyCommand) -> Result<()> {
 
     let secret = read_secret(c.secret_key_file.as_deref())?;
 
-    let time = c.time.map(|t| t.time.into());
+    let time = Some(config.time);
 
     let notations = parse_notations(c.notation)?;
 
@@ -124,7 +124,7 @@ pub fn revoke_userid(config: Config, c: revoke::UseridCommand) -> Result<()> {
 
     let secret = read_secret(c.secret_key_file.as_deref())?;
 
-    let time = c.time.map(|t| t.time.into());
+    let time = Some(config.time);
 
     let notations = parse_notations(c.notation)?;
 

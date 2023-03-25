@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use crate::sq_cli::types::{IoArgs, Time};
+use crate::sq_cli::types::IoArgs;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -13,6 +13,12 @@ Creates signed messages or detached signatures.  Detached signatures
 are often used to sign software packages.
 
 The converse operation is \"sq verify\".
+
+\"sq sign\" respects the reference time set by the top-level \
+\"--time\" argument.  When set, it uses the specified time instead of \
+the current time, when determining what keys are valid, and it sets \
+the signature's creation time to the reference time instead of the \
+current time.
 ",
     after_help =
 "EXAMPLES:
@@ -22,6 +28,9 @@ $ sq sign --signer-file juliet.pgp message.txt
 
 # Create a detached signature
 $ sq sign --detached --signer-file juliet.pgp message.txt
+
+# Create a signature with the specified creation time
+$ sq sign --time 20020304 --detached --signer-file juliet.pgp message.txt
 ",
     )]
 pub struct Command {
@@ -90,14 +99,6 @@ pub struct Command {
         help = "Signs the message using the key in KEY_FILE",
     )]
     pub secret_key_file: Vec<String>,
-    #[clap(
-        short,
-        long,
-        value_name = "TIME",
-        help = "Chooses keys valid at the specified time and sets the \
-            signature's creation time",
-    )]
-    pub time: Option<Time>,
     #[clap(
         long,
         value_names = &["NAME", "VALUE"],

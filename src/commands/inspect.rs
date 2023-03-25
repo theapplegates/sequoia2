@@ -2,8 +2,6 @@ use std::convert::TryFrom;
 use std::io::{self, Read};
 use std::time::{Duration, SystemTime};
 
-use anyhow::Context;
-
 use sequoia_openpgp as openpgp;
 use openpgp::{KeyHandle, Packet, Result};
 use openpgp::cert::prelude::*;
@@ -17,25 +15,23 @@ use openpgp::packet::key::SecretKeyMaterial;
 
 use super::dump::Convert;
 
+use crate::Config;
 use crate::SECONDS_IN_YEAR;
 use crate::SECONDS_IN_DAY;
 
 use crate::sq_cli::inspect;
 
-pub fn inspect(c: inspect::Command, policy: &dyn Policy, output: &mut dyn io::Write)
-               -> Result<()> {
-    let print_certifications = c.certifications;
+pub fn inspect(mut config: Config, c: inspect::Command)
+    -> Result<()>
+{
+    // sq inspect does not have --output, but commands::inspect does.
+    // Work around this mismatch by always creating a stdout output.
+    let output = &mut config.create_or_stdout_unsafe(None)?;
 
-    let time = if let Some(t) = c.time {
-        let time = SystemTime::from(
-            crate::parse_iso8601(
-                &t, chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap())
-                .context(format!("Parsing --time {}", t))?,
-        );
-        Some(time)
-    } else {
-        None
-    };
+    let policy = &config.policy;
+    let time = Some(config.time);
+
+    let print_certifications = c.certifications;
 
     let input = c.input.as_deref();
     let input_name = input.unwrap_or("-");

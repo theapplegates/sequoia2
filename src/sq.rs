@@ -13,7 +13,7 @@ use std::fs::OpenOptions;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 use chrono::{DateTime, offset::Utc};
 use itertools::Itertools;
 use once_cell::unsync::OnceCell;
@@ -326,6 +326,7 @@ pub struct Config<'a> {
     output_format: OutputFormat,
     output_version: Option<OutputVersion>,
     policy: P<'a>,
+    time: SystemTime,
     /// Have we emitted the warning yet?
     unstable_cli_warning_emitted: bool,
     cert_store_path: Option<PathBuf>,
@@ -675,6 +676,15 @@ fn main() -> Result<()> {
         .collect::<Vec<&str>>();
     policy.good_critical_notations(&known_notations);
 
+    let time = if let Some(time) = c.time {
+        SystemTime::from(
+            crate::parse_iso8601(
+                &time, chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap())
+                .context(format!("Parsing --time {}", time))?)
+    } else {
+        SystemTime::now()
+    };
+
     let force = c.force;
     let output_format = OutputFormat::from_str(&c.output_format)?;
     let output_version = if let Some(v) = c.output_version {
@@ -688,6 +698,7 @@ fn main() -> Result<()> {
         output_format,
         output_version,
         policy: policy.clone(),
+        time,
         unstable_cli_warning_emitted: false,
         cert_store_path: c.cert_store.clone(),
         cert_store: if c.no_cert_store {
@@ -765,7 +776,6 @@ fn main() -> Result<()> {
             let additional_secrets =
                 load_certs(command.signer_key_file.iter().map(|s| s.as_ref()))?;
 
-            let time = command.time.map(|t| t.time.into());
             let private_key_store = command.private_key_store.as_deref();
             commands::encrypt(commands::EncryptOpts {
                 policy,
@@ -777,7 +787,7 @@ fn main() -> Result<()> {
                 signers: additional_secrets,
                 mode: command.mode,
                 compression: command.compression,
-                time,
+                time: Some(config.time),
                 use_expired_subkey: command.use_expired_subkey,
             })?;
         },
@@ -791,7 +801,7 @@ fn main() -> Result<()> {
             let private_key_store = command.private_key_store.as_deref();
             let secrets =
                 load_certs(command.secret_key_file.iter().map(|s| s.as_ref()))?;
-            let time = command.time.map(|t| t.time.into());
+            let time = Some(config.time);
 
             let notations = parse_notations(command.notation)?;
 
@@ -908,10 +918,7 @@ fn main() -> Result<()> {
             commands::autocrypt::dispatch(config, &command)?;
         },
         SqSubcommands::Inspect(command) => {
-            // sq inspect does not have --output, but commands::inspect does.
-            // Work around this mismatch by always creating a stdout output.
-            let mut output = config.create_or_stdout_unsafe(None)?;
-            commands::inspect(command, policy, &mut output)?;
+            commands::inspect(config, command)?
         },
 
         SqSubcommands::Keyring(command) => {

@@ -123,6 +123,32 @@ and creates it if it does not exist."
     )]
     // TODO is this the right type?
     pub known_notation: Vec<String>,
+    #[clap(
+        long = "time",
+        value_name = "TIME",
+        help = "Sets the reference time as ISO 8601 formatted timestamp",
+        global = true,
+        long_help = "\
+Sets the reference time as an ISO 8601 formatted timestamp.  Normally, \
+commands use the current time as the reference time.  This argument allows \
+the user to use a difference reference time.  For instance, when creating a \
+key using \"sq key generate\", the creation time is normally set to the \
+current time, but can be overriden using this option.  Similarly, when \
+verifying a message, the message is verified with respect to the current \
+time.  This option allows the user to use a different time.
+
+TIME is interpreted as an ISO 8601 timestamp.  To set the \
+certification time to June 9, 2011 at midnight UTC, you can do:
+
+$ sq --time 20130721 verify msg.pgp
+
+To include a time, add a T, the time and optionally the timezone (the \
+default timezone is UTC):
+
+$ sq --time 20130721T0550+0200 verify msg.pgp
+",
+    )]
+    pub time: Option<String>,
     #[clap(subcommand)]
     pub subcommand: SqSubcommands,
 }

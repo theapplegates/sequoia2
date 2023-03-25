@@ -3,8 +3,6 @@ use clap::{ValueEnum, Args, Subcommand};
 
 use sequoia_openpgp as openpgp;
 
-use crate::sq_cli::types::Time;
-
 #[derive(Parser, Debug)]
 #[clap(
     name = "revoke",
@@ -73,6 +71,12 @@ designated revoker.
 
 If \"--revocation-file\" is not provided, then the certificate must
 include a certification-capable key.
+
+\"sq revoke\" respects the reference time set by the top-level \
+\"--time\" argument.  When set, it uses the specified time instead of \
+the current time, when determining what keys are valid, and it sets \
+the revocation certificate's creation time to the reference time \
+instead of the current time.
 ",
 )]
 pub struct CertificateCommand {
@@ -154,15 +158,6 @@ that in the future.\"",
     )]
     pub message: String,
     #[clap(
-        short,
-        long,
-        value_name = "TIME",
-        help =
-"Chooses keys valid at the specified time and sets the revocation \
-certificate's creation time",
-    )]
-    pub time: Option<Time>,
-    #[clap(
         long,
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
@@ -219,7 +214,14 @@ normally only useful if the owner of the certificate designated the \
 key to be a designated revoker.
 
 If \"--revocation-file\" is not provided, then the certificate \
-must include a certification-capable key.",
+must include a certification-capable key.
+
+\"sq revoke subkey\" respects the reference time set by the top-level \
+\"--time\" argument.  When set, it uses the specified time instead of \
+the current time, when determining what keys are valid, and it sets \
+the revocation certificate's creation time to the reference time \
+instead of the current time.
+",
 )]
 pub struct SubkeyCommand {
     #[clap(
@@ -308,15 +310,6 @@ the message \"I've created a new subkey, please refresh the certificate."
     )]
     pub message: String,
     #[clap(
-        short,
-        long,
-        value_name = "TIME",
-        help =
-"Chooses keys valid at the specified time and sets the revocation \
-certificate's creation time",
-    )]
-    pub time: Option<Time>,
-    #[clap(
         long,
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
@@ -353,8 +346,14 @@ useful if the owner of the certificate designated the key to be a \
 designated revoker.
 
 If \"--revocation-key\" is not provided, then the certificate must \
-include a certification-capable key.",
-)]
+include a certification-capable key.
+
+\"sq revoke userid\" respects the reference time set by the top-level \
+\"--time\" argument.  When set, it uses the specified time instead of \
+the current time, when determining what keys are valid, and it sets \
+the revocation certificate's creation time to the reference time \
+instead of the current time.
+",)]
 pub struct UseridCommand {
     #[clap(
         value_name = "CERT_FILE",
@@ -428,15 +427,6 @@ the message \"I've created a new certificate, FINGERPRINT, please use \
 that in the future.\"",
     )]
     pub message: String,
-    #[clap(
-        short,
-        long,
-        value_name = "TIME",
-        help =
-"Chooses keys valid at the specified time and sets the revocation \
-certificate's creation time",
-    )]
-    pub time: Option<Time>,
     #[clap(
         long,
         value_names = &["NAME", "VALUE"],

@@ -28,6 +28,7 @@ pub mod revoke;
 mod sign;
 mod verify;
 pub mod wkd;
+pub mod wot;
 
 pub mod types;
 
@@ -110,7 +111,7 @@ store, and the results are merged together."
     #[clap(
         long = "output-format",
         value_name = "FORMAT",
-        value_parser = ["human-readable", "json"],
+        value_parser = ["human-readable", "json", "dot"],
         default_value = "human-readable",
         env = "SQ_OUTPUT_FORMAT",
         help = "Produces output in FORMAT, if possible",
@@ -202,6 +203,7 @@ pub enum SqSubcommands {
     Export(export::Command),
     Certify(certify::Command),
     Link(link::Command),
+    Wot(wot::Command),
 
     #[cfg(feature = "autocrypt")]
     Autocrypt(autocrypt::Command),

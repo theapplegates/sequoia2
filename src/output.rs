@@ -27,6 +27,13 @@ pub enum OutputFormat {
 
     /// Output as JSON.
     Json,
+
+    /// Output as DOT.
+    ///
+    /// This format is supported by a few commands that emit a
+    /// graphical network.  In particular, the \"sq wot\" subcommands
+    /// can emit this format.
+    DOT,
 }
 
 impl FromStr for OutputFormat {
@@ -36,6 +43,7 @@ impl FromStr for OutputFormat {
         match s {
             "human-readable" => Ok(Self::HumanReadable),
             "json" => Ok(Self::Json),
+            "dot" => Ok(Self::DOT),
             _ => Err(anyhow!("unknown output format {:?}", s)),
         }
     }
@@ -181,14 +189,14 @@ impl Model {
         match self {
             Self::KeyringListV0(x) => {
                 match format {
-                    OutputFormat::HumanReadable => x.human_readable(w)?,
-                    OutputFormat::Json => x.json(w)?
+                    OutputFormat::Json => x.json(w)?,
+                    _ => x.human_readable(w)?,
                 }
             }
             Self::WkdUrlV0(x) => {
                 match format {
-                    OutputFormat::HumanReadable => x.human_readable(w)?,
-                    OutputFormat::Json => x.json(w)?
+                    OutputFormat::Json => x.json(w)?,
+                    _ => x.human_readable(w)?,
                 }
             }
         }

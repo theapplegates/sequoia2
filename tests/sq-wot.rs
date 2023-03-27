@@ -1,0 +1,4528 @@
+#[cfg(test)]
+mod integration {
+    use std::collections::HashMap;
+    use std::fmt::{Display, Formatter};
+    use std::fmt::Result as FMTResult;
+    use std::path;
+    use std::slice::Iter;
+    use std::time;
+
+    use assert_cmd::Command;
+    use predicates::prelude::*;
+
+    use sequoia_openpgp as openpgp;
+
+    use openpgp::Fingerprint;
+    use openpgp::Result;
+    use openpgp::packet::UserID;
+
+    /// Dot node fill colors
+    ///
+    /// These need to be synced with the ones in src/output/dot.rs
+    const DOT_ROOT_FILL_COLOR: &'static str = "mediumpurple2";
+    const DOT_TARGET_OK_FILL_COLOR: &'static str = "lightgreen";
+    const DOT_TARGET_FAIL_FILL_COLOR: &'static str = "indianred2";
+    const DOT_NODE_FILL_COLOR: &'static str = "grey";
+
+    const HR_OK: &'static str = "[✓]";
+    const HR_NOT_OK: &'static str = "[ ]";
+    const HR_PATH: &'static str = "◯ ";
+
+    /// Supported output types
+    ///
+    /// These need to be synced with the ones in src/cli.rs
+    #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
+    enum OutputFormat {
+        /// output in graphviz's DOT format
+        Dot,
+        /// output in human readable format
+        HumanReadable,
+    }
+
+    impl OutputFormat {
+        pub fn iterator() -> Iter<'static, OutputFormat> {
+            static FORMATS: [OutputFormat; 2] =
+                [OutputFormat::Dot, OutputFormat::HumanReadable];
+            FORMATS.iter()
+        }
+    }
+
+    impl Display for OutputFormat {
+        fn fmt(&self, f: &mut Formatter) -> FMTResult {
+            write!(
+                f,
+                "{}",
+                match self {
+                    OutputFormat::Dot => "dot",
+                    OutputFormat::HumanReadable => "human-readable",
+                }
+            )
+        }
+    }
+
+    fn dir() -> path::PathBuf {
+        path::Path::new("tests").join("data").join("keyrings")
+    }
+
+    /// Create a HashMap, containing per OutputFormat lists of occurrences
+    /// of strings
+    fn output_map<'a, S>(
+        human: &'a [(usize, S)],
+        dot: &'a [(usize, S)],
+    ) -> HashMap<OutputFormat, &'a [(usize, S)]>
+    where
+        S: AsRef<str>,
+    {
+        let mut output = HashMap::<OutputFormat, &[(usize, S)]>::new();
+        output.insert(OutputFormat::HumanReadable, &human);
+        output.insert(OutputFormat::Dot, &dot);
+        output
+    }
+
+    fn test<'a, R, S>(
+        keyring: &str,
+        trust_root: R,
+        sqwot_args: &[&str],
+        command: &str,
+        args: &[&str],
+        amount: usize,
+        userid: Option<&UserID>,
+        target: Option<&Fingerprint>,
+        success: bool,
+        output: &HashMap<OutputFormat, &[(usize, S)]>,
+    ) -> Result<()>
+    where
+        R: Into<Option<&'a Fingerprint>>,
+        S: AsRef<str>,
+    {
+        let trust_root = trust_root.into();
+
+        for outputformat in OutputFormat::iterator() {
+            let mut cmd = Command::cargo_bin("sq")?;
+            cmd.current_dir(&dir())
+                .arg("--no-cert-store")
+                .args(&["--output-format", &format!("{}", outputformat)])
+                .args(&["--keyring", keyring]);
+            if let Some(trust_root) = trust_root {
+                cmd.args(&["--trust-root", &trust_root.to_string()]);
+            }
+            cmd
+                .arg("wot")
+                .args(sqwot_args)
+                .arg(command);
+            if let Some(target) = target {
+                cmd.arg(&target.to_string());
+            }
+            if let Some(userid) = userid {
+                cmd.arg(format!("{}", String::from_utf8_lossy(userid.value())));
+            }
+            for arg in args {
+                cmd.arg(arg);
+            }
+            cmd.args(&["--trust-amount", &format!("{}", amount)]);
+
+            if success {
+                let assertion = cmd.assert();
+                let assertion = assertion.success();
+
+                let stdout =
+                    String::from_utf8_lossy(&assertion.get_output().stdout);
+                if let Some(output) = output.get(outputformat) {
+                    for (expected_occurrences, s) in *output {
+                        let s = s.as_ref();
+                        let occurrences = stdout.split(s).count() - 1;
+
+                        assert_eq!(
+                            occurrences, *expected_occurrences,
+                            "Failed to find: '{}' {} times\n\
+                                    in stdout:\n\
+                                    {}",
+                            s, *expected_occurrences, stdout
+                        );
+                    }
+                }
+            } else {
+                let assertion = cmd.assert();
+                let assertion = assertion.code(predicate::eq(1));
+                let stdout =
+                    String::from_utf8_lossy(&assertion.get_output().stdout);
+                if let Some(output) = output.get(outputformat) {
+                    for (expected_occurrences, s) in *output {
+                        let s = s.as_ref();
+                        let occurrences = stdout.split(s).count() - 1;
+
+                        assert_eq!(
+                            occurrences, *expected_occurrences,
+                            "Failed to find: '{}' {} times\n\
+                                    in stdout:\n\
+                                    {}",
+                            s, *expected_occurrences, stdout
+                        );
+                    }
+                }
+                // TODO: check stderr?
+            }
+        }
+
+        Ok(())
+    }
+
+    // Test authenticating a binding (User ID and certificate).
+    #[test]
+    #[allow(unused)]
+    fn authenticate() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+
+        let dave_fpr: Fingerprint =
+            "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
+           .parse().expect("valid fingerprint");
+        let dave_uid
+            = UserID::from("<dave@example.org>");
+
+        let ellen_fpr: Fingerprint =
+            "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
+           .parse().expect("valid fingerprint");
+        let ellen_uid
+            = UserID::from("<ellen@example.org>");
+        // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
+
+        // defaults
+        let keyring = "simple.pgp";
+        let trust_root = &alice_fpr;
+        let sqwot_args = &[];
+        let command = "authenticate";
+        let args = &[];
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &dave_fpr, &dave_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
+                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&dave_uid),
+            Some(&dave_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&dave_uid),
+            Some(&dave_fpr),
+            false,
+            &no_output,
+        );
+
+        // Not enough depth.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&ellen_uid),
+            Some(&ellen_fpr),
+            false,
+            &no_output,
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&ellen_uid),
+            Some(&ellen_fpr),
+            false,
+            &no_output,
+        );
+
+        // No such User ID on dave's key.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&ellen_uid),
+            Some(&dave_fpr),
+            false,
+            &no_output,
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&ellen_uid),
+            Some(&dave_fpr),
+            false,
+            &no_output,
+        );
+
+        Ok(())
+    }
+
+    // Test authenticating bindings where we match on just the email
+    // address, not the whole User ID.
+    #[test]
+    #[allow(unused)]
+    fn authenticate_email() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+
+        let dave_fpr: Fingerprint =
+            "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
+           .parse().expect("valid fingerprint");
+        let dave_uid
+            = UserID::from("<dave@example.org>");
+        let dave_email = UserID::from("dave@example.org");
+        let dave_email_uc1 = UserID::from("DAVE@example.org");
+        let dave_email_uc2 = UserID::from("DAVE@EXAMPLE.ORG");
+
+        let ellen_fpr: Fingerprint =
+            "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
+           .parse().expect("valid fingerprint");
+        let ellen_uid
+            = UserID::from("<ellen@example.org>");
+        let ellen_email = UserID::from("ellen@example.org");
+        // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
+
+        // defaults
+        let keyring = "simple.pgp";
+        let trust_root = &alice_fpr;
+        let sqwot_args = &[];
+        let command = "authenticate";
+        let args = &["--email"];
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&dave_uid),
+            Some(&dave_fpr),
+            false,
+            &no_output,
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &dave_fpr, &dave_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
+                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&dave_email),
+            Some(&dave_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&dave_uid),
+            Some(&dave_fpr),
+            false,
+            &no_output,
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&dave_email),
+            Some(&dave_fpr),
+            false,
+            &no_output,
+        );
+
+        // Not enough depth.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&ellen_uid),
+            Some(&ellen_fpr),
+            false,
+            &no_output,
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&ellen_email),
+            Some(&ellen_fpr),
+            false,
+            &no_output,
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&ellen_uid),
+            Some(&ellen_fpr),
+            false,
+            &no_output,
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&ellen_email),
+            Some(&ellen_fpr),
+            false,
+            &no_output,
+        );
+
+        // No such User ID on dave's key.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&ellen_uid),
+            Some(&dave_fpr),
+            false,
+            &no_output,
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&ellen_email),
+            Some(&dave_fpr),
+            false,
+            &no_output,
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&ellen_uid),
+            Some(&dave_fpr),
+            false,
+            &no_output,
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&ellen_email),
+            Some(&dave_fpr),
+            false,
+            &no_output,
+        );
+
+        // Normalized.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&dave_email_uc1),
+            Some(&dave_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&dave_email_uc2),
+            Some(&dave_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        // Puny code and case normalization.
+        let alice_fpr: Fingerprint =
+            "B8DA8B318149B1C8C0CBD1ECB1CEC6D3CD00E69D"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+        let alice_email
+            = UserID::from("alice@example.org");
+
+        let hans_fpr: Fingerprint =
+            "74767C4F2B15F57F3394FCA99DE867E6CA6A2756"
+           .parse().expect("valid fingerprint");
+        let hans_uid
+            = UserID::from("<hÄNS@bücher.tld>");
+        // Certified by: B8DA8B318149B1C8C0CBD1ECB1CEC6D3CD00E69D
+
+        let hans_email
+            = UserID::from("hÄNS@bücher.tld");
+        let hans_email_lowercase
+            = UserID::from("häns@bücher.tld");
+        let hans_email_punycode
+            = UserID::from("hÄNS@xn--bcher-kva.tld");
+        let hans_email_punycode_lowercase
+            = UserID::from("häns@xn--bcher-kva.tld");
+
+        let carol_fpr: Fingerprint =
+            "7432C123761B94EC50D50CF6562B9ADEE7F789F6"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: 74767C4F2B15F57F3394FCA99DE867E6CA6A2756
+
+        let carol_email
+            = UserID::from("carol@example.org");
+
+        // defaults
+        let keyring = "puny-code.pgp";
+        let trust_root = &alice_fpr;
+        let sqwot_args = &[];
+        let command = "authenticate";
+        let args = &["--email"];
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&alice_email),
+            Some(&alice_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &hans_fpr, &hans_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
+                    hans_fpr, hans_uid, hans_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&hans_email),
+            Some(&hans_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&hans_email_lowercase),
+            Some(&hans_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&hans_email_punycode),
+            Some(&hans_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&hans_email_punycode_lowercase),
+            Some(&hans_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &carol_fpr, &carol_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
+                    carol_fpr, carol_uid, carol_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&carol_email),
+            Some(&carol_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+
+    // Test looking up a certificate by User ID.
+    #[test]
+    #[allow(unused)]
+    fn lookup() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
+           .parse().expect("valid fingerprint");
+        let alice_uid = UserID::from("<alice@example.org>");
+        let alice_uid_uppercase = UserID::from("<ALICE@EXAMPLE.ORG>");
+        let alice_uid_uppercase2 = UserID::from("<alice@EXAMPLE.ORG>");
+
+        let dave_fpr: Fingerprint =
+            "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
+           .parse().expect("valid fingerprint");
+        let dave_uid = UserID::from("<dave@example.org>");
+        let dave_uid_uppercase = UserID::from("<DAVE@EXAMPLE.ORG>");
+        let dave_uid_uppercase2 = UserID::from("<dave@EXAMPLE.ORG>");
+
+        let ellen_fpr: Fingerprint =
+            "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
+           .parse().expect("valid fingerprint");
+        let ellen_uid
+            = UserID::from("<ellen@example.org>");
+        // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
+
+        // defaults
+        let keyring = "simple.pgp";
+        let trust_root = &alice_fpr;
+        let sqwot_args = &[];
+        let command = "lookup";
+        let args = &[];
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&alice_uid),
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&alice_uid),
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output = [
+            (1, format!("{} {} {}: ", HR_OK, &dave_fpr, &dave_uid)),
+            (1, format!("{}{} (\"{}\")", HR_PATH, &alice_fpr, &alice_uid)),
+        ];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
+                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&dave_uid),
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&dave_uid),
+            None,
+            false,
+            &no_output,
+        );
+
+        // Not enough depth.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&ellen_uid),
+            None,
+            false,
+            &no_output,
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&ellen_uid),
+            None,
+            false,
+            &no_output,
+        );
+
+        // No such User ID.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&UserID::from("Gary <gary@some.org>")),
+            None,
+            false,
+            &no_output,
+        );
+
+        // We need an exact match.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&alice_uid_uppercase),
+            None,
+            false,
+            &no_output,
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&alice_uid_uppercase2),
+            None,
+            false,
+            &no_output,
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&dave_uid_uppercase),
+            None,
+            false,
+            &no_output,
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&dave_uid_uppercase2),
+            None,
+            false,
+            &no_output,
+        );
+
+        Ok(())
+    }
+
+    // Test looking up a certificate by email address.
+    #[test]
+    #[allow(unused)]
+    fn lookup_email() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
+           .parse().expect("valid fingerprint");
+        let alice_uid = UserID::from("<alice@example.org>");
+        let alice_email = UserID::from("alice@example.org");
+
+        let dave_fpr: Fingerprint =
+            "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
+           .parse().expect("valid fingerprint");
+        let dave_uid = UserID::from("<dave@example.org>");
+        let dave_email = UserID::from("dave@example.org");
+
+        let ellen_fpr: Fingerprint =
+            "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
+           .parse().expect("valid fingerprint");
+        let ellen_uid
+            = UserID::from("<ellen@example.org>");
+        let ellen_email = UserID::from("ellen@example.org");
+        // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
+
+        // defaults for test() call
+        let keyring = "simple.pgp";
+        let trust_root = &alice_fpr;
+        let sqwot_args = [];
+        let command = "lookup";
+        let args = ["--email"];
+        let target = None;
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, alice_fpr, alice_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            &sqwot_args,
+            command,
+            &args,
+            100,
+            Some(&alice_email),
+            target,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+        test(
+            keyring,
+            trust_root,
+            &sqwot_args,
+            command,
+            &args,
+            120,
+            Some(&alice_email),
+            target,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, dave_fpr, dave_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
+                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            &sqwot_args,
+            command,
+            &args,
+            100,
+            Some(&dave_email),
+            target,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+        test(
+            keyring,
+            trust_root,
+            &sqwot_args,
+            command,
+            &args,
+            120,
+            Some(&dave_email),
+            target,
+            false,
+            &no_output,
+        );
+
+        // Not enough depth.
+        test(
+            keyring,
+            trust_root,
+            &sqwot_args,
+            command,
+            &args,
+            100,
+            Some(&ellen_email),
+            target,
+            false,
+            &no_output,
+        );
+        test(
+            keyring,
+            trust_root,
+            &sqwot_args,
+            command,
+            &args,
+            120,
+            Some(&ellen_email),
+            target,
+            false,
+            &no_output,
+        );
+
+        // No such User ID.
+        test(
+            keyring,
+            trust_root,
+            &sqwot_args,
+            command,
+            &args,
+            100,
+            Some(&UserID::from("gary@some.org")),
+            target,
+            false,
+            &no_output,
+        );
+
+        Ok(())
+    }
+
+    // Test identifying a certificate.
+    #[test]
+    #[allow(unused)]
+    fn identify() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "2A2A4A23A7EEC119BC0B46642B3825DC02A05FEA"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+
+        let bob_fpr: Fingerprint =
+            "03182611B91B1E7E20B848E83DFC151ABFAD85D5"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@other.org>");
+        // Certified by: 2A2A4A23A7EEC119BC0B46642B3825DC02A05FEA
+        let bob_some_org_uid
+            = UserID::from("<bob@some.org>");
+        // Certified by: 2A2A4A23A7EEC119BC0B46642B3825DC02A05FEA
+
+        let carol_fpr: Fingerprint =
+            "9CA36907B46FE7B6B9EE9601E78064C12B6D7902"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: 03182611B91B1E7E20B848E83DFC151ABFAD85D5
+
+        let dave_fpr: Fingerprint =
+            "C1BC6794A6C6281B968A6A41ACE2055D610CEA03"
+           .parse().expect("valid fingerprint");
+        let dave_uid
+            = UserID::from("<dave@other.org>");
+        // Certified by: 9CA36907B46FE7B6B9EE9601E78064C12B6D7902
+
+        // defaults for test() call
+        let keyring = "multiple-userids-1.pgp";
+        let trust_root = &alice_fpr;
+        let sqwot_args = &[];
+        let command = "identify";
+        let args = &[];
+        let userid = None;
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        let userids = &[&alice_uid];
+        let human_output = userids
+            .iter()
+            .map(|userid| {
+                (
+                    1,
+                    format!("{} {} {}: ", HR_OK, &alice_fpr, userid)
+                        .to_string(),
+                )
+            })
+            .chain(vec![(userids.len(), HR_OK.to_string())].into_iter())
+            .collect::<Vec<_>>();
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            userid,
+            Some(&alice_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            userid,
+            Some(&alice_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let userids = &[&dave_uid];
+        let human_output = userids
+            .iter()
+            .map(|userid| {
+                (
+                    1,
+                    format!("{} {} {}: ", HR_OK, &dave_fpr, userid).to_string(),
+                )
+            })
+            .chain(vec![(userids.len(), HR_OK.to_string())].into_iter())
+            .collect::<Vec<_>>();
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(41%)\", fillcolor={}];",
+                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            50,
+            userid,
+            Some(&dave_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            userid,
+            Some(&dave_fpr),
+            false,
+            &no_output,
+        );
+
+        let userids = &[&bob_uid, &bob_some_org_uid];
+        let human_output = userids
+            .iter()
+            .map(|userid| {
+                (
+                    1,
+                    format!("{} {} {}: ", HR_OK, &bob_fpr, userid).to_string(),
+                )
+            })
+            .chain(vec![(userids.len(), HR_OK.to_string())].into_iter())
+            .collect::<Vec<_>>();
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(58%)\", fillcolor={}];",
+                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            50,
+            userid,
+            Some(&bob_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            userid,
+            Some(&bob_fpr),
+            false,
+            &no_output,
+        );
+
+        Ok(())
+    }
+
+    // List all authenticated bindings.
+    #[test]
+    #[allow(unused)]
+    fn list() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+
+        let bob_fpr: Fingerprint =
+            "39A479816C934B9E0464F1F4BC1DCFDEADA4EE90"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@example.org>");
+        // Certified by: 85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D
+
+        let carol_fpr: Fingerprint =
+            "43530F91B450EDB269AA58821A1CF4DC7F500F04"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: 39A479816C934B9E0464F1F4BC1DCFDEADA4EE90
+
+        let dave_fpr: Fingerprint =
+            "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
+           .parse().expect("valid fingerprint");
+        let dave_uid
+            = UserID::from("<dave@example.org>");
+        // Certified by: 43530F91B450EDB269AA58821A1CF4DC7F500F04
+
+        let ellen_fpr: Fingerprint =
+            "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
+           .parse().expect("valid fingerprint");
+        let ellen_uid
+            = UserID::from("<ellen@example.org>");
+        // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
+
+        let frank_fpr: Fingerprint =
+            "2693237D2CED0BB68F118D78DC86A97CD2C819D9"
+           .parse().expect("valid fingerprint");
+        let frank_uid
+            = UserID::from("<frank@example.org>");
+
+        // defaults for test() call
+        let keyring = "simple.pgp";
+        let trust_root = &alice_fpr;
+        let sqwot_args = &[];
+        let command = "list";
+        let args = &[];
+        let userid = None;
+        let target = None;
+
+        let bindings = &[(&alice_uid, &alice_fpr)];
+        let human_output = bindings
+            .iter()
+            .map(|(userid, target)| {
+                (1, format!("{} {} {}: ", HR_OK, target, userid).to_string())
+            })
+            .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
+            .collect::<Vec<_>>();
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
+                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_FAIL_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
+                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_FAIL_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
+                    carol_fpr, carol_uid, carol_uid, DOT_TARGET_FAIL_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            userid,
+            target,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let bindings = &[
+            (&alice_uid, &alice_fpr),
+            (&bob_uid, &bob_fpr),
+            (&carol_uid, &carol_fpr),
+            (&dave_uid, &dave_fpr),
+        ];
+        let human_output = bindings
+            .iter()
+            .map(|(userid, target)| {
+                (1, format!("{} {} {}: ", HR_OK, target, userid).to_string())
+            })
+            .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
+            .collect::<Vec<_>>();
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
+                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
+                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
+                    carol_fpr, carol_uid, carol_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            50,
+            userid,
+            target,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+
+    // List all authenticated bindings matching a pattern.
+    #[test]
+    #[allow(unused)]
+    fn list_pattern() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "2A2A4A23A7EEC119BC0B46642B3825DC02A05FEA"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+
+        let bob_fpr: Fingerprint =
+            "03182611B91B1E7E20B848E83DFC151ABFAD85D5"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@other.org>");
+        // Certified by: 2A2A4A23A7EEC119BC0B46642B3825DC02A05FEA
+        let bob_some_org_uid
+            = UserID::from("<bob@some.org>");
+        // Certified by: 2A2A4A23A7EEC119BC0B46642B3825DC02A05FEA
+
+        let carol_fpr: Fingerprint =
+            "9CA36907B46FE7B6B9EE9601E78064C12B6D7902"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: 03182611B91B1E7E20B848E83DFC151ABFAD85D5
+
+        let dave_fpr: Fingerprint =
+            "C1BC6794A6C6281B968A6A41ACE2055D610CEA03"
+           .parse().expect("valid fingerprint");
+        let dave_uid
+            = UserID::from("<dave@other.org>");
+        // Certified by: 9CA36907B46FE7B6B9EE9601E78064C12B6D7902
+
+        // defaults
+        let keyring = "multiple-userids-1.pgp";
+        let trust_root = &alice_fpr;
+        let sqwot_args = &[];
+        let command = "list";
+
+        let bindings = &[(&bob_uid, &bob_fpr), (&bob_some_org_uid, &bob_fpr)];
+        let human_output = bindings
+            .iter()
+            .map(|(userid, target)| {
+                (1, format!("{} {} {}: ", HR_OK, target, userid).to_string())
+            })
+            .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
+            .collect::<Vec<_>>();
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(58%)\", fillcolor={}];",
+                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(58%)\", fillcolor={}];",
+                    bob_fpr,
+                    bob_some_org_uid,
+                    bob_some_org_uid,
+                    DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+        ];
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &["bob"],
+            50,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &["BOB"],
+            50,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let bindings = &[(&alice_uid, &alice_fpr), (&carol_uid, &carol_fpr)];
+        let human_output = bindings
+            .iter()
+            .map(|(userid, target)| {
+                (1, format!("{} {} {}: ", HR_OK, target, userid).to_string())
+            })
+            .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
+            .collect::<Vec<_>>();
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(41%)\", fillcolor={}];",
+                    carol_fpr, carol_uid, carol_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+        ];
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &["@example.org"],
+            50,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &["@EXAMPLE.ORG"],
+            50,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let bindings = &[(&bob_uid, &bob_fpr), (&dave_uid, &dave_fpr)];
+        let human_output = bindings
+            .iter()
+            .map(|(userid, target)| {
+                (1, format!("{} {} {}: ", HR_OK, target, userid).to_string())
+            })
+            .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
+            .collect::<Vec<_>>();
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(58%)\", fillcolor={}];",
+                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(41%)\", fillcolor={}];",
+                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+        ];
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &["@OTHER.ORG"],
+            50,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let bindings = &[
+            (&alice_uid, &alice_fpr),
+            (&bob_uid, &bob_fpr),
+            (&bob_some_org_uid, &bob_fpr),
+            (&carol_uid, &carol_fpr),
+            (&dave_uid, &dave_fpr),
+        ];
+        let human_output = bindings
+            .iter()
+            .map(|(userid, target)| {
+                (1, format!("{} {} {}: ", HR_OK, target, userid).to_string())
+            })
+            .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
+            .collect::<Vec<_>>();
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(58%)\", fillcolor={}];",
+                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(58%)\", fillcolor={}];",
+                    bob_fpr,
+                    bob_some_org_uid,
+                    bob_some_org_uid,
+                    DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(41%)\", fillcolor={}];",
+                    carol_fpr, carol_uid, carol_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(41%)\", fillcolor={}];",
+                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+        ];
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &["ORG"],
+            50,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        // Puny code.
+        let alice_fpr: Fingerprint = "B8DA8B318149B1C8C0CBD1ECB1CEC6D3CD00E69D"
+            .parse()
+            .expect("valid fingerprint");
+        let alice_uid = UserID::from("<alice@example.org>");
+        let alice_email = UserID::from("alice@example.org");
+
+        let hans_fpr: Fingerprint = "74767C4F2B15F57F3394FCA99DE867E6CA6A2756"
+            .parse()
+            .expect("valid fingerprint");
+        let hans_uid = UserID::from("<hÄNS@bücher.tld>");
+        // Certified by: B8DA8B318149B1C8C0CBD1ECB1CEC6D3CD00E69D
+
+        let hans_email = "hÄNS@bücher.tld";
+        let hans_email_punycode = "hÄNS@xn--bcher-kva.tld";
+        let hans_email_punycode_lowercase = "häns@xn--bcher-kva.tld";
+
+        let carol_fpr: Fingerprint = "7432C123761B94EC50D50CF6562B9ADEE7F789F6"
+            .parse()
+            .expect("valid fingerprint");
+        let carol_uid = UserID::from("<carol@example.org>");
+        // Certified by: 74767C4F2B15F57F3394FCA99DE867E6CA6A2756
+
+        let carol_email
+            = UserID::from("carol@example.org");
+
+        // defaults
+        let keyring = "puny-code.pgp";
+        let trust_root = &alice_fpr;
+        let sqwot_args = &[];
+        let command = "list";
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        let bindings = &[(&hans_uid, &hans_fpr)];
+        let human_output = bindings
+            .iter()
+            .map(|(userid, target)| {
+                (1, format!("{} {} {}: ", HR_OK, target, userid).to_string())
+            })
+            .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
+            .collect::<Vec<_>>();
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
+                    hans_fpr, hans_uid, hans_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+        ];
+
+        // If we don't provide --email, then we only case
+        // insensitively match on the raw User ID; we don't perform
+        // puny code normalization.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &["bücher.tld"],
+            100,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &["BÜCHER.TLD"],
+            100,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[hans_email],
+            100,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[&format!("<{}>", hans_email)],
+            100,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[hans_email_punycode],
+            100,
+            None,
+            None,
+            false,
+            &no_output,
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[hans_email_punycode_lowercase],
+            100,
+            None,
+            None,
+            false,
+            &no_output,
+        );
+
+        Ok(())
+    }
+
+    // List all authenticated bindings where the email address matches
+    // a pattern.
+    #[test]
+    #[allow(unused)]
+    fn list_email_pattern() -> Result<()> {
+        // Puny code and case normalization.
+        let alice_fpr: Fingerprint =
+            "B8DA8B318149B1C8C0CBD1ECB1CEC6D3CD00E69D"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+        let alice_email
+            = UserID::from("alice@example.org");
+
+        let hans_fpr: Fingerprint =
+            "74767C4F2B15F57F3394FCA99DE867E6CA6A2756"
+           .parse().expect("valid fingerprint");
+        let hans_uid
+            = UserID::from("<hÄNS@bücher.tld>");
+        // Certified by: B8DA8B318149B1C8C0CBD1ECB1CEC6D3CD00E69D
+
+        let hans_email = "hÄNS@bücher.tld";
+        let hans_email_punycode = "hÄNS@xn--bcher-kva.tld";
+        let hans_email_punycode_lowercase = "häns@xn--bcher-kva.tld";
+
+        let carol_fpr: Fingerprint =
+            "7432C123761B94EC50D50CF6562B9ADEE7F789F6"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: 74767C4F2B15F57F3394FCA99DE867E6CA6A2756
+
+        let carol_email
+            = UserID::from("carol@example.org");
+
+        // defaults
+        let keyring = "puny-code.pgp";
+        let trust_root = &alice_fpr;
+        let sqwot_args = &[];
+        let command = "list";
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        let bindings = &[(&hans_uid, &hans_fpr)];
+        let human_output = bindings
+            .iter()
+            .map(|(userid, target)| {
+                (1, format!("{} {} {}: ", HR_OK, target, userid).to_string())
+            })
+            .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
+            .collect::<Vec<_>>();
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
+                    hans_fpr, hans_uid, hans_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+        ];
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &["--email", "bücher.tld"],
+            100,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &["--email", "BÜCHER.TLD"],
+            100,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &["--email", hans_email],
+            100,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &["--email", &format!("<{}>", hans_email)],
+            100,
+            None,
+            None,
+            false,
+            &no_output,
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &["--email", hans_email_punycode],
+            100,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &["--email", hans_email_punycode_lowercase],
+            100,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    #[allow(unused)]
+    fn path_simple() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+
+        let bob_fpr: Fingerprint =
+            "39A479816C934B9E0464F1F4BC1DCFDEADA4EE90"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@example.org>");
+        // Certified by: 85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D
+
+        let carol_fpr: Fingerprint =
+            "43530F91B450EDB269AA58821A1CF4DC7F500F04"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: 39A479816C934B9E0464F1F4BC1DCFDEADA4EE90
+
+        let dave_fpr: Fingerprint =
+            "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
+           .parse().expect("valid fingerprint");
+        let dave_uid
+            = UserID::from("<dave@example.org>");
+        // Certified by: 43530F91B450EDB269AA58821A1CF4DC7F500F04
+
+        let ellen_fpr: Fingerprint =
+            "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
+           .parse().expect("valid fingerprint");
+        let ellen_uid
+            = UserID::from("<ellen@example.org>");
+        // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
+
+        let frank_fpr: Fingerprint =
+            "2693237D2CED0BB68F118D78DC86A97CD2C819D9"
+           .parse().expect("valid fingerprint");
+        let frank_uid
+            = UserID::from("<frank@example.org>");
+
+        // defaults
+        let keyring = "simple.pgp";
+        let trust_root = None; // No trust root for path.
+        let sqwot_args = &[];
+        let command = "path";
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        // Alice certifies Bob at trust amount = 100. (120 required).
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &String::from_utf8_lossy(bob_uid.value()),
+            ],
+            120,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output = [(1, format!("{} {} {}", HR_OK, bob_fpr, bob_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        // As above, but we only require 100.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &String::from_utf8_lossy(bob_uid.value()),
+            ],
+            100,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        // Alice makes Bob a level 2 trusted introducer.
+        // Bob certificates Carol, but for Bob.
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &bob_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &String::from_utf8_lossy(bob_uid.value()),
+            ],
+            100,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}", HR_OK, carol_fpr, carol_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        // Alice makes Bob a level 2 trusted introducer.
+        // Bob certificates Carol.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &String::from_utf8_lossy(carol_uid.value()),
+            ],
+            100,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}", HR_OK, dave_fpr, dave_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        // Alice makes Bob a level 2 trusted introducer.
+        // Bob makes Carol a level 1 trust introducer.
+        // Carol certifies Dave.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &dave_fpr.to_string(),
+                &String::from_utf8_lossy(dave_uid.value()),
+            ],
+            100,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        // Alice makes Bob a level 2 trusted introducer (require level 3).
+        // Bob makes Carol a level 1 trusted introducer (require level 2).
+        // Carol makes Dave a level 1 trusted introducer.
+        // Dave certifies Ellen.
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &ellen_fpr, &ellen_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &dave_fpr.to_string(),
+                &ellen_fpr.to_string(),
+                &String::from_utf8_lossy(ellen_uid.value()),
+            ],
+            100,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        // Alice makes Bob a level 2 trusted introducer.
+        // Bob does *not* certify Dave.
+        // Dave certifies Ellen.
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &ellen_fpr, &ellen_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &dave_fpr.to_string(),
+                &ellen_fpr.to_string(),
+                &String::from_utf8_lossy(ellen_uid.value()),
+            ],
+            100,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    #[allow(unused)]
+    fn path_missing_certs() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+
+        let bob_fpr: Fingerprint =
+            "39A479816C934B9E0464F1F4BC1DCFDEADA4EE90"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@example.org>");
+        // Certified by: 85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D
+
+        let carol_fpr: Fingerprint =
+            "43530F91B450EDB269AA58821A1CF4DC7F500F04"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: 39A479816C934B9E0464F1F4BC1DCFDEADA4EE90
+
+        let dave_fpr: Fingerprint =
+            "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
+           .parse().expect("valid fingerprint");
+        let dave_uid
+            = UserID::from("<dave@example.org>");
+        // Certified by: 43530F91B450EDB269AA58821A1CF4DC7F500F04
+
+        let ellen_fpr: Fingerprint =
+            "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
+           .parse().expect("valid fingerprint");
+        let ellen_uid
+            = UserID::from("<ellen@example.org>");
+        // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
+
+        let frank_fpr: Fingerprint =
+            "2693237D2CED0BB68F118D78DC86A97CD2C819D9"
+           .parse().expect("valid fingerprint");
+        let frank_uid
+            = UserID::from("<frank@example.org>");
+
+        let missing_fpr: Fingerprint =
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+           .parse().expect("valid fingerprint");
+
+        // defaults
+        let keyring = "simple.pgp";
+        let trust_root = None; // No trust root for path.
+        let sqwot_args = &[];
+        let command = "path";
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        let human_output =
+            [(1, format!("{} {} {}", HR_OK, carol_fpr, carol_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        // Alice tsigns Bob at depth = 2, trust amount = 100.
+        // Bob certifies Carol, trust amount = 100.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &String::from_utf8_lossy(carol_uid.value()),
+            ],
+            100,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &missing_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &String::from_utf8_lossy(carol_uid.value()),
+            ],
+            100,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &missing_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &String::from_utf8_lossy(carol_uid.value()),
+            ],
+            100,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &missing_fpr, &carol_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &missing_fpr.to_string(),
+                &String::from_utf8_lossy(carol_uid.value()),
+            ],
+            100,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    #[allow(unused)]
+    fn path_singleton() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+
+        let bob_fpr: Fingerprint =
+            "39A479816C934B9E0464F1F4BC1DCFDEADA4EE90"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@example.org>");
+        // Certified by: 85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D
+
+        let carol_fpr: Fingerprint =
+            "43530F91B450EDB269AA58821A1CF4DC7F500F04"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: 39A479816C934B9E0464F1F4BC1DCFDEADA4EE90
+
+        let dave_fpr: Fingerprint =
+            "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
+           .parse().expect("valid fingerprint");
+        let dave_uid
+            = UserID::from("<dave@example.org>");
+        // Certified by: 43530F91B450EDB269AA58821A1CF4DC7F500F04
+
+        let ellen_fpr: Fingerprint =
+            "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
+           .parse().expect("valid fingerprint");
+        let ellen_uid
+            = UserID::from("<ellen@example.org>");
+        // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
+
+        let frank_fpr: Fingerprint =
+            "2693237D2CED0BB68F118D78DC86A97CD2C819D9"
+           .parse().expect("valid fingerprint");
+        let frank_uid
+            = UserID::from("<frank@example.org>");
+
+        let missing_fpr: Fingerprint =
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+           .parse().expect("valid fingerprint");
+
+        // defaults
+        let keyring = "simple.pgp";
+        let trust_root = None; // No trust root for path.
+        let sqwot_args = &[];
+        let command = "path";
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        // A self signed User ID.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &String::from_utf8_lossy(alice_uid.value()),
+            ],
+            120,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        // A User ID that is not self signed.
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &alice_fpr, &bob_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &String::from_utf8_lossy(bob_uid.value()),
+            ],
+            120,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    #[allow(unused)]
+    fn path_multiple_userids_1() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "2A2A4A23A7EEC119BC0B46642B3825DC02A05FEA"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+
+        let bob_fpr: Fingerprint =
+            "03182611B91B1E7E20B848E83DFC151ABFAD85D5"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@other.org>");
+        // Certified by: 2A2A4A23A7EEC119BC0B46642B3825DC02A05FEA
+        let bob_some_org_uid
+            = UserID::from("<bob@some.org>");
+        // Certified by: 2A2A4A23A7EEC119BC0B46642B3825DC02A05FEA
+
+        let carol_fpr: Fingerprint =
+            "9CA36907B46FE7B6B9EE9601E78064C12B6D7902"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: 03182611B91B1E7E20B848E83DFC151ABFAD85D5
+
+        let dave_fpr: Fingerprint =
+            "C1BC6794A6C6281B968A6A41ACE2055D610CEA03"
+           .parse().expect("valid fingerprint");
+        let dave_uid
+            = UserID::from("<dave@other.org>");
+        // Certified by: 9CA36907B46FE7B6B9EE9601E78064C12B6D7902
+
+        // defaults
+        let keyring = "multiple-userids-1.pgp";
+        let trust_root = None; // No trust root for path.
+        let sqwot_args = &[];
+        let command = "path";
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        // Alice certifies Bob as:
+        //   a level 2 trusted introducer, amount = 50
+        //   a level 1 trusted introducer, amount = 70
+        // Bob certifies Carol as a level 2 trusted introducer
+        // Carol certifies Dave
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &dave_fpr, &dave_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &dave_fpr.to_string(),
+                &String::from_utf8_lossy(dave_uid.value()),
+            ],
+            70,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}", HR_OK, dave_fpr, dave_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        // As above, but
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &dave_fpr.to_string(),
+                &String::from_utf8_lossy(dave_uid.value()),
+            ],
+            50,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    #[allow(unused)]
+    fn path_multiple_users_2() -> Result<()> {
+        // Note: this also tests regular expressions.
+
+        let alice_fpr: Fingerprint =
+            "F1C99C4019837703DD17C45440F8A0141DF278EA"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+
+        let bob_fpr: Fingerprint =
+            "5528B9E5DAFC519ED2E37F0377B332E4111456CB"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@other.org>");
+        // Certified by: F1C99C4019837703DD17C45440F8A0141DF278EA
+        let bob_some_org_uid
+            = UserID::from("<bob@some.org>");
+        // Certified by: F1C99C4019837703DD17C45440F8A0141DF278EA
+
+        let carol_fpr: Fingerprint =
+            "6F8291428420AB53576BAB4BEFF6477D3E348D71"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: 5528B9E5DAFC519ED2E37F0377B332E4111456CB
+
+        let dave_fpr: Fingerprint =
+            "62C57D90DAD253DEA01D5A86C7382FD6285C18F0"
+           .parse().expect("valid fingerprint");
+        let dave_uid
+            = UserID::from("<dave@other.org>");
+        // Certified by: 6F8291428420AB53576BAB4BEFF6477D3E348D71
+
+        let ed_fpr: Fingerprint =
+            "0E974D0ACBA0C4D8F51D7CF68F048FF83B173504"
+           .parse().expect("valid fingerprint");
+        let ed_uid
+            = UserID::from("<ed@example.org>");
+        // Certified by: 6F8291428420AB53576BAB4BEFF6477D3E348D71
+
+        let frank_fpr: Fingerprint =
+            "5BEE3D41F85B2FCBC300DE4E18CB2BDA65465F03"
+           .parse().expect("valid fingerprint");
+        let frank_uid
+            = UserID::from("<frank@other.org>");
+        // Certified by: 5528B9E5DAFC519ED2E37F0377B332E4111456CB
+
+        // defaults
+        let keyring = "multiple-userids-2.pgp";
+        let trust_root = None; // No trust root for path.
+        let sqwot_args = &[];
+        let command = "path";
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        let human_output = [(1, format!("{} {}", HR_OK, frank_fpr))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        // Alice certifies Bob as:
+        //   a level 255 trusted introducer, amount = 70 for other.org
+        //   a level 1 trusted introducer, amount = 50
+        // Bob certifies Frank@other.org
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &frank_fpr.to_string(),
+                &String::from_utf8_lossy(frank_uid.value()),
+            ],
+            70,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        // Alice certifies Bob as:
+        //   a level 255 trusted introducer, amount = 70 for other.org
+        //   a level 1 trusted introducer, amount = 50
+        // Bob certifies Carol@example.org
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &String::from_utf8_lossy(carol_uid.value()),
+            ],
+            70,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}", HR_OK, carol_fpr, carol_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        // As above, but reduce the required trust amount to 50.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &String::from_utf8_lossy(carol_uid.value()),
+            ],
+            50,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}", HR_OK, dave_fpr, dave_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        // Alice certifies Bob as:
+        //   a level 255 trusted introducer, amount = 70 for other.org
+        //   a level 1 trusted introducer, amount = 50
+        // Bob certifies carol as a level 2 trusted introducer
+        // Carol certifies dave@other.org
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &dave_fpr.to_string(),
+                &String::from_utf8_lossy(dave_uid.value()),
+            ],
+            70,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        // Alice certifies Bob as:
+        //   a level 255 trusted introducer, amount = 70 for other.org
+        //   a level 1 trusted introducer, amount = 50
+        // Bob certifies carol as a level 2 trusted introducer
+        // Carol certifies ed@example.org
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &ed_fpr, &ed_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &ed_fpr.to_string(),
+                &String::from_utf8_lossy(ed_uid.value()),
+            ],
+            70,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    #[allow(unused)]
+    fn path_sha1() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "B5FA089BA76FE3E17DC11660960E53286738F94C"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+
+        let bob_fpr: Fingerprint =
+            "231BC4AB9D8CAB86D1622CE02C0CE554998EECDB"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@example.org>");
+        // Certified by: B5FA089BA76FE3E17DC11660960E53286738F94C
+        // Certified by: B5FA089BA76FE3E17DC11660960E53286738F94C
+
+        let carol_fpr: Fingerprint =
+            "FABA8485B2D4D5BF1582AA963A8115E774FA9852"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: 231BC4AB9D8CAB86D1622CE02C0CE554998EECDB
+        // Certified by: 231BC4AB9D8CAB86D1622CE02C0CE554998EECDB
+
+        // defaults
+        let keyring = "sha1.pgp";
+        let trust_root = None; // No trust root for path.
+        let sqwot_args = &[ "--time", "2023-01-10T15:07:01" ];
+        let command = "path";
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        // Alice certifies Bob as
+        //   a level 1 trusted introducer, amount = 120 using sha1
+        //   a level 1 trusted introducer, amount = 60 using sha512 (future)
+        // Bob certifies carol as a
+        //   a level 1 trusted introducer, amount = 120 using sha1
+        //   a level 1 trusted introducer, amount = 60 using sha512 (future)
+        //
+        // The valid signatures won't be used because they are from
+        // the future (after the reference time).
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &String::from_utf8_lossy(carol_uid.value()),
+            ],
+            120,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        // Again, but this time only require a trust amount of 60.
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &String::from_utf8_lossy(carol_uid.value()),
+            ],
+            60,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        // set sq-wot args again
+        let sqwot_args = &[];
+
+        // Again, after the SHA256 certificates are valid.  But with a
+        // trust amount of 120.
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &String::from_utf8_lossy(carol_uid.value()),
+            ],
+            120,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}", HR_OK, carol_fpr, carol_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &String::from_utf8_lossy(carol_uid.value()),
+            ],
+            60,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    #[allow(unused)]
+    fn authenticate_certification_network_simple() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+
+        let bob_fpr: Fingerprint =
+            "39A479816C934B9E0464F1F4BC1DCFDEADA4EE90"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@example.org>");
+        // Certified by: 85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D
+
+        let carol_fpr: Fingerprint =
+            "43530F91B450EDB269AA58821A1CF4DC7F500F04"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: 39A479816C934B9E0464F1F4BC1DCFDEADA4EE90
+
+        let dave_fpr: Fingerprint =
+            "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
+           .parse().expect("valid fingerprint");
+        let dave_uid
+            = UserID::from("<dave@example.org>");
+        // Certified by: 43530F91B450EDB269AA58821A1CF4DC7F500F04
+
+        let ellen_fpr: Fingerprint =
+            "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
+           .parse().expect("valid fingerprint");
+        let ellen_uid
+            = UserID::from("<ellen@example.org>");
+        // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
+
+        let frank_fpr: Fingerprint =
+            "2693237D2CED0BB68F118D78DC86A97CD2C819D9"
+           .parse().expect("valid fingerprint");
+        let frank_uid
+            = UserID::from("<frank@example.org>");
+
+        // defaults
+        let keyring = "simple.pgp";
+        let trust_root = &alice_fpr;
+        let sqwot_args = &[];
+        let command = "authenticate";
+        let args = &[];
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&ellen_uid),
+            Some(&ellen_fpr),
+            false,
+            &no_output,
+        );
+
+        let sqwot_args = &["--certification-network"];
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &ellen_fpr, &ellen_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
+                    ellen_fpr, ellen_uid, ellen_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            100,
+            Some(&ellen_uid),
+            Some(&ellen_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    #[allow(unused)]
+    fn authenticate_certification_network() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "B2B371214EF71AFD16E42C62D81360B4C0489225"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+        // Certified by: 9A1AE937B5CB8BC46048AB63023CC01973ED9DF3
+
+        let bob_fpr: Fingerprint =
+            "A68DF00EB82F9C49C27CC7723C5F5BBE6B790C05"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@example.org>");
+        // Certified by: B2B371214EF71AFD16E42C62D81360B4C0489225
+
+        let carol_fpr: Fingerprint =
+            "AB9EF1C89631519842ED559697557DD147D99C97"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: A68DF00EB82F9C49C27CC7723C5F5BBE6B790C05
+
+        let dave_fpr: Fingerprint =
+            "9A1AE937B5CB8BC46048AB63023CC01973ED9DF3"
+           .parse().expect("valid fingerprint");
+        let dave_uid
+            = UserID::from("<dave@example.org>");
+        // Certified by: AB9EF1C89631519842ED559697557DD147D99C97
+
+        // defaults
+        let keyring = "certification-network.pgp";
+        let trust_root = &alice_fpr;
+        let sqwot_args = &[];
+        let command = "authenticate";
+        let args = &[];
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(100%)\", fillcolor={}];",
+                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        // Alice does not make Bob a trusted introducer.  So without
+        // --certificate-network, she can only authenticate Bob, but
+        // not Carol or Dave.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&bob_uid),
+            Some(&bob_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&carol_uid),
+            Some(&carol_fpr),
+            false,
+            &no_output,
+        );
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&dave_uid),
+            Some(&dave_fpr),
+            false,
+            &no_output,
+        );
+
+        // With --certification-network, she can authenticate them all.
+        let sqwot_args = &["--certification-network"];
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(100%)\", fillcolor={}];",
+                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&bob_uid),
+            Some(&bob_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &carol_fpr, &carol_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(100%)\", fillcolor={}];",
+                    carol_fpr, carol_uid, carol_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&carol_uid),
+            Some(&carol_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &dave_fpr, &dave_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(100%)\", fillcolor={}];",
+                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&dave_uid),
+            Some(&dave_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let sqwot_args = &[];
+        let trust_root = &dave_fpr;
+        // dave authenticates alice for 60 of 120.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&alice_uid),
+            Some(&alice_fpr),
+            false,
+            &no_output,
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(50%)\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    dave_fpr, dave_uid, dave_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    dave_fpr, dave_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            60,
+            Some(&alice_uid),
+            Some(&alice_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        // use --certification-network
+        let sqwot_args = &["--certification-network"];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&alice_uid),
+            Some(&alice_fpr),
+            false,
+            &no_output,
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(50%)\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    dave_fpr, dave_uid, dave_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    dave_fpr, dave_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            60,
+            Some(&alice_uid),
+            Some(&alice_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let sqwot_args = &[];
+        // use carol as trust root
+        let trust_root = &carol_fpr;
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            60,
+            Some(&alice_uid),
+            Some(&alice_fpr),
+            false,
+            &no_output,
+        );
+
+        // use --certification-network
+        let sqwot_args = &["--certification-network"];
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(50%)\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    carol_fpr, carol_uid, carol_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    carol_fpr, carol_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            60,
+            Some(&alice_uid),
+            Some(&alice_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(50%)\", fillcolor={}];",
+                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    carol_fpr, carol_uid, carol_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    carol_fpr, carol_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            60,
+            Some(&bob_uid),
+            Some(&bob_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    #[allow(unused)]
+    fn path_certification_network() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "B2B371214EF71AFD16E42C62D81360B4C0489225"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+        // Certified by: 9A1AE937B5CB8BC46048AB63023CC01973ED9DF3
+
+        let bob_fpr: Fingerprint =
+            "A68DF00EB82F9C49C27CC7723C5F5BBE6B790C05"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@example.org>");
+        // Certified by: B2B371214EF71AFD16E42C62D81360B4C0489225
+
+        let carol_fpr: Fingerprint =
+            "AB9EF1C89631519842ED559697557DD147D99C97"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: A68DF00EB82F9C49C27CC7723C5F5BBE6B790C05
+
+        let dave_fpr: Fingerprint =
+            "9A1AE937B5CB8BC46048AB63023CC01973ED9DF3"
+           .parse().expect("valid fingerprint");
+        let dave_uid
+            = UserID::from("<dave@example.org>");
+        // Certified by: AB9EF1C89631519842ED559697557DD147D99C97
+
+        // defaults
+        let keyring = "certification-network.pgp";
+        let trust_root = &alice_fpr;
+        let sqwot_args = &[];
+        let command = "path";
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        // Alice does not make Bob a trusted introducer.  So without
+        // --certificate-network, she can only authenticate Bob, but
+        // not Carol or Dave.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &bob_uid.to_string(),
+            ],
+            120,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &carol_uid.to_string(),
+            ],
+            120,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &dave_fpr, &dave_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &dave_fpr.to_string(),
+                &dave_uid.to_string(),
+            ],
+            120,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        // change sq-wot args
+        let sqwot_args = &["--certification-network"];
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        // With --certification-network, she can authenticate them all.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &bob_uid.to_string(),
+            ],
+            120,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &carol_fpr, &carol_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &carol_uid.to_string(),
+            ],
+            120,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &dave_fpr, &dave_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &dave_fpr.to_string(),
+                &dave_uid.to_string(),
+            ],
+            120,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        // But invalid paths should stay invalid.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &carol_fpr.to_string(),
+                &carol_uid.to_string(),
+            ],
+            120,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        // set dave as trust root
+        let trust_root = &dave_fpr;
+        // reset sq-wot args again
+        let sqwot_args = &[];
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &alice_fpr, &alice_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        // dave authenticates alice for 60 of 120.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &dave_fpr.to_string(),
+                &alice_fpr.to_string(),
+                &alice_uid.to_string(),
+            ],
+            120,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &dave_fpr.to_string(),
+                &alice_fpr.to_string(),
+                &alice_uid.to_string(),
+            ],
+            60,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        // set sq-wot args to use certification network
+        let sqwot_args = &["--certification-network"];
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &alice_fpr, &alice_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &dave_fpr.to_string(),
+                &alice_fpr.to_string(),
+                &alice_uid.to_string(),
+            ],
+            120,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &dave_fpr.to_string(),
+                &alice_fpr.to_string(),
+                &alice_uid.to_string(),
+            ],
+            60,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        // set carol as trust root
+        let trust_root = &carol_fpr;
+        // reset sq-wot args again
+        let sqwot_args = &[];
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &alice_fpr, &alice_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &carol_fpr.to_string(),
+                &dave_fpr.to_string(),
+                &alice_fpr.to_string(),
+                &alice_uid.to_string(),
+            ],
+            60,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        // set sq-wot args to use certification network
+        let sqwot_args = &["--certification-network"];
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &carol_fpr.to_string(),
+                &dave_fpr.to_string(),
+                &alice_fpr.to_string(),
+                &alice_uid.to_string(),
+            ],
+            60,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &carol_fpr.to_string(),
+                &dave_fpr.to_string(),
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &bob_uid.to_string(),
+            ],
+            60,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    #[allow(unused)]
+    fn gossip_certification_network() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "B2B371214EF71AFD16E42C62D81360B4C0489225"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+        // Certified by: 9A1AE937B5CB8BC46048AB63023CC01973ED9DF3
+
+        let bob_fpr: Fingerprint =
+            "A68DF00EB82F9C49C27CC7723C5F5BBE6B790C05"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@example.org>");
+        // Certified by: B2B371214EF71AFD16E42C62D81360B4C0489225
+
+        let carol_fpr: Fingerprint =
+            "AB9EF1C89631519842ED559697557DD147D99C97"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: A68DF00EB82F9C49C27CC7723C5F5BBE6B790C05
+
+        let dave_fpr: Fingerprint =
+            "9A1AE937B5CB8BC46048AB63023CC01973ED9DF3"
+           .parse().expect("valid fingerprint");
+        let dave_uid
+            = UserID::from("<dave@example.org>");
+        // Certified by: AB9EF1C89631519842ED559697557DD147D99C97
+
+        // defaults
+        let keyring = "certification-network.pgp";
+        let trust_root = None;
+        let sqwot_args = &["--gossip"];
+        let command = "authenticate";
+        let args = &[];
+
+        let human_output =
+            [(2, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(0%)\", fillcolor={}];",
+                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_FAIL_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+        ];
+        // Alice certified Bob.  We should print the path, but it
+        // should be unauthenticated (this is gossip).
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&bob_uid),
+            Some(&bob_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let trust_root = &alice_fpr;
+        let human_output =
+            [(2, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(0%)\", fillcolor={}];",
+                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_FAIL_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+        ];
+        // Make sure we don't authenticate when we specify a root
+        // (which is ignored when --gossip is provided).
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            120,
+            Some(&bob_uid),
+            Some(&bob_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    #[allow(unused)]
+    fn target_cert_expired() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "1FA62523FB7C06E71EEFB82BB5159F3FC3EB3AC9"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+
+        let bob_fpr: Fingerprint =
+            "B166B31AE5F95600B3F7184FE74C6CE62821686F"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@example.org>");
+        // Certified by: 1FA62523FB7C06E71EEFB82BB5159F3FC3EB3AC9
+
+        let carol_fpr: Fingerprint =
+            "81CD118AC5BD9156DC113772626222D76ACDFFCF"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: B166B31AE5F95600B3F7184FE74C6CE62821686F
+
+        // $ date '+%s' -d 20200202
+        // 1580598000
+        let t1 = std::time::UNIX_EPOCH + time::Duration::new(1580598000, 0);
+        // $ date '+%s' -d 20200302
+        // 1583103600
+        let t2 = std::time::UNIX_EPOCH + time::Duration::new(1583103600, 0);
+        // $ date '+%s' -d 20200402
+        // 1585778400
+        let t3 = std::time::UNIX_EPOCH + time::Duration::new(1585778400, 0);
+
+        // At t1, Alice certifies Bob (amount = 60).
+        // At t2, Bob's certificate expires.
+
+        // defaults
+        let keyring = "cert-expired.pgp";
+        let trust_root: Option<&Fingerprint> = Some(&alice_fpr);
+        let sqwot_args = &[];
+        let command = "authenticate";
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(50%)\", fillcolor={}];",
+                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        // Bob's certificate is not yet expired.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &["--time", "20200214"],
+            60,
+            Some(&bob_uid),
+            Some(&bob_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let trust_root = None; // no trust root for path
+        let command = "path";
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                "--time",
+                "20200214",
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &bob_uid.to_string(),
+            ],
+            60,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let trust_root = Some(&alice_fpr);
+        let command = "authenticate";
+        // Bob's certificate is expired.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &["--time", "20200216"],
+            60,
+            Some(&bob_uid),
+            Some(&bob_fpr),
+            false,
+            &no_output,
+        );
+
+        let trust_root = None;
+        let command = "path";
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                "--time",
+                "20200216",
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &bob_uid.to_string(),
+            ],
+            60,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    #[allow(unused)]
+    fn target_cert_hard_revoked() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "219AAB661C8AAF4526DBC31AA751A7A0532863BA"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+
+        let bob_fpr: Fingerprint =
+            "90E02BFB03FAA04714D1D3D87543157EF3B12BE9"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@example.org>");
+        // Certified by: 219AAB661C8AAF4526DBC31AA751A7A0532863BA
+        // Certified by: 219AAB661C8AAF4526DBC31AA751A7A0532863BA
+
+        let carol_fpr: Fingerprint =
+            "BF680710128E6BCCB2268154569F5F6BFB95C544"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: 219AAB661C8AAF4526DBC31AA751A7A0532863BA
+
+        let dave_fpr: Fingerprint =
+            "46945292F8F643F0573AF71183F9C1A4759A16D6"
+           .parse().expect("valid fingerprint");
+        let dave_uid
+            = UserID::from("<dave@example.org>");
+        // Certified by: 90E02BFB03FAA04714D1D3D87543157EF3B12BE9
+        // Certified by: BF680710128E6BCCB2268154569F5F6BFB95C544
+        // Certified by: 90E02BFB03FAA04714D1D3D87543157EF3B12BE9
+
+        // defaults
+        let keyring = "cert-revoked-hard.pgp";
+        let trust_root: Option<&Fingerprint> = Some(&alice_fpr);
+        let sqwot_args = &[];
+        let command = "authenticate";
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        // Bob's certificate is hard revoked.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[],
+            60,
+            Some(&bob_uid),
+            Some(&bob_fpr),
+            false,
+            &no_output,
+        );
+
+        let trust_root: Option<&Fingerprint> = None;
+        let command = "path";
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &bob_uid.to_string(),
+            ],
+            60,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    #[allow(unused)]
+    fn target_cert_soft_revoked() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "66037F98B444BBAFDFE98E871738DFAB86878262"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+
+        let bob_fpr: Fingerprint =
+            "4CD8737F76C2B897C4F058DBF28C47540FA2C3B3"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@example.org>");
+        // Certified by: 66037F98B444BBAFDFE98E871738DFAB86878262
+
+        let carol_fpr: Fingerprint =
+            "AB4E3F8EE8BBD3459754D75ACE570F9B8C7DC75D"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: 66037F98B444BBAFDFE98E871738DFAB86878262
+
+        let dave_fpr: Fingerprint =
+            "DF6A440ED9DE723B0EBC7F50E24FBB1B9FADC999"
+           .parse().expect("valid fingerprint");
+        let dave_uid
+            = UserID::from("<dave@example.org>");
+        // Certified by: 4CD8737F76C2B897C4F058DBF28C47540FA2C3B3
+        // Certified by: AB4E3F8EE8BBD3459754D75ACE570F9B8C7DC75D
+        // Certified by: 4CD8737F76C2B897C4F058DBF28C47540FA2C3B3
+
+        // defaults
+        let keyring = "cert-revoked-soft.pgp";
+        let trust_root: Option<&Fingerprint> = Some(&alice_fpr);
+        let sqwot_args = &["--time", "20200228"];
+        let command = "authenticate";
+        let args = &[];
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(75%)\", fillcolor={}];",
+                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        // Bob's certificate is soft revoked on 20200301.  If the
+        // reference time is before that, we should be able to
+        // authenticate Bob.  After that and we should fail to do so.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            args,
+            60,
+            Some(&bob_uid),
+            Some(&bob_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let trust_root: Option<&Fingerprint> = None; // no trust root for binding
+        let command = "path";
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &bob_uid.to_string(),
+            ],
+            60,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let trust_root: Option<&Fingerprint> = Some(&alice_fpr);
+        let command = "authenticate";
+        let sqwot_args = &["--time", "20200302"]; // setting time again
+
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[],
+            60,
+            Some(&bob_uid),
+            Some(&bob_fpr),
+            false,
+            &no_output,
+        );
+
+        let command = "path";
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &bob_uid.to_string(),
+            ],
+            60,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    #[allow(unused)]
+    fn target_userid_revoked() -> Result<()> {
+        let alice_fpr: Fingerprint =
+            "01672BB67E4B4047E5A4EC0A731CEA092C465FC8"
+           .parse().expect("valid fingerprint");
+        let alice_uid
+            = UserID::from("<alice@example.org>");
+
+        let bob_fpr: Fingerprint =
+            "EA479A77CD074458EAFE56B4861BF42FF490C581"
+           .parse().expect("valid fingerprint");
+        let bob_uid
+            = UserID::from("<bob@example.org>");
+        // Certified by: 01672BB67E4B4047E5A4EC0A731CEA092C465FC8
+        // Certified by: 01672BB67E4B4047E5A4EC0A731CEA092C465FC8
+
+        let carol_fpr: Fingerprint =
+            "212873BB9C4CC49F8E5A6FEA78BC5397470BA7F0"
+           .parse().expect("valid fingerprint");
+        let carol_uid
+            = UserID::from("<carol@example.org>");
+        // Certified by: EA479A77CD074458EAFE56B4861BF42FF490C581
+        // Certified by: EA479A77CD074458EAFE56B4861BF42FF490C581
+
+        // defaults
+        let keyring = "userid-revoked.pgp";
+        let trust_root = Some(&alice_fpr);
+        let sqwot_args = &["--time", "20200228"];
+        let command = "authenticate";
+        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
+
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        let dot_output = [
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\n(50%)\", fillcolor={}];",
+                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
+                ),
+            ),
+            (
+                1,
+                format!(
+                    "\"{}\" [label=\"{}\", fillcolor={}];",
+                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
+                ),
+            ),
+        ];
+        // Bob's User ID is soft revoked on 20200301.  If the
+        // reference time is before that, we should be able to
+        // authenticate Bob.  After that and we should fail to do so.
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[],
+            60,
+            Some(&bob_uid),
+            Some(&bob_fpr),
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let trust_root = None;
+        let command = "path";
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &bob_uid.to_string(),
+            ],
+            60,
+            None,
+            None,
+            true,
+            &output_map(&human_output, &dot_output),
+        );
+
+        let trust_root = Some(&alice_fpr);
+        let sqwot_args = &["--time", "20200302"];
+        let command = "authenticate";
+        test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[],
+            60,
+            Some(&bob_uid),
+            Some(&bob_fpr),
+            false,
+            &no_output,
+        );
+
+        let trust_root = None;
+        let command = "path";
+        let human_output =
+            [(1, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
+        // TODO: add output to check against once sq-wot graph is supported
+        let dot_output = [];
+         test(
+            keyring,
+            trust_root,
+            sqwot_args,
+            command,
+            &[
+                &alice_fpr.to_string(),
+                &bob_fpr.to_string(),
+                &bob_uid.to_string(),
+            ],
+            60,
+            None,
+            None,
+            false,
+            &output_map(&human_output, &dot_output),
+        );
+
+        Ok(())
+    }
+}

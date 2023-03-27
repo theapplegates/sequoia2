@@ -51,6 +51,13 @@
      local trust root on the specified bindings.
    - Add a top-level option, `--keyring`, to allow the user to specify
      additional keyrings to search for certificates.
+   - Import web of trust subcommands from sq-wot.  Specifically, add:
+     - `sq wot authenticate` to authenticate a binding.
+     - `sq wot lookup` to find a certificate with a particular User ID.
+     - `sq wot identify` to list authenticated bindings for a
+       certificate.
+     - `sq wot list` to list authenticated bindings.
+     - `sq wot path` to authenticate and lint a path in a web of trust.
  * Deprecated functionality
    - `sq key generate --creation-time TIME` is deprecated in favor of
      `sq key generate --time TIME`.

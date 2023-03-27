@@ -2873,6 +2873,7 @@ dependencies = [
  "clap 4.0.32",
  "clap_complete",
  "dirs",
+ "dot-writer",
  "fehler",
  "itertools 0.10.3",
  "once_cell",

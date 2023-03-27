@@ -52,12 +52,15 @@ use sequoia_wot as wot;
 use wot::store::Store as _;
 
 use clap::FromArgMatches;
-use crate::sq_cli::packet;
-use sq_cli::SqSubcommands;
 
 #[macro_use] mod macros;
+#[macro_use] mod log;
+
 
 mod sq_cli;
+use sq_cli::packet;
+use sq_cli::SqSubcommands;
+
 mod man;
 mod commands;
 pub mod output;
@@ -345,8 +348,8 @@ pub struct Config<'a> {
     no_rw_cert_store: bool,
     cert_store_path: Option<PathBuf>,
     keyrings: Vec<PathBuf>,
-    // This will be set if the cert store is enabled (--no-cert-store
-    // is not passed), OR --keyring is passed.
+    // This will be set if --no-cert-store is not passed, OR --keyring
+    // is passed.
     cert_store: OnceCell<cert_store::CertStore<'a>>,
 
     // The value of --trust-root.
@@ -752,12 +755,9 @@ impl<'store> Config<'store> {
             };
 
             if matches.is_empty() {
-                if error.is_none() {
-                    error = Some(anyhow::anyhow!(
-                        "No certificates are associated with {:?}",
-                        userid));
-                }
-                continue;
+                return Err(anyhow::anyhow!(
+                    "No certificates are associated with {:?}",
+                    userid));
             }
 
             struct Entry {
@@ -1449,6 +1449,10 @@ fn main() -> Result<()> {
 
         SqSubcommands::Link(command) => {
             commands::link::link(config, command)?
+        }
+
+        SqSubcommands::Wot(command) => {
+            commands::wot::dispatch(config, command)?
         }
     }
 

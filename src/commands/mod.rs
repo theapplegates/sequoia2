@@ -35,8 +35,7 @@ use openpgp::types::RevocationStatus;
 use sequoia_cert_store as cert_store;
 use cert_store::Store;
 
-use sequoia_wot as wot;
-use wot::store::Store as _;
+use sequoia_wot::store::Store as _;
 
 use crate::{
     Config,
@@ -66,8 +65,7 @@ pub mod export;
 pub mod net;
 pub mod certify;
 pub mod link;
-
-use crate::error_chain;
+pub mod wot;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GetKeysOptions {
@@ -451,129 +449,6 @@ pub fn encrypt(opts: EncryptOpts) -> Result<()> {
     Ok(())
 }
 
-// Prints the path in the web of trust.
-fn print_path(path: &wot::PathLints, target_userid: &UserID, prefix: &str)
-{
-    let certification_count = path.certifications().count();
-
-    eprint!("{}◯ {}", prefix, path.root().key_handle());
-    if certification_count == 0 {
-        eprint!(" {:?}", String::from_utf8_lossy(target_userid.value()));
-    } else if let Some(userid) = path.root().primary_userid() {
-        eprint!(" ({:?})",
-                String::from_utf8_lossy(userid.value()));
-    }
-    eprintln!("");
-
-    for (last, (cert, certification)) in path
-        .certs()
-        .zip(path.certifications())
-        .enumerate()
-        .map(|(j, c)| {
-            if j + 1 == certification_count {
-                (true, c)
-            } else {
-                (false, c)
-            }
-        })
-    {
-        eprint!("{}│  ", prefix);
-        if let Some(certification) = certification.certification() {
-            if certification.amount() < wot::FULLY_TRUSTED {
-                eprint!(" partially certified (amount: {} of {})",
-                        certification.amount(), wot::FULLY_TRUSTED);
-            } else {
-                eprint!(" certified");
-            }
-
-            if last {
-                eprint!(" the following binding");
-            } else {
-                eprint!(" the following certificate");
-            }
-
-            eprint!(" on {}",
-                    chrono::DateTime::<chrono::Utc>::from(
-                       certification.creation_time()).format("%Y-%m-%d"));
-            if let Some(e) = certification.expiration_time() {
-                eprint!(" (expiry: {})",
-                        chrono::DateTime::<chrono::Utc>::from(
-                            e).format("%Y-%m-%d"));
-            }
-            if certification.depth() > 0.into() {
-                eprint!(" as a");
-                if certification.amount() != wot::FULLY_TRUSTED {
-                    eprint!(" partially trusted ({} of {})",
-                            certification.amount(), wot::FULLY_TRUSTED);
-                } else {
-                    eprint!(" fully trusted");
-                }
-                if certification.depth() == 1.into() {
-                    eprint!(" introducer (depth: {})",
-                            certification.depth());
-                } else {
-                    eprint!(" meta-introducer (depth: {})",
-                            certification.depth());
-                }
-            }
-        } else {
-            eprint!(" No adequate certification found.");
-        }
-        eprintln!("");
-
-        for err in cert.errors().iter().chain(cert.lints()) {
-            for (i, msg) in error_chain(err).into_iter().enumerate() {
-                eprintln!("{}│   {}{}",
-                          prefix,
-                          if i == 0 { "" } else { "  " },
-                          msg);
-            }
-        }
-        for err in certification.errors().iter()
-            .chain(certification.lints())
-        {
-            for (i, msg) in error_chain(err).into_iter().enumerate() {
-                eprintln!("{}│   {}{}",
-                          prefix,
-                          if i == 0 { "" } else { "  " },
-                          msg);
-            }
-        }
-
-        eprint!("{}{} {}",
-                prefix,
-                if last { "└" } else { "├" },
-                certification.target());
-
-        if last {
-            eprint!(" {:?}",
-                    String::from_utf8_lossy(target_userid.value()));
-        } else {
-            if let Some(userid) = certification.target_cert()
-                .and_then(|c| c.primary_userid())
-            {
-                eprint!(" ({:?})",
-                        String::from_utf8_lossy(userid.value()));
-            }
-        }
-        eprintln!("");
-
-        if last {
-            let target = path.certs().last().expect("have one");
-            for err in target.errors().iter().chain(target.lints()) {
-                for (i, msg) in error_chain(err).into_iter().enumerate() {
-                    eprintln!("{}    {}{}",
-                              prefix,
-                              if i == 0 { "" } else { "  " },
-                              msg);
-                }
-            }
-        }
-    }
-
-    eprintln!("");
-}
-
 struct VHelper<'a, 'store> {
     #[allow(dead_code)]
     config: &'a Config<'store>,
@@ -632,9 +507,11 @@ impl<'a, 'store> VHelper<'a, 'store> {
     }
 
     fn print_sigs(&mut self, results: &[VerificationResult]) {
+        use crate::commands::wot::output::print_path;
+        use crate::print_error_chain;
+
         let reference_time = self.config.time;
 
-        use crate::print_error_chain;
         use self::VerificationError::*;
         for result in results {
             let (sig, ka) = match result {
@@ -705,7 +582,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
 
                 if let Ok(Some(cert_store)) = self.config.cert_store() {
                     // Build the network.
-                    let cert_store = wot::store::CertStore::from_store(
+                    let cert_store = sequoia_wot::store::CertStore::from_store(
                         cert_store, &self.config.policy, reference_time);
 
                     let userids = if let Some(userid) = sig.signers_user_id() {
@@ -722,9 +599,9 @@ impl<'a, 'store> VHelper<'a, 'store> {
                         eprintln!("{}{} cannot be authenticated.  \
                                    It has no User IDs",
                                   prefix, cert_fpr);
-                    } else if let Ok(n) = wot::Network::new(&cert_store) {
-                        let mut q = wot::QueryBuilder::new(&n);
-                        q.roots(wot::Roots::new(trust_roots.into_iter()));
+                    } else if let Ok(n) = sequoia_wot::Network::new(&cert_store) {
+                        let mut q = sequoia_wot::QueryBuilder::new(&n);
+                        q.roots(sequoia_wot::Roots::new(trust_roots.into_iter()));
                         let q = q.build();
 
                         let authenticated_userids
@@ -735,14 +612,15 @@ impl<'a, 'store> VHelper<'a, 'store> {
                                 let paths = q.authenticate(
                                     userid, cert.fingerprint(),
                                     // XXX: Make this user configurable.
-                                    wot::FULLY_TRUSTED);
+                                    sequoia_wot::FULLY_TRUSTED);
 
                                 let amount = paths.amount();
-                                let authenticated = if amount >= wot::FULLY_TRUSTED {
+                                let authenticated = if amount >= sequoia_wot::FULLY_TRUSTED {
                                     eprintln!("{}Fully authenticated \
                                                ({} of {}) {}, {}",
                                               prefix,
-                                              amount, wot::FULLY_TRUSTED,
+                                              amount,
+                                              sequoia_wot::FULLY_TRUSTED,
                                               cert_fpr,
                                               userid_str);
                                     true
@@ -750,7 +628,8 @@ impl<'a, 'store> VHelper<'a, 'store> {
                                     eprintln!("{}Partially authenticated \
                                                ({} of {}) {}, {:?} ",
                                               prefix,
-                                              amount, wot::FULLY_TRUSTED,
+                                              amount,
+                                              sequoia_wot::FULLY_TRUSTED,
                                               cert_fpr,
                                               userid_str);
                                     false

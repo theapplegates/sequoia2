@@ -16,6 +16,7 @@ use openpgp::{
         UserID,
     },
     parse::Parse,
+    policy::NullPolicy,
     serialize::Serialize,
 };
 use sequoia_net as net;
@@ -38,26 +39,53 @@ use crate::{
 
 use crate::sq_cli;
 
+const NP: NullPolicy = NullPolicy::new();
+
 // Import the certificates into the local certificate store.
 //
 // This does not certify the certificates.
 fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
+    // Once we get a mutable reference to the cert_store, we're locked
+    // out of config.  Gather the information we need first.
+    let certs = certs.into_iter()
+        .map(|cert| {
+            let fpr = cert.fingerprint();
+            let userid = cert.with_policy(&config.policy, config.time)
+                .or_else(|_| cert.with_policy(&NP, config.time))
+                .and_then(|vc| vc.primary_userid())
+                .map(|userid| {
+                    String::from_utf8_lossy(userid.value())
+                        .to_string()
+                })
+                .unwrap_or_else(|_| "<unknown>".to_string());
+
+            (fpr, userid, cert)
+        })
+        .collect::<Vec<_>>();
+
     let cert_store = config.cert_store_mut_or_else()
         .context("Inserting results")?;
 
     let mut stats
         = cert_store::store::MergePublicCollectStats::new();
-    for cert in certs.into_iter() {
+
+    eprintln!("Importing {} certificates into the certificate store:\n", certs.len());
+    for (i, (fpr, userid, cert)) in certs.into_iter().enumerate() {
         cert_store.update_by(Cow::Owned(cert.into()), &mut stats)
-            .context("Inserting results")?;
+            .with_context(|| format!("Inserting {}, {}", fpr, userid))?;
+        eprintln!("  {}. {} {}", i + 1, fpr, userid);
     }
 
-    eprintln!("Imported {} new certificates, \
+    eprintln!("\nImported {} new certificates, \
                updated {} certificates, \
                {} certificates unchanged, \
                {} errors.",
               stats.new, stats.updated, stats.unchanged,
               stats.errors);
+
+    eprintln!("\nAfter checking that a certificate really belongs to the \
+               stated owner, use \"sq link add FINGERPRINT\" to \
+               mark the certificate as authenticated.");
 
     Ok(())
 }

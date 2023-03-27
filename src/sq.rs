@@ -341,8 +341,13 @@ pub struct Config<'a> {
     /// Have we emitted the warning yet?
     unstable_cli_warning_emitted: bool,
 
+    // --no-cert-store
+    no_rw_cert_store: bool,
     cert_store_path: Option<PathBuf>,
-    cert_store: Option<OnceCell<cert_store::CertStore<'a>>>,
+    keyrings: Vec<PathBuf>,
+    // This will be set if the cert store is enabled (--no-cert-store
+    // is not passed), OR --keyring is passed.
+    cert_store: OnceCell<cert_store::CertStore<'a>>,
 
     // The value of --trust-root.
     trust_roots: Vec<Fingerprint>,
@@ -424,14 +429,12 @@ impl<'store> Config<'store> {
     /// If the cert store is disabled, returns `Ok(None)`.  If it is not yet
     /// open, opens it.
     fn cert_store(&self) -> Result<Option<&cert_store::CertStore<'store>>> {
-        let cert_store = if let Some(cert_store) = self.cert_store.as_ref() {
-            cert_store
-        } else {
+        if self.no_rw_cert_store && self.keyrings.is_empty() {
             // The cert store is disabled.
             return Ok(None);
-        };
+        }
 
-        if let Some(cert_store) = cert_store.get() {
+        if let Some(cert_store) = self.cert_store.get() {
             // The cert store is already initialized, return it.
             return Ok(Some(cert_store));
         }
@@ -472,30 +475,66 @@ impl<'store> Config<'store> {
         };
 
         // We need to initialize the cert store.
-        let pathbuf;
-        let path = if let Some(path) = self.cert_store_path.as_ref() {
-            path
+        let mut cert_store = if ! self.no_rw_cert_store {
+            // Open the cert-d.
+
+            let pathbuf;
+            let path = if let Some(path) = self.cert_store_path.as_ref() {
+                path
+            } else {
+                // XXX: openpgp-cert-d doesn't yet export this:
+                // https://gitlab.com/sequoia-pgp/pgp-cert-d/-/issues/34
+                // Remove this when it does.
+                pathbuf = dirs::data_dir()
+                    .expect("Unsupported platform")
+                    .join("pgp.cert.d");
+                &pathbuf
+            };
+
+            create_dirs(path)
+                .and_then(|_| cert_store::CertStore::open(path))
+                .with_context(|| {
+                    format!("While opening the certificate store at {:?}",
+                            path)
+                })?
         } else {
-            // XXX: openpgp-cert-d doesn't yet export this:
-            // https://gitlab.com/sequoia-pgp/pgp-cert-d/-/issues/34
-            // Remove this when it does.
-            pathbuf = dirs::data_dir()
-                .expect("Unsupported platform")
-                .join("pgp.cert.d");
-            &pathbuf
+            cert_store::CertStore::empty()
         };
 
-        let instance = create_dirs(path)
-            .and_then(|_| cert_store::CertStore::open(path))
-            .with_context(|| {
-                format!("While opening the certificate store at {:?}",
-                        path)
-            })?;
+        let mut keyring = cert_store::store::Certs::empty();
+        let mut error = None;
+        for filename in self.keyrings.iter() {
+            let f = std::fs::File::open(filename)
+                .with_context(|| format!("Open {:?}", filename))?;
+            let parser = RawCertParser::from_reader(f)
+                .with_context(|| format!("Parsing {:?}", filename))?;
 
-        let _ = cert_store.set(instance);
-        Ok(Some(self.cert_store
-                    .as_ref().expect("enabled")
-                    .get().expect("just configured")))
+            for cert in parser {
+                match cert {
+                    Ok(cert) => {
+                        keyring.update(Cow::Owned(cert.into()))
+                            .expect("implementation doesn't fail");
+                    }
+                    Err(err) => {
+                        eprint!("Parsing certificate in {:?}: {}",
+                                filename, err);
+                        error = Some(err);
+                    }
+                }
+            }
+        }
+
+        if let Some(err) = error {
+            return Err(err).context("Parsing keyrings");
+        }
+
+        cert_store.add_backend(
+            Box::new(keyring),
+            cert_store::AccessMode::Always);
+
+        let _ = self.cert_store.set(cert_store);
+
+        Ok(Some(self.cert_store.get().expect("just configured")))
     }
 
     /// Returns the cert store.
@@ -515,15 +554,16 @@ impl<'store> Config<'store> {
     fn cert_store_mut(&mut self)
         -> Result<Option<&mut cert_store::CertStore<'store>>>
     {
+        if self.no_rw_cert_store {
+            return Err(anyhow::anyhow!(
+                "Operation requires a certificate store, \
+                 but the certificate store is disabled"));
+        }
+
         // self.cert_store() will do any required initialization, but
         // it will return an immutable reference.
         self.cert_store()?;
-
-        if let Some(cert_store) = self.cert_store.as_mut() {
-            Ok(cert_store.get_mut())
-        } else {
-            Ok(None)
-        }
+        Ok(self.cert_store.get_mut())
     }
 
     /// Returns a mutable reference to the cert store.
@@ -1090,12 +1130,10 @@ fn main() -> Result<()> {
         policy: policy.clone(),
         time,
         unstable_cli_warning_emitted: false,
+        no_rw_cert_store: c.no_cert_store,
         cert_store_path: c.cert_store.clone(),
-        cert_store: if c.no_cert_store {
-            None
-        } else {
-            Some(OnceCell::new())
-        },
+        keyrings: c.keyring.clone(),
+        cert_store: OnceCell::new(),
         trust_roots: c.trust_roots.clone(),
         trust_root_local: Default::default(),
     };

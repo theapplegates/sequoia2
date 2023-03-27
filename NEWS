@@ -49,6 +49,8 @@
      certify the specified bindings.
    - Add `sq link retract`, which retracts certifications made by the
      local trust root on the specified bindings.
+   - Add a top-level option, `--keyring`, to allow the user to specify
+     additional keyrings to search for certificates.
  * Deprecated functionality
    - `sq key generate --creation-time TIME` is deprecated in favor of
      `sq key generate --time TIME`.

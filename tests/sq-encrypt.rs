@@ -294,4 +294,126 @@ mod integration {
 
         Ok(())
     }
+
+    // Encrypt a message to two recipients: one whose certificate is
+    // in the certificate store, and one whose certificated is in a
+    // keyring.
+    #[test]
+    fn sq_encrypt_keyring() -> Result<()>
+    {
+        let dir = TempDir::new()?;
+
+        let certd = dir.path().join("cert.d").display().to_string();
+        std::fs::create_dir(&certd).expect("mkdir works");
+
+        let alice_pgp = dir.path().join("alice.pgp").display().to_string();
+        let bob_pgp = dir.path().join("bob.pgp").display().to_string();
+
+        // Generate the keys.
+        let mut cmd = Command::cargo_bin("sq")?;
+        cmd.args(["--cert-store", &certd,
+                  "key", "generate",
+                  "--expires", "never",
+                  "--userid", "<alice@example.org>",
+                  "--export", &alice_pgp]);
+        cmd.assert().success();
+        let alice = Cert::from_file(&alice_pgp)?;
+        let alice_fpr = alice.fingerprint().to_string();
+
+        let mut cmd = Command::cargo_bin("sq")?;
+        cmd.args(["--cert-store", &certd,
+                  "key", "generate",
+                  "--expires", "never",
+                  "--userid", "<bob@example.org>",
+                  "--export", &bob_pgp]);
+        cmd.assert().success();
+        let bob = Cert::from_file(&bob_pgp)?;
+        let bob_fpr = bob.keyid().to_string();
+
+        const MESSAGE: &[u8] = &[0x42; 24 * 1024 + 23];
+        let encrypt = |keyrings: &[&str],
+                       recipients: &[&str],
+                       decryption_keys: &[&str]|
+        {
+            let mut cmd = Command::cargo_bin("sq").unwrap();
+            cmd.args(["--cert-store", &certd]);
+
+            // Make a string for debugging.
+            let mut cmd_display = "sq".to_string();
+
+            for keyring in keyrings.iter() {
+                cmd.args(["--keyring", keyring]);
+
+                cmd_display.push_str(" --keyring ");
+                cmd_display.push_str(keyring);
+            }
+
+            cmd_display.push_str(" encrypt");
+            cmd.arg("encrypt");
+
+            for recipient in recipients.iter() {
+                cmd.args(["--recipient-cert", recipient]);
+
+                cmd_display.push_str(" --recipient-cert ");
+                cmd_display.push_str(recipient);
+            }
+            cmd.write_stdin(MESSAGE);
+
+            let output = cmd.output().expect("success");
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+
+            if decryption_keys.is_empty() {
+                assert!(! output.status.success(),
+                        "'{}' should have failed\nstdout:\n{}\nstderr:\n{}",
+                        cmd_display, stdout, stderr);
+            } else {
+                assert!(output.status.success(),
+                        "'{}' should have succeeded\nstdout:\n{}\nstderr:\n{}",
+                        cmd_display, stdout, stderr);
+
+                for key in decryption_keys.iter() {
+                    let mut cmd = Command::cargo_bin("sq").unwrap();
+                    cmd.args(["--no-cert-store",
+                              "decrypt",
+                              "--recipient-file",
+                              &key])
+                        .write_stdin(stdout.as_bytes());
+
+                    let output = cmd.output().expect("success");
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    assert!(output.status.success(),
+                            "'{}' decryption should succeed\nstdout:\n{}\nstderr:\n{}",
+                            cmd_display, stdout, stderr);
+                }
+            }
+        };
+
+        encrypt(&[&alice_pgp, &bob_pgp],
+                &[&alice_fpr, &bob_fpr],
+                &[&alice_pgp, &bob_pgp]);
+
+        // Import Alice's certificate.
+        let mut cmd = Command::cargo_bin("sq")?;
+        cmd.args(["--cert-store", &certd,
+                  "import", &alice_pgp]);
+        let output = cmd.output().expect("success");
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(output.status.success(),
+                "sq import should succeed\nstdout:\n{}\nstderr:\n{}",
+                stdout, stderr);
+
+        encrypt(&[&alice_pgp, &bob_pgp],
+                &[&alice_fpr, &bob_fpr],
+                &[&alice_pgp, &bob_pgp]);
+
+        encrypt(&[&bob_pgp],
+                &[&alice_fpr, &bob_fpr],
+                &[&alice_pgp, &bob_pgp]);
+
+
+        Ok(())
+    }
 }

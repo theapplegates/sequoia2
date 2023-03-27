@@ -96,6 +96,18 @@ and creates it if it does not exist."
     )]
     pub cert_store: Option<PathBuf>,
     #[clap(
+        long,
+        value_name = "PATH",
+        help = "Specifies the location of a keyring to use",
+        long_help = "\
+Specifies the location of a keyring to use.  Keyrings are used in \
+addition to any certificate store.  The content of the keyring is \
+not imported into the certificate store.  When a certificate is \
+looked up, it is looked up in all keyrings and any certificate \
+store, and the results are merged together."
+    )]
+    pub keyring: Vec<PathBuf>,
+    #[clap(
         long = "output-format",
         value_name = "FORMAT",
         value_parser = ["human-readable", "json"],

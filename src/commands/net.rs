@@ -1,5 +1,7 @@
 //! Network services.
 
+use std::borrow::Cow;
+
 use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
@@ -23,6 +25,9 @@ use net::{
     dane,
 };
 
+use sequoia_cert_store as cert_store;
+use cert_store::StoreUpdate;
+
 use crate::{
     Config,
     Model,
@@ -33,7 +38,33 @@ use crate::{
 
 use crate::sq_cli;
 
-pub fn dispatch_keyserver(config: Config, c: sq_cli::keyserver::Command) -> Result<()> {
+// Import the certificates into the local certificate store.
+//
+// This does not certify the certificates.
+fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
+    let cert_store = config.cert_store_mut_or_else()
+        .context("Inserting results")?;
+
+    let mut stats
+        = cert_store::store::MergePublicCollectStats::new();
+    for cert in certs.into_iter() {
+        cert_store.update_by(Cow::Owned(cert.into()), &mut stats)
+            .context("Inserting results")?;
+    }
+
+    eprintln!("Imported {} new certificates, \
+               updated {} certificates, \
+               {} certificates unchanged, \
+               {} errors.",
+              stats.new, stats.updated, stats.unchanged,
+              stats.errors);
+
+    Ok(())
+}
+
+pub fn dispatch_keyserver(mut config: Config, c: sq_cli::keyserver::Command)
+    -> Result<()>
+{
     let network_policy = c.network_policy.into();
     let mut ks = KeyServer::new(network_policy, &c.server)
         .context("Malformed keyserver URI")?;
@@ -54,20 +85,28 @@ pub fn dispatch_keyserver(config: Config, c: sq_cli::keyserver::Command) -> Resu
                 let cert = rt.block_on(ks.get(handle))
                     .context("Failed to retrieve cert")?;
 
-                let mut output =
-                    config.create_or_stdout_safe(c.output.as_deref())?;
-                if !c.binary {
-                    cert.armored().serialize(&mut output)
+                if let Some(output) = c.output {
+                    let mut output =
+                        config.create_or_stdout_safe(Some(&output))?;
+                    if !c.binary {
+                        cert.armored().serialize(&mut output)
+                    } else {
+                        cert.serialize(&mut output)
+                    }.context("Failed to serialize cert")?;
                 } else {
-                    cert.serialize(&mut output)
-                }.context("Failed to serialize cert")?;
+                    import_certs(&mut config, vec![ cert ])?;
+                }
             } else if let Ok(Some(addr)) = UserID::from(query.as_str()).email() {
                 let certs = rt.block_on(ks.search(addr))
                     .context("Failed to retrieve certs")?;
 
-                let mut output =
-                    config.create_or_stdout_safe(c.output.as_deref())?;
-                serialize_keyring(&mut output, &certs, c.binary)?;
+                if let Some(output) = c.output {
+                    let mut output =
+                        config.create_or_stdout_safe(Some(&output))?;
+                    serialize_keyring(&mut output, &certs, c.binary)?;
+                } else {
+                    import_certs(&mut config, certs)?;
+                }
             } else {
                 return Err(anyhow::anyhow!(
                     "Query must be a fingerprint, a keyid, \
@@ -87,7 +126,7 @@ pub fn dispatch_keyserver(config: Config, c: sq_cli::keyserver::Command) -> Resu
     Ok(())
 }
 
-pub fn dispatch_wkd(config: Config, c: sq_cli::wkd::Command) -> Result<()> {
+pub fn dispatch_wkd(mut config: Config, c: sq_cli::wkd::Command) -> Result<()> {
     let network_policy: net::Policy = c.network_policy.into();
 
     let rt = tokio::runtime::Builder::new_current_thread()
@@ -131,9 +170,13 @@ pub fn dispatch_wkd(config: Config, c: sq_cli::wkd::Command) -> Result<()> {
             // ```
             // But to keep the parallelism with `store export` and `keyserver get`,
             // The output is armored if not `--binary` option is given.
-            let mut output =
-                config.create_or_stdout_safe(c.output.as_deref())?;
-            serialize_keyring(&mut output, &certs, c.binary)?;
+            if let Some(output) = c.output {
+                let mut output =
+                    config.create_or_stdout_safe(Some(&output))?;
+                serialize_keyring(&mut output, &certs, c.binary)?;
+            } else {
+                import_certs(&mut config, certs)?;
+            }
         },
         Generate(c) => {
             let domain = c.domain;
@@ -172,7 +215,7 @@ pub fn dispatch_wkd(config: Config, c: sq_cli::wkd::Command) -> Result<()> {
     Ok(())
 }
 
-pub fn dispatch_dane(config: Config, c: sq_cli::dane::Command) -> Result<()> {
+pub fn dispatch_dane(mut config: Config, c: sq_cli::dane::Command) -> Result<()> {
     let network_policy: net::Policy = c.network_policy.into();
 
     let rt = tokio::runtime::Builder::new_current_thread()
@@ -193,9 +236,13 @@ pub fn dispatch_dane(config: Config, c: sq_cli::dane::Command) -> Result<()> {
             // Because it might be created a WkdServer struct, not
             // doing it for now.
             let certs = rt.block_on(dane::get(&email_address))?;
-            let mut output =
-                config.create_or_stdout_safe(c.output.as_deref())?;
-            serialize_keyring(&mut output, &certs, c.binary)?;
+            if let Some(output) = c.output {
+                let mut output =
+                    config.create_or_stdout_safe(Some(&output))?;
+                serialize_keyring(&mut output, &certs, c.binary)?;
+            } else {
+                import_certs(&mut config, certs)?;
+            }
         },
     }
 

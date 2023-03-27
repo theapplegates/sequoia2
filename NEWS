@@ -58,6 +58,10 @@
        certificate.
      - `sq wot list` to list authenticated bindings.
      - `sq wot path` to authenticate and lint a path in a web of trust.
+   - `sq keyserver get`, `sq wkd get`, and `sq dane get` now import any
+     certificates into the certificate store by default instead of
+     exporting them on stdout.  It is still possible to export them
+     using the `--output` option.
  * Deprecated functionality
    - `sq key generate --creation-time TIME` is deprecated in favor of
      `sq key generate --time TIME`.

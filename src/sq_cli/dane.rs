@@ -49,7 +49,7 @@ pub struct GetCommand {
         short,
         long,
         value_name = "FILE",
-        help = "Writes to FILE or stdout if omitted"
+        help = "Writes to FILE instead of importing into the certificate store"
     )]
     pub output: Option<String>,
 }

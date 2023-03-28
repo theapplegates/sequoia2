@@ -82,6 +82,7 @@ standard cert-d, which is located in $HOME/.local/share/pgp.cert.d."
     #[clap(
         long,
         value_name = "PATH",
+        env = "SQ_CERT_STORE",
         conflicts_with_all = &[ "no_cert_store" ],
         help = "Specifies the location of the certificate store",
         long_help = "\

@@ -12,6 +12,7 @@ use std::borrow::Borrow;
 use std::borrow::Cow;
 use std::fs::OpenOptions;
 use std::io;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
@@ -427,6 +428,23 @@ impl<'store> Config<'store> {
         }
     }
 
+    /// Returns the cert store's base directory, if it is enabled.
+    fn cert_store_base(&self) -> Option<PathBuf> {
+        if self.no_rw_cert_store {
+            None
+        } else if let Some(path) = self.cert_store_path.as_ref() {
+            Some(path.clone())
+        } else {
+            // XXX: openpgp-cert-d doesn't yet export this:
+            // https://gitlab.com/sequoia-pgp/pgp-cert-d/-/issues/34
+            // Remove this when it does.
+            let pathbuf = dirs::data_dir()
+                .expect("Unsupported platform")
+                .join("pgp.cert.d");
+            Some(pathbuf)
+        }
+    }
+
     /// Returns the cert store.
     ///
     /// If the cert store is disabled, returns `Ok(None)`.  If it is not yet
@@ -481,24 +499,14 @@ impl<'store> Config<'store> {
         let mut cert_store = if ! self.no_rw_cert_store {
             // Open the cert-d.
 
-            let pathbuf;
-            let path = if let Some(path) = self.cert_store_path.as_ref() {
-                path
-            } else {
-                // XXX: openpgp-cert-d doesn't yet export this:
-                // https://gitlab.com/sequoia-pgp/pgp-cert-d/-/issues/34
-                // Remove this when it does.
-                pathbuf = dirs::data_dir()
-                    .expect("Unsupported platform")
-                    .join("pgp.cert.d");
-                &pathbuf
-            };
+            let path = self.cert_store_base()
+                .expect("just checked that it is configured");
 
-            create_dirs(path)
-                .and_then(|_| cert_store::CertStore::open(path))
+            create_dirs(&path)
+                .and_then(|_| cert_store::CertStore::open(&path))
                 .with_context(|| {
                     format!("While opening the certificate store at {:?}",
-                            path)
+                            &path)
                 })?
         } else {
             cert_store::CertStore::empty()
@@ -936,22 +944,33 @@ impl<'store> Config<'store> {
             })
     }
 
-    const TRUST_ROOT: &'static str = "trust-root";
+    /// Returns a special, creating it if necessary.
+    ///
+    /// Returns whether a key was created, and the key.
+    fn get_special(&mut self, name: &str, userid: &str, create: bool)
+        -> Result<(bool, Cert)>
+    {
+        // XXX: openpgp-cert-d only supports a single special,
+        // "trust-root", even though the spec allows for other special
+        // names.  To workaround this, we open the special files by
+        // hand.  This is a bit unfortunate as we don't implement the
+        // write lock.
 
-    /// Returns the local trust root, creating it if necessary.
-    fn local_trust_root(&mut self) -> Result<Cert> {
-        let cert_store = self.cert_store_or_else()?;
-        let certd = if let Some(certd) = cert_store.certd() {
-            certd.certd()
+        let filename = if let Some(base) = self.cert_store_base() {
+            base.join(name)
         } else {
             return Err(anyhow::anyhow!(
-                "A local trust root is only available when using \
-                 an OpenPGP certificate directory"));
+                "A local trust root and other special certificates are \
+                 only available when using an OpenPGP certificate \
+                 directory"));
         };
 
-        let trust_root = match certd.get(Self::TRUST_ROOT) {
-            Ok(Some((_tag, trust_root))) => Some(trust_root),
-            Ok(None) => None,
+        // Read it.
+        //
+        // XXX: Because we don't lock the cert-d, there is a chance
+        // that we only read the first half of the key :/.
+        let cert_bytes = match std::fs::read(&filename) {
+            Ok(data) => Some(data),
             Err(err) => {
                 let err = anyhow::Error::from(err);
                 let mut not_found = false;
@@ -962,68 +981,76 @@ impl<'store> Config<'store> {
                 }
 
                 if ! not_found {
-                    return Err(err).context(
-                        "Looking up trust root in the certificate directory");
+                    return Err(err).context(format!(
+                        "Looking up {} ({}) in the certificate directory",
+                        name, userid));
                 }
 
                 None
             }
         };
 
-        let trust_root: Cert = if let Some(trust_root) = trust_root {
-            Cert::from_bytes(&trust_root)
-                .context("Parsing the trust root in the \
-                          certificate directory")?
+        let mut created = false;
+        let special: Cert = if let Some(cert_bytes) = cert_bytes {
+            Cert::from_bytes(&cert_bytes)
+                .with_context(|| format!(
+                    "Parsing {} ({}) in the certificate directory",
+                    name, userid))?
+        } else if ! create {
+            return Err(anyhow::anyhow!(
+                "Special certificate {} ({}) does not exist",
+                name, userid));
         } else {
-            // There is no trust root.  Create one.
-            //
+            // The special doesn't exist, but we should create it.
             let cert_builder = CertBuilder::new()
                 .set_primary_key_flags(KeyFlags::empty().set_certification())
                 // Set it in the past so that it is possible to use
-                // the trust root when the reference time is in the
-                // past.  Feb 2002.
+                // the CA when the reference time is in the past.  Feb
+                // 2002.
                 .set_creation_time(
                     SystemTime::UNIX_EPOCH + Duration::new(1014235320, 0))
-                // The trust root should *not* expire.
+                // CAs should *not* expire.
                 .set_validity_period(None)
                 .add_userid_with(
-                    "Local Trust Root",
+                    UserID::from(userid),
                     SignatureBuilder::new(SignatureType::GenericCertification)
                         .set_exportable_certification(false)?,
                 )?;
 
-            let (mut trust_root, _) = cert_builder.generate()?;
-            let trust_root_bytes = trust_root.as_tsk().to_vec()?;
+            let (special, _) = cert_builder.generate()?;
+            let special_bytes = special.as_tsk().to_vec()?;
 
-            let tr = &mut trust_root;
-            certd.insert_special(
-                Self::TRUST_ROOT,
-                trust_root_bytes.into_boxed_slice(),
-                move |cert_bytes, disk_bytes| {
-                    if let Some(disk_bytes) = disk_bytes {
-                        // We lost the race.  Abandon cert in favor of
-                        // the one that was written.
-                        *tr = Cert::from_bytes(&disk_bytes)
-                            .context("Parsing the trust root in the \
-                                      certificate directory")?;
-                        Ok(disk_bytes)
-                    } else {
-                        Ok(cert_bytes)
-                    }
-                })
-                .context("Initializing the trust root in \
-                          the certificate directory")?;
+            // XXX: Because we don't lock the cert-d, there is a
+            // (tiny) chance that we lost the race and the file will
+            // now exist.  In that case, we really should try
+            // rereading it.
+            let mut f = std::fs::File::options()
+                .read(true).write(true).create_new(true)
+                .open(&filename)
+                .with_context(|| format!("Creating {:?}", &filename))?;
+            f.write_all(&special_bytes)
+                .with_context(|| format!("Writing {:?}", &filename))?;
+
+            created = true;
 
             // We also need to insert the trust root into the certificate
             // store, just without the secret key material.
             let cert_store = self.cert_store_mut_or_else()?;
-            cert_store.update(Cow::Owned(trust_root.clone().into()))
-                .with_context(|| format!("Inserting the trust root"))?;
+            cert_store.update(Cow::Owned(special.clone().into()))
+                .with_context(|| format!("Inserting {}", name))?;
 
-            trust_root
+            special
         };
 
-        Ok(trust_root)
+        Ok((created, special))
+    }
+
+    const TRUST_ROOT: &'static str = "trust-root";
+
+    /// Returns the local trust root, creating it if necessary.
+    fn local_trust_root(&mut self) -> Result<Cert> {
+        self.get_special(Self::TRUST_ROOT, "Local Trust Root", true)
+            .map(|(_created, cert)| cert)
     }
 
     /// Returns the trust roots, including the cert store's trust

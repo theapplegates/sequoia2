@@ -62,6 +62,16 @@
      certificates into the certificate store by default instead of
      exporting them on stdout.  It is still possible to export them
      using the `--output` option.
+   - When `sq keyserver get` (for verifying key servers), `sq wkd get`,
+     or `sq dane get` saves a certificate to the local certificate
+     store, `sq` certifies the validated User IDs (all returned User
+     IDs in the case of verifying key servers; User IDs that contain
+     the looked up email address in the case of WKD and DANE) using a
+     local service-specific proxy CA.  If the proxy key doesn't exist,
+     it is created, and certified as a minimally trusted CA (trust
+     amount 1 of 120) by the local trust root.  The proxy certificates
+     can be managed in the usual way using `sq link add` and `sq link
+     retract`.
  * Deprecated functionality
    - `sq key generate --creation-time TIME` is deprecated in favor of
      `sq key generate --time TIME`.

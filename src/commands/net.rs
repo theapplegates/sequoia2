@@ -150,7 +150,7 @@ pub fn dispatch_wkd(config: Config, c: sq_cli::wkd::Command) -> Result<()> {
             let certs: Vec<Cert> = parser.filter_map(|cert| cert.ok())
                 .collect();
             for cert in certs {
-                let vc = match cert.with_policy(policy, None) {
+                let vc = match cert.with_policy(policy, config.time) {
                     Ok(vc) => vc,
                     e @ Err(_) if !skip => e?,
                     _ => continue,

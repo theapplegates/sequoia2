@@ -75,6 +75,7 @@ pub struct Command {
 pub enum Subcommands {
     Add(AddCommand),
     Retract(RetractCommand),
+    List(ListCommand),
 }
 
 #[derive(Parser, Debug)]
@@ -369,4 +370,26 @@ pub struct RetractCommand {
                      then all known User IDs are unlinked.",
     )]
     pub pattern: Vec<String>,
+}
+
+#[derive(Parser, Debug)]
+#[clap(
+    name = "list",
+    about = "Lists links",
+    long_about =
+"Lists links.
+
+This command lists all bindings that are linked or whose link has been
+retracted.
+",
+)]
+pub struct ListCommand {
+    #[clap(
+        long = "ca",
+        required = false,
+        help = "Only lists bindings linked as CAs.",
+        long_help = "Only lists bindings linked as CAs.  That is, only list \
+                     a link if its trust depth is greater than 0.",
+    )]
+    pub ca: bool,
 }

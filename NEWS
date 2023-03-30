@@ -49,6 +49,7 @@
      certify the specified bindings.
    - Add `sq link retract`, which retracts certifications made by the
      local trust root on the specified bindings.
+   - Add `sq link list`, which lists the links.
    - Add a top-level option, `--keyring`, to allow the user to specify
      additional keyrings to search for certificates.
    - Import web of trust subcommands from sq-wot.  Specifically, add:

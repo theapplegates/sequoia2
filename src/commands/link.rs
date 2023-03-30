@@ -12,6 +12,7 @@ use openpgp::types::RevocationStatus;
 use openpgp::types::SignatureType;
 
 use sequoia_cert_store as cert_store;
+use cert_store::Store;
 use cert_store::StoreUpdate;
 use cert_store::store::UserIDQueryParams;
 
@@ -315,6 +316,7 @@ pub fn link(config: Config, c: link::Command) -> Result<()> {
     match c.subcommand {
         Add(c) => add(config, c)?,
         Retract(c) => retract(config, c)?,
+        List(c) => list(config, c)?,
     }
     Ok(())
 }
@@ -719,6 +721,92 @@ pub fn retract(mut config: Config, c: link::RetractCommand)
     let cert_store = config.cert_store_mut_or_else()?;
     cert_store.update(Cow::Owned(cert.into()))
         .with_context(|| format!("Updating {}", c.certificate))?;
+
+    Ok(())
+}
+
+pub fn list(mut config: Config, c: link::ListCommand)
+    -> Result<()>
+{
+    let mut cert_store = config.cert_store_or_else()?;
+    cert_store.prefetch_all();
+
+    let trust_root = config.local_trust_root()?;
+    let trust_root_key = trust_root.primary_key().key().role_as_unspecified();
+
+    let cert_store = config.cert_store_or_else()?;
+    for cert in cert_store.certs() {
+        for (userid, certification) in active_certification(
+                &config, &cert.fingerprint(), cert.userids().collect(),
+                trust_root_key)
+            .into_iter()
+            .filter_map(|(user, certification)| {
+                if let Some(certification) = certification {
+                    Some((user, certification))
+                } else {
+                    None
+                }
+            })
+        {
+            let (depth, amount) = certification.trust_signature()
+                .unwrap_or((0, sequoia_wot::FULLY_TRUSTED as u8));
+
+            if c.ca && depth == 0 {
+                continue;
+            }
+
+            if amount == 0 {
+                eprintln!("{}, {:?}'s link was retracted.",
+                          cert.fingerprint(),
+                          String::from_utf8_lossy(userid.value()));
+            } else {
+                let mut params = Vec::new();
+
+                if depth != 0 && depth != 255 {
+                    params.push(format!("trust depth: {}", depth));
+                }
+
+                if amount != sequoia_wot::FULLY_TRUSTED as u8 {
+                    params.push(format!("trust amount: {}", amount));
+                }
+
+                let mut regex: Vec<_> = certification.regular_expressions()
+                    .map(|re| String::from_utf8_lossy(re))
+                    .collect();
+                regex.sort();
+                regex.dedup();
+
+                if depth > 0 {
+                    if amount == sequoia_wot::FULLY_TRUSTED as u8
+                        && regex.is_empty()
+                    {
+                        eprint!("{}, {:?} is linked as a fully trusted CA",
+                                cert.fingerprint(),
+                                String::from_utf8_lossy(userid.value()));
+                    } else {
+                        eprint!("{}, {:?} is linked as a partially trusted CA",
+                                cert.fingerprint(),
+                                String::from_utf8_lossy(userid.value()));
+                    }
+                } else {
+                    eprint!("{}, {:?} is linked",
+                            cert.fingerprint(),
+                            String::from_utf8_lossy(userid.value()));
+                }
+
+                if ! regex.is_empty() {
+                    params.push(format!("regular expressions: {}",
+                                        regex.join("; ")));
+                }
+
+                if ! params.is_empty() {
+                    eprintln!(": {}.", params.join(", "));
+                } else {
+                    eprintln!(".");
+                }
+            }
+        }
+    }
 
     Ok(())
 }

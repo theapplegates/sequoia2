@@ -1,5 +1,8 @@
 use clap::Parser;
 
+use sequoia_openpgp as openpgp;
+use openpgp::KeyHandle;
+
 #[derive(Parser, Debug)]
 #[clap(
     name = "inspect",
@@ -41,6 +44,13 @@ pub struct Command {
         help = "Reads from FILE or stdin if omitted",
     )]
     pub input: Option<String>,
+    #[clap(
+        long = "cert",
+        value_name = "FINGERPRINT|KEYID",
+        conflicts_with = "input",
+        help = "Reads the specified certificate from the certificate store",
+    )]
+    pub cert: Vec<KeyHandle>,
     #[clap(
         long = "certifications",
         help = "Prints third-party certifications",

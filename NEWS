@@ -73,6 +73,8 @@
      amount 1 of 120) by the local trust root.  The proxy certificates
      can be managed in the usual way using `sq link add` and `sq link
      retract`.
+   - Extend `sq inspect` to inspect certificates from the certificate
+     store using the `--cert` option.
  * Deprecated functionality
    - `sq key generate --creation-time TIME` is deprecated in favor of
      `sq key generate --time TIME`.

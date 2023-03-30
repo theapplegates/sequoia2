@@ -1,6 +1,9 @@
 use std::convert::TryFrom;
 use std::io::{self, Read};
+use std::path::Path;
 use std::time::{Duration, SystemTime};
+
+use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
 use openpgp::{KeyHandle, Packet, Result};
@@ -12,6 +15,9 @@ use openpgp::packet::{
 use openpgp::parse::{Parse, PacketParserResult};
 use openpgp::policy::{Policy, HashAlgoSecurity};
 use openpgp::packet::key::SecretKeyMaterial;
+
+use sequoia_cert_store as cert_store;
+use cert_store::Store;
 
 use super::dump::Convert;
 
@@ -45,8 +51,33 @@ pub fn inspect(mut config: Config, c: inspect::Command)
     let mut sigs = Vec::new();    // Accumulator for signatures.
     let mut literal_prefix = Vec::new();
 
-    let mut ppr =
-        openpgp::parse::PacketParser::from_reader(crate::open_or_stdin(input)?)?;
+    let mut bytes: Vec<u8> = Vec::new();
+    let mut ppr = if c.cert.is_empty() {
+        if let Some(input) = input.as_ref() {
+            if ! Path::new(input).exists() && input.parse::<KeyHandle>().is_ok() {
+                eprintln!("The file {} does not exist, \
+                           did you mean \"sq inspect --cert {}\"?",
+                          input, input);
+            }
+        }
+
+        openpgp::parse::PacketParser::from_reader(crate::open_or_stdin(input)?)?
+    } else {
+        let cert_store = config.cert_store_or_else()?;
+        for cert in c.cert.into_iter() {
+            let certs = cert_store.lookup_by_key(&cert)
+                .with_context(|| format!("Looking up {}", cert))?;
+
+            // Include non-exportable signatures, etc.
+            for cert in certs.into_iter() {
+                let b = cert.to_vec().context("Serializing certificate")?;
+                bytes.extend(b);
+            }
+        }
+
+        openpgp::parse::PacketParser::from_bytes(&bytes)?
+    };
+
     while let PacketParserResult::Some(mut pp) = ppr {
         match pp.packet {
             Packet::PublicKey(_) | Packet::SecretKey(_) => {

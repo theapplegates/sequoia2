@@ -16,13 +16,14 @@ use openpgp::types::{
 };
 use openpgp::cert::prelude::*;
 use openpgp::crypto;
-use openpgp::{Cert, KeyID, Result};
+use openpgp::{Cert, Fingerprint, KeyID, Result};
 use openpgp::packet::prelude::*;
 use openpgp::parse::{
     Parse,
     PacketParserResult,
 };
 use openpgp::parse::stream::*;
+use openpgp::policy::HashAlgoSecurity;
 use openpgp::serialize::stream::{
     Message, Signer, LiteralWriter, Encryptor, Recipient,
     Compressor,
@@ -256,6 +257,96 @@ fn get_certification_keys<C>(certs: &[C], p: &dyn Policy,
     get_keys(certs, p, private_key_store, timestamp,
              KeyType::KeyFlags(KeyFlags::empty().set_certification()),
              options)
+}
+
+/// Returns the active certification, if any, for the specified bindings.
+///
+/// The certificate is looked up in the certificate store.
+///
+/// Note: if `n` User IDs are provided, then the returned vector has
+/// `n` elements.
+fn active_certification(config: &Config,
+                        cert: &Fingerprint, userids: Vec<UserID>,
+                        issuer: &Key<openpgp::packet::key::PublicParts,
+                                     openpgp::packet::key::UnspecifiedRole>)
+    -> Vec<(UserID, Option<Signature>)>
+{
+    // Look up the cert and find the certifications for the specified
+    // User ID, if any.
+    let lc = config.cert_store_or_else()
+        .and_then(|cert_store| cert_store.lookup_by_cert_fpr(cert));
+    let lc = match lc {
+        Ok(lc) => lc,
+        Err(_) => {
+            return userids.into_iter().map(|userid| (userid, None)).collect();
+        }
+    };
+    let cert = match lc.to_cert() {
+        Ok(cert) => cert,
+        Err(_) => {
+            return userids.into_iter().map(|userid| (userid, None)).collect();
+        }
+    };
+
+    let issuer_kh = issuer.key_handle();
+
+    userids.into_iter().map(|userid| {
+        let ua = match cert.userids()
+            .filter(|ua| ua.userid() == &userid).next()
+        {
+            Some(ua) => ua,
+            None => return (userid, None),
+        };
+
+        // Get certifications that:
+        //
+        //  - Have a creation time,
+        //  - Are not younger than the reference time,
+        //  - Are not expired,
+        //  - Alias the issuer, and
+        //  - Satisfy the policy.
+        let mut certifications = ua.bundle().certifications()
+            .iter()
+            .filter(|sig| {
+                if let Some(ct) = sig.signature_creation_time() {
+                    ct <= config.time
+                        && sig.signature_validity_period()
+                        .map(|vp| {
+                            config.time < ct + vp
+                        })
+                        .unwrap_or(true)
+                        && sig.get_issuers().iter().any(|i| i.aliases(&issuer_kh))
+                        && config.policy.signature(
+                            sig, HashAlgoSecurity::CollisionResistance).is_ok()
+                } else {
+                    false
+                }
+            })
+            .collect::<Vec<&Signature>>();
+
+        // Sort so the newest signature is first.
+        certifications.sort_unstable_by(|a, b| {
+            a.signature_creation_time().unwrap()
+                .cmp(&b.signature_creation_time().unwrap())
+                .reverse()
+                .then(a.mpis().cmp(&b.mpis()))
+        });
+
+        // Return the first valid signature, which is the most recent one
+        // that is no younger than config.time.
+        let pk = ua.cert().primary_key().key();
+        let certification = certifications.into_iter()
+            .filter_map(|sig| {
+                let mut sig = sig.clone();
+                if sig.verify_userid_binding(issuer, pk, &userid).is_ok() {
+                    Some(sig)
+                } else {
+                    None
+                }
+            })
+            .next();
+        (userid, certification)
+    }).collect()
 }
 
 // Returns the smallest valid certificate.

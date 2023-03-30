@@ -36,7 +36,10 @@ use cert_store::StoreUpdate;
 use cert_store::store::UserIDQueryParams;
 
 use crate::{
-    commands::get_certification_keys,
+    commands::{
+        active_certification,
+        get_certification_keys,
+    },
     Config,
     Model,
     open_or_stdin,
@@ -102,7 +105,8 @@ fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
 ///
 /// This does not import the certification or the certificate into
 /// the certificate store.
-fn certify(signer: &mut dyn Signer, cert: &Cert, userids: &[UserID],
+fn certify(config: &Config,
+           signer: &mut dyn Signer, cert: &Cert, userids: &[UserID],
            creation_time: Option<SystemTime>, depth: u8, amount: usize)
     -> Result<Cert>
 {
@@ -118,8 +122,20 @@ fn certify(signer: &mut dyn Signer, cert: &Cert, userids: &[UserID],
         builder = builder.set_signature_creation_time(creation_time)?;
     }
 
-    let certifications = userids.iter()
-        .map(|userid| {
+    let certifications = active_certification(
+            config, &cert.fingerprint(),
+            userids.iter().cloned().collect(),
+            signer.public())
+        .into_iter()
+        .map(|(userid, active_certification)| {
+            if let Some(_) = active_certification {
+                eprintln!("Provenance information for {}, {:?} \
+                           exists and is current, not updating it",
+                          cert.fingerprint(),
+                          String::from_utf8_lossy(userid.value()));
+                return vec![];
+            }
+
             match builder.clone().sign_userid_binding(
                 signer,
                 cert.primary_key().key(),
@@ -193,7 +209,7 @@ fn get_ca(config: &mut Config,
             assert_eq!(signers.len(), 1);
             let mut signer = signers.into_iter().next().unwrap();
 
-            match certify(&mut signer, &ca, &[UserID::from(ca_userid)],
+            match certify(config, &mut signer, &ca, &[UserID::from(ca_userid)],
                           Some(config.time), 1, ca_trust_amount)
             {
                 Err(err) => {
@@ -308,7 +324,7 @@ fn certify_downloads(config: &mut Config,
         };
 
         match certify(
-            &mut ca_signer, &cert, &userids[..],
+            config, &mut ca_signer, &cert, &userids[..],
             Some(config.time), 0, sequoia_wot::FULLY_TRUSTED)
         {
             Ok(cert) => cert,

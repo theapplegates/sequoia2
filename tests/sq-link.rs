@@ -1,3 +1,5 @@
+use std::path::Path;
+use std::process::ExitStatus;
 use std::sync::Mutex;
 
 use tempfile::TempDir;
@@ -124,6 +126,7 @@ fn sq_verify(cert_store: Option<&str>,
 fn sq_link(cert_store: &str,
            cert: &str, userids: &[&str], more_args: &[&str],
            success: bool)
+    -> (ExitStatus, String, String)
 {
     let mut cmd = Command::cargo_bin("sq").expect("have sq");
     cmd.args(&["--cert-store", cert_store]);
@@ -147,9 +150,12 @@ fn sq_link(cert_store: &str,
                  \nstdout:\n{}\nstderr:\n{}",
                 stdout, stderr);
     }
+
+    (output.status, stdout, stderr)
 }
 
 fn sq_retract(cert_store: &str, cert: &str, userids: &[&str])
+    -> (ExitStatus, String, String)
 {
     let mut cmd = Command::cargo_bin("sq").expect("have sq");
     cmd.args(&["--cert-store", cert_store]);
@@ -163,6 +169,8 @@ fn sq_retract(cert_store: &str, cert: &str, userids: &[&str])
     assert!(output.status.success(),
             "sq link retract\nstdout:\n{}\nstderr:\n{}",
             stdout, stderr);
+
+    (output.status, stdout, stderr)
 }
 
 // Certifies a binding.
@@ -450,5 +458,128 @@ fn sq_link_add_retract() -> Result<()> {
     // Now the certificate should no longer be authenticated.
     sq_verify(Some(&certd), &[], &[], &ed_sig_file, 0, 1);
 
+    Ok(())
+}
+
+// Set the different parameters.  When the parameters are the same,
+// make sure no certifications are written; when they are different
+// make sure the file changed.
+#[test]
+fn sq_link_update_detection() -> Result<()> {
+    let dir = TempDir::new()?;
+
+    let certd = dir.path().join("cert.d").display().to_string();
+    std::fs::create_dir(&certd).expect("mkdir works");
+
+    let alice_pgp = dir.path().join("alice.pgp").display().to_string();
+    let alice_userid = "<alice@example.org>";
+    let alice = sq_gen_key(Some(&certd), &[ alice_userid ], &alice_pgp);
+    let alice_fpr = alice.fingerprint().to_string();
+    let alice_cert_pgp = dir.path().join("cert.d")
+        .join(&alice_fpr[0..2].to_ascii_lowercase())
+        .join(&alice_fpr[2..].to_ascii_lowercase());
+
+    // Reads and returns file.  Asserts that old and the new contexts
+    // are the same (or not).
+    let compare = |old: Vec<u8>, file: &Path, same: bool| -> Vec<u8> {
+        let new = std::fs::read(file).unwrap();
+        if same {
+            assert_eq!(old, new, "file unexpectedly changed");
+        } else {
+            assert_ne!(old, new, "file unexpectedly stayed the same");
+        }
+        new
+    };
+    let bytes = std::fs::read(&alice_cert_pgp).unwrap();
+
+    // Retract it.  There is nothing to retract (but this doesn't fail).
+    let output = sq_retract(&certd, &alice_fpr, &[]);
+    assert!(output.2.contains("You never linked"),
+            "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+    let bytes = compare(bytes, &alice_cert_pgp, true);
+
+    // Link it.
+    sq_link(&certd, &alice_fpr, &[], &[], true);
+    let bytes = compare(bytes, &alice_cert_pgp, false);
+
+    // As no parameters changed, this should succeeded, but no
+    // certification should be written.
+    let output = sq_link(&certd, &alice_fpr, &[], &[], true);
+    assert!(output.2.contains("Link parameters are unchanged, no update needed"),
+            "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+    let bytes = compare(bytes, &alice_cert_pgp, true);
+
+    // Make Alice a CA.
+    let output = sq_link(&certd, &alice_fpr, &[], &["--ca", "*"], true);
+    assert!(output.2.contains("was already linked at"),
+            "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+    let bytes = compare(bytes, &alice_cert_pgp, false);
+
+    let output = sq_link(&certd, &alice_fpr, &[], &["--ca", "*"], true);
+    assert!(output.2.contains("Link parameters are unchanged, no update needed"),
+            "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+    let bytes = compare(bytes, &alice_cert_pgp, true);
+
+    // Make her a partially trusted CA.
+    let output = sq_link(&certd, &alice_fpr, &[], &["--amount", "30"], true);
+    assert!(output.2.contains("was already linked at"),
+            "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+    let bytes = compare(bytes, &alice_cert_pgp, false);
+
+    let output = sq_link(&certd, &alice_fpr, &[], &["--amount", "30"], true);
+    assert!(output.2.contains("Link parameters are unchanged, no update needed"),
+            "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+    let bytes = compare(bytes, &alice_cert_pgp, true);
+
+    // Retract the link.
+    let output = sq_retract(&certd, &alice_fpr, &[]);
+    assert!(output.2.contains("was linked at"),
+            "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+    let bytes = compare(bytes, &alice_cert_pgp, false);
+
+    let output = sq_retract(&certd, &alice_fpr, &[]);
+    assert!(output.2.contains("Link parameters are unchanged, no update needed"),
+            "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+    let bytes = compare(bytes, &alice_cert_pgp, true);
+
+
+    // Link it again.
+    let output = sq_link(&certd, &alice_fpr, &[],
+                         &["--depth", "10", "--amount", "10"], true);
+    assert!(output.2.contains("was retracted"),
+            "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+    let bytes = compare(bytes, &alice_cert_pgp, false);
+
+    let output = sq_link(&certd, &alice_fpr, &[],
+                         &["--depth", "10", "--amount", "10"], true);
+    assert!(output.2.contains("Link parameters are unchanged, no update needed"),
+            "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+    let bytes = compare(bytes, &alice_cert_pgp, true);
+
+    // Use a notation.
+    let output = sq_link(&certd, &alice_fpr, &[],
+                         &["--notation", "foo", "10"], true);
+    assert!(output.2.contains("was already linked"),
+            "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+    let bytes = compare(bytes, &alice_cert_pgp, false);
+
+    let output = sq_link(&certd, &alice_fpr, &[],
+                         &["--notation", "foo", "10"], true);
+    assert!(output.2.contains("Link parameters are unchanged, no update needed"),
+            "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+    let bytes = compare(bytes, &alice_cert_pgp, true);
+
+    // The default link again.
+    let output = sq_link(&certd, &alice_fpr, &[], &[], true);
+    assert!(output.2.contains("was already linked"),
+            "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+    let bytes = compare(bytes, &alice_cert_pgp, false);
+
+    let output = sq_link(&certd, &alice_fpr, &[], &[], true);
+    assert!(output.2.contains("Link parameters are unchanged, no update needed"),
+            "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+    let bytes = compare(bytes, &alice_cert_pgp, true);
+
+    let _ = bytes;
     Ok(())
 }

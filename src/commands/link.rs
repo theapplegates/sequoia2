@@ -16,6 +16,7 @@ use cert_store::StoreUpdate;
 use cert_store::store::UserIDQueryParams;
 
 use crate::Config;
+use crate::commands::active_certification;
 use crate::commands::get_certification_keys;
 use crate::parse_duration;
 use crate::parse_notations;
@@ -198,6 +199,117 @@ pub fn check_userids(config: &Config, cert: &Cert, self_signed: bool,
     }
 }
 
+// Returns whether two signatures have the same parameters.
+//
+// This does some normalization and only considers things that are
+// relevant to links.
+fn diff_link(old: &SignatureBuilder, new: &SignatureBuilder) -> bool {
+
+    let mut changed = false;
+
+    let a_expiration = old.signature_expiration_time();
+    let b_expiration = new.signature_expiration_time();
+    if a_expiration != b_expiration {
+        eprintln!(
+            "  Updating expiration time: {} -> {}.",
+            if let Some(a_expiration) = a_expiration {
+                chrono::DateTime::<chrono::offset::Utc>::from(
+                    a_expiration).to_string()
+            } else {
+                "no expiration".to_string()
+            },
+            if let Some(b_expiration) = b_expiration {
+                chrono::DateTime::<chrono::offset::Utc>::from(
+                    b_expiration).to_string()
+            } else {
+                "no expiration".to_string()
+            });
+    }
+
+    let (a_depth, a_amount) = old.trust_signature().unwrap_or((0, 120));
+    let (b_depth, b_amount) = new.trust_signature().unwrap_or((0, 120));
+
+    if a_amount != b_amount {
+        changed = true;
+        eprintln!("  Updating trust amount: {} -> {}.",
+                  a_amount, b_amount);
+    }
+    if a_depth != b_depth {
+        changed = true;
+        eprintln!("  Update trust depth: {} -> {}.",
+                  a_depth, b_depth);
+    }
+
+    let mut a_regex: Vec<_> = old.regular_expressions().collect();
+    a_regex.sort();
+    a_regex.dedup();
+    let mut b_regex: Vec<_> = new.regular_expressions().collect();
+    b_regex.sort();
+    b_regex.dedup();
+
+    if a_regex != b_regex {
+        changed = true;
+        eprintln!("  Updating regular expressions:");
+        let a_regex: Vec<String> = a_regex.into_iter()
+            .enumerate()
+            .map(|(i, r)| {
+                format!("{}. {:?}",
+                        i + 1, String::from_utf8_lossy(r))
+            })
+            .collect();
+        eprintln!("    Current link:\n      {}",
+                  a_regex.join("\n    "));
+
+        let b_regex: Vec<String> = b_regex.into_iter()
+            .enumerate()
+            .map(|(i, r)| {
+                format!("{}. {:?}",
+                        i + 1, String::from_utf8_lossy(r))
+            })
+            .collect();
+        eprintln!("    Updated link:\n      {}",
+                  b_regex.join("\n    "));
+    }
+
+    let a_notations: Vec<_> = old.notation_data()
+        .filter(|n| n.name() != "salt@notations.sequoia-pgp.org")
+        .collect();
+    let b_notations: Vec<_> = new.notation_data()
+        .filter(|n| n.name() != "salt@notations.sequoia-pgp.org")
+        .collect();
+    if a_notations != b_notations {
+        changed = true;
+        eprintln!("  Updating notations.");
+        let a_notations: Vec<String> = a_notations.into_iter()
+            .enumerate()
+            .map(|(i, n)| {
+                format!("{}. {:?}", i + 1, n)
+            })
+            .collect();
+        eprintln!("    Current link:\n      {}",
+                  a_notations.join("\n    "));
+
+        let b_notations: Vec<String> = b_notations.into_iter()
+            .enumerate()
+            .map(|(i, n)| {
+                format!("{}. {:?}", i + 1, n)
+            })
+            .collect();
+        eprintln!("    Updated link:\n       {}",
+                  b_notations.join("\n    "));
+    }
+
+    let a_exportable = old.exportable_certification().unwrap_or(true);
+    let b_exportable = new.exportable_certification().unwrap_or(true);
+    if a_exportable != b_exportable {
+        changed = true;
+        eprintln!("  Updating exportable flag: {} -> {}.",
+                  a_exportable, b_exportable);
+    }
+
+    changed
+}
+
 pub fn link(config: Config, c: link::Command) -> Result<()> {
     use link::Subcommands::*;
     match c.subcommand {
@@ -351,11 +463,14 @@ pub fn add(mut config: Config, c: link::AddCommand)
     assert_eq!(signers.len(), 1);
     let mut signer = signers.into_iter().next().unwrap();
 
-    let certifications = userids.iter()
-        .map(|userid| {
+    let certifications = active_certification(
+            &config, &vc.fingerprint(), userids,
+            signer.public())
+        .into_iter()
+        .map(|(userid, active_certification)| {
             let userid_str = || String::from_utf8_lossy(userid.value());
 
-            if let Some(ua) = vc.userids().find(|ua| ua.userid() == userid) {
+            if let Some(ua) = vc.userids().find(|ua| ua.userid() == &userid) {
                 if let RevocationStatus::Revoked(_) = ua.revocation_status() {
                     // It's revoked.
                     if user_supplied_userids {
@@ -377,13 +492,47 @@ pub fn add(mut config: Config, c: link::AddCommand)
                           userid_str(), cert.fingerprint(), userid);
             }
 
-            eprintln!("Linking {:?} and {}.",
-                      userid_str(), cert.fingerprint());
+            if let Some(active_certification) = active_certification {
+                let active_certification_ct
+                    = active_certification.signature_creation_time()
+                    .expect("valid signature");
 
-            // XXX: If we already have exactly this signature (modulo
-            // the creation time), then don't add it!  Note: it is
-            // explicitly NOT enough to check that there is a
-            // certification from the local trust root.
+                let retracted = matches!(active_certification.trust_signature(),
+                                         Some((_depth, 0)));
+                if retracted {
+                    eprintln!("{}, {} was retracted at {}.",
+                              cert.fingerprint(), userid_str(),
+                              chrono::DateTime::<chrono::offset::Utc>::from(
+                                  active_certification_ct));
+                } else {
+                    eprintln!("{}, {} was already linked at {}.",
+                              cert.fingerprint(), userid_str(),
+                              chrono::DateTime::<chrono::offset::Utc>::from(
+                                  active_certification_ct));
+                }
+
+                let changed = diff_link(
+                    &SignatureBuilder::from(active_certification),
+                    &builder);
+
+                if ! changed && config.force {
+                    eprintln!("  Link parameters are unchanged, but \
+                               updating anyway as \"--force\" was specified.");
+                } else if ! changed {
+                    eprintln!("  Link parameters are unchanged, no update \
+                               needed (specify \"--force\" to update anyway).");
+
+                    // Return a signature packet to indicate that we
+                    // processed something.  But don't return a
+                    // signature.
+                    return Ok(vec![ Packet::from(userid.clone()) ]);
+                } else {
+                    eprintln!("  Link parameters changed, updating link.");
+                }
+            }
+
+            eprintln!("Linking {} and {:?}.",
+                      cert.fingerprint(), userid_str());
 
             let sig = builder.clone().sign_userid_binding(
                 &mut signer,
@@ -393,6 +542,7 @@ pub fn add(mut config: Config, c: link::AddCommand)
                     format!("Creating certification for {:?}", userid_str())
                 })?;
 
+            eprintln!();
             Ok(vec![ Packet::from(userid.clone()), Packet::from(sig) ])
         })
         .collect::<Result<Vec<Vec<Packet>>>>()?
@@ -405,6 +555,11 @@ pub fn add(mut config: Config, c: link::AddCommand)
             "Can't link {} to anything.  The certificate has no self-signed \
              User IDs and you didn't specify any User IDs to link to it.",
             cert.fingerprint()));
+    }
+
+    if certifications.iter().all(|p| matches!(p, Packet::UserID(_))) {
+        // There are no signatures to insert.  We're done.
+        return Ok(());
     }
 
     let cert = cert.insert_packets(certifications.clone())?;
@@ -460,11 +615,13 @@ pub fn retract(mut config: Config, c: link::RetractCommand)
     assert_eq!(signers.len(), 1);
     let mut signer = signers.into_iter().next().unwrap();
 
-    let certifications = userids.iter()
-        .map(|userid| {
+    let certifications = active_certification(
+            &config, &cert.fingerprint(), userids, signer.public())
+        .into_iter()
+        .map(|(userid, active_certification)| {
             let userid_str = || String::from_utf8_lossy(userid.value());
 
-            if let Some(ua) = cert.userids().find(|ua| ua.userid() == userid) {
+            if let Some(ua) = cert.userids().find(|ua| ua.userid() == &userid) {
                 if ! ua.certifications().any(|c| {
                     c.get_issuers().into_iter()
                         .any(|issuer| issuer.aliases(&trust_root_kh))
@@ -477,8 +634,60 @@ pub fn retract(mut config: Config, c: link::RetractCommand)
                 }
             }
 
-            eprintln!("Breaking link between {:?} and {}.",
-                      userid_str(), cert.fingerprint());
+            if let Some(active_certification) = active_certification {
+                let active_certification_ct
+                    = active_certification.signature_creation_time()
+                    .expect("valid signature");
+
+                let retracted = matches!(active_certification.trust_signature(),
+                                         Some((_depth, 0)));
+                if retracted {
+                    eprintln!("{}, {} was already retracted at {}.",
+                              cert.fingerprint(), userid_str(),
+                              chrono::DateTime::<chrono::offset::Utc>::from(
+                                  active_certification_ct));
+                } else {
+                    eprintln!("{}, {} was linked at {}.",
+                              cert.fingerprint(), userid_str(),
+                              chrono::DateTime::<chrono::offset::Utc>::from(
+                                  active_certification_ct));
+                }
+
+                let changed = diff_link(
+                    &SignatureBuilder::from(active_certification),
+                    &builder);
+
+                if ! changed && config.force {
+                    eprintln!("  Link parameters are unchanged, but \
+                               updating anyway as \"--force\" was specified.");
+                } else if ! changed {
+                    eprintln!("  Link parameters are unchanged, no update \
+                               needed (specify \"--force\" to update anyway).");
+
+                    // Return a signature packet to indicate that we
+                    // processed something.  But don't return a
+                    // signature.
+                    return Ok(vec![ Packet::from(userid.clone()) ]);
+                } else {
+                    eprintln!("  Link parameters changed, updating link.");
+                }
+            } else if config.force {
+                eprintln!("There is no link to retract between {} and {:?}, \
+                           retracting anyways as \"--force\" was specified.",
+                          cert.fingerprint(), userid_str());
+            } else {
+                eprintln!("There is no link to retract between {} and {:?} \
+                           (specify \"--force\" to mark as retracted anyways).",
+                          cert.fingerprint(), userid_str());
+
+                // Return a signature packet to indicate that we
+                // processed something.  But don't return a
+                // signature.
+                return Ok(vec![ Packet::from(userid.clone()) ]);
+            }
+
+            eprintln!("Breaking link between {} and {:?}.",
+                      cert.fingerprint(), userid_str());
 
             // XXX: If we already have exactly this signature (modulo
             // the creation time), then don't add it!  Note: it is

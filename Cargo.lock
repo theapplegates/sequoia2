@@ -248,6 +248,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "botan"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "066638d2456fe30d12c06c35ee0eb4f050c97ed3b68db0bff9b762da1976d169"
+dependencies = [
+ "botan-sys",
+]
+
+[[package]]
+name = "botan-sys"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc0393ee6e938f1d845b0b7163b66f8ac93383a8a20aa64731ce04e5f59319fe"
+
+[[package]]
 name = "bstr"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2810,6 +2825,7 @@ dependencies = [
  "block-modes",
  "block-padding",
  "blowfish",
+ "botan",
  "buffered-reader",
  "bzip2",
  "cast5",

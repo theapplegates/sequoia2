@@ -83,6 +83,7 @@ default = [
 ]
 crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
 crypto-openssl = ["sequoia-openpgp/crypto-openssl"]
+crypto-botan = ["sequoia-openpgp/crypto-botan"]
 crypto-cng = ["sequoia-openpgp/crypto-cng"]
 crypto-rust = ["sequoia-openpgp/crypto-rust"]
 compression-bzip2 = ["sequoia-openpgp/compression-bzip2"]

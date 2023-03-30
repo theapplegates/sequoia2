@@ -48,10 +48,18 @@ pub fn dispatch<'store>(mut config: Config<'store>, cmd: import::Command)
                 };
 
                 let fingerprint = cert.fingerprint();
+                let userid = cert.userids().next()
+                    .map(|userid| {
+                        String::from_utf8_lossy(userid.value()).to_string()
+                    })
+                    .unwrap_or_else(|| "<unknown>".to_string());
                 if let Err(err) = cert_store.update_by(Cow::Owned(cert), &mut stats) {
-                    eprintln!("Error importing {}: {}", fingerprint, err);
+                    eprintln!("Error importing {}, {:?}: {}",
+                              fingerprint, userid, err);
                     stats.errors += 1;
                     continue;
+                } else {
+                    eprintln!("Imported {}, {:?}", fingerprint, userid);
                 }
             }
         }

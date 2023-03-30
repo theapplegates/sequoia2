@@ -15,6 +15,7 @@ use cert_store::store::StoreError;
 
 use sequoia_wot as wot;
 use wot::store::CertStore;
+use wot::store::Backend;
 
 pub mod output;
 
@@ -506,8 +507,11 @@ pub fn dispatch(config: Config, cli: wot_cli::Command) -> Result<()> {
         }
     };
 
-    let cert_store = CertStore::from_store(
+    let mut cert_store = CertStore::from_store(
         cert_store, &config.policy, config.time);
+    if let wot_cli::Subcommand::List { pattern: None, .. } = cli.subcommand {
+        cert_store.precompute();
+    }
 
     let n = wot::Network::new(cert_store)?;
 

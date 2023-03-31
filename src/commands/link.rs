@@ -259,7 +259,7 @@ fn diff_link(old: &SignatureBuilder, new: &SignatureBuilder) -> bool {
             })
             .collect();
         eprintln!("    Current link:\n      {}",
-                  a_regex.join("\n    "));
+                  a_regex.join("\n      "));
 
         let b_regex: Vec<String> = b_regex.into_iter()
             .enumerate()
@@ -269,7 +269,7 @@ fn diff_link(old: &SignatureBuilder, new: &SignatureBuilder) -> bool {
             })
             .collect();
         eprintln!("    Updated link:\n      {}",
-                  b_regex.join("\n    "));
+                  b_regex.join("\n      "));
     }
 
     let a_notations: Vec<_> = old.notation_data()
@@ -288,7 +288,7 @@ fn diff_link(old: &SignatureBuilder, new: &SignatureBuilder) -> bool {
             })
             .collect();
         eprintln!("    Current link:\n      {}",
-                  a_notations.join("\n    "));
+                  a_notations.join("\n      "));
 
         let b_notations: Vec<String> = b_notations.into_iter()
             .enumerate()
@@ -297,7 +297,7 @@ fn diff_link(old: &SignatureBuilder, new: &SignatureBuilder) -> bool {
             })
             .collect();
         eprintln!("    Updated link:\n       {}",
-                  b_notations.join("\n    "));
+                  b_notations.join("\n      "));
     }
 
     let a_exportable = old.exportable_certification().unwrap_or(true);

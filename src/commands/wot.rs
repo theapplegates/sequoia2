@@ -515,9 +515,10 @@ pub fn dispatch(config: Config, cli: wot_cli::Command) -> Result<()> {
 
     let n = wot::Network::new(cert_store)?;
 
-    let roots = wot::Roots::new(config.trust_roots());
     let mut q = wot::QueryBuilder::new(&n);
-    q.roots(roots);
+    if ! cli.gossip {
+        q.roots(wot::Roots::new(config.trust_roots()));
+    }
     if cli.certification_network {
         q.certification_network();
     }

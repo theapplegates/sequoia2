@@ -216,6 +216,7 @@ fn diff_link(old: &Signature, new: &SignatureBuilder, new_ct: SystemTime)
         None
     };
     if a_expiration != b_expiration {
+        changed = true;
         eprintln!(
             "  Updating expiration time: {} -> {}.",
             if let Some(a_expiration) = a_expiration {

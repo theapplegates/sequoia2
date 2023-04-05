@@ -343,7 +343,21 @@ pub fn add(mut config: Config, c: link::AddCommand)
     let vc = cert.with_policy(&config.policy, Some(config.time))?;
 
     let user_supplied_userids = if userids.is_empty() {
-        userids = vc.userids().map(|ua| ua.userid().clone()).collect();
+        if c.all {
+            userids = vc.userids().map(|ua| ua.userid().clone()).collect();
+        } else {
+            eprintln!("No User IDs specified.  \
+                       Pass \"--all\" or one or more User IDs.  \
+                       {}'s self-signed User IDs are:",
+                      cert.fingerprint());
+            for (i, userid) in vc.userids().enumerate() {
+                eprintln!("  {}. {:?}",
+                          i + 1,
+                          String::from_utf8_lossy(userid.value()));
+            }
+            return Err(anyhow::anyhow!("No User IDs specified"));
+        }
+
         false
     } else {
         true

@@ -234,6 +234,15 @@ pub struct AddCommand {
     pub certificate: KeyHandle,
 
     #[clap(
+        long = "all",
+        conflicts_with_all = &[ "userid", "email", "petname", "pattern" ],
+        required = false,
+        help = "Links all valid self-signed User ID to the certificate.",
+        long_help = "Links all valid self-signed User ID to the certificate.",
+    )]
+    pub all: bool,
+
+    #[clap(
         long = "userid",
         value_name = "USERID",
         required = false,
@@ -241,10 +250,7 @@ pub struct AddCommand {
         long_help = "A User ID to link to the certificate.  This must match \
                      a self-signed User ID.  To link a User ID to the \
                      certificate that does not have a self-signature, use \
-                     \"--petname\".  If no User IDs, email addresses, or \
-                     petnames are provided, then all User IDs that have a \
-                     valid self-signature according to the policy are \
-                     linked.",
+                     \"--petname\".",
     )]
     pub userid: Vec<String>,
     #[clap(
@@ -258,10 +264,7 @@ pub struct AddCommand {
                      certificate that does not appear in a self-signed \
                      User ID, use \"--petname\".  If the specified email \
                      appears in multiple self-signed User IDs, then all of \
-                     them are linked.  If no User IDs, email addresses, or \
-                     petnames are provided, then all User IDs that have a \
-                     valid self-signature according to the policy are \
-                     linked.",
+                     them are linked.",
     )]
     pub email: Vec<String>,
     #[clap(
@@ -273,10 +276,7 @@ pub struct AddCommand {
                      this does not need to match a self-signed User ID.  Bare \
                      email address are automatically wrapped in angle brackets. \
                      That is if \"alice@example.org\" is provided, it is \
-                     silently converted to \"<alice@example.org>\".  If no \
-                     User IDs, email addresses, or petnames are provided, then \
-                     all User IDs that have a valid self-signature according \
-                     to the policy are linked.",
+                     silently converted to \"<alice@example.org>\".",
     )]
     pub petname: Vec<String>,
 
@@ -289,10 +289,7 @@ pub struct AddCommand {
                      to the certificate that does not have a self-signature, \
                      use \"--petname\".  Scripts should prefer to use \
                      \"--email\" or \"--userid\", as \"sq\" does not need to \
-                     guess if a value is a User ID or an email address. \
-                     If no User IDs, email addresses, or petnames are provided, \
-                     then all User IDs that have a valid self-signature \
-                     according to the policy are linked.",
+                     guess if a value is a User ID or an email address.",
     )]
     pub pattern: Vec<String>,
 }

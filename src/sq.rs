@@ -1131,7 +1131,10 @@ fn main() -> Result<()> {
                 &time, chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap())
                 .context(format!("Parsing --time {}", time))?)
     } else {
-        SystemTime::now()
+        // Round trip via openpgp::types::Timestamp.
+        openpgp::types::Timestamp::try_from(SystemTime::now())
+            .context("Current time is out of range")?
+            .into()
     };
 
     let policy = &mut P::at(time);

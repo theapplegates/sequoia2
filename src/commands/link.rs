@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 use anyhow::Context;
 
@@ -445,30 +445,6 @@ pub fn add(mut config: Config, c: link::AddCommand)
     // Creation time.
     builder = builder.set_signature_creation_time(config.time)?;
 
-    match (expires, expires_in) {
-        (None, None) =>
-            // Default expiration: never.
-            (),
-        (Some(t), None) if t == "never" =>
-            // The default is no expiration; there is nothing to do.
-            (),
-        (Some(t), None) => {
-            let expiration = SystemTime::from(
-                crate::parse_iso8601(
-                    &t, chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap())?);
-            let validity = expiration.duration_since(config.time)?;
-            builder = builder.set_signature_validity_period(validity)?;
-        },
-        (None, Some(d)) if d == "never" =>
-            // The default is no expiration; there is nothing to do.
-            (),
-        (None, Some(d)) => {
-            let d = parse_duration(&d)?;
-            builder = builder.set_signature_validity_period(d)?;
-        },
-        (Some(_), Some(_)) => unreachable!("conflicting args"),
-    }
-
     let notations = parse_notations(c.notation)?;
     for (critical, n) in notations {
         builder = builder.add_notation(
@@ -476,6 +452,45 @@ pub fn add(mut config: Config, c: link::AddCommand)
             n.value(),
             NotationDataFlags::empty().set_human_readable(),
             critical)?;
+    };
+
+    let builders: Vec<SignatureBuilder> = if c.temporary {
+        // Make the partially trusted link one second younger.  When
+        // the fully trusted link expired, then this link will come
+        // into effect.  If the user has fully linked the binding in
+        // the meantime, then this won't override that, which is
+        // exactly what we want.
+        let mut partial = builder.clone();
+        partial = partial.set_signature_creation_time(
+            config.time - Duration::new(1, 0))?;
+        partial = partial.set_trust_signature(trust_depth, 40)?;
+
+        builder = builder.set_signature_validity_period(
+            Duration::new(7 * 24 * 60 * 60, 0))?;
+
+        vec![ builder, partial ]
+    } else if let Some(t) = expires {
+        if t == "never" {
+            // The default is no expiration; there is nothing to do.
+        } else {
+            let expiration = SystemTime::from(
+                crate::parse_iso8601(
+                    &t, chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap())?);
+            let validity = expiration.duration_since(config.time)?;
+            builder = builder.set_signature_validity_period(validity)?;
+        }
+        vec![ builder ]
+    } else if let Some(d) = expires_in {
+        if d == "never" {
+            // The default is no expiration; there is nothing to do.
+        } else {
+            let d = parse_duration(&d)?;
+            builder = builder.set_signature_validity_period(d)?;
+        }
+        vec![ builder ]
+    } else {
+        // The default is no expiration; there is nothing to do.
+        vec![ builder ]
     };
 
     // Sign it.
@@ -535,11 +550,14 @@ pub fn add(mut config: Config, c: link::AddCommand)
 
                 let changed = diff_link(
                     &active_certification,
-                    &builder, config.time);
+                    &builders[0], config.time);
 
                 if ! changed && config.force {
                     eprintln!("  Link parameters are unchanged, but \
                                updating anyway as \"--force\" was specified.");
+                } else if c.temporary {
+                    eprintln!("  Creating a temporary link, \
+                               which expires in a week.");
                 } else if ! changed {
                     eprintln!("  Link parameters are unchanged, no update \
                                needed (specify \"--force\" to update anyway).");
@@ -556,16 +574,25 @@ pub fn add(mut config: Config, c: link::AddCommand)
             eprintln!("Linking {} and {:?}.",
                       cert.fingerprint(), userid_str());
 
-            let sig = builder.clone().sign_userid_binding(
-                &mut signer,
-                cert.primary_key().key(),
-                &userid)
-                .with_context(|| {
-                    format!("Creating certification for {:?}", userid_str())
-                })?;
+            let mut sigs = builders.iter()
+                .map(|builder| {
+                    builder.clone().sign_userid_binding(
+                        &mut signer,
+                        cert.primary_key().key(),
+                        &userid)
+                        .with_context(|| {
+                            format!("Creating certification for {:?}",
+                                    userid_str())
+                        })
+                        .map(Into::into)
+                })
+                .collect::<Result<Vec<Packet>>>()?;
 
             eprintln!();
-            Ok(vec![ Packet::from(userid.clone()), Packet::from(sig) ])
+
+            let mut packets = vec![ Packet::from(userid.clone()) ];
+            packets.append(&mut sigs);
+            Ok(packets)
         })
         .collect::<Result<Vec<Vec<Packet>>>>()?
         .into_iter()

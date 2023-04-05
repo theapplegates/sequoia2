@@ -131,7 +131,8 @@ $ sq link add --ca --amount 60 0123456789ABCDEF
 $ sq link retract 0123456789ABCDEF
 ",
 )]
-#[clap(group(ArgGroup::new("expiration-group").args(&["expires", "expires_in"])))]
+#[clap(group(ArgGroup::new("expiration-group")
+             .args(&["expires", "expires_in", "temporary"])))]
 pub struct AddCommand {
     #[clap(
         short = 'd',
@@ -203,6 +204,19 @@ pub struct AddCommand {
             being human readable."
     )]
     pub notation: Vec<String>,
+
+    #[clap(
+        long = "temporary",
+        conflicts_with_all = &[ "amount" ],
+        help = "Temporarily accepts the binding",
+        long_help =
+            "Temporarily accepts the binding.  Creates a fully
+            trust link between a certificate and one or more
+            User IDs for a week.  After that, the link is
+            automatically downgraded to a partially trusted link
+            (trust = 40).",
+    )]
+    pub temporary: bool,
     #[clap(
         long = "expires",
         value_name = "TIME",

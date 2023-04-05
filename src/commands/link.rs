@@ -204,12 +204,17 @@ pub fn check_userids(config: &Config, cert: &Cert, self_signed: bool,
 //
 // This does some normalization and only considers things that are
 // relevant to links.
-fn diff_link(old: &SignatureBuilder, new: &SignatureBuilder) -> bool {
-
+fn diff_link(old: &Signature, new: &SignatureBuilder, new_ct: SystemTime)
+    -> bool
+{
     let mut changed = false;
 
     let a_expiration = old.signature_expiration_time();
-    let b_expiration = new.signature_expiration_time();
+    let b_expiration = if let Some(vp) = new.signature_validity_period() {
+        Some(new_ct + vp)
+    } else {
+        None
+    };
     if a_expiration != b_expiration {
         eprintln!(
             "  Updating expiration time: {} -> {}.",
@@ -528,8 +533,8 @@ pub fn add(mut config: Config, c: link::AddCommand)
                 }
 
                 let changed = diff_link(
-                    &SignatureBuilder::from(active_certification),
-                    &builder);
+                    &active_certification,
+                    &builder, config.time);
 
                 if ! changed && config.force {
                     eprintln!("  Link parameters are unchanged, but \
@@ -670,8 +675,8 @@ pub fn retract(mut config: Config, c: link::RetractCommand)
                 }
 
                 let changed = diff_link(
-                    &SignatureBuilder::from(active_certification),
-                    &builder);
+                    &active_certification,
+                    &builder, config.time);
 
                 if ! changed && config.force {
                     eprintln!("  Link parameters are unchanged, but \

@@ -809,6 +809,13 @@ pub fn list(mut config: Config, c: link::ListCommand)
             } else {
                 let mut params = Vec::new();
 
+                if let Some(e) = certification.signature_expiration_time() {
+                    params.push(format!(
+                        "expiry: {}",
+                        chrono::DateTime::<chrono::Utc>::from(e)
+                            .format("%Y-%m-%d")));
+                }
+
                 if depth != 0 && depth != 255 {
                     params.push(format!("trust depth: {}", depth));
                 }

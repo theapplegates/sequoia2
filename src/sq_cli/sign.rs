@@ -88,7 +88,6 @@ pub struct Command {
             "clearsign",
             "notarize",
             "secret_key_file",
-            "time",
         ],
         help = "Merges signatures from the input and SIGNED-MESSAGE",
     )]

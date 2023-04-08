@@ -2866,6 +2866,7 @@ dependencies = [
  "chrono",
  "clap 4.0.32",
  "clap_complete",
+ "clap_mangen",
  "dirs",
  "dot-writer",
  "fehler",

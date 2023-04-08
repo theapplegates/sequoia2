@@ -34,6 +34,8 @@ fn main() {
         let path = clap_complete::generate_to(*shell, &mut sq, "sq", &outdir).unwrap();
         println!("cargo:warning=completion file is generated: {:?}", path);
     };
+
+    build_man_pages().unwrap();
 }
 
 fn dump_help(mut cmd: clap::Command) -> Result<()> {
@@ -89,6 +91,46 @@ fn dump_help_inner(
         writeln!(sink, "{} Subcommand {}", heading, heading_name)?;
 
         dump_help_inner(sink, subcommand, &format!("{}#", heading))?;
+    }
+
+    Ok(())
+}
+
+
+fn build_man_pages() -> Result<()> {
+    // Man page support.
+    let out_dir = std::path::PathBuf::from(
+        std::env::var_os("OUT_DIR")
+            .ok_or(std::io::Error::from(std::io::ErrorKind::NotFound))?);
+
+    let man = clap_mangen::Man::new(sq_cli::build());
+    let mut buffer: Vec<u8> = Default::default();
+    man.render(&mut buffer)?;
+
+    let filename = out_dir.join("sq.1");
+    println!("cargo:warning=writing man page to {}", filename.display());
+    std::fs::write(filename, buffer)?;
+
+    fn doit(out_dir: &Path, prefix: &str, command: &clap::Command) -> Result<()> {
+        let man = clap_mangen::Man::new(command.clone());
+        let mut buffer: Vec<u8> = Default::default();
+        man.render(&mut buffer)?;
+
+        let filename = out_dir.join(format!("{}-{}.1", prefix, command.get_name()));
+        println!("cargo:warning=writing man page to {}", filename.display());
+        std::fs::write(filename, buffer)?;
+
+        for sc in command.get_subcommands() {
+            doit(out_dir,
+                 &format!("{}-{}", prefix, command.get_name()),
+                 sc)?;
+        }
+
+        Ok(())
+    }
+
+    for sc in sq_cli::build().get_subcommands() {
+        doit(&out_dir, "sq", sc)?;
     }
 
     Ok(())

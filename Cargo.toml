@@ -56,6 +56,8 @@ anyhow = "1.0.18"
 clap = { version = "4", features = ["derive", "env", "wrap_help"] }
 # For an MSVR of 1.63: 4.0.7.
 clap_complete = "4"
+# For an MSVR of 1.63: 0.2.6
+clap_mangen = "0.2"
 chrono = "0.4.10"
 sequoia-openpgp = { version = "1.13", default-features = false }
 sequoia-net = { version = "0.26", default-features = false }

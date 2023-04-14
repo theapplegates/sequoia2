@@ -587,6 +587,9 @@ fn adopt(config: Config, command: sq_cli::key::AdoptCommand) -> Result<()> {
                                                 sig),
                                 };
 
+                                let builder = builder
+                                    .set_signature_creation_time(config.time)?;
+
                                 *keyo = Some(
                                     (key.key().clone().role_into_subordinate(),
                                      builder));
@@ -656,6 +659,7 @@ fn adopt(config: Config, command: sq_cli::key::AdoptCommand) -> Result<()> {
                 .unwrap_or_else(|| {
                     SignatureBuilder::new(SignatureType::PrimaryKeyBinding)
                 })
+                .set_signature_creation_time(config.time)?
                 .sign_primary_key_binding(&mut subkey_signer, pk, &key)?;
 
             builder = builder.set_embedded_signature(backsig)?;

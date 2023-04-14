@@ -1,6 +1,6 @@
 use clap::{ValueEnum, ArgGroup, Args, Parser, Subcommand};
 
-use crate::sq_cli::types::IoArgs;
+use crate::sq_cli::types::{self, IoArgs};
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -442,6 +442,12 @@ pub struct AdoptCommand {
     )]
     // TODO Type should be KeyHandle, improve help
     pub key: Vec<String>,
+    #[clap(
+        long = "expire",
+        value_name = "KEY-EXPIRATION-TIME",
+        help = "Makes adopted subkeys expire at the given time",
+    )]
+    pub expire: Option<types::Time>,
     #[clap(
         long = "allow-broken-crypto",
         help = "Allows adopting keys from certificates \

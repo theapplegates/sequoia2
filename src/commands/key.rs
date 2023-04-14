@@ -633,8 +633,12 @@ fn adopt(config: Config, command: sq_cli::key::AdoptCommand) -> Result<()> {
     // Add the keys and signatures to cert.
     let mut packets: Vec<Packet> = vec![];
     for (_, ka) in wanted.into_iter() {
-        let (key, builder) = ka.expect("Checked for missing keys above.");
-        let mut builder = builder;
+        let (key, mut builder) = ka.expect("Checked for missing keys above.");
+
+        // Set key expiration.
+        if let Some(e) = &command.expire {
+            builder = builder.set_key_expiration_time(&key, e.timestamp()?)?;
+        }
 
         // If there is a valid backsig, recreate it.
         let need_backsig = builder.key_flags()

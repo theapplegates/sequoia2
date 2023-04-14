@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use chrono::{offset::Utc, DateTime};
 /// Common types for arguments of sq.
 use clap::{ValueEnum, Args};
@@ -148,6 +149,13 @@ impl std::str::FromStr for Time {
 }
 
 impl Time {
+    /// Returns the time as openpgp::types::Timestamp.
+    pub fn timestamp(&self) -> Result<openpgp::types::Timestamp> {
+        let seconds = u32::try_from(self.time.naive_utc().timestamp())
+           .map_err(|_| anyhow!("Time {} not representable", self.time))?;
+        Ok(seconds.try_into()?)
+    }
+
     /// Parses the given string depicting a ISO 8601 timestamp.
     fn parse_iso8601(
         s: &str,

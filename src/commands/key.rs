@@ -627,7 +627,7 @@ fn adopt(config: Config, command: sq_cli::key::AdoptCommand) -> Result<()> {
         .into_keypair()?;
 
 
-    // Add the keys and signatues to cert.
+    // Add the keys and signatures to cert.
     let mut packets: Vec<Packet> = vec![];
     for (_, ka) in wanted.into_iter() {
         let (key, builder) = ka.expect("Checked for missing keys above.");

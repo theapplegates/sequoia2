@@ -13,6 +13,7 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
     // Generate subplot tests.
+    #[cfg(feature = "subplot")]
     subplot_build::codegen(Path::new("sq.subplot"))
         .expect("failed to generate code with Subplot");
 

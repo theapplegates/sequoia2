@@ -53,7 +53,7 @@ bookworm:
   interruptible: true
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm:latest
   script:
-    - cargo test
+    - cargo test --features=subplot
     - if ! git diff --quiet Cargo.lock ; then echo "Cargo.lock changed.  Please add the change to the corresponding commit." ; git diff ; false ; fi
     - if ! git diff --quiet ; then echo "The build changed the source.  Please investigate." ; git diff ; fi
   variables:
@@ -136,7 +136,7 @@ rust-stable:
     - rustup override set stable
     - *before_script_end
   script:
-    - cargo test
+    - cargo test --features=subplot
   variables:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
@@ -181,7 +181,7 @@ windows-gnu-cng:
   script:
     # https://github.com/rust-lang/cargo/issues/5015
     - pacman --noconfirm --needed -S mingw-w64-x86_64-openssl
-    - cargo test --tests --no-default-features --features crypto-cng,compression-bzip2
+    - cargo test --tests --no-default-features --features crypto-cng,compression-bzip2,subplot
   after_script: [] # scriptlet doesn't work on Powershell
   variables:
     CFLAGS: "" # Silence some C warnings when compiling under Windows

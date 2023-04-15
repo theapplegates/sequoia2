@@ -61,11 +61,11 @@ clap_mangen = "0.2"
 chrono = "0.4.10"
 sequoia-openpgp = { version = "1.13", default-features = false }
 sequoia-net = { version = "0.27", default-features = false }
-subplot-build = { version = "0.6.0", optional = true }
+subplot-build = { version = "0.7.0", optional = true }
 cfg-if = "1"
 
 [dev-dependencies]
-subplotlib = "0.6.0"
+subplotlib = "0.7.0"
 fehler = "1.0.0"
 # For an MSVR of 1.63: 2.0.8.
 assert_cmd = "2"

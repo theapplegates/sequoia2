@@ -348,6 +348,7 @@ pub struct Config<'a> {
     // --no-cert-store
     no_rw_cert_store: bool,
     cert_store_path: Option<PathBuf>,
+    pep_cert_store_path: Option<PathBuf>,
     keyrings: Vec<PathBuf>,
     // This will be set if --no-cert-store is not passed, OR --keyring
     // is passed.
@@ -450,7 +451,10 @@ impl<'store> Config<'store> {
     /// If the cert store is disabled, returns `Ok(None)`.  If it is not yet
     /// open, opens it.
     fn cert_store(&self) -> Result<Option<&cert_store::CertStore<'store>>> {
-        if self.no_rw_cert_store && self.keyrings.is_empty() {
+        if self.no_rw_cert_store
+            && self.keyrings.is_empty()
+            && self.pep_cert_store_path.is_none()
+        {
             // The cert store is disabled.
             return Ok(None);
         }
@@ -542,6 +546,32 @@ impl<'store> Config<'store> {
         cert_store.add_backend(
             Box::new(keyring),
             cert_store::AccessMode::Always);
+
+        if let Some(ref pep_cert_store) = self.pep_cert_store_path {
+            let pep_cert_store = if pep_cert_store.is_dir() {
+                pep_cert_store.join("keys.db")
+            } else {
+                match pep_cert_store.try_exists() {
+                    Ok(true) => {
+                        PathBuf::from(pep_cert_store)
+                    }
+                    Ok(false) => {
+                        return Err(anyhow::anyhow!(format!(
+                            "{:?} does not exist", pep_cert_store)));
+                    }
+                    Err(err) => {
+                        return Err(anyhow::anyhow!(format!(
+                            "Accessing {:?}: {}", pep_cert_store, err)));
+                    }
+                }
+            };
+
+            let pep = cert_store::store::pep::Pep::open(Some(&pep_cert_store))?;
+
+            cert_store.add_backend(
+                Box::new(pep),
+                cert_store::AccessMode::Always);
+        }
 
         let _ = self.cert_store.set(cert_store);
 
@@ -1162,6 +1192,7 @@ fn main() -> Result<()> {
         unstable_cli_warning_emitted: false,
         no_rw_cert_store: c.no_cert_store,
         cert_store_path: c.cert_store.clone(),
+        pep_cert_store_path: c.pep_cert_store.clone(),
         keyrings: c.keyring.clone(),
         cert_store: OnceCell::new(),
         trust_roots: c.trust_roots.clone(),

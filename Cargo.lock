@@ -2750,7 +2750,7 @@ dependencies = [
  "once_cell",
  "openpgp-cert-d",
  "rayon",
- "sequoia-net",
+ "sequoia-net 0.26.0",
  "sequoia-openpgp",
  "thiserror",
  "tokio",
@@ -2761,6 +2761,31 @@ name = "sequoia-net"
 version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7cca7e201e65a2acd3fbbb6004f843e622959f00afbbe8f3308a7997c9784dfa"
+dependencies = [
+ "anyhow",
+ "base64",
+ "futures-util",
+ "http",
+ "hyper",
+ "hyper-tls",
+ "libc",
+ "native-tls",
+ "percent-encoding",
+ "sequoia-openpgp",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "trust-dns-client",
+ "trust-dns-resolver",
+ "url",
+ "zbase32",
+]
+
+[[package]]
+name = "sequoia-net"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "960f1ea77bf8b6f455285424257574d66fa29223e4286268017a4458cc29d33f"
 dependencies = [
  "anyhow",
  "base64",
@@ -2877,7 +2902,7 @@ dependencies = [
  "rpassword",
  "sequoia-autocrypt",
  "sequoia-cert-store",
- "sequoia-net",
+ "sequoia-net 0.27.0",
  "sequoia-openpgp",
  "sequoia-wot",
  "serde",
@@ -3620,6 +3645,7 @@ dependencies = [
  "idna 0.2.3",
  "ipnet",
  "lazy_static",
+ "openssl",
  "rand 0.8.5",
  "ring",
  "smallvec",

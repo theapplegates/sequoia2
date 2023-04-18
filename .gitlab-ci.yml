@@ -160,13 +160,13 @@ clippy:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
 
-windows-msvc-cng:
+windows-gnu-cng:
   tags:
     - win
     - win2019
   stage: build
   interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/windows-msvc
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/windows-gnu
   only:
     variables:
       # Forks of this project most likely use gitlab's shared windows runners, which
@@ -179,11 +179,12 @@ windows-msvc-cng:
     - rustc --version --verbose
     - cargo --version
   script:
-    - Remove-Item tests\sq-subplot.rs # until https://gitlab.com/subplot/subplot/-/issues/232 is fixed
-    - cargo test --no-default-features --features crypto-cng,compression-bzip2
+    # https://github.com/rust-lang/cargo/issues/5015
+    - pacman --noconfirm --needed -S mingw-w64-x86_64-openssl
+    - cargo test --tests --no-default-features --features crypto-cng,compression-bzip2
   after_script: [] # scriptlet doesn't work on Powershell
   variables:
-    CFLAGS: "" # Silence some C warnings when compiling with MSVC
+    CFLAGS: "" # Silence some C warnings when compiling under Windows
 
 docker-build-push:
   # Official docker image.

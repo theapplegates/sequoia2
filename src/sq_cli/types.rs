@@ -1,4 +1,13 @@
-use anyhow::{anyhow, Result};
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::str::FromStr;
+use std::time::Duration;
+use std::time::SystemTime;
+
+use anyhow::anyhow;
+use anyhow::Context;
+use anyhow::Result;
+
 use chrono::{offset::Utc, DateTime};
 /// Common types for arguments of sq.
 use clap::{ValueEnum, Args};
@@ -6,6 +15,9 @@ use clap::{ValueEnum, Args};
 use openpgp::fmt::hex;
 use openpgp::types::SymmetricAlgorithm;
 use sequoia_openpgp as openpgp;
+
+use crate::sq_cli::SECONDS_IN_DAY;
+use crate::sq_cli::SECONDS_IN_YEAR;
 
 #[derive(Debug, Args)]
 pub struct IoArgs {
@@ -42,6 +54,150 @@ impl From<ArmorKind> for Option<openpgp::armor::Kind> {
             ArmorKind::SecretKey => Some(openpgp::armor::Kind::SecretKey),
             ArmorKind::Signature => Some(openpgp::armor::Kind::Signature),
             ArmorKind::File => Some(openpgp::armor::Kind::File),
+        }
+    }
+}
+
+/// Expiry information
+///
+/// This enum tracks expiry information either in the form of a timestamp or
+/// a duration.
+#[derive(Debug, Clone, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum Expiry {
+    /// An expiry timestamp
+    Timestamp(Time),
+    /// A validity duration
+    Duration(Duration),
+    /// There is no expiry
+    Never,
+}
+
+impl Expiry {
+    /// Create a new Expiry in a Result
+    ///
+    /// If `expiry` ends with `"y"`, `"m"`, `"w"`, `"w"`, `"d"` or `"s"` it
+    /// is treated as a duration, which is parsed using `parse_duration()` and
+    /// returned in an `Expiry::Duration`.
+    /// If the special keyword `"never"` is provided as `expiry`,
+    /// `Expiry::Never` is returned.
+    /// If `expiry` is an ISO 8601 compatible string it is returned as
+    /// `sq_cli::types::Time` in an `Expiry::Timestamp`.
+    pub fn new(expiry: &str) -> Result<Self> {
+        match expiry {
+            "never" => Ok(Expiry::Never),
+            _ if expiry.ends_with("y")
+                || expiry.ends_with("m")
+                || expiry.ends_with("w")
+                || expiry.ends_with("d")
+                || expiry.ends_with("s") =>
+            {
+                Ok(Expiry::Duration(Expiry::parse_duration(expiry)?))
+            }
+            _ => Ok(Expiry::Timestamp(Time::from_str(expiry)?)),
+        }
+    }
+
+    /// Parse a string as Duration and return it in a Result
+    ///
+    /// The `expiry` must be at least two chars long, and consist of digits and
+    /// a trailing factor identifier (one of `"y"`, `"m"`, `"w"`, `"d"`, `"s"`
+    /// for year, month, week, day or second, respectively).
+    fn parse_duration(expiry: &str) -> Result<Duration> {
+        if expiry.len() < 2 {
+            return Err(anyhow::anyhow!(
+                "Expiry must contain at least one digit and one factor."
+            ));
+        }
+
+        match expiry.strip_suffix(['y', 'm', 'w', 'd', 's']) {
+            Some(digits) => Ok(Duration::new(
+                match digits.parse::<i64>() {
+                    Ok(count) if count < 0 => {
+                        return Err(anyhow::anyhow!(
+                            "Negative expiry ('{}') detected. \
+                            Did you mean '{}'?",
+                            expiry,
+                            expiry.trim_start_matches("-")
+                        ))
+                    }
+                    Ok(count) => count as u64,
+                    Err(err) => return Err(err).context(
+                        format!("Expiry '{}' is out of range", digits)
+                    ),
+                } * match expiry.chars().last() {
+                    Some('y') => SECONDS_IN_YEAR,
+                    Some('m') => SECONDS_IN_YEAR / 12,
+                    Some('w') => 7 * SECONDS_IN_DAY,
+                    Some('d') => SECONDS_IN_DAY,
+                    Some('s') => 1,
+                    _ => unreachable!(
+                        "Expiry without 'y', 'm', 'w', 'd' or 's' \
+                                suffix impossible since checked for it."
+                    ),
+                },
+                0,
+            )),
+            None => {
+                return Err(anyhow::anyhow!(
+                    if let Some(suffix) = expiry.chars().last() {
+                        format!(
+                            "Invalid suffix '{}' in duration '{}' \
+                        (try <digits><y|m|w|d|s>, e.g. '1y')",
+                            suffix,
+                            expiry
+                        )
+                    } else {
+                        format!(
+                            "Invalid duration: {} \
+                        (try <digits><y|m|w|d|s>, e.g. '1y')",
+                            expiry
+                        )
+                    }
+                ))
+            }
+        }
+    }
+
+    /// Return the expiry as an optional Duration in a Result
+    ///
+    /// This method returns an Error if the reference time is later than the
+    /// time provided in an `Expiry::Timestamp(Time)`.
+    ///
+    /// If self is `Expiry::Timestamp(Time)`, `reference` is used as the start
+    /// of a period, `Some(Time - reference)` is returned.
+    /// If self is `Expiry::Duration(duration)`, `Some(duration)` is returned.
+    /// If self is `Expiry::Never`, `None` is returned.
+    pub fn as_duration(
+        &self,
+        reference: DateTime<Utc>,
+    ) -> Result<Option<Duration>> {
+        match self {
+            Expiry::Timestamp(time) => Ok(
+                Some(
+                    SystemTime::from(time.time).duration_since(reference.into())?
+                )
+            ),
+            Expiry::Duration(duration) => Ok(Some(duration.clone())),
+            Expiry::Never => Ok(None),
+        }
+    }
+}
+
+impl FromStr for Expiry {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Expiry> {
+        Expiry::new(s)
+    }
+}
+
+impl Display for Expiry {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            Expiry::Timestamp(time) => write!(f, "{:?}", time),
+            Expiry::Duration(duration) => write!(f, "{:?}", duration),
+            Expiry::Never => write!(f, "never"),
         }
     }
 }
@@ -132,7 +288,7 @@ impl<'a> std::fmt::Display for SessionKeyDisplay<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Time {
     pub time: DateTime<Utc>,
 }
@@ -197,6 +353,8 @@ impl Time {
 
 #[cfg(test)]
 mod test {
+    use chrono::NaiveDateTime;
+
     use super::*;
 
     #[test]
@@ -224,5 +382,78 @@ mod test {
         Time::parse_iso8601("2017031", z)?;
         // CliTime::parse_iso8601("2017", z)?; // ditto
         Ok(())
+    }
+
+    #[test]
+    fn test_expiry() {
+        assert_eq!(
+            Expiry::new("1y").unwrap(),
+            Expiry::Duration(Duration::new(SECONDS_IN_YEAR, 0)),
+        );
+        assert_eq!(
+            Expiry::new("2023-05-15T20:00:00Z").unwrap(),
+            Expiry::Timestamp(Time::from_str("2023-05-15T20:00:00Z").unwrap()),
+        );
+        assert_eq!(
+            Expiry::new("never").unwrap(),
+            Expiry::Never,
+        );
+    }
+
+    #[test]
+    fn test_expiry_parse_duration() {
+        assert_eq!(
+            Expiry::parse_duration("1y").unwrap(),
+            Duration::new(SECONDS_IN_YEAR, 0),
+        );
+        assert!(Expiry::parse_duration("f").is_err());
+        assert!(Expiry::parse_duration("-1y").is_err());
+        assert!(Expiry::parse_duration("foo").is_err());
+        assert!(Expiry::parse_duration("1o").is_err());
+    }
+
+    #[test]
+    fn test_expiry_as_duration() {
+        let reference = DateTime::from_utc(
+            NaiveDateTime::from_timestamp_opt(1, 0).unwrap(),
+            Utc,
+        );
+
+        let expiry = Expiry::Timestamp(
+            Time{
+                time: DateTime::from_utc(
+                    NaiveDateTime::from_timestamp_opt(2, 0).unwrap(),
+                    Utc,
+                )}
+        );
+        assert_eq!(
+            expiry.as_duration(reference).unwrap(),
+            Some(Duration::new(1, 0)),
+        );
+
+        let expiry = Expiry::Duration(Duration::new(2,0));
+        assert_eq!(
+            expiry.as_duration(reference).unwrap(),
+            Some(Duration::new(2, 0)),
+        );
+
+        let expiry = Expiry::Never;
+        assert_eq!(expiry.as_duration(reference).unwrap(), None);
+    }
+
+    #[test]
+    fn test_expiry_as_duration_errors() {
+        let reference = DateTime::from_utc(
+            NaiveDateTime::from_timestamp_opt(2, 0).unwrap(),
+            Utc,
+        );
+        let expiry = Expiry::Timestamp(
+            Time{
+                time: DateTime::from_utc(
+                    NaiveDateTime::from_timestamp_opt(1, 0).unwrap(),
+                    Utc,
+                )}
+        );
+        assert!(expiry.as_duration(reference).is_err());
     }
 }

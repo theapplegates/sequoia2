@@ -1,6 +1,10 @@
 use clap::{ValueEnum, ArgGroup, Args, Parser, Subcommand};
 
-use crate::sq_cli::types::{self, IoArgs};
+use sequoia_openpgp::cert::CipherSuite as SqCipherSuite;
+
+use crate::sq_cli::types::IoArgs;
+use crate::sq_cli::types::Expiry;
+use crate::sq_cli::types::Time;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -31,6 +35,8 @@ pub enum Subcommands {
     Password(PasswordCommand),
     #[clap(subcommand)]
     Userid(UseridCommand),
+    #[clap(subcommand)]
+    Subkey(SubkeyCommand),
     ExtractCert(ExtractCertCommand),
     AttestCertifications(AttestCertificationsCommand),
     Adopt(AdoptCommand),
@@ -192,6 +198,18 @@ pub enum CipherSuite {
     Rsa3k,
     Rsa4k,
     Cv25519
+}
+
+impl CipherSuite {
+
+    /// Return a matching `sequoia_openpgp::cert::CipherSuite`
+    pub fn as_ciphersuite(&self) -> SqCipherSuite {
+        match self {
+            CipherSuite::Rsa3k => SqCipherSuite::RSA3k,
+            CipherSuite::Rsa4k => SqCipherSuite::RSA4k,
+            CipherSuite::Cv25519 => SqCipherSuite::Cv25519,
+        }
+    }
 }
 
 #[derive(ValueEnum, Clone, Debug)]
@@ -447,7 +465,7 @@ pub struct AdoptCommand {
         value_name = "KEY-EXPIRATION-TIME",
         help = "Makes adopted subkeys expire at the given time",
     )]
-    pub expire: Option<types::Time>,
+    pub expire: Option<Time>,
     #[clap(
         long = "allow-broken-crypto",
         help = "Allows adopting keys from certificates \
@@ -533,4 +551,139 @@ pub struct AttestCertificationsCommand {
     )]
     pub binary: bool,
 
+}
+
+#[derive(Debug, Subcommand)]
+#[clap(
+    name = "subkey",
+    about = "Manages Subkeys",
+    long_about =
+"Manages Subkeys
+
+Add new subkeys to an existing key.
+",
+    subcommand_required = true,
+    arg_required_else_help = true,
+)]
+#[non_exhaustive]
+pub enum SubkeyCommand {
+    Add(SubkeyAddCommand),
+}
+
+#[derive(Debug, Args)]
+#[clap(
+    about = "Adds a newly generated Subkey",
+    long_about =
+"Adds a newly generated Subkey
+
+A subkey has one or more flags. \"--can-sign\" sets the signing flag,
+and means that the key may be used for signing. \"--can-authenticate\"
+sets the authentication flags, and means that the key may be used for
+authentication (e.g., as an SSH key). These two flags may be combined.
+
+\"--can-encrypt=storage\" sets the storage encryption flag, and means that the key
+may be used for storage encryption. \"--can-encrypt=transport\" sets the transport
+encryption flag, and means that the key may be used for transport encryption.
+\"--can-encrypt=universal\" sets both the storage and the transport encryption
+flag, and means that the key may be used for both storage and transport
+encryption. Only one of the encryption flags may be used and it can not be
+combined with the signing or authentication flag.
+
+At least one flag must be chosen.
+
+Furthermore the subkey may use one of several available cipher suites, that can
+be selected using \"--cipher-suite\".
+
+By default a new subkey never expires. However, its validity period is limited
+by that of the primary key it is added for.
+Using the \"--expiry=EXPIRY\" argument specific validity periods may be defined.
+It allows for providing a point in time for validity to end or a validity
+duration.
+
+\"sq key subkey add\" respects the reference time set by the top-level
+\"--time\" argument. It sets the creation time of the subkey to the specified
+time.
+",
+    after_help =
+"EXAMPLES:
+
+# First, this generates a key
+$ sq key generate --userid \"alice <alice@example.org>\" --export alice.key.pgp
+
+# Add a new Subkey for universal encryption which expires at the same time as
+# the primary key
+$ sq key subkey add --output alice-new.key.pgp --can-encrypt universal alice.key.pgp
+
+# Add a new Subkey for signing using the rsa3k cipher suite which expires in five days
+$ sq key subkey add --output alice-new.key.pgp --can-sign --cipher-suite rsa3k --expiry 5d alice.key.pgp
+",
+)]
+#[clap(group(ArgGroup::new("authentication-group").args(&["can_authenticate", "can_encrypt"])))]
+#[clap(group(ArgGroup::new("sign-group").args(&["can_sign", "can_encrypt"])))]
+#[clap(group(ArgGroup::new("required-group").args(&["can_authenticate", "can_sign", "can_encrypt"]).required(true)))]
+pub struct SubkeyAddCommand {
+    #[clap(flatten)]
+    pub io: IoArgs,
+    #[clap(
+        long = "private-key-store",
+        value_name = "KEY_STORE",
+        help = "Provides parameters for private key store",
+    )]
+    pub private_key_store: Option<String>,
+    #[clap(
+        short = 'B',
+        long,
+        help = "Emits binary data",
+    )]
+    pub binary: bool,
+    #[clap(
+        short = 'c',
+        long = "cipher-suite",
+        value_name = "CIPHER-SUITE",
+        default_value_t = CipherSuite::Cv25519,
+        help = "Selects the cryptographic algorithms for the subkey",
+        value_enum,
+    )]
+    pub cipher_suite: CipherSuite,
+    #[clap(
+        long = "expiry",
+        value_name = "EXPIRY",
+        default_value_t = Expiry::Never,
+        help =
+            "Defines EXPIRY for the subkey as ISO 8601 formatted string or \
+            custom duration.",
+        long_help =
+            "Defines EXPIRY for the subkey as ISO 8601 formatted string or \
+            custom duration. \
+            If an ISO 8601 formatted string is provided, the validity period \
+            reaches from the reference time (may be set using \"--time\") to \
+            the provided time. \
+            Custom durations starting from the reference time may be set using \
+            \"N[ymwds]\", for N years, months, weeks, days, or seconds. \
+            The special keyword \"never\" sets an unlimited expiry.",
+    )]
+    pub expiry: Expiry,
+    #[clap(
+        long = "can-sign",
+        help = "Adds signing capability to subkey",
+    )]
+    pub can_sign: bool,
+    #[clap(
+        long = "can-authenticate",
+        help = "Adds authentication capability to subkey",
+    )]
+    pub can_authenticate: bool,
+    #[clap(
+        long = "can-encrypt",
+        value_name = "PURPOSE",
+        help = "Adds an encryption capability to subkey [default: universal]",
+        long_help =
+            "Adds an encryption capability to subkey. \
+            Encryption-capable subkeys can be marked as \
+            suitable for transport encryption, storage \
+            encryption, or both, i.e., universal. \
+            [default: universal]",
+        value_enum,
+    )]
+    pub can_encrypt: Option<EncryptPurpose>,
 }

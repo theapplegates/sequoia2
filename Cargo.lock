@@ -2975,7 +2975,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "clap_mangen",
- "dirs 4.0.0",
+ "dirs 5.0.1",
  "dot-writer",
  "fehler",
  "itertools",

@@ -123,7 +123,7 @@ codespell:
     - codespell --version
     - *before_script_end
   script:
-    - codespell --summary -L "crate,ede,iff,mut,nd,te,uint,KeyServer,keyserver,Keyserver,keyservers,Keyservers,keypair,keypairs,KeyPair,fpr,dedup,deriver" -S "*.bin,*.gpg,*.pgp,./.git,*/target"
+    - codespell --summary -L "crate,ede,iff,mut,nd,te,uint,KeyServer,keyserver,Keyserver,keyservers,Keyservers,keypair,keypairs,KeyPair,fpr,dedup,deriver" -S "*.bin,*.gpg,*.pgp,./.git,*/target,Cargo.lock"
 
 rust-stable:
   tags:

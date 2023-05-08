@@ -2,6 +2,14 @@
 #+TITLE: sequoia-sq NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 0.30
+ * New functionality
+  - `sq key adopt` now honors `--time`.
+  - Add `sq key adopt --expire` to allow setting an adopted key's
+    expiration time.
+  - Add support for using pEp's certificate store.  A pEp certificate
+    store can be used by specifying `sq --pep-cert-store PATH` or
+    setting the environment variable `PEP_CERT_STORE`.
 * Changes in 0.29
 ** New functionality
    - `sq` now supports and implicitly uses a certificate store.  By

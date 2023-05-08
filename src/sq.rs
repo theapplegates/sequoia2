@@ -17,7 +17,6 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use chrono::{DateTime, offset::Utc};
-use itertools::Itertools;
 use once_cell::unsync::OnceCell;
 
 use terminal_size::terminal_size;
@@ -80,68 +79,6 @@ fn open_or_stdin(f: Option<&str>)
                 .with_context(|| format!("Failed to open {}", f))?)),
         None => Ok(Box::new(Generic::new(io::stdin(), None))),
     }
-}
-
-fn parse_duration(expiry: &str) -> Result<Duration> {
-    let mut expiry = expiry.chars().peekable();
-
-    let _ = expiry.by_ref()
-        .peeking_take_while(|c| c.is_whitespace())
-        .for_each(|_| ());
-    let digits = expiry.by_ref()
-        .peeking_take_while(|c| {
-            *c == '+' || *c == '-' || c.is_digit(10)
-        }).collect::<String>();
-    let _ = expiry.by_ref()
-        .peeking_take_while(|c| c.is_whitespace())
-        .for_each(|_| ());
-    let suffix = expiry.next();
-    let _ = expiry.by_ref()
-        .peeking_take_while(|c| c.is_whitespace())
-        .for_each(|_| ());
-    let junk = expiry.collect::<String>();
-
-    if digits.is_empty() {
-        return Err(anyhow::anyhow!(
-            "--expiry: missing count \
-             (try: '2y' for 2 years)"));
-    }
-
-    let count = match digits.parse::<i32>() {
-        Ok(count) if count < 0 =>
-            return Err(anyhow::anyhow!(
-                "--expiry: Expiration can't be in the past")),
-        Ok(count) => count as u64,
-        Err(err) =>
-            return Err(err).context("--expiry: count is out of range"),
-    };
-
-    let factor = match suffix {
-        Some('y') | Some('Y') => SECONDS_IN_YEAR,
-        Some('m') | Some('M') => SECONDS_IN_YEAR / 12,
-        Some('w') | Some('W') => 7 * SECONDS_IN_DAY,
-        Some('d') | Some('D') => SECONDS_IN_DAY,
-        Some('s') | Some('S') => 1,
-        None =>
-            return Err(anyhow::anyhow!(
-                "--expiry: missing suffix \
-                 (try: '{}y', '{}m', '{}w', '{}d' or '{}s' instead)",
-                digits, digits, digits, digits, digits)),
-        Some(suffix) =>
-            return Err(anyhow::anyhow!(
-                "--expiry: invalid suffix '{}' \
-                 (try: '{}y', '{}m', '{}w', '{}d' or '{}s' instead)",
-                suffix, digits, digits, digits, digits, digits)),
-    };
-
-    if !junk.is_empty() {
-        return Err(anyhow::anyhow!(
-            "--expiry: contains trailing junk ('{:?}') \
-             (try: '{}{}')",
-            junk, count, factor));
-    }
-
-    Ok(Duration::new(count * factor, 0))
 }
 
 /// Loads one TSK from every given file.

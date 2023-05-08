@@ -3,6 +3,8 @@ use clap::{ArgGroup, Parser, Subcommand};
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
+use super::types::Expiry;
+
 #[derive(Parser, Debug)]
 #[clap(
     name = "link",
@@ -132,7 +134,7 @@ $ sq link retract 0123456789ABCDEF
 ",
 )]
 #[clap(group(ArgGroup::new("expiration-group")
-             .args(&["expires", "expires_in", "temporary"])))]
+             .args(&["expiry", "temporary"])))]
 pub struct AddCommand {
     #[clap(
         short = 'd',
@@ -218,28 +220,24 @@ pub struct AddCommand {
     )]
     pub temporary: bool,
     #[clap(
-        long = "expires",
-        value_name = "TIME",
-        help = "Makes the acceptance expire at TIME (as ISO 8601)",
+        long = "expiry",
+        value_name = "EXPIRY",
+        default_value_t =
+            Expiry::Never,
+        help =
+            "Defines EXPIRY for the acceptance as ISO 8601 formatted string or \
+            custom duration.",
         long_help =
-            "Makes the acceptance expire at TIME (as ISO 8601). \
-             Use \"never\" (the default), to indicate the acceptance does \
-             not expire.",
+            "Defines EXPIRY for the acceptance as ISO 8601 formatted string or \
+            custom duration. \
+            If an ISO 8601 formatted string is provided, the validity period \
+            reaches from the reference time (may be set using \"--time\") to \
+            the provided time. \
+            Custom durations starting from the reference time may be set using \
+            \"N[ymwds]\", for N years, months, weeks, days, or seconds. \
+            The special keyword \"never\" sets an unlimited expiry.",
     )]
-    pub expires: Option<String>,
-    #[clap(
-        long = "expires-in",
-        value_name = "DURATION",
-        // Catch negative numbers.
-        allow_hyphen_values = true,
-        help = "Makes the acceptance expire after DURATION \
-            (as N[ymwds]) [default: 5y]",
-        long_help =
-            "Makes the certification expire after DURATION. \
-            Either \"N[ymwds]\", for N years, months, \
-            weeks, days, seconds, or \"never\".  [default: 5y]",
-    )]
-    pub expires_in: Option<String>,
+    pub expiry: Expiry,
     #[clap(
         value_name = "FINGERPRINT|KEYID",
         required = true,

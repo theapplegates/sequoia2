@@ -430,7 +430,7 @@ inspect output is the last second of validity.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --expires=2038-01-19T03:14:07+00:00
+when I run sq --no-cert-store key generate --export key.pgp --expiry=2038-01-19T03:14:07+00:00
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Expiration time: 2038-01-19 03:14"
 when I run sq --no-cert-store inspect --time 2038-01-20T00:00:00+00:00 key.pgp
@@ -444,7 +444,7 @@ given time._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --expires-in=1y
+when I run sq --no-cert-store key generate --export key.pgp --expiry=1y
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Expiration time: 20"
 ~~~

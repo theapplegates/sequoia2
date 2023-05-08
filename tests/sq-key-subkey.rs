@@ -29,7 +29,8 @@ mod integration {
             "generate",
             "--time",
             timestamp,
-            "--expires", "never",
+            "--expiry",
+            "never",
             "--export",
             &*path.to_string_lossy(),
         ]);

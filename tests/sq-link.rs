@@ -63,7 +63,7 @@ fn sq_gen_key(cert_store: Option<&str>, userids: &[&str], file: &str) -> Cert
     cmd.args(["--no-cert-store",
               "key", "generate",
               "--time", &tick(),
-              "--expires", "never",
+              "--expiry", "never",
               "--export", file]);
     for userid in userids.iter() {
         cmd.args(["--userid", userid]);

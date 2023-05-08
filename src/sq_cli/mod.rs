@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::time::Duration;
 
 /// Command-line parser for sq.
 use clap::{Command, CommandFactory, Parser, Subcommand};
@@ -38,6 +39,18 @@ pub const SECONDS_IN_DAY : u64 = 24 * 60 * 60;
 pub const SECONDS_IN_YEAR : u64 =
     // Average number of days in a year.
     (365.2422222 * SECONDS_IN_DAY as f64) as u64;
+/// The default validity (in years) for keys and subkeys
+pub const KEY_VALIDITY_IN_YEARS: u64 = 3;
+/// The default validity period (as Duration) for keys and subkeys
+pub const KEY_VALIDITY_DURATION: Duration =
+    Duration::new(SECONDS_IN_YEAR * KEY_VALIDITY_IN_YEARS, 0);
+/// The default validity (in years) for third party certifications
+pub const THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS: u64 = 5;
+/// The default validity period (as Duration) for third party certifications
+pub const THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION: Duration = Duration::new(
+    SECONDS_IN_YEAR * THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS,
+    0,
+);
 
 pub fn build() -> Command {
     let sq_version = Box::leak(

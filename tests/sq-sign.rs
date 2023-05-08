@@ -936,7 +936,7 @@ fn sq_sign_using_cert_store() -> Result<()> {
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--cert-store", &certd,
               "key", "generate",
-              "--expires", "never",
+              "--expiry", "never",
               "--userid", "<alice@example.org>",
               "--export", &alice_pgp]);
     cmd.assert().success();
@@ -1096,7 +1096,7 @@ fn sq_verify_wot() -> Result<()> {
         let mut cmd = Command::cargo_bin("sq").expect("have sq");
         cmd.args(["--no-cert-store",
                   "key", "generate",
-                  "--expires", "never",
+                  "--expiry", "never",
                   "--export", file]);
         for userid in userids.iter() {
             cmd.args(["--userid", userid]);

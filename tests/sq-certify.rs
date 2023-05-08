@@ -81,7 +81,7 @@ fn sq_certify() -> Result<()> {
         .arg(alice_pgp.to_str().unwrap())
         .arg(bob_pgp.to_str().unwrap())
         .arg("bob@example.org")
-        .args(["--expires", "never"])
+        .args(["--expiry", "never"])
         .assert()
         .success()
         .stdout(predicate::function(|output: &[u8]| -> bool {
@@ -122,7 +122,7 @@ fn sq_certify() -> Result<()> {
         .args(["--regex", "b"])
         .arg("--local")
         .arg("--non-revocable")
-        .args(["--expires-in", "1d"])
+        .args(["--expiry", "1d"])
         .assert()
         .success()
         .stdout(predicate::function(|output: &[u8]| -> bool {
@@ -525,7 +525,7 @@ fn sq_certify_using_cert_store() -> Result<()>
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--cert-store", &certd,
               "key", "generate",
-              "--expires", "never",
+              "--expiry", "never",
               "--userid", "<alice@example.org>",
               "--export", &alice_pgp]);
     cmd.assert().success();
@@ -535,7 +535,7 @@ fn sq_certify_using_cert_store() -> Result<()>
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--cert-store", &certd,
               "key", "generate",
-              "--expires", "never",
+              "--expiry", "never",
               "--userid", "<bob@example.org>",
               "--export", &bob_pgp]);
     cmd.assert().success();

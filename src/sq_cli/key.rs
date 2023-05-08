@@ -5,6 +5,7 @@ use sequoia_openpgp::cert::CipherSuite as SqCipherSuite;
 use crate::sq_cli::types::IoArgs;
 use crate::sq_cli::types::Expiry;
 use crate::sq_cli::types::Time;
+use crate::sq_cli::KEY_VALIDITY_DURATION;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -84,7 +85,6 @@ $ sq key generate --userid \"<juliet@example.org>\" --userid \"Juliet Capulet\"
 $ sq key generate --time 20110609 --userid \"Noam\" --export noam.pgp
 ",
 )]
-#[clap(group(ArgGroup::new("expiration-group").args(&["expires", "expires_in"])))]
 #[clap(group(ArgGroup::new("cap-sign").args(&["can_sign", "cannot_sign"])))]
 #[clap(group(ArgGroup::new("cap-authenticate").args(&["can_authenticate", "cannot_authenticate"])))]
 #[clap(group(ArgGroup::new("cap-encrypt").args(&["can_encrypt", "cannot_encrypt"])))]
@@ -111,28 +111,23 @@ pub struct GenerateCommand {
     )]
     pub with_password: bool,
     #[clap(
-        long = "expires",
-        value_name = "TIME",
-        help = "Makes the key expire at TIME (as ISO 8601)",
+        long = "expiry",
+        value_name = "EXPIRY",
+        default_value_t = Expiry::Duration(KEY_VALIDITY_DURATION),
+        help =
+            "Defines EXPIRY for the key as ISO 8601 formatted string or \
+            custom duration.",
         long_help =
-            "Makes the key expire at TIME (as ISO 8601). \
-            Use \"never\" to create keys that do not expire.",
+            "Defines EXPIRY for the key as ISO 8601 formatted string or \
+            custom duration. \
+            If an ISO 8601 formatted string is provided, the validity period \
+            reaches from the reference time (may be set using \"--time\") to \
+            the provided time. \
+            Custom durations starting from the reference time may be set using \
+            \"N[ymwds]\", for N years, months, weeks, days, or seconds. \
+            The special keyword \"never\" sets an unlimited expiry.",
     )]
-    // TODO: Use a wrapper type for CliTime
-    pub expires: Option<String>,
-    #[clap(
-        long = "expires-in",
-        value_name = "DURATION",
-        // Catch negative numbers.
-        allow_hyphen_values = true,
-        help = "Makes the key expire after DURATION \
-            (as N[ymwds]) [default: 5y]",
-        long_help =
-            "Makes the key expire after DURATION. \
-            Either \"N[ymwds]\", for N years, months, \
-            weeks, days, seconds, or \"never\".",
-    )]
-    pub expires_in: Option<String>,
+    pub expiry: Expiry,
     #[clap(
         long = "can-sign",
         help ="Adds a signing-capable subkey (default)",

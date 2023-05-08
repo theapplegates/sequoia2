@@ -1,5 +1,5 @@
-use std::time::Duration;
-use std::time::SystemTime;
+use chrono::DateTime;
+use chrono::Utc;
 
 use openpgp::armor::Kind;
 use openpgp::armor::Writer;
@@ -11,10 +11,8 @@ use openpgp::Packet;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
-use crate::parse_duration;
 use crate::sq_cli;
 use crate::Config;
-use crate::SECONDS_IN_YEAR;
 
 pub fn generate(
     config: Config,
@@ -35,39 +33,11 @@ pub fn generate(
     builder = builder.set_creation_time(config.time);
 
     // Expiration.
-    match (command.expires, command.expires_in) {
-        (None, None) =>
-        // Default expiration.
-        {
-            builder = builder.set_validity_period(Some(Duration::new(
-                3 * SECONDS_IN_YEAR,
-                0,
-            )))
-        }
-        (Some(t), None) if t == "never" => {
-            builder = builder.set_validity_period(None)
-        }
-        (Some(t), None) => {
-            let now = builder
-                .creation_time()
-                .unwrap_or_else(std::time::SystemTime::now);
-            let expiration = SystemTime::from(crate::parse_iso8601(
-                &t,
-                chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap(),
-            )?);
-            let validity = expiration.duration_since(now)?;
-            builder =
-                builder.set_creation_time(now).set_validity_period(validity);
-        }
-        (None, Some(d)) if d == "never" => {
-            builder = builder.set_validity_period(None)
-        }
-        (None, Some(d)) => {
-            let d = parse_duration(&d)?;
-            builder = builder.set_validity_period(Some(d));
-        }
-        (Some(_), Some(_)) => unreachable!("conflicting args"),
-    }
+    builder = builder.set_validity_period(
+        command
+        .expiry
+        .as_duration(DateTime::<Utc>::from(config.time))?
+    );
 
     // Cipher Suite
     use sq_cli::key::CipherSuite::*;

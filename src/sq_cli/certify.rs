@@ -1,4 +1,8 @@
-use clap::{ArgGroup, Parser};
+use clap::Parser;
+
+use crate::sq_cli::THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION;
+
+use super::types::Expiry;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -33,7 +37,6 @@ $ sq certify juliet.pgp romeo.pgp \"<romeo@example.org>\"
 $ sq certify --time 20130721 neal.pgp ada.pgp Ada
 ",
 )]
-#[clap(group(ArgGroup::new("expiration-group").args(&["expires", "expires_in"])))]
 pub struct Command {
     #[clap(
         short,
@@ -126,27 +129,24 @@ pub struct Command {
     )]
     pub notation: Vec<String>,
     #[clap(
-        long = "expires",
-        value_name = "TIME",
-        help = "Makes the certification expire at TIME (as ISO 8601)",
+        long = "expiry",
+        value_name = "EXPIRY",
+        default_value_t =
+            Expiry::Duration(THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION),
+        help =
+            "Defines EXPIRY for the certification as ISO 8601 formatted string or \
+            custom duration.",
         long_help =
-            "Makes the certification expire at TIME (as ISO 8601). \
-            Use \"never\" to create certifications that do not expire.",
+            "Defines EXPIRY for the certification as ISO 8601 formatted string or \
+            custom duration. \
+            If an ISO 8601 formatted string is provided, the validity period \
+            reaches from the reference time (may be set using \"--time\") to \
+            the provided time. \
+            Custom durations starting from the reference time may be set using \
+            \"N[ymwds]\", for N years, months, weeks, days, or seconds. \
+            The special keyword \"never\" sets an unlimited expiry.",
     )]
-    pub expires: Option<String>,
-    #[clap(
-        long = "expires-in",
-        value_name = "DURATION",
-        // Catch negative numbers.
-        allow_hyphen_values = true,
-        help = "Makes the certification expire after DURATION \
-            (as N[ymwds]) [default: 5y]",
-        long_help =
-            "Makes the certification expire after DURATION. \
-            Either \"N[ymwds]\", for N years, months, \
-            weeks, days, seconds, or \"never\".  [default: 5y]",
-    )]
-    pub expires_in: Option<String>,
+    pub expiry: Expiry,
     #[clap(
         long = "allow-not-alive-certifier",
         help = "Don't fail if the certificate making the \

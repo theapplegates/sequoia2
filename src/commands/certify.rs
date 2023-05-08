@@ -1,4 +1,5 @@
-use std::time::{SystemTime, Duration};
+use chrono::DateTime;
+use chrono::Utc;
 
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
@@ -12,12 +13,9 @@ use openpgp::types::SignatureType;
 use openpgp::types::KeyFlags;
 
 use crate::Config;
-use crate::parse_duration;
 use crate::parse_notations;
-use crate::SECONDS_IN_YEAR;
 use crate::commands::get_certification_keys;
 use crate::commands::GetKeysOptions;
-
 use crate::sq_cli::certify;
 
 pub fn certify(config: Config, c: certify::Command)
@@ -50,9 +48,6 @@ pub fn certify(config: Config, c: certify::Command)
     let non_revocable = c.non_revocable;
 
     let time = config.time;
-
-    let expires = c.expires;
-    let expires_in = c.expires_in;
 
     let vc = cert.with_policy(&config.policy, Some(time))?;
 
@@ -107,29 +102,11 @@ pub fn certify(config: Config, c: certify::Command)
     // Creation time.
     builder = builder.set_signature_creation_time(time)?;
 
-    match (expires, expires_in) {
-        (None, None) =>
-            // Default expiration.
-            builder = builder.set_signature_validity_period(
-                Duration::new(5 * SECONDS_IN_YEAR, 0))?,
-        (Some(t), None) if t == "never" =>
-            // The default is no expiration; there is nothing to do.
-            (),
-        (Some(t), None) => {
-            let expiration = SystemTime::from(
-                crate::parse_iso8601(
-                    &t, chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap())?);
-            let validity = expiration.duration_since(time)?;
-            builder = builder.set_signature_validity_period(validity)?;
-        },
-        (None, Some(d)) if d == "never" =>
-            // The default is no expiration; there is nothing to do.
-            (),
-        (None, Some(d)) => {
-            let d = parse_duration(&d)?;
-            builder = builder.set_signature_validity_period(d)?;
-        },
-        (Some(_), Some(_)) => unreachable!("conflicting args"),
+    if let Some(validity) = c
+        .expiry
+        .as_duration(DateTime::<Utc>::from(config.time))?
+    {
+        builder = builder.set_signature_validity_period(validity)?;
     }
 
     let notations = parse_notations(c.notation)?;

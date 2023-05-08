@@ -3,6 +3,9 @@ use std::time::{Duration, SystemTime};
 
 use anyhow::Context;
 
+use chrono::DateTime;
+use chrono::Utc;
+
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
 use openpgp::cert::prelude::*;
@@ -19,7 +22,6 @@ use cert_store::store::UserIDQueryParams;
 use crate::Config;
 use crate::commands::active_certification;
 use crate::commands::get_certification_keys;
-use crate::parse_duration;
 use crate::parse_notations;
 use crate::print_error_chain;
 
@@ -425,9 +427,6 @@ pub fn add(mut config: Config, c: link::AddCommand)
         }
     }
 
-    let expires = c.expires;
-    let expires_in = c.expires_in;
-
     // Create the certification.
     let mut builder
         = SignatureBuilder::new(SignatureType::GenericCertification);
@@ -469,27 +468,12 @@ pub fn add(mut config: Config, c: link::AddCommand)
             Duration::new(7 * 24 * 60 * 60, 0))?;
 
         vec![ builder, partial ]
-    } else if let Some(t) = expires {
-        if t == "never" {
-            // The default is no expiration; there is nothing to do.
-        } else {
-            let expiration = SystemTime::from(
-                crate::parse_iso8601(
-                    &t, chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap())?);
-            let validity = expiration.duration_since(config.time)?;
+    } else {
+        if let Some(validity) = c
+            .expiry
+            .as_duration(DateTime::<Utc>::from(config.time))? {
             builder = builder.set_signature_validity_period(validity)?;
         }
-        vec![ builder ]
-    } else if let Some(d) = expires_in {
-        if d == "never" {
-            // The default is no expiration; there is nothing to do.
-        } else {
-            let d = parse_duration(&d)?;
-            builder = builder.set_signature_validity_period(d)?;
-        }
-        vec![ builder ]
-    } else {
-        // The default is no expiration; there is nothing to do.
         vec![ builder ]
     };
 

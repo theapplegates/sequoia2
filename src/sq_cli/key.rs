@@ -156,7 +156,7 @@ pub struct GenerateCommand {
             "Adds an encryption-capable subkey. \
             Encryption-capable subkeys can be marked as \
             suitable for transport encryption, storage \
-            encryption, or both. \
+            encryption, or both, i.e., universal. \
             [default: universal]",
         value_enum,
     )]

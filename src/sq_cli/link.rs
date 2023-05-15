@@ -101,6 +101,14 @@ non-exportable.  The former makes it easier to manage certifications,
 especially when the user's certification key is offline.  And the
 latter improves the user's privacy, by reducing the chance that parts
 of the user's social graph is leaked when a certificate is shared.
+
+By default a link never expires.
+Using the \"--expiry=EXPIRY\" argument specific validity periods may be defined.
+It allows for providing a point in time for validity to end or a validity
+duration.
+
+\"sq link\" respects the reference time set by the top-level \"--time\"
+argument. It sets the link's creation time to the reference time.
 ",
     after_help =
 "EXAMPLES:

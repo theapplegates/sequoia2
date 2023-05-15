@@ -1,6 +1,7 @@
 use clap::Parser;
 
 use crate::sq_cli::THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION;
+use crate::sq_cli::THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS;
 
 use super::types::Expiry;
 
@@ -8,7 +9,7 @@ use super::types::Expiry;
 #[clap(
     name = "certify",
     about = "Certifies a User ID for a Certificate",
-    long_about =
+    long_about = format!(
 "Certifies a User ID for a Certificate
 
 Using a certification a keyholder may vouch for the fact that another
@@ -22,10 +23,17 @@ updated certificate has to be distributed, preferably by sending it to
 the certificate holder for attestation.  See also \"sq key
 attest-certification\".
 
+By default a certification expires after {} years.
+Using the \"--expiry=EXPIRY\" argument specific validity periods may be defined.
+It allows for providing a point in time for validity to end or a validity
+duration.
+
 \"sq certify\" respects the reference time set by the top-level
 \"--time\" argument.  It sets the certification's creation time to the
 reference time.
 ",
+        THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS,
+    ),
     after_help =
 "EXAMPLES:
 

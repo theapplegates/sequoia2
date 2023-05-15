@@ -6,6 +6,7 @@ use crate::sq_cli::types::IoArgs;
 use crate::sq_cli::types::Expiry;
 use crate::sq_cli::types::Time;
 use crate::sq_cli::KEY_VALIDITY_DURATION;
+use crate::sq_cli::KEY_VALIDITY_IN_YEARS;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -46,7 +47,7 @@ pub enum Subcommands {
 #[derive(Debug, Args)]
 #[clap(
     about = "Generates a new key",
-    long_about =
+    long_about = format!(
 "Generates a new key
 
 Generating a key is the prerequisite to receiving encrypted messages
@@ -62,10 +63,17 @@ certificate corresponding to the key.  The key must be kept secure,
 while the certificate should be handed out to correspondents, e.g. by
 uploading it to a keyserver.
 
+By default a key expires after {} years.
+Using the \"--expiry=EXPIRY\" argument specific validity periods may be defined.
+It allows for providing a point in time for validity to end or a validity
+duration.
+
 \"sq key generate\" respects the reference time set by the top-level
 \"--time\" argument.  It sets the creation time of the key, any
 subkeys, and the binding signatures to the reference time.
 ",
+        KEY_VALIDITY_IN_YEARS,
+    ),
     after_help =
 "EXAMPLES:
 

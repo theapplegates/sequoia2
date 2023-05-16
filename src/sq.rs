@@ -63,6 +63,8 @@ use clap::FromArgMatches;
 mod sq_cli;
 use sq_cli::packet;
 use sq_cli::SqSubcommands;
+use sq_cli::SECONDS_IN_DAY;
+use sq_cli::SECONDS_IN_YEAR;
 
 mod man;
 mod commands;
@@ -79,11 +81,6 @@ fn open_or_stdin(f: Option<&str>)
         None => Ok(Box::new(Generic::new(io::stdin(), None))),
     }
 }
-
-const SECONDS_IN_DAY : u64 = 24 * 60 * 60;
-const SECONDS_IN_YEAR : u64 =
-    // Average number of days in a year.
-    (365.2422222 * SECONDS_IN_DAY as f64) as u64;
 
 fn parse_duration(expiry: &str) -> Result<Duration> {
     let mut expiry = expiry.chars().peekable();

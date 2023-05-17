@@ -2,6 +2,8 @@ use anyhow::Context as _;
 use std::collections::HashMap;
 use std::io;
 
+use terminal_size::terminal_size;
+
 use sequoia_net::pks;
 use sequoia_openpgp as openpgp;
 use openpgp::types::SymmetricAlgorithm;
@@ -147,8 +149,11 @@ impl<'a, 'certdb> Helper<'a, 'certdb> {
             session_keys,
             dump_session_key,
             dumper: if dump {
-                let width = term_size::dimensions_stdout().map(|(w, _)| w)
-                    .unwrap_or(80);
+                let width = if let Some((width, _)) = terminal_size() {
+                    width.0.into()
+                } else {
+                    80
+                };
                 Some(PacketDumper::new(width, false))
             } else {
                 None

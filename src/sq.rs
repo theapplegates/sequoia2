@@ -20,6 +20,8 @@ use chrono::{DateTime, offset::Utc};
 use itertools::Itertools;
 use once_cell::unsync::OnceCell;
 
+use terminal_size::terminal_size;
+
 use buffered_reader::{BufferedReader, Dup, File, Generic, Limitor};
 use sequoia_openpgp as openpgp;
 
@@ -319,7 +321,7 @@ fn help_warning(arg: &str) {
 ///
 /// Detecting non-interactive use is done using a heuristic.
 fn emit_unstable_cli_warning() {
-    if term_size::dimensions_stdout().is_some() {
+    if terminal_size().is_some() {
         // stdout is connected to a terminal, assume interactive use.
         return;
     }
@@ -1438,7 +1440,11 @@ fn main() -> Result<()> {
                 )?;
 
                 let session_key = command.session_key;
-                let width = term_size::dimensions_stdout().map(|(w, _)| w);
+                let width = if let Some((width, _)) = terminal_size() {
+                    Some(width.0.into())
+                } else {
+                    None
+                };
                 commands::dump(&mut input, &mut output,
                                command.mpis, command.hex,
                                session_key.as_ref(), width)?;

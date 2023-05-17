@@ -125,6 +125,20 @@ codespell:
   script:
     - codespell --summary -L "crate,ede,iff,mut,nd,te,uint,KeyServer,keyserver,Keyserver,keyservers,Keyservers,keypair,keypairs,KeyPair,fpr,dedup,deriver" -S "*.bin,*.gpg,*.pgp,./.git,*/target,Cargo.lock"
 
+deny:
+  tags:
+    - linux
+  stage: test
+  interruptible: true
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable:latest
+
+  before_script:
+    - *before_script_start
+    - cargo install --locked cargo-deny
+    - *before_script_end
+  script:
+    - cargo deny check
+
 rust-stable:
   tags:
     - linux

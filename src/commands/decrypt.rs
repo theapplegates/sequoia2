@@ -149,11 +149,9 @@ impl<'a, 'certdb> Helper<'a, 'certdb> {
             session_keys,
             dump_session_key,
             dumper: if dump {
-                let width = if let Some((width, _)) = terminal_size() {
-                    width.0.into()
-                } else {
-                    80
-                };
+                let width = terminal_size()
+                    .map(|(width, _height)| width.0.into())
+                    .unwrap_or(80);
                 Some(PacketDumper::new(width, false))
             } else {
                 None

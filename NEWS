@@ -2,6 +2,11 @@
 #+TITLE: sequoia-sq NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 0.30.1
+ * Notable changes
+   - The `crypto-botan` feature now selects Botan's v3 interface.  Use
+     the new `crypto-botan2` feature to continue using Botan's v2
+     interface.
 * Changes in 0.30
  * New functionality
   - `sq key adopt` now honors `--time`.

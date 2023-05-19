@@ -7,6 +7,11 @@
    - The `crypto-botan` feature now selects Botan's v3 interface.  Use
      the new `crypto-botan2` feature to continue using Botan's v2
      interface.
+ * Notable fixes
+   - Several parser bugs were fixed in sequoia-openpgp 1.16.0 and
+     buffered-reader 1.2.0.  These are all low-severity as Rust
+     correctly detects the out of bounds access and panics.  Update
+     Cargo.lock to make sure we use these versions.
 * Changes in 0.30
  * New functionality
   - `sq key adopt` now honors `--time`.

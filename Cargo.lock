@@ -2923,7 +2923,7 @@ dependencies = [
  "generic-array",
  "getrandom 0.2.9",
  "idea",
- "idna 0.2.3",
+ "idna 0.3.0",
  "lalrpop",
  "lalrpop-util",
  "lazy_static",
@@ -3000,6 +3000,7 @@ dependencies = [
  "subplot-build",
  "subplotlib",
  "tempfile",
+ "termcolor",
  "terminal_size",
  "tokio",
 ]

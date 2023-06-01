@@ -4,6 +4,7 @@ use std::{
     fs::File,
     io,
     path::PathBuf,
+    process::exit,
 };
 use std::ops::Deref;
 use anyhow::Context;
@@ -31,9 +32,12 @@ use crate::{
     Config,
     Model,
     output::KeyringListItem,
+    print_error_chain,
 };
 
 use crate::sq_cli::keyring;
+
+mod linter;
 
 pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
     use crate::sq_cli::keyring::Subcommands::*;
@@ -190,6 +194,15 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
                         + "-");
             split(&mut input, &prefix, c.binary)
         },
+        Linter(l) => {
+            match linter::linter(config, l) {
+                Ok(()) => Ok(()),
+                Err(e) => {
+                    print_error_chain(&e);
+                    exit(1);
+                },
+            }
+        }
     }
 }
 

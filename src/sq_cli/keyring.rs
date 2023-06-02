@@ -373,8 +373,6 @@ EXAMPLES:
 "
 )]
 pub struct LinterCommand {
-    // (progn (make-local-variable 'fill-column) (setq fill-column 70))
-
     /// Quiet; does not output any diagnostics.
     #[arg(short, long)]
     pub quiet: bool,

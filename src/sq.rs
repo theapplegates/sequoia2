@@ -8,6 +8,7 @@
 
 use anyhow::Context as _;
 use sq_cli::types::FileOrStdin;
+use is_terminal::IsTerminal;
 
 use std::borrow::Borrow;
 use std::borrow::Cow;
@@ -190,32 +191,34 @@ fn decrypt_key<R>(key: Key<key::SecretParts, R>, passwords: &mut Vec<String>)
                 }
             }
 
-            let mut first = true;
-            loop {
-                // Prompt the user.
-                match rpassword::prompt_password(&format!(
-                    "{}Enter password to unlock {} (blank to skip): ",
-                    if first { "" } else { "Invalid password. " },
-                    key.keyid().to_hex()
-                )) {
-                    Ok(p) => {
-                        first = false;
-                        if p.is_empty() {
-                            // Give up.
+            if std::io::stdin().is_terminal() {
+                let mut first = true;
+                loop {
+                    // Prompt the user.
+                    match rpassword::prompt_password(&format!(
+                        "{}Enter password to unlock {} (blank to skip): ",
+                        if first { "" } else { "Invalid password. " },
+                        key.keyid().to_hex()
+                    )) {
+                        Ok(p) => {
+                            first = false;
+                            if p.is_empty() {
+                                // Give up.
+                                break;
+                            }
+
+                            if let Ok(key) = key
+                                .clone()
+                                .decrypt_secret(&Password::from(&p[..]))
+                            {
+                                passwords.push(p);
+                                return Ok(key);
+                            }
+                        }
+                        Err(err) => {
+                            eprintln!("While reading password: {}", err);
                             break;
                         }
-
-                        if let Ok(key) = key
-                            .clone()
-                            .decrypt_secret(&Password::from(&p[..]))
-                        {
-                            passwords.push(p);
-                            return Ok(key);
-                        }
-                    }
-                    Err(err) => {
-                        eprintln!("While reading password: {}", err);
-                        break;
                     }
                 }
             }

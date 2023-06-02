@@ -2984,6 +2984,7 @@ dependencies = [
  "dirs 5.0.1",
  "dot-writer",
  "fehler",
+ "is-terminal",
  "itertools",
  "once_cell",
  "predicates",

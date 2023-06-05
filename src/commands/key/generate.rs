@@ -3,7 +3,6 @@ use chrono::Utc;
 
 use openpgp::armor::Kind;
 use openpgp::armor::Writer;
-use openpgp::cert::prelude::*;
 use openpgp::cert::CertBuilder;
 use openpgp::serialize::Serialize;
 use openpgp::types::KeyFlags;
@@ -40,18 +39,9 @@ pub fn generate(
     );
 
     // Cipher Suite
-    use sq_cli::key::CipherSuite::*;
-    match command.cipher_suite {
-        Rsa3k => {
-            builder = builder.set_cipher_suite(CipherSuite::RSA3k);
-        }
-        Rsa4k => {
-            builder = builder.set_cipher_suite(CipherSuite::RSA4k);
-        }
-        Cv25519 => {
-            builder = builder.set_cipher_suite(CipherSuite::Cv25519);
-        }
-    }
+    builder = builder.set_cipher_suite(
+        command.cipher_suite.as_ciphersuite()
+    );
 
     // Signing Capability
     match (command.can_sign, command.cannot_sign) {

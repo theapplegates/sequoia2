@@ -132,6 +132,7 @@ PEP_CERT_STORE.  The pEp Engine's default certificate store is at \
     #[clap(
         long,
         value_name = "PATH",
+        global = true,
         help = "Specifies the location of a keyring to use",
         long_help = "\
 Specifies the location of a keyring to use.  Keyrings are used in \

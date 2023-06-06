@@ -448,13 +448,6 @@ $ sq key adopt --keyring juliet-old.pgp --key 0123456789ABCDEF -- juliet-new.pgp
 )]
 pub struct AdoptCommand {
     #[clap(
-        short = 'r',
-        long = "keyring",
-        value_name = "KEY-RING",
-        help = "Supplies keys for use in --key.",
-    )]
-    pub keyring: Vec<String>,
-    #[clap(
         short = 'k',
         long = "key",
         value_name = "KEY",

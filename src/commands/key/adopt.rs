@@ -55,11 +55,11 @@ pub fn adopt(config: Config, command: sq_cli::key::AdoptCommand) -> Result<()> {
     };
 
     // Find the corresponding keys.
-    for keyring in command.keyring {
+    for keyring in config.keyrings.iter() {
         for cert in CertParser::from_file(&keyring)
-            .context(format!("Parsing: {}", &keyring))?
+            .context(format!("Parsing: {}", &keyring.display()))?
         {
-            let cert = cert.context(format!("Parsing {}", keyring))?;
+            let cert = cert.context(format!("Parsing {}", keyring.display()))?;
 
             let vc = match cert.with_policy(adoptee_policy, None) {
                 Ok(vc) => vc,
@@ -67,7 +67,7 @@ pub fn adopt(config: Config, command: sq_cli::key::AdoptCommand) -> Result<()> {
                     eprintln!(
                         "Ignoring {} from '{}': {}",
                         cert.keyid().to_hex(),
-                        keyring,
+                        keyring.display(),
                         err
                     );
                     continue;

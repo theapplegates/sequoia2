@@ -109,7 +109,7 @@ fn build_man_pages() -> Result<()> {
     man.render(&mut buffer)?;
 
     let filename = out_dir.join("sq.1");
-    println!("cargo:warning=writing man page to {}", filename.display());
+    // println!("cargo:warning=writing man page to {}", filename.display());
     std::fs::write(filename, buffer)?;
 
     fn doit(out_dir: &Path, prefix: &str, command: &clap::Command) -> Result<()> {
@@ -118,7 +118,7 @@ fn build_man_pages() -> Result<()> {
         man.render(&mut buffer)?;
 
         let filename = out_dir.join(format!("{}-{}.1", prefix, command.get_name()));
-        println!("cargo:warning=writing man page to {}", filename.display());
+        // println!("cargo:warning=writing man page to {}", filename.display());
         std::fs::write(filename, buffer)?;
 
         for sc in command.get_subcommands() {

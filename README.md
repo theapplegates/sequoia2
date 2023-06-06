@@ -19,3 +19,20 @@ These are collected as the [sq help][] page, for your convenience.
 [Sequoia-PGP]: https://sequoia-pgp.org/
 [sq user guide]: https://sequoia-pgp.gitlab.io/sq-user-guide/
 [sq help]: https://docs.sequoia-pgp.org/sq/index.html
+
+## Building
+
+This crate can be built using the standard `cargo` toolchain:
+
+```sh
+cargo build
+```
+
+The above creates the `sq` executable and its shell completions.
+
+To create the man pages for `sq` in a directory (here `manpages/`) use the
+built executable:
+
+```sh
+SQ_MAN=manpages cargo run
+```

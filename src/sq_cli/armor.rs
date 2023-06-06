@@ -3,7 +3,6 @@ use clap::Parser;
 use crate::sq_cli::types::{ArmorKind, IoArgs};
 
 // TODO?: Option<_> conflicts with default value
-// TODO: Use PathBuf as input type for more type safety? Investigate conversion
 // TODO: use indoc to transparently (de-)indent static strings
 #[derive(Parser, Debug)]
 #[clap(

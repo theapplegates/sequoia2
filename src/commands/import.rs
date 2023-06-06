@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::path::PathBuf;
 
 use sequoia_openpgp as openpgp;
 use openpgp::{
@@ -22,7 +23,7 @@ pub fn dispatch<'store>(mut config: Config<'store>, cmd: import::Command)
     -> Result<()>
 {
     let inputs = if cmd.input.is_empty() {
-        vec![ "-".to_string() ]
+        vec![ PathBuf::from("-") ]
     } else {
         cmd.input
     };
@@ -32,7 +33,7 @@ pub fn dispatch<'store>(mut config: Config<'store>, cmd: import::Command)
     let inner = || -> Result<()> {
         for input in inputs.into_iter() {
             let input = open_or_stdin(
-                if input == "-" { None } else { Some(&input) })?;
+                if input == PathBuf::from("-") { None } else { Some(&input) })?;
             let raw_certs = RawCertParser::from_reader(input)?;
 
             let cert_store = config.cert_store_mut_or_else()?;

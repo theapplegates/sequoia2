@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::Parser;
 
 use sequoia_openpgp as openpgp;
@@ -83,10 +85,7 @@ pub struct Command {
     )]
     // TODO: Should at least one sender_file be required? Verification does not make sense
     // without one, does it?
-    // TODO Use PathBuf instead of String. Path representation is platform dependent, so Rust's
-    // utf-8 Strings are not quite appropriate.
-    // TODO: And adapt load_certs in sq.rs
-    pub sender_file: Vec<String>,
+    pub sender_file: Vec<PathBuf>,
     #[clap(
         long = "signer-cert",
         value_name = "FINGERPRINT|KEYID",

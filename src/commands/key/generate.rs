@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use chrono::DateTime;
 use chrono::Utc;
 
@@ -111,33 +113,30 @@ pub fn generate(
         }
     }
 
+    if command.export.is_none() {
+        return Err(anyhow::anyhow!(
+            "Saving generated key to the store isn't implemented yet."
+        ));
+    }
+
     // Generate the key
     let (cert, rev) = builder.generate()?;
 
     // Export
-    if command.export.is_some() {
-        let (key_path, rev_path) =
-            match (command.export.as_deref(), command.rev_cert.as_deref()) {
-                (Some("-"), Some("-")) => ("-".to_string(), "-".to_string()),
-                (Some("-"), Some(ref rp)) => ("-".to_string(), rp.to_string()),
-                (Some("-"), None) => {
-                    return Err(anyhow::anyhow!(
-                        "Missing arguments: --rev-cert is mandatory \
-                                     if --export is '-'."
-                    ))
-                }
-                (Some(ref kp), None) => (kp.to_string(), format!("{}.rev", kp)),
-                (Some(ref kp), Some("-")) => (kp.to_string(), "-".to_string()),
-                (Some(ref kp), Some(ref rp)) => {
-                    (kp.to_string(), rp.to_string())
-                }
-                _ => {
-                    return Err(anyhow::anyhow!(
-                        "Conflicting arguments --rev-cert and \
-                                     --export"
-                    ))
-                }
-            };
+    if let Some(key_path) = command.export.as_ref() {
+        if &format!("{}", key_path.display()) == "-"
+            && command.rev_cert.is_none()
+        {
+            return Err(anyhow::anyhow!(
+                "Missing arguments: --rev-cert is mandatory if --export is '-'."
+            ))
+        }
+
+        let rev_path = if command.rev_cert.is_some() {
+            command.rev_cert
+        } else {
+            Some(PathBuf::from(format!("{}.rev", key_path.display())))
+        };
 
         let headers = cert.armor_headers();
 
@@ -148,7 +147,7 @@ pub fn generate(
                 .map(|value| ("Comment", value.as_str()))
                 .collect();
 
-            let w = config.create_or_stdout_safe(Some(&key_path))?;
+            let w = config.create_or_stdout_safe(Some(key_path))?;
             let mut w = Writer::with_headers(w, Kind::SecretKey, headers)?;
             cert.as_tsk().serialize(&mut w)?;
             w.finalize()?;
@@ -162,16 +161,11 @@ pub fn generate(
                 .collect();
             headers.insert(0, ("Comment", "Revocation certificate for"));
 
-            let w = config.create_or_stdout_safe(Some(&rev_path))?;
+            let w = config.create_or_stdout_safe(rev_path.as_deref())?;
             let mut w = Writer::with_headers(w, Kind::Signature, headers)?;
             Packet::Signature(rev).serialize(&mut w)?;
             w.finalize()?;
         }
-    } else {
-        return Err(anyhow::anyhow!(
-            "Saving generated key to the store isn't implemented \
-                         yet."
-        ));
     }
 
     Ok(())

@@ -1,4 +1,5 @@
 use anyhow::Context as _;
+use std::path::Path;
 use std::time::SystemTime;
 
 use sequoia_openpgp as openpgp;
@@ -145,7 +146,7 @@ pub fn revoke_userid(config: Config, c: revoke::UseridCommand) -> Result<()> {
 }
 
 /// Parse the cert from input and ensure it is only one cert.
-fn read_cert(input: Option<&str>) -> Result<Cert> {
+fn read_cert(input: Option<&Path>) -> Result<Cert> {
     let input = open_or_stdin(input)?;
 
     let cert = CertParser::from_reader(input)?.collect::<Vec<_>>();
@@ -159,7 +160,7 @@ fn read_cert(input: Option<&str>) -> Result<Cert> {
 }
 
 /// Parse the secret key and ensure it is at most one.
-fn read_secret(skf: Option<&str>) -> Result<Option<Cert>> {
+fn read_secret(skf: Option<&Path>) -> Result<Option<Cert>> {
     let secret = load_certs(skf.into_iter())?;
     if secret.len() > 1 {
         Err(anyhow::anyhow!("Multiple secret keys provided."))?;

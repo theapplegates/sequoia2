@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -16,5 +18,5 @@ $ sq import < juliet.pgp
 )]
 pub struct Command {
     #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]
-    pub input: Vec<String>,
+    pub input: Vec<PathBuf>,
 }

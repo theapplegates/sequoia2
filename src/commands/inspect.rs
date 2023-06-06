@@ -1,6 +1,5 @@
 use std::convert::TryFrom;
 use std::io::{self, Read};
-use std::path::Path;
 use std::time::{Duration, SystemTime};
 
 use anyhow::Context;
@@ -40,7 +39,11 @@ pub fn inspect(mut config: Config, c: inspect::Command)
     let print_certifications = c.certifications;
 
     let input = c.input.as_deref();
-    let input_name = input.unwrap_or("-");
+    let input_name = if let Some(input) = c.input.as_ref() {
+        format!("{}", input.display())
+    } else {
+        "-".to_string()
+    };
     write!(output, "{}: ", input_name)?;
 
     let mut type_called = false;  // Did we print the type yet?
@@ -53,11 +56,12 @@ pub fn inspect(mut config: Config, c: inspect::Command)
 
     let mut bytes: Vec<u8> = Vec::new();
     let mut ppr = if c.cert.is_empty() {
-        if let Some(input) = input.as_ref() {
-            if ! Path::new(input).exists() && input.parse::<KeyHandle>().is_ok() {
+        if let Some(input) = input {
+            if ! input.exists() &&
+                format!("{}", input.display()).parse::<KeyHandle>().is_ok() {
                 eprintln!("The file {} does not exist, \
                            did you mean \"sq inspect --cert {}\"?",
-                          input, input);
+                          input.display(), input.display());
             }
         }
 

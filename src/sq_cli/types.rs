@@ -1,5 +1,6 @@
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 use std::time::SystemTime;
@@ -22,14 +23,14 @@ use crate::sq_cli::SECONDS_IN_YEAR;
 #[derive(Debug, Args)]
 pub struct IoArgs {
     #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]
-    pub input: Option<String>,
+    pub input: Option<PathBuf>,
     #[clap(
         short,
         long,
         value_name = "FILE",
         help = "Writes to FILE or stdout if omitted"
     )]
-    pub output: Option<String>,
+    pub output: Option<PathBuf>,
 }
 
 #[derive(ValueEnum, Debug, Clone)]

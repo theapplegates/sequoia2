@@ -1,6 +1,7 @@
 use anyhow::Context as _;
 use std::fs;
 use std::io;
+use std::path::Path;
 use std::path::PathBuf;
 use std::time::SystemTime;
 use tempfile::NamedTempFile;
@@ -27,7 +28,7 @@ pub struct SignOpts<'a, 'certdb> {
     pub config: Config<'certdb>,
     pub private_key_store: Option<&'a str>,
     pub input: &'a mut (dyn io::Read + Sync + Send),
-    pub output_path: Option<&'a str>,
+    pub output_path: Option<&'a Path>,
     pub secrets: Vec<openpgp::Cert>,
     pub detached: bool,
     pub binary: bool,

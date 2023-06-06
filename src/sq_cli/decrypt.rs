@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::Parser;
 
 use crate::sq_cli::types::{IoArgs, SessionKey};
@@ -62,13 +64,13 @@ pub struct Command {
         value_name = "CERT_FILE",
         help = "Verifies signatures using the certificates in CERT_FILE",
     )]
-    pub sender_cert_file: Vec<String>,
+    pub sender_cert_file: Vec<PathBuf>,
     #[clap(
         long = "recipient-file",
         value_name = "KEY_FILE",
         help = "Decrypts the message using the key in KEY_FILE",
     )]
-    pub secret_key_file: Vec<String>,
+    pub secret_key_file: Vec<PathBuf>,
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",

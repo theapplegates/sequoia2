@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::Parser;
 
 use crate::sq_cli::types::IoArgs;
@@ -91,13 +93,13 @@ pub struct Command {
         ],
         help = "Merges signatures from the input and SIGNED-MESSAGE",
     )]
-    pub merge: Option<String>,
+    pub merge: Option<PathBuf>,
     #[clap(
         long = "signer-file",
         value_name = "KEY_FILE",
         help = "Signs the message using the key in KEY_FILE",
     )]
-    pub secret_key_file: Vec<String>,
+    pub secret_key_file: Vec<PathBuf>,
     #[clap(
         long,
         value_names = &["NAME", "VALUE"],

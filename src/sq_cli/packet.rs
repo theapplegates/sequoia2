@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{Args, Parser, Subcommand};
 
 use crate::sq_cli::types::{ArmorKind, IoArgs, SessionKey};
@@ -113,7 +115,7 @@ pub struct DecryptCommand {
         value_name = "KEY_FILE",
         help = "Decrypts the message using the key in KEY_FILE",
     )]
-    pub secret_key_file: Vec<String>,
+    pub secret_key_file: Vec<PathBuf>,
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",
@@ -153,7 +155,7 @@ $ sq packet split juliet.pgp
 )]
 pub struct SplitCommand {
     #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]
-    pub input: Option<String>,
+    pub input: Option<PathBuf>,
     #[clap(
         short = 'p',
         long = "prefix",
@@ -187,14 +189,14 @@ $ sq packet join juliet.pgp-[0-3]*
 )]
 pub struct JoinCommand {
     #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]
-    pub input: Vec<String>,
+    pub input: Vec<PathBuf>,
     #[clap(
         short,
         long,
         value_name = "FILE",
         help = "Writes to FILE or stdout if omitted"
     )]
-    pub output: Option<String>,
+    pub output: Option<PathBuf>,
     #[clap(
         long = "label",
         value_name = "LABEL",

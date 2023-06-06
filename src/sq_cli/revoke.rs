@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::Parser;
 use clap::{ValueEnum, Args, Subcommand};
 
@@ -89,7 +91,7 @@ pub struct CertificateCommand {
 "Reads the certificate to revoke from FILE or stdin, if omitted.  It is \
 an error for the file to contain more than one certificate.",
     )]
-    pub input: Option<String>,
+    pub input: Option<PathBuf>,
     #[clap(
         long = "revocation-file",
         value_name = "KEY_FILE",
@@ -100,7 +102,7 @@ different from the certificate, this creates a third-party revocation.  If \
 this option is not provided, and the certificate includes secret key material, \
 then that key is used to sign the revocation certificate.",
     )]
-    pub secret_key_file: Option<String>,
+    pub secret_key_file: Option<PathBuf>,
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",
@@ -234,7 +236,7 @@ pub struct SubkeyCommand {
 if omitted.  It is an error for the file to contain more than one \
 certificate."
     )]
-    pub input: Option<String>,
+    pub input: Option<PathBuf>,
     #[clap(
         long = "revocation-file",
         value_name = "KEY_FILE",
@@ -246,7 +248,7 @@ is different from the certificate, this creates a third-party revocation.  \
 If this option is not provided, and the certificate includes secret key \
 material, then that key is used to sign the revocation certificate.",
     )]
-    pub secret_key_file: Option<String>,
+    pub secret_key_file: Option<PathBuf>,
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",
@@ -365,7 +367,7 @@ pub struct UseridCommand {
 if omitted.  It is an error for the file to contain more than one \
 certificate."
     )]
-    pub input: Option<String>,
+    pub input: Option<PathBuf>,
     #[clap(
         long = "revocation-file",
         value_name = "KEY_FILE",
@@ -376,7 +378,7 @@ different from the certificate, this creates a third-party revocation.  If \
 this option is not provided, and the certificate includes secret key material, \
 then that key is used to sign the revocation certificate.",
     )]
-    pub secret_key_file: Option<String>,
+    pub secret_key_file: Option<PathBuf>,
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",

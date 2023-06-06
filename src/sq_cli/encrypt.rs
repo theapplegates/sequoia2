@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::ArgAction::Count;
 use clap::{ValueEnum, Parser};
 
@@ -71,14 +73,14 @@ pub struct Command {
         value_name = "CERT_RING_FILE",
         help = "Encrypts to all certificates in CERT_RING_FILE",
     )]
-    pub recipients_file: Vec<String>,
+    pub recipients_file: Vec<PathBuf>,
 
     #[clap(
         long = "signer-file",
         value_name = "KEY_FILE",
         help = "Signs the message using the key in KEY_FILE",
     )]
-    pub signer_key_file: Vec<String>,
+    pub signer_key_file: Vec<PathBuf>,
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",

@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser, Debug)]
@@ -75,14 +77,14 @@ $ sq keyring filter --domain example.org --prune-certs certs.pgp
 )]
 pub struct FilterCommand {
     #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]
-    pub input: Vec<String>,
+    pub input: Vec<PathBuf>,
     #[clap(
         short,
         long,
         value_name = "FILE",
         help = "Writes to FILE or stdout if omitted"
     )]
-    pub output: Option<String>,
+    pub output: Option<PathBuf>,
     #[clap(
         long = "userid",
         value_name = "USERID",
@@ -173,14 +175,14 @@ $ sq keyring join juliet.pgp romeo.pgp alice.pgp
 )]
 pub struct JoinCommand {
     #[clap(value_name = "FILE", help = "Sets the input files to use")]
-    pub input: Vec<String>,
+    pub input: Vec<PathBuf>,
     #[clap(
         short,
         long,
         value_name = "FILE",
         help = "Sets the output file to use"
     )]
-    pub output: Option<String>,
+    pub output: Option<PathBuf>,
     #[clap(
         short = 'B',
         long = "binary",
@@ -212,14 +214,14 @@ pub struct MergeCommand {
         value_name = "FILE",
         help = "Reads from FILE",
     )]
-    pub input: Vec<String>,
+    pub input: Vec<PathBuf>,
     #[clap(
         short,
         long,
         value_name = "FILE",
         help = "Writes to FILE or stdout if omitted"
     )]
-    pub output: Option<String>,
+    pub output: Option<PathBuf>,
     #[clap(
         short = 'B',
         long = "binary",
@@ -252,7 +254,7 @@ pub struct ListCommand {
         value_name = "FILE",
         help = "Reads from FILE or stdin if omitted",
     )]
-    pub input: Option<String>,
+    pub input: Option<PathBuf>,
     #[clap(
         long = "all-userids",
         help = "Lists all user ids",
@@ -289,7 +291,7 @@ pub struct SplitCommand {
         value_name = "FILE",
         help = "Reads from FILE or stdin if omitted",
     )]
-    pub input: Option<String>,
+    pub input: Option<PathBuf>,
     #[clap(
         short = 'p',
         long = "prefix",

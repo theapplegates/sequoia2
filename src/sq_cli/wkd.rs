@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{Args, Parser, Subcommand};
 
 use crate::sq_cli::types::NetworkPolicy;
@@ -92,7 +94,7 @@ pub struct GetCommand {
         value_name = "FILE",
         help = "Writes to FILE instead of importing into the certificate store"
     )]
-    pub output: Option<String>,
+    pub output: Option<PathBuf>,
 }
 
 #[derive(Debug, Args)]
@@ -139,7 +141,7 @@ pub struct GenerateCommand {
         value_name = "CERT-RING",
         help = "Adds certificates from CERT-RING to the WKD",
     )]
-    pub input: Option<String>,
+    pub input: Option<PathBuf>,
     #[clap(
         short = 'd',
         long = "direct-method",

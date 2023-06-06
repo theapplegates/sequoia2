@@ -5,6 +5,7 @@ use std::{
     io,
     path::PathBuf,
 };
+use std::ops::Deref;
 use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
@@ -162,7 +163,7 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
                 config.create_or_stdout_pgp(c.output.as_deref(),
                                             c.binary,
                                             armor::Kind::PublicKey)?;
-            merge(c.input, &mut output)?;
+            merge(&c.input, &mut output)?;
             output.finalize()
         },
         List(c) => {
@@ -190,16 +191,16 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
 }
 
 /// Joins certificates and keyrings into a keyring, applying a filter.
-fn filter<F>(inputs: &[String], output: &mut dyn io::Write,
+fn filter<F>(inputs: &[PathBuf], output: &mut dyn io::Write,
              mut filter: F, to_certificate: bool)
              -> Result<()>
     where F: FnMut(Cert) -> Option<Cert>,
 {
     if !inputs.is_empty() {
         for name in inputs {
-            for cert in CertParser::from_file(name)? {
+            for cert in CertParser::from_file(name.deref())? {
                 let cert = cert.context(
-                    format!("Malformed certificate in keyring {:?}", name))?;
+                    format!("Malformed certificate in keyring {:?}", name.display()))?;
                 if let Some(cert) = filter(cert) {
                     if to_certificate {
                         cert.serialize(output)?;
@@ -318,7 +319,7 @@ fn split(input: &mut (dyn io::Read + Sync + Send), prefix: &str, binary: bool)
 }
 
 /// Merge multiple keyrings.
-fn merge(inputs: Vec<String>, output: &mut dyn io::Write)
+fn merge(inputs: &[PathBuf], output: &mut dyn io::Write)
              -> Result<()>
 {
     let mut certs: HashMap<Fingerprint, Option<Cert>> = HashMap::new();

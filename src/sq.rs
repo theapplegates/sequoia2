@@ -71,19 +71,19 @@ pub mod output;
 pub use output::{wkd::WkdUrlVariant, Model, OutputFormat, OutputVersion};
 
 
-fn open_or_stdin(f: Option<&str>)
+fn open_or_stdin(f: Option<&Path>)
                  -> Result<Box<dyn BufferedReader<()>>> {
     match f {
         Some(f) => Ok(Box::new(
             File::open(f)
-                .with_context(|| format!("Failed to open {}", f))?)),
+                .with_context(|| format!("Failed to open {}", f.display()))?)),
         None => Ok(Box::new(Generic::new(io::stdin(), None))),
     }
 }
 
 /// Loads one TSK from every given file.
 fn load_keys<'a, I>(files: I) -> openpgp::Result<Vec<Cert>>
-    where I: Iterator<Item=&'a str>
+    where I: Iterator<Item=&'a Path>
 {
     let mut certs = vec![];
     for f in files {
@@ -100,7 +100,7 @@ fn load_keys<'a, I>(files: I) -> openpgp::Result<Vec<Cert>>
 
 /// Loads one or more certs from every given file.
 fn load_certs<'a, I>(files: I) -> openpgp::Result<Vec<Cert>>
-    where I: Iterator<Item=&'a str>
+    where I: Iterator<Item=&'a Path>
 {
     let mut certs = vec![];
     for f in files {
@@ -302,7 +302,7 @@ impl<'store> Config<'store> {
     ///
     /// This is suitable for any kind of OpenPGP data, or decrypted or
     /// authenticated payloads.
-    fn create_or_stdout_safe(&self, f: Option<&str>)
+    fn create_or_stdout_safe(&self, f: Option<&Path>)
                              -> Result<Box<dyn io::Write + Sync + Send>> {
         Config::create_or_stdout(f, self.force)
     }
@@ -312,7 +312,7 @@ impl<'store> Config<'store> {
     ///
     /// If our heuristic detects non-interactive use, we will emit a
     /// warning.
-    fn create_or_stdout_unsafe(&mut self, f: Option<&str>)
+    fn create_or_stdout_unsafe(&mut self, f: Option<&Path>)
                                -> Result<Box<dyn io::Write + Sync + Send>> {
         if ! self.unstable_cli_warning_emitted {
             emit_unstable_cli_warning();
@@ -323,7 +323,7 @@ impl<'store> Config<'store> {
 
     /// Opens the file (or stdout) for writing data that is safe for
     /// non-interactive use because it is an OpenPGP data stream.
-    fn create_or_stdout_pgp<'a>(&self, f: Option<&str>,
+    fn create_or_stdout_pgp<'a>(&self, f: Option<&Path>,
                                 binary: bool, kind: armor::Kind)
                                 -> Result<Message<'a>> {
         let sink = self.create_or_stdout_safe(f)?;
@@ -337,15 +337,14 @@ impl<'store> Config<'store> {
     /// Helper function, do not use directly. Instead, use create_or_stdout_safe
     /// or create_or_stdout_unsafe.
     fn create_or_stdout(
-        f: Option<&str>,
+        f: Option<&Path>,
         force: bool,
     ) -> Result<Box<dyn io::Write + Sync + Send>> {
         match f {
             None => Ok(Box::new(io::stdout())),
-            Some(p) if p == "-" => Ok(Box::new(io::stdout())),
+            Some(p) if p == Path::new("-") => Ok(Box::new(io::stdout())),
             Some(f) => {
-                let p = Path::new(f);
-                if !p.exists() || force {
+                if !f.exists() || force {
                     Ok(Box::new(
                         OpenOptions::new()
                             .write(true)
@@ -358,7 +357,7 @@ impl<'store> Config<'store> {
                     Err(anyhow::anyhow!(format!(
                         "File {:?} exists, use \"sq --force ...\" to \
                                 overwrite",
-                        p
+                        f.display()
                     )))
                 }
             }

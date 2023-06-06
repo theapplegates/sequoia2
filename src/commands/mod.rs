@@ -4,6 +4,7 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{self, Write};
+use std::path::Path;
 use std::time::SystemTime;
 
 use sequoia_net::pks;
@@ -962,7 +963,7 @@ pub fn join(config: Config, c: packet::JoinCommand) -> Result<()> {
     /// OUTPUT.
     fn copy(config: &Config,
             mut ppr: PacketParserResult,
-            output: Option<&str>,
+            output: Option<&Path>,
             sink: &mut Option<Message>)
             -> Result<()> {
         while let PacketParserResult::Some(pp) = ppr {

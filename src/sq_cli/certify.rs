@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::Parser;
 
 use crate::sq_cli::THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION;
@@ -52,7 +54,7 @@ pub struct Command {
         value_name = "FILE",
         help = "Writes to FILE or stdout if omitted"
     )]
-    pub output: Option<String>,
+    pub output: Option<PathBuf>,
     #[clap(
         short = 'B',
         long,
@@ -184,7 +186,7 @@ pub struct Command {
         index = 1,
         help = "Creates the certification using CERTIFIER-KEY.",
     )]
-    pub certifier: String,
+    pub certifier: PathBuf,
     #[clap(
         value_name = "CERTIFICATE",
         required = true,

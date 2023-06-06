@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{Args, Parser, Subcommand};
 
 use crate::sq_cli::types::NetworkPolicy;
@@ -66,5 +68,5 @@ pub struct GetCommand {
         value_name = "FILE",
         help = "Writes to FILE instead of importing into the certificate store"
     )]
-    pub output: Option<String>,
+    pub output: Option<PathBuf>,
 }

@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{ValueEnum, ArgGroup, Args, Parser, Subcommand};
 
 use sequoia_openpgp::cert::CipherSuite as SqCipherSuite;
@@ -180,8 +182,7 @@ pub struct GenerateCommand {
         value_name = "OUTFILE",
         help = "Writes the key to OUTFILE",
     )]
-    // TODO this represents a filename, so it should be a Path
-    pub export: Option<String>,
+    pub export: Option<PathBuf>,
     #[clap(
         long = "rev-cert",
         value_name = "FILE or -",
@@ -192,8 +193,7 @@ pub struct GenerateCommand {
             mandatory if OUTFILE is \"-\". \
             [default: <OUTFILE>.rev]",
     )]
-    // TODO this represents a filename, so it should be a Path
-    pub rev_cert: Option<String>
+    pub rev_cert: Option<PathBuf>
 }
 
 #[derive(ValueEnum, Clone, Debug)]
@@ -472,14 +472,14 @@ pub struct AdoptCommand {
         value_name = "TARGET-KEY",
         help = "Adds keys to TARGET-KEY",
     )]
-    pub certificate: Option<String>,
+    pub certificate: Option<PathBuf>,
     #[clap(
         short,
         long,
         value_name = "FILE",
         help = "Writes to FILE or stdout if omitted"
     )]
-    pub output: Option<String>,
+    pub output: Option<PathBuf>,
     #[clap(
         short = 'B',
         long,
@@ -532,14 +532,14 @@ pub struct AttestCertificationsCommand {
         value_name = "KEY",
         help = "Changes attestations on KEY",
     )]
-    pub key: Option<String>,
+    pub key: Option<PathBuf>,
     #[clap(
         short,
         long,
         value_name = "FILE",
         help = "Writes to FILE or stdout if omitted"
     )]
-    pub output: Option<String>,
+    pub output: Option<PathBuf>,
     #[clap(
         short = 'B',
         long,

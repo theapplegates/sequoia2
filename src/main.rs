@@ -206,7 +206,13 @@ fn real_main() -> Result<()> {
     let time: SystemTime =
         c.time.clone().unwrap_or_else(|| Time::now()).into();
 
-    let mut policy = sequoia_policy_config::ConfiguredStandardPolicy::new();
+    let policy_as_of = c.policy_as_of.clone()
+        .map(|t| SystemTime::from(t)).unwrap_or_else(|| {
+            time.clone()
+        });
+
+    let mut policy
+        = sequoia_policy_config::ConfiguredStandardPolicy::at(policy_as_of);
     policy.parse_default_config()?;
     let mut policy = policy.build();
 
@@ -231,9 +237,10 @@ fn real_main() -> Result<()> {
         quiet: c.quiet,
         overwrite: c.overwrite,
         batch: c.batch,
-        policy: &policy,
         time,
         time_is_now,
+        policy_as_of,
+        policy: &policy,
         home: if let Some(p) = c.home.as_ref().and_then(|a| a.path()) {
             sequoia_directories::Home::new(p)?
         } else {

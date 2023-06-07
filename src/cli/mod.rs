@@ -382,10 +382,11 @@ store, and the results are merged together."
     )]
     // TODO is this the right type?
     pub known_notation: Vec<String>,
+
     #[clap(
         long = "time",
         value_name = "TIME",
-        help = "Set the reference time as ISO 8601 formatted timestamp",
+        help = "Set the reference time as an ISO 8601 formatted timestamp",
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
         long_help = "\
@@ -409,6 +410,34 @@ $ sq --time 20130721T0550+0200 verify msg.pgp
 ",
     )]
     pub time: Option<types::Time>,
+    #[clap(
+        long = "policy-as-of",
+        value_name = "TIME",
+        help = "Select the cryptographic policy as of the specified time",
+        global = true,
+        help_heading = GLOBAL_OPTIONS_HEADER,
+        long_help = "\
+Select the cryptographic policy as of the specified time, which is \
+expressed as an ISO 8601 formatted timestamp.  The policy determines \
+what cryptographic constructs are allowed.
+
+If you are working with a message that sq rejects, because it is \
+protected by cryptographic constructs that are now considered broken, \
+you can use this option to select a different cryptographic policy.  \
+If you are relying on the cryptography, e.g., you are verifying a \
+signature, then you should only do this if you are confident that the \
+message hasn't been tampered with.
+
+TIME is interpreted as an ISO 8601 timestamp.  To set the \
+policy time to January 1, 2007 at midnight UTC, you can do:
+
+$ sq --policy-as-of 20070101 verify msg.pgp
+
+Defaults to the reference time, which can be set using --time.
+",
+    )]
+    pub policy_as_of: Option<types::Time>,
+
     #[clap(
         long = "trust-root",
         value_name = "FINGERPRINT|KEYID",

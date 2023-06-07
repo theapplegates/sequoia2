@@ -8,6 +8,8 @@
      certificates.
    - `sq verify` now deletes the output file on failure.
    - `sq decrypt` now deletes the output file on failure.
+   - Add a global option, `--policy-as-of`, that selects the
+     cryptographic policy as of the specified time.
 
 * Changes in 0.39.0
 ** Notable changes

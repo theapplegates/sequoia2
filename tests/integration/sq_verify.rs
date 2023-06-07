@@ -6,6 +6,7 @@ use std::io;
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
 
+use super::common::artifact;
 use super::common::Sq;
 
 // Make sure verifying bad data fails, and removes the intermediate
@@ -69,6 +70,62 @@ fn sq_verify_bad() -> Result<()> {
     // Since we failed to verify the message, we should have deleted
     // the output file.
     assert!(! output2.exists());
+
+    Ok(())
+}
+
+// Make sure --policy-as-of works
+#[test]
+fn sq_verify_policy_as_of() -> Result<()> {
+    let sq = Sq::at_str("2024-11-01");
+
+    let cert = artifact("keys/only-sha1-pub.pgp");
+    let msg = artifact("messages/signed-by-only-sha1.pgp");
+
+    assert!(
+        sq.verify_maybe(
+            &[
+                "--signer-file", &cert.display().to_string(),
+            ],
+            &msg,
+            None)
+            .is_err());
+
+    // Setting the reference time is not enough, because the message's
+    // creation time would be in the future.
+    assert!(
+        sq.verify_maybe(
+            &[
+                "--time", "2022-01-01",
+                "--signer-file", &cert.display().to_string(),
+            ],
+            &msg,
+            None)
+            .is_err());
+
+    // But setting the policy time is.
+    assert!(
+        sq.verify_maybe(
+            &[
+                "--policy-as-of", "2022-01-01",
+                "--signer-file", &cert.display().to_string(),
+            ],
+            &msg,
+            None)
+            .is_ok());
+
+    // Make sure we can set both the reference time and the policy
+    // time.
+    assert!(
+        sq.verify_maybe(
+            &[
+                "--time", "2025-01-01",
+                "--policy-as-of", "2022-01-01",
+                "--signer-file", &cert.display().to_string(),
+            ],
+            &msg,
+            None)
+            .is_ok());
 
     Ok(())
 }

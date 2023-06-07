@@ -17,6 +17,7 @@ use assert_cmd::Command;
 
 use chrono::DateTime;
 use chrono::Duration;
+use chrono::TimeZone;
 use chrono::Utc;
 
 use openpgp::packet::Signature;
@@ -260,6 +261,19 @@ impl Drop for Sq {
 }
 
 impl Sq {
+    /// Creates a new Sq context in a new, emphemeral home directory.
+    /// The clock is set to the specified time.
+    pub fn at_str(t: &str) -> Self {
+        if let Ok(d) = chrono::NaiveDateTime::parse_from_str(t, "%Y-%m-%dT%H:%M:%S") {
+            return Self::at(Utc.from_utc_datetime(&d).into());
+        }
+        if let Ok(d) = chrono::NaiveDate::parse_from_str(t, "%Y-%m-%d") {
+            let pad_date_with = chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap();
+            return Self::at(Utc.from_utc_datetime(&d.and_time(pad_date_with)).into());
+        }
+        panic!("Invalid timestamp, must be YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS");
+    }
+
     /// Creates a new Sq context in a new, emphemeral home directory.
     /// The clock is set to the specified time.
     pub fn at(now: std::time::SystemTime) -> Self {

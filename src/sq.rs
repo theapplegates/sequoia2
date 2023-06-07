@@ -95,9 +95,10 @@ pub struct Sq<'store, 'rstore>
     /// Prevent any kind of interactive prompting.
     pub batch: bool,
 
-    pub policy: &'rstore P<'rstore>,
     pub time: SystemTime,
     pub time_is_now: bool,
+    pub policy: &'rstore P<'rstore>,
+    pub policy_as_of: SystemTime,
     pub home: sequoia_directories::Home,
     // --no-cert-store
     pub no_rw_cert_store: bool,

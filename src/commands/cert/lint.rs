@@ -197,12 +197,12 @@ pub fn lint(mut sq: Sq, args: Command) -> Result<()> {
 
     // Standard policy that unconditionally rejects SHA-1: this is
     // where we want to be.
-    let mut sp = StandardPolicy::new();
+    let mut sp = StandardPolicy::at(sq.policy_as_of);
     sp.reject_hash(HashAlgorithm::SHA1);
     let sp = &sp;
 
     // A standard policy that also accepts SHA-1.
-    let mut sp_sha1 = StandardPolicy::new();
+    let mut sp_sha1 = StandardPolicy::at(sq.policy_as_of);
     sp_sha1.accept_hash(HashAlgorithm::SHA1);
     let sp_sha1 = &sp_sha1;
 

@@ -27,7 +27,7 @@ fn sq_import() -> Result<()>
               "key", "generate",
               "--expiry", "never",
               "--userid", "<alice@example.org>",
-              "--export", &alice_pgp]);
+              "--output", &alice_pgp]);
     cmd.assert().success();
 
     let alice_bytes = std::fs::read(&alice_pgp)?;
@@ -37,7 +37,7 @@ fn sq_import() -> Result<()>
               "key", "generate",
               "--expiry", "never",
               "--userid", "<bob@example.org>",
-              "--export", bob_pgp]);
+              "--output", bob_pgp]);
     cmd.assert().success();
 
     let mut cmd = Command::cargo_bin("sq")?;
@@ -45,7 +45,7 @@ fn sq_import() -> Result<()>
               "key", "generate",
               "--expiry", "never",
               "--userid", "<carol@example.org>",
-              "--export", carol_pgp]);
+              "--output", carol_pgp]);
     cmd.assert().success();
 
     let files = &[ alice_pgp, bob_pgp, carol_pgp ];

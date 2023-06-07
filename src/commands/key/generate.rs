@@ -114,61 +114,49 @@ pub fn generate(
         }
     }
 
-    if command.export.is_none() {
+    if command.output.path().is_none() && command.rev_cert.is_none() {
         return Err(anyhow::anyhow!(
-            "Saving generated key to the store isn't implemented yet."
-        ));
+            "Missing arguments: --rev-cert is mandatory if --output is '-'."
+        ))
     }
 
     // Generate the key
     let (cert, rev) = builder.generate()?;
 
     // Export
-    if let Some(key_path) = command.export {
-        if &format!("{}", key_path.display()) == "-"
-            && command.rev_cert.is_none()
-        {
-            return Err(anyhow::anyhow!(
-                "Missing arguments: --rev-cert is mandatory if --export is '-'."
-            ))
-        }
+    let rev_path = if command.rev_cert.is_some() {
+        FileOrStdout::new(command.rev_cert)
+    } else {
+        FileOrStdout::from(PathBuf::from(format!("{}.rev", command.output)))
+    };
 
-        let key_path = FileOrStdout::from(key_path);
+    let headers = cert.armor_headers();
 
-        let rev_path = if command.rev_cert.is_some() {
-            FileOrStdout::new(command.rev_cert)
-        } else {
-            FileOrStdout::from(PathBuf::from(format!("{}.rev", key_path)))
-        };
+    // write out key
+    {
+        let headers: Vec<_> = headers
+            .iter()
+            .map(|value| ("Comment", value.as_str()))
+            .collect();
 
-        let headers = cert.armor_headers();
+        let w = command.output.create_safe(config.force)?;
+        let mut w = Writer::with_headers(w, Kind::SecretKey, headers)?;
+        cert.as_tsk().serialize(&mut w)?;
+        w.finalize()?;
+    }
 
-        // write out key
-        {
-            let headers: Vec<_> = headers
-                .iter()
-                .map(|value| ("Comment", value.as_str()))
-                .collect();
+    // write out rev cert
+    {
+        let mut headers: Vec<_> = headers
+            .iter()
+            .map(|value| ("Comment", value.as_str()))
+            .collect();
+        headers.insert(0, ("Comment", "Revocation certificate for"));
 
-            let w = key_path.create_safe(config.force)?;
-            let mut w = Writer::with_headers(w, Kind::SecretKey, headers)?;
-            cert.as_tsk().serialize(&mut w)?;
-            w.finalize()?;
-        }
-
-        // write out rev cert
-        {
-            let mut headers: Vec<_> = headers
-                .iter()
-                .map(|value| ("Comment", value.as_str()))
-                .collect();
-            headers.insert(0, ("Comment", "Revocation certificate for"));
-
-            let w = rev_path.create_safe(config.force)?;
-            let mut w = Writer::with_headers(w, Kind::Signature, headers)?;
-            Packet::Signature(rev).serialize(&mut w)?;
-            w.finalize()?;
-        }
+        let w = rev_path.create_safe(config.force)?;
+        let mut w = Writer::with_headers(w, Kind::Signature, headers)?;
+        Packet::Signature(rev).serialize(&mut w)?;
+        w.finalize()?;
     }
 
     Ok(())

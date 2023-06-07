@@ -25,7 +25,7 @@ mod integration {
                   "key", "generate",
                   "--expiry", "never",
                   "--userid", "<alice@example.org>",
-                  "--export", &key_pgp]);
+                  "--output", &key_pgp]);
         cmd.assert().success();
 
         let cert = Cert::from_file(&key_pgp)?;
@@ -105,7 +105,7 @@ mod integration {
                   "key", "generate",
                   "--expiry", "never",
                   "--userid", "<alice@example.org>",
-                  "--export", &alice_pgp]);
+                  "--output", &alice_pgp]);
         cmd.assert().success();
         let alice = Cert::from_file(&alice_pgp)?;
 
@@ -130,7 +130,7 @@ mod integration {
         cmd.args(["--cert-store", &certd,
                   "key", "generate",
                   "--expiry", "never",
-                  "--export", &bob_pgp]);
+                  "--output", &bob_pgp]);
         for userid in bob_userids.iter() {
             cmd.args(["--userid", userid]);
         }
@@ -315,7 +315,7 @@ mod integration {
                   "key", "generate",
                   "--expiry", "never",
                   "--userid", "<alice@example.org>",
-                  "--export", &alice_pgp]);
+                  "--output", &alice_pgp]);
         cmd.assert().success();
         let alice = Cert::from_file(&alice_pgp)?;
         let alice_fpr = alice.fingerprint().to_string();
@@ -325,7 +325,7 @@ mod integration {
                   "key", "generate",
                   "--expiry", "never",
                   "--userid", "<bob@example.org>",
-                  "--export", &bob_pgp]);
+                  "--output", &bob_pgp]);
         cmd.assert().success();
         let bob = Cert::from_file(&bob_pgp)?;
         let bob_fpr = bob.keyid().to_string();

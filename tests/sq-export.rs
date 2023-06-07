@@ -62,7 +62,7 @@ mod integration {
             cmd.args(["--cert-store", &certd,
                       "key", "generate",
                       "--expiry", "never",
-                      "--export", &data.filename]);
+                      "--output", &data.filename]);
             for userid in data.userids.iter() {
                 cmd.args(["--userid", userid]);
             }

@@ -82,7 +82,7 @@ subkeys, and the binding signatures to the reference time.
 "EXAMPLES:
 
 # First, this generates a key
-$ sq key generate --userid \"<juliet@example.org>\" --export juliet.key.pgp
+$ sq key generate --userid \"<juliet@example.org>\" --output juliet.key.pgp
 
 # Then, this extracts the certificate for distribution
 $ sq key extract-cert --output juliet.cert.pgp juliet.key.pgp
@@ -94,7 +94,7 @@ $ sq key generate --userid \"<juliet@example.org>\" --with-password
 $ sq key generate --userid \"<juliet@example.org>\" --userid \"Juliet Capulet\"
 
 # Generates a key whose creation time is June 9, 2011 at midnight UTC
-$ sq key generate --time 20110609 --userid \"Noam\" --export noam.pgp
+$ sq key generate --time 20110609 --userid \"Noam\" --output noam.pgp
 ",
 )]
 #[clap(group(ArgGroup::new("cap-sign").args(&["can_sign", "cannot_sign"])))]
@@ -179,16 +179,17 @@ pub struct GenerateCommand {
     )]
     pub cannot_encrypt: bool,
     #[clap(
-        short = 'e',
-        long = "export",
-        value_name = "OUTFILE",
-        help = "Writes the key to OUTFILE",
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
     )]
-    pub export: Option<PathBuf>,
+    pub output: FileOrStdout,
     #[clap(
         long = "rev-cert",
         value_name = "FILE or -",
-        required_if_eq("export", "-"),
+        required_if_eq("output", "-"),
         help = "Writes the revocation certificate to FILE",
         long_help =
             "Writes the revocation certificate to FILE. \
@@ -241,7 +242,7 @@ supply a zero-length password when prompted for the new password.
 "EXAMPLES:
 
 # First, generate a key
-$ sq key generate --userid \"<juliet@example.org>\" --export juliet.key.pgp
+$ sq key generate --userid \"<juliet@example.org>\" --output juliet.key.pgp
 
 # Then, encrypt the secrets in the key with a password.
 $ sq key password < juliet.key.pgp > juliet.encrypted_key.pgp
@@ -293,7 +294,7 @@ it to a keyserver.
     after_help = "EXAMPLES:
 
 # First, this generates a key
-$ sq key generate --userid \"<juliet@example.org>\" --export juliet.key.pgp
+$ sq key generate --userid \"<juliet@example.org>\" --output juliet.key.pgp
 
 # Then, this extracts the certificate for distribution
 $ sq key extract-cert --output juliet.cert.pgp juliet.key.pgp
@@ -357,7 +358,7 @@ binding signature to the specified time.
 "EXAMPLES:
 
 # First, this generates a key
-$ sq key generate --userid \"<juliet@example.org>\" --export juliet.key.pgp
+$ sq key generate --userid \"<juliet@example.org>\" --output juliet.key.pgp
 
 # Then, this adds a User ID
 $ sq key userid add --userid \"Juliet\" juliet.key.pgp \\
@@ -436,7 +437,7 @@ signature.
 "EXAMPLES:
 
 # First, this generates a key
-$ sq key generate --userid \"<juliet@example.org>\" --export juliet.key.pgp
+$ sq key generate --userid \"<juliet@example.org>\" --output juliet.key.pgp
 
 # Then, this strips a User ID
 $ sq key userid strip --userid \"<juliet@example.org>\" \\
@@ -658,7 +659,7 @@ time.
 "EXAMPLES:
 
 # First, this generates a key
-$ sq key generate --userid \"alice <alice@example.org>\" --export alice.key.pgp
+$ sq key generate --userid \"alice <alice@example.org>\" --output alice.key.pgp
 
 # Add a new Subkey for universal encryption which expires at the same time as
 # the primary key

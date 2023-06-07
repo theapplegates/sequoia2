@@ -938,7 +938,7 @@ fn sq_sign_using_cert_store() -> Result<()> {
               "key", "generate",
               "--expiry", "never",
               "--userid", "<alice@example.org>",
-              "--export", &alice_pgp]);
+              "--output", &alice_pgp]);
     cmd.assert().success();
 
     let alice = Cert::from_file(&alice_pgp)?;
@@ -1097,7 +1097,7 @@ fn sq_verify_wot() -> Result<()> {
         cmd.args(["--no-cert-store",
                   "key", "generate",
                   "--expiry", "never",
-                  "--export", file]);
+                  "--output", file]);
         for userid in userids.iter() {
             cmd.args(["--userid", userid]);
         }

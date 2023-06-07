@@ -31,7 +31,7 @@ mod integration {
             timestamp,
             "--expiry",
             "never",
-            "--export",
+            "--output",
             &*path.to_string_lossy(),
         ]);
         cmd.assert().success();

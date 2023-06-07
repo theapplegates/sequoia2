@@ -140,7 +140,7 @@ care of that. Here we merely verify that the new key looks OK.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --export key.pgp
+when I run sq --no-cert-store key generate --userid Alice --output key.pgp
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Alice"
 then stdout contains "Expiration time: 20"
@@ -157,7 +157,7 @@ any user identifiers._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 then file key.pgp contains "-----BEGIN PGP PRIVATE KEY BLOCK-----"
 ~~~
 
@@ -169,7 +169,7 @@ more than one user identifier._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --userid '<alice@example.com>' --export key.pgp
+when I run sq --no-cert-store key generate --userid Alice --userid '<alice@example.com>' --output key.pgp
 then file key.pgp contains "Comment: Alice"
 then file key.pgp contains "Comment: <alice@example.com>"
 ~~~
@@ -184,7 +184,7 @@ Note that `sq` always creates a key usable for certification.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --cannot-sign --cannot-authenticate --cannot-encrypt
+when I run sq --no-cert-store key generate --output key.pgp --cannot-sign --cannot-authenticate --cannot-encrypt
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Key flags: certification"
 then stdout doesn't contain "Key flags: signing"
@@ -201,7 +201,7 @@ Note that `sq` always creates a key usable for certification.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --cannot-sign --cannot-authenticate
+when I run sq --no-cert-store key generate --output key.pgp --cannot-sign --cannot-authenticate
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Key flags: certification"
 then stdout doesn't contain "Key flags: signing"
@@ -216,7 +216,7 @@ for at-rest (storage) encryption._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --can-encrypt=storage
+when I run sq --no-cert-store key generate --output key.pgp --can-encrypt=storage
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Key flags: certification"
 then stdout doesn't contain "transport encryption"
@@ -230,7 +230,7 @@ for transport encryption._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --can-encrypt=transport
+when I run sq --no-cert-store key generate --output key.pgp --can-encrypt=transport
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Key flags: certification"
 then stdout contains "Key flags: transport encryption"
@@ -244,7 +244,7 @@ for signing, and can't be used for encryption._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --cannot-encrypt --cannot-authenticate
+when I run sq --no-cert-store key generate --output key.pgp --cannot-encrypt --cannot-authenticate
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Key flags: certification"
 then stdout contains "Key flags: signing"
@@ -262,7 +262,7 @@ Note that `sq` always creates a key usable for certification.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --can-authenticate --cannot-sign --cannot-encrypt
+when I run sq --no-cert-store key generate --output key.pgp --can-authenticate --cannot-sign --cannot-encrypt
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Key flags: certification"
 then stdout contains "Key flags: authentication"
@@ -280,7 +280,7 @@ Note that `sq` always creates a key usable for certification.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --cannot-sign
+when I run sq --no-cert-store key generate --output key.pgp --cannot-sign
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Key flags: certification"
 then stdout contains "Key flags: authentication"
@@ -298,7 +298,7 @@ Note that `sq` always creates a key usable for certification.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --cannot-authenticate
+when I run sq --no-cert-store key generate --output key.pgp --cannot-authenticate
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Key flags: certification"
 then stdout contains "Key flags: transport encryption, data-at-rest encryption"
@@ -316,7 +316,7 @@ Note that `sq` always creates a key usable for certification.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --cannot-encrypt
+when I run sq --no-cert-store key generate --output key.pgp --cannot-encrypt
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Key flags: certification"
 then stdout doesn't contain "Key flags: transport encryption, data-at-rest encryption"
@@ -335,7 +335,7 @@ Note that `sq` always creates a key usable for certification.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Key flags: certification"
 then stdout contains "Key flags: authentication"
@@ -354,7 +354,7 @@ the default ever changes.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --cipher-suite=cv25519
+when I run sq --no-cert-store key generate --output key.pgp --cipher-suite=cv25519
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Public-key algo: EdDSA"
 then stdout contains "Public-key size: 256 bits"
@@ -366,7 +366,7 @@ _Requirement: We must be able to generate a 3072-bit RSA key._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --cipher-suite=rsa3k
+when I run sq --no-cert-store key generate --output key.pgp --cipher-suite=rsa3k
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Public-key algo: RSA"
 then stdout contains "Public-key size: 3072 bits"
@@ -378,7 +378,7 @@ _Requirement: We must be able to generate a 4096-bit RSA key._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --cipher-suite=rsa4k
+when I run sq --no-cert-store key generate --output key.pgp --cipher-suite=rsa4k
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Public-key algo: RSA"
 then stdout contains "Public-key size: 4096 bits"
@@ -396,10 +396,10 @@ cases.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 then file key.pgp.rev contains "Comment: Revocation certificate for"
 
-when I run sq --no-cert-store key generate --export key2.pgp --rev-cert rev.pgp
+when I run sq --no-cert-store key generate --output key2.pgp --rev-cert rev.pgp
 then file rev.pgp contains "Comment: Revocation certificate for"
 ~~~
 
@@ -411,7 +411,7 @@ We generate a key with defaults, and check the key expires.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Expiration time: 20"
 ~~~
@@ -430,7 +430,7 @@ inspect output is the last second of validity.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --expiry=2038-01-19T03:14:07+00:00
+when I run sq --no-cert-store key generate --output key.pgp --expiry=2038-01-19T03:14:07+00:00
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Expiration time: 2038-01-19 03:14"
 when I run sq --no-cert-store inspect --time 2038-01-20T00:00:00+00:00 key.pgp
@@ -444,7 +444,7 @@ given time._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --expiry=1y
+when I run sq --no-cert-store key generate --output key.pgp --expiry=1y
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Expiration time: 20"
 ~~~
@@ -456,7 +456,7 @@ password._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Secret key: Unencrypted"
 ~~~
@@ -473,7 +473,7 @@ to feed `sq` a password as if the user typed it from a terminal.
 
 ~~~
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --with-password
+when I run sq --no-cert-store key generate --output key.pgp --with-password
 when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Secret key: Encrypted"
 ~~~
@@ -484,7 +484,7 @@ _Requirement: We must be able to generate a key and add a User ID to it._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store key userid add --userid "Juliet" --output new.pgp key.pgp
 when I run sq --no-cert-store inspect new.pgp
 then stdout contains "UserID: Juliet"
@@ -496,7 +496,7 @@ _Requirement: We must be able to generate a key with a User ID, and then strip t
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid "<juliet@example.org>" --export key.pgp
+when I run sq --no-cert-store key generate --userid "<juliet@example.org>" --output key.pgp
 when I run sq --no-cert-store key userid strip --userid "<juliet@example.org>" --output new.pgp key.pgp
 when I run sq --no-cert-store inspect new.pgp
 then stdout doesn't contain "UserID:"
@@ -516,7 +516,7 @@ output._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store key extract-cert key.pgp
 then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 then stdout contains "-----END PGP PUBLIC KEY BLOCK-----"
@@ -530,7 +530,7 @@ file._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp --userid Alice
+when I run sq --no-cert-store key generate --output key.pgp --userid Alice
 when I run sq --no-cert-store key extract-cert key.pgp -o cert.pgp
 when I run sq --no-cert-store inspect cert.pgp
 then stdout contains "OpenPGP Certificate."
@@ -548,7 +548,7 @@ textual certificate. It could certainly be improved.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store key extract-cert key.pgp --binary
 then stdout doesn't contain "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 then stdout doesn't contain "-----END PGP PUBLIC KEY BLOCK-----"
@@ -566,7 +566,7 @@ placeholder until Subplot learns a new trick.
 
 ~~~
 given an installed sq
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store key extract-cert < key.pgp
 then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 then stdout contains "-----END PGP PUBLIC KEY BLOCK-----"
@@ -592,8 +592,8 @@ This is for secret keys, with the output going to stdout in text form.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring list ring.pgp
 then stdout contains "Alice"
@@ -609,8 +609,8 @@ This is for secret keys, with the output going to a file in text form.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
 then file ring.pgp contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 then file ring.pgp contains "-----END PGP PUBLIC KEY BLOCK-----"
@@ -626,8 +626,8 @@ _Requirement: we can join two keys into a keyring in binary form._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp --binary
 when I try to run grep PGP ring.pgp
 then command fails
@@ -647,8 +647,8 @@ so we don't change writing to stdout separately.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
 when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
 when I run sq --no-cert-store keyring join alice-cert.pgp bob-cert.pgp -o ring.pgp
@@ -677,8 +677,8 @@ certificates._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --to-cert ring.pgp -o filtered.pgp
 when I run sq --no-cert-store inspect filtered.pgp
@@ -695,8 +695,8 @@ file._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --to-cert ring.pgp
 then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
@@ -709,8 +709,8 @@ _Requirement: we can get filter output in binary form._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --binary --to-cert ring.pgp
 then stdout doesn't contain "-----BEGIN PGP PUBLIC KEY BLOCK-----"
@@ -723,7 +723,7 @@ criteria._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --userid Bob --export alice.pgp
+when I run sq --no-cert-store key generate --userid Alice --userid Bob --output alice.pgp
 when I run sq --no-cert-store keyring filter --prune-certs --name Alice alice.pgp -o filtered.pgp
 when I run sq --no-cert-store inspect filtered.pgp
 then stdout contains "Alice"
@@ -737,8 +737,8 @@ specific user id._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --userid Alice ring.pgp -o filtered.pgp
 when I run sq --no-cert-store inspect filtered.pgp
@@ -753,8 +753,8 @@ specific user ids._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --userid Alice --userid Bob ring.pgp -o filtered.pgp
 when I run sq --no-cert-store inspect filtered.pgp
@@ -769,8 +769,8 @@ part of a user ids._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid 'Alice <alice@example.com>' --export alice.pgp
-when I run sq --no-cert-store key generate --userid 'Bob <bob@example.com>' --export bob.pgp
+when I run sq --no-cert-store key generate --userid 'Alice <alice@example.com>' --output alice.pgp
+when I run sq --no-cert-store key generate --userid 'Bob <bob@example.com>' --output bob.pgp
 when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --name Alice ring.pgp -o filtered.pgp
 when I run sq --no-cert-store inspect filtered.pgp
@@ -785,8 +785,8 @@ several names as part of the user id._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid 'Alice <alice@example.com>' --export alice.pgp
-when I run sq --no-cert-store key generate --userid 'Bob <bob@example.com>' --export bob.pgp
+when I run sq --no-cert-store key generate --userid 'Alice <alice@example.com>' --output alice.pgp
+when I run sq --no-cert-store key generate --userid 'Bob <bob@example.com>' --output bob.pgp
 when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --name Alice --name Bob ring.pgp -o filtered.pgp
 when I run sq --no-cert-store inspect filtered.pgp
@@ -801,8 +801,8 @@ part of a user ids._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid 'Alice <alice@example.com>' --export alice.pgp
-when I run sq --no-cert-store key generate --userid 'Bob <bob@sequoia-pgp.org>' --export bob.pgp
+when I run sq --no-cert-store key generate --userid 'Alice <alice@example.com>' --output alice.pgp
+when I run sq --no-cert-store key generate --userid 'Bob <bob@sequoia-pgp.org>' --output bob.pgp
 when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --domain example.com ring.pgp -o filtered.pgp
 when I run sq --no-cert-store inspect filtered.pgp
@@ -817,8 +817,8 @@ several names as part of the user id._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid 'Alice <alice@example.com>' --export alice.pgp
-when I run sq --no-cert-store key generate --userid 'Bob <bob@sequoia-pgp.org>' --export bob.pgp
+when I run sq --no-cert-store key generate --userid 'Alice <alice@example.com>' --output alice.pgp
+when I run sq --no-cert-store key generate --userid 'Bob <bob@sequoia-pgp.org>' --output bob.pgp
 when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --domain example.com --domain sequoia-pgp.org ring.pgp -o filtered.pgp
 when I run sq --no-cert-store inspect filtered.pgp
@@ -837,7 +837,7 @@ _Requirement: If we ask for an unsupported major output version, we get an error
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I try to run sq --output-version=9999 keyring list alice.pgp
 then command fails
 when I try to run env SQ_OUTPUT_VERSION=9999 sq keyring list alice.pgp
@@ -850,7 +850,7 @@ _Requirement: If we ask for an unsupported output minor version, we get an error
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I try to run sq --output-version=0.9999 keyring list alice.pgp
 then command fails
 ~~~
@@ -861,7 +861,7 @@ _Requirement: If we ask for an unsupported output patch version, we get an error
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I try to run sq --output-version=0.0.9999 keyring list alice.pgp
 then command fails
 ~~~
@@ -872,8 +872,8 @@ _Requirement: we can list the keys in a keyring._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring list ring.pgp
 then stdout contains "Alice"
@@ -886,11 +886,11 @@ _Requirement: we can list the keys in a keyring in a JSON format._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --userid '<alice@example.com>' --export alice.pgp
+when I run sq --no-cert-store key generate --userid Alice --userid '<alice@example.com>' --output alice.pgp
 when I run sq --no-cert-store inspect alice.pgp
 then I remember the fingerprint as ALICE_FINGERPRINT
 
-when I run sq --no-cert-store key generate --userid Bob --userid '<bob@example.com>' --export bob.pgp
+when I run sq --no-cert-store key generate --userid Bob --userid '<bob@example.com>' --output bob.pgp
 when I run sq --no-cert-store inspect bob.pgp
 then I remember the fingerprint as BOB_FINGERPRINT
 
@@ -933,7 +933,7 @@ _Requirement: we can list the keys in a key file._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store keyring list alice.pgp
 then stdout contains "Alice"
 then stdout doesn't contain "Bob"
@@ -945,7 +945,7 @@ _Requirement: we can list all user ids._
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --userid Bob --export alice.pgp
+when I run sq --no-cert-store key generate --userid Alice --userid Bob --output alice.pgp
 when I run sq --no-cert-store keyring list alice.pgp --all-userids
 then stdout contains "Alice"
 then stdout contains "Bob"
@@ -971,8 +971,8 @@ is a placeholder.
 
 ~~~
 given an installed sq
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring split ring.pgp
 then the resulting files match alice,pgp and bob.pgp
@@ -996,7 +996,7 @@ in cleartext, just in case.
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store key extract-cert -o cert.pgp key.pgp
 when I run sq --no-cert-store encrypt --recipient-file cert.pgp hello.txt
 then stdout contains "-----BEGIN PGP MESSAGE-----"
@@ -1015,7 +1015,7 @@ in cleartext, just in case.
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store key extract-cert -o cert.pgp key.pgp
 when I run sq --no-cert-store encrypt --binary --recipient-file cert.pgp hello.txt
 then stdout doesn't contain "-----BEGIN PGP MESSAGE-----"
@@ -1037,7 +1037,7 @@ files, etc).
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store key extract-cert -o cert.pgp key.pgp
 when I run sq --no-cert-store encrypt -o x.pgp --recipient-file cert.pgp hello.txt
 when I run sq --no-cert-store decrypt -o output.txt --recipient-file key.pgp x.pgp
@@ -1053,9 +1053,9 @@ recipients at a time._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --export alice.pgp
+when I run sq --no-cert-store key generate --output alice.pgp
 when I run sq --no-cert-store key extract-cert -o alice-cert.pgp alice.pgp
-when I run sq --no-cert-store key generate --export bob.pgp
+when I run sq --no-cert-store key generate --output bob.pgp
 when I run sq --no-cert-store key extract-cert -o bob-cert.pgp bob.pgp
 
 when I run sq --no-cert-store encrypt --recipient-file alice-cert.pgp --recipient-file bob-cert.pgp hello.txt -o x.pgp
@@ -1076,7 +1076,7 @@ same time._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --export alice.pgp
+when I run sq --no-cert-store key generate --output alice.pgp
 when I run sq --no-cert-store key extract-cert -o alice-cert.pgp alice.pgp
 
 when I run sq --no-cert-store encrypt --recipient-file alice-cert.pgp --signer-file alice.pgp hello.txt -o x.pgp
@@ -1095,9 +1095,9 @@ there should be no output._
 given an installed sq
 given file hello.txt
 given file empty
-when I run sq --no-cert-store key generate --export alice.pgp
+when I run sq --no-cert-store key generate --output alice.pgp
 when I run sq --no-cert-store key extract-cert -o alice-cert.pgp alice.pgp
-when I run sq --no-cert-store key generate --export bob.pgp
+when I run sq --no-cert-store key generate --output bob.pgp
 when I run sq --no-cert-store key extract-cert -o bob-cert.pgp bob.pgp
 
 when I run sq --no-cert-store encrypt --recipient-file alice-cert.pgp --signer-file alice.pgp hello.txt -o x.pgp
@@ -1122,9 +1122,9 @@ _Requirement: We can certify a user identity on a key._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
 
 when I run sq --no-cert-store inspect bob-cert.pgp
@@ -1144,9 +1144,9 @@ _Requirement: We can certify a user identity on a key._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
 
 when I run sq --no-cert-store inspect bob-cert.pgp
@@ -1175,7 +1175,7 @@ stdout in ASCII armor form._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store sign --signer-file key.pgp hello.txt
 then stdout contains "-----BEGIN PGP MESSAGE-----"
 then stdout contains "-----END PGP MESSAGE-----"
@@ -1189,7 +1189,7 @@ stdout in binary form._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store sign --signer-file key.pgp hello.txt --binary
 then stdout doesn't contain "-----BEGIN PGP MESSAGE-----"
 then stdout doesn't contain "-----END PGP MESSAGE-----"
@@ -1203,7 +1203,7 @@ file._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store sign --signer-file key.pgp hello.txt -o signed.txt
 then file signed.txt contains "-----BEGIN PGP MESSAGE-----"
 then file signed.txt contains "-----END PGP MESSAGE-----"
@@ -1216,7 +1216,7 @@ _Requirement: We can sign a file and verify the signature._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store key extract-cert key.pgp -o cert.pgp
 when I run sq --no-cert-store sign --signer-file key.pgp hello.txt -o signed.txt
 when I run sq --no-cert-store verify --signer-file cert.pgp signed.txt
@@ -1235,9 +1235,9 @@ not enough, when we need two.
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
 
 when I run sq --no-cert-store sign --signer-file alice.pgp hello.txt -o signed1.txt
@@ -1265,7 +1265,7 @@ the file by definition can't be valid anymore.
 given an installed sq
 given file hello.txt
 given file sed-in-place
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store key extract-cert key.pgp -o cert.pgp
 when I run sq --no-cert-store sign --signer-file key.pgp hello.txt -o signed.txt
 when I run bash sed-in-place 3d signed.txt
@@ -1291,7 +1291,7 @@ included in a readable form._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store key extract-cert key.pgp -o cert.pgp
 
 when I run sq --no-cert-store sign --cleartext-signature --signer-file key.pgp hello.txt -o signed.txt
@@ -1312,7 +1312,7 @@ verified._
 given an installed sq
 given file hello.txt
 given file sed-in-place
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store key extract-cert key.pgp -o cert.pgp
 
 when I run sq --no-cert-store sign --cleartext-signature --signer-file key.pgp hello.txt -o signed.txt
@@ -1329,7 +1329,7 @@ data it signs._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store key extract-cert key.pgp -o cert.pgp
 
 when I run sq --no-cert-store sign --detached --signer-file key.pgp hello.txt -o sig.txt
@@ -1350,7 +1350,7 @@ modified, the signature can't be verified._
 given an installed sq
 given file hello.txt
 given file sed-in-place
-when I run sq --no-cert-store key generate --export key.pgp
+when I run sq --no-cert-store key generate --output key.pgp
 when I run sq --no-cert-store key extract-cert key.pgp -o cert.pgp
 
 when I run sq --no-cert-store sign --detached --signer-file key.pgp hello.txt -o sig.txt
@@ -1368,9 +1368,9 @@ message._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
 
 when I run sq --no-cert-store sign --signer-file alice.pgp hello.txt -o signed1.txt
@@ -1388,9 +1388,9 @@ twice separately._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
 
 when I run sq --no-cert-store sign --signer-file alice.pgp hello.txt -o signed1.txt
@@ -1409,9 +1409,9 @@ signatures, as if as a notary._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store key generate --userid Alice --export alice.pgp
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
-when I run sq --no-cert-store key generate --userid Bob --export bob.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
 
 when I run sq --no-cert-store sign --signer-file alice.pgp hello.txt -o signed.txt

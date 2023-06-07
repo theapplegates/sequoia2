@@ -13,6 +13,7 @@ use sequoia_cert_store as cert_store;
 use cert_store::Store;
 use cert_store::store::UserIDQueryParams;
 
+use crate::sq_cli::types::FileOrStdout;
 use crate::{
     Config,
     print_error_chain,
@@ -76,8 +77,12 @@ pub fn dispatch(config: Config, cmd: export::Command) -> Result<()> {
         return Err(anyhow::anyhow!("Invalid arguments."));
     }
 
-    let mut sink = config.create_or_stdout_pgp(
-        None, cmd.binary, armor::Kind::PublicKey)?;
+    let output = FileOrStdout::default();
+    let mut sink = output.create_pgp_safe(
+        config.force,
+        cmd.binary,
+        armor::Kind::PublicKey,
+    )?;
 
     let mut exported_something = false;
 

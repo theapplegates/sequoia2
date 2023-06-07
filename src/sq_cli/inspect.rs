@@ -1,9 +1,10 @@
-use std::path::PathBuf;
-
 use clap::Parser;
 
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
+
+use super::types::ClapData;
+use super::types::FileOrStdin;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -42,10 +43,11 @@ $ sq inspect --time 20130721 cert.pgp
 )]
 pub struct Command {
     #[clap(
-        value_name = "FILE",
-        help = "Reads from FILE or stdin if omitted",
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
     )]
-    pub input: Option<PathBuf>,
+    pub input: FileOrStdin,
     #[clap(
         long = "cert",
         value_name = "FINGERPRINT|KEYID",

@@ -42,13 +42,13 @@ use crate::{
     },
     Config,
     Model,
-    open_or_stdin,
     serialize_keyring,
     output::WkdUrlVariant,
     print_error_chain,
 };
 
 use crate::sq_cli;
+use crate::sq_cli::types::FileOrStdout;
 
 const NP: NullPolicy = NullPolicy::new();
 
@@ -409,9 +409,9 @@ pub fn dispatch_keyserver(mut config: Config, c: sq_cli::keyserver::Command)
                 let cert = rt.block_on(ks.get(handle))
                     .context("Failed to retrieve cert")?;
 
-                if let Some(output) = c.output {
-                    let mut output =
-                        config.create_or_stdout_safe(Some(&output))?;
+                if c.output.path().is_some() {
+                    let mut output = FileOrStdout::from(c.output)
+                        .create_safe(config.force)?;
                     if !c.binary {
                         cert.armored().serialize(&mut output)
                     } else {
@@ -432,9 +432,9 @@ pub fn dispatch_keyserver(mut config: Config, c: sq_cli::keyserver::Command)
                 let certs = rt.block_on(ks.search(addr))
                     .context("Failed to retrieve certs")?;
 
-                if let Some(output) = c.output {
-                    let mut output =
-                        config.create_or_stdout_safe(Some(&output))?;
+                if c.output.path().is_some() {
+                    let mut output = FileOrStdout::from(c.output)
+                        .create_safe(config.force)?;
                     serialize_keyring(&mut output, &certs, c.binary)?;
                 } else {
                     let certs = if let Some((ca_filename, ca_userid)) = ca() {
@@ -454,7 +454,7 @@ pub fn dispatch_keyserver(mut config: Config, c: sq_cli::keyserver::Command)
             }
         },
         Send(c) => {
-            let mut input = open_or_stdin(c.input.as_deref())?;
+            let mut input = c.input.open()?;
             let cert = Cert::from_reader(&mut input).
                 context("Malformed key")?;
 
@@ -514,9 +514,9 @@ pub fn dispatch_wkd(mut config: Config, c: sq_cli::wkd::Command) -> Result<()> {
             // ```
             // But to keep the parallelism with `store export` and `keyserver get`,
             // The output is armored if not `--binary` option is given.
-            if let Some(output) = c.output {
-                let mut output =
-                    config.create_or_stdout_safe(Some(&output))?;
+            if c.output.path().is_some() {
+                let mut output = FileOrStdout::from(c.output)
+                    .create_safe(config.force)?;
                 serialize_keyring(&mut output, &certs, c.binary)?;
             } else {
                 let certs = certify_downloads(
@@ -528,7 +528,7 @@ pub fn dispatch_wkd(mut config: Config, c: sq_cli::wkd::Command) -> Result<()> {
         Generate(c) => {
             let domain = c.domain;
             let skip = c.skip;
-            let f = open_or_stdin(c.input.as_deref())?;
+            let f = c.input.open()?;
             let base_path = c.base_directory;
             let variant = if c.direct_method {
                 wkd::Variant::Direct
@@ -587,9 +587,9 @@ pub fn dispatch_dane(mut config: Config, c: sq_cli::dane::Command) -> Result<()>
             // Because it might be created a WkdServer struct, not
             // doing it for now.
             let certs = rt.block_on(dane::get(&email_address))?;
-            if let Some(output) = c.output {
-                let mut output =
-                    config.create_or_stdout_safe(Some(&output))?;
+            if c.output.path().is_some() {
+                let mut output = FileOrStdout::from(c.output)
+                    .create_safe(config.force)?;
                 serialize_keyring(&mut output, &certs, c.binary)?;
             } else {
                 let certs = certify_downloads(

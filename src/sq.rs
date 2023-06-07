@@ -7,10 +7,10 @@
 #![doc = include_str!(concat!(env!("OUT_DIR"), "/sq-usage.md"))]
 
 use anyhow::Context as _;
+use sq_cli::types::FileOrStdin;
 
 use std::borrow::Borrow;
 use std::borrow::Cow;
-use std::fs::OpenOptions;
 use std::io;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -21,7 +21,7 @@ use once_cell::unsync::OnceCell;
 
 use terminal_size::terminal_size;
 
-use buffered_reader::{BufferedReader, Dup, File, Generic, Limitor};
+use buffered_reader::{BufferedReader, Dup, File, Limitor};
 use sequoia_openpgp as openpgp;
 
 use openpgp::{
@@ -36,7 +36,7 @@ use openpgp::packet::prelude::*;
 use openpgp::parse::{Parse, PacketParser, PacketParserResult};
 use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::packet::signature::subpacket::NotationDataFlags;
-use openpgp::serialize::{Serialize, stream::{Message, Armorer}};
+use openpgp::serialize::Serialize;
 use openpgp::cert::prelude::*;
 use openpgp::policy::StandardPolicy as P;
 use openpgp::serialize::SerializeInto;
@@ -69,17 +69,6 @@ mod man;
 mod commands;
 pub mod output;
 pub use output::{wkd::WkdUrlVariant, Model, OutputFormat, OutputVersion};
-
-
-fn open_or_stdin(f: Option<&Path>)
-                 -> Result<Box<dyn BufferedReader<()>>> {
-    match f {
-        Some(f) => Ok(Box::new(
-            File::open(f)
-                .with_context(|| format!("Failed to open {}", f.display()))?)),
-        None => Ok(Box::new(Generic::new(io::stdin(), None))),
-    }
-}
 
 /// Loads one TSK from every given file.
 fn load_keys<'a, I>(files: I) -> openpgp::Result<Vec<Cert>>
@@ -250,37 +239,12 @@ fn help_warning(arg: &str) {
     }
 }
 
-/// Prints a warning if sq is run in a non-interactive setting without
-/// a terminal.
-///
-/// Detecting non-interactive use is done using a heuristic.
-fn emit_unstable_cli_warning() {
-    if terminal_size().is_some() {
-        // stdout is connected to a terminal, assume interactive use.
-        return;
-    }
-
-    // For bash shells, we can use a very simple heuristic.  We simply
-    // look at whether the COLUMNS variable is defined in our
-    // environment.
-    if std::env::var_os("COLUMNS").is_some() {
-        // Heuristic detected interactive use.
-        return;
-    }
-
-    eprintln!("\nWARNING: sq does not have a stable CLI interface.  \
-               Use with caution in scripts.\n");
-}
-
 pub struct Config<'a> {
     force: bool,
     output_format: OutputFormat,
     output_version: Option<OutputVersion>,
     policy: P<'a>,
     time: SystemTime,
-    /// Have we emitted the warning yet?
-    unstable_cli_warning_emitted: bool,
-
     // --no-cert-store
     no_rw_cert_store: bool,
     cert_store_path: Option<PathBuf>,
@@ -297,73 +261,6 @@ pub struct Config<'a> {
 }
 
 impl<'store> Config<'store> {
-    /// Opens the file (or stdout) for writing data that is safe for
-    /// non-interactive use.
-    ///
-    /// This is suitable for any kind of OpenPGP data, or decrypted or
-    /// authenticated payloads.
-    fn create_or_stdout_safe(&self, f: Option<&Path>)
-                             -> Result<Box<dyn io::Write + Sync + Send>> {
-        Config::create_or_stdout(f, self.force)
-    }
-
-    /// Opens the file (or stdout) for writing data that is NOT safe
-    /// for non-interactive use.
-    ///
-    /// If our heuristic detects non-interactive use, we will emit a
-    /// warning.
-    fn create_or_stdout_unsafe(&mut self, f: Option<&Path>)
-                               -> Result<Box<dyn io::Write + Sync + Send>> {
-        if ! self.unstable_cli_warning_emitted {
-            emit_unstable_cli_warning();
-            self.unstable_cli_warning_emitted = true;
-        }
-        Config::create_or_stdout(f, self.force)
-    }
-
-    /// Opens the file (or stdout) for writing data that is safe for
-    /// non-interactive use because it is an OpenPGP data stream.
-    fn create_or_stdout_pgp<'a>(&self, f: Option<&Path>,
-                                binary: bool, kind: armor::Kind)
-                                -> Result<Message<'a>> {
-        let sink = self.create_or_stdout_safe(f)?;
-        let mut message = Message::new(sink);
-        if ! binary {
-            message = Armorer::new(message).kind(kind).build()?;
-        }
-        Ok(message)
-    }
-
-    /// Helper function, do not use directly. Instead, use create_or_stdout_safe
-    /// or create_or_stdout_unsafe.
-    fn create_or_stdout(
-        f: Option<&Path>,
-        force: bool,
-    ) -> Result<Box<dyn io::Write + Sync + Send>> {
-        match f {
-            None => Ok(Box::new(io::stdout())),
-            Some(p) if p == Path::new("-") => Ok(Box::new(io::stdout())),
-            Some(f) => {
-                if !f.exists() || force {
-                    Ok(Box::new(
-                        OpenOptions::new()
-                            .write(true)
-                            .truncate(true)
-                            .create(true)
-                            .open(f)
-                            .context("Failed to create output file")?,
-                    ))
-                } else {
-                    Err(anyhow::anyhow!(format!(
-                        "File {:?} exists, use \"sq --force ...\" to \
-                                overwrite",
-                        f.display()
-                    )))
-                }
-            }
-        }
-    }
-
     /// Returns the cert store's base directory, if it is enabled.
     fn cert_store_base(&self) -> Option<PathBuf> {
         if self.no_rw_cert_store {
@@ -1118,13 +1015,12 @@ fn main() -> Result<()> {
         None
     };
 
-    let mut config = Config {
+    let config = Config {
         force,
         output_format,
         output_version,
         policy: policy.clone(),
         time,
-        unstable_cli_warning_emitted: false,
         no_rw_cert_store: c.no_cert_store,
         cert_store_path: c.cert_store.clone(),
         pep_cert_store_path: c.pep_cert_store.clone(),
@@ -1147,9 +1043,8 @@ fn main() -> Result<()> {
 
         SqSubcommands::Decrypt(command) => {
 
-            let mut input = open_or_stdin(command.io.input.as_deref())?;
-            let mut output =
-                config.create_or_stdout_safe(command.io.output.as_deref())?;
+            let mut input = command.input.open()?;
+            let mut output = command.output.create_safe(config.force)?;
 
             let certs = load_certs(
                 command.sender_cert_file.iter().map(|s| s.as_ref()),
@@ -1197,10 +1092,10 @@ fn main() -> Result<()> {
             recipients.extend(
                 config.lookup_by_userid(&command.recipients_userid, false)
                     .context("--recipient-userid")?);
-            let mut input = open_or_stdin(command.io.input.as_deref())?;
+            let mut input = command.input.open()?;
 
-            let output = config.create_or_stdout_pgp(
-                command.io.output.as_deref(),
+            let output = command.output.create_pgp_safe(
+                config.force,
                 command.binary,
                 armor::Kind::Message,
             )?;
@@ -1224,8 +1119,8 @@ fn main() -> Result<()> {
             })?;
         },
         SqSubcommands::Sign(command) => {
-            let mut input = open_or_stdin(command.io.input.as_deref())?;
-            let output = command.io.output.as_deref();
+            let mut input = command.input.open()?;
+            let output = &command.output;
             let detached = command.detached;
             let binary = command.binary;
             let append = command.append;
@@ -1238,12 +1133,16 @@ fn main() -> Result<()> {
             let notations = parse_notations(command.notation)?;
 
             if let Some(merge) = command.merge {
-                let output = config.create_or_stdout_pgp(output, binary,
-                                                         armor::Kind::Message)?;
-                let mut input2 = open_or_stdin(Some(&merge))?;
+                let output = output.create_pgp_safe(
+                    config.force,
+                    binary,
+                    armor::Kind::Message,
+                )?;
+                let data: FileOrStdin = merge.into();
+                let mut input2 = data.open()?;
                 commands::merge_signatures(&mut input, &mut input2, output)?;
             } else if command.clearsign {
-                let output = config.create_or_stdout_safe(output)?;
+                let output = output.create_safe(config.force)?;
                 commands::sign::clearsign(config, private_key_store, input, output, secrets,
                                           time, &notations)?;
             } else {
@@ -1263,10 +1162,8 @@ fn main() -> Result<()> {
             }
         },
         SqSubcommands::Verify(command) => {
-            // TODO: Fix interface of open_or_stdin, create_or_stdout_safe, etc.
-            let mut input = open_or_stdin(command.io.input.as_deref())?;
-            let mut output =
-                config.create_or_stdout_safe(command.io.output.as_deref())?;
+            let mut input = command.input.open()?;
+            let mut output = command.output.create_safe(config.force)?;
             let mut detached = if let Some(f) = command.detached {
                 Some(File::open(f)?)
             } else {
@@ -1289,7 +1186,7 @@ fn main() -> Result<()> {
 
         // TODO: Extract body to commands/armor.rs
         SqSubcommands::Armor(command) => {
-            let input = open_or_stdin(command.io.input.as_deref())?;
+            let input = command.input.open()?;
             let mut want_kind: Option<armor::Kind> = command.kind.into();
 
             // Peek at the data.  If it looks like it is armored
@@ -1308,8 +1205,7 @@ fn main() -> Result<()> {
                 && (want_kind.is_none() || want_kind == have_kind)
             {
                 // It is already armored and has the correct kind.
-                let mut output =
-                    config.create_or_stdout_safe(command.io.output.as_deref())?;
+                let mut output = command.output.create_safe(c.force)?;
                 io::copy(&mut input, &mut output)?;
                 return Ok(());
             }
@@ -1324,8 +1220,7 @@ fn main() -> Result<()> {
             let want_kind = want_kind.expect("given or detected");
 
             let mut output =
-                config.create_or_stdout_pgp(command.io.output.as_deref(),
-                                            false, want_kind)?;
+                command.output.create_pgp_safe(config.force, false, want_kind)?;
 
             if already_armored {
                 // Dearmor and copy to change the type.
@@ -1339,9 +1234,8 @@ fn main() -> Result<()> {
             output.finalize()?;
         },
         SqSubcommands::Dearmor(command) => {
-            let mut input = open_or_stdin(command.io.input.as_deref())?;
-            let mut output =
-                config.create_or_stdout_safe(command.io.output.as_deref())?;
+            let mut input = command.input.open()?;
+            let mut output = command.output.create_safe(config.force)?;
             let mut filter = armor::Reader::from_reader(&mut input, None);
             io::copy(&mut filter, &mut output)?;
         },
@@ -1367,10 +1261,9 @@ fn main() -> Result<()> {
 
         SqSubcommands::Packet(command) => match command.subcommand {
             packet::Subcommands::Dump(command) => {
-                let mut input = open_or_stdin(command.io.input.as_deref())?;
-                let mut output = config.create_or_stdout_unsafe(
-                    command.io.output.as_deref(),
-                )?;
+                let mut input = command.input.open()?;
+                let output_type = command.output;
+                let mut output = output_type.create_unsafe(config.force)?;
 
                 let session_key = command.session_key;
                 let width = if let Some((width, _)) = terminal_size() {
@@ -1384,9 +1277,9 @@ fn main() -> Result<()> {
             },
 
             packet::Subcommands::Decrypt(command) => {
-                let mut input = open_or_stdin(command.io.input.as_deref())?;
-                let mut output = config.create_or_stdout_pgp(
-                    command.io.output.as_deref(),
+                let mut input = command.input.open()?;
+                let mut output = command.output.create_pgp_safe(
+                    config.force,
                     command.binary,
                     armor::Kind::Message,
                 )?;
@@ -1404,15 +1297,16 @@ fn main() -> Result<()> {
             },
 
             packet::Subcommands::Split(command) => {
-                let mut input = open_or_stdin(command.input.as_deref())?;
+                let mut input = command.input.open()?;
                 let prefix =
                 // The prefix is either specified explicitly...
                     command.prefix.unwrap_or(
                         // ... or we derive it from the input file...
-                        command.input.and_then(|i| {
-                            let p = PathBuf::from(i);
+                        command.input.and_then(|x| {
                             // (but only use the filename)
-                            p.file_name().map(|f| String::from(f.to_string_lossy()))
+                            x.file_name().map(|f|
+                                String::from(f.to_string_lossy())
+                            )
                         })
                         // ... or we use a generic prefix...
                             .unwrap_or_else(|| String::from("output"))

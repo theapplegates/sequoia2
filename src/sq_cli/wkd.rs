@@ -1,8 +1,10 @@
-use std::path::PathBuf;
-
 use clap::{Args, Parser, Subcommand};
 
 use crate::sq_cli::types::NetworkPolicy;
+
+use super::types::ClapData;
+use super::types::FileOrCertStore;
+use super::types::FileOrStdin;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -89,12 +91,13 @@ pub struct GetCommand {
     )]
     pub binary: bool,
     #[clap(
-        short,
+        default_value_t = FileOrCertStore::default(),
+        help = FileOrCertStore::HELP,
         long,
-        value_name = "FILE",
-        help = "Writes to FILE instead of importing into the certificate store"
+        short,
+        value_name = FileOrCertStore::VALUE_NAME,
     )]
-    pub output: Option<PathBuf>,
+    pub output: FileOrCertStore,
 }
 
 #[derive(Debug, Args)]
@@ -138,10 +141,11 @@ pub struct GenerateCommand {
     )]
     pub domain: String,
     #[clap(
+        default_value_t = FileOrStdin::default(),
         value_name = "CERT-RING",
-        help = "Adds certificates from CERT-RING to the WKD",
+        help = "Adds certificates from CERT-RING (or stdin if omitted) to the WKD",
     )]
-    pub input: Option<PathBuf>,
+    pub input: FileOrStdin,
     #[clap(
         short = 'd',
         long = "direct-method",

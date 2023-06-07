@@ -12,10 +12,8 @@ use sequoia_cert_store as cert_store;
 use cert_store::LazyCert;
 use cert_store::StoreUpdate;
 
-use crate::{
-    Config,
-    open_or_stdin,
-};
+use crate::sq_cli::types::FileOrStdin;
+use crate::Config;
 
 use crate::sq_cli::import;
 
@@ -32,8 +30,7 @@ pub fn dispatch<'store>(mut config: Config<'store>, cmd: import::Command)
 
     let inner = || -> Result<()> {
         for input in inputs.into_iter() {
-            let input = open_or_stdin(
-                if input == PathBuf::from("-") { None } else { Some(&input) })?;
+            let input = FileOrStdin::from(input).open()?;
             let raw_certs = RawCertParser::from_reader(input)?;
 
             let cert_store = config.cert_store_mut_or_else()?;

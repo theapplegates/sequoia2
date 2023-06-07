@@ -15,11 +15,12 @@ use openpgp::Result;
 use openpgp::serialize::Serialize;
 use openpgp::types::KeyFlags;
 use openpgp::types::ReasonForRevocation;
+use crate::sq_cli::types::FileOrStdin;
+use crate::sq_cli::types::FileOrStdout;
 use crate::{
     commands::cert_stub,
     Config,
     load_certs,
-    open_or_stdin,
     parse_notations,
 };
 
@@ -147,7 +148,7 @@ pub fn revoke_userid(config: Config, c: revoke::UseridCommand) -> Result<()> {
 
 /// Parse the cert from input and ensure it is only one cert.
 fn read_cert(input: Option<&Path>) -> Result<Cert> {
-    let input = open_or_stdin(input)?;
+    let input = FileOrStdin::from(input).open()?;
 
     let cert = CertParser::from_reader(input)?.collect::<Vec<_>>();
     let cert = match cert.len() {
@@ -182,7 +183,8 @@ fn revoke(config: Config,
           notations: &[(bool, NotationData)])
     -> Result<()>
 {
-    let mut output = config.create_or_stdout_safe(None)?;
+    let output_type = FileOrStdout::default();
+    let mut output = output_type.create_safe(config.force)?;
 
     let (secret, mut signer) = if let Some(secret) = secret.as_ref() {
         if let Ok(keys) = super::get_certification_keys(

@@ -1,6 +1,9 @@
 use clap::Parser;
 
-use crate::sq_cli::types::{ArmorKind, IoArgs};
+use super::types::ArmorKind;
+use super::types::ClapData;
+use super::types::FileOrStdin;
+use super::types::FileOrStdout;
 
 // TODO?: Option<_> conflicts with default value
 // TODO: use indoc to transparently (de-)indent static strings
@@ -29,8 +32,20 @@ $ sq armor binary-message.pgp
 "
     )]
 pub struct Command {
-    #[clap(flatten)]
-    pub io: IoArgs,
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub input: FileOrStdin,
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
     #[clap(
         long = "label",
         value_name = "LABEL",

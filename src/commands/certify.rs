@@ -150,8 +150,8 @@ pub fn certify(config: Config, c: certify::Command)
 
 
     // And export it.
-    let mut message = config.create_or_stdout_pgp(
-        c.output.as_deref(),
+    let mut message = c.output.create_pgp_safe(
+        config.force,
         c.binary,
         sequoia_openpgp::armor::Kind::PublicKey,
     )?;

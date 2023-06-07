@@ -10,7 +10,6 @@ use sequoia_autocrypt as autocrypt;
 
 use crate::{
     Config,
-    open_or_stdin,
     sq_cli,
 };
 
@@ -19,9 +18,9 @@ pub fn dispatch(config: Config, c: &sq_cli::autocrypt::Command) -> Result<()> {
 
     match &c.subcommand {
         Decode(command) => {
-            let input = open_or_stdin(command.io.input.as_deref())?;
-            let mut output = config.create_or_stdout_pgp(
-                command.io.output.as_deref(),
+            let input = command.input.open()?;
+            let mut output = command.output.create_pgp_safe(
+                config.force,
                 command.binary,
                 armor::Kind::PublicKey,
             )?;
@@ -34,9 +33,8 @@ pub fn dispatch(config: Config, c: &sq_cli::autocrypt::Command) -> Result<()> {
             output.finalize()?;
         }
         EncodeSender(command) => {
-            let input = open_or_stdin(command.io.input.as_deref())?;
-            let mut output =
-                config.create_or_stdout_safe(command.io.output.as_deref())?;
+            let input = command.input.open()?;
+            let mut output = command.output.create_safe(config.force)?;
             let cert = Cert::from_reader(input)?;
             let addr = command.address.clone()
                 .or_else(|| {

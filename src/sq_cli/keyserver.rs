@@ -1,8 +1,10 @@
-use std::path::PathBuf;
-
 use clap::{Args, Parser, Subcommand};
 
 use crate::sq_cli::types::NetworkPolicy;
+
+use super::types::ClapData;
+use super::types::FileOrCertStore;
+use super::types::FileOrStdin;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -62,12 +64,13 @@ the usual way.
 )]
 pub struct GetCommand {
     #[clap(
-        short,
+        default_value_t = FileOrCertStore::default(),
+        help = FileOrCertStore::HELP,
         long,
-        value_name = "FILE",
-        help = "Writes to FILE instead of importing into the certificate store"
+        short,
+        value_name = FileOrCertStore::VALUE_NAME,
     )]
-    pub output: Option<PathBuf>,
+    pub output: FileOrCertStore,
     #[clap(
         short = 'B',
         long,
@@ -88,6 +91,10 @@ pub struct GetCommand {
     about = "Sends a key",
 )]
 pub struct SendCommand {
-    #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]
-    pub input: Option<PathBuf>,
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub input: FileOrStdin,
 }

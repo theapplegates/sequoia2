@@ -2,7 +2,9 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-use crate::sq_cli::types::IoArgs;
+use super::types::ClapData;
+use super::types::FileOrStdin;
+use super::types::FileOrStdout;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -36,8 +38,20 @@ $ sq sign --time 20020304 --detached --signer-file juliet.pgp message.txt
 ",
     )]
 pub struct Command {
-    #[clap(flatten)]
-    pub io: IoArgs,
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub input: FileOrStdin,
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
     // TODO: Why capital B?
     #[clap(
         short = 'B',

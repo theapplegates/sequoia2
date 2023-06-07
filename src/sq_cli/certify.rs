@@ -5,7 +5,9 @@ use clap::Parser;
 use crate::sq_cli::THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION;
 use crate::sq_cli::THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS;
 
+use super::types::ClapData;
 use super::types::Expiry;
+use super::types::FileOrStdout;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -49,12 +51,13 @@ $ sq certify --time 20130721 neal.pgp ada.pgp Ada
 )]
 pub struct Command {
     #[clap(
-        short,
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
         long,
-        value_name = "FILE",
-        help = "Writes to FILE or stdout if omitted"
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
     )]
-    pub output: Option<PathBuf>,
+    pub output: FileOrStdout,
     #[clap(
         short = 'B',
         long,

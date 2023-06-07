@@ -19,7 +19,6 @@ use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
 use crate::commands::get_primary_keys;
-use crate::open_or_stdin;
 use crate::sq_cli;
 use crate::Config;
 
@@ -39,7 +38,7 @@ fn userid_add(
     config: Config,
     command: sq_cli::key::UseridAddCommand,
 ) -> Result<()> {
-    let input = open_or_stdin(command.io.input.as_deref())?;
+    let input = command.input.open()?;
     let key = Cert::from_reader(input)?;
 
     // Fail if any of the User IDs to add already exist in the ValidCert
@@ -183,8 +182,7 @@ fn userid_add(
     // Merge additional User IDs into key
     let cert = key.insert_packets(add)?;
 
-    let mut sink =
-        config.create_or_stdout_safe(command.io.output.as_deref())?;
+    let mut sink = command.output.create_safe(config.force)?;
     if command.binary {
         cert.as_tsk().serialize(&mut sink)?;
     } else {
@@ -197,7 +195,7 @@ fn userid_strip(
     config: Config,
     command: sq_cli::key::UseridStripCommand,
 ) -> Result<()> {
-    let input = open_or_stdin(command.io.input.as_deref())?;
+    let input = command.input.open()?;
     let key = Cert::from_reader(input)?;
 
     let orig_cert_valid = key.with_policy(&config.policy, None).is_ok();
@@ -238,8 +236,7 @@ signatures on other User IDs to make the key valid again.",
         }
     }
 
-    let mut sink =
-        config.create_or_stdout_safe(command.io.output.as_deref())?;
+    let mut sink = command.output.create_safe(config.force)?;
     if command.binary {
         cert.as_tsk().serialize(&mut sink)?;
     } else {

@@ -1,8 +1,9 @@
-use std::path::PathBuf;
-
 use clap::{Args, Parser, Subcommand};
 
 use crate::sq_cli::types::NetworkPolicy;
+
+use super::types::ClapData;
+use super::types::FileOrCertStore;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -63,10 +64,11 @@ pub struct GetCommand {
     )]
     pub binary: bool,
     #[clap(
-        short,
+        default_value_t = FileOrCertStore::default(),
+        help = FileOrCertStore::HELP,
         long,
-        value_name = "FILE",
-        help = "Writes to FILE instead of importing into the certificate store"
+        short,
+        value_name = FileOrCertStore::VALUE_NAME,
     )]
-    pub output: Option<PathBuf>,
+    pub output: FileOrCertStore,
 }

@@ -4,7 +4,9 @@ use clap::{ValueEnum, ArgGroup, Args, Parser, Subcommand};
 
 use sequoia_openpgp::cert::CipherSuite as SqCipherSuite;
 
-use crate::sq_cli::types::IoArgs;
+use crate::sq_cli::types::ClapData;
+use crate::sq_cli::types::FileOrStdin;
+use crate::sq_cli::types::FileOrStdout;
 use crate::sq_cli::types::Expiry;
 use crate::sq_cli::types::Time;
 use crate::sq_cli::KEY_VALIDITY_DURATION;
@@ -249,8 +251,20 @@ $ sq key password --clear < juliet.encrypted_key.pgp > juliet.decrypted_key.pgp
 ",
 )]
 pub struct PasswordCommand {
-    #[clap(flatten)]
-    pub io: IoArgs,
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub input: FileOrStdin,
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
     #[clap(
         long = "clear",
         help = "Emit a key with unencrypted secrets",
@@ -286,8 +300,20 @@ $ sq key extract-cert --output juliet.cert.pgp juliet.key.pgp
 ",
 )]
 pub struct ExtractCertCommand {
-    #[clap(flatten)]
-    pub io: IoArgs,
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub input: FileOrStdin,
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
     #[clap(
         short = 'B',
         long,
@@ -344,8 +370,20 @@ $ sq key userid add --userid \"Juliet\" --creation-time 20210628 \\
 ",
 )]
 pub struct UseridAddCommand {
-    #[clap(flatten)]
-    pub io: IoArgs,
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub input: FileOrStdin,
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
     #[clap(
         value_name = "USERID",
         short,
@@ -406,8 +444,20 @@ $ sq key userid strip --userid \"<juliet@example.org>\" \\
 ",
 )]
 pub struct UseridStripCommand {
-    #[clap(flatten)]
-    pub io: IoArgs,
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub input: FileOrStdin,
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
     #[clap(
         value_name = "USERID",
         short,
@@ -469,17 +519,19 @@ pub struct AdoptCommand {
     )]
     pub allow_broken_crypto: bool,
     #[clap(
+        default_value_t = FileOrStdin::default(),
         value_name = "TARGET-KEY",
-        help = "Adds keys to TARGET-KEY",
+        help = "Adds keys to TARGET-KEY or reads keys from stdin if omitted",
     )]
-    pub certificate: Option<PathBuf>,
+    pub certificate: FileOrStdin,
     #[clap(
-        short,
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
         long,
-        value_name = "FILE",
-        help = "Writes to FILE or stdout if omitted"
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
     )]
-    pub output: Option<PathBuf>,
+    pub output: FileOrStdout,
     #[clap(
         short = 'B',
         long,
@@ -529,17 +581,19 @@ pub struct AttestCertificationsCommand {
     )]
     pub all: bool,
     #[clap(
+        default_value_t = FileOrStdin::default(),
         value_name = "KEY",
-        help = "Changes attestations on KEY",
+        help = "Changes attestations on KEY or reads from stdin if omitted",
     )]
-    pub key: Option<PathBuf>,
+    pub key: FileOrStdin,
     #[clap(
-        short,
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
         long,
-        value_name = "FILE",
-        help = "Writes to FILE or stdout if omitted"
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
     )]
-    pub output: Option<PathBuf>,
+    pub output: FileOrStdout,
     #[clap(
         short = 'B',
         long,
@@ -618,8 +672,20 @@ $ sq key subkey add --output alice-new.key.pgp --can-sign --cipher-suite rsa3k -
 #[clap(group(ArgGroup::new("sign-group").args(&["can_sign", "can_encrypt"])))]
 #[clap(group(ArgGroup::new("required-group").args(&["can_authenticate", "can_sign", "can_encrypt"]).required(true)))]
 pub struct SubkeyAddCommand {
-    #[clap(flatten)]
-    pub io: IoArgs,
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub input: FileOrStdin,
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",

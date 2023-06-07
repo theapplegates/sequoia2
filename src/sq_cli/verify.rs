@@ -5,7 +5,9 @@ use clap::Parser;
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
-use crate::sq_cli::types::IoArgs;
+use super::types::ClapData;
+use super::types::FileOrStdin;
+use super::types::FileOrStdout;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -59,8 +61,20 @@ $ sq verify --time 20130721 msg.pgp
 ",
     )]
 pub struct Command {
-    #[clap(flatten)]
-    pub io: IoArgs,
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub input: FileOrStdin,
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
     #[clap(
         long = "detached",
         value_name = "SIG",

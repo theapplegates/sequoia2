@@ -2,6 +2,10 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 
+use super::types::ClapData;
+use super::types::FileOrStdin;
+use super::types::FileOrStdout;
+
 #[derive(Parser, Debug)]
 #[clap(
     name = "keyring",
@@ -79,12 +83,13 @@ pub struct FilterCommand {
     #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]
     pub input: Vec<PathBuf>,
     #[clap(
-        short,
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
         long,
-        value_name = "FILE",
-        help = "Writes to FILE or stdout if omitted"
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
     )]
-    pub output: Option<PathBuf>,
+    pub output: FileOrStdout,
     #[clap(
         long = "userid",
         value_name = "USERID",
@@ -174,15 +179,16 @@ $ sq keyring join juliet.pgp romeo.pgp alice.pgp
 ",
 )]
 pub struct JoinCommand {
-    #[clap(value_name = "FILE", help = "Sets the input files to use")]
+    #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]
     pub input: Vec<PathBuf>,
     #[clap(
-        short,
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
         long,
-        value_name = "FILE",
-        help = "Sets the output file to use"
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
     )]
-    pub output: Option<PathBuf>,
+    pub output: FileOrStdout,
     #[clap(
         short = 'B',
         long = "binary",
@@ -210,18 +216,16 @@ $ sq keyring merge certs.pgp romeo-updates.pgp
 ",
 )]
 pub struct MergeCommand {
-    #[clap(
-        value_name = "FILE",
-        help = "Reads from FILE",
-    )]
+    #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]
     pub input: Vec<PathBuf>,
     #[clap(
-        short,
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
         long,
-        value_name = "FILE",
-        help = "Writes to FILE or stdout if omitted"
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
     )]
-    pub output: Option<PathBuf>,
+    pub output: FileOrStdout,
     #[clap(
         short = 'B',
         long = "binary",
@@ -251,10 +255,11 @@ $ sq keyring filter --domain example.org certs.pgp | sq keyring list
 )]
 pub struct ListCommand {
     #[clap(
-        value_name = "FILE",
-        help = "Reads from FILE or stdin if omitted",
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
     )]
-    pub input: Option<PathBuf>,
+    pub input: FileOrStdin,
     #[clap(
         long = "all-userids",
         help = "Lists all user ids",
@@ -288,10 +293,11 @@ $ sq keyring merge certs.pgp | sq keyring split
 )]
 pub struct SplitCommand {
     #[clap(
-        value_name = "FILE",
-        help = "Reads from FILE or stdin if omitted",
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
     )]
-    pub input: Option<PathBuf>,
+    pub input: FileOrStdin,
     #[clap(
         short = 'p',
         long = "prefix",

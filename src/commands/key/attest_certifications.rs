@@ -5,7 +5,6 @@ use openpgp::serialize::Serialize;
 use sequoia_openpgp as openpgp;
 
 use crate::decrypt_key;
-use crate::open_or_stdin;
 use crate::sq_cli;
 use crate::Config;
 
@@ -16,7 +15,7 @@ pub fn attest_certifications(
     // Attest to all certifications?
     let all = !command.none; // All is the default.
 
-    let input = open_or_stdin(command.key.as_deref())?;
+    let input = command.key.open()?;
     let key = Cert::from_reader(input)?;
 
     // Get a signer.
@@ -63,7 +62,7 @@ pub fn attest_certifications(
     // Finally, add the new signatures.
     let key = key.insert_packets(attestation_signatures)?;
 
-    let mut sink = config.create_or_stdout_safe(command.output.as_deref())?;
+    let mut sink = command.output.create_safe(config.force)?;
     if command.binary {
         key.as_tsk().serialize(&mut sink)?;
     } else {

@@ -25,26 +25,23 @@ use crate::SECONDS_IN_YEAR;
 use crate::SECONDS_IN_DAY;
 
 use crate::sq_cli::inspect;
+use crate::sq_cli::types::FileOrStdout;
 
-pub fn inspect(mut config: Config, c: inspect::Command)
+pub fn inspect(config: Config, c: inspect::Command)
     -> Result<()>
 {
     // sq inspect does not have --output, but commands::inspect does.
     // Work around this mismatch by always creating a stdout output.
-    let output = &mut config.create_or_stdout_unsafe(None)?;
+    let output_type = FileOrStdout::default();
+    let output = &mut output_type.create_unsafe(config.force)?;
 
     let policy = &config.policy;
     let time = Some(config.time);
 
     let print_certifications = c.certifications;
 
-    let input = c.input.as_deref();
-    let input_name = if let Some(input) = c.input.as_ref() {
-        format!("{}", input.display())
-    } else {
-        "-".to_string()
-    };
-    write!(output, "{}: ", input_name)?;
+    let input = c.input;
+    write!(output, "{}: ", input)?;
 
     let mut type_called = false;  // Did we print the type yet?
     let mut encrypted = false;    // Is it an encrypted message?
@@ -56,16 +53,16 @@ pub fn inspect(mut config: Config, c: inspect::Command)
 
     let mut bytes: Vec<u8> = Vec::new();
     let mut ppr = if c.cert.is_empty() {
-        if let Some(input) = input {
-            if ! input.exists() &&
-                format!("{}", input.display()).parse::<KeyHandle>().is_ok() {
+        if let Some(path) = input.inner() {
+            if ! path.exists() &&
+                format!("{}", input).parse::<KeyHandle>().is_ok() {
                 eprintln!("The file {} does not exist, \
                            did you mean \"sq inspect --cert {}\"?",
-                          input.display(), input.display());
+                          input, input);
             }
         }
 
-        openpgp::parse::PacketParser::from_reader(crate::open_or_stdin(input)?)?
+        openpgp::parse::PacketParser::from_reader(input.open()?)?
     } else {
         let cert_store = config.cert_store_or_else()?;
         for cert in c.cert.into_iter() {
@@ -174,7 +171,7 @@ pub fn inspect(mut config: Config, c: inspect::Command)
             writeln!(output, "  Cert: {}", is_cert.unwrap_err())?;
             writeln!(output, "  Keyring: {}", is_keyring.unwrap_err())?;
             writeln!(output)?;
-            writeln!(output, "Hint: Try 'sq packet dump {}'", input_name)?;
+            writeln!(output, "Hint: Try 'sq packet dump {}'", input)?;
         }
     } else {
         unreachable!()

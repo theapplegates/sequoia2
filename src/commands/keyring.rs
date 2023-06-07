@@ -30,7 +30,6 @@ use openpgp::{
 use crate::{
     Config,
     Model,
-    open_or_stdin,
     output::KeyringListItem,
 };
 
@@ -138,10 +137,11 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
             // better to use Kind::SecretKey here.  However, this
             // requires buffering all certs, which has its own
             // problems.
-            let mut output =
-                config.create_or_stdout_pgp(command.output.as_deref(),
-                                            command.binary,
-                                            armor::Kind::PublicKey)?;
+            let mut output = command.output.create_pgp_safe(
+                config.force,
+                command.binary,
+                armor::Kind::PublicKey,
+            )?;
             filter(&command.input, &mut output, filter_fn, to_certificate)?;
             output.finalize()
         },
@@ -151,35 +151,38 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
             // better to use Kind::SecretKey here.  However, this
             // requires buffering all certs, which has its own
             // problems.
-            let mut output =
-                config.create_or_stdout_pgp(c.output.as_deref(),
-                                            c.binary,
-                                            armor::Kind::PublicKey)?;
+            let mut output = c.output.create_pgp_safe(
+                config.force,
+                c.binary,
+                armor::Kind::PublicKey,
+            )?;
             filter(&c.input, &mut output, Some, false)?;
             output.finalize()
         },
         Merge(c) => {
-            let mut output =
-                config.create_or_stdout_pgp(c.output.as_deref(),
-                                            c.binary,
-                                            armor::Kind::PublicKey)?;
+            let mut output = c.output.create_pgp_safe(
+                config.force,
+                c.binary,
+                armor::Kind::PublicKey,
+            )?;
             merge(&c.input, &mut output)?;
             output.finalize()
         },
         List(c) => {
-            let mut input = open_or_stdin(c.input.as_deref())?;
+            let mut input = c.input.open()?;
             list(config, &mut input, c.all_userids)
         },
         Split(c) => {
-            let mut input = open_or_stdin(c.input.as_deref())?;
+            let mut input = c.input.open()?;
             let prefix =
             // The prefix is either specified explicitly...
                 c.prefix.unwrap_or(
                     // ... or we derive it from the input file...
-                    c.input.and_then(|i| {
-                        let p = PathBuf::from(i);
+                    c.input.and_then(|x| {
                         // (but only use the filename)
-                        p.file_name().map(|f| String::from(f.to_string_lossy()))
+                        x.file_name().map(|f|
+                            String::from(f.to_string_lossy())
+                        )
                     })
                     // ... or we use a generic prefix...
                         .unwrap_or_else(|| String::from("output"))

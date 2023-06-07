@@ -1,7 +1,14 @@
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::fs::OpenOptions;
+use std::io::Write;
+use std::io::stdin;
+use std::io::stdout;
+use std::path::Path;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
 use std::time::Duration;
 use std::time::SystemTime;
 
@@ -9,28 +16,413 @@ use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 
+use buffered_reader::BufferedReader;
+use buffered_reader::File;
+use buffered_reader::Generic;
 use chrono::{offset::Utc, DateTime};
 /// Common types for arguments of sq.
-use clap::{ValueEnum, Args};
+use clap::ValueEnum;
 
+use openpgp::armor;
 use openpgp::fmt::hex;
+use openpgp::serialize::stream::Armorer;
+use openpgp::serialize::stream::Message;
 use openpgp::types::SymmetricAlgorithm;
 use sequoia_openpgp as openpgp;
+use terminal_size::terminal_size;
 
 use crate::sq_cli::SECONDS_IN_DAY;
 use crate::sq_cli::SECONDS_IN_YEAR;
 
-#[derive(Debug, Args)]
-pub struct IoArgs {
-    #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]
-    pub input: Option<PathBuf>,
-    #[clap(
-        short,
-        long,
-        value_name = "FILE",
-        help = "Writes to FILE or stdout if omitted"
-    )]
-    pub output: Option<PathBuf>,
+/// A type wrapping an AtomicBool to guard emitting a CLI warning only once
+struct CliWarningOnce(AtomicBool);
+/// A static `CliWarningOnce` indicating whether a warning about the unstable
+/// CLI has been emitted already
+static UNSTABLE_CLI_WARNING: CliWarningOnce =
+    CliWarningOnce(AtomicBool::new(false));
+
+impl CliWarningOnce {
+    /// Emit a warning message only once
+    pub fn warn(&self) {
+        if !self.0.swap(true, Ordering::Relaxed) {
+            // stdout is connected to a terminal, assume interactive use.
+            if terminal_size().is_none()
+                // For bash shells, we can use a very simple heuristic.
+                // We simply look at whether the COLUMNS variable is defined in
+                // our environment.
+                && std::env::var_os("COLUMNS").is_none() {
+                eprintln!(
+                    "\nWARNING: sq does not have a stable CLI interface. \
+                    Use with caution in scripts.\n"
+                );
+            }
+        }
+    }
+}
+
+/// A trait to provide const &str for clap annotations for custom structs
+pub trait ClapData {
+    /// The clap value name
+    const VALUE_NAME: &'static str;
+    /// The clap help text
+    const HELP: &'static str;
+}
+
+/// A type wrapping an optional PathBuf to use as stdin or file input
+///
+/// When creating `FileOrStdin` from `&str`, providing a `"-"` is interpreted
+/// as `None`, i.e. read from stdin. Providing other strings is interpreted as
+/// `Some(PathBuf)`, i.e. read from file.
+/// Use this if a CLI should allow input from a file and if unset from stdin.
+///
+/// ## Examples
+/// ```
+/// use clap::Args;
+///
+/// #[derive(Debug, Args)]
+/// #[clap(name = "example", about = "an example")]
+/// pub struct Example {
+///     #[clap(
+///         default_value_t = FileOrStdin::default(),
+///         help = FileOrStdin::HELP,
+///         value_name = FileOrStdin::VALUE_NAME,
+///     )]
+///     pub input: FileOrStdin,
+/// }
+/// ```
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FileOrStdin(Option<PathBuf>);
+
+impl ClapData for FileOrStdin {
+    const VALUE_NAME: &'static str = "FILE";
+    const HELP: &'static str = "Reads from FILE or stdin if omitted";
+}
+
+impl FileOrStdin {
+    pub fn new(path: Option<PathBuf>) -> Self {
+        FileOrStdin(path)
+    }
+
+    /// Return a reference to the inner type
+    pub fn inner(&self) -> Option<&PathBuf> {
+        self.0.as_ref()
+    }
+
+    /// Returns `None` if `self.0` is `None`, otherwise calls f with the wrapped
+    /// value and returns the result
+    pub fn and_then<U, F>(self, f: F) -> Option<U>
+    where
+        F: FnOnce(PathBuf) -> Option<U>,
+    {
+        self.0.and_then(|x| f(x))
+    }
+
+    /// Get a boxed BufferedReader for the FileOrStdin
+    ///
+    /// Opens a file if there is Some(PathBuf), else opens stdin.
+    pub fn open(&self) -> Result<Box<dyn BufferedReader<()>>> {
+        if let Some(path) = self.inner() {
+            Ok(Box::new(
+                File::open(path)
+                .with_context(|| format!("Failed to open {}", self))?))
+        } else {
+            Ok(Box::new(Generic::new(stdin(), None)))
+        }
+    }
+}
+
+impl Default for FileOrStdin {
+    fn default() -> Self {
+        FileOrStdin(None)
+    }
+}
+
+impl From<PathBuf> for FileOrStdin {
+    fn from(value: PathBuf) -> Self {
+        if value == PathBuf::from("-") {
+            FileOrStdin::default()
+        } else {
+            FileOrStdin::new(Some(value))
+        }
+    }
+}
+
+impl From<Option<PathBuf>> for FileOrStdin {
+    fn from(value: Option<PathBuf>) -> Self {
+        if let Some(path) = value {
+            FileOrStdin::from(path)
+        } else {
+            FileOrStdin::default()
+        }
+    }
+}
+
+impl From<&Path> for FileOrStdin {
+    fn from(value: &Path) -> Self {
+        if Path::new("-") == value {
+            FileOrStdin::default()
+        } else {
+            FileOrStdin::from(value.to_owned())
+        }
+    }
+}
+
+impl From<Option<&Path>> for FileOrStdin {
+    fn from(value: Option<&Path>) -> Self {
+        if let Some(path) = value {
+            FileOrStdin::from(path)
+        } else {
+            FileOrStdin::default()
+        }
+    }
+}
+
+impl FromStr for FileOrStdin {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        if "-" == s {
+            Ok(FileOrStdin(None))
+        } else {
+            Ok(FileOrStdin(Some(PathBuf::from(s))))
+        }
+    }
+}
+
+impl Display for FileOrStdin {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match &self.0 {
+            None => write!(f, "-"),
+            Some(path) => write!(f, "{}", path.display()),
+        }
+    }
+}
+
+/// A type wrapping an optional PathBuf to use as stdout or file output
+///
+/// Use this if a CLI should allow output to a file and if unset output to
+/// a cert store.
+///
+/// ## Examples
+/// ```
+/// use clap::Args;
+///
+/// #[derive(Debug, Args)]
+/// #[clap(name = "example", about = "an example")]
+/// pub struct Example {
+///     #[clap(
+///         help = FileOrCertStore::HELP,
+///         long,
+///         short,
+///         value_name = FileOrCertStore::VALUE_NAME,
+///     )]
+///     pub output: Option<FileOrCertStore>,
+/// }
+/// ```
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FileOrCertStore(Option<PathBuf>);
+
+impl ClapData for FileOrCertStore {
+    const VALUE_NAME: &'static str = "FILE";
+    const HELP: &'static str
+        = "Writes to FILE instead of importing into the certificate store";
+}
+
+impl FileOrCertStore {
+    /// Consume self and return the inner PathBuf
+    pub fn into_inner(self) -> Option<PathBuf> {
+        self.0
+    }
+
+    /// Return a reference to the inner type
+    pub fn path(&self) -> Option<&PathBuf> {
+        self.0.as_ref()
+    }
+}
+
+impl Default for FileOrCertStore {
+    fn default() -> Self {
+        FileOrCertStore(None)
+    }
+}
+
+impl FromStr for FileOrCertStore {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Ok(FileOrCertStore(Some(PathBuf::from(s))))
+    }
+}
+
+impl Display for FileOrCertStore {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match &self.0 {
+            Some(path) => write!(f, "{}", path.display()),
+            None => write!(f, "-"),
+        }
+    }
+}
+
+/// A type wrapping an optional PathBuf to use as stdout or file output
+///
+/// When creating `FileOrStdout` from `&str`, providing a `"-"` is interpreted
+/// as `None`, i.e. output to stdout. Providing other strings is interpreted as
+/// `Some(PathBuf)`, i.e. output to file.
+/// Use this if a CLI should allow output to a file and if unset output to
+/// stdout.
+///
+/// ## Examples
+/// ```
+/// use clap::Args;
+///
+/// #[derive(Debug, Args)]
+/// #[clap(name = "example", about = "an example")]
+/// pub struct Example {
+///     #[clap(
+///         default_value_t = FileOrStdout::default(),
+///         help = FileOrStdout::HELP,
+///         long,
+///         short,
+///         value_name = FileOrStdout::VALUE_NAME,
+///     )]
+///     pub output: FileOrStdout,
+/// }
+/// ```
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FileOrStdout(Option<PathBuf>);
+
+impl ClapData for FileOrStdout {
+    const VALUE_NAME: &'static str = "FILE";
+    const HELP: &'static str = "Writes to FILE or stdout if omitted";
+}
+
+impl FileOrStdout {
+    pub fn new(path: Option<PathBuf>) -> Self {
+        FileOrStdout(path)
+    }
+
+    /// Return a reference to the optional PathBuf
+    pub fn path(&self) -> Option<&PathBuf> {
+        self.0.as_ref()
+    }
+
+    /// Opens the file (or stdout) for writing data that is safe for
+    /// non-interactive use.
+    ///
+    /// This is suitable for any kind of OpenPGP data, decrypted or
+    /// authenticated payloads.
+    pub fn create_safe(
+        &self,
+        force: bool,
+    ) -> Result<Box<dyn Write + Sync + Send>> {
+        self.create(force)
+    }
+
+    /// Opens the file (or stdout) for writing data that is NOT safe
+    /// for non-interactive use.
+    ///
+    /// If our heuristic detects non-interactive use, we will emit a
+    /// warning once.
+    pub fn create_unsafe(
+        &self,
+        force: bool,
+    ) -> Result<Box<dyn Write + Sync + Send>> {
+        UNSTABLE_CLI_WARNING.warn();
+        self.create(force)
+    }
+
+    /// Opens the file (or stdout) for writing data that is safe for
+    /// non-interactive use because it is an OpenPGP data stream.
+    pub fn create_pgp_safe(
+        &self,
+        force: bool,
+        binary: bool,
+        kind: armor::Kind,
+    ) -> Result<Message> {
+        let sink = self.create_safe(force)?;
+        let mut message = Message::new(sink);
+        if ! binary {
+            message = Armorer::new(message).kind(kind).build()?;
+        }
+        Ok(message)
+    }
+
+    /// Helper function, do not use directly. Instead, use create_or_stdout_safe
+    /// or create_or_stdout_unsafe.
+    fn create(&self, force: bool) -> Result<Box<dyn Write + Sync + Send>> {
+        if let Some(path) = self.path() {
+            if !path.exists() || force {
+                Ok(Box::new(
+                    OpenOptions::new()
+                        .write(true)
+                        .truncate(true)
+                        .create(true)
+                        .open(path)
+                        .context("Failed to create output file")?,
+                ))
+            } else {
+                Err(anyhow::anyhow!(format!(
+                    "File {:?} exists, use \"sq --force ...\" to overwrite",
+                    self,
+                )))
+            }
+        } else {
+            Ok(Box::new(stdout()))
+        }
+    }
+}
+
+impl Default for FileOrStdout {
+    fn default() -> Self {
+        FileOrStdout(None)
+    }
+}
+
+impl From<FileOrCertStore> for FileOrStdout {
+    fn from(value: FileOrCertStore) -> Self {
+        FileOrStdout::new(value.into_inner())
+    }
+}
+
+impl From<PathBuf> for FileOrStdout {
+    fn from(value: PathBuf) -> Self {
+        if value == PathBuf::from("-") {
+            FileOrStdout::default()
+        } else {
+            FileOrStdout::new(Some(value))
+        }
+    }
+}
+
+impl From<Option<PathBuf>> for FileOrStdout {
+    fn from(value: Option<PathBuf>) -> Self {
+        if let Some(path) = value {
+            FileOrStdout::from(path)
+        } else {
+            FileOrStdout::default()
+        }
+    }
+}
+
+impl FromStr for FileOrStdout {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        if "-" == s {
+            Ok(FileOrStdout::default())
+        } else {
+            Ok(FileOrStdout(Some(PathBuf::from(s))))
+        }
+    }
+}
+
+impl Display for FileOrStdout {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match &self.0 {
+            Some(path) => write!(f, "{}", path.display()),
+            None => write!(f, "-"),
+        }
+    }
 }
 
 #[derive(ValueEnum, Debug, Clone)]

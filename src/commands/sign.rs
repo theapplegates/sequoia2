@@ -1,7 +1,6 @@
 use anyhow::Context as _;
 use std::fs;
 use std::io;
-use std::path::Path;
 use std::path::PathBuf;
 use std::time::SystemTime;
 use tempfile::NamedTempFile;
@@ -20,6 +19,7 @@ use openpgp::serialize::stream::{
     Message, Armorer, Signer, LiteralWriter,
 };
 use openpgp::types::SignatureType;
+use crate::sq_cli::types::FileOrStdout;
 use crate::{
     Config,
 };
@@ -28,7 +28,7 @@ pub struct SignOpts<'a, 'certdb> {
     pub config: Config<'certdb>,
     pub private_key_store: Option<&'a str>,
     pub input: &'a mut (dyn io::Read + Sync + Send),
-    pub output_path: Option<&'a Path>,
+    pub output_path: &'a FileOrStdout,
     pub secrets: Vec<openpgp::Cert>,
     pub detached: bool,
     pub binary: bool,
@@ -61,11 +61,12 @@ fn sign_data(opts: SignOpts) -> Result<()> {
         notations, ..} = opts;
     let (mut output, prepend_sigs, tmp_path):
     (Box<dyn io::Write + Sync + Send>, Vec<Signature>, Option<PathBuf>) =
-        if detached && append && output_path.is_some() {
+        if detached && append && output_path.path().is_some() {
+            let output_path = output_path.path().unwrap();
             // First, read the existing signatures.
             let mut sigs = Vec::new();
             let mut ppr =
-                openpgp::parse::PacketParser::from_file(output_path.unwrap())?;
+                openpgp::parse::PacketParser::from_file(output_path)?;
 
             while let PacketParserResult::Some(pp) = ppr {
                 let (packet, ppr_tmp) = pp.recurse()?;
@@ -84,12 +85,12 @@ fn sign_data(opts: SignOpts) -> Result<()> {
             // successful with adding our signature(s), we rename the
             // file replacing the old one.
             let tmp_file = NamedTempFile::new_in(
-                PathBuf::from(output_path.unwrap()).parent()
+                PathBuf::from(output_path).parent()
                     .unwrap_or(&PathBuf::from(".")))?;
             let tmp_path = tmp_file.path().into();
             (Box::new(tmp_file), sigs, Some(tmp_path))
         } else {
-            (config.create_or_stdout_safe(output_path)?, Vec::new(), None)
+            (output_path.create_safe(config.force)?, Vec::new(), None)
         };
 
     let mut keypairs = super::get_signing_keys(
@@ -159,17 +160,20 @@ fn sign_data(opts: SignOpts) -> Result<()> {
 
     if let Some(path) = tmp_path {
         // Atomically replace the old file.
-        fs::rename(path,
-                   output_path.expect("must be Some if tmp_path is Some"))?;
+        fs::rename(
+            path,
+            output_path.path().expect("must be Some if tmp_path is Some"),
+        )?;
     }
     Ok(())
 }
 
 fn sign_message(opts: SignOpts) -> Result<()> {
-    let mut output =
-        opts.config.create_or_stdout_pgp(opts.output_path,
-                                    opts.binary,
-                                    armor::Kind::Message)?;
+    let mut output = opts.output_path.create_pgp_safe(
+        opts.config.force,
+        opts.binary,
+        armor::Kind::Message,
+    )?;
     sign_message_(opts, &mut output)?;
     output.finalize()?;
     Ok(())

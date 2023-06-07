@@ -4,7 +4,6 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{self, Write};
-use std::path::Path;
 use std::time::SystemTime;
 
 use sequoia_net::pks;
@@ -39,6 +38,7 @@ use cert_store::Store;
 
 use sequoia_wot::store::Store as _;
 
+use crate::sq_cli::types::FileOrStdout;
 use crate::{
     Config,
 };
@@ -946,25 +946,20 @@ pub fn join(config: Config, c: packet::JoinCommand) -> Result<()> {
     let kind = c.kind.into();
     let output = c.output;
     let mut sink = if c.binary {
-            // TODO: Does this mean kind is silently ignored if binary is given?
-            // No need for any auto-detection.
-            Some(config.create_or_stdout_pgp(output.as_deref(),
-                                             true, // Binary.
-                                             armor::Kind::File)?)
-        } else if let Some(kind) = kind {
-            Some(config.create_or_stdout_pgp(output.as_deref(),
-                                             false, // Armored.
-                                             kind)?)
-        } else {
-            None // Defer.
-        };
+        // No need for any auto-detection.
+        Some(output.create_pgp_safe(config.force, true, armor::Kind::File)?)
+    } else if let Some(kind) = kind {
+        Some(output.create_pgp_safe(config.force, false, kind)?)
+    } else {
+        None // Defer.
+    };
 
     /// Writes a bit-accurate copy of all top-level packets in PPR to
     /// OUTPUT.
-    fn copy(config: &Config,
+    fn copy<'a, 'b>(config: &Config,
             mut ppr: PacketParserResult,
-            output: Option<&Path>,
-            sink: &mut Option<Message>)
+            output: &'a FileOrStdout,
+            sink: &'b mut Option<Message<'a>>)
             -> Result<()> {
         while let PacketParserResult::Some(pp) = ppr {
             if sink.is_none() {
@@ -978,9 +973,9 @@ pub fn join(config: Config, c: packet::JoinCommand) -> Result<()> {
                     _ => armor::Kind::File,
                 };
 
-                *sink = Some(config.create_or_stdout_pgp(output,
-                                                         false, // Armored.
-                                                         kind)?);
+                *sink = Some(
+                    output.create_pgp_safe(config.force, false, kind)?
+                );
             }
 
             // We (ab)use the mapping feature to create byte-accurate
@@ -1000,13 +995,13 @@ pub fn join(config: Config, c: packet::JoinCommand) -> Result<()> {
             let ppr =
                 openpgp::parse::PacketParserBuilder::from_file(name)?
                 .map(true).build()?;
-            copy(&config, ppr, output.as_deref(), &mut sink)?;
+            copy(&config, ppr, &output, &mut sink)?;
         }
     } else {
         let ppr =
             openpgp::parse::PacketParserBuilder::from_reader(io::stdin())?
             .map(true).build()?;
-        copy(&config, ppr, output.as_deref(), &mut sink)?;
+        copy(&config, ppr, &output, &mut sink)?;
     }
 
     sink.unwrap().finalize()?;

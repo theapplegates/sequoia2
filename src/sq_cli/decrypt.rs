@@ -2,7 +2,10 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-use crate::sq_cli::types::{IoArgs, SessionKey};
+use super::types::ClapData;
+use super::types::FileOrStdin;
+use super::types::FileOrStdout;
+use super::types::SessionKey;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -44,8 +47,20 @@ $ sq decrypt ciphertext.pgp
 )]
 // TODO use usize
 pub struct Command {
-    #[clap(flatten)]
-    pub io: IoArgs,
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub input: FileOrStdin,
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
     #[clap(
         short = 'n',
         long = "signatures",

@@ -2,7 +2,11 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 
-use crate::sq_cli::types::{ArmorKind, IoArgs, SessionKey};
+use super::types::ArmorKind;
+use super::types::ClapData;
+use super::types::FileOrStdin;
+use super::types::FileOrStdout;
+use super::types::SessionKey;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -64,8 +68,20 @@ $ sq packet dump --session-key AAAABBBBCCCC... ciphertext.pgp
 ",
 )]
 pub struct DumpCommand {
-    #[clap(flatten)]
-    pub io: IoArgs,
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub input: FileOrStdin,
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
     #[clap(
         long = "session-key",
         value_name = "SESSION-KEY",
@@ -102,8 +118,20 @@ $ sq packet decrypt --recipient-file juliet.pgp ciphertext.pgp
 ",
 )]
 pub struct DecryptCommand {
-    #[clap(flatten)]
-    pub io: IoArgs,
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub input: FileOrStdin,
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
     #[clap(
         short = 'B',
         long,
@@ -154,8 +182,12 @@ $ sq packet split juliet.pgp
 ",
 )]
 pub struct SplitCommand {
-    #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]
-    pub input: Option<PathBuf>,
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub input: FileOrStdin,
     #[clap(
         short = 'p',
         long = "prefix",
@@ -191,12 +223,13 @@ pub struct JoinCommand {
     #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]
     pub input: Vec<PathBuf>,
     #[clap(
-        short,
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
         long,
-        value_name = "FILE",
-        help = "Writes to FILE or stdout if omitted"
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
     )]
-    pub output: Option<PathBuf>,
+    pub output: FileOrStdout,
     #[clap(
         long = "label",
         value_name = "LABEL",

@@ -14,6 +14,7 @@ use sequoia_openpgp as openpgp;
 
 use crate::sq_cli;
 use crate::Config;
+use crate::sq_cli::types::FileOrStdout;
 
 pub fn generate(
     config: Config,
@@ -123,7 +124,7 @@ pub fn generate(
     let (cert, rev) = builder.generate()?;
 
     // Export
-    if let Some(key_path) = command.export.as_ref() {
+    if let Some(key_path) = command.export {
         if &format!("{}", key_path.display()) == "-"
             && command.rev_cert.is_none()
         {
@@ -132,10 +133,12 @@ pub fn generate(
             ))
         }
 
+        let key_path = FileOrStdout::from(key_path);
+
         let rev_path = if command.rev_cert.is_some() {
-            command.rev_cert
+            FileOrStdout::new(command.rev_cert)
         } else {
-            Some(PathBuf::from(format!("{}.rev", key_path.display())))
+            FileOrStdout::from(PathBuf::from(format!("{}.rev", key_path)))
         };
 
         let headers = cert.armor_headers();
@@ -147,7 +150,7 @@ pub fn generate(
                 .map(|value| ("Comment", value.as_str()))
                 .collect();
 
-            let w = config.create_or_stdout_safe(Some(key_path))?;
+            let w = key_path.create_safe(config.force)?;
             let mut w = Writer::with_headers(w, Kind::SecretKey, headers)?;
             cert.as_tsk().serialize(&mut w)?;
             w.finalize()?;
@@ -161,7 +164,7 @@ pub fn generate(
                 .collect();
             headers.insert(0, ("Comment", "Revocation certificate for"));
 
-            let w = config.create_or_stdout_safe(rev_path.as_deref())?;
+            let w = rev_path.create_safe(config.force)?;
             let mut w = Writer::with_headers(w, Kind::Signature, headers)?;
             Packet::Signature(rev).serialize(&mut w)?;
             w.finalize()?;

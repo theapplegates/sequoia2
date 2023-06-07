@@ -1,6 +1,8 @@
 use clap::{ValueEnum, Args, Parser, Subcommand};
 
-use crate::sq_cli::types::IoArgs;
+use super::types::ClapData;
+use super::types::FileOrStdin;
+use super::types::FileOrStdout;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -47,8 +49,20 @@ $ sq autocrypt decode autocrypt.eml
 "
 )]
 pub struct DecodeCommand {
-    #[clap(flatten)]
-    pub io: IoArgs,
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub input: FileOrStdin,
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
     #[clap(short = 'B', long, help = "Emits binary data")]
     pub binary: bool,
 }
@@ -81,8 +95,20 @@ $ sq autocrypt encode-sender --prefer-encrypt mutual juliet.pgp
 "
 )]
 pub struct EncodeSenderCommand {
-    #[clap(flatten)]
-    pub io: IoArgs,
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub input: FileOrStdin,
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
     // TODO the help message looks like "primary userid" might be the default
     // email. clarify
     #[clap(

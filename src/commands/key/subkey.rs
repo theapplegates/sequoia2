@@ -9,7 +9,6 @@ use openpgp::Cert;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
-use crate::open_or_stdin;
 use crate::sq_cli::key::EncryptPurpose;
 use crate::sq_cli::key::SubkeyCommand;
 use crate::sq_cli::key::SubkeyAddCommand;
@@ -32,7 +31,7 @@ fn subkey_add(
     config: Config,
     command: SubkeyAddCommand,
 ) -> Result<()> {
-    let input = open_or_stdin(command.io.input.as_deref())?;
+    let input = command.input.open()?;
     let cert = Cert::from_reader(input)?;
     let valid_cert = cert.with_policy(&config.policy, config.time)?;
 
@@ -59,8 +58,7 @@ fn subkey_add(
         .set_key_validity_period(validity)?
         .attach_cert()?;
 
-    let mut sink =
-        config.create_or_stdout_safe(command.io.output.as_deref())?;
+    let mut sink = command.output.create_safe(config.force)?;
     if command.binary {
         new_cert.as_tsk().serialize(&mut sink)?;
     } else {

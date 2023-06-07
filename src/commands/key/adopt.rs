@@ -20,12 +20,11 @@ use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
 use crate::decrypt_key;
-use crate::open_or_stdin;
 use crate::sq_cli;
 use crate::Config;
 
 pub fn adopt(config: Config, command: sq_cli::key::AdoptCommand) -> Result<()> {
-    let input = open_or_stdin(command.certificate.as_deref())?;
+    let input = command.certificate.open()?;
     let cert = Cert::from_reader(input)?;
     let mut wanted: Vec<(
         KeyHandle,
@@ -209,7 +208,7 @@ pub fn adopt(config: Config, command: sq_cli::key::AdoptCommand) -> Result<()> {
 
     let cert = cert.clone().insert_packets(packets.clone())?;
 
-    let mut sink = config.create_or_stdout_safe(command.output.as_deref())?;
+    let mut sink = command.output.create_safe(config.force)?;
     if command.binary {
         cert.as_tsk().serialize(&mut sink)?;
     } else {

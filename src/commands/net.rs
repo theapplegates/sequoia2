@@ -48,7 +48,6 @@ use crate::{
 };
 
 use crate::sq_cli;
-use crate::sq_cli::types::FileOrStdout;
 
 const NP: NullPolicy = NullPolicy::new();
 
@@ -409,9 +408,8 @@ pub fn dispatch_keyserver(mut config: Config, c: sq_cli::keyserver::Command)
                 let cert = rt.block_on(ks.get(handle))
                     .context("Failed to retrieve cert")?;
 
-                if c.output.path().is_some() {
-                    let mut output = FileOrStdout::from(c.output)
-                        .create_safe(config.force)?;
+                if let Some(file) = c.output {
+                    let mut output = file.create_safe(config.force)?;
                     if !c.binary {
                         cert.armored().serialize(&mut output)
                     } else {
@@ -432,9 +430,8 @@ pub fn dispatch_keyserver(mut config: Config, c: sq_cli::keyserver::Command)
                 let certs = rt.block_on(ks.search(addr))
                     .context("Failed to retrieve certs")?;
 
-                if c.output.path().is_some() {
-                    let mut output = FileOrStdout::from(c.output)
-                        .create_safe(config.force)?;
+                if let Some(file) = c.output {
+                    let mut output = file.create_safe(config.force)?;
                     serialize_keyring(&mut output, &certs, c.binary)?;
                 } else {
                     let certs = if let Some((ca_filename, ca_userid)) = ca() {
@@ -514,9 +511,8 @@ pub fn dispatch_wkd(mut config: Config, c: sq_cli::wkd::Command) -> Result<()> {
             // ```
             // But to keep the parallelism with `store export` and `keyserver get`,
             // The output is armored if not `--binary` option is given.
-            if c.output.path().is_some() {
-                let mut output = FileOrStdout::from(c.output)
-                    .create_safe(config.force)?;
+            if let Some(file) = c.output {
+                let mut output = file.create_safe(config.force)?;
                 serialize_keyring(&mut output, &certs, c.binary)?;
             } else {
                 let certs = certify_downloads(
@@ -587,9 +583,8 @@ pub fn dispatch_dane(mut config: Config, c: sq_cli::dane::Command) -> Result<()>
             // Because it might be created a WkdServer struct, not
             // doing it for now.
             let certs = rt.block_on(dane::get(&email_address))?;
-            if c.output.path().is_some() {
-                let mut output = FileOrStdout::from(c.output)
-                    .create_safe(config.force)?;
+            if let Some(file) = c.output {
+                let mut output = file.create_safe(config.force)?;
                 serialize_keyring(&mut output, &certs, c.binary)?;
             } else {
                 let certs = certify_downloads(

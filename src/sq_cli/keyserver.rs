@@ -5,6 +5,7 @@ use crate::sq_cli::types::NetworkPolicy;
 use super::types::ClapData;
 use super::types::FileOrCertStore;
 use super::types::FileOrStdin;
+use super::types::FileOrStdout;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -64,13 +65,12 @@ the usual way.
 )]
 pub struct GetCommand {
     #[clap(
-        default_value_t = FileOrCertStore::default(),
         help = FileOrCertStore::HELP,
         long,
         short,
         value_name = FileOrCertStore::VALUE_NAME,
     )]
-    pub output: FileOrCertStore,
+    pub output: Option<FileOrStdout>,
     #[clap(
         short = 'B',
         long,

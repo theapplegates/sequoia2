@@ -198,10 +198,11 @@ impl Display for FileOrStdin {
     }
 }
 
-/// A type wrapping an optional PathBuf to use as stdout or file output
+/// A type providing const strings for output to certstore by default
 ///
-/// Use this if a CLI should allow output to a file and if unset output to
-/// a cert store.
+/// This struct is empty and solely used to provide strings to clap.
+/// Use this in combination with a [`FileOrStdout`] if a CLI should allow output
+/// to a file and if unset output to a cert store.
 ///
 /// ## Examples
 /// ```
@@ -216,51 +217,17 @@ impl Display for FileOrStdin {
 ///         short,
 ///         value_name = FileOrCertStore::VALUE_NAME,
 ///     )]
-///     pub output: Option<FileOrCertStore>,
+///     pub output: Option<FileOrStdout>,
 /// }
 /// ```
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct FileOrCertStore(Option<PathBuf>);
+pub struct FileOrCertStore{}
 
 impl ClapData for FileOrCertStore {
     const VALUE_NAME: &'static str = "FILE";
     const HELP: &'static str
-        = "Writes to FILE instead of importing into the certificate store";
-}
-
-impl FileOrCertStore {
-    /// Consume self and return the inner PathBuf
-    pub fn into_inner(self) -> Option<PathBuf> {
-        self.0
-    }
-
-    /// Return a reference to the inner type
-    pub fn path(&self) -> Option<&PathBuf> {
-        self.0.as_ref()
-    }
-}
-
-impl Default for FileOrCertStore {
-    fn default() -> Self {
-        FileOrCertStore(None)
-    }
-}
-
-impl FromStr for FileOrCertStore {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self> {
-        Ok(FileOrCertStore(Some(PathBuf::from(s))))
-    }
-}
-
-impl Display for FileOrCertStore {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        match &self.0 {
-            Some(path) => write!(f, "{}", path.display()),
-            None => write!(f, "-"),
-        }
-    }
+        = "Writes to FILE (or stdout when providing \"-\") instead of \
+          importing into the certificate store";
 }
 
 /// A type wrapping an optional PathBuf to use as stdout or file output
@@ -375,12 +342,6 @@ impl FileOrStdout {
 impl Default for FileOrStdout {
     fn default() -> Self {
         FileOrStdout(None)
-    }
-}
-
-impl From<FileOrCertStore> for FileOrStdout {
-    fn from(value: FileOrCertStore) -> Self {
-        FileOrStdout::new(value.into_inner())
     }
 }
 

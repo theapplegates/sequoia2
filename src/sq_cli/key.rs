@@ -2,7 +2,9 @@ use std::path::PathBuf;
 
 use clap::{ValueEnum, ArgGroup, Args, Parser, Subcommand};
 
-use sequoia_openpgp::cert::CipherSuite as SqCipherSuite;
+use sequoia_openpgp as openpgp;
+use openpgp::cert::CipherSuite as SqCipherSuite;
+use openpgp::types::ReasonForRevocation as OpenPGPRevocationReason;
 
 use crate::sq_cli::types::ClapData;
 use crate::sq_cli::types::FileOrStdin;
@@ -12,6 +14,41 @@ use crate::sq_cli::types::Time;
 use crate::sq_cli::KEY_VALIDITY_DURATION;
 use crate::sq_cli::KEY_VALIDITY_IN_YEARS;
 
+/// The revocation reason for a certificate or subkey
+#[derive(ValueEnum, Clone, Debug)]
+pub enum RevocationReason {
+    Compromised,
+    Superseded,
+    Retired,
+    Unspecified
+}
+
+impl From<RevocationReason> for OpenPGPRevocationReason {
+    fn from(rr: RevocationReason) -> Self {
+        match rr {
+            RevocationReason::Compromised => OpenPGPRevocationReason::KeyCompromised,
+            RevocationReason::Superseded => OpenPGPRevocationReason::KeySuperseded,
+            RevocationReason::Retired => OpenPGPRevocationReason::KeyRetired,
+            RevocationReason::Unspecified => OpenPGPRevocationReason::Unspecified,
+        }
+    }
+}
+
+/// The revocation reason for a UserID
+#[derive(ValueEnum, Clone, Debug)]
+pub enum UseridRevocationReason {
+    Retired,
+    Unspecified
+}
+
+impl From<UseridRevocationReason> for OpenPGPRevocationReason {
+    fn from(rr: UseridRevocationReason) -> Self {
+        match rr {
+            UseridRevocationReason::Retired => OpenPGPRevocationReason::UIDRetired,
+            UseridRevocationReason::Unspecified => OpenPGPRevocationReason::Unspecified,
+        }
+    }
+}
 #[derive(Parser, Debug)]
 #[clap(
     name = "key",
@@ -39,6 +76,7 @@ pub struct Command {
 pub enum Subcommands {
     Generate(GenerateCommand),
     Password(PasswordCommand),
+    Revoke(RevokeCommand),
     #[clap(subcommand)]
     Userid(UseridCommand),
     #[clap(subcommand)]
@@ -281,6 +319,143 @@ pub struct PasswordCommand {
 
 #[derive(Debug, Args)]
 #[clap(
+    about = "Revoke a certificate",
+    long_about =
+"Revokes a certificate
+
+Creates a revocation certificate for the certificate.
+
+If \"--revocation-file\" is provided, then that key is used to create
+the signature.  If that key is different from the certificate being
+revoked, this creates a third-party revocation.  This is normally only
+useful if the owner of the certificate designated the key to be a
+designated revoker.
+
+If \"--revocation-file\" is not provided, then the certificate must
+include a certification-capable key.
+
+\"sq key revoke\" respects the reference time set by the top-level \
+\"--time\" argument.  When set, it uses the specified time instead of \
+the current time, when determining what keys are valid, and it sets \
+the revocation certificate's creation time to the reference time \
+instead of the current time.
+",
+)]
+pub struct RevokeCommand {
+    #[clap(
+        value_name = "FILE",
+        long = "certificate-file",
+        alias = "cert-file",
+        help = "The certificate to revoke",
+        long_help =
+"Reads the certificate to revoke from FILE or stdin, if omitted.  It is \
+an error for the file to contain more than one certificate.",
+    )]
+    pub input: Option<PathBuf>,
+
+    #[clap(
+        long = "revocation-file",
+        value_name = "KEY_FILE",
+        help = "Signs the revocation certificate using the key in KEY_FILE",
+        long_help =
+"Signs the revocation certificate using the key in KEY_FILE.  If the key is \
+different from the certificate, this creates a third-party revocation.  If \
+this option is not provided, and the certificate includes secret key material, \
+then that key is used to sign the revocation certificate.",
+    )]
+    pub secret_key_file: Option<PathBuf>,
+
+    #[clap(
+        long = "private-key-store",
+        value_name = "KEY_STORE",
+        help = "Provides parameters for private key store",
+    )]
+    pub private_key_store: Option<String>,
+
+    #[clap(
+        value_name = "REASON",
+        required = true,
+        help = "The reason for the revocation",
+        long_help =
+"The reason for the revocation.  This must be either: compromised,
+superseded, retired, or unspecified:
+
+  - compromised means that the secret key material may have been
+    compromised.  Prefer this value if you suspect that the secret
+    key has been leaked.
+
+  - superseded means that the owner of the certificate has replaced
+    it with a new certificate.  Prefer \"compromised\" if the secret
+    key material has been compromised even if the certificate is also
+    being replaced!  You should include the fingerprint of the new
+    certificate in the message.
+
+  - retired means that this certificate should not be used anymore,
+    and there is no replacement.  This is appropriate when someone
+    leaves an organisation.  Prefer \"compromised\" if the secret key
+    material has been compromised even if the certificate is also
+    being retired!  You should include how to contact the owner, or
+    who to contact instead in the message.
+
+  - unspecified means that none of the three other three reasons
+    apply.  OpenPGP implementations conservatively treat this type
+    of revocation similar to a compromised key.
+
+If the reason happened in the past, you should specify that using the
+--time argument.  This allows OpenPGP implementations to more
+accurately reason about objects whose validity depends on the validity
+of the certificate.",
+    value_enum,
+    )]
+    pub reason: RevocationReason,
+
+    #[clap(
+        value_name = "MESSAGE",
+        help = "A short, explanatory text",
+        long_help =
+"A short, explanatory text that is shown to a viewer of the revocation \
+certificate.  It explains why the certificate has been revoked.  For \
+instance, if Alice has created a new key, she would generate a \
+'superseded' revocation certificate for her old key, and might include \
+the message \"I've created a new certificate, FINGERPRINT, please use \
+that in the future.\"",
+    )]
+    pub message: String,
+
+    #[clap(
+        long,
+        value_names = &["NAME", "VALUE"],
+        number_of_values = 2,
+        help = "Adds a notation to the certification.",
+        long_help = "Adds a notation to the certification.  \
+            A user-defined notation's name must be of the form \
+            \"name@a.domain.you.control.org\". If the notation's name starts \
+            with a !, then the notation is marked as being critical.  If a \
+            consumer of a signature doesn't understand a critical notation, \
+            then it will ignore the signature.  The notation is marked as \
+            being human readable."
+    )]
+    pub notation: Vec<String>,
+
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
+
+    #[clap(
+        short = 'B',
+        long,
+        help = "Emits binary data",
+    )]
+    pub binary: bool,
+}
+
+#[derive(Debug, Args)]
+#[clap(
     name = "extract-cert",
     about = "Converts a key to a cert",
     long_about =
@@ -337,6 +512,7 @@ Add User IDs to, or strip User IDs from a key.
 )]
 pub enum UseridCommand {
     Add(UseridAddCommand),
+    Revoke(UseridRevokeCommand),
     Strip(UseridStripCommand),
 }
 
@@ -406,6 +582,139 @@ pub struct UseridAddCommand {
     pub binary: bool,
 }
 
+#[derive(Debug, Args)]
+#[clap(
+    about = "Revoke a User ID",
+    long_about =
+"Revokes a User ID
+
+Creates a revocation certificate for a User ID.
+
+If \"--revocation-key\" is provided, then that key is used to create \
+the signature.  If that key is different from the certificate being \
+revoked, this creates a third-party revocation.  This is normally only \
+useful if the owner of the certificate designated the key to be a \
+designated revoker.
+
+If \"--revocation-key\" is not provided, then the certificate must \
+include a certification-capable key.
+
+\"sq key userid revoke\" respects the reference time set by the top-level \
+\"--time\" argument.  When set, it uses the specified time instead of \
+the current time, when determining what keys are valid, and it sets \
+the revocation certificate's creation time to the reference time \
+instead of the current time.
+",)]
+pub struct UseridRevokeCommand {
+    #[clap(
+        value_name = "CERT_FILE",
+        long = "certificate-file",
+        alias = "cert-file",
+        help = "The certificate containing the User ID to revoke",
+        long_help =
+"Reads the certificate to revoke from CERT_FILE or stdin, \
+if omitted.  It is an error for the file to contain more than one \
+certificate."
+    )]
+    pub input: Option<PathBuf>,
+
+    #[clap(
+        long = "revocation-file",
+        value_name = "KEY_FILE",
+        help = "Signs the revocation certificate using the key in KEY_FILE",
+        long_help =
+"Signs the revocation certificate using the key in KEY_FILE.  If the key is \
+different from the certificate, this creates a third-party revocation.  If \
+this option is not provided, and the certificate includes secret key material, \
+then that key is used to sign the revocation certificate.",
+    )]
+    pub secret_key_file: Option<PathBuf>,
+
+    #[clap(
+        long = "private-key-store",
+        value_name = "KEY_STORE",
+        help = "Provides parameters for private key store",
+    )]
+    pub private_key_store: Option<String>,
+
+    #[clap(
+        value_name = "USERID",
+        help = "The User ID to revoke",
+        long_help =
+"The User ID to revoke.  By default, this must exactly match a \
+self-signed User ID.  Use --force to generate a revocation certificate \
+for a User ID, which is not self signed."
+    )]
+    pub userid: String,
+
+    #[clap(
+        value_enum,
+        value_name = "REASON",
+        help = "The reason for the revocation",
+        long_help =
+"The reason for the revocation.  This must be either: retired, or \
+unspecified:
+
+  - retired means that this User ID is no longer valid.  This is
+    appropriate when someone leaves an organisation, and the
+    organisation does not have their secret key material.  For
+    instance, if someone was part of Debian and retires, they would
+    use this to indicate that a Debian-specific User ID is no longer
+    valid.
+
+  - unspecified means that a different reason applies.
+
+If the reason happened in the past, you should specify that using the \
+--time argument.  This allows OpenPGP implementations to more \
+accurately reason about objects whose validity depends on the validity \
+of a User ID."
+    )]
+    pub reason: UseridRevocationReason,
+
+    #[clap(
+        value_name = "MESSAGE",
+        help = "A short, explanatory text",
+        long_help =
+"A short, explanatory text that is shown to a viewer of the revocation \
+certificate.  It explains why the certificate has been revoked.  For \
+instance, if Alice has created a new key, she would generate a \
+'superseded' revocation certificate for her old key, and might include \
+the message \"I've created a new certificate, FINGERPRINT, please use \
+that in the future.\"",
+    )]
+    pub message: String,
+
+    #[clap(
+        long,
+        value_names = &["NAME", "VALUE"],
+        number_of_values = 2,
+        help = "Adds a notation to the certification.",
+        long_help = "Adds a notation to the certification.  \
+            A user-defined notation's name must be of the form \
+            \"name@a.domain.you.control.org\". If the notation's name starts \
+            with a !, then the notation is marked as being critical.  If a \
+            consumer of a signature doesn't understand a critical notation, \
+            then it will ignore the signature.  The notation is marked as \
+            being human readable."
+    )]
+    pub notation: Vec<String>,
+
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
+
+    #[clap(
+        short = 'B',
+        long,
+        help = "Emits binary data",
+    )]
+    pub binary: bool,
+}
 
 #[derive(Debug, Args)]
 #[clap(
@@ -420,7 +729,7 @@ to its local copy of that certificate.  Systems that have obtained
 a copy of your certificate with the User ID that you are trying to
 strip will not drop that User ID from their copy.)
 
-In most cases, you will want to use the 'sq revoke userid' operation
+In most cases, you will want to use the 'sq key userid revoke' operation
 instead.  That issues a revocation for a User ID, which can be used to mark
 the User ID as invalidated.
 
@@ -619,6 +928,7 @@ Add new subkeys to an existing key.
 #[non_exhaustive]
 pub enum SubkeyCommand {
     Add(SubkeyAddCommand),
+    Revoke(SubkeyRevokeCommand),
 }
 
 #[derive(Debug, Args)]
@@ -750,3 +1060,151 @@ pub struct SubkeyAddCommand {
     )]
     pub can_encrypt: Option<EncryptPurpose>,
 }
+
+#[derive(Debug, Args)]
+#[clap(
+    about = "Revoke a subkey",
+    long_about =
+"Revokes a subkey
+
+Creates a revocation certificate for a subkey.
+
+If \"--revocation-file\" is provided, then that key is used to \
+create the signature.  If that key is different from the certificate \
+being revoked, this creates a third-party revocation.  This is \
+normally only useful if the owner of the certificate designated the \
+key to be a designated revoker.
+
+If \"--revocation-file\" is not provided, then the certificate \
+must include a certification-capable key.
+
+\"sq key subkey revoke\" respects the reference time set by the top-level \
+\"--time\" argument.  When set, it uses the specified time instead of \
+the current time, when determining what keys are valid, and it sets \
+the revocation certificate's creation time to the reference time \
+instead of the current time.
+",
+)]
+pub struct SubkeyRevokeCommand {
+    #[clap(
+        value_name = "FILE",
+        long = "certificate-file",
+        alias = "cert-file",
+        help = "The certificate containing the subkey to revoke",
+        long_help =
+"Reads the certificate containing the subkey to revoke from FILE or stdin, \
+if omitted.  It is an error for the file to contain more than one \
+certificate."
+    )]
+    pub input: Option<PathBuf>,
+
+    #[clap(
+        long = "revocation-file",
+        value_name = "KEY_FILE",
+        help = "Signs the revocation certificate using the key in KEY_FILE",
+        long_help =
+
+"Signs the revocation certificate using the key in KEY_FILE.  If the key \
+is different from the certificate, this creates a third-party revocation.  \
+If this option is not provided, and the certificate includes secret key \
+material, then that key is used to sign the revocation certificate.",
+    )]
+    pub secret_key_file: Option<PathBuf>,
+
+    #[clap(
+        long = "private-key-store",
+        value_name = "KEY_STORE",
+        help = "Provides parameters for private key store",
+    )]
+    pub private_key_store: Option<String>,
+
+    #[clap(
+        value_name = "SUBKEY",
+        help = "The subkey to revoke",
+        long_help =
+"The subkey to revoke.  This must either be the subkey's Key ID or its \
+fingerprint.",
+    )]
+    pub subkey: String,
+
+    #[clap(
+        value_name = "REASON",
+        required = true,
+        help = "The reason for the revocation",
+        long_help =
+"The reason for the revocation.  This must be either: compromised, \
+superseded, retired, or unspecified:
+
+  - compromised means that the secret key material may have been
+    compromised.  Prefer this value if you suspect that the secret
+    key has been leaked.
+
+  - superseded means that the owner of the certificate has replaced
+    it with a new certificate.  Prefer \"compromised\" if the secret
+    key material has been compromised even if the certificate is
+    also being replaced!  You should include the fingerprint of the
+    new certificate in the message.
+
+  - retired means that this certificate should not be used anymore,
+    and there is no replacement.  This is appropriate when someone
+    leaves an organisation.  Prefer \"compromised\" if the secret key
+    material has been compromised even if the certificate is also
+    being retired!  You should include how to contact the owner, or
+    who to contact instead in the message.
+
+  - unspecified means that none of the three other three reasons
+    apply.  OpenPGP implementations conservatively treat this type
+    of revocation similar to a compromised key.
+
+If the reason happened in the past, you should specify that using the \
+--time argument.  This allows OpenPGP implementations to more \
+accurately reason about objects whose validity depends on the validity \
+of the certificate.",
+    value_enum,
+    )]
+    pub reason: RevocationReason,
+
+    #[clap(
+        value_name = "MESSAGE",
+        help = "A short, explanatory text",
+        long_help =
+"A short, explanatory text that is shown to a viewer of the revocation \
+certificate.  It explains why the subkey has been revoked.  For \
+instance, if Alice has created a new key, she would generate a \
+'superseded' revocation certificate for her old key, and might include \
+the message \"I've created a new subkey, please refresh the certificate."
+    )]
+    pub message: String,
+
+    #[clap(
+        long,
+        value_names = &["NAME", "VALUE"],
+        number_of_values = 2,
+        help = "Adds a notation to the certification.",
+        long_help = "Adds a notation to the certification.  \
+            A user-defined notation's name must be of the form \
+            \"name@a.domain.you.control.org\". If the notation's name starts \
+            with a !, then the notation is marked as being critical.  If a \
+            consumer of a signature doesn't understand a critical notation, \
+            then it will ignore the signature.  The notation is marked as \
+            being human readable."
+    )]
+    pub notation: Vec<String>,
+
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
+
+    #[clap(
+        short = 'B',
+        long,
+        help = "Emits binary data",
+    )]
+    pub binary: bool,
+}
+

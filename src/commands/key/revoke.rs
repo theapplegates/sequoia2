@@ -1,0 +1,203 @@
+use std::time::SystemTime;
+
+use anyhow::Context;
+
+use openpgp::armor::Kind;
+use openpgp::armor::Writer;
+use openpgp::cert::CertRevocationBuilder;
+use openpgp::packet::signature::subpacket::NotationData;
+use openpgp::policy::Policy;
+use openpgp::serialize::Serialize;
+use openpgp::types::ReasonForRevocation;
+use openpgp::Cert;
+use openpgp::Packet;
+use openpgp::Result;
+use sequoia_openpgp as openpgp;
+
+use crate::commands::cert_stub;
+use crate::common::get_secret_signer;
+use crate::common::read_cert;
+use crate::common::read_secret;
+use crate::common::RevocationOutput;
+use crate::parse_notations;
+use crate::sq_cli::key::RevokeCommand;
+use crate::sq_cli::types::FileOrStdout;
+use crate::Config;
+
+/// Handle the revocation of a certificate
+struct CertificateRevocation<'a> {
+    cert: Cert,
+    secret: Cert,
+    policy: &'a dyn Policy,
+    time: Option<SystemTime>,
+    revocation_packet: Packet,
+    first_party_issuer: bool,
+}
+
+impl<'a> CertificateRevocation<'a> {
+    /// Create a new CertificateRevocation
+    pub fn new(
+        cert: Cert,
+        secret: Option<Cert>,
+        policy: &'a dyn Policy,
+        time: Option<SystemTime>,
+        private_key_store: Option<&str>,
+        reason: ReasonForRevocation,
+        message: &str,
+        notations: &[(bool, NotationData)],
+    ) -> Result<Self> {
+        let (secret, mut signer) = get_secret_signer(
+            &cert,
+            policy,
+            secret.as_ref(),
+            private_key_store,
+            time,
+        )?;
+
+        let first_party_issuer = secret.fingerprint() == cert.fingerprint();
+
+        let revocation_packet = {
+            // Create a revocation for the certificate.
+            let mut rev = CertRevocationBuilder::new()
+                .set_reason_for_revocation(reason, message.as_bytes())?;
+            if let Some(time) = time {
+                rev = rev.set_signature_creation_time(time)?;
+            }
+            for (critical, notation) in notations {
+                rev = rev.add_notation(
+                    notation.name(),
+                    notation.value(),
+                    Some(notation.flags().clone()),
+                    *critical,
+                )?;
+            }
+            let rev = rev.build(&mut signer, &cert, None)?;
+            Packet::Signature(rev)
+        };
+
+        Ok(CertificateRevocation {
+            cert,
+            secret,
+            policy,
+            time,
+            revocation_packet,
+            first_party_issuer,
+        })
+    }
+}
+
+impl<'a> RevocationOutput for CertificateRevocation<'a> {
+    /// Write the revocation certificate to output
+    fn write(
+        &self,
+        output: FileOrStdout,
+        binary: bool,
+        force: bool,
+    ) -> Result<()> {
+        let mut output = output.create_safe(force)?;
+
+        let (stub, packets): (Cert, Vec<Packet>) = {
+            if self.first_party_issuer {
+                (self.cert.clone(), vec![self.revocation_packet.clone()])
+            } else {
+                let cert_stub = match cert_stub(
+                    self.cert.clone(),
+                    self.policy,
+                    self.time,
+                    None,
+                ) {
+                    Ok(stub) => stub,
+                    // We failed to create a stub.  Just use the original
+                    // certificate as is.
+                    Err(_) => self.cert.clone(),
+                };
+
+                (
+                    cert_stub.clone(),
+                    cert_stub
+                        .insert_packets(self.revocation_packet.clone())?
+                        .into_packets()
+                        .collect(),
+                )
+            }
+        };
+
+        if binary {
+            for packet in packets {
+                packet
+                    .serialize(&mut output)
+                    .context("serializing revocation certificate")?;
+            }
+        } else {
+            // Add some more helpful ASCII-armor comments.
+            let mut more: Vec<String> = vec![];
+
+            // First, the thing that is being revoked.
+            more.push("including a revocation for the certificate".to_string());
+
+            if !self.first_party_issuer {
+                // Then if it was issued by a third-party.
+                more.push("issued by".to_string());
+                more.push(self.secret.fingerprint().to_spaced_hex());
+                if let Ok(valid_cert) =
+                    &stub.with_policy(self.policy, self.time)
+                {
+                    if let Ok(uid) = valid_cert.primary_userid() {
+                        let uid = String::from_utf8_lossy(uid.value());
+                        // Truncate it, if it is too long.
+                        more.push(format!(
+                            "{:?}",
+                            uid.chars().take(70).collect::<String>()
+                        ));
+                    }
+                }
+            }
+
+            let headers = &stub.armor_headers();
+            let headers: Vec<(&str, &str)> = headers
+                .iter()
+                .map(|s| ("Comment", s.as_str()))
+                .chain(more.iter().map(|value| ("Comment", value.as_str())))
+                .collect();
+
+            let mut writer =
+                Writer::with_headers(&mut output, Kind::PublicKey, headers)?;
+            for packet in packets {
+                packet
+                    .serialize(&mut writer)
+                    .context("serializing revocation certificate")?;
+            }
+            writer.finalize()?;
+        }
+
+        Ok(())
+    }
+}
+
+/// Revoke a certificate
+pub fn certificate_revoke(
+    config: Config,
+    command: RevokeCommand,
+) -> Result<()> {
+    let cert = read_cert(command.input.as_deref())?;
+
+    let secret = read_secret(command.secret_key_file.as_deref())?;
+
+    let time = Some(config.time);
+
+    let notations = parse_notations(command.notation)?;
+
+    let revocation = CertificateRevocation::new(
+        cert,
+        secret,
+        &config.policy,
+        time,
+        command.private_key_store.as_deref(),
+        command.reason.into(),
+        &command.message,
+        &notations,
+    )?;
+    revocation.write(command.output, command.binary, config.force)?;
+
+    Ok(())
+}

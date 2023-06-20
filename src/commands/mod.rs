@@ -53,7 +53,6 @@ pub mod decrypt;
 pub use self::decrypt::decrypt;
 pub mod sign;
 pub use self::sign::sign;
-pub mod revoke;
 pub mod dump;
 pub use self::dump::dump;
 mod inspect;

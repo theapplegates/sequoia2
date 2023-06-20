@@ -59,6 +59,7 @@ use clap::FromArgMatches;
 #[macro_use] mod macros;
 #[macro_use] mod log;
 
+mod common;
 
 mod sq_cli;
 use sq_cli::packet;
@@ -1326,10 +1327,6 @@ fn main() -> Result<()> {
 
         SqSubcommands::Key(command) => {
             commands::key::dispatch(config, command)?
-        }
-
-        SqSubcommands::Revoke(command) => {
-            commands::revoke::dispatch(config, command)?
         }
 
         SqSubcommands::Wkd(command) => {

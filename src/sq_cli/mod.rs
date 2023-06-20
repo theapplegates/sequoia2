@@ -25,7 +25,6 @@ pub mod keyserver;
 pub mod link;
 mod output_versions;
 pub mod packet;
-pub mod revoke;
 mod sign;
 mod verify;
 pub mod wkd;
@@ -250,8 +249,6 @@ pub enum SqSubcommands {
 
     Inspect(inspect::Command),
     Packet(packet::Command),
-
-    Revoke(revoke::Command),
 
     OutputVersions(output_versions::Command),
 }

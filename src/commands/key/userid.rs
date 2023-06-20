@@ -1,26 +1,235 @@
+use std::str::from_utf8;
 use std::time::SystemTime;
 
 use anyhow::Context;
 
+use anyhow::anyhow;
 use itertools::Itertools;
 
+use openpgp::armor::Kind;
+use openpgp::armor::Writer;
 use openpgp::cert::amalgamation::ValidAmalgamation;
-use openpgp::packet::UserID;
+use openpgp::cert::UserIDRevocationBuilder;
+use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::packet::signature::subpacket::SubpacketTag;
 use openpgp::packet::signature::SignatureBuilder;
+use openpgp::packet::UserID;
 use openpgp::parse::Parse;
 use openpgp::policy::HashAlgoSecurity;
 use openpgp::policy::Policy;
 use openpgp::serialize::Serialize;
+use openpgp::types::ReasonForRevocation;
 use openpgp::types::SignatureType;
 use openpgp::Cert;
 use openpgp::Packet;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
+use crate::commands::cert_stub;
 use crate::commands::get_primary_keys;
+use crate::common::get_secret_signer;
+use crate::common::read_cert;
+use crate::common::read_secret;
+use crate::common::RevocationOutput;
+use crate::common::NULL_POLICY;
+use crate::parse_notations;
 use crate::sq_cli;
+use crate::sq_cli::key::UseridRevokeCommand;
+use crate::sq_cli::types::FileOrStdout;
 use crate::Config;
+
+/// Handle the revocation of a User ID
+struct UserIDRevocation<'a> {
+    cert: Cert,
+    secret: Cert,
+    policy: &'a dyn Policy,
+    time: Option<SystemTime>,
+    revocation_packet: Packet,
+    first_party_issuer: bool,
+    userid: String,
+}
+
+impl<'a> UserIDRevocation<'a> {
+    /// Create a new UserIDRevocation
+    pub fn new(
+        userid: String,
+        force: bool,
+        cert: Cert,
+        secret: Option<Cert>,
+        policy: &'a dyn Policy,
+        time: Option<SystemTime>,
+        private_key_store: Option<&str>,
+        reason: ReasonForRevocation,
+        message: &str,
+        notations: &[(bool, NotationData)],
+    ) -> Result<Self> {
+        let (secret, mut signer) = get_secret_signer(
+            &cert,
+            policy,
+            secret.as_ref(),
+            private_key_store,
+            time,
+        )?;
+
+        let first_party_issuer = secret.fingerprint() == cert.fingerprint();
+
+        let revocation_packet = {
+            // Create a revocation for a User ID.
+
+            // Unless force is specified, we require the User ID to
+            // have a valid self signature under the Null policy.  We
+            // use the Null policy and not the standard policy,
+            // because it is still useful to revoke a User ID whose
+            // self signature is no longer valid.  For instance, the
+            // binding signature may use SHA-1.
+            if !force {
+                let valid_cert = cert.with_policy(NULL_POLICY, None)?;
+                let present = valid_cert
+                    .userids()
+                    .any(|u| u.value() == userid.as_bytes());
+
+                if !present {
+                    eprintln!(
+                        "User ID, cert: Cert, secret: Option<Cert>: '{}' not found.\nValid User IDs:",
+                        userid
+                    );
+                    let mut have_valid = false;
+                    for ua in valid_cert.userids() {
+                        if let Ok(u) = from_utf8(ua.userid().value()) {
+                            have_valid = true;
+                            eprintln!("  - {}", u);
+                        }
+                    }
+                    if !have_valid {
+                        eprintln!("  - Certificate has no valid User IDs.");
+                    }
+                    return Err(anyhow!(
+                        "The certificate does not contain the specified User \
+                        ID.  To create a revocation certificate for that User \
+                        ID anyways, specify '--force'"
+                    ));
+                }
+            }
+
+            let mut rev = UserIDRevocationBuilder::new()
+                .set_reason_for_revocation(reason, message.as_bytes())?;
+            if let Some(time) = time {
+                rev = rev.set_signature_creation_time(time)?;
+            }
+            for (critical, notation) in notations {
+                rev = rev.add_notation(
+                    notation.name(),
+                    notation.value(),
+                    Some(notation.flags().clone()),
+                    *critical,
+                )?;
+            }
+            let rev = rev.build(
+                &mut signer,
+                &cert,
+                &UserID::from(userid.as_str()),
+                None,
+            )?;
+            Packet::Signature(rev)
+        };
+
+        Ok(UserIDRevocation {
+            cert,
+            secret,
+            policy,
+            time,
+            revocation_packet,
+            first_party_issuer,
+            userid,
+        })
+    }
+}
+
+impl<'a> RevocationOutput for UserIDRevocation<'a> {
+    /// Write the revocation certificate to output
+    fn write(
+        &self,
+        output: FileOrStdout,
+        binary: bool,
+        force: bool,
+    ) -> Result<()> {
+        let mut output = output.create_safe(force)?;
+
+        let (stub, packets): (Cert, Vec<Packet>) = {
+            let cert_stub = match cert_stub(
+                self.cert.clone(),
+                self.policy,
+                self.time,
+                Some(&UserID::from(self.userid.clone())),
+            ) {
+                Ok(stub) => stub,
+                // We failed to create a stub.  Just use the original
+                // certificate as is.
+                Err(_) => self.cert.clone(),
+            };
+
+            (
+                cert_stub.clone(),
+                cert_stub
+                    .insert_packets(self.revocation_packet.clone())?
+                    .into_packets()
+                    .collect(),
+            )
+        };
+
+        if binary {
+            for packet in packets {
+                packet
+                    .serialize(&mut output)
+                    .context("serializing revocation certificate")?;
+            }
+        } else {
+            // Add some more helpful ASCII-armor comments.
+            let mut more: Vec<String> = vec![];
+
+            // First, the thing that is being revoked.
+            more.push(
+                "including a revocation to revoke the User ID".to_string(),
+            );
+            more.push(format!("{:?}", self.userid));
+
+            if !self.first_party_issuer {
+                // Then if it was issued by a third-party.
+                more.push("issued by".to_string());
+                more.push(self.secret.fingerprint().to_spaced_hex());
+                if let Ok(valid_cert) =
+                    &stub.with_policy(self.policy, self.time)
+                {
+                    if let Ok(uid) = valid_cert.primary_userid() {
+                        let uid = String::from_utf8_lossy(uid.value());
+                        // Truncate it, if it is too long.
+                        more.push(format!(
+                            "{:?}",
+                            uid.chars().take(70).collect::<String>()
+                        ));
+                    }
+                }
+            }
+
+            let headers = &stub.armor_headers();
+            let headers: Vec<(&str, &str)> = headers
+                .iter()
+                .map(|s| ("Comment", s.as_str()))
+                .chain(more.iter().map(|value| ("Comment", value.as_str())))
+                .collect();
+
+            let mut writer =
+                Writer::with_headers(&mut output, Kind::PublicKey, headers)?;
+            for packet in packets {
+                packet
+                    .serialize(&mut writer)
+                    .context("serializing revocation certificate")?;
+            }
+            writer.finalize()?;
+        }
+        Ok(())
+    }
+}
 
 pub fn userid(
     config: Config,
@@ -28,6 +237,7 @@ pub fn userid(
 ) -> Result<()> {
     match command {
         sq_cli::key::UseridCommand::Add(c) => userid_add(config, c)?,
+        sq_cli::key::UseridCommand::Revoke(c) => userid_revoke(config, c)?,
         sq_cli::key::UseridCommand::Strip(c) => userid_strip(config, c)?,
     }
 
@@ -242,5 +452,41 @@ signatures on other User IDs to make the key valid again.",
     } else {
         cert.as_tsk().armored().serialize(&mut sink)?;
     }
+    Ok(())
+}
+
+/// Revoke a UserID of an existing primary key
+///
+/// ## Errors
+///
+/// Returns an error if reading of the [`Cert`] fails, if retrieval of
+/// [`NotationData`] fails or if the eventual revocation fails.
+pub fn userid_revoke(
+    config: Config,
+    command: UseridRevokeCommand,
+) -> Result<()> {
+    let cert = read_cert(command.input.as_deref())?;
+
+    let secret = read_secret(command.secret_key_file.as_deref())?;
+
+    let time = Some(config.time);
+
+    let notations = parse_notations(command.notation)?;
+
+    let revocation = UserIDRevocation::new(
+        command.userid,
+        config.force,
+        cert,
+        secret,
+        &config.policy,
+        time,
+        command.private_key_store.as_deref(),
+        command.reason.into(),
+        &command.message,
+        &notations,
+    )?;
+
+    revocation.write(command.output, command.binary, config.force)?;
+
     Ok(())
 }

@@ -248,7 +248,7 @@ fn get_signing_keys<C>(certs: &[C], p: &dyn Policy,
 ///
 /// This returns one key for each Cert.  If a Cert doesn't have an
 /// appropriate key, then this returns an error.
-fn get_certification_keys<C>(certs: &[C], p: &dyn Policy,
+pub fn get_certification_keys<C>(certs: &[C], p: &dyn Policy,
                              private_key_store: Option<&str>,
                              timestamp: Option<SystemTime>,
                              options: Option<&[GetKeysOptions]>)

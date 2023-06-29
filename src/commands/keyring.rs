@@ -37,7 +37,7 @@ use crate::{
 
 use crate::sq_cli::keyring;
 
-mod linter;
+mod lint;
 
 pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
     use crate::sq_cli::keyring::Subcommands::*;
@@ -194,8 +194,8 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
                         + "-");
             split(&mut input, &prefix, c.binary)
         },
-        Linter(l) => {
-            match linter::linter(config, l) {
+        Lint(l) => {
+            match lint::lint(config, l) {
                 Ok(()) => Ok(()),
                 Err(e) => {
                     print_error_chain(&e);

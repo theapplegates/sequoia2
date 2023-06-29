@@ -26,7 +26,7 @@ use openpgp::types::SymmetricAlgorithm;
 use crate::{
     Config,
     decrypt_key,
-    sq_cli::keyring::LinterCommand,
+    sq_cli::keyring::LintCommand,
 };
 
 
@@ -198,7 +198,7 @@ fn update_subkey_binding<P>(ka: &ValidSubordinateKeyAmalgamation<P>,
     Ok(sig)
 }
 
-pub fn linter(config: Config, mut args: LinterCommand) -> Result<()> {
+pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
     // If there were any errors reading the input.
     let mut bad_input = false;
 

@@ -36,7 +36,7 @@ pub enum Subcommands {
     Join(JoinCommand),
     Merge(MergeCommand),
     Filter(FilterCommand),
-    Linter(LinterCommand),
+    Lint(LintCommand),
 }
 
 #[derive(Debug, Args)]
@@ -322,7 +322,7 @@ pub struct SplitCommand {
     about,
     long_about = None,
     after_help="\
-`sq keyring linter` checks the supplied certificates for the following
+`sq keyring lint` checks the supplied certificates for the following
 SHA-1-related issues:
 
   - Whether a certificate revocation uses SHA-1.
@@ -363,16 +363,16 @@ If `--fix` is specified:
 EXAMPLES:
 
   # To gather statistics, simply run:
-  $ sq keyring linter keyring.pgp
+  $ sq keyring lint keyring.pgp
 
   # To fix a key:
-  $ gpg --export-secret-keys FPR | sq keyring linter --fix -p passw0rd -p password123 | gpg --import
+  $ gpg --export-secret-keys FPR | sq keyring lint --fix -p passw0rd -p password123 | gpg --import
 
   # To get a list of keys with issues:
-  $ sq keyring linter --list-keys keyring.pgp | while read FPR; do something; done
+  $ sq keyring lint --list-keys keyring.pgp | while read FPR; do something; done
 "
 )]
-pub struct LinterCommand {
+pub struct LintCommand {
     /// Quiet; does not output any diagnostics.
     #[arg(short, long)]
     pub quiet: bool,

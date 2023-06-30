@@ -566,7 +566,7 @@ fn inspect_certifications<'a, A>(output: &mut dyn io::Write,
                 sig, HashAlgoSecurity::CollisionResistance)
             {
                 writeln!(output,
-                         "{}Certificate is not valid according to \
+                         "{}Certification is not valid according to \
                           the current policy:\n\
                           {}  {}",
                          indent, indent, err)?;

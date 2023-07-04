@@ -230,7 +230,7 @@ docker-build-push:
       - schedules
   variables:
     CI_REGISTRY: "registry.gitlab.com"
-    IMAGE: "$CI_REGISTRY/sequoia-pgp/sequoia"
+    IMAGE: "$CI_REGISTRY/sequoia-pgp/sequoia-sq"
     DOCKER_HOST: tcp://docker:2376
 
 variables:

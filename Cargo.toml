@@ -45,7 +45,7 @@ sequoia-cert-store = "0.3"
 sequoia-wot = "0.8"
 tempfile = "3.1"
 tokio = { version = "1.13.1" }
-rpassword = "6.0"
+rpassword = "7.0"
 serde_json = "1.0.80"
 serde = { version = "1.0.137", features = ["derive"] }
 roff = "0.2.1"

@@ -478,11 +478,14 @@ pub fn add(mut config: Config, c: link::AddCommand)
     };
 
     // Sign it.
-    let signers = get_certification_keys(
+    let keys = get_certification_keys(
         &[trust_root], &config.policy, None, Some(config.time), None)
         .context("Looking up local trust root")?;
-    assert_eq!(signers.len(), 1);
-    let mut signer = signers.into_iter().next().unwrap();
+    assert!(
+        keys.len() == 1,
+        "Expect exactly one result from get_certification_keys()"
+    );
+    let mut signer = keys.into_iter().next().unwrap().0;
 
     let certifications = active_certification(
             &config, &vc.fingerprint(), userids,
@@ -642,11 +645,14 @@ pub fn retract(mut config: Config, c: link::RetractCommand)
     };
 
     // Sign it.
-    let signers = get_certification_keys(
+    let keys = get_certification_keys(
         &[trust_root], &config.policy, None, Some(config.time), None)
         .context("Looking up local trust root")?;
-    assert_eq!(signers.len(), 1);
-    let mut signer = signers.into_iter().next().unwrap();
+    assert!(
+        keys.len() == 1,
+        "Expect exactly one result from get_certification_keys()"
+    );
+    let mut signer = keys.into_iter().next().unwrap().0;
 
     let certifications = active_certification(
             &config, &cert.fingerprint(), userids, signer.public())

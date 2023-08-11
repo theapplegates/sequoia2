@@ -50,8 +50,11 @@ pub fn get_secret_signer<'a>(
             time,
             None,
         ) {
-            assert_eq!(keys.len(), 1);
-            Ok((secret.clone(), keys.into_iter().next().expect("have one")))
+            assert!(
+                keys.len() == 1,
+                "Expect exactly one result from get_certification_keys()"
+            );
+            Ok((secret.clone(), keys.into_iter().next().expect("have one").0))
         } else {
             if let Some(time) = time {
                 return Err(anyhow!(
@@ -78,8 +81,11 @@ does not contain a certification key with secret key material"
             time,
             None,
         ) {
-            assert_eq!(keys.len(), 1);
-            Ok((cert.clone(), keys.into_iter().next().expect("have one")))
+            assert!(
+                keys.len() == 1,
+                "Expect exactly one result from get_certification_keys()"
+            );
+            Ok((cert.clone(), keys.into_iter().next().expect("have one").0))
         } else {
             if let Some(time) = time {
                 return Err(anyhow!(

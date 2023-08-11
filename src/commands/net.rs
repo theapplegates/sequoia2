@@ -202,11 +202,14 @@ fn get_ca(config: &mut Config,
                 ca_userid, err))
         }
         Ok(trust_root) => {
-            let signers = get_certification_keys(
+            let keys = get_certification_keys(
                 &[trust_root], &config.policy, None, Some(config.time), None)
                 .context("Getting trust root's certification key")?;
-            assert_eq!(signers.len(), 1);
-            let mut signer = signers.into_iter().next().unwrap();
+            assert!(
+                keys.len() == 1,
+                "Expect exactly one result from get_certification_keys()"
+            );
+            let mut signer = keys.into_iter().next().unwrap().0;
 
             match certify(config, &mut signer, &ca, &[UserID::from(ca_userid)],
                           Some(config.time), 1, ca_trust_amount)
@@ -258,10 +261,13 @@ fn certify_downloads(config: &mut Config,
     let mut ca = || -> Result<_> {
         let ca = get_ca(config, ca_special, ca_userid, ca_trust_amount)?;
 
-        let signers = get_certification_keys(
+        let keys = get_certification_keys(
             &[ca], &config.policy, None, Some(config.time), None)?;
-        assert_eq!(signers.len(), 1);
-        Ok(signers.into_iter().next().unwrap())
+            assert!(
+                keys.len() == 1,
+                "Expect exactly one result from get_certification_keys()"
+            );
+        Ok(keys.into_iter().next().unwrap().0)
     };
     let mut ca_signer = match ca() {
         Ok(signer) => signer,

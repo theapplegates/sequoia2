@@ -15,7 +15,7 @@ use openpgp::types::{
     CompressionAlgorithm,
 };
 use openpgp::cert::prelude::*;
-use openpgp::crypto;
+use openpgp::crypto::{self, Password};
 use openpgp::{Cert, Fingerprint, KeyID, Result};
 use openpgp::packet::prelude::*;
 use openpgp::parse::{
@@ -85,7 +85,7 @@ fn get_keys<C>(certs: &[C], p: &dyn Policy,
                timestamp: Option<SystemTime>,
                keytype: KeyType,
                options: Option<&[GetKeysOptions]>)
-    -> Result<Vec<Box<dyn crypto::Signer + Send + Sync>>>
+    -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
     where C: Borrow<Cert>
 {
     let mut bad = Vec::new();
@@ -94,7 +94,7 @@ fn get_keys<C>(certs: &[C], p: &dyn Policy,
     let allow_not_alive = options.contains(&GetKeysOptions::AllowNotAlive);
     let allow_revoked = options.contains(&GetKeysOptions::AllowRevoked);
 
-    let mut keys: Vec<Box<dyn crypto::Signer + Send + Sync>> = Vec::new();
+    let mut keys: Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)> = vec![];
     'next_cert: for tsk in certs {
         let tsk = tsk.borrow();
         let vc = match tsk.with_policy(p, timestamp) {
@@ -134,27 +134,34 @@ fn get_keys<C>(certs: &[C], p: &dyn Policy,
             let key = ka.key();
 
             if let Some(secret) = key.optional_secret() {
-                let unencrypted = match secret {
+                let (unencrypted, password) = match secret {
                     SecretKeyMaterial::Encrypted(ref e) => {
-                        let password = rpassword::prompt_password(
+                        let input_password = rpassword::prompt_password(
                             &format!("Please enter password to decrypt {}/{}: ",
                                      tsk, key))
                             .context("Reading password from tty")?;
-                        e.decrypt(key.pk_algo(), &password.into())
-                            .expect("decryption failed")
+                        (
+                            e.decrypt(key.pk_algo(), &Password::from(input_password.to_string()))
+                            .expect("decryption failed"),
+                            Some(Password::from(input_password.to_string())),
+                        )
                     },
-                    SecretKeyMaterial::Unencrypted(ref u) => u.clone(),
+                    SecretKeyMaterial::Unencrypted(ref u) => (u.clone(), None),
                 };
 
-                keys.push(Box::new(crypto::KeyPair::new(key.clone(), unencrypted)
-                          .unwrap()));
+                keys.push((
+                    Box::new(
+                        crypto::KeyPair::new(key.clone(), unencrypted).unwrap()
+                    ),
+                    password,
+                ));
                 continue 'next_cert;
             } else if let Some(private_key_store) = private_key_store {
-                let password = rpassword::prompt_password(
+                let input_password = rpassword::prompt_password(
                     &format!("Please enter password to key {}/{}: ", tsk, key)).unwrap().into();
-                match pks::unlock_signer(private_key_store, key.clone(), &password) {
+                match pks::unlock_signer(private_key_store, key.clone(), &input_password) {
                     Ok(signer) => {
-                        keys.push(signer);
+                        keys.push((signer, Some(input_password.clone())));
                         continue 'next_cert;
                     },
                     Err(error) => eprintln!("Could not unlock key: {:?}", error),
@@ -220,7 +227,7 @@ fn get_primary_keys<C>(certs: &[C], p: &dyn Policy,
                        private_key_store: Option<&str>,
                        timestamp: Option<SystemTime>,
                        options: Option<&[GetKeysOptions]>)
-    -> Result<Vec<Box<dyn crypto::Signer + Send + Sync>>>
+    -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
     where C: std::borrow::Borrow<Cert>
 {
     get_keys(certs, p, private_key_store, timestamp,
@@ -235,7 +242,7 @@ fn get_signing_keys<C>(certs: &[C], p: &dyn Policy,
                        private_key_store: Option<&str>,
                        timestamp: Option<SystemTime>,
                        options: Option<&[GetKeysOptions]>)
-    -> Result<Vec<Box<dyn crypto::Signer + Send + Sync>>>
+    -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
     where C: Borrow<Cert>
 {
     get_keys(certs, p, private_key_store, timestamp,
@@ -251,7 +258,7 @@ pub fn get_certification_keys<C>(certs: &[C], p: &dyn Policy,
                              private_key_store: Option<&str>,
                              timestamp: Option<SystemTime>,
                              options: Option<&[GetKeysOptions]>)
-    -> Result<Vec<Box<dyn crypto::Signer + Send + Sync>>>
+    -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
     where C: std::borrow::Borrow<Cert>
 {
     get_keys(certs, p, private_key_store, timestamp,
@@ -514,9 +521,9 @@ pub fn encrypt(opts: EncryptOpts) -> Result<()> {
 
     // Optionally sign message.
     if ! signers.is_empty() {
-        let mut signer = Signer::new(sink, signers.pop().unwrap());
+        let mut signer = Signer::new(sink, signers.pop().unwrap().0);
         for s in signers {
-            signer = signer.add_signer(s);
+            signer = signer.add_signer(s.0);
             if let Some(time) = opts.time {
                 signer = signer.creation_time(time);
             }

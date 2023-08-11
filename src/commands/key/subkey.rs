@@ -24,6 +24,7 @@ use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
 use crate::commands::cert_stub;
+use crate::commands::get_primary_keys;
 use crate::common::get_secret_signer;
 use crate::common::read_cert;
 use crate::common::read_secret;
@@ -272,11 +273,33 @@ fn subkey_add(
             Some(EncryptPurpose::Transport) | Some(EncryptPurpose::Universal)
         ));
 
+    // If a password is needed to use the key, the user will be prompted.
+    let (primary_key, password) = match get_primary_keys(
+        &[cert.clone()],
+        &config.policy,
+        command.private_key_store.as_deref(),
+        Some(config.time),
+        None,
+    ) {
+        Ok(keys) => {
+            assert!(
+                keys.len() == 1,
+                "Expect exactly one result from get_primary_keys()"
+            );
+            keys.into_iter().next().unwrap()
+        }
+        Err(_) => {
+            return Err(anyhow!("Adding a subkey requires the private key"))
+        }
+    };
+
     let new_cert = KeyBuilder::new(keyflags)
         .set_creation_time(config.time)
         .set_cipher_suite(command.cipher_suite.as_ciphersuite())
+        .set_password(password)
         .subkey(valid_cert)?
         .set_key_validity_period(validity)?
+        .set_primary_key_signer(primary_key)
         .attach_cert()?;
 
     let mut sink = command.output.create_safe(config.force)?;

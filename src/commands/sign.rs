@@ -129,12 +129,12 @@ fn sign_data(opts: SignOpts) -> Result<()> {
     }
 
     let mut signer = Signer::with_template(
-        message, keypairs.pop().unwrap(), builder);
+        message, keypairs.pop().unwrap().0, builder);
     if let Some(time) = time {
         signer = signer.creation_time(time);
     }
     for s in keypairs {
-        signer = signer.add_signer(s);
+        signer = signer.add_signer(s.0);
     }
     if detached {
         signer = signer.detached();
@@ -270,12 +270,12 @@ fn sign_message_(opts: SignOpts, output: &mut (dyn io::Write + Sync + Send)) -> 
                 }
 
                 let mut signer = Signer::with_template(
-                    sink, keypairs.pop().unwrap(), builder);
+                    sink, keypairs.pop().unwrap().0, builder);
                 if let Some(time) = time {
                     signer = signer.creation_time(time);
                 }
                 for s in keypairs.drain(..) {
-                    signer = signer.add_signer(s);
+                    signer = signer.add_signer(s.0);
                 }
                 sink = signer.build().context("Failed to create signer")?;
                 state = State::Signing { signature_count: 0, };
@@ -415,13 +415,13 @@ pub fn clearsign(config: Config,
 
     let message = Message::new(&mut output);
     let mut signer = Signer::with_template(
-        message, keypairs.pop().unwrap(), builder)
+        message, keypairs.pop().unwrap().0, builder)
         .cleartext();
     if let Some(time) = time {
         signer = signer.creation_time(time);
     }
     for s in keypairs {
-        signer = signer.add_signer(s);
+        signer = signer.add_signer(s.0);
     }
     let mut message = signer.build().context("Failed to create signer")?;
 

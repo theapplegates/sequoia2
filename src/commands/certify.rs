@@ -127,13 +127,16 @@ pub fn certify(config: Config, c: certify::Command)
     }
 
     // Sign it.
-    let signers = get_certification_keys(
+    let keys = get_certification_keys(
         &[certifier], &config.policy,
         private_key_store.as_deref(),
         Some(time),
         Some(&options))?;
-    assert_eq!(signers.len(), 1);
-    let mut signer = signers.into_iter().next().unwrap();
+    assert!(
+        keys.len() == 1,
+        "Expect exactly one result from get_certification_keys()"
+    );
+    let mut signer = keys.into_iter().next().unwrap().0;
 
     let certification = builder
         .sign_userid_binding(

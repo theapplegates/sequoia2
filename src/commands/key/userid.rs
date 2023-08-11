@@ -268,23 +268,24 @@ fn userid_add(
 
     let creation_time = Some(config.time);
 
-    // If a password is needed to use the key, the user will be prompted.
-    let pk = get_primary_keys(
+    let mut pk = match get_primary_keys(
         &[key.clone()],
         &config.policy,
         command.private_key_store.as_deref(),
         creation_time,
         None,
-    );
-
-    let pk = pk.context("Adding a User ID requires the private key")?;
-
-    assert_eq!(
-        pk.len(),
-        1,
-        "Expect exactly one result from get_primary_keys()"
-    );
-    let mut pk = pk.into_iter().next().unwrap();
+    ) {
+        Ok(keys) => {
+            assert!(
+                keys.len() == 1,
+                "Expect exactly one result from get_primary_keys()"
+            );
+            keys.into_iter().next().unwrap().0
+        }
+        Err(_) => {
+            return Err(anyhow!("Adding a User ID requires the private key"))
+        }
+    };
 
     let vcert = key
         .with_policy(&config.policy, creation_time)

@@ -136,16 +136,35 @@ fn get_keys<C>(certs: &[C], p: &dyn Policy,
             if let Some(secret) = key.optional_secret() {
                 let (unencrypted, password) = match secret {
                     SecretKeyMaterial::Encrypted(ref e) => {
-                        let input_password = rpassword::prompt_password(
-                            &format!("Please enter password to decrypt {}/{}: ",
-                                     tsk, key))
-                            .context("Reading password from tty")?;
-                        (
-                            e.decrypt(key.pk_algo(), &Password::from(input_password.to_string()))
-                            .expect("decryption failed"),
-                            Some(Password::from(input_password.to_string())),
-                        )
-                    },
+                        // try passwords from already existing keys
+                        match keys.iter().find(|&(_, password)| {
+                            password.is_some()
+                                && e.decrypt(
+                                    key.pk_algo(),
+                                    password.as_ref().unwrap(),
+                                )
+                                .is_ok()
+                        }) {
+                            Some((_, password)) => (
+                                e.decrypt(
+                                    key.pk_algo(),
+                                    password.as_ref().unwrap(),
+                                )
+                                .expect("decryption failed"),
+                                Some(password.as_ref().unwrap().clone()),
+                            ),
+                            None => {
+                                let password = Password::from(rpassword::prompt_password(
+                                    &format!("Please enter password to decrypt {}/{}: ", tsk, key))
+                                .context("Reading password from tty")?);
+                                (
+                                    e.decrypt(key.pk_algo(), &password)
+                                        .expect("decryption failed"),
+                                    Some(password),
+                                )
+                            }
+                        }
+                    }
                     SecretKeyMaterial::Unencrypted(ref u) => (u.clone(), None),
                 };
 

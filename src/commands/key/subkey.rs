@@ -11,6 +11,7 @@ use openpgp::armor::Writer;
 use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::cert::KeyBuilder;
 use openpgp::cert::SubkeyRevocationBuilder;
+use openpgp::crypto::Password;
 use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::parse::Parse;
 use openpgp::policy::Policy;
@@ -274,24 +275,35 @@ fn subkey_add(
         ));
 
     // If a password is needed to use the key, the user will be prompted.
-    let (primary_key, password) = match get_primary_keys(
-        &[cert.clone()],
-        &config.policy,
-        command.private_key_store.as_deref(),
-        Some(config.time),
-        None,
-    ) {
-        Ok(keys) => {
-            assert!(
-                keys.len() == 1,
-                "Expect exactly one result from get_primary_keys()"
-            );
-            keys.into_iter().next().unwrap()
-        }
-        Err(_) => {
-            return Err(anyhow!("Adding a subkey requires the private key"))
-        }
-    };
+    let (primary_key, password) =
+        match get_primary_keys(
+            &[cert.clone()],
+            &config.policy,
+            command.private_key_store.as_deref(),
+            Some(config.time),
+            None,
+        ) {
+            Ok(keys) => {
+                assert!(
+                    keys.len() == 1,
+                    "Expect exactly one result from get_primary_keys()"
+                );
+                // provide a password or reuse that of the primary key
+                if command.with_password {
+                    (
+                    keys.into_iter().next().unwrap().0,
+                    Some(Password::from(rpassword::prompt_password(
+                        "Please enter password to encrypt the new subkey: ")
+                    .context("Reading password from tty")?))
+                )
+                } else {
+                    keys.into_iter().next().unwrap()
+                }
+            }
+            Err(_) => {
+                return Err(anyhow!("Adding a subkey requires the private key"))
+            }
+        };
 
     let new_cert = KeyBuilder::new(keyflags)
         .set_creation_time(config.time)

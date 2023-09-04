@@ -952,6 +952,10 @@ combined with the signing or authentication flag.
 
 At least one flag must be chosen.
 
+When using \"--with-password\", \"sq\" prompts the user for a password, that is
+used to encrypt the subkey.
+The password for the subkey may be different from that of the primary key.
+
 Furthermore the subkey may use one of several available cipher suites, that can
 be selected using \"--cipher-suite\".
 
@@ -1059,6 +1063,11 @@ pub struct SubkeyAddCommand {
         value_enum,
     )]
     pub can_encrypt: Option<EncryptPurpose>,
+    #[clap(
+        long = "with-password",
+        help = "Protects the subkey with a password",
+    )]
+    pub with_password: bool,
 }
 
 #[derive(Debug, Args)]

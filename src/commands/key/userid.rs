@@ -282,8 +282,8 @@ fn userid_add(
             );
             keys.into_iter().next().unwrap().0
         }
-        Err(_) => {
-            return Err(anyhow!("Adding a User ID requires the private key"))
+        Err(error) => {
+            return Err(error)
         }
     };
 

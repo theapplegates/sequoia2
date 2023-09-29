@@ -301,8 +301,8 @@ fn subkey_add(
                     keys.into_iter().next().unwrap()
                 }
             }
-            Err(_) => {
-                return Err(anyhow!("Adding a subkey requires the private key"))
+            Err(error) => {
+                return Err(error)
             }
         };
 

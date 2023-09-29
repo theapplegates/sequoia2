@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use anyhow::Context as _;
 use std::borrow::Borrow;
 use std::cmp::Ordering;
@@ -136,7 +137,7 @@ fn get_keys<C>(certs: &[C], p: &dyn Policy,
                                     key.pk_algo(),
                                     password.as_ref().unwrap(),
                                 )
-                                .expect("decryption failed"),
+                                    .map_err(|_| anyhow!("The provided password is incorrect."))?,
                                 Some(password.as_ref().unwrap().clone()),
                             ),
                             None => {
@@ -145,7 +146,7 @@ fn get_keys<C>(certs: &[C], p: &dyn Policy,
                                 .context("Reading password from tty")?);
                                 (
                                     e.decrypt(key.pk_algo(), &password)
-                                        .expect("decryption failed"),
+                                        .map_err(|_| anyhow!("The provided password is incorrect."))?,
                                     Some(password),
                                 )
                             }

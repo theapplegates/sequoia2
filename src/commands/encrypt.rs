@@ -20,6 +20,7 @@ use openpgp::types::KeyFlags;
 
 use crate::Config;
 use crate::Result;
+use crate::common::prompt_for_password;
 use crate::load_certs;
 use crate::sq_cli;
 
@@ -91,12 +92,18 @@ pub fn encrypt<'a, 'b: 'a>(
     let mut passwords: Vec<crypto::Password> = Vec::with_capacity(npasswords);
     for n in 0..npasswords {
         let nprompt = format!("Enter password {}: ", n + 1);
-        passwords.push(rpassword::prompt_password(
+        if let Some(password) = prompt_for_password(
             if npasswords > 1 {
                 &nprompt
             } else {
                 "Enter password: "
-            })?.into());
+            },
+            Some("Repeat password: "),
+        )? {
+            passwords.push(password)
+        } else {
+            return Err(anyhow::anyhow!("Password can not be empty!"));
+        }
     }
 
     if recipients.len() + passwords.len() == 0 {

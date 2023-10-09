@@ -12,6 +12,7 @@ use openpgp::Packet;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
+use crate::common::prompt_for_password;
 use crate::sq_cli;
 use crate::Config;
 use crate::sq_cli::types::FileOrStdout;
@@ -101,17 +102,11 @@ pub fn generate(
     }
 
     if command.with_password {
-        let p0 =
-            rpassword::prompt_password("Enter password to protect the key: ")?
-                .into();
-        let p1 = rpassword::prompt_password("Repeat the password once more: ")?
-            .into();
-
-        if p0 == p1 {
-            builder = builder.set_password(Some(p0));
-        } else {
-            return Err(anyhow::anyhow!("Passwords do not match."));
-        }
+        builder = builder.set_password(
+            prompt_for_password(
+                "Enter password to protect the key: ",
+                Some("Repeat the password once more: "),
+            )?);
     }
 
     if command.output.path().is_none() && command.rev_cert.is_none() {

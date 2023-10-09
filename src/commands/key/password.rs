@@ -1,5 +1,3 @@
-use anyhow::Context;
-
 use openpgp::parse::Parse;
 use openpgp::serialize::Serialize;
 use openpgp::Cert;
@@ -7,6 +5,7 @@ use openpgp::Packet;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
+use crate::common::prompt_for_password;
 use crate::decrypt_key;
 use crate::sq_cli;
 use crate::Config;
@@ -44,21 +43,7 @@ pub fn password(
     let new_password = if command.clear {
         None
     } else {
-        let prompt_0 = rpassword::prompt_password("New password: ")
-            .context("Error reading password")?;
-        let prompt_1 = rpassword::prompt_password("Repeat new password: ")
-            .context("Error reading password")?;
-
-        if prompt_0 != prompt_1 {
-            return Err(anyhow::anyhow!("Passwords do not match"));
-        }
-
-        if prompt_0.is_empty() {
-            // Empty password means no password.
-            None
-        } else {
-            Some(prompt_0.into())
-        }
+        prompt_for_password("New password: ", Some("Repeat new password: "))?
     };
 
     if let Some(new) = new_password {

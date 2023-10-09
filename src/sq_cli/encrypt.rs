@@ -104,10 +104,15 @@ pub struct Command {
     #[clap(
         short = 's',
         long = "symmetric",
-        help = "Adds a password to encrypt with",
-        long_help = "Adds a password to encrypt with.  \
-            The message can be decrypted with \
-            either one of the recipient's keys, or any password.",
+        help = "Prompts to add a password to encrypt with",
+        long_help =
+            "Prompts to add a password to encrypt with.  \
+            When using this option, the user is asked to provide a password, \
+            which is used to encrypt the message. \
+            This option can be provided more than once to provide more than \
+            one password. \
+            The encrypted data can afterwards be decrypted with either one of \
+            the recipient's keys, or one of the provided passwords.",
         action = Count,
     )]
     pub symmetric: u8,

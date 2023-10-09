@@ -11,7 +11,6 @@ use openpgp::armor::Writer;
 use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::cert::KeyBuilder;
 use openpgp::cert::SubkeyRevocationBuilder;
-use openpgp::crypto::Password;
 use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::parse::Parse;
 use openpgp::policy::Policy;
@@ -27,6 +26,7 @@ use sequoia_openpgp as openpgp;
 use crate::commands::cert_stub;
 use crate::commands::get_primary_keys;
 use crate::common::get_secret_signer;
+use crate::common::prompt_for_password;
 use crate::common::read_cert;
 use crate::common::read_secret;
 use crate::common::RevocationOutput;
@@ -291,11 +291,12 @@ fn subkey_add(
                 // provide a password or reuse that of the primary key
                 if command.with_password {
                     (
-                    keys.into_iter().next().unwrap().0,
-                    Some(Password::from(rpassword::prompt_password(
-                        "Please enter password to encrypt the new subkey: ")
-                    .context("Reading password from tty")?))
-                )
+                        keys.into_iter().next().unwrap().0,
+                        prompt_for_password(
+                            "Please enter password to encrypt the new subkey: ",
+                            Some("Please repeat password to encrypt new subkey: "),
+                        )?
+                    )
                 } else {
                     keys.into_iter().next().unwrap()
                 }

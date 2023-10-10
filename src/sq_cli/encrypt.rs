@@ -7,6 +7,7 @@ use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
 use super::types::ClapData;
+use super::types::MetadataTime;
 use super::types::FileOrStdin;
 use super::types::FileOrStdout;
 
@@ -88,6 +89,43 @@ pub struct Command {
         help = "Encrypts to all certificates in CERT_RING_FILE",
     )]
     pub recipients_file: Vec<PathBuf>,
+
+    #[clap(
+        help = "Sets the filename of the encrypted file as metadata",
+        long,
+        long_help =
+            "Sets the filename of the encrypted file as metadata.  \
+            Do note, that this metadata is not signed and as such relying on \
+            it - on sender or receiver side - is generally considered \
+            dangerous.",
+    )]
+    pub set_metadata_filename: bool,
+    #[clap(
+        default_value_t = MetadataTime::default(),
+        help = "Sets time for encrypted file as metadata",
+        long,
+        long_help = format!(
+            "Sets time for encrypted file as metadata.  \
+            Allows setting TIME either as ISO 8601 formatted string or by \
+            providing custom keywords.  \
+            With \"{}\", the metadata is not set.  \
+            With \"{}\", the metadata is set to the file's creation \
+            timestamp.  \
+            With \"{}\", the metadata is set to the file's last \
+            modification timestamp.  \
+            With \"{}\", the metadata is set to the creation \
+            timestamp of the message for which the metadata is added.  \
+            Do note, that this metadata is not signed and as such relying on \
+            it - on sender or receiver side - is generally considered \
+            dangerous.",
+            MetadataTime::None,
+            MetadataTime::FileCreation,
+            MetadataTime::FileModification,
+            MetadataTime::MessageCreation,
+        ),
+        value_name = "TIME",
+    )]
+    pub set_metadata_time: MetadataTime,
 
     #[clap(
         long = "signer-file",

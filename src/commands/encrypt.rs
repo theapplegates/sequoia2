@@ -1,6 +1,8 @@
+use std::fs::metadata;
 use std::io;
 use std::time::SystemTime;
 
+use anyhow::anyhow;
 use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
@@ -23,6 +25,8 @@ use crate::Result;
 use crate::common::prompt_for_password;
 use crate::load_certs;
 use crate::sq_cli;
+use crate::sq_cli::types::FileOrStdin;
+use crate::sq_cli::types::MetadataTime;
 
 use crate::commands::CompressionMode;
 use crate::commands::EncryptionMode;
@@ -47,7 +51,6 @@ pub fn dispatch(config: Config, command: sq_cli::encrypt::Command) -> Result<()>
     recipients.extend(
         config.lookup_by_userid(&command.recipients_userid, false)
             .context("--recipient-userid")?);
-    let mut input = command.input.open()?;
 
     let output = command.output.create_pgp_safe(
         config.force,
@@ -61,7 +64,7 @@ pub fn dispatch(config: Config, command: sq_cli::encrypt::Command) -> Result<()>
     encrypt(
         &config.policy,
         command.private_key_store.as_deref(),
-        &mut input,
+        command.input,
         output,
         command.symmetric as usize,
         &recipients,
@@ -70,6 +73,8 @@ pub fn dispatch(config: Config, command: sq_cli::encrypt::Command) -> Result<()>
         command.compression,
         Some(config.time),
         command.use_expired_subkey,
+        command.set_metadata_filename,
+        command.set_metadata_time
     )?;
 
     Ok(())
@@ -78,7 +83,7 @@ pub fn dispatch(config: Config, command: sq_cli::encrypt::Command) -> Result<()>
 pub fn encrypt<'a, 'b: 'a>(
     policy: &'b dyn Policy,
     private_key_store: Option<&str>,
-    input: &mut dyn io::Read,
+    input: FileOrStdin,
     message: Message<'a>,
     npasswords: usize,
     recipients: &'b [openpgp::Cert],
@@ -86,7 +91,10 @@ pub fn encrypt<'a, 'b: 'a>(
     mode: EncryptionMode,
     compression: CompressionMode,
     time: Option<SystemTime>,
-    use_expired_subkey: bool)
+    use_expired_subkey: bool,
+    set_metadata_filename: bool,
+    set_metadata_time: MetadataTime,
+)
     -> Result<()>
 {
     let mut passwords: Vec<crypto::Password> = Vec::with_capacity(npasswords);
@@ -202,15 +210,74 @@ pub fn encrypt<'a, 'b: 'a>(
         sink = signer.build()?;
     }
 
-    let mut literal_writer = LiteralWriter::new(sink).build()
+    let mut literal_writer = LiteralWriter::new(sink);
+    match set_metadata_time {
+        MetadataTime::None => {}
+        MetadataTime::FileCreation => {
+            let metadata = metadata(
+                input.inner()
+                    .ok_or_else(|| {
+                        anyhow!(
+                            "Can not get metadata of file, when reading from stdin."
+                        )
+                    })?)?;
+            literal_writer = literal_writer.date(SystemTime::from(metadata.created()?))?;
+        }
+        MetadataTime::FileModification => {
+            let metadata = metadata(
+                input.inner()
+                    .ok_or_else(|| {
+                        anyhow!(
+                            "Can not get metadata of file, when reading from stdin."
+                        )
+                    })?)?;
+            literal_writer = literal_writer.date(
+                SystemTime::from(metadata.modified()?)
+            )?;
+        }
+        MetadataTime::MessageCreation => {
+            literal_writer = literal_writer.date(
+                time.ok_or(anyhow!("Unable to get reference time"))?
+            )?;
+        }
+        MetadataTime::Timestamp(time) => {
+            literal_writer = literal_writer.date(SystemTime::from(time.time))?;
+        }
+    }
+
+    if set_metadata_filename {
+        literal_writer = literal_writer
+            .filename(
+                input
+                    .inner()
+                    .ok_or_else(|| {
+                        anyhow!(
+                            "Can not embed filename when reading from stdin."
+                        )
+                    })?
+                    .as_path()
+                    .file_name()
+                    .ok_or_else(|| {
+                        anyhow!("Failed to get filename from input.")
+                    })?
+                    .to_str()
+                    .ok_or_else(|| {
+                        anyhow!("Failed to convert filename to string.")
+                    })?
+                    .to_string(),
+            )
+            .context("Setting filename")?
+    }
+
+    let mut writer_stack = literal_writer
+        .build()
         .context("Failed to create literal writer")?;
 
     // Finally, copy stdin to our writer stack to encrypt the data.
-    io::copy(input, &mut literal_writer)
+    io::copy(&mut input.open()?, &mut writer_stack)
         .context("Failed to encrypt")?;
 
-    literal_writer.finalize()
-        .context("Failed to encrypt")?;
+    writer_stack.finalize().context("Failed to encrypt")?;
 
     Ok(())
 }

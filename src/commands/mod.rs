@@ -11,9 +11,6 @@ use sequoia_openpgp as openpgp;
 use openpgp::{
     armor,
 };
-use openpgp::types::{
-    CompressionAlgorithm,
-};
 use openpgp::cert::prelude::*;
 use openpgp::crypto::{self, Password};
 use openpgp::{Cert, Fingerprint, KeyID, Result};
@@ -24,11 +21,7 @@ use openpgp::parse::{
 };
 use openpgp::parse::stream::*;
 use openpgp::policy::HashAlgoSecurity;
-use openpgp::serialize::stream::{
-    Message, Signer, LiteralWriter, Encryptor, Recipient,
-    Compressor,
-    padding::Padder,
-};
+use openpgp::serialize::stream::Message;
 use openpgp::policy::Policy;
 use openpgp::types::KeyFlags;
 use openpgp::types::RevocationStatus;
@@ -50,6 +43,7 @@ use crate::sq_cli::packet;
 #[cfg(feature = "autocrypt")]
 pub mod autocrypt;
 pub mod decrypt;
+pub mod encrypt;
 pub mod sign;
 pub use self::sign::sign;
 pub mod dump;
@@ -428,141 +422,6 @@ pub fn cert_stub(cert: Cert,
     }
 
     Ok(Cert::from_packets(packets.into_iter())?)
-}
-
-pub struct EncryptOpts<'a> {
-    pub policy: &'a dyn Policy,
-    pub private_key_store: Option<&'a str>,
-    pub input: &'a mut dyn io::Read,
-    pub message: Message<'a>,
-    pub npasswords: usize,
-    pub recipients: &'a [openpgp::Cert],
-    pub signers: Vec<openpgp::Cert>,
-    pub mode: EncryptionMode,
-    pub compression: CompressionMode,
-    pub time: Option<SystemTime>,
-    pub use_expired_subkey: bool,
-}
-
-pub fn encrypt(opts: EncryptOpts) -> Result<()> {
-    let mut passwords: Vec<crypto::Password> = Vec::with_capacity(opts.npasswords);
-    for n in 0..opts.npasswords {
-        let nprompt = format!("Enter password {}: ", n + 1);
-        passwords.push(rpassword::prompt_password(
-            if opts.npasswords > 1 {
-                &nprompt
-            } else {
-                "Enter password: "
-            })?.into());
-    }
-
-    if opts.recipients.len() + passwords.len() == 0 {
-        return Err(anyhow::anyhow!(
-            "Neither recipient nor password given"));
-    }
-
-    let mode = match opts.mode {
-        EncryptionMode::Rest => {
-            KeyFlags::empty().set_storage_encryption()
-        }
-        EncryptionMode::Transport => {
-            KeyFlags::empty().set_transport_encryption()
-        }
-        EncryptionMode::All => KeyFlags::empty()
-            .set_storage_encryption()
-            .set_transport_encryption(),
-    };
-
-    let mut signers = get_signing_keys(
-        &opts.signers, opts.policy, opts.private_key_store, opts.time, None)?;
-
-    // Build a vector of recipients to hand to Encryptor.
-    let mut recipient_subkeys: Vec<Recipient> = Vec::new();
-    for cert in opts.recipients.iter() {
-        let mut count = 0;
-        for key in cert.keys().with_policy(opts.policy, opts.time).alive().revoked(false)
-            .key_flags(&mode).supported().map(|ka| ka.key())
-        {
-            recipient_subkeys.push(key.into());
-            count += 1;
-        }
-        if count == 0 {
-            let mut expired_keys = Vec::new();
-            for ka in cert.keys().with_policy(opts.policy, opts.time).revoked(false)
-                .key_flags(&mode).supported()
-            {
-                let key = ka.key();
-                expired_keys.push(
-                    (ka.binding_signature().key_expiration_time(key)
-                         .expect("Key must have an expiration time"),
-                     key));
-            }
-            expired_keys.sort_by_key(|(expiration_time, _)| *expiration_time);
-
-            if let Some((expiration_time, key)) = expired_keys.last() {
-                if opts.use_expired_subkey {
-                    recipient_subkeys.push((*key).into());
-                } else {
-                    use chrono::{DateTime, offset::Utc};
-                    return Err(anyhow::anyhow!(
-                        "The last suitable encryption key of cert {} expired \
-                         on {}\n\
-                         Hint: Use --use-expired-subkey to use it anyway.",
-                        cert,
-                        DateTime::<Utc>::from(*expiration_time)));
-                }
-            } else {
-                return Err(anyhow::anyhow!(
-                    "Cert {} has no suitable encryption key", cert));
-            }
-        }
-    }
-
-    // We want to encrypt a literal data packet.
-    let encryptor =
-        Encryptor::for_recipients(opts.message, recipient_subkeys)
-        .add_passwords(passwords);
-
-    let mut sink = encryptor.build()
-        .context("Failed to create encryptor")?;
-
-    match opts.compression {
-        CompressionMode::None => (),
-        CompressionMode::Pad => sink = Padder::new(sink).build()?,
-        CompressionMode::Zip => sink =
-            Compressor::new(sink).algo(CompressionAlgorithm::Zip).build()?,
-        CompressionMode::Zlib => sink =
-            Compressor::new(sink).algo(CompressionAlgorithm::Zlib).build()?,
-        CompressionMode::Bzip2 => sink =
-            Compressor::new(sink).algo(CompressionAlgorithm::BZip2).build()?,
-    }
-
-    // Optionally sign message.
-    if ! signers.is_empty() {
-        let mut signer = Signer::new(sink, signers.pop().unwrap().0);
-        for s in signers {
-            signer = signer.add_signer(s.0);
-            if let Some(time) = opts.time {
-                signer = signer.creation_time(time);
-            }
-        }
-        for r in opts.recipients.iter() {
-            signer = signer.add_intended_recipient(r);
-        }
-        sink = signer.build()?;
-    }
-
-    let mut literal_writer = LiteralWriter::new(sink).build()
-        .context("Failed to create literal writer")?;
-
-    // Finally, copy stdin to our writer stack to encrypt the data.
-    io::copy(opts.input, &mut literal_writer)
-        .context("Failed to encrypt")?;
-
-    literal_writer.finalize()
-        .context("Failed to encrypt")?;
-
-    Ok(())
 }
 
 struct VHelper<'a, 'store> {

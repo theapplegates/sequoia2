@@ -1049,47 +1049,7 @@ fn main() -> Result<()> {
             commands::decrypt::dispatch(config, command)?
         },
         SqSubcommands::Encrypt(command) => {
-            let mut recipients = load_certs(
-                command.recipients_file.iter().map(|s| s.as_ref()))?;
-            recipients.extend(
-                config.lookup(command.recipients_cert,
-                              Some(KeyFlags::empty()
-                                   .set_storage_encryption()
-                                   .set_transport_encryption()),
-                              true,
-                              false)
-                    .context("--recipient-cert")?);
-            recipients.extend(
-                config.lookup_by_userid(&command.recipients_email, true)
-                    .context("--recipient-email")?);
-            recipients.extend(
-                config.lookup_by_userid(&command.recipients_userid, false)
-                    .context("--recipient-userid")?);
-            let mut input = command.input.open()?;
-
-            let output = command.output.create_pgp_safe(
-                config.force,
-                command.binary,
-                armor::Kind::Message,
-            )?;
-
-            let additional_secrets =
-                load_certs(command.signer_key_file.iter().map(|s| s.as_ref()))?;
-
-            let private_key_store = command.private_key_store.as_deref();
-            commands::encrypt(commands::EncryptOpts {
-                policy,
-                private_key_store,
-                input: &mut input,
-                message: output,
-                npasswords: command.symmetric as usize,
-                recipients: &recipients,
-                signers: additional_secrets,
-                mode: command.mode,
-                compression: command.compression,
-                time: Some(config.time),
-                use_expired_subkey: command.use_expired_subkey,
-            })?;
+            commands::encrypt::dispatch(config, command)?
         },
         SqSubcommands::Sign(command) => {
             let mut input = command.input.open()?;

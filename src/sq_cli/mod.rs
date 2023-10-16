@@ -14,7 +14,7 @@ pub mod armor;
 pub mod certify;
 pub mod dane;
 mod dearmor;
-mod decrypt;
+pub mod decrypt;
 pub mod encrypt;
 pub mod export;
 pub mod import;

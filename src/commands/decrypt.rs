@@ -27,8 +27,47 @@ use crate::{
         dump::PacketDumper,
         VHelper,
     },
+    load_certs,
     sq_cli,
 };
+
+pub fn dispatch(config: Config, command: sq_cli::decrypt::Command) -> Result<()> {
+    tracer!(TRACE, "decrypt::dispatch");
+
+    let mut input = command.input.open()?;
+    let mut output = command.output.create_safe(config.force)?;
+
+    let certs = load_certs(
+        command.sender_cert_file.iter().map(|s| s.as_ref()),
+    )?;
+    // Fancy default for --signatures.  If you change this,
+    // also change the description in the CLI definition.
+    let signatures = command.signatures.unwrap_or_else(|| {
+        if certs.is_empty() {
+            // No certs are given for verification, use 0 as
+            // threshold so we handle only-encrypted messages
+            // gracefully.
+            0
+        } else {
+            // At least one cert given, expect at least one
+            // valid signature.
+            1
+        }
+    });
+    // TODO: should this be load_keys?
+    let secrets =
+        load_certs(command.secret_key_file.iter().map(|s| s.as_ref()))?;
+    let private_key_store = command.private_key_store;
+    let session_keys = command.session_key;
+    decrypt(config, private_key_store.as_deref(),
+            &mut input, &mut output,
+            signatures, certs, secrets,
+            command.dump_session_key,
+            session_keys,
+            command.dump, command.hex)?;
+
+    Ok(())
+}
 
 trait PrivateKey {
     fn get_unlocked(&self) -> Option<Box<dyn Decryptor>>;

@@ -50,7 +50,6 @@ use crate::sq_cli::packet;
 #[cfg(feature = "autocrypt")]
 pub mod autocrypt;
 pub mod decrypt;
-pub use self::decrypt::decrypt;
 pub mod sign;
 pub use self::sign::sign;
 pub mod dump;

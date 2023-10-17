@@ -1060,10 +1060,7 @@ fn main() -> Result<()> {
             commands::armor::dispatch(config, command)?
         },
         SqSubcommands::Dearmor(command) => {
-            let mut input = command.input.open()?;
-            let mut output = command.output.create_safe(config.force)?;
-            let mut filter = armor::Reader::from_reader(&mut input, None);
-            io::copy(&mut filter, &mut output)?;
+            commands::dearmor::dispatch(config, command)?
         },
         #[cfg(feature = "autocrypt")]
         SqSubcommands::Autocrypt(command) => {

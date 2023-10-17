@@ -13,7 +13,7 @@ use openpgp::Fingerprint;
 pub mod armor;
 pub mod certify;
 pub mod dane;
-mod dearmor;
+pub mod dearmor;
 pub mod decrypt;
 pub mod encrypt;
 pub mod export;

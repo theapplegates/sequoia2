@@ -38,6 +38,7 @@ use crate::sq_cli::encrypt::EncryptionMode;
 pub mod armor;
 #[cfg(feature = "autocrypt")]
 pub mod autocrypt;
+pub mod dearmor;
 pub mod decrypt;
 pub mod encrypt;
 pub mod sign;

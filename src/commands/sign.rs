@@ -19,10 +19,63 @@ use openpgp::serialize::stream::{
     Message, Armorer, Signer, LiteralWriter,
 };
 use openpgp::types::SignatureType;
+
+use crate::Config;
+use crate::commands::merge_signatures::merge_signatures;
+use crate::load_certs;
+use crate::parse_notations;
+
+use crate::sq_cli;
+use crate::sq_cli::types::FileOrStdin;
 use crate::sq_cli::types::FileOrStdout;
-use crate::{
-    Config,
-};
+
+pub fn dispatch(config: Config, command: sq_cli::sign::Command) -> Result<()> {
+    tracer!(TRACE, "sign::dispatch");
+
+    let mut input = command.input.open()?;
+    let output = &command.output;
+    let detached = command.detached;
+    let binary = command.binary;
+    let append = command.append;
+    let notarize = command.notarize;
+    let private_key_store = command.private_key_store.as_deref();
+    let secrets =
+        load_certs(command.secret_key_file.iter().map(|s| s.as_ref()))?;
+    let time = Some(config.time);
+
+    let notations = parse_notations(command.notation)?;
+
+    if let Some(merge) = command.merge {
+        let output = output.create_pgp_safe(
+            config.force,
+            binary,
+            armor::Kind::Message,
+        )?;
+        let data: FileOrStdin = merge.into();
+        let mut input2 = data.open()?;
+        merge_signatures(&mut input, &mut input2, output)?;
+    } else if command.clearsign {
+        let output = output.create_safe(config.force)?;
+        clearsign(config, private_key_store, input, output, secrets,
+                  time, &notations)?;
+    } else {
+        sign(SignOpts {
+            config,
+            private_key_store,
+            input: &mut input,
+            output_path: output,
+            secrets,
+            detached,
+            binary,
+            append,
+            notarize,
+            time,
+            notations: &notations
+        })?;
+    }
+
+    Ok(())
+}
 
 pub struct SignOpts<'a, 'certdb> {
     pub config: Config<'certdb>,

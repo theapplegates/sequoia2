@@ -7,7 +7,6 @@
 #![doc = include_str!(concat!(env!("OUT_DIR"), "/sq-usage.md"))]
 
 use anyhow::Context as _;
-use sq_cli::types::FileOrStdin;
 use is_terminal::IsTerminal;
 
 use std::borrow::Borrow;
@@ -1052,48 +1051,9 @@ fn main() -> Result<()> {
             commands::encrypt::dispatch(config, command)?
         },
         SqSubcommands::Sign(command) => {
-            let mut input = command.input.open()?;
-            let output = &command.output;
-            let detached = command.detached;
-            let binary = command.binary;
-            let append = command.append;
-            let notarize = command.notarize;
-            let private_key_store = command.private_key_store.as_deref();
-            let secrets =
-                load_certs(command.secret_key_file.iter().map(|s| s.as_ref()))?;
-            let time = Some(config.time);
-
-            let notations = parse_notations(command.notation)?;
-
-            if let Some(merge) = command.merge {
-                let output = output.create_pgp_safe(
-                    config.force,
-                    binary,
-                    armor::Kind::Message,
-                )?;
-                let data: FileOrStdin = merge.into();
-                let mut input2 = data.open()?;
-                commands::merge_signatures(&mut input, &mut input2, output)?;
-            } else if command.clearsign {
-                let output = output.create_safe(config.force)?;
-                commands::sign::clearsign(config, private_key_store, input, output, secrets,
-                                          time, &notations)?;
-            } else {
-                commands::sign(commands::sign::SignOpts {
-                    config,
-                    private_key_store,
-                    input: &mut input,
-                    output_path: output,
-                    secrets,
-                    detached,
-                    binary,
-                    append,
-                    notarize,
-                    time,
-                    notations: &notations
-                })?;
-            }
+            commands::sign::dispatch(config, command)?
         },
+
         SqSubcommands::Verify(command) => {
             let mut input = command.input.open()?;
             let mut output = command.output.create_safe(config.force)?;

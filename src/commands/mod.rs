@@ -45,7 +45,6 @@ pub mod autocrypt;
 pub mod decrypt;
 pub mod encrypt;
 pub mod sign;
-pub use self::sign::sign;
 pub mod dump;
 pub use self::dump::dump;
 mod inspect;

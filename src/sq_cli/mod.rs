@@ -25,7 +25,7 @@ pub mod keyserver;
 pub mod link;
 mod output_versions;
 pub mod packet;
-mod sign;
+pub mod sign;
 mod verify;
 pub mod wkd;
 pub mod wot;

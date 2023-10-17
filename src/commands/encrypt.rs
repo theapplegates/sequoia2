@@ -57,56 +57,54 @@ pub fn dispatch(config: Config, command: sq_cli::encrypt::Command) -> Result<()>
     let additional_secrets =
         load_certs(command.signer_key_file.iter().map(|s| s.as_ref()))?;
 
-    let private_key_store = command.private_key_store.as_deref();
-    encrypt(EncryptOpts {
-        policy: &config.policy,
-        private_key_store,
-        input: &mut input,
-        message: output,
-        npasswords: command.symmetric as usize,
-        recipients: &recipients,
-        signers: additional_secrets,
-        mode: command.mode,
-        compression: command.compression,
-        time: Some(config.time),
-        use_expired_subkey: command.use_expired_subkey,
-    })?;
+    encrypt(
+        &config.policy,
+        command.private_key_store.as_deref(),
+        &mut input,
+        output,
+        command.symmetric as usize,
+        &recipients,
+        additional_secrets,
+        command.mode,
+        command.compression,
+        Some(config.time),
+        command.use_expired_subkey,
+    )?;
 
     Ok(())
 }
 
-pub struct EncryptOpts<'a> {
-    pub policy: &'a dyn Policy,
-    pub private_key_store: Option<&'a str>,
-    pub input: &'a mut dyn io::Read,
-    pub message: Message<'a>,
-    pub npasswords: usize,
-    pub recipients: &'a [openpgp::Cert],
-    pub signers: Vec<openpgp::Cert>,
-    pub mode: EncryptionMode,
-    pub compression: CompressionMode,
-    pub time: Option<SystemTime>,
-    pub use_expired_subkey: bool,
-}
-
-pub fn encrypt(opts: EncryptOpts) -> Result<()> {
-    let mut passwords: Vec<crypto::Password> = Vec::with_capacity(opts.npasswords);
-    for n in 0..opts.npasswords {
+pub fn encrypt<'a, 'b: 'a>(
+    policy: &'b dyn Policy,
+    private_key_store: Option<&str>,
+    input: &mut dyn io::Read,
+    message: Message<'a>,
+    npasswords: usize,
+    recipients: &'b [openpgp::Cert],
+    signers: Vec<openpgp::Cert>,
+    mode: EncryptionMode,
+    compression: CompressionMode,
+    time: Option<SystemTime>,
+    use_expired_subkey: bool)
+    -> Result<()>
+{
+    let mut passwords: Vec<crypto::Password> = Vec::with_capacity(npasswords);
+    for n in 0..npasswords {
         let nprompt = format!("Enter password {}: ", n + 1);
         passwords.push(rpassword::prompt_password(
-            if opts.npasswords > 1 {
+            if npasswords > 1 {
                 &nprompt
             } else {
                 "Enter password: "
             })?.into());
     }
 
-    if opts.recipients.len() + passwords.len() == 0 {
+    if recipients.len() + passwords.len() == 0 {
         return Err(anyhow::anyhow!(
             "Neither recipient nor password given"));
     }
 
-    let mode = match opts.mode {
+    let mode = match mode {
         EncryptionMode::Rest => {
             KeyFlags::empty().set_storage_encryption()
         }
@@ -119,13 +117,13 @@ pub fn encrypt(opts: EncryptOpts) -> Result<()> {
     };
 
     let mut signers = get_signing_keys(
-        &opts.signers, opts.policy, opts.private_key_store, opts.time, None)?;
+        &signers, policy, private_key_store, time, None)?;
 
     // Build a vector of recipients to hand to Encryptor.
     let mut recipient_subkeys: Vec<Recipient> = Vec::new();
-    for cert in opts.recipients.iter() {
+    for cert in recipients.iter() {
         let mut count = 0;
-        for key in cert.keys().with_policy(opts.policy, opts.time).alive().revoked(false)
+        for key in cert.keys().with_policy(policy, time).alive().revoked(false)
             .key_flags(&mode).supported().map(|ka| ka.key())
         {
             recipient_subkeys.push(key.into());
@@ -133,7 +131,7 @@ pub fn encrypt(opts: EncryptOpts) -> Result<()> {
         }
         if count == 0 {
             let mut expired_keys = Vec::new();
-            for ka in cert.keys().with_policy(opts.policy, opts.time).revoked(false)
+            for ka in cert.keys().with_policy(policy, time).revoked(false)
                 .key_flags(&mode).supported()
             {
                 let key = ka.key();
@@ -145,7 +143,7 @@ pub fn encrypt(opts: EncryptOpts) -> Result<()> {
             expired_keys.sort_by_key(|(expiration_time, _)| *expiration_time);
 
             if let Some((expiration_time, key)) = expired_keys.last() {
-                if opts.use_expired_subkey {
+                if use_expired_subkey {
                     recipient_subkeys.push((*key).into());
                 } else {
                     use chrono::{DateTime, offset::Utc};
@@ -165,13 +163,13 @@ pub fn encrypt(opts: EncryptOpts) -> Result<()> {
 
     // We want to encrypt a literal data packet.
     let encryptor =
-        Encryptor::for_recipients(opts.message, recipient_subkeys)
+        Encryptor::for_recipients(message, recipient_subkeys)
         .add_passwords(passwords);
 
     let mut sink = encryptor.build()
         .context("Failed to create encryptor")?;
 
-    match opts.compression {
+    match compression {
         CompressionMode::None => (),
         CompressionMode::Pad => sink = Padder::new(sink).build()?,
         CompressionMode::Zip => sink =
@@ -187,11 +185,11 @@ pub fn encrypt(opts: EncryptOpts) -> Result<()> {
         let mut signer = Signer::new(sink, signers.pop().unwrap().0);
         for s in signers {
             signer = signer.add_signer(s.0);
-            if let Some(time) = opts.time {
+            if let Some(time) = time {
                 signer = signer.creation_time(time);
             }
         }
-        for r in opts.recipients.iter() {
+        for r in recipients.iter() {
             signer = signer.add_intended_recipient(r);
         }
         sink = signer.build()?;
@@ -201,7 +199,7 @@ pub fn encrypt(opts: EncryptOpts) -> Result<()> {
         .context("Failed to create literal writer")?;
 
     // Finally, copy stdin to our writer stack to encrypt the data.
-    io::copy(opts.input, &mut literal_writer)
+    io::copy(input, &mut literal_writer)
         .context("Failed to encrypt")?;
 
     literal_writer.finalize()

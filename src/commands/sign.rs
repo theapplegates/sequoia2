@@ -61,59 +61,74 @@ pub fn dispatch(config: Config, command: sq_cli::sign::Command) -> Result<()> {
         clearsign(config, private_key_store, input, output, secrets,
                   time, &notations)?;
     } else {
-        sign(SignOpts {
-            config,
-            private_key_store,
-            input: &mut input,
-            output_path: output,
-            secrets,
-            detached,
-            binary,
-            append,
-            notarize,
-            time,
-            notations: &notations
-        })?;
+        sign(config,
+             private_key_store,
+             &mut input,
+             output,
+             secrets,
+             detached,
+             binary,
+             append,
+             notarize,
+             time,
+             &notations)?;
     }
 
     Ok(())
 }
 
-pub struct SignOpts<'a, 'certdb> {
-    pub config: Config<'certdb>,
-    pub private_key_store: Option<&'a str>,
-    pub input: &'a mut (dyn io::Read + Sync + Send),
-    pub output_path: &'a FileOrStdout,
-    pub secrets: Vec<openpgp::Cert>,
-    pub detached: bool,
-    pub binary: bool,
-    pub append: bool,
-    pub notarize: bool,
-    pub time: Option<SystemTime>,
-    pub notations: &'a [(bool, NotationData)]
-}
-
-pub fn sign(opts: SignOpts) -> Result<()> {
-    match (opts.detached, opts.append|opts.notarize) {
+pub fn sign<'a, 'certdb>(
+    config: Config<'certdb>,
+    private_key_store: Option<&'a str>,
+    input: &'a mut (dyn io::Read + Sync + Send),
+    output: &'a FileOrStdout,
+    secrets: Vec<openpgp::Cert>,
+    detached: bool,
+    binary: bool,
+    append: bool,
+    notarize: bool,
+    time: Option<SystemTime>,
+    notations: &'a [(bool, NotationData)])
+    -> Result<()>
+{
+    match (detached, append|notarize) {
         (_, false) | (true, true) =>
-            sign_data(opts),
+            sign_data(config,
+                      private_key_store,
+                      input,
+                      output,
+                      secrets,
+                      detached,
+                      binary,
+                      append,
+                      time,
+                      notations),
         (false, true) =>
-            sign_message(opts),
+            sign_message(config,
+                         private_key_store,
+                         input,
+                         output,
+                         secrets,
+                         binary,
+                         notarize,
+                         time,
+                         notations),
     }
 }
 
-fn sign_data(opts: SignOpts) -> Result<()> {
-    let SignOpts {
-        config,
-        private_key_store,
-        input,
-        output_path,
-        secrets,
-        detached,
-        binary,
-        append,
-        time,
-        notations, ..} = opts;
+fn sign_data<'a, 'certdb>(
+    config: Config<'certdb>,
+    private_key_store: Option<&'a str>,
+    input: &'a mut (dyn io::Read + Sync + Send),
+    output_path: &'a FileOrStdout,
+    secrets: Vec<openpgp::Cert>,
+    detached: bool,
+    binary: bool,
+    append: bool,
+    time: Option<SystemTime>,
+    notations: &'a [(bool, NotationData)])
+    -> Result<()>
+{
     let (mut output, prepend_sigs, tmp_path):
     (Box<dyn io::Write + Sync + Send>, Vec<Signature>, Option<PathBuf>) =
         if detached && append && output_path.path().is_some() {
@@ -223,28 +238,46 @@ fn sign_data(opts: SignOpts) -> Result<()> {
     Ok(())
 }
 
-fn sign_message(opts: SignOpts) -> Result<()> {
-    let mut output = opts.output_path.create_pgp_safe(
-        opts.config.force,
-        opts.binary,
+fn sign_message<'a, 'certdb>(
+    config: Config<'certdb>,
+    private_key_store: Option<&'a str>,
+    input: &'a mut (dyn io::Read + Sync + Send),
+    output: &'a FileOrStdout,
+    secrets: Vec<openpgp::Cert>,
+    binary: bool,
+    notarize: bool,
+    time: Option<SystemTime>,
+    notations: &'a [(bool, NotationData)])
+    -> Result<()>
+{
+    let mut output = output.create_pgp_safe(
+        config.force,
+        binary,
         armor::Kind::Message,
     )?;
-    sign_message_(opts, &mut output)?;
+    sign_message_(config,
+                  private_key_store,
+                  input,
+                  secrets,
+                  notarize,
+                  time,
+                  notations,
+                  &mut output)?;
     output.finalize()?;
     Ok(())
 }
 
-fn sign_message_(opts: SignOpts, output: &mut (dyn io::Write + Sync + Send)) -> Result<()>
+fn sign_message_<'a, 'certdb>(
+    config: Config<'certdb>,
+    private_key_store: Option<&'a str>,
+    input: &'a mut (dyn io::Read + Sync + Send),
+    secrets: Vec<openpgp::Cert>,
+    notarize: bool,
+    time: Option<SystemTime>,
+    notations: &'a [(bool, NotationData)],
+    output: &mut (dyn io::Write + Sync + Send))
+    -> Result<()>
 {
-    let SignOpts {
-        config,
-        private_key_store,
-        input,
-        secrets,
-        notarize,
-        time,
-        notations, ..
-    } = opts;
     let mut keypairs = super::get_signing_keys(
         &secrets, &config.policy, private_key_store, time, None)?;
     if keypairs.is_empty() {

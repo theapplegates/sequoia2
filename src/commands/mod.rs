@@ -50,8 +50,6 @@ pub use self::dump::dump;
 mod inspect;
 pub use self::inspect::inspect;
 pub mod key;
-pub mod merge_signatures;
-pub use self::merge_signatures::merge_signatures;
 pub mod keyring;
 pub mod import;
 pub mod export;

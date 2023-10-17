@@ -9,6 +9,8 @@ use crate::commands;
 use crate::load_keys;
 use crate::sq_cli;
 
+pub mod dump;
+
 pub fn dispatch(config: Config, command: sq_cli::packet::Command)
     -> Result<()>
 {
@@ -25,9 +27,9 @@ pub fn dispatch(config: Config, command: sq_cli::packet::Command)
             } else {
                 None
             };
-            commands::dump(&mut input, &mut output,
-                           command.mpis, command.hex,
-                           session_key.as_ref(), width)?;
+            dump::dump(&mut input, &mut output,
+                       command.mpis, command.hex,
+                       session_key.as_ref(), width)?;
         },
 
         sq_cli::packet::Subcommands::Decrypt(command) => {

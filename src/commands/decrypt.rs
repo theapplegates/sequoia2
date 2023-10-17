@@ -24,7 +24,7 @@ use openpgp::parse::stream::{
 use crate::{
     Config,
     commands::{
-        dump::PacketDumper,
+        packet::dump::PacketDumper,
         VHelper,
     },
     load_certs,

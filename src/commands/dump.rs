@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 use sequoia_openpgp as openpgp;
-use self::openpgp::types::{Duration, Timestamp, SymmetricAlgorithm};
+use self::openpgp::types::SymmetricAlgorithm;
 use self::openpgp::fmt::hex;
 use self::openpgp::crypto::mpi;
 use self::openpgp::{Packet, Result};
@@ -12,6 +12,7 @@ use self::openpgp::packet::signature::subpacket::{Subpacket, SubpacketValue};
 use self::openpgp::crypto::S2K;
 use self::openpgp::parse::{map::Map, Parse, PacketParserResult};
 
+use crate::Convert;
 use crate::sq_cli::types::SessionKey;
 
 #[derive(Debug)]
@@ -22,36 +23,6 @@ pub enum Kind {
     Keyring,
     Cert,
     Unknown,
-}
-
-/// Converts sequoia_openpgp types for rendering.
-pub trait Convert<T> {
-    /// Performs the conversion.
-    fn convert(self) -> T;
-}
-
-impl Convert<chrono::Duration> for std::time::Duration {
-    fn convert(self) -> chrono::Duration {
-        chrono::Duration::seconds(self.as_secs() as i64)
-    }
-}
-
-impl Convert<chrono::Duration> for Duration {
-    fn convert(self) -> chrono::Duration {
-        chrono::Duration::seconds(self.as_secs() as i64)
-    }
-}
-
-impl Convert<chrono::DateTime<chrono::offset::Utc>> for std::time::SystemTime {
-    fn convert(self) -> chrono::DateTime<chrono::offset::Utc> {
-        chrono::DateTime::<chrono::offset::Utc>::from(self)
-    }
-}
-
-impl Convert<chrono::DateTime<chrono::offset::Utc>> for Timestamp {
-    fn convert(self) -> chrono::DateTime<chrono::offset::Utc> {
-        std::time::SystemTime::from(self).convert()
-    }
 }
 
 #[allow(clippy::redundant_pattern_matching)]

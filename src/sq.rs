@@ -67,6 +67,36 @@ mod commands;
 pub mod output;
 pub use output::{wkd::WkdUrlVariant, Model, OutputFormat, OutputVersion};
 
+/// Converts sequoia_openpgp types for rendering.
+pub trait Convert<T> {
+    /// Performs the conversion.
+    fn convert(self) -> T;
+}
+
+impl Convert<chrono::Duration> for std::time::Duration {
+    fn convert(self) -> chrono::Duration {
+        chrono::Duration::seconds(self.as_secs() as i64)
+    }
+}
+
+impl Convert<chrono::Duration> for openpgp::types::Duration {
+    fn convert(self) -> chrono::Duration {
+        chrono::Duration::seconds(self.as_secs() as i64)
+    }
+}
+
+impl Convert<chrono::DateTime<chrono::offset::Utc>> for std::time::SystemTime {
+    fn convert(self) -> chrono::DateTime<chrono::offset::Utc> {
+        chrono::DateTime::<chrono::offset::Utc>::from(self)
+    }
+}
+
+impl Convert<chrono::DateTime<chrono::offset::Utc>> for openpgp::types::Timestamp {
+    fn convert(self) -> chrono::DateTime<chrono::offset::Utc> {
+        std::time::SystemTime::from(self).convert()
+    }
+}
+
 /// Loads one TSK from every given file.
 fn load_keys<'a, I>(files: I) -> openpgp::Result<Vec<Cert>>
     where I: Iterator<Item=&'a Path>

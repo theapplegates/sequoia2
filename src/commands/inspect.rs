@@ -18,7 +18,7 @@ use openpgp::packet::key::SecretKeyMaterial;
 use sequoia_cert_store as cert_store;
 use cert_store::Store;
 
-use super::dump::Convert;
+use crate::Convert;
 
 use crate::Config;
 use crate::SECONDS_IN_YEAR;

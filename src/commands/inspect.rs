@@ -27,7 +27,7 @@ use crate::SECONDS_IN_DAY;
 use crate::sq_cli::inspect;
 use crate::sq_cli::types::FileOrStdout;
 
-pub fn inspect(config: Config, c: inspect::Command)
+pub fn dispatch(config: Config, c: inspect::Command)
     -> Result<()>
 {
     // sq inspect does not have --output, but commands::inspect does.

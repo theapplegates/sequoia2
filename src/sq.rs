@@ -1067,7 +1067,7 @@ fn main() -> Result<()> {
             commands::autocrypt::dispatch(config, &command)?;
         },
         SqSubcommands::Inspect(command) => {
-            commands::inspect(config, command)?
+            commands::inspect::dispatch(config, command)?
         },
 
         SqSubcommands::Keyring(command) => {

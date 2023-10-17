@@ -8,9 +8,6 @@ use std::time::SystemTime;
 
 use sequoia_net::pks;
 use sequoia_openpgp as openpgp;
-use openpgp::{
-    armor,
-};
 use openpgp::cert::prelude::*;
 use openpgp::crypto::{self, Password};
 use openpgp::{Cert, Fingerprint, KeyID, Result};
@@ -40,6 +37,7 @@ use crate::sq_cli::encrypt::CompressionMode;
 use crate::sq_cli::encrypt::EncryptionMode;
 use crate::sq_cli::packet;
 
+pub mod armor;
 #[cfg(feature = "autocrypt")]
 pub mod autocrypt;
 pub mod decrypt;
@@ -805,7 +803,8 @@ pub fn join(config: Config, c: packet::JoinCommand) -> Result<()> {
     let output = c.output;
     let mut sink = if c.binary {
         // No need for any auto-detection.
-        Some(output.create_pgp_safe(config.force, true, armor::Kind::File)?)
+        Some(output.create_pgp_safe(
+            config.force, true, openpgp::armor::Kind::File)?)
     } else if let Some(kind) = kind {
         Some(output.create_pgp_safe(config.force, false, kind)?)
     } else {
@@ -823,12 +822,12 @@ pub fn join(config: Config, c: packet::JoinCommand) -> Result<()> {
             if sink.is_none() {
                 // Autodetect using the first packet.
                 let kind = match pp.packet {
-                    Packet::Signature(_) => armor::Kind::Signature,
-                    Packet::SecretKey(_) => armor::Kind::SecretKey,
-                    Packet::PublicKey(_) => armor::Kind::PublicKey,
+                    Packet::Signature(_) => openpgp::armor::Kind::Signature,
+                    Packet::SecretKey(_) => openpgp::armor::Kind::SecretKey,
+                    Packet::PublicKey(_) => openpgp::armor::Kind::PublicKey,
                     Packet::PKESK(_) | Packet::SKESK(_) =>
-                        armor::Kind::Message,
-                    _ => armor::Kind::File,
+                        openpgp::armor::Kind::Message,
+                    _ => openpgp::armor::Kind::File,
                 };
 
                 *sink = Some(

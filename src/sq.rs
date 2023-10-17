@@ -21,7 +21,6 @@ use once_cell::unsync::OnceCell;
 
 use terminal_size::terminal_size;
 
-use buffered_reader::{BufferedReader, Dup, Limitor};
 use sequoia_openpgp as openpgp;
 
 use openpgp::{
@@ -33,7 +32,7 @@ use openpgp::cert::raw::RawCertParser;
 use openpgp::crypto::Password;
 use openpgp::Fingerprint;
 use openpgp::packet::prelude::*;
-use openpgp::parse::{Parse, PacketParser, PacketParserResult};
+use openpgp::parse::Parse;
 use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::packet::signature::subpacket::NotationDataFlags;
 use openpgp::serialize::Serialize;
@@ -140,32 +139,6 @@ fn serialize_keyring(mut output: &mut dyn io::Write, certs: &[Cert], binary: boo
     }
     output.finalize()?;
     Ok(())
-}
-
-/// How much data to look at when detecting armor kinds.
-const ARMOR_DETECTION_LIMIT: u64 = 1 << 24;
-
-/// Peeks at the first packet to guess the type.
-///
-/// Returns the given reader unchanged.  If the detection fails,
-/// armor::Kind::File is returned as safe default.
-fn detect_armor_kind(
-    input: Box<dyn BufferedReader<()>>,
-) -> (Box<dyn BufferedReader<()>>, armor::Kind) {
-    let mut dup =
-        Limitor::new(Dup::new(input), ARMOR_DETECTION_LIMIT).as_boxed();
-    let kind = match PacketParser::from_reader(&mut dup) {
-        Ok(PacketParserResult::Some(pp)) => match pp.next() {
-            Ok((Packet::Signature(_), _)) => armor::Kind::Signature,
-            Ok((Packet::SecretKey(_), _)) => armor::Kind::SecretKey,
-            Ok((Packet::PublicKey(_), _)) => armor::Kind::PublicKey,
-            Ok((Packet::PKESK(_), _)) => armor::Kind::Message,
-            Ok((Packet::SKESK(_), _)) => armor::Kind::Message,
-            _ => armor::Kind::File,
-        },
-        _ => armor::Kind::File,
-    };
-    (dup.into_inner().unwrap().into_inner().unwrap(), kind)
 }
 
 // Decrypts a key, if possible.
@@ -1056,55 +1029,8 @@ fn main() -> Result<()> {
         SqSubcommands::Verify(command) => {
             commands::verify::dispatch(config, command)?
         },
-
-        // TODO: Extract body to commands/armor.rs
         SqSubcommands::Armor(command) => {
-            let input = command.input.open()?;
-            let mut want_kind: Option<armor::Kind> = command.kind.into();
-
-            // Peek at the data.  If it looks like it is armored
-            // data, avoid armoring it again.
-            let mut dup = Limitor::new(Dup::new(input), ARMOR_DETECTION_LIMIT);
-            let (already_armored, have_kind) = {
-                let mut reader =
-                    armor::Reader::from_reader(&mut dup,
-                                       armor::ReaderMode::Tolerant(None));
-                (reader.data(8).is_ok(), reader.kind())
-            };
-            let mut input =
-                dup.as_boxed().into_inner().unwrap().into_inner().unwrap();
-
-            if already_armored
-                && (want_kind.is_none() || want_kind == have_kind)
-            {
-                // It is already armored and has the correct kind.
-                let mut output = command.output.create_safe(c.force)?;
-                io::copy(&mut input, &mut output)?;
-                return Ok(());
-            }
-
-            if want_kind.is_none() {
-                let (tmp, kind) = detect_armor_kind(input);
-                input = tmp;
-                want_kind = Some(kind);
-            }
-
-            // At this point, want_kind is determined.
-            let want_kind = want_kind.expect("given or detected");
-
-            let mut output =
-                command.output.create_pgp_safe(config.force, false, want_kind)?;
-
-            if already_armored {
-                // Dearmor and copy to change the type.
-                let mut reader =
-                    armor::Reader::from_reader(input,
-                                       armor::ReaderMode::Tolerant(None));
-                io::copy(&mut reader, &mut output)?;
-            } else {
-                io::copy(&mut input, &mut output)?;
-            }
-            output.finalize()?;
+            commands::armor::dispatch(config, command)?
         },
         SqSubcommands::Dearmor(command) => {
             let mut input = command.input.open()?;

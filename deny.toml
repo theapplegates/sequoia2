@@ -1,6 +1,12 @@
 [advisories]
 ignore = [
   "RUSTSEC-2020-0071", # chrono not affected by time 0.1 issue
+  # fehler is unmaintained.
+  #
+  # fehler is used by subplot and thus an indirect dependency.  Remove
+  # when a new version subplot is released without fehler.  See
+  # https://gitlab.com/subplot/subplot/-/issues/340.
+  "RUSTSEC-2023-0067",
 ]
 unmaintained = "deny"
 yanked = "deny"

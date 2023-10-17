@@ -28,14 +28,12 @@ use cert_store::Store;
 
 use sequoia_wot::store::Store as _;
 
-use crate::sq_cli::types::FileOrStdout;
-use crate::{
-    Config,
-};
+use crate::Config;
 
+use crate::sq_cli;
+use crate::sq_cli::types::FileOrStdout;
 use crate::sq_cli::encrypt::CompressionMode;
 use crate::sq_cli::encrypt::EncryptionMode;
-use crate::sq_cli::packet;
 
 pub mod armor;
 #[cfg(feature = "autocrypt")]
@@ -54,6 +52,7 @@ pub mod export;
 pub mod net;
 pub mod certify;
 pub mod link;
+pub mod packet;
 pub mod verify;
 pub mod wot;
 
@@ -796,7 +795,7 @@ pub fn split(input: &mut (dyn io::Read + Sync + Send), prefix: &str)
 }
 
 /// Joins the given files.
-pub fn join(config: Config, c: packet::JoinCommand) -> Result<()> {
+pub fn join(config: Config, c: sq_cli::packet::JoinCommand) -> Result<()> {
     // Either we know what kind of armor we want to produce, or we
     // need to detect it using the first packet we see.
     let kind = c.kind.into();

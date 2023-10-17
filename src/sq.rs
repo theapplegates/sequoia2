@@ -21,7 +21,7 @@ use once_cell::unsync::OnceCell;
 
 use terminal_size::terminal_size;
 
-use buffered_reader::{BufferedReader, Dup, File, Limitor};
+use buffered_reader::{BufferedReader, Dup, Limitor};
 use sequoia_openpgp as openpgp;
 
 use openpgp::{
@@ -1053,28 +1053,8 @@ fn main() -> Result<()> {
         SqSubcommands::Sign(command) => {
             commands::sign::dispatch(config, command)?
         },
-
         SqSubcommands::Verify(command) => {
-            let mut input = command.input.open()?;
-            let mut output = command.output.create_safe(config.force)?;
-            let mut detached = if let Some(f) = command.detached {
-                Some(File::open(f)?)
-            } else {
-                None
-            };
-            let signatures = command.signatures;
-            // TODO ugly adaptation to load_certs' signature, fix later
-            let mut certs = load_certs(
-                command.sender_file.iter().map(|s| s.as_ref()))?;
-            certs.extend(
-                config.lookup(command.sender_certs,
-                              Some(KeyFlags::empty().set_signing()),
-                              true,
-                              false)
-                    .context("--sender-cert")?);
-            commands::verify(config, &mut input,
-                             detached.as_mut().map(|r| r as &mut (dyn io::Read + Sync + Send)),
-                             &mut output, signatures, certs)?;
+            commands::verify::dispatch(config, command)?
         },
 
         // TODO: Extract body to commands/armor.rs

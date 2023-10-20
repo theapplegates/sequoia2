@@ -25,18 +25,18 @@ use openpgp::Packet;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
+use crate::Config;
+use crate::cli::key::UseridRevokeCommand;
+use crate::cli::types::FileOrStdout;
+use crate::cli;
 use crate::commands::cert_stub;
 use crate::commands::get_primary_keys;
+use crate::common::NULL_POLICY;
+use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
 use crate::common::read_cert;
 use crate::common::read_secret;
-use crate::common::RevocationOutput;
-use crate::common::NULL_POLICY;
 use crate::parse_notations;
-use crate::sq_cli;
-use crate::sq_cli::key::UseridRevokeCommand;
-use crate::sq_cli::types::FileOrStdout;
-use crate::Config;
 
 /// Handle the revocation of a User ID
 struct UserIDRevocation<'a> {
@@ -233,12 +233,12 @@ impl<'a> RevocationOutput for UserIDRevocation<'a> {
 
 pub fn userid(
     config: Config,
-    command: sq_cli::key::UseridCommand,
+    command: cli::key::UseridCommand,
 ) -> Result<()> {
     match command {
-        sq_cli::key::UseridCommand::Add(c) => userid_add(config, c)?,
-        sq_cli::key::UseridCommand::Revoke(c) => userid_revoke(config, c)?,
-        sq_cli::key::UseridCommand::Strip(c) => userid_strip(config, c)?,
+        cli::key::UseridCommand::Add(c) => userid_add(config, c)?,
+        cli::key::UseridCommand::Revoke(c) => userid_revoke(config, c)?,
+        cli::key::UseridCommand::Strip(c) => userid_strip(config, c)?,
     }
 
     Ok(())
@@ -246,7 +246,7 @@ pub fn userid(
 
 fn userid_add(
     config: Config,
-    command: sq_cli::key::UseridAddCommand,
+    command: cli::key::UseridAddCommand,
 ) -> Result<()> {
     let input = command.input.open()?;
     let key = Cert::from_reader(input)?;
@@ -404,7 +404,7 @@ fn userid_add(
 
 fn userid_strip(
     config: Config,
-    command: sq_cli::key::UseridStripCommand,
+    command: cli::key::UseridStripCommand,
 ) -> Result<()> {
     let input = command.input.open()?;
     let key = Cert::from_reader(input)?;

@@ -31,8 +31,8 @@ use openpgp::types::SymmetricAlgorithm;
 use sequoia_openpgp as openpgp;
 use terminal_size::terminal_size;
 
-use crate::sq_cli::SECONDS_IN_DAY;
-use crate::sq_cli::SECONDS_IN_YEAR;
+use crate::cli::SECONDS_IN_DAY;
+use crate::cli::SECONDS_IN_YEAR;
 
 /// A type wrapping an AtomicBool to guard emitting a CLI warning only once
 struct CliWarningOnce(AtomicBool);
@@ -494,7 +494,7 @@ impl Expiry {
     /// If the special keyword `"never"` is provided as `expiry`,
     /// `Expiry::Never` is returned.
     /// If `expiry` is an ISO 8601 compatible string it is returned as
-    /// `sq_cli::types::Time` in an `Expiry::Timestamp`.
+    /// `cli::types::Time` in an `Expiry::Timestamp`.
     pub fn new(expiry: &str) -> Result<Self> {
         match expiry {
             "never" => Ok(Expiry::Never),

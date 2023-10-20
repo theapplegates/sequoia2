@@ -6,13 +6,13 @@ use sequoia_openpgp as openpgp;
 use openpgp::cert::CipherSuite as SqCipherSuite;
 use openpgp::types::ReasonForRevocation as OpenPGPRevocationReason;
 
-use crate::sq_cli::types::ClapData;
-use crate::sq_cli::types::FileOrStdin;
-use crate::sq_cli::types::FileOrStdout;
-use crate::sq_cli::types::Expiry;
-use crate::sq_cli::types::Time;
-use crate::sq_cli::KEY_VALIDITY_DURATION;
-use crate::sq_cli::KEY_VALIDITY_IN_YEARS;
+use crate::cli::KEY_VALIDITY_DURATION;
+use crate::cli::KEY_VALIDITY_IN_YEARS;
+use crate::cli::types::ClapData;
+use crate::cli::types::Expiry;
+use crate::cli::types::FileOrStdin;
+use crate::cli::types::FileOrStdout;
+use crate::cli::types::Time;
 
 /// The revocation reason for a certificate or subkey
 #[derive(ValueEnum, Clone, Debug)]

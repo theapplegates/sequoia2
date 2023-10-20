@@ -1,6 +1,6 @@
 use clap::{Args, Parser, Subcommand};
 
-use crate::sq_cli::types::NetworkPolicy;
+use crate::cli::types::NetworkPolicy;
 
 use super::types::ClapData;
 use super::types::FileOrCertStore;

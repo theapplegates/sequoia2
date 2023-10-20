@@ -19,11 +19,12 @@ use openpgp::Packet;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
-use crate::decrypt_key;
-use crate::sq_cli;
 use crate::Config;
+use crate::cli;
+use crate::decrypt_key;
 
-pub fn adopt(config: Config, command: sq_cli::key::AdoptCommand) -> Result<()> {
+pub fn adopt(config: Config, command: cli::key::AdoptCommand) -> Result<()>
+{
     let input = command.certificate.open()?;
     let cert = Cert::from_reader(input)?;
     let mut wanted: Vec<(

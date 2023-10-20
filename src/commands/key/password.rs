@@ -6,13 +6,13 @@ use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
 use crate::common::prompt_for_password;
-use crate::decrypt_key;
-use crate::sq_cli;
 use crate::Config;
+use crate::cli;
+use crate::decrypt_key;
 
 pub fn password(
     config: Config,
-    command: sq_cli::key::PasswordCommand,
+    command: cli::key::PasswordCommand,
 ) -> Result<()> {
     let input = command.input.open()?;
     let key = Cert::from_reader(input)?;

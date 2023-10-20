@@ -9,8 +9,8 @@ use openpgp::policy::NullPolicy;
 use openpgp::Cert;
 use sequoia_openpgp as openpgp;
 
+use crate::cli::types::FileOrStdin;
 use crate::load_certs;
-use crate::sq_cli::types::FileOrStdin;
 
 mod revoke;
 pub use revoke::get_secret_signer;

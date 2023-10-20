@@ -5,9 +5,9 @@ use openpgp::armor;
 
 use crate::Config;
 use crate::Result;
-use crate::sq_cli;
+use crate::cli;
 
-pub fn dispatch(config: Config, command: sq_cli::dearmor::Command)
+pub fn dispatch(config: Config, command: cli::dearmor::Command)
     -> Result<()>
 {
     tracer!(TRACE, "dearmor::dispatch");

@@ -13,7 +13,7 @@ use self::openpgp::crypto::S2K;
 use self::openpgp::parse::{map::Map, Parse, PacketParserResult};
 
 use crate::Convert;
-use crate::sq_cli::types::SessionKey;
+use crate::cli::types::SessionKey;
 
 #[derive(Debug)]
 pub enum Kind {

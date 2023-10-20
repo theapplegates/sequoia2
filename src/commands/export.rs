@@ -13,13 +13,13 @@ use sequoia_cert_store as cert_store;
 use cert_store::Store;
 use cert_store::store::UserIDQueryParams;
 
-use crate::sq_cli::types::FileOrStdout;
+use crate::cli::types::FileOrStdout;
 use crate::{
     Config,
     print_error_chain,
 };
 
-use crate::sq_cli::export;
+use crate::cli::export;
 
 pub fn dispatch(config: Config, cmd: export::Command) -> Result<()> {
     let cert_store = config.cert_store_or_else()?;

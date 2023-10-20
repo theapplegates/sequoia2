@@ -10,11 +10,11 @@ use sequoia_autocrypt as autocrypt;
 
 use crate::{
     Config,
-    sq_cli,
+    cli,
 };
 
-pub fn dispatch(config: Config, c: &sq_cli::autocrypt::Command) -> Result<()> {
-    use sq_cli::autocrypt::Subcommands::*;
+pub fn dispatch(config: Config, c: &cli::autocrypt::Command) -> Result<()> {
+    use cli::autocrypt::Subcommands::*;
 
     match &c.subcommand {
         Decode(command) => {

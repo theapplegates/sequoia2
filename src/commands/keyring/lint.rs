@@ -26,7 +26,7 @@ use openpgp::types::SymmetricAlgorithm;
 use crate::{
     Config,
     decrypt_key,
-    sq_cli::keyring::LintCommand,
+    cli::keyring::LintCommand,
 };
 
 

@@ -12,10 +12,10 @@ use sequoia_cert_store as cert_store;
 use cert_store::LazyCert;
 use cert_store::StoreUpdate;
 
-use crate::sq_cli::types::FileOrStdin;
 use crate::Config;
+use crate::cli::import;
+use crate::cli::types::FileOrStdin;
 
-use crate::sq_cli::import;
 
 pub fn dispatch<'store>(mut config: Config<'store>, cmd: import::Command)
     -> Result<()>

@@ -13,13 +13,13 @@ use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
 use crate::common::prompt_for_password;
-use crate::sq_cli;
 use crate::Config;
-use crate::sq_cli::types::FileOrStdout;
+use crate::cli::types::FileOrStdout;
+use crate::cli;
 
 pub fn generate(
     config: Config,
-    command: sq_cli::key::GenerateCommand,
+    command: cli::key::GenerateCommand,
 ) -> Result<()> {
     let mut builder = CertBuilder::new();
 
@@ -75,7 +75,7 @@ pub fn generate(
     }
 
     // Encryption Capability
-    use sq_cli::key::EncryptPurpose::*;
+    use cli::key::EncryptPurpose::*;
     match (command.can_encrypt, command.cannot_encrypt) {
         (Some(Universal), false) | (None, false) => {
             builder = builder.add_subkey(

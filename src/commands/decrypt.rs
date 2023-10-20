@@ -22,16 +22,16 @@ use openpgp::parse::stream::{
 };
 
 use crate::{
-    Config,
+    cli,
     commands::{
         packet::dump::PacketDumper,
         VHelper,
     },
+    Config,
     load_certs,
-    sq_cli,
 };
 
-pub fn dispatch(config: Config, command: sq_cli::decrypt::Command) -> Result<()> {
+pub fn dispatch(config: Config, command: cli::decrypt::Command) -> Result<()> {
     tracer!(TRACE, "decrypt::dispatch");
 
     let mut input = command.input.open()?;
@@ -135,7 +135,7 @@ struct Helper<'a, 'certdb> {
     secret_keys: HashMap<KeyID, Box<dyn PrivateKey>>,
     key_identities: HashMap<KeyID, Fingerprint>,
     key_hints: HashMap<KeyID, String>,
-    session_keys: Vec<sq_cli::types::SessionKey>,
+    session_keys: Vec<cli::types::SessionKey>,
     dump_session_key: bool,
     dumper: Option<PacketDumper>,
 }
@@ -143,7 +143,7 @@ struct Helper<'a, 'certdb> {
 impl<'a, 'certdb> Helper<'a, 'certdb> {
     fn new(config: &'a Config<'certdb>, private_key_store: Option<&str>,
            signatures: usize, certs: Vec<Cert>, secrets: Vec<Cert>,
-           session_keys: Vec<sq_cli::types::SessionKey>,
+           session_keys: Vec<cli::types::SessionKey>,
            dump_session_key: bool, dump: bool)
            -> Self
     {
@@ -408,7 +408,7 @@ pub fn decrypt(config: Config,
                output: &mut dyn io::Write,
                signatures: usize, certs: Vec<Cert>, secrets: Vec<Cert>,
                dump_session_key: bool,
-               sk: Vec<sq_cli::types::SessionKey>,
+               sk: Vec<cli::types::SessionKey>,
                dump: bool, hex: bool)
                -> Result<()> {
     let helper = Helper::new(&config, private_key_store, signatures, certs,
@@ -432,7 +432,7 @@ pub fn decrypt_unwrap(config: Config,
                       input: &mut (dyn io::Read + Sync + Send),
                       output: &mut dyn io::Write,
                       secrets: Vec<Cert>,
-                      session_keys: Vec<sq_cli::types::SessionKey>,
+                      session_keys: Vec<cli::types::SessionKey>,
                       dump_session_key: bool)
                       -> Result<()>
 {

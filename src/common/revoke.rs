@@ -11,8 +11,8 @@ use openpgp::policy::Policy;
 use openpgp::Cert;
 use sequoia_openpgp as openpgp;
 
+use crate::cli::types::FileOrStdout;
 use crate::commands::get_certification_keys;
-use crate::sq_cli::types::FileOrStdout;
 
 /// A trait for unifying the approach of writing a revocation to an output
 pub trait RevocationOutput {

@@ -6,6 +6,7 @@ use anyhow::anyhow;
 use chrono::DateTime;
 use chrono::Utc;
 
+use sequoia_openpgp as openpgp;
 use openpgp::armor::Kind;
 use openpgp::armor::Writer;
 use openpgp::cert::amalgamation::ValidAmalgamation;
@@ -21,23 +22,22 @@ use openpgp::Cert;
 use openpgp::KeyHandle;
 use openpgp::Packet;
 use openpgp::Result;
-use sequoia_openpgp as openpgp;
 
+use crate::Config;
+use crate::cli::key::EncryptPurpose;
+use crate::cli::key::SubkeyAddCommand;
+use crate::cli::key::SubkeyCommand;
+use crate::cli::key::SubkeyRevokeCommand;
+use crate::cli::types::FileOrStdout;
 use crate::commands::cert_stub;
 use crate::commands::get_primary_keys;
+use crate::common::NULL_POLICY;
+use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
 use crate::common::prompt_for_password;
 use crate::common::read_cert;
 use crate::common::read_secret;
-use crate::common::RevocationOutput;
-use crate::common::NULL_POLICY;
 use crate::parse_notations;
-use crate::sq_cli::key::EncryptPurpose;
-use crate::sq_cli::key::SubkeyAddCommand;
-use crate::sq_cli::key::SubkeyCommand;
-use crate::sq_cli::key::SubkeyRevokeCommand;
-use crate::sq_cli::types::FileOrStdout;
-use crate::Config;
 
 /// Handle the revocation of a subkey
 struct SubkeyRevocation<'a> {

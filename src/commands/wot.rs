@@ -19,8 +19,7 @@ use wot::store::Backend;
 
 pub mod output;
 
-use crate::sq_cli::wot as wot_cli;
-use wot_cli::Command;
+use crate::cli;
 
 use crate::commands::wot as wot_cmd;
 use wot_cmd::output::print_path;
@@ -29,7 +28,7 @@ use wot_cmd::output::print_path_error;
 
 use crate::Config;
 
-fn trust_amount(cli: &Command)
+fn trust_amount(cli: &cli::wot::Command)
     -> Result<usize>
 {
     let amount = if let Some(v) = cli.trust_amount {
@@ -79,7 +78,7 @@ fn have_self_signed_userid(cert: &wot::CertSynopsis,
 /// Authenticate bindings defined by a Query on a Network
 fn authenticate<S>(
     config: &Config,
-    cli: &Command,
+    cli: &cli::wot::Command,
     q: &wot::Query<'_, S>,
     gossip: bool,
     userid: Option<&UserID>,
@@ -191,7 +190,7 @@ fn authenticate<S>(
 
         bindings = q.network().certified_userids();
 
-        if let wot_cli::Subcommand::List { pattern: Some(pattern), .. } = &cli.subcommand {
+        if let cli::wot::Subcommand::List { pattern: Some(pattern), .. } = &cli.subcommand {
             // Or rather, just User IDs that match the pattern.
             let pattern = pattern.to_lowercase();
 
@@ -417,7 +416,8 @@ fn authenticate<S>(
 
 // For `sq-wot path`.
 fn check_path<'a: 'b, 'b, S>(config: &Config,
-                             cli: &Command, q: &wot::Query<'b, S>,
+                             cli: &cli::wot::Command,
+                             q: &wot::Query<'b, S>,
                              policy: &dyn Policy)
     -> Result<()>
 where S: wot::store::Store + wot::store::Backend<'a>
@@ -426,7 +426,7 @@ where S: wot::store::Store + wot::store::Backend<'a>
 
     let required_amount = trust_amount(cli)?;
 
-    let (khs, userid) = if let wot_cli::Subcommand::Path { path, .. } = &cli.subcommand {
+    let (khs, userid) = if let cli::wot::Subcommand::Path { path, .. } = &cli.subcommand {
         (path.certs()?, path.userid()?)
     } else {
         unreachable!("checked");
@@ -493,7 +493,7 @@ impl StatusListener for KeyServerUpdate {
     }
 }
 
-pub fn dispatch(config: Config, cli: wot_cli::Command) -> Result<()> {
+pub fn dispatch(config: Config, cli: cli::wot::Command) -> Result<()> {
     tracer!(TRACE, "wot::dispatch");
 
     // Build the network.
@@ -509,7 +509,7 @@ pub fn dispatch(config: Config, cli: wot_cli::Command) -> Result<()> {
 
     let mut cert_store = CertStore::from_store(
         cert_store, &config.policy, config.time);
-    if let wot_cli::Subcommand::List { pattern: None, .. } = cli.subcommand {
+    if let cli::wot::Subcommand::List { pattern: None, .. } = cli.subcommand {
         cert_store.precompute();
     }
 
@@ -525,29 +525,29 @@ pub fn dispatch(config: Config, cli: wot_cli::Command) -> Result<()> {
     let q = q.build();
 
     match &cli.subcommand {
-        wot_cli::Subcommand::Authenticate { cert, userid, .. } => {
+        cli::wot::Subcommand::Authenticate { cert, userid, .. } => {
             // Authenticate a given binding.
             authenticate(
                 &config, &cli, &q, cli.gossip, Some(userid), Some(cert))?;
         }
-        wot_cli::Subcommand::Lookup { userid, .. } => {
+        cli::wot::Subcommand::Lookup { userid, .. } => {
             // Find all authenticated bindings for a given
             // User ID, list the certificates.
             authenticate(
                 &config, &cli, &q, cli.gossip, Some(userid), None)?;
         }
-        wot_cli::Subcommand::Identify { cert, .. } => {
+        cli::wot::Subcommand::Identify { cert, .. } => {
             // Find and list all authenticated bindings for a given
             // certificate.
             authenticate(
                 &config, &cli, &q, cli.gossip, None, Some(cert))?;
         }
-        wot_cli::Subcommand::List { .. } => {
+        cli::wot::Subcommand::List { .. } => {
             // List all authenticated bindings.
             authenticate(
                 &config, &cli, &q, cli.gossip, None, None)?;
         }
-        wot_cli::Subcommand::Path { .. } => {
+        cli::wot::Subcommand::Path { .. } => {
             check_path(
                 &config, &cli, &q, &config.policy)?;
         }

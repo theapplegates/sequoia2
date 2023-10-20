@@ -5,18 +5,18 @@ use openpgp::armor;
 
 use crate::Config;
 use crate::Result;
+use crate::cli;
 use crate::commands;
 use crate::load_keys;
-use crate::sq_cli;
 
 pub mod dump;
 
-pub fn dispatch(config: Config, command: sq_cli::packet::Command)
+pub fn dispatch(config: Config, command: cli::packet::Command)
     -> Result<()>
 {
     tracer!(TRACE, "packet::dispatch");
     match command.subcommand {
-        sq_cli::packet::Subcommands::Dump(command) => {
+        cli::packet::Subcommands::Dump(command) => {
             let mut input = command.input.open()?;
             let output_type = command.output;
             let mut output = output_type.create_unsafe(config.force)?;
@@ -32,7 +32,7 @@ pub fn dispatch(config: Config, command: sq_cli::packet::Command)
                        session_key.as_ref(), width)?;
         },
 
-        sq_cli::packet::Subcommands::Decrypt(command) => {
+        cli::packet::Subcommands::Decrypt(command) => {
             let mut input = command.input.open()?;
             let mut output = command.output.create_pgp_safe(
                 config.force,
@@ -52,7 +52,7 @@ pub fn dispatch(config: Config, command: sq_cli::packet::Command)
             output.finalize()?;
         },
 
-        sq_cli::packet::Subcommands::Split(command) => {
+        cli::packet::Subcommands::Split(command) => {
             let mut input = command.input.open()?;
             let prefix =
             // The prefix is either specified explicitly...
@@ -70,7 +70,7 @@ pub fn dispatch(config: Config, command: sq_cli::packet::Command)
                         + "-");
             commands::split(&mut input, &prefix)?;
         },
-        sq_cli::packet::Subcommands::Join(command) => {
+        cli::packet::Subcommands::Join(command) => {
             commands::join(config, command)?;
         }
     }

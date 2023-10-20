@@ -24,14 +24,14 @@ use crate::Config;
 use crate::load_certs;
 use crate::parse_notations;
 
-use crate::sq_cli;
-use crate::sq_cli::types::FileOrStdin;
-use crate::sq_cli::types::FileOrStdout;
+use crate::cli;
+use crate::cli::types::FileOrStdin;
+use crate::cli::types::FileOrStdout;
 
 mod merge_signatures;
 use merge_signatures::merge_signatures;
 
-pub fn dispatch(config: Config, command: sq_cli::sign::Command) -> Result<()> {
+pub fn dispatch(config: Config, command: cli::sign::Command) -> Result<()> {
     tracer!(TRACE, "sign::dispatch");
 
     let mut input = command.input.open()?;

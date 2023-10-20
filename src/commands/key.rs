@@ -1,8 +1,8 @@
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
 
+use crate::cli;
 use crate::Config;
-use crate::sq_cli;
 
 mod adopt;
 use adopt::adopt;
@@ -21,8 +21,9 @@ use subkey::subkey;
 mod userid;
 use userid::userid;
 
-pub fn dispatch(config: Config, command: sq_cli::key::Command) -> Result<()> {
-    use sq_cli::key::Subcommands::*;
+pub fn dispatch(config: Config, command: cli::key::Command) -> Result<()>
+{
+    use cli::key::Subcommands::*;
     match command.subcommand {
         Generate(c) => generate(config, c)?,
         Password(c) => password(config, c)?,

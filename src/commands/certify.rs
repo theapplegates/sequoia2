@@ -16,7 +16,7 @@ use crate::Config;
 use crate::parse_notations;
 use crate::commands::get_certification_keys;
 use crate::commands::GetKeysOptions;
-use crate::sq_cli::certify;
+use crate::cli::certify;
 
 pub fn certify(config: Config, c: certify::Command)
     -> Result<()>

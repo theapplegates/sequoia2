@@ -2,6 +2,7 @@ use std::time::SystemTime;
 
 use anyhow::Context;
 
+use sequoia_openpgp as openpgp;
 use openpgp::armor::Kind;
 use openpgp::armor::Writer;
 use openpgp::cert::CertRevocationBuilder;
@@ -12,17 +13,16 @@ use openpgp::types::ReasonForRevocation;
 use openpgp::Cert;
 use openpgp::Packet;
 use openpgp::Result;
-use sequoia_openpgp as openpgp;
 
+use crate::Config;
+use crate::cli::key::RevokeCommand;
+use crate::cli::types::FileOrStdout;
 use crate::commands::cert_stub;
+use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
 use crate::common::read_cert;
 use crate::common::read_secret;
-use crate::common::RevocationOutput;
 use crate::parse_notations;
-use crate::sq_cli::key::RevokeCommand;
-use crate::sq_cli::types::FileOrStdout;
-use crate::Config;
 
 /// Handle the revocation of a certificate
 struct CertificateRevocation<'a> {

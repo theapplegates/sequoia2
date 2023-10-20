@@ -4,13 +4,13 @@ use openpgp::parse::Parse;
 use openpgp::serialize::Serialize;
 use sequoia_openpgp as openpgp;
 
-use crate::decrypt_key;
-use crate::sq_cli;
 use crate::Config;
+use crate::cli;
+use crate::decrypt_key;
 
 pub fn attest_certifications(
     config: Config,
-    command: sq_cli::key::AttestCertificationsCommand,
+    command: cli::key::AttestCertificationsCommand,
 ) -> Result<()> {
     // Attest to all certifications?
     let all = !command.none; // All is the default.

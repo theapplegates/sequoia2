@@ -12,11 +12,11 @@ use openpgp::parse::Parse;
 
 use crate::Config;
 use crate::Result;
+use crate::cli;
 use crate::commands::VHelper;
 use crate::load_certs;
-use crate::sq_cli;
 
-pub fn dispatch(config: Config, command: sq_cli::verify::Command)
+pub fn dispatch(config: Config, command: cli::verify::Command)
     -> Result<()>
 {
     tracer!(TRACE, "verify::dispatch");

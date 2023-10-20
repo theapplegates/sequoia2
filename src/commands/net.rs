@@ -47,7 +47,7 @@ use crate::{
     print_error_chain,
 };
 
-use crate::sq_cli;
+use crate::cli;
 
 const NP: NullPolicy = NullPolicy::new();
 
@@ -348,7 +348,7 @@ fn certify_downloads(config: &mut Config,
     certs
 }
 
-pub fn dispatch_keyserver(mut config: Config, c: sq_cli::keyserver::Command)
+pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
     -> Result<()>
 {
     let network_policy = c.network_policy.into();
@@ -403,7 +403,7 @@ pub fn dispatch_keyserver(mut config: Config, c: sq_cli::keyserver::Command)
         .enable_time()
         .build()?;
 
-    use crate::sq_cli::keyserver::Subcommands::*;
+    use crate::cli::keyserver::Subcommands::*;
     match c.subcommand {
          Get(c) => {
             let query = c.query;
@@ -469,7 +469,7 @@ pub fn dispatch_keyserver(mut config: Config, c: sq_cli::keyserver::Command)
     Ok(())
 }
 
-pub fn dispatch_wkd(mut config: Config, c: sq_cli::wkd::Command) -> Result<()> {
+pub fn dispatch_wkd(mut config: Config, c: cli::wkd::Command) -> Result<()> {
     let network_policy: net::Policy = c.network_policy.into();
 
     let ca_filename = "_wkd.pgp";
@@ -481,7 +481,7 @@ pub fn dispatch_wkd(mut config: Config, c: sq_cli::wkd::Command) -> Result<()> {
         .enable_time()
         .build()?;
 
-    use crate::sq_cli::wkd::Subcommands::*;
+    use crate::cli::wkd::Subcommands::*;
     match c.subcommand {
         Url(c) => {
             let wkd_url = wkd::Url::from(&c.email_address)?;
@@ -564,7 +564,7 @@ pub fn dispatch_wkd(mut config: Config, c: sq_cli::wkd::Command) -> Result<()> {
     Ok(())
 }
 
-pub fn dispatch_dane(mut config: Config, c: sq_cli::dane::Command) -> Result<()> {
+pub fn dispatch_dane(mut config: Config, c: cli::dane::Command) -> Result<()> {
     let ca_filename = "_dane.pgp";
     let ca_userid = "Downloaded from DANE";
     let ca_trust_amount = 1;
@@ -576,7 +576,7 @@ pub fn dispatch_dane(mut config: Config, c: sq_cli::dane::Command) -> Result<()>
         .enable_time()
         .build()?;
 
-    use crate::sq_cli::dane::Subcommands::*;
+    use crate::cli::dane::Subcommands::*;
     match c.subcommand {
         Get(c) => {
             // Check that the policy allows https.

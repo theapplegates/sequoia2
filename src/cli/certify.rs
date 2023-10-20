@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-use crate::sq_cli::THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION;
-use crate::sq_cli::THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS;
+use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION;
+use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS;
 
 use super::types::ClapData;
 use super::types::Expiry;

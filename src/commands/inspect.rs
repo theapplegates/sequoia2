@@ -24,8 +24,8 @@ use crate::Config;
 use crate::SECONDS_IN_YEAR;
 use crate::SECONDS_IN_DAY;
 
-use crate::sq_cli::inspect;
-use crate::sq_cli::types::FileOrStdout;
+use crate::cli::inspect;
+use crate::cli::types::FileOrStdout;
 
 pub fn dispatch(config: Config, c: inspect::Command)
     -> Result<()>

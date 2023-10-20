@@ -57,10 +57,10 @@ use clap::FromArgMatches;
 
 mod common;
 
-mod sq_cli;
-use sq_cli::SqSubcommands;
-use sq_cli::SECONDS_IN_DAY;
-use sq_cli::SECONDS_IN_YEAR;
+mod cli;
+use cli::SECONDS_IN_DAY;
+use cli::SECONDS_IN_YEAR;
+use cli::SqSubcommands;
 
 mod man;
 mod commands;
@@ -982,13 +982,13 @@ fn main() -> Result<()> {
         if !dirname.exists() {
             std::fs::create_dir(&dirname)?;
         }
-        for man in man::manpages(&sq_cli::build()) {
+        for man in man::manpages(&cli::build()) {
             std::fs::write(dirname.join(man.filename()), man.troff_source())?;
         }
         return Ok(())
     }
 
-    let c = sq_cli::SqCommand::from_arg_matches(&sq_cli::build().get_matches())?;
+    let c = cli::SqCommand::from_arg_matches(&cli::build().get_matches())?;
 
     let time = if let Some(time) = c.time {
         SystemTime::from(

@@ -20,19 +20,19 @@ use openpgp::serialize::stream::padding::Padder;
 use openpgp::types::CompressionAlgorithm;
 use openpgp::types::KeyFlags;
 
+use crate::cli;
+use crate::cli::types::FileOrStdin;
+use crate::cli::types::MetadataTime;
 use crate::Config;
 use crate::Result;
 use crate::common::prompt_for_password;
 use crate::load_certs;
-use crate::sq_cli;
-use crate::sq_cli::types::FileOrStdin;
-use crate::sq_cli::types::MetadataTime;
 
 use crate::commands::CompressionMode;
 use crate::commands::EncryptionMode;
 use crate::commands::get_signing_keys;
 
-pub fn dispatch(config: Config, command: sq_cli::encrypt::Command) -> Result<()> {
+pub fn dispatch(config: Config, command: cli::encrypt::Command) -> Result<()> {
     tracer!(TRACE, "decrypt::dispatch");
 
     let mut recipients = load_certs(

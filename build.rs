@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 use clap_complete::Shell;
 use anyhow::{Context, Result};
 
-pub mod sq_cli {
-    include!("src/sq_cli/mod.rs");
+pub mod cli {
+    include!("src/cli/mod.rs");
 }
 
 fn main() {
@@ -17,7 +17,7 @@ fn main() {
     subplot_build::codegen(Path::new("sq.subplot"))
         .expect("failed to generate code with Subplot");
 
-    let mut sq = sq_cli::build();
+    let mut sq = cli::build();
 
     // Dump help output of all commands and subcommands, for inclusion in docs
     dump_help(sq.clone()).unwrap();
@@ -104,7 +104,7 @@ fn build_man_pages() -> Result<()> {
         std::env::var_os("OUT_DIR")
             .ok_or(std::io::Error::from(std::io::ErrorKind::NotFound))?);
 
-    let man = clap_mangen::Man::new(sq_cli::build());
+    let man = clap_mangen::Man::new(cli::build());
     let mut buffer: Vec<u8> = Default::default();
     man.render(&mut buffer)?;
 
@@ -130,7 +130,7 @@ fn build_man_pages() -> Result<()> {
         Ok(())
     }
 
-    for sc in sq_cli::build().get_subcommands() {
+    for sc in cli::build().get_subcommands() {
         doit(&out_dir, "sq", sc)?;
     }
 

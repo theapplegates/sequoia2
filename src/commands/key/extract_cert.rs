@@ -4,12 +4,12 @@ use openpgp::Cert;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
-use crate::sq_cli;
 use crate::Config;
+use crate::cli;
 
 pub fn extract_cert(
     config: Config,
-    command: sq_cli::key::ExtractCertCommand,
+    command: cli::key::ExtractCertCommand,
 ) -> Result<()> {
     let input = command.input.open()?;
     let mut output = command.output.create_safe(config.force)?;

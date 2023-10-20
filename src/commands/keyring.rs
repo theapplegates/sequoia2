@@ -35,12 +35,12 @@ use crate::{
     print_error_chain,
 };
 
-use crate::sq_cli::keyring;
+use crate::cli::keyring;
 
 mod lint;
 
 pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
-    use crate::sq_cli::keyring::Subcommands::*;
+    use crate::cli::keyring::Subcommands::*;
     match c.subcommand {
         Filter(command) => {
             let any_uid_predicates =

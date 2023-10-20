@@ -25,7 +25,7 @@ use crate::commands::get_certification_keys;
 use crate::parse_notations;
 use crate::print_error_chain;
 
-use crate::sq_cli::link;
+use crate::cli::link;
 
 /// Checks that the search terms provided to --userid, --email, and
 /// patterns match known User IDs.

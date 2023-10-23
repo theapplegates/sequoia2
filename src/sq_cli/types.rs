@@ -549,7 +549,7 @@ impl FromStr for Expiry {
 impl Display for Expiry {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
-            Expiry::Timestamp(time) => write!(f, "{:?}", time),
+            Expiry::Timestamp(time) => write!(f, "{}", time),
             Expiry::Duration(duration) => write!(f, "{:?}", duration),
             Expiry::Never => write!(f, "never"),
         }
@@ -702,6 +702,12 @@ impl Time {
             }
         }
         Err(anyhow::anyhow!("Malformed ISO8601 timestamp: {}", s))
+    }
+}
+
+impl Display for Time {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.time)
     }
 }
 

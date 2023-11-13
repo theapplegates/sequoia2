@@ -33,19 +33,10 @@ pub fn adopt(config: Config, command: cli::key::AdoptCommand) -> Result<()>
             Key<key::PublicParts, key::SubordinateRole>,
             SignatureBuilder,
         )>,
-    )> = vec![];
-
-    // Gather the Key IDs / Fingerprints and make sure they are valid.
-    for id in command.key {
-        let h = id.parse::<KeyHandle>()?;
-        if h.is_invalid() {
-            return Err(anyhow::anyhow!(
-                "Invalid Fingerprint or KeyID ('{:?}')",
-                id
-            ));
-        }
-        wanted.push((h, None));
-    }
+    )> = command.key
+        .into_iter()
+        .map(|kh| (kh, None))
+        .collect::<Vec<_>>();
 
     let null_policy = &openpgp::policy::NullPolicy::new();
     let adoptee_policy: &dyn Policy = if command.allow_broken_crypto {

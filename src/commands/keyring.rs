@@ -18,7 +18,6 @@ use openpgp::{
         CertParser,
     },
     Fingerprint,
-    KeyHandle,
     packet::{
         UserID,
         UserAttribute,
@@ -83,15 +82,10 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
             let ua_predicate = |_ua: &UserAttribute| false;
 
             let any_key_predicates = ! command.handle.is_empty();
-            let handles: Vec<KeyHandle> = {
-                use std::str::FromStr;
-                command.handle.iter().map(|h| KeyHandle::from_str(h))
-                    .collect::<Result<_>>()?
-            };
             let key_predicate = |key: &Key<_, _>| {
                 let mut keep = false;
 
-                for handle in &handles {
+                for handle in &command.handle {
                     keep |= handle.aliases(key.key_handle());
                 }
 

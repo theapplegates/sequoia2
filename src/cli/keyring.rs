@@ -2,6 +2,9 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 
+use sequoia_openpgp as openpgp;
+use openpgp::KeyHandle;
+
 use super::types::ClapData;
 use super::types::FileOrStdin;
 use super::types::FileOrStdout;
@@ -137,7 +140,7 @@ pub struct FilterCommand {
             including those certificates that match the \
             given fingerprint or key id.",
     )]
-    pub handle: Vec<String>,
+    pub handle: Vec<KeyHandle>,
     #[clap(
         short = 'P',
         long = "prune-certs",

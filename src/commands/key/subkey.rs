@@ -343,13 +343,8 @@ pub fn subkey_revoke(
 
     let notations = parse_notations(command.notation)?;
 
-    let keyhandle: KeyHandle = command.subkey.parse().context(format!(
-        "Parsing {:?} as an OpenPGP fingerprint or Key ID",
-        command.subkey
-    ))?;
-
     let revocation = SubkeyRevocation::new(
-        &keyhandle,
+        &command.subkey,
         cert,
         secret,
         &config.policy,

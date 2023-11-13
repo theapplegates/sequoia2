@@ -4,6 +4,7 @@ use clap::{ValueEnum, ArgGroup, Args, Parser, Subcommand};
 
 use sequoia_openpgp as openpgp;
 use openpgp::cert::CipherSuite as SqCipherSuite;
+use openpgp::KeyHandle;
 use openpgp::types::ReasonForRevocation as OpenPGPRevocationReason;
 
 use crate::cli::KEY_VALIDITY_DURATION;
@@ -814,8 +815,7 @@ pub struct AdoptCommand {
         required(true),
         help = "Adds the key or subkey KEY to the TARGET-KEY",
     )]
-    // TODO Type should be KeyHandle, improve help
-    pub key: Vec<String>,
+    pub key: Vec<KeyHandle>,
     #[clap(
         long = "expire",
         value_name = "KEY-EXPIRATION-TIME",
@@ -1134,7 +1134,7 @@ material, then that key is used to sign the revocation certificate.",
 "The subkey to revoke.  This must either be the subkey's Key ID or its \
 fingerprint.",
     )]
-    pub subkey: String,
+    pub subkey: KeyHandle,
 
     #[clap(
         value_name = "REASON",

@@ -191,7 +191,7 @@ pub struct Command {
     )]
     pub certifier: PathBuf,
     #[clap(
-        value_name = "CERTIFICATE",
+        value_name = "KEY_ID|FINGERPRINT|FILE",
         required = true,
         index = 2,
         help = "Certifies CERTIFICATE.",

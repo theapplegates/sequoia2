@@ -124,7 +124,7 @@ for the direct version. sq does not copy files to the web server.",
 "EXAMPLES:
 
 # Generate a WKD in /tmp/wkdroot from certs.pgp for example.com.
-$ sq wkd generate /tmp/wkdroot example.com certs.ppg
+$ sq wkd generate /tmp/wkdroot example.com certs.pgp
 ",
 )]
 pub struct GenerateCommand {

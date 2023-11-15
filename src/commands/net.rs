@@ -568,6 +568,32 @@ pub fn dispatch_dane(mut config: Config, c: cli::dane::Command) -> Result<()> {
 
     use crate::cli::dane::Subcommands::*;
     match c.subcommand {
+        Generate(c) => {
+            for cert in CertParser::from_reader(c.input.open()?)? {
+                let cert = cert?;
+                let vc = match cert.with_policy(&config.policy, config.time) {
+                    Ok(vc) => vc,
+                    e @ Err(_) if ! c.skip => e?,
+                    _ => continue,
+                };
+                match if c.generic {
+                    dane::generate_generic(&vc, &c.domain, c.ttl, c.size_limit)
+                } else {
+                    dane::generate(&vc, &c.domain, c.ttl, c.size_limit)
+                } {
+                    Ok(records) =>
+                        records.iter().for_each(|r| println!("{}", r)),
+                    Err(e) =>
+                        match e.downcast::<openpgp::Error>() {
+                            // Ignore cert with no user ID in domain.
+                            Ok(openpgp::Error::InvalidArgument(_))
+                                if c.skip => (),
+                            Ok(e) => Err(e)?,
+                            Err(e) => Err(e)?,
+                        },
+                }
+            }
+        },
         Get(c) => {
             let email_address = c.email_address;
             // XXX: EmailAddress could be created here to

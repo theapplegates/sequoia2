@@ -1,7 +1,10 @@
+use std::time::Duration;
+
 use clap::{Args, Parser, Subcommand};
 
 use super::types::ClapData;
 use super::types::FileOrCertStore;
+use super::types::FileOrStdin;
 use super::types::FileOrStdout;
 
 #[derive(Parser, Debug)]
@@ -19,7 +22,71 @@ pub struct Command {
 
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
+    Generate(GenerateCommand),
     Get(GetCommand),
+}
+
+#[derive(Debug, Args)]
+#[clap(
+    about = "Generates DANE records for the given domain and keys.",
+    long_about =
+"Generates DANE records for the given domain and keys
+
+The certificates are minimized, and one record per email address is
+emitted.  If multiple user IDs map to one email address, then all
+matching user IDs are included in the emitted certificates.
+
+By default, OPENPGPKEY resource records are emitted.  If your DNS
+server doesn't understand those, use --generic to emit generic
+records instead.",
+    after_help =
+"EXAMPLES:
+
+# Generate DANE records from certs.pgp for example.com.
+$ sq dane generate example.com certs.pgp
+",
+)]
+pub struct GenerateCommand {
+    #[clap(
+        value_name = "FQDN",
+        help = "Generates DANE records for this domain name",
+    )]
+    pub domain: String,
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        value_name = "CERT-RING",
+        help = "Emits records for certificates from CERT-RING \
+                (or stdin if omitted)",
+    )]
+    pub input: FileOrStdin,
+    #[clap(
+        long = "ttl",
+        value_name = "DURATION",
+        value_parser = |arg: &str| -> Result<Duration, std::num::ParseIntError>
+            { Ok(Duration::from_secs(arg.parse()?)) },
+        default_value = "10800",
+        help = "Sets the TTL (maximum cache duration) of the resource records",
+    )]
+    pub ttl: Duration,
+    #[clap(
+        long = "size-limit",
+        value_name = "BYTES",
+        default_value = "12288",
+        help = "Try to shrink the certificates to this size",
+    )]
+    pub size_limit: usize,
+    #[clap(
+        long = "generic",
+        help = "Emits generic resource records [default: OPENPGPKEY records]",
+    )]
+    pub generic: bool,
+    #[clap(
+        short = 's',
+        long = "skip",
+        help = "Skips expired certificates and those that do not have \
+                User IDs for given domain.",
+    )]
+    pub skip: bool,
 }
 
 #[derive(Debug, Args)]

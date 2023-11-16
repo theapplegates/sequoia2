@@ -198,7 +198,7 @@ default timezone is UTC):
 $ sq --time 20130721T0550+0200 verify msg.pgp
 ",
     )]
-    pub time: Option<String>,
+    pub time: Option<types::Time>,
     #[clap(
         long = "trust-root",
         value_name = "FINGERPRINT|KEYID",

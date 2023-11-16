@@ -16,7 +16,6 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
-use chrono::{DateTime, offset::Utc};
 use once_cell::unsync::OnceCell;
 
 use sequoia_openpgp as openpgp;
@@ -61,6 +60,7 @@ mod cli;
 use cli::SECONDS_IN_DAY;
 use cli::SECONDS_IN_YEAR;
 use cli::SqSubcommands;
+use cli::types::Time;
 
 mod man;
 mod commands;
@@ -990,17 +990,7 @@ fn main() -> Result<()> {
 
     let c = cli::SqCommand::from_arg_matches(&cli::build().get_matches())?;
 
-    let time = if let Some(time) = c.time {
-        SystemTime::from(
-            crate::parse_iso8601(
-                &time, chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap())
-                .context(format!("Parsing --time {}", time))?)
-    } else {
-        // Round trip via openpgp::types::Timestamp.
-        openpgp::types::Timestamp::try_from(SystemTime::now())
-            .context("Current time is out of range")?
-            .into()
-    };
+    let time: SystemTime = c.time.unwrap_or_else(|| Time::now()).into();
 
     let mut policy = sequoia_policy_config::ConfiguredStandardPolicy::new();
     policy.parse_default_config()?;
@@ -1149,77 +1139,6 @@ fn parse_notations(n: Vec<String>) -> Result<Vec<(bool, NotationData)>> {
         .collect();
 
     Ok(notations)
-}
-
-// TODO: Replace all uses with CliTime argument type
-/// Parses the given string depicting a ISO 8601 timestamp.
-fn parse_iso8601(s: &str, pad_date_with: chrono::NaiveTime)
-                 -> Result<DateTime<Utc>>
-{
-    // If you modify this function this function, synchronize the
-    // changes with the copy in sqv.rs!
-    for f in &[
-        "%Y-%m-%dT%H:%M:%S%#z",
-        "%Y-%m-%dT%H:%M:%S",
-        "%Y-%m-%dT%H:%M%#z",
-        "%Y-%m-%dT%H:%M",
-        "%Y-%m-%dT%H%#z",
-        "%Y-%m-%dT%H",
-        "%Y%m%dT%H%M%S%#z",
-        "%Y%m%dT%H%M%S",
-        "%Y%m%dT%H%M%#z",
-        "%Y%m%dT%H%M",
-        "%Y%m%dT%H%#z",
-        "%Y%m%dT%H",
-    ] {
-        if f.ends_with("%#z") {
-            if let Ok(d) = DateTime::parse_from_str(s, *f) {
-                return Ok(d.into());
-            }
-        } else if let Ok(d) = chrono::NaiveDateTime::parse_from_str(s, *f) {
-            return Ok(DateTime::from_utc(d, Utc));
-        }
-    }
-    for f in &[
-        "%Y-%m-%d",
-        "%Y-%m",
-        "%Y-%j",
-        "%Y%m%d",
-        "%Y%m",
-        "%Y%j",
-        "%Y",
-    ] {
-        if let Ok(d) = chrono::NaiveDate::parse_from_str(s, *f) {
-            return Ok(DateTime::from_utc(d.and_time(pad_date_with), Utc));
-        }
-    }
-    Err(anyhow::anyhow!("Malformed ISO8601 timestamp: {}", s))
-}
-
-#[test]
-fn test_parse_iso8601() {
-    let z = chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap();
-    parse_iso8601("2017-03-04T13:25:35Z", z).unwrap();
-    parse_iso8601("2017-03-04T13:25:35+08:30", z).unwrap();
-    parse_iso8601("2017-03-04T13:25:35", z).unwrap();
-    parse_iso8601("2017-03-04T13:25Z", z).unwrap();
-    parse_iso8601("2017-03-04T13:25", z).unwrap();
-    // parse_iso8601("2017-03-04T13Z", z).unwrap(); // XXX: chrono doesn't like
-    // parse_iso8601("2017-03-04T13", z).unwrap(); // ditto
-    parse_iso8601("2017-03-04", z).unwrap();
-    // parse_iso8601("2017-03", z).unwrap(); // ditto
-    parse_iso8601("2017-031", z).unwrap();
-    parse_iso8601("20170304T132535Z", z).unwrap();
-    parse_iso8601("20170304T132535+0830", z).unwrap();
-    parse_iso8601("20170304T132535", z).unwrap();
-    parse_iso8601("20170304T1325Z", z).unwrap();
-    parse_iso8601("20170304T1325", z).unwrap();
-    // parse_iso8601("20170304T13Z", z).unwrap(); // ditto
-    // parse_iso8601("20170304T13", z).unwrap(); // ditto
-    parse_iso8601("20170304", z).unwrap();
-    // parse_iso8601("201703", z).unwrap(); // ditto
-    parse_iso8601("2017031", z).unwrap();
-    // parse_iso8601("2017", z).unwrap(); // ditto
 }
 
 // Sometimes the same error cascades, e.g.:

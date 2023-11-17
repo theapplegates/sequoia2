@@ -5,6 +5,7 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{self, Write};
+use std::path::Path;
 use std::time::SystemTime;
 
 use sequoia_net::pks;
@@ -747,8 +748,12 @@ impl<'a, 'store> VerificationHelper for VHelper<'a, 'store> {
     }
 }
 
-pub fn split(input: &mut (dyn io::Read + Sync + Send), prefix: &str)
-             -> Result<()> {
+pub fn split<P>(input: &mut (dyn io::Read + Sync + Send), prefix: P)
+    -> Result<()>
+    where P: AsRef<Path>
+{
+    let prefix = prefix.as_ref();
+
     // We (ab)use the mapping feature to create byte-accurate dumps of
     // nested packets.
     let mut ppr =
@@ -760,12 +765,13 @@ pub fn split(input: &mut (dyn io::Read + Sync + Send), prefix: &str)
 
     while let PacketParserResult::Some(pp) = ppr {
         if let Some(map) = pp.map() {
-            let filename = format!(
-                "{}{}--{}{:?}", prefix,
+            let mut filename = prefix.as_os_str().to_os_string();
+            filename.push(
                 pos.iter().map(|n| format!("{}", n))
-                    .collect::<Vec<String>>().join("-"),
-                pp.packet.kind().map(|_| "").unwrap_or("Unknown-"),
-                pp.packet.tag());
+                    .collect::<Vec<String>>().join("-"));
+            filename.push(pp.packet.kind().map(|_| "").unwrap_or("Unknown-"));
+            filename.push(format!("{}", pp.packet.tag()));
+
             let mut sink = File::create(filename)
                 .context("Failed to create output file")?;
 

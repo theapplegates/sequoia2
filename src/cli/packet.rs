@@ -195,7 +195,7 @@ pub struct SplitCommand {
         help = "Writes to files with PREFIX \
             [defaults: \"FILE-\" if FILE is set, or \"output-\" if read from stdin]",
     )]
-    pub prefix: Option<String>,
+    pub prefix: Option<PathBuf>,
 }
 
 #[derive(Debug, Args)]

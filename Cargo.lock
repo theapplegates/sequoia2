@@ -2977,6 +2977,7 @@ dependencies = [
  "sequoia-cert-store",
  "sequoia-net",
  "sequoia-openpgp",
+ "sequoia-policy-config",
  "sequoia-wot",
  "serde",
  "serde_json",

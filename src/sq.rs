@@ -1002,7 +1002,9 @@ fn main() -> Result<()> {
             .into()
     };
 
-    let policy = &mut P::at(time);
+    let mut policy = sequoia_policy_config::ConfiguredStandardPolicy::new();
+    policy.parse_default_config()?;
+    let mut policy = policy.build();
 
     let known_notations = c.known_notation
         .iter()
@@ -1022,7 +1024,7 @@ fn main() -> Result<()> {
         force,
         output_format,
         output_version,
-        policy: policy.clone(),
+        policy,
         time,
         no_rw_cert_store: c.no_cert_store,
         cert_store_path: c.cert_store.clone(),

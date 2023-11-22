@@ -1,6 +1,8 @@
 //! Network services.
 
 use std::borrow::Cow;
+use std::fmt;
+use std::sync::Arc;
 use std::time::SystemTime;
 
 use anyhow::Context;
@@ -347,6 +349,21 @@ fn certify_downloads(config: &mut Config,
     certs
 }
 
+#[derive(Clone)]
+enum Query {
+    Handle(KeyHandle),
+    Address(String),
+}
+
+impl fmt::Display for Query {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Query::Handle(h) => write!(f, "{}", h),
+            Query::Address(a) => write!(f, "{}", a),
+        }
+    }
+}
+
 pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
     -> Result<()>
 {
@@ -393,8 +410,8 @@ pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
     };
     let ca_trust_amount = 1;
 
-    let ks = KeyServer::new(uri)
-        .context("Malformed keyserver URI")?;
+    let ks = Arc::new(KeyServer::new(uri)
+        .context("Malformed keyserver URI")?);
 
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_io()
@@ -403,55 +420,59 @@ pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
 
     use crate::cli::keyserver::Subcommands::*;
     match c.subcommand {
-         Get(c) => {
-            let query = c.query;
-
-            let handle = query.parse::<KeyHandle>();
-
-            if let Ok(handle) = handle {
-                let certs = rt.block_on(ks.get(handle))
-                    .context("Failed to retrieve cert")?;
-                let certs = certs.into_iter().filter_map(Result::ok).collect::<Vec<Cert>>();
-
-                if let Some(file) = c.output {
-                    let mut output = file.create_safe(config.force)?;
-                    serialize_keyring(&mut output, &certs, c.binary)?;
+        Get(c) => rt.block_on(async {
+            let queries = c.query.iter().map(
+                |q| if let Ok(h) = q.parse::<KeyHandle>() {
+                    Ok(Query::Handle(h))
+                } else if let Ok(Some(addr)) = UserID::from(q.as_str()).email2() {
+                    Ok(Query::Address(addr.to_string()))
                 } else {
-                    let certs = if let Some((ca_filename, ca_userid)) = ca() {
-                        certify_downloads(
-                            &mut config, &ca_filename, &ca_userid,
-                            ca_trust_amount,
-                            certs, None)
-                    } else {
-                        certs
-                    };
-                    import_certs(&mut config, certs)?;
-                }
-            } else if let Ok(Some(addr)) = UserID::from(query.as_str()).email2() {
-                let certs = rt.block_on(ks.search(addr))
-                    .context("Failed to retrieve certs")?;
-                let certs = certs.into_iter().filter_map(Result::ok).collect::<Vec<Cert>>();
+                    Err(anyhow::anyhow!(
+                        "Query must be a fingerprint, a keyid, \
+                         or an email address: {:?}", q))
+                }).collect::<Result<Vec<Query>>>()?;
 
-                if let Some(file) = c.output {
-                    let mut output = file.create_safe(config.force)?;
-                    serialize_keyring(&mut output, &certs, c.binary)?;
-                } else {
-                    let certs = if let Some((ca_filename, ca_userid)) = ca() {
-                        certify_downloads(
-                            &mut config, &ca_filename, &ca_userid,
-                            ca_trust_amount,
-                            certs, None)
-                    } else {
-                        certs
+            let mut requests = tokio::task::JoinSet::new();
+            queries.into_iter().for_each(|query| {
+                let ks = ks.clone();
+                requests.spawn(async move {
+                    let certs = match query.clone() {
+                        Query::Handle(h) => ks.get(h).await?,
+                        Query::Address(a) => ks.search(a).await?,
                     };
-                    import_certs(&mut config, certs)?;
+                    Result::Ok((query, certs))
+                });
+            });
+
+            let mut certs = Vec::new();
+            while let Some(response) = requests.join_next().await {
+                let (query, returned_certs) = response??;
+                for c in returned_certs {
+                    match c {
+                        Ok(c) => certs.push(c),
+                        Err(e) => eprintln!("{}: {}", query, e),
+                    }
                 }
-            } else {
-                return Err(anyhow::anyhow!(
-                    "Query must be a fingerprint, a keyid, \
-                     or an email address: {:?}", query));
             }
-        },
+
+            if let Some(file) = &c.output {
+                let mut output = file.create_safe(config.force)?;
+                serialize_keyring(&mut output, &certs, c.binary)?;
+            } else {
+                let certs = if let Some((ca_filename, ca_userid)) = ca() {
+                    certify_downloads(
+                        &mut config, &ca_filename, &ca_userid,
+                        ca_trust_amount,
+                        certs, None)
+                } else {
+                    certs
+                };
+                import_certs(&mut config, certs)?;
+            }
+
+
+            Result::Ok(())
+        })?,
         Send(c) => {
             let mut input = c.input.open()?;
             let cert = Cert::from_reader(&mut input).

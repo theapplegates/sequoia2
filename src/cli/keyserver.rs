@@ -68,11 +68,12 @@ pub struct GetCommand {
     pub binary: bool,
     #[clap(
         value_name = "QUERY",
+        required = true,
         help = "Retrieve certificate(s) using QUERY. \
             This may be a fingerprint, a KeyID, \
             or an email address.",
     )]
-    pub query: String,
+    pub query: Vec<String>,
 }
 
 #[derive(Debug, Args)]

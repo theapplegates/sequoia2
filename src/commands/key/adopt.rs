@@ -149,7 +149,7 @@ pub fn adopt(config: Config, command: cli::key::AdoptCommand) -> Result<()>
 
         // Set key expiration.
         if let Some(e) = &command.expire {
-            builder = builder.set_key_expiration_time(&key, e.timestamp()?)?;
+            builder = builder.set_key_expiration_time(&key, e.timestamp())?;
         }
 
         // If there is a valid backsig, recreate it.

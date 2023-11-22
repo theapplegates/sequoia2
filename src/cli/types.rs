@@ -12,7 +12,6 @@ use std::sync::atomic::Ordering;
 use std::time::Duration;
 use std::time::SystemTime;
 
-use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 
@@ -23,12 +22,14 @@ use chrono::{offset::Utc, DateTime};
 /// Common types for arguments of sq.
 use clap::ValueEnum;
 
+use sequoia_openpgp as openpgp;
 use openpgp::armor;
 use openpgp::fmt::hex;
 use openpgp::serialize::stream::Armorer;
 use openpgp::serialize::stream::Message;
 use openpgp::types::SymmetricAlgorithm;
-use sequoia_openpgp as openpgp;
+use openpgp::types::Timestamp;
+
 use terminal_size::terminal_size;
 
 use crate::cli::SECONDS_IN_DAY;
@@ -700,9 +701,14 @@ impl<'a> std::fmt::Display for SessionKeyDisplay<'a> {
     }
 }
 
+/// A thin wrapper around `openpgp::types::Timestamp`.
+///
+/// Recall: an OpenPGP timestamp has a whole second resolution, and
+/// uses a 32-bit quantity to represent the number of seconds since
+/// the UNIX epoch.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Time {
-    pub time: DateTime<Utc>,
+    pub time: Timestamp,
 }
 
 impl std::str::FromStr for Time {
@@ -712,16 +718,45 @@ impl std::str::FromStr for Time {
         let time =
             Time::parse_iso8601(s, chrono::NaiveTime::from_hms_opt(0, 0, 0)
                                 .unwrap())?;
-        Ok(Time { time })
+        Ok(Time::try_from(SystemTime::from(time))?)
+    }
+}
+
+impl From<Time> for SystemTime {
+    fn from(t: Time) -> SystemTime {
+        t.time.into()
+    }
+}
+
+impl TryFrom<SystemTime> for Time {
+    type Error = anyhow::Error;
+
+    fn try_from(time: SystemTime) -> Result<Self> {
+        Ok(Self {
+            time: Timestamp::try_from(time)?,
+        })
+    }
+}
+
+impl TryFrom<DateTime<Utc>> for Time {
+    type Error = anyhow::Error;
+
+    fn try_from(time: DateTime<Utc>) -> Result<Self> {
+        Self::try_from(SystemTime::try_from(time)?)
     }
 }
 
 impl Time {
+    /// Returns the current time.
+    pub fn now() -> Self {
+        Self {
+            time: Timestamp::now()
+        }
+    }
+
     /// Returns the time as openpgp::types::Timestamp.
-    pub fn timestamp(&self) -> Result<openpgp::types::Timestamp> {
-        let seconds = u32::try_from(self.time.naive_utc().timestamp())
-           .map_err(|_| anyhow!("Time {} not representable", self.time))?;
-        Ok(seconds.try_into()?)
+    pub fn timestamp(&self) -> openpgp::types::Timestamp {
+        self.time.clone()
     }
 
     /// Parses the given string depicting a ISO 8601 timestamp.
@@ -838,12 +873,10 @@ mod test {
         );
 
         let expiry = Expiry::Timestamp(
-            Time{
-                time: DateTime::from_utc(
-                    NaiveDateTime::from_timestamp_opt(2, 0).unwrap(),
-                    Utc,
-                )}
-        );
+            Time::try_from(DateTime::from_utc(
+                NaiveDateTime::from_timestamp_opt(2, 0).unwrap(),
+                Utc
+            )).expect("valid"));
         assert_eq!(
             expiry.as_duration(reference).unwrap(),
             Some(Duration::new(1, 0)),
@@ -866,12 +899,10 @@ mod test {
             Utc,
         );
         let expiry = Expiry::Timestamp(
-            Time{
-                time: DateTime::from_utc(
-                    NaiveDateTime::from_timestamp_opt(1, 0).unwrap(),
-                    Utc,
-                )}
-        );
+            Time::try_from(DateTime::from_utc(
+                NaiveDateTime::from_timestamp_opt(1, 0).unwrap(),
+                Utc
+            )).expect("valid"));
         assert!(expiry.as_duration(reference).is_err());
     }
 }

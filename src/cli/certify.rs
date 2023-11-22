@@ -88,7 +88,6 @@ pub struct Command {
             120 means fully trusted.  Values less than 120 indicate the degree \
             of trust.  60 is usually used for partially trusted.",
     )]
-    //TODO: use usize, not String
     pub amount: u8,
     #[clap(
         short = 'r',

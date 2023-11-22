@@ -550,7 +550,7 @@ pub fn dispatch_wkd(mut config: Config, c: cli::wkd::Command) -> Result<()> {
                 if wkd::cert_contains_domain_userid(&domain, &vc) {
                     wkd::insert(&base_path, &domain, variant, &vc)
                         .context(format!("Failed to generate the WKD in \
-                        {}.", base_path))?;
+                        {}.", base_path.display()))?;
                 } else if !skip {
                     return Err(openpgp::Error::InvalidArgument(
                         format!("Certificate {} does not contain User IDs in domain {}.",

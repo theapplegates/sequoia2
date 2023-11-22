@@ -80,7 +80,7 @@ pub struct Command {
         value_name = "SIG",
         help = "Verifies a detached signature"
     )]
-    pub detached: Option<String>,
+    pub detached: Option<PathBuf>,
     #[clap(
         short = 'n',
         long = "signatures",

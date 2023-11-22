@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{Args, Parser, Subcommand};
 
 use crate::cli::types::NetworkPolicy;
@@ -134,7 +136,7 @@ pub struct GenerateCommand {
         long_help = "Writes the WKD to WEB-ROOT. Transfer this directory to \
             the webserver.",
     )]
-    pub base_directory: String,
+    pub base_directory: PathBuf,
     #[clap(
         value_name = "FQDN",
         help = "Generates a WKD for a fully qualified domain name for email",

@@ -256,7 +256,7 @@ fn get_ca(config: &mut Config,
 // diagnostic is emitted, and the certificate is returned as is.
 fn certify_downloads(config: &mut Config,
                      ca_special: &str, ca_userid: &str, ca_trust_amount: usize,
-                     certs: Vec<Cert>, email: Option<String>)
+                     certs: Vec<Cert>, email: Option<&str>)
     -> Vec<Cert>
 {
     let mut ca = || -> Result<_> {
@@ -285,7 +285,7 @@ fn certify_downloads(config: &mut Config,
     let email = email.map(|email| {
         match UserIDQueryParams::is_email(&email) {
             Ok(email) => email,
-            Err(_) => email,
+            Err(_) => email.to_string(),
         }
     });
 
@@ -514,32 +514,54 @@ pub fn dispatch_wkd(mut config: Config, c: cli::wkd::Command) -> Result<()> {
                                        WkdUrlVariant::Direct, advanced, direct)?;
             output.write(config.output_format, &mut std::io::stdout())?;
         },
-        Get(c) => {
-            let email_address = c.email_address;
+        Get(c) => rt.block_on(async {
             // XXX: EmailAddress could be created here to
             // check it's a valid email address, print the error to
             // stderr and exit.
             // Because it might be created a WkdServer struct, not
             // doing it for now.
-            let certs = rt.block_on(wkd::get(&net::reqwest::Client::new(), &email_address))?;
-            let certs = certs.into_iter().filter_map(Result::ok).collect::<Vec<Cert>>();
-            // ```text
-            //     The HTTP GET method MUST return the binary representation of the
-            //     OpenPGP key for the given mail address.
-            // [draft-koch]: https://datatracker.ietf.org/doc/html/draft-koch-openpgp-webkey-service-07
-            // ```
-            // But to keep the parallelism with `store export` and `keyserver get`,
-            // The output is armored if not `--binary` option is given.
+            let mut requests = tokio::task::JoinSet::new();
+            c.addresses.into_iter().for_each(|address| {
+                requests.spawn(async move {
+                    let certs =
+                        wkd::get(&net::reqwest::Client::new(), &address).await?;
+                    Result::Ok((address, certs))
+                });
+            });
+
+            let mut certs = Vec::new();
+            while let Some(response) = requests.join_next().await {
+                let (address, returned_certs) = response??;
+                for cert in returned_certs {
+                    match cert {
+                        Ok(cert) => {
+                            if c.output.is_some() {
+                                certs.push(cert);
+                            } else {
+                                // We certify here because we know the
+                                // query here.
+                                let mut cert = certify_downloads(
+                                    &mut config,
+                                    &ca_filename, &ca_userid, ca_trust_amount,
+                                    vec![cert], Some(&address));
+
+                                certs.append(&mut cert);
+                            }
+                        },
+                        Err(e) => eprintln!("{}: {}", address, e),
+                    }
+                }
+            }
+
             if let Some(file) = c.output {
                 let mut output = file.create_safe(config.force)?;
                 serialize_keyring(&mut output, &certs, c.binary)?;
             } else {
-                let certs = certify_downloads(
-                    &mut config, &ca_filename, &ca_userid, ca_trust_amount,
-                    certs, Some(email_address));
                 import_certs(&mut config, certs)?;
             }
-        },
+
+            Result::Ok(())
+        })?,
         Generate(c) => {
             let domain = c.domain;
             let skip = c.skip;
@@ -630,7 +652,7 @@ pub fn dispatch_dane(mut config: Config, c: cli::dane::Command) -> Result<()> {
             } else {
                 let certs = certify_downloads(
                     &mut config, &ca_filename, &ca_userid, ca_trust_amount,
-                    certs, Some(email_address));
+                    certs, Some(&email_address));
                 import_certs(&mut config, certs)?;
             }
         },

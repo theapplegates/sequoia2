@@ -637,25 +637,48 @@ pub fn dispatch_dane(mut config: Config, c: cli::dane::Command) -> Result<()> {
                 }
             }
         },
-        Get(c) => {
-            let email_address = c.email_address;
-            // XXX: EmailAddress could be created here to
-            // check it's a valid email address, print the error to
-            // stderr and exit.
-            // Because it might be created a WkdServer struct, not
-            // doing it for now.
-            let certs = rt.block_on(dane::get(&email_address))?;
-            let certs = certs.into_iter().filter_map(Result::ok).collect::<Vec<Cert>>();
+        Get(c) => rt.block_on(async {
+            let mut requests = tokio::task::JoinSet::new();
+            c.addresses.into_iter().for_each(|address| {
+                requests.spawn(async move {
+                    let certs = dane::get(&address).await?;
+                    Result::Ok((address, certs))
+                });
+            });
+
+            let mut certs = Vec::new();
+            while let Some(response) = requests.join_next().await {
+                let (address, returned_certs) = response??;
+                for cert in returned_certs {
+                    match cert {
+                        Ok(cert) => {
+                            if c.output.is_some() {
+                                certs.push(cert);
+                            } else {
+                                // We certify here because we know the
+                                // query here.
+                                let mut cert = certify_downloads(
+                                    &mut config,
+                                    &ca_filename, &ca_userid, ca_trust_amount,
+                                    vec![cert], Some(&address));
+
+                                certs.append(&mut cert);
+                            }
+                        },
+                        Err(e) => eprintln!("{}: {}", address, e),
+                    }
+                }
+            }
+
             if let Some(file) = c.output {
                 let mut output = file.create_safe(config.force)?;
                 serialize_keyring(&mut output, &certs, c.binary)?;
             } else {
-                let certs = certify_downloads(
-                    &mut config, &ca_filename, &ca_userid, ca_trust_amount,
-                    certs, Some(&email_address));
                 import_certs(&mut config, certs)?;
             }
-        },
+
+            Result::Ok(())
+        })?,
     }
 
     Ok(())

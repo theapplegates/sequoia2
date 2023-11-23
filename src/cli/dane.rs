@@ -111,9 +111,10 @@ in the usual way.
 pub struct GetCommand {
     #[clap(
         value_name = "ADDRESS",
+        required = true,
         help = "Queries a cert for ADDRESS",
     )]
-    pub email_address: String,
+    pub addresses: Vec<String>,
     #[clap(
         short = 'B',
         long,

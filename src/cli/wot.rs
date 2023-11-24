@@ -152,7 +152,7 @@ EXAMPLES:
     /// default: fully authenticated, i.e., a trust amount of 120),
     /// then the exit status is 0.  Otherwise the exit status is 1.
     ///
-    /// If a binding could be patially authenticated (i.e., its trust
+    /// If a binding could be partially authenticated (i.e., its trust
     /// amount is greater than 0), then the binding is displayed, even
     /// if the trust is below the specified threshold.
     #[command(after_help("\
@@ -188,7 +188,7 @@ EXAMPLES:
     /// default: fully authenticated, i.e., a trust amount of 120),
     /// then the exit status is 0.  Otherwise the exit status is 1.
     ///
-    /// If a binding could be patially authenticated (i.e., its trust
+    /// If a binding could be partially authenticated (i.e., its trust
     /// amount is greater than 0), then the binding is displayed, even
     /// if the trust is below the specified threshold.
     #[command(after_help("\

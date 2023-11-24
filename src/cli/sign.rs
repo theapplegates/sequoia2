@@ -89,6 +89,7 @@ pub struct Command {
     )]
     pub append: bool,
     #[clap(
+        hide = true,
         short,
         long,
         conflicts_with = "append",

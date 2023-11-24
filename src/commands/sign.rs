@@ -40,6 +40,10 @@ pub fn dispatch(config: Config, command: cli::sign::Command) -> Result<()> {
     let binary = command.binary;
     let append = command.append;
     let notarize = command.notarize;
+    if notarize {
+        return Err(anyhow::anyhow!("Notarizing messages is not supported."));
+    }
+
     let private_key_store = command.private_key_store.as_deref();
     let secrets =
         load_certs(command.secret_key_file.iter().map(|s| s.as_ref()))?;

@@ -592,6 +592,7 @@ fn sq_sign_detached_append() {
 
 // Notarizations ahead.
 
+#[ignore]
 #[test]
 fn sq_sign_append_a_notarization() {
     let tmp_dir = TempDir::new().unwrap();
@@ -685,6 +686,7 @@ fn sq_sign_append_a_notarization() {
         .success();
 }
 
+#[ignore]
 #[test]
 fn sq_sign_notarize() {
     let tmp_dir = TempDir::new().unwrap();
@@ -758,6 +760,7 @@ fn sq_sign_notarize() {
         .success();
 }
 
+#[ignore]
 #[test]
 fn sq_sign_notarize_a_notarization() {
     let tmp_dir = TempDir::new().unwrap();

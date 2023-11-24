@@ -1401,27 +1401,6 @@ then stdout contains "hello, world"
 then stderr contains "2 good signatures"
 ~~~
 
-## Notarize signatures
-
-_Requirement: We must be able to sign a message and all its
-signatures, as if as a notary._
-
-~~~scenario
-given an installed sq
-given file hello.txt
-when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
-when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
-when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
-
-when I run sq --no-cert-store sign --signer-file alice.pgp hello.txt -o signed.txt
-when I run sq --no-cert-store sign --signer-file bob.pgp --notarize signed.txt -o notarized.txt
-when I run sq --no-cert-store verify notarized.txt --signer-file alice-cert.pgp --signer-file bob-cert.pgp
-then stdout contains "hello, world"
-then stderr contains "Good level 1 notarization from"
-then stderr contains "2 good signatures"
-~~~
-
 
 
 

@@ -25,7 +25,8 @@ use crate::commands::wot as wot_cmd;
 use wot_cmd::output::print_path;
 use wot_cmd::output::print_path_header;
 use wot_cmd::output::print_path_error;
-use wot_cmd::output::OutputType;
+#[allow(unused_imports)]
+use wot_cmd::output::OutputType as _;
 
 use crate::Config;
 

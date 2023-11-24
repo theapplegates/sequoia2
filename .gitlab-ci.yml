@@ -46,12 +46,12 @@ before_script:
 after_script:
   - *after_script_end
 
-bookworm:
+trixie:
   tags:
     - linux
   stage: build
   interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie:latest
   script:
     - cargo test --features=subplot
     - if ! git diff --quiet Cargo.lock ; then echo "Cargo.lock changed.  Please add the change to the corresponding commit." ; git diff ; false ; fi
@@ -65,7 +65,7 @@ sq-features:
     - linux
   stage: build
   interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie:latest
   only:
     refs:
       - tags
@@ -84,12 +84,12 @@ sq-features:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
 
-bookworm-crypto-openssl:
+trixie-crypto-openssl:
   tags:
     - linux
   stage: build
   interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie:latest
   dependencies:
     - codespell
   script:
@@ -116,7 +116,7 @@ codespell:
     - linux
   stage: pre-check
   interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie:latest
 
   before_script:
     - *before_script_start
@@ -164,7 +164,7 @@ clippy:
   before_script:
     - *before_script_start
     - apt-get -y install libssl-dev capnproto libsqlite3-dev
-    - rustup default 1.63.0
+    - rustup default 1.67.0
     - rustup component add clippy
     - cargo clippy --version
     - *before_script_end
@@ -189,7 +189,7 @@ windows-gnu-cng:
   before_script:
     # We don't call *before_script_start or *before_script_end as we
     # don't have bash, clang, etc.
-    - rustup default "1.63.0"
+    - rustup default "1.67.0"
     - rustc --version --verbose
     - cargo --version
   script:

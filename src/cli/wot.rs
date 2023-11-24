@@ -124,17 +124,6 @@ EXAMPLES:
       C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
       'Alice <alice@example.org>'
 
-  # The same as above, but this time generate output in DOT format
-  # and convert it to an SVG using Graphviz's DOT compiler.
-  $ sq --format dot \\
-      --keyring keyring.pgp \\
-      --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-    wot authenticate \\
-      --partial \\
-      C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
-      'Alice <alice@example.org>' \\
-    | dot -Tsvg -o alice.pgp
-
   # Try and authenticate each binding where the User ID has the
   # specified email address.
   $ sq --keyring keyring.pgp \\
@@ -142,16 +131,6 @@ EXAMPLES:
     wot authenticate \\
       C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
       --email 'alice@example.org'
-
-  # The same as above, but this time generate output in DOT format
-  # and convert it to an SVG using Graphviz's DOT compiler.
-  $ sq --format dot \\
-      --keyring keyring.pgp \\
-      --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-    wot authenticate \\
-      C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
-      --email 'alice@example.org' \\
-    | dot -Tsvg -o alice.svg
 "))]
     Authenticate {
         #[command(flatten)]
@@ -186,30 +165,11 @@ EXAMPLES:
       --partial \\
       'Alice <alice@example.org>'
 
-  # The same as above, but output in DOT format and convert it to
-  # an SVG using Graphviz's DOT compiler.
-  $ sq --format dot \\
-      --keyring keyring.pgp \\
-      --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-    wot lookup \\
-      --partial \\
-      'Alice <alice@example.org>' \\
-    | dot -Tsvg -o alice.svg
-
   # Lookup a certificate with the given email address.
   $ sq --keyring keyring.pgp \\
       --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
     wot lookup \\
       --email 'alice@example.org'
-
-  # The same as above, but output in DOT format and convert it to
-  # an SVG using Graphviz's DOT compiler.
-  $ sq --format dot \\
-      --keyring keyring.pgp \\
-      --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-    wot lookup \\
-      --email 'alice@example.org' \\
-    | dot -Tsvg -o alice.svg
 "))]
     Lookup {
         #[command(flatten)]
@@ -240,16 +200,6 @@ EXAMPLES:
       --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
     wot identify \\
       C7B1406CD2F612E9CE2136156F2DA183236153AE
-
-  # The same as above, but output in DOT format and convert it to
-  # an SVG using Graphviz's DOT compiler.
-  $ sq --format dot \\
-      --keyring keyring.pgp \\
-      --partial \\
-      --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-    wot identify \\
-      C7B1406CD2F612E9CE2136156F2DA183236153AE \\
-    | dot -Tsvg -o C7B1406CD2F612E9CE2136156F2DA183236153AE.svg
 "))]
     Identify {
         #[command(flatten)]
@@ -280,16 +230,6 @@ $ sq --keyring keyring.pgp \\
   wot list \\
     --partial \\
     @example.org
-
-# The same as above, but output in DOT format and convert it to
-# an SVG using Graphviz's DOT compiler.
-$ sq --format dot \\
-    --keyring keyring.pgp \\
-    --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-  wot list \\
-    --partial \\
-    @example.org \\
-  | dot -Tsvg -o example_org.svg
 "))]
     List {
         #[command(flatten)]
@@ -324,16 +264,6 @@ $ sq --keyring keyring.pgp \\
     8F17777118A33DDA9BA48E62AACB3243630052D9 \\
     CBCD8F030588653EEDD7E2659B7DD433F254904A \\
     \"Justus Winter <justus@sequoia-pgp.org>\"
-
-# The same as above, but output in DOT format and convert it to
-# an SVG using Graphviz's DOT compiler.
-$ sq --format dot \\
-    --keyring keyring.pgp \\
-  wot path \\
-    8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-    CBCD8F030588653EEDD7E2659B7DD433F254904A \\
-    \"Justus Winter <justus@sequoia-pgp.org>\" \\
-  | dot -Tsvg -o neal--justus.svg
 "))]
     Path {
         #[command(flatten)]

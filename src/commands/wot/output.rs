@@ -6,7 +6,9 @@ use sequoia_openpgp as openpgp;
 use sequoia_wot as wot;
 use wot::Path;
 
+#[cfg(feature = "dot-writer")]
 mod dot;
+#[cfg(feature = "dot-writer")]
 pub use dot::DotOutputNetwork;
 
 mod human_readable;

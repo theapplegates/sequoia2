@@ -4,7 +4,6 @@ mod integration {
     use std::fmt::{Display, Formatter};
     use std::fmt::Result as FMTResult;
     use std::path;
-    use std::slice::Iter;
     use std::time;
 
     use assert_cmd::Command;
@@ -40,10 +39,11 @@ mod integration {
     }
 
     impl OutputFormat {
-        pub fn iterator() -> Iter<'static, OutputFormat> {
+        pub fn iterator() -> impl Iterator<Item = &'static OutputFormat> {
             static FORMATS: [OutputFormat; 2] =
                 [OutputFormat::Dot, OutputFormat::HumanReadable];
             FORMATS.iter()
+                .filter(|f| **f != OutputFormat::Dot || cfg!(feature = "dot-writer"))
         }
     }
 

@@ -33,6 +33,7 @@ pub enum OutputFormat {
     /// This format is supported by a few commands that emit a
     /// graphical network.  In particular, the \"sq wot\" subcommands
     /// can emit this format.
+    #[cfg(feature = "dot-writer")]
     DOT,
 }
 
@@ -43,6 +44,7 @@ impl FromStr for OutputFormat {
         match s {
             "human-readable" => Ok(Self::HumanReadable),
             "json" => Ok(Self::Json),
+            #[cfg(feature = "dot-writer")]
             "dot" => Ok(Self::DOT),
             _ => Err(anyhow!("unknown output format {:?}", s)),
         }

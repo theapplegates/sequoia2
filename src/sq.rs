@@ -391,12 +391,12 @@ impl<'store> Config<'store> {
                         PathBuf::from(pep_cert_store)
                     }
                     Ok(false) => {
-                        return Err(anyhow::anyhow!(format!(
-                            "{:?} does not exist", pep_cert_store)));
+                        return Err(anyhow::anyhow!(
+                            "{:?} does not exist", pep_cert_store));
                     }
                     Err(err) => {
-                        return Err(anyhow::anyhow!(format!(
-                            "Accessing {:?}: {}", pep_cert_store, err)));
+                        return Err(anyhow::anyhow!(
+                            "Accessing {:?}: {}", pep_cert_store, err));
                     }
                 }
             };

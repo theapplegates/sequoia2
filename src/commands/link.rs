@@ -101,11 +101,11 @@ pub fn check_userids(config: &Config, cert: &Cert, self_signed: bool,
         if known_userids.iter().any(|known_userid| known_userid == &userid) {
             results.push(userid);
         } else {
-            let err = anyhow::anyhow!(format!(
+            let err = anyhow::anyhow!(
                 "{:?} does not match any self-signed User IDs.  If you want \
                  to use a User ID that is not endorsed by the key's owner, \
                  use \"--petname\"",
-                String::from_utf8_lossy(userid.value())));
+                String::from_utf8_lossy(userid.value()));
             print_error_chain(&err);
             if error.is_none() {
                 error = Some(err);
@@ -136,11 +136,11 @@ pub fn check_userids(config: &Config, cert: &Cert, self_signed: bool,
                 .collect::<Vec<UserID>>();
 
             if matches.is_empty() {
-                let err = anyhow::anyhow!(format!(
+                let err = anyhow::anyhow!(
                     "{:?} does not match any valid, self-signed email \
                      addresses.  If you want to use an email address that \
                      is not endorsed by the key's owner, use \"--petname\"",
-                    email));
+                    email);
                 print_error_chain(&err);
                 if error.is_none() {
                     error = Some(err);

@@ -128,8 +128,8 @@ fn authenticate<S>(
             .context("email address must be valid UTF-8")?;
 
         let userid_check = UserID::from(format!("<{}>", email));
-        if let Ok(Some(email_check)) = userid_check.email() {
-            if email != email_check {
+        if let Ok(Some(email_check)) = userid_check.email2() {
+            if &email != email_check {
                 println!("{:?} does not appear to be an email address",
                          email);
                 std::process::exit(1);
@@ -208,7 +208,7 @@ fn authenticate<S>(
                             }
                         }
 
-                        if let Ok(Some(email)) = userid.email() {
+                        if let Ok(Some(email)) = userid.email2() {
                             if email.to_lowercase().contains(&pattern) {
                                 return true;
                             }
@@ -374,7 +374,7 @@ fn authenticate<S>(
             if let Some(userid) = userid {
                 if let Ok(email) = std::str::from_utf8(userid.value()) {
                     let userid_check = UserID::from(format!("<{}>", email));
-                    if let Ok(Some(email_check)) = userid_check.email() {
+                    if let Ok(Some(email_check)) = userid_check.email2() {
                         if email == email_check {
                             eprintln!("WARNING: {} appears to be a bare \
                                       email address.  Perhaps you forgot \

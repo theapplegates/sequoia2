@@ -339,6 +339,7 @@ fn userid_add(
     sb = sb.set_preferred_hash_algorithms(hash_algorithms)?;
 
     // Remove the following types of SubPacket, if they exist
+    #[allow(deprecated)]
     const REMOVE_SUBPACKETS: &[SubpacketTag] = &[
         // The Signature should be exportable.
         // https://openpgp-wg.gitlab.io/rfc4880bis/#name-exportable-certification

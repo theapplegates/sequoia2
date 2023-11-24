@@ -11,7 +11,7 @@ use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::crypto;
 use openpgp::policy::Policy;
 use openpgp::serialize::stream::Compressor;
-use openpgp::serialize::stream::Encryptor;
+use openpgp::serialize::stream::Encryptor2 as Encryptor;
 use openpgp::serialize::stream::LiteralWriter;
 use openpgp::serialize::stream::Message;
 use openpgp::serialize::stream::Recipient;

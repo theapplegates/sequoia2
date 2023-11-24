@@ -432,6 +432,7 @@ impl PacketDumper {
             Ok(())
         }
 
+        #[allow(deprecated)]
         match p {
             Unknown(ref u) => {
                 writeln!(output, "{}  Tag: {}", i, u.tag())?;
@@ -734,6 +735,7 @@ impl PacketDumper {
             Ok(())
         };
 
+        #[allow(deprecated)]
         match s.value() {
             Unknown { body, .. } => {
                 writeln!(output, "{}    {:?}{}:", i, s.tag(),

@@ -26,7 +26,7 @@ fn detect_armor_kind(
     input: Box<dyn BufferedReader<()>>,
 ) -> (Box<dyn BufferedReader<()>>, armor::Kind) {
     let mut dup =
-        Limitor::new(Dup::new(input), ARMOR_DETECTION_LIMIT).as_boxed();
+        Limitor::new(Dup::new(input), ARMOR_DETECTION_LIMIT).into_boxed();
     let kind = match PacketParser::from_reader(&mut dup) {
         Ok(PacketParserResult::Some(pp)) => match pp.next() {
             Ok((Packet::Signature(_), _)) => armor::Kind::Signature,
@@ -61,7 +61,7 @@ pub fn dispatch(config: Config, command: cli::armor::Command)
         (reader.data(8).is_ok(), reader.kind())
     };
     let mut input =
-        dup.as_boxed().into_inner().unwrap().into_inner().unwrap();
+        dup.into_boxed().into_inner().unwrap().into_inner().unwrap();
 
     if already_armored
         && (want_kind.is_none() || want_kind == have_kind)

@@ -469,6 +469,7 @@ pub fn decrypt_unwrap(config: Config,
                 io::copy(&mut pp, output)?;
                 return Ok(());
             },
+            #[allow(deprecated)]
             Packet::MDC(ref mdc) => if ! mdc.valid() {
                 return Err(openpgp::Error::ManipulatedMessage.into());
             },

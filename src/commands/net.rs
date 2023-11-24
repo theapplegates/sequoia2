@@ -432,7 +432,7 @@ pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
                     };
                     import_certs(&mut config, certs)?;
                 }
-            } else if let Ok(Some(addr)) = UserID::from(query.as_str()).email() {
+            } else if let Ok(Some(addr)) = UserID::from(query.as_str()).email2() {
                 let certs = rt.block_on(ks.search(addr))
                     .context("Failed to retrieve certs")?;
 

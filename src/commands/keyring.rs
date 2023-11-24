@@ -56,21 +56,21 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
 
                 for name in &command.name {
                     keep |= uid
-                        .name().unwrap_or(None)
-                        .map(|n| &n == name)
+                        .name2().unwrap_or(None)
+                        .map(|n| n == name)
                         .unwrap_or(false);
                 }
 
                 for email in &command.email {
                     keep |= uid
-                        .email().unwrap_or(None)
-                        .map(|n| &n == email)
+                        .email2().unwrap_or(None)
+                        .map(|n| n == email)
                         .unwrap_or(false);
                 }
 
                 for domain in &command.domain {
                     keep |= uid
-                        .email().unwrap_or(None)
+                        .email2().unwrap_or(None)
                         .map(|n| n.ends_with(&format!("@{}", domain)))
                         .unwrap_or(false);
                 }
@@ -285,7 +285,7 @@ fn split(input: &mut (dyn io::Read + Sync + Send), prefix: &str, binary: bool)
         // filename.
         let mut sink = if let Some(f) = cert.as_ref().ok()
             .and_then(|cert| cert.userids().next())
-            .and_then(|uid| uid.email().unwrap_or(None))
+            .and_then(|uid| uid.email2().unwrap_or(None).map(|e| e.to_string()))
             .and_then(to_filename_fragment)
         {
             let filename_email = format!("{}-{}", filename, f);

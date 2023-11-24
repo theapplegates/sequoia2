@@ -329,10 +329,10 @@ impl FileOrStdout {
                         .context("Failed to create output file")?,
                 ))
             } else {
-                Err(anyhow::anyhow!(format!(
-                    "File {:?} exists, use \"sq --force ...\" to overwrite",
-                    self,
-                )))
+                Err(anyhow::anyhow!(
+                    "File {} exists, use \"sq --force ...\" to overwrite",
+                    path.display(),
+                ))
             }
         } else {
             Ok(Box::new(stdout()))

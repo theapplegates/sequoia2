@@ -1,7 +1,5 @@
 use clap::{Args, Parser, Subcommand};
 
-use crate::cli::types::NetworkPolicy;
-
 use super::types::ClapData;
 use super::types::FileOrCertStore;
 use super::types::FileOrStdin;
@@ -15,15 +13,6 @@ use super::types::FileOrStdout;
     arg_required_else_help = true,
 )]
 pub struct Command {
-    #[clap(
-        short = 'p',
-        long = "policy",
-        value_name = "NETWORK-POLICY",
-        default_value_t = NetworkPolicy::Encrypted,
-        help = "Sets the network policy to use",
-        value_enum,
-    )]
-    pub network_policy: NetworkPolicy,
     #[clap(
         short,
         long,

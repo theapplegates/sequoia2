@@ -2,8 +2,6 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 
-use crate::cli::types::NetworkPolicy;
-
 use super::types::ClapData;
 use super::types::FileOrCertStore;
 use super::types::FileOrStdin;
@@ -17,15 +15,6 @@ use super::types::FileOrStdout;
     arg_required_else_help = true,
 )]
 pub struct Command {
-    #[clap(
-        short,
-        long,
-        value_name = "NETWORK-POLICY",
-        default_value_t = NetworkPolicy::Encrypted,
-        value_enum,
-        help = "Sets the network policy to use",
-    )]
-    pub network_policy: NetworkPolicy,
     #[clap(subcommand)]
     pub subcommand: Subcommands,
 }

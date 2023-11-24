@@ -615,25 +615,6 @@ impl Display for Expiry {
     }
 }
 
-#[derive(ValueEnum, Clone, Debug)]
-pub enum NetworkPolicy {
-    Offline,
-    Anonymized,
-    Encrypted,
-    Insecure,
-}
-
-impl From<NetworkPolicy> for sequoia_net::Policy {
-    fn from(kp: NetworkPolicy) -> Self {
-        match kp {
-            NetworkPolicy::Offline => sequoia_net::Policy::Offline,
-            NetworkPolicy::Anonymized => sequoia_net::Policy::Anonymized,
-            NetworkPolicy::Encrypted => sequoia_net::Policy::Encrypted,
-            NetworkPolicy::Insecure => sequoia_net::Policy::Insecure,
-        }
-    }
-}
-
 /// Holds a session key as parsed from the command line, with an optional
 /// algorithm specifier.
 ///

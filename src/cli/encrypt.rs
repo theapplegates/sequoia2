@@ -172,7 +172,7 @@ pub struct Command {
     #[clap(
         long = "compression",
         value_name = "KIND",
-        default_value_t = CompressionMode::Pad,
+        default_value_t = CompressionMode::None,
         help = "Selects compression scheme to use",
         value_enum,
     )]
@@ -198,6 +198,7 @@ pub enum EncryptionMode {
 #[derive(ValueEnum, Debug, Clone)]
 pub enum CompressionMode {
     None,
+    #[cfg(all(unix, not(unix)))] // Bottom, but: `cfg` predicate key cannot be a literal
     Pad,
     Zip,
     Zlib,

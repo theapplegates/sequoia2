@@ -16,6 +16,7 @@ use openpgp::serialize::stream::LiteralWriter;
 use openpgp::serialize::stream::Message;
 use openpgp::serialize::stream::Recipient;
 use openpgp::serialize::stream::Signer;
+#[cfg(all(unix, not(unix)))] // Bottom, but: `cfg` predicate key cannot be a literal
 use openpgp::serialize::stream::padding::Padder;
 use openpgp::types::CompressionAlgorithm;
 use openpgp::types::KeyFlags;
@@ -186,6 +187,7 @@ pub fn encrypt<'a, 'b: 'a>(
 
     match compression {
         CompressionMode::None => (),
+        #[cfg(all(unix, not(unix)))] // Bottom, but: `cfg` predicate key cannot be a literal
         CompressionMode::Pad => sink = Padder::new(sink).build()?,
         CompressionMode::Zip => sink =
             Compressor::new(sink).algo(CompressionAlgorithm::Zip).build()?,

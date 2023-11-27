@@ -419,10 +419,7 @@ pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
             .map(Arc::new))
         .collect::<Result<Vec<_>>>()?;
 
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_io()
-        .enable_time()
-        .build()?;
+    let rt = tokio::runtime::Runtime::new()?;
 
     use crate::cli::keyserver::Subcommands::*;
     match c.subcommand {
@@ -532,10 +529,7 @@ pub fn dispatch_wkd(mut config: Config, c: cli::wkd::Command) -> Result<()> {
     let ca_userid = "Downloaded from a WKD";
     let ca_trust_amount = 1;
 
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_io()
-        .enable_time()
-        .build()?;
+    let rt = tokio::runtime::Runtime::new()?;
 
     use crate::cli::wkd::Subcommands::*;
     match c.subcommand {
@@ -645,10 +639,7 @@ pub fn dispatch_dane(mut config: Config, c: cli::dane::Command) -> Result<()> {
     let ca_userid = "Downloaded from DANE";
     let ca_trust_amount = 1;
 
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_io()
-        .enable_time()
-        .build()?;
+    let rt = tokio::runtime::Runtime::new()?;
 
     use crate::cli::dane::Subcommands::*;
     match c.subcommand {

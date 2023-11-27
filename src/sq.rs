@@ -11,6 +11,7 @@ use is_terminal::IsTerminal;
 
 use std::borrow::Borrow;
 use std::borrow::Cow;
+use std::collections::btree_map::{BTreeMap, Entry};
 use std::io;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -133,7 +134,8 @@ fn load_certs<'a, I>(files: I) -> openpgp::Result<Vec<Cert>>
 
 /// Serializes a keyring, adding descriptive headers if armored.
 #[allow(dead_code)]
-fn serialize_keyring(mut output: &mut dyn io::Write, certs: &[Cert], binary: bool)
+fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
+                     binary: bool)
                      -> openpgp::Result<()> {
     // Handle the easy options first.  No armor no cry:
     if binary {
@@ -148,9 +150,23 @@ fn serialize_keyring(mut output: &mut dyn io::Write, certs: &[Cert], binary: boo
         return certs[0].armored().serialize(&mut output);
     }
 
-    // Otherwise, collect the headers first:
+    // Otherwise, merge the certs.
+    let mut merged = BTreeMap::new();
+    for cert in certs {
+        match merged.entry(cert.fingerprint()) {
+            Entry::Vacant(e) => {
+                e.insert(cert);
+            },
+            Entry::Occupied(mut e) => {
+                let old = e.get().clone();
+                e.insert(old.merge_public(cert)?);
+            },
+        }
+    }
+
+    // Then, collect the headers.
     let mut headers = Vec::new();
-    for (i, cert) in certs.iter().enumerate() {
+    for (i, cert) in merged.values().enumerate() {
         headers.push(format!("Key #{}", i));
         headers.append(&mut cert.armor_headers());
     }
@@ -161,7 +177,7 @@ fn serialize_keyring(mut output: &mut dyn io::Write, certs: &[Cert], binary: boo
     let mut output = armor::Writer::with_headers(&mut output,
                                                  armor::Kind::PublicKey,
                                                  headers)?;
-    for cert in certs {
+    for cert in merged.values() {
         cert.serialize(&mut output)?;
     }
     output.finalize()?;

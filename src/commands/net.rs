@@ -489,7 +489,7 @@ pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
 
             if let Some(file) = &c.output {
                 let mut output = file.create_safe(config.force)?;
-                serialize_keyring(&mut output, &certs, c.binary)?;
+                serialize_keyring(&mut output, certs, c.binary)?;
             } else {
                 import_certs(&mut config, certs)?;
             }
@@ -600,7 +600,7 @@ pub fn dispatch_wkd(mut config: Config, c: cli::wkd::Command) -> Result<()> {
 
             if let Some(file) = c.output {
                 let mut output = file.create_safe(config.force)?;
-                serialize_keyring(&mut output, &certs, c.binary)?;
+                serialize_keyring(&mut output, certs, c.binary)?;
             } else {
                 import_certs(&mut config, certs)?;
             }
@@ -715,7 +715,7 @@ pub fn dispatch_dane(mut config: Config, c: cli::dane::Command) -> Result<()> {
 
             if let Some(file) = c.output {
                 let mut output = file.create_safe(config.force)?;
-                serialize_keyring(&mut output, &certs, c.binary)?;
+                serialize_keyring(&mut output, certs, c.binary)?;
             } else {
                 import_certs(&mut config, certs)?;
             }

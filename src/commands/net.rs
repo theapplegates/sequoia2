@@ -364,55 +364,73 @@ impl fmt::Display for Query {
     }
 }
 
-pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
-    -> Result<()>
-{
-    // Get the filename for the CA's key and the default User ID.
-    let ca = |uri: &str| -> Option<(String, String)> {
-        if let Some(server) = uri.strip_prefix("hkps://") {
-            // We only certify the certificate if the transport was
-            // encrypted and authenticated.
+impl Query {
+    /// Parses command line arguments to queries.
+    fn parse(args: &[String]) -> Result<Vec<Query>> {
+        args.iter().map(
+            |q| if let Ok(h) = q.parse::<KeyHandle>() {
+                Ok(Query::Handle(h))
+            } else if let Ok(Some(addr)) = UserID::from(q.as_str()).email2() {
+                Ok(Query::Address(addr.to_string()))
+            } else {
+                Err(anyhow::anyhow!(
+                    "Query must be a fingerprint, a keyid, \
+                     or an email address: {:?}", q))
+            }).collect::<Result<Vec<Query>>>()
+    }
+}
 
-            let server = server.strip_suffix("/").unwrap_or(server);
-            // A basic sanity check on the name, which we are about to
-            // use as a filename: it can't start with a dot, no
-            // slashes, and no colons are allowed.
-            if server.chars().next() == Some('.')
-                || server.contains('/')
-                || server.contains('\\')
-                || server.contains(':') {
+/// Gets the filename for the CA's key and the default User ID.
+fn keyserver_ca(uri: &str) -> Option<(String, String, usize)> {
+    if let Some(server) = uri.strip_prefix("hkps://") {
+        // We only certify the certificate if the transport was
+        // encrypted and authenticated.
+
+        let server = server.strip_suffix("/").unwrap_or(server);
+        // A basic sanity check on the name, which we are about to
+        // use as a filename: it can't start with a dot, no
+        // slashes, and no colons are allowed.
+        if server.chars().next() == Some('.')
+            || server.contains('/')
+            || server.contains('\\')
+            || server.contains(':') {
                 return None;
             }
 
-            let mut server = server.to_ascii_lowercase();
+        let mut server = server.to_ascii_lowercase();
 
-            // Only record provenance information for certifying
-            // keyservers.  Anything else doesn't make sense.
-            match &server[..] {
-                "keys.openpgp.org" => (),
-                "keys.mailvelope.com" => (),
-                "mail-api.proton.me" | "api.protonmail.ch" => (),
-                _ => {
-                    eprintln!("Not recording provenance information, {} is not \
-                               known to be a verifying keyserver",
-                              server);
-                    return None;
-                },
-            }
-
-            // Unify aliases.
-            if &server == "api.protonmail.ch" {
-                server = "mail-api.proton.me".into();
-            }
-
-            Some((format!("_keyserver_{}.pgp", server),
-                  format!("Downloaded from the keyserver {}", server)))
-        } else {
-            None
+        // Only record provenance information for certifying
+        // keyservers.  Anything else doesn't make sense.
+        match &server[..] {
+            "keys.openpgp.org" => (),
+            "keys.mailvelope.com" => (),
+            "mail-api.proton.me" | "api.protonmail.ch" => (),
+            _ => {
+                eprintln!("Not recording provenance information, {} is not \
+                           known to be a verifying keyserver",
+                          server);
+                return None;
+            },
         }
-    };
-    let ca_trust_amount = 1;
 
+        // Unify aliases.
+        if &server == "api.protonmail.ch" {
+            server = "mail-api.proton.me".into();
+        }
+
+        Some((format!("_keyserver_{}.pgp", server),
+              format!("Downloaded from the keyserver {}", server),
+              KEYSERVER_CA_TRUST_AMOUNT))
+    } else {
+        None
+    }
+}
+
+const KEYSERVER_CA_TRUST_AMOUNT: usize = 1;
+
+pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
+    -> Result<()>
+{
     let servers = c.servers.iter().map(
         |uri| KeyServer::new(uri)
             .with_context(|| format!("Malformed keyserver URI: {}", uri))
@@ -424,16 +442,7 @@ pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
     use crate::cli::keyserver::Subcommands::*;
     match c.subcommand {
         Get(c) => rt.block_on(async {
-            let queries = c.query.iter().map(
-                |q| if let Ok(h) = q.parse::<KeyHandle>() {
-                    Ok(Query::Handle(h))
-                } else if let Ok(Some(addr)) = UserID::from(q.as_str()).email2() {
-                    Ok(Query::Address(addr.to_string()))
-                } else {
-                    Err(anyhow::anyhow!(
-                        "Query must be a fingerprint, a keyid, \
-                         or an email address: {:?}", q))
-                }).collect::<Result<Vec<Query>>>()?;
+            let queries = Query::parse(&c.query)?;
 
             let mut requests = tokio::task::JoinSet::new();
             queries.into_iter().for_each(|query| {
@@ -460,8 +469,8 @@ pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
                             } else {
                                 // We certify here because we know the
                                 // keyserver URL here.
-                                if let Some((ca_filename, ca_userid)) =
-                                    ca(url.as_str())
+                                if let Some((ca_filename, ca_userid, ca_trust_amount)) =
+                                    keyserver_ca(url.as_str())
                                 {
                                     certs.append(&mut certify_downloads(
                                         &mut config, &ca_filename, &ca_userid,
@@ -524,11 +533,11 @@ pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
     Ok(())
 }
 
-pub fn dispatch_wkd(mut config: Config, c: cli::wkd::Command) -> Result<()> {
-    let ca_filename = "_wkd.pgp";
-    let ca_userid = "Downloaded from a WKD";
-    let ca_trust_amount = 1;
+const WKD_CA_FILENAME: &'static str = "_wkd.pgp";
+const WKD_CA_USERID: &'static str = "Downloaded from a WKD";
+const WKD_CA_TRUST_AMOUNT: usize = 1;
 
+pub fn dispatch_wkd(mut config: Config, c: cli::wkd::Command) -> Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
 
     use crate::cli::wkd::Subcommands::*;
@@ -577,7 +586,8 @@ pub fn dispatch_wkd(mut config: Config, c: cli::wkd::Command) -> Result<()> {
                                 // query here.
                                 let mut cert = certify_downloads(
                                     &mut config,
-                                    &ca_filename, &ca_userid, ca_trust_amount,
+                                    WKD_CA_FILENAME, WKD_CA_USERID,
+                                    WKD_CA_TRUST_AMOUNT,
                                     vec![cert], Some(&address));
 
                                 certs.append(&mut cert);
@@ -634,11 +644,11 @@ pub fn dispatch_wkd(mut config: Config, c: cli::wkd::Command) -> Result<()> {
     Ok(())
 }
 
-pub fn dispatch_dane(mut config: Config, c: cli::dane::Command) -> Result<()> {
-    let ca_filename = "_dane.pgp";
-    let ca_userid = "Downloaded from DANE";
-    let ca_trust_amount = 1;
+const DANE_CA_FILENAME: &'static str = "_dane.pgp";
+const DANE_CA_USERID: &'static str = "Downloaded from DANE";
+const DANE_CA_TRUST_AMOUNT: usize = 1;
 
+pub fn dispatch_dane(mut config: Config, c: cli::dane::Command) -> Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
 
     use crate::cli::dane::Subcommands::*;
@@ -691,7 +701,8 @@ pub fn dispatch_dane(mut config: Config, c: cli::dane::Command) -> Result<()> {
                                 // query here.
                                 let mut cert = certify_downloads(
                                     &mut config,
-                                    &ca_filename, &ca_userid, ca_trust_amount,
+                                    DANE_CA_FILENAME, DANE_CA_USERID,
+                                    DANE_CA_TRUST_AMOUNT,
                                     vec![cert], Some(&address));
 
                                 certs.append(&mut cert);

@@ -367,10 +367,8 @@ impl fmt::Display for Query {
 pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
     -> Result<()>
 {
-    let uri = &c.server[..];
-
     // Get the filename for the CA's key and the default User ID.
-    let ca = || -> Option<(String, String)> {
+    let ca = |uri: &str| -> Option<(String, String)> {
         if let Some(server) = uri.strip_prefix("hkps://") {
             // We only certify the certificate if the transport was
             // encrypted and authenticated.
@@ -410,8 +408,11 @@ pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
     };
     let ca_trust_amount = 1;
 
-    let ks = Arc::new(KeyServer::new(uri)
-        .context("Malformed keyserver URI")?);
+    let servers = c.servers.iter().map(
+        |uri| KeyServer::new(uri)
+            .with_context(|| format!("Malformed keyserver URI: {}", uri))
+            .map(Arc::new))
+        .collect::<Result<Vec<_>>>()?;
 
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_io()
@@ -434,24 +435,44 @@ pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
 
             let mut requests = tokio::task::JoinSet::new();
             queries.into_iter().for_each(|query| {
-                let ks = ks.clone();
-                requests.spawn(async move {
-                    let certs = match query.clone() {
-                        Query::Handle(h) => ks.get(h).await?,
-                        Query::Address(a) => ks.search(a).await?,
-                    };
-                    Result::Ok((query, certs))
-                });
+                for ks in servers.iter().cloned() {
+                    let query = query.clone();
+                    requests.spawn(async move {
+                        let certs = match query.clone() {
+                            Query::Handle(h) => ks.get(h).await,
+                            Query::Address(a) => ks.search(a).await,
+                        };
+                        (query, ks.url().clone(), certs)
+                    });
+                }
             });
 
             let mut certs = Vec::new();
             while let Some(response) = requests.join_next().await {
-                let (query, returned_certs) = response??;
-                for c in returned_certs {
-                    match c {
-                        Ok(c) => certs.push(c),
-                        Err(e) => eprintln!("{}: {}", query, e),
-                    }
+                let (query, url, response) = response?;
+                match response {
+                    Ok(returned_certs) => for cert in returned_certs {
+                        match cert {
+                            Ok(cert) => if c.output.is_some() {
+                                certs.push(cert);
+                            } else {
+                                // We certify here because we know the
+                                // keyserver URL here.
+                                if let Some((ca_filename, ca_userid)) =
+                                    ca(url.as_str())
+                                {
+                                    certs.append(&mut certify_downloads(
+                                        &mut config, &ca_filename, &ca_userid,
+                                        ca_trust_amount,
+                                        vec![cert], None));
+                                } else {
+                                    certs.push(cert);
+                                }
+                            },
+                            Err(e) => eprintln!("{}: {}: {}", url, query, e),
+                        }
+                    },
+                    Err(e) => eprintln!("{}: {}: {}", url, query, e),
                 }
             }
 
@@ -459,28 +480,43 @@ pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
                 let mut output = file.create_safe(config.force)?;
                 serialize_keyring(&mut output, &certs, c.binary)?;
             } else {
-                let certs = if let Some((ca_filename, ca_userid)) = ca() {
-                    certify_downloads(
-                        &mut config, &ca_filename, &ca_userid,
-                        ca_trust_amount,
-                        certs, None)
-                } else {
-                    certs
-                };
                 import_certs(&mut config, certs)?;
             }
 
-
             Result::Ok(())
         })?,
-        Send(c) => {
+        Send(c) => rt.block_on(async {
             let mut input = c.input.open()?;
-            let cert = Cert::from_reader(&mut input).
-                context("Malformed key")?;
+            let cert = Arc::new(Cert::from_reader(&mut input).
+                context("Malformed key")?);
 
-            rt.block_on(ks.send(&cert))
-                .context("Failed to send key to server")?;
-        },
+            let mut requests = tokio::task::JoinSet::new();
+            for ks in servers.iter().cloned() {
+                let cert = cert.clone();
+                requests.spawn(async move {
+                    ks.send(&cert).await
+                        .with_context(|| format!(
+                            "Failed to send cert to server {}", ks.url()))?;
+                    Result::Ok(())
+                });
+            }
+
+            let mut result = Ok(());
+            while let Some(response) = requests.join_next().await {
+                match response? {
+                    Ok(()) => (),
+                    Err(e) => {
+                        if result.is_ok() {
+                            result = Err(e);
+                        } else {
+                            eprintln!("{}", e);
+                        }
+                    },
+                }
+            }
+
+            result
+        })?,
     }
 
     Ok(())

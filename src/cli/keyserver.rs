@@ -20,7 +20,7 @@ pub struct Command {
         value_name = "URI",
         help = "Sets the keyserver to use",
     )]
-    pub server: String,
+    pub servers: Vec<String>,
     #[clap(subcommand)]
     pub subcommand: Subcommands,
 }

@@ -11,12 +11,40 @@ use sequoia_autocrypt as autocrypt;
 use crate::{
     Config,
     cli,
+    commands::net::{
+        certify_downloads,
+        import_certs,
+    },
 };
 
-pub fn dispatch(config: Config, c: &cli::autocrypt::Command) -> Result<()> {
+pub fn dispatch(mut config: Config, c: &cli::autocrypt::Command) -> Result<()> {
     use cli::autocrypt::Subcommands::*;
 
     match &c.subcommand {
+        Import(command) => {
+            let ca_filename = "_autocrypt.pgp";
+            let ca_userid = "Imported from Autocrypt";
+            let ca_trust_amount = 1;
+
+            let input = command.input.open()?;
+            let ac = autocrypt::AutocryptHeaders::from_reader(input)?;
+            for h in ac.headers {
+                if let Some(addr) = h.attributes.iter()
+                    .find_map(|a| (&a.key == "addr").then(|| a.value.clone()))
+                {
+                    // XXX: The Autocrypt spec says we MUST validate
+                    // this against the From header, but we cannot
+                    // parse the mail structure yet.
+                    if let Some(cert) = h.key {
+                        let certs = certify_downloads(
+                            &mut config,
+                            ca_filename, ca_userid, ca_trust_amount,
+                            vec![cert], Some(&addr));
+                        import_certs(&mut config, certs)?;
+                    }
+                }
+            }
+        },
         Decode(command) => {
             let input = command.input.open()?;
             let mut output = command.output.create_pgp_safe(

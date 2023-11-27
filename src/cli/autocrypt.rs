@@ -27,9 +27,33 @@ pub struct Command {
 
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
+    Import(ImportCommand),
     Decode(DecodeCommand),
 
     EncodeSender(EncodeSenderCommand),
+}
+
+#[derive(Debug, Args)]
+#[clap(
+    about = "Imports Autocrypt-encoded certificates",
+    long_about = "Imports Autocrypt-encoded certificates
+
+Given a mail containing autocrypt headers (or an key-gossip headers),
+this command extracts and imports the certificates encoded within it.
+",
+    after_help = "EXAMPLES:
+
+# Imports all certificates from a mail
+$ sq autocrypt import autocrypt.eml
+"
+)]
+pub struct ImportCommand {
+    #[clap(
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub input: FileOrStdin,
 }
 
 #[derive(Debug, Args)]

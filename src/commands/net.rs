@@ -52,10 +52,10 @@ use crate::cli;
 
 const NP: NullPolicy = NullPolicy::new();
 
-// Import the certificates into the local certificate store.
-//
-// This does not certify the certificates.
-fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
+/// Import the certificates into the local certificate store.
+///
+/// This does not certify the certificates.
+pub fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
     // Once we get a mutable reference to the cert_store, we're locked
     // out of config.  Gather the information we need first.
     let certs = certs.into_iter()
@@ -245,16 +245,16 @@ fn get_ca(config: &mut Config,
     }
 }
 
-// Certify the certificates using the specified CA.
-//
-// The certificates are certified for User IDs with the specified
-// email address.  If no email address is specified, then all valid
-// User IDs are certified.  The results are returned; they are not
-// imported into the certificate store.
-//
-// If a certificate cannot be certified for whatever reason, a
-// diagnostic is emitted, and the certificate is returned as is.
-fn certify_downloads(config: &mut Config,
+/// Certify the certificates using the specified CA.
+///
+/// The certificates are certified for User IDs with the specified
+/// email address.  If no email address is specified, then all valid
+/// User IDs are certified.  The results are returned; they are not
+/// imported into the certificate store.
+///
+/// If a certificate cannot be certified for whatever reason, a
+/// diagnostic is emitted, and the certificate is returned as is.
+pub fn certify_downloads(config: &mut Config,
                      ca_special: &str, ca_userid: &str, ca_trust_amount: usize,
                      certs: Vec<Cert>, email: Option<&str>)
     -> Vec<Cert>

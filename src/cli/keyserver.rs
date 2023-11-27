@@ -15,7 +15,7 @@ use super::types::FileOrStdout;
 pub struct Command {
     #[clap(
         short,
-        long,
+        long = "server",
         default_value = "hkps://keys.openpgp.org",
         value_name = "URI",
         help = "Sets the keyserver to use",

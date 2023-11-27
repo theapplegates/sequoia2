@@ -384,20 +384,25 @@ pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
                 return None;
             }
 
-            let server = server.to_ascii_lowercase();
+            let mut server = server.to_ascii_lowercase();
 
             // Only record provenance information for certifying
             // keyservers.  Anything else doesn't make sense.
             match &server[..] {
                 "keys.openpgp.org" => (),
                 "keys.mailvelope.com" => (),
-                "mail-api.proton.me" => (),
+                "mail-api.proton.me" | "api.protonmail.ch" => (),
                 _ => {
                     eprintln!("Not recording provenance information, {} is not \
                                known to be a verifying keyserver",
                               server);
                     return None;
                 },
+            }
+
+            // Unify aliases.
+            if &server == "api.protonmail.ch" {
+                server = "mail-api.proton.me".into();
             }
 
             Some((format!("_keyserver_{}.pgp", server),

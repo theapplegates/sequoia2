@@ -12,7 +12,11 @@ use sequoia_cert_store as cert_store;
 use cert_store::LazyCert;
 use cert_store::StoreUpdate;
 
-use crate::Config;
+use crate::{
+    Config,
+    best_effort_primary_uid,
+    output::sanitize::Safe,
+};
 use crate::cli::import;
 use crate::cli::types::FileOrStdin;
 
@@ -33,6 +37,8 @@ pub fn dispatch<'store>(mut config: Config<'store>, cmd: import::Command)
             let input = FileOrStdin::from(input).open()?;
             let raw_certs = RawCertParser::from_reader(input)?;
 
+            let policy = config.policy.clone();
+            let time = config.time;
             let cert_store = config.cert_store_mut_or_else()?;
 
             for raw_cert in raw_certs {
@@ -46,18 +52,15 @@ pub fn dispatch<'store>(mut config: Config<'store>, cmd: import::Command)
                 };
 
                 let fingerprint = cert.fingerprint();
-                let userid = cert.userids().next()
-                    .map(|userid| {
-                        String::from_utf8_lossy(userid.value()).to_string()
-                    })
-                    .unwrap_or_else(|| "<unknown>".to_string());
+                let userid = best_effort_primary_uid(
+                    cert.to_cert()?, &policy, time).clone();
                 if let Err(err) = cert_store.update_by(Cow::Owned(cert), &mut stats) {
                     eprintln!("Error importing {}, {:?}: {}",
                               fingerprint, userid, err);
                     stats.errors += 1;
                     continue;
                 } else {
-                    eprintln!("Imported {}, {:?}", fingerprint, userid);
+                    eprintln!("Imported {}, {}", fingerprint, Safe(&userid));
                 }
             }
         }

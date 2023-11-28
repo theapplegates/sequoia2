@@ -10,6 +10,8 @@ use std::io::Write;
 use anyhow::{anyhow, Result};
 use serde::Serialize;
 
+pub mod sanitize;
+
 pub use keyring::ListItem as KeyringListItem;
 pub use wkd::WkdUrlVariant;
 

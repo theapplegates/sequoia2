@@ -23,7 +23,6 @@ use openpgp::{
         UserID,
     },
     parse::Parse,
-    policy::NullPolicy,
     types::SignatureType,
 };
 use sequoia_net as net;
@@ -43,8 +42,10 @@ use crate::{
         active_certification,
         get_certification_keys,
     },
+    output::sanitize::Safe,
     Config,
     Model,
+    best_effort_primary_uid,
     merge_keyring,
     serialize_keyring,
     output::WkdUrlVariant,
@@ -52,8 +53,6 @@ use crate::{
 };
 
 use crate::cli;
-
-const NP: NullPolicy = NullPolicy::new();
 
 /// Import the certificates into the local certificate store.
 ///
@@ -64,14 +63,9 @@ pub fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
     let certs = merge_keyring(certs)?.into_values()
         .map(|cert| {
             let fpr = cert.fingerprint();
-            let userid = cert.with_policy(&config.policy, config.time)
-                .or_else(|_| cert.with_policy(&NP, config.time))
-                .and_then(|vc| vc.primary_userid())
-                .map(|userid| {
-                    String::from_utf8_lossy(userid.value())
-                        .to_string()
-                })
-                .unwrap_or_else(|_| "<unknown>".to_string());
+            let userid =
+                best_effort_primary_uid(&cert, &config.policy, config.time)
+                .clone();
 
             (fpr, userid, cert)
         })
@@ -86,8 +80,8 @@ pub fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
     eprintln!("Importing {} certificates into the certificate store:\n", certs.len());
     for (i, (fpr, userid, cert)) in certs.into_iter().enumerate() {
         cert_store.update_by(Cow::Owned(cert.into()), &mut stats)
-            .with_context(|| format!("Inserting {}, {}", fpr, userid))?;
-        eprintln!("  {}. {} {}", i + 1, fpr, userid);
+            .with_context(|| format!("Inserting {}, {}", fpr, Safe(&userid)))?;
+        eprintln!("  {}. {} {}", i + 1, fpr, Safe(&userid));
     }
 
     eprintln!("\nImported {} new certificates, \

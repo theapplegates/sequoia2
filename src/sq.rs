@@ -35,7 +35,7 @@ use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::packet::signature::subpacket::NotationDataFlags;
 use openpgp::serialize::Serialize;
 use openpgp::cert::prelude::*;
-use openpgp::policy::StandardPolicy as P;
+use openpgp::policy::{Policy, StandardPolicy as P};
 use openpgp::serialize::SerializeInto;
 use openpgp::types::KeyFlags;
 use openpgp::types::RevocationStatus;
@@ -191,6 +191,56 @@ fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
     }
     output.finalize()?;
     Ok(())
+}
+
+/// Best-effort heuristic to compute the primary User ID of a given cert.
+pub fn best_effort_primary_uid<'u, T>(cert: &'u Cert,
+                                      policy: &'u dyn Policy,
+                                      time: T)
+                                      -> &'u UserID
+where
+    T: Into<Option<SystemTime>>,
+{
+    let time = time.into();
+
+    // Try to be more helpful by including a User ID in the
+    // listing.  We'd like it to be the primary one.  Use
+    // decreasingly strict policies.
+    let mut primary_uid = None;
+
+    // First, apply our policy.
+    if let Ok(vcert) = cert.with_policy(policy, time) {
+        if let Ok(primary) = vcert.primary_userid() {
+            primary_uid = Some(primary.userid());
+        }
+    }
+
+    // Second, apply the null policy.
+    if primary_uid.is_none() {
+        const NULL: openpgp::policy::NullPolicy =
+            openpgp::policy::NullPolicy::new();
+        if let Ok(vcert) = cert.with_policy(&NULL, time) {
+            if let Ok(primary) = vcert.primary_userid() {
+                primary_uid = Some(primary.userid());
+            }
+        }
+    }
+
+    // As a last resort, pick the first user id.
+    if primary_uid.is_none() {
+        if let Some(primary) = cert.userids().next() {
+            primary_uid = Some(primary.userid());
+        } else {
+            // Special case, there is no user id.
+            use once_cell::sync::Lazy;
+            static FALLBACK: Lazy<UserID> = Lazy::new(|| {
+                UserID::from("<unknown>")
+            });
+            primary_uid = Some(&FALLBACK);
+        }
+    }
+
+    primary_uid.expect("set at this point")
 }
 
 // Decrypts a key, if possible.

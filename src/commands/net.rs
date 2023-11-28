@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::time::SystemTime;
 
 use anyhow::Context;
+use tokio::task::JoinSet;
 
 use sequoia_openpgp as openpgp;
 use openpgp::{
@@ -38,6 +39,7 @@ use cert_store::store::UserIDQueryParams;
 
 use crate::{
     commands::{
+        FileOrStdout,
         active_certification,
         get_certification_keys,
     },
@@ -378,6 +380,115 @@ impl Query {
                      or an email address: {:?}", q))
             }).collect::<Result<Vec<Query>>>()
     }
+
+    /// Parses command line arguments to queries that only contain
+    /// email addresses.
+    fn parse_addresses(args: &[String]) -> Result<Vec<Query>> {
+        args.iter().map(
+            |q| if let Ok(Some(addr)) = UserID::from(q.as_str()).email2() {
+                Ok(Query::Address(addr.to_string()))
+            } else {
+                Err(anyhow::anyhow!(
+                    "Query must be a an email address: {:?}", q))
+            }).collect::<Result<Vec<Query>>>()
+    }
+
+    /// Returns the email address, if any.
+    fn as_address(&self) -> Option<&str> {
+        if let Query::Address(a) = self {
+            Some(a)
+        } else {
+            None
+        }
+    }
+}
+
+enum Method {
+    KeyServer(String),
+    WKD,
+    DANE,
+}
+
+impl fmt::Display for Method {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Method::KeyServer(url) => write!(f, "{}", url),
+            Method::WKD => write!(f, "WKD"),
+            Method::DANE => write!(f, "DANE"),
+        }
+    }
+}
+
+impl Method {
+    fn ca(&self) -> Option<(String, String, usize)> {
+        match self {
+            Method::KeyServer(url) => keyserver_ca(url),
+            Method::WKD => Some((
+                WKD_CA_FILENAME.into(),
+                WKD_CA_USERID.into(),
+                WKD_CA_TRUST_AMOUNT,
+            )),
+            Method::DANE => Some((
+                DANE_CA_FILENAME.into(),
+                DANE_CA_USERID.into(),
+                DANE_CA_TRUST_AMOUNT,
+            )),
+        }
+    }
+}
+
+struct Response {
+    query: Query,
+    method: Method,
+    results: Result<Vec<Result<Cert>>>,
+}
+
+impl Response {
+    async fn collect(mut config: Config<'_>,
+                     output: Option<FileOrStdout>,
+                     binary: bool,
+                     mut responses: JoinSet<Response>)
+                     -> Result<()> {
+        let mut certs = Vec::new();
+        while let Some(response) = responses.join_next().await {
+            let response = response?;
+            match response.results {
+                Ok(returned_certs) => for cert in returned_certs {
+                    match cert {
+                        Ok(cert) => if output.is_some() {
+                            certs.push(cert);
+                        } else {
+                            if let Some((ca_filename, ca_userid,
+                                         ca_trust_amount)) = response.method.ca()
+                            {
+                                certs.append(&mut certify_downloads(
+                                    &mut config,
+                                    ca_filename.as_str(),
+                                    ca_userid.as_str(),
+                                    ca_trust_amount,
+                                    vec![cert], None));
+                            } else {
+                                certs.push(cert);
+                            }
+                        },
+                        Err(e) => eprintln!("{}: {}: {}",
+                                            response.method, response.query, e),
+                    }
+                },
+                Err(e) =>
+                    eprintln!("{}: {}: {}", response.method, response.query, e),
+            }
+        }
+
+        if let Some(file) = &output {
+            let mut output = file.create_safe(config.force)?;
+            serialize_keyring(&mut output, certs, binary)?;
+        } else {
+            import_certs(&mut config, certs)?;
+        }
+
+        Ok(())
+    }
 }
 
 /// Gets the filename for the CA's key and the default User ID.
@@ -428,7 +539,7 @@ fn keyserver_ca(uri: &str) -> Option<(String, String, usize)> {
 
 const KEYSERVER_CA_TRUST_AMOUNT: usize = 1;
 
-pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
+pub fn dispatch_keyserver(config: Config, c: cli::keyserver::Command)
     -> Result<()>
 {
     let servers = c.servers.iter().map(
@@ -449,51 +560,21 @@ pub fn dispatch_keyserver(mut config: Config, c: cli::keyserver::Command)
                 for ks in servers.iter().cloned() {
                     let query = query.clone();
                     requests.spawn(async move {
-                        let certs = match query.clone() {
+                        let results = match query.clone() {
                             Query::Handle(h) => ks.get(h).await,
                             Query::Address(a) => ks.search(a).await,
                         };
-                        (query, ks.url().clone(), certs)
+                        Response {
+                            query,
+                            results,
+                            method: Method::KeyServer(
+                                ks.url().as_str().to_string()),
+                        }
                     });
                 }
             });
 
-            let mut certs = Vec::new();
-            while let Some(response) = requests.join_next().await {
-                let (query, url, response) = response?;
-                match response {
-                    Ok(returned_certs) => for cert in returned_certs {
-                        match cert {
-                            Ok(cert) => if c.output.is_some() {
-                                certs.push(cert);
-                            } else {
-                                // We certify here because we know the
-                                // keyserver URL here.
-                                if let Some((ca_filename, ca_userid, ca_trust_amount)) =
-                                    keyserver_ca(url.as_str())
-                                {
-                                    certs.append(&mut certify_downloads(
-                                        &mut config, &ca_filename, &ca_userid,
-                                        ca_trust_amount,
-                                        vec![cert], None));
-                                } else {
-                                    certs.push(cert);
-                                }
-                            },
-                            Err(e) => eprintln!("{}: {}: {}", url, query, e),
-                        }
-                    },
-                    Err(e) => eprintln!("{}: {}: {}", url, query, e),
-                }
-            }
-
-            if let Some(file) = &c.output {
-                let mut output = file.create_safe(config.force)?;
-                serialize_keyring(&mut output, certs, c.binary)?;
-            } else {
-                import_certs(&mut config, certs)?;
-            }
-
+            Response::collect(config, c.output, c.binary, requests).await?;
             Result::Ok(())
         })?,
         Send(c) => rt.block_on(async {
@@ -537,7 +618,7 @@ const WKD_CA_FILENAME: &'static str = "_wkd.pgp";
 const WKD_CA_USERID: &'static str = "Downloaded from a WKD";
 const WKD_CA_TRUST_AMOUNT: usize = 1;
 
-pub fn dispatch_wkd(mut config: Config, c: cli::wkd::Command) -> Result<()> {
+pub fn dispatch_wkd(config: Config, c: cli::wkd::Command) -> Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
 
     use crate::cli::wkd::Subcommands::*;
@@ -559,52 +640,23 @@ pub fn dispatch_wkd(mut config: Config, c: cli::wkd::Command) -> Result<()> {
             output.write(config.output_format, &mut std::io::stdout())?;
         },
         Get(c) => rt.block_on(async {
-            // XXX: EmailAddress could be created here to
-            // check it's a valid email address, print the error to
-            // stderr and exit.
-            // Because it might be created a WkdServer struct, not
-            // doing it for now.
+            let queries = Query::parse_addresses(&c.addresses)?;
             let mut requests = tokio::task::JoinSet::new();
-            c.addresses.into_iter().for_each(|address| {
+            queries.into_iter().for_each(|query| {
                 requests.spawn(async move {
-                    let certs =
-                        wkd::get(&net::reqwest::Client::new(), &address).await?;
-                    Result::Ok((address, certs))
+                    let results = wkd::get(
+                        &net::reqwest::Client::new(),
+                        query.as_address().expect("parsed only addresses"))
+                        .await;
+                    Response {
+                        query,
+                        results,
+                        method: Method::WKD,
+                    }
                 });
             });
 
-            let mut certs = Vec::new();
-            while let Some(response) = requests.join_next().await {
-                let (address, returned_certs) = response??;
-                for cert in returned_certs {
-                    match cert {
-                        Ok(cert) => {
-                            if c.output.is_some() {
-                                certs.push(cert);
-                            } else {
-                                // We certify here because we know the
-                                // query here.
-                                let mut cert = certify_downloads(
-                                    &mut config,
-                                    WKD_CA_FILENAME, WKD_CA_USERID,
-                                    WKD_CA_TRUST_AMOUNT,
-                                    vec![cert], Some(&address));
-
-                                certs.append(&mut cert);
-                            }
-                        },
-                        Err(e) => eprintln!("{}: {}", address, e),
-                    }
-                }
-            }
-
-            if let Some(file) = c.output {
-                let mut output = file.create_safe(config.force)?;
-                serialize_keyring(&mut output, certs, c.binary)?;
-            } else {
-                import_certs(&mut config, certs)?;
-            }
-
+            Response::collect(config, c.output, c.binary, requests).await?;
             Result::Ok(())
         })?,
         Generate(c) => {
@@ -648,7 +700,7 @@ const DANE_CA_FILENAME: &'static str = "_dane.pgp";
 const DANE_CA_USERID: &'static str = "Downloaded from DANE";
 const DANE_CA_TRUST_AMOUNT: usize = 1;
 
-pub fn dispatch_dane(mut config: Config, c: cli::dane::Command) -> Result<()> {
+pub fn dispatch_dane(config: Config, c: cli::dane::Command) -> Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
 
     use crate::cli::dane::Subcommands::*;
@@ -680,46 +732,22 @@ pub fn dispatch_dane(mut config: Config, c: cli::dane::Command) -> Result<()> {
             }
         },
         Get(c) => rt.block_on(async {
+            let queries = Query::parse_addresses(&c.addresses)?;
             let mut requests = tokio::task::JoinSet::new();
-            c.addresses.into_iter().for_each(|address| {
+            queries.into_iter().for_each(|query| {
                 requests.spawn(async move {
-                    let certs = dane::get(&address).await?;
-                    Result::Ok((address, certs))
+                    let results = dane::get(
+                        query.as_address().expect("parsed only addresses"))
+                        .await;
+                    Response {
+                        query,
+                        results,
+                        method: Method::DANE,
+                    }
                 });
             });
 
-            let mut certs = Vec::new();
-            while let Some(response) = requests.join_next().await {
-                let (address, returned_certs) = response??;
-                for cert in returned_certs {
-                    match cert {
-                        Ok(cert) => {
-                            if c.output.is_some() {
-                                certs.push(cert);
-                            } else {
-                                // We certify here because we know the
-                                // query here.
-                                let mut cert = certify_downloads(
-                                    &mut config,
-                                    DANE_CA_FILENAME, DANE_CA_USERID,
-                                    DANE_CA_TRUST_AMOUNT,
-                                    vec![cert], Some(&address));
-
-                                certs.append(&mut cert);
-                            }
-                        },
-                        Err(e) => eprintln!("{}: {}", address, e),
-                    }
-                }
-            }
-
-            if let Some(file) = c.output {
-                let mut output = file.create_safe(config.force)?;
-                serialize_keyring(&mut output, certs, c.binary)?;
-            } else {
-                import_certs(&mut config, certs)?;
-            }
-
+            Response::collect(config, c.output, c.binary, requests).await?;
             Result::Ok(())
         })?,
     }

@@ -58,6 +58,11 @@ use crate::cli;
 ///
 /// This does not certify the certificates.
 pub fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
+    if certs.is_empty() {
+        // No need to do and say anything.
+        return Ok(());
+    }
+
     // Once we get a mutable reference to the cert_store, we're locked
     // out of config.  Gather the information we need first.
     let certs = merge_keyring(certs)?.into_values()
@@ -126,10 +131,11 @@ fn certify(config: &Config,
         .into_iter()
         .map(|(userid, active_certification)| {
             if let Some(_) = active_certification {
-                eprintln!("Provenance information for {}, {:?} \
+                config.info(format_args!(
+                          "Provenance information for {}, {:?} \
                            exists and is current, not updating it",
                           cert.fingerprint(),
-                          String::from_utf8_lossy(userid.value()));
+                          String::from_utf8_lossy(userid.value())));
                 return vec![];
             }
 
@@ -144,10 +150,11 @@ fn certify(config: &Config,
                 })
             {
                 Ok(sig) => {
-                    eprintln!("Recorded provenance information \
+                config.info(format_args!(
+                              "Recorded provenance information \
                                for {}, {:?}",
                               cert.fingerprint(),
-                              String::from_utf8_lossy(userid.value()));
+                              String::from_utf8_lossy(userid.value())));
                     vec![ Packet::from(userid.clone()), Packet::from(sig) ]
                 }
                 Err(err) => {
@@ -225,7 +232,9 @@ fn get_ca(config: &mut Config,
                             format!("Saving {:?}", ca_userid)
                         })?;
 
-                    eprintln!("Created the local CA {:?} for certifying \
+                    if config.verbose {
+                        eprintln!(
+                              "Created the local CA {:?} for certifying \
                                certificates downloaded from this service.  \
                                The CA's trust amount is set to {} of {}.  \
                                Use `sq link add --ca '*' --amount N {}` \
@@ -234,6 +243,17 @@ fn get_ca(config: &mut Config,
                               ca_userid,
                               ca_trust_amount, sequoia_wot::FULLY_TRUSTED,
                               cert.fingerprint(), cert.fingerprint());
+                    } else {
+                        use std::sync::Once;
+                        static MSG: Once = Once::new();
+                        MSG.call_once(|| {
+                            eprintln!("Note: Created a local CA to record \
+                                       provenance information.\n\
+                                       Note: See `sq link list --ca` \
+                                       and `sq link --help` for more \
+                                       information.");
+                        });
+                    }
 
                     Ok(cert)
                 }
@@ -313,11 +333,12 @@ pub fn certify_downloads(config: &mut Config,
                 .collect::<Vec<UserID>>();
 
             if userids.is_empty() {
-                eprintln!("Warning: not recording provenance information \
+                config.info(format_args!(
+                          "Warning: not recording provenance information \
                            for {}, it does not contain a valid User ID with \
                            the specified email address ({:?})",
                           cert.fingerprint(),
-                          email);
+                          email));
                 return cert;
             }
 
@@ -415,9 +436,9 @@ impl fmt::Display for Method {
 }
 
 impl Method {
-    fn ca(&self) -> Option<(String, String, usize)> {
+    fn ca(&self, config: &Config) -> Option<(String, String, usize)> {
         match self {
-            Method::KeyServer(url) => keyserver_ca(url),
+            Method::KeyServer(url) => keyserver_ca(config, url),
             Method::WKD => Some((
                 WKD_CA_FILENAME.into(),
                 WKD_CA_USERID.into(),
@@ -454,7 +475,8 @@ impl Response {
                             certs.push(cert);
                         } else {
                             if let Some((ca_filename, ca_userid,
-                                         ca_trust_amount)) = response.method.ca()
+                                         ca_trust_amount)) =
+                                response.method.ca(&config)
                             {
                                 certs.append(&mut certify_downloads(
                                     &mut config,
@@ -546,7 +568,7 @@ pub fn dispatch_lookup(config: Config, c: cli::lookup::Command)
 }
 
 /// Gets the filename for the CA's key and the default User ID.
-fn keyserver_ca(uri: &str) -> Option<(String, String, usize)> {
+fn keyserver_ca(config: &Config, uri: &str) -> Option<(String, String, usize)> {
     if let Some(server) = uri.strip_prefix("hkps://") {
         // We only certify the certificate if the transport was
         // encrypted and authenticated.
@@ -571,9 +593,10 @@ fn keyserver_ca(uri: &str) -> Option<(String, String, usize)> {
             "keys.mailvelope.com" => (),
             "mail-api.proton.me" | "api.protonmail.ch" => (),
             _ => {
-                eprintln!("Not recording provenance information, {} is not \
-                           known to be a verifying keyserver",
-                          server);
+                config.info(format_args!(
+                    "Not recording provenance information, {} is not \
+                     known to be a verifying keyserver",
+                    server));
                 return None;
             },
         }

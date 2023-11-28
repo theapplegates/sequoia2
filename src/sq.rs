@@ -12,6 +12,7 @@ use is_terminal::IsTerminal;
 use std::borrow::Borrow;
 use std::borrow::Cow;
 use std::collections::btree_map::{BTreeMap, Entry};
+use std::fmt;
 use std::io;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -318,6 +319,7 @@ fn help_warning(arg: &str) {
 }
 
 pub struct Config<'a> {
+    verbose: bool,
     force: bool,
     output_format: OutputFormat,
     output_version: Option<OutputVersion>,
@@ -1047,6 +1049,13 @@ impl<'store> Config<'store> {
             self.trust_roots.clone()
         }
     }
+
+    /// Prints additional information in verbose mode.
+    fn info(&self, msg: fmt::Arguments) {
+        if self.verbose {
+            eprintln!("{}", msg);
+        }
+    }
 }
 
 // TODO: Use `derive`d command structs. No more values_of
@@ -1086,6 +1095,7 @@ fn main() -> Result<()> {
     };
 
     let config = Config {
+        verbose: false,
         force,
         output_format,
         output_version,

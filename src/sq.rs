@@ -132,6 +132,26 @@ fn load_certs<'a, I>(files: I) -> openpgp::Result<Vec<Cert>>
     Ok(certs)
 }
 
+/// Merges duplicate certs in a keyring.
+fn merge_keyring<C>(certs: C) -> Result<BTreeMap<Fingerprint, Cert>>
+where
+    C: IntoIterator<Item = Cert>,
+{
+    let mut merged = BTreeMap::new();
+    for cert in certs {
+        match merged.entry(cert.fingerprint()) {
+            Entry::Vacant(e) => {
+                e.insert(cert);
+            },
+            Entry::Occupied(mut e) => {
+                let old = e.get().clone();
+                e.insert(old.merge_public(cert)?);
+            },
+        }
+    }
+    Ok(merged)
+}
+
 /// Serializes a keyring, adding descriptive headers if armored.
 #[allow(dead_code)]
 fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
@@ -151,18 +171,7 @@ fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
     }
 
     // Otherwise, merge the certs.
-    let mut merged = BTreeMap::new();
-    for cert in certs {
-        match merged.entry(cert.fingerprint()) {
-            Entry::Vacant(e) => {
-                e.insert(cert);
-            },
-            Entry::Occupied(mut e) => {
-                let old = e.get().clone();
-                e.insert(old.merge_public(cert)?);
-            },
-        }
-    }
+    let merged = merge_keyring(certs)?;
 
     // Then, collect the headers.
     let mut headers = Vec::new();

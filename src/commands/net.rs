@@ -45,6 +45,7 @@ use crate::{
     },
     Config,
     Model,
+    merge_keyring,
     serialize_keyring,
     output::WkdUrlVariant,
     print_error_chain,
@@ -60,7 +61,7 @@ const NP: NullPolicy = NullPolicy::new();
 pub fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
     // Once we get a mutable reference to the cert_store, we're locked
     // out of config.  Gather the information we need first.
-    let certs = certs.into_iter()
+    let certs = merge_keyring(certs)?.into_values()
         .map(|cert| {
             let fpr = cert.fingerprint();
             let userid = cert.with_policy(&config.policy, config.time)

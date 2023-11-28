@@ -1,0 +1,60 @@
+use clap::Parser;
+
+use super::types::ClapData;
+use super::types::FileOrCertStore;
+use super::types::FileOrStdout;
+
+#[derive(Parser, Debug)]
+#[clap(
+    name = "lookup",
+    about = "Looks certs up using network services",
+    long_about =
+"Looks certs up using network services.
+
+By default, any returned certificates are stored in the local
+certificate store.  This can be overridden by using \"--output\"
+option.
+
+When a certificate is downloaded from a verifying keyserver
+(currently, this is limited to a list of known servers:
+keys.openpgp.org, keys.mailvelope.com, and mail-api.proton.me), and
+imported into the local certificate store, the User IDs are also
+certificated with a local server-specific key.  That proxy certificate
+is in turn certified as a minimally trusted CA (trust amount: 1 of
+120) by the local trust root.  How much a proxy key server CA is
+trusted can be tuned using \"sq link add\" or \"sq link retract\" in
+the usual way.
+",
+    arg_required_else_help = true,
+)]
+pub struct Command {
+    #[clap(
+        help = FileOrCertStore::HELP,
+        long,
+        short,
+        value_name = FileOrCertStore::VALUE_NAME,
+    )]
+    pub output: Option<FileOrStdout>,
+    #[clap(
+        short = 'B',
+        long,
+        help = "Emits binary data",
+    )]
+    pub binary: bool,
+    #[clap(
+        short,
+        long,
+        default_values_t = ["hkps://keys.openpgp.org".to_string()],
+        value_name = "URI",
+        help = "Sets the keyserver to use",
+    )]
+    pub servers: Vec<String>,
+    #[clap(
+        value_name = "QUERY",
+        required = true,
+        help = "Retrieve certificate(s) using QUERY. \
+            This may be a fingerprint, a KeyID, \
+            or an email address.",
+    )]
+    pub query: Vec<String>,
+}

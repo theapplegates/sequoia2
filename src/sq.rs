@@ -1094,6 +1094,10 @@ fn main() -> Result<()> {
             commands::packet::dispatch(config, command)?
         },
 
+        SqSubcommands::Lookup(command) => {
+            commands::net::dispatch_lookup(config, command)?
+        }
+
         SqSubcommands::Keyserver(command) => {
             commands::net::dispatch_keyserver(config, command)?
         }

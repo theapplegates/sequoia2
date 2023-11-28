@@ -491,6 +491,65 @@ impl Response {
     }
 }
 
+pub fn dispatch_lookup(config: Config, c: cli::lookup::Command)
+                       -> Result<()>
+{
+    let servers = c.servers.iter().map(
+        |uri| KeyServer::new(uri)
+            .with_context(|| format!("Malformed keyserver URI: {}", uri))
+            .map(Arc::new))
+        .collect::<Result<Vec<_>>>()?;
+
+    let queries = Query::parse(&c.query)?;
+    let rt = tokio::runtime::Runtime::new()?;
+    rt.block_on(async {
+        let mut requests = JoinSet::new();
+        queries.into_iter().for_each(|query| {
+            for ks in servers.iter().cloned() {
+                let query = query.clone();
+                requests.spawn(async move {
+                    let results = match query.clone() {
+                        Query::Handle(h) => ks.get(h).await,
+                        Query::Address(a) => ks.search(a).await,
+                    };
+                    Response {
+                        query,
+                        results,
+                        method: Method::KeyServer(
+                            ks.url().as_str().to_string()),
+                    }
+                });
+            }
+
+            if let Some(address) = query.as_address() {
+                let a = address.to_string();
+                requests.spawn(async move {
+                    let results =
+                        wkd::get(&net::reqwest::Client::new(), &a).await;
+                    Response {
+                        query: Query::Address(a),
+                        results,
+                        method: Method::WKD,
+                    }
+                });
+
+                let a = address.to_string();
+               requests.spawn(async move {
+                    let results = dane::get(&a).await;
+                    Response {
+                        query: Query::Address(a),
+                        results,
+                        method: Method::DANE,
+                    }
+                });
+            }
+        });
+
+        Response::collect(config, c.output, c.binary, requests).await?;
+        Result::Ok(())
+    })
+}
+
 /// Gets the filename for the CA's key and the default User ID.
 fn keyserver_ca(uri: &str) -> Option<(String, String, usize)> {
     if let Some(server) = uri.strip_prefix("hkps://") {

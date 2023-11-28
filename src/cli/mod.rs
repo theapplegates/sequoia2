@@ -23,6 +23,7 @@ pub mod key;
 pub mod keyring;
 pub mod keyserver;
 pub mod link;
+pub mod lookup;
 mod output_versions;
 pub mod packet;
 pub mod sign;
@@ -238,6 +239,7 @@ pub enum SqSubcommands {
     Link(link::Command),
     Wot(wot::Command),
 
+    Lookup(lookup::Command),
     #[cfg(feature = "autocrypt")]
     Autocrypt(autocrypt::Command),
     Keyserver(keyserver::Command),

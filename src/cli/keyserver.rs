@@ -5,6 +5,14 @@ use super::types::FileOrCertStore;
 use super::types::FileOrStdin;
 use super::types::FileOrStdout;
 
+/// The default keyservers to query.
+pub const DEFAULT_KEYSERVERS: &[&'static str] = &[
+    "hkps://keys.openpgp.org",
+    "hkps://mail-api.proton.me",
+    "hkps://keys.mailvelope.com",
+    "hkps://keyserver.ubuntu.com",
+];
+
 #[derive(Parser, Debug)]
 #[clap(
     name = "keyserver",
@@ -16,7 +24,7 @@ pub struct Command {
     #[clap(
         short,
         long = "server",
-        default_value = "hkps://keys.openpgp.org",
+        default_values_t = DEFAULT_KEYSERVERS.iter().map(ToString::to_string),
         value_name = "URI",
         help = "Sets the keyserver to use",
     )]

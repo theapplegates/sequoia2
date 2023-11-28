@@ -3,6 +3,7 @@ use clap::Parser;
 use super::types::ClapData;
 use super::types::FileOrCertStore;
 use super::types::FileOrStdout;
+use super::keyserver::DEFAULT_KEYSERVERS;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -44,7 +45,7 @@ pub struct Command {
     #[clap(
         short,
         long,
-        default_values_t = ["hkps://keys.openpgp.org".to_string()],
+        default_values_t = DEFAULT_KEYSERVERS.iter().map(ToString::to_string),
         value_name = "URI",
         help = "Sets the keyserver to use",
     )]

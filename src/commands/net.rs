@@ -665,28 +665,41 @@ pub fn dispatch_keyserver(config: Config, c: cli::keyserver::Command)
             for ks in servers.iter().cloned() {
                 let cert = cert.clone();
                 requests.spawn(async move {
-                    ks.send(&cert).await
-                        .with_context(|| format!(
-                            "Failed to send cert to server {}", ks.url()))?;
-                    Result::Ok(())
+                    let response = ks.send(&cert).await;
+                    (ks.url().to_string(), response)
                 });
             }
 
+            let mut one_ok = false;
             let mut result = Ok(());
             while let Some(response) = requests.join_next().await {
-                match response? {
-                    Ok(()) => (),
+                let (url, response) = response?;
+                match response {
+                    Ok(()) => {
+                        eprintln!("{}: ok", url);
+                        one_ok = true;
+                    },
                     Err(e) => {
                         if result.is_ok() {
-                            result = Err(e);
+                            result = Err((url, e));
                         } else {
-                            eprintln!("{}", e);
+                            eprintln!("{}: {}", url, e);
                         }
                     },
                 }
             }
 
-            result
+            if ! c.require_all && one_ok && result.is_err() {
+                // We don't require all requests to be successful,
+                // there was a successful one, but also at least one
+                // error that we didn't yet report.  Report that now,
+                // and clear it.
+                let (url, e) = result.unwrap_err();
+                eprintln!("{}: {}", url, e);
+                result = Ok(());
+            }
+
+            result.map_err(|(_url, e)| e)
         })?,
     }
 

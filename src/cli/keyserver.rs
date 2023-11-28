@@ -90,6 +90,14 @@ pub struct GetCommand {
 )]
 pub struct SendCommand {
     #[clap(
+        long,
+        help = "Requires that all send operations succeed \
+                and return an error otherwise.  \
+                By default we only require that one send \
+                operation succeeds.",
+    )]
+    pub require_all: bool,
+    #[clap(
         default_value_t = FileOrStdin::default(),
         help = FileOrStdin::HELP,
         value_name = FileOrStdin::VALUE_NAME,

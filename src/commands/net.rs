@@ -82,7 +82,8 @@ pub fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
     let mut stats
         = cert_store::store::MergePublicCollectStats::new();
 
-    eprintln!("Importing {} certificates into the certificate store:\n", certs.len());
+    eprintln!("\nImporting {} certificates into the certificate store:\n",
+              certs.len());
     for (i, (fpr, userid, cert)) in certs.into_iter().enumerate() {
         cert_store.update_by(Cow::Owned(cert.into()), &mut stats)
             .with_context(|| format!("Inserting {}, {}", fpr, Safe(&userid)))?;
@@ -97,8 +98,9 @@ pub fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
               stats.errors);
 
     eprintln!("\nAfter checking that a certificate really belongs to the \
-               stated owner, use \"sq link add FINGERPRINT\" to \
-               mark the certificate as authenticated.");
+               stated owner, you can mark the certificate as authenticated \
+               using: \n\
+               \n    sq link add FINGERPRINT\n");
 
     Ok(())
 }

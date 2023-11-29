@@ -3506,9 +3506,9 @@ checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
 name = "subplot"
-version = "0.7.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88c9704a350155ad938870a15699561b0a1feba23f2b77b86834ab4ea5de42d1"
+checksum = "a2c5723f41235a3deefab3cfd6164a5b780802f596fa97eb40dfcf3c39c36b21"
 dependencies = [
  "anyhow",
  "base64 0.21.2",
@@ -3538,9 +3538,9 @@ dependencies = [
 
 [[package]]
 name = "subplot-build"
-version = "0.7.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc75701a60e519ed2298241e5dc63c5c452c1c32b6fa5931bfcfbcea0e9e68dc"
+checksum = "cd58ff7123e83e5a5ed5bcdcd9f6f23226eea5b08bc310e129cad5d24b18fabe"
 dependencies = [
  "subplot",
  "tempfile",
@@ -3549,9 +3549,9 @@ dependencies = [
 
 [[package]]
 name = "subplotlib"
-version = "0.7.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c6a1f9825538f0defe6981716af10192ed15370afd78fddd0d0cf9ba6ce7a31"
+checksum = "4fc3c17998cc92ec00493a7d1c0d0256f8977c7baed553777ba347dd6d1c3ccf"
 dependencies = [
  "base64 0.21.2",
  "fehler",
@@ -3572,9 +3572,9 @@ dependencies = [
 
 [[package]]
 name = "subplotlib-derive"
-version = "0.7.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9199a0550f02a8ae5118cdf738f5c93b266dfd0e3fae992321bd7423ff1ca987"
+checksum = "0234a041a912954e3cc81230b9f64f6a471c4297e65053e6ad733bb3e473bc60"
 dependencies = [
  "fehler",
  "proc-macro2",

@@ -25,6 +25,7 @@ pub struct Command {
         short,
         long = "server",
         default_values_t = DEFAULT_KEYSERVERS.iter().map(ToString::to_string),
+        global = true,
         value_name = "URI",
         help = "Sets the keyserver to use.  Can be given multiple times.",
     )]

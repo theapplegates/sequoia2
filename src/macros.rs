@@ -14,6 +14,7 @@ macro_rules! platform {
 }
 
 /// Like eprintln, but nicely wraps lines.
+#[allow(unused_macros)]
 macro_rules! wprintln {
     {} => {
         eprintln!();

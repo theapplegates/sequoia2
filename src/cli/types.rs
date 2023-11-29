@@ -28,8 +28,6 @@ use openpgp::serialize::stream::Message;
 use openpgp::types::SymmetricAlgorithm;
 use openpgp::types::Timestamp;
 
-use terminal_size::terminal_size;
-
 use crate::cli::SECONDS_IN_DAY;
 use crate::cli::SECONDS_IN_YEAR;
 
@@ -41,7 +39,18 @@ impl CliWarningOnce {
         static WARNING: Once = Once::new();
         WARNING.call_once(|| {
             // stdout is connected to a terminal, assume interactive use.
-            if terminal_size().is_none()
+            if platform! {
+                unix => {
+                    use std::os::unix::io::AsRawFd;
+                    terminal_size::terminal_size_using_fd(
+                        std::io::stdout().as_raw_fd())
+                },
+                windows => {
+                    use std::os::windows::io::AsRawHandle;
+                    terminal_size::terminal_size_using_handle(
+                        std::io::stdout().as_raw_handle())
+                },
+            }.is_none()
                 // For bash shells, we can use a very simple heuristic.
                 // We simply look at whether the COLUMNS variable is defined in
                 // our environment.

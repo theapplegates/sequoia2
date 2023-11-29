@@ -76,7 +76,7 @@ fehler = "1.0.0"
 # For an MSRV of 1.63: 2.0.8.
 assert_cmd = "2"
 # For an MSRV of 1.63: 2.1.5
-predicates = "2"
+predicates = ">=2, <4"
 
 [[bin]]
 name = "sq"

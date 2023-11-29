@@ -7,8 +7,6 @@ use std::io::stdout;
 use std::path::Path;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering;
 use std::time::Duration;
 use std::time::SystemTime;
 
@@ -35,17 +33,13 @@ use terminal_size::terminal_size;
 use crate::cli::SECONDS_IN_DAY;
 use crate::cli::SECONDS_IN_YEAR;
 
-/// A type wrapping an AtomicBool to guard emitting a CLI warning only once
-struct CliWarningOnce(AtomicBool);
-/// A static `CliWarningOnce` indicating whether a warning about the unstable
-/// CLI has been emitted already
-static UNSTABLE_CLI_WARNING: CliWarningOnce =
-    CliWarningOnce(AtomicBool::new(false));
-
+struct CliWarningOnce(());
 impl CliWarningOnce {
     /// Emit a warning message only once
-    pub fn warn(&self) {
-        if !self.0.swap(true, Ordering::Relaxed) {
+    pub fn warn() {
+        use std::sync::Once;
+        static WARNING: Once = Once::new();
+        WARNING.call_once(|| {
             // stdout is connected to a terminal, assume interactive use.
             if terminal_size().is_none()
                 // For bash shells, we can use a very simple heuristic.
@@ -57,7 +51,7 @@ impl CliWarningOnce {
                     Use with caution in scripts.\n"
                 );
             }
-        }
+        });
     }
 }
 
@@ -295,7 +289,7 @@ impl FileOrStdout {
         &self,
         force: bool,
     ) -> Result<Box<dyn Write + Sync + Send>> {
-        UNSTABLE_CLI_WARNING.warn();
+        CliWarningOnce::warn();
         self.create(force)
     }
 

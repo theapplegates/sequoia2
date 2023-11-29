@@ -22,7 +22,7 @@ keywords = ["cryptography", "openpgp", "pgp", "encryption", "signing"]
 categories = ["cryptography", "authentication", "command-line-utilities"]
 license = "LGPL-2.0-or-later"
 edition = "2021"
-rust-version = "1.63"
+rust-version = "1.70"
 
 [badges]
 gitlab = { repository = "sequoia-pgp/sequoia-sq" }

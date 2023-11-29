@@ -177,7 +177,7 @@ mod integration {
                 // Export by user id.
                 let userid = String::from_utf8_lossy(
                     ua.userid().value()).into_owned();
-                let email = ua.userid().email().unwrap().unwrap();
+                let email = ua.userid().email2().unwrap().unwrap();
 
                 call(&["--userid", &userid], true, &[data]);
                 call(&["--userid", &email], false, &[]);

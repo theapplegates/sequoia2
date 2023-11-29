@@ -621,6 +621,18 @@ const KEYSERVER_CA_TRUST_AMOUNT: usize = 1;
 pub fn dispatch_keyserver(config: Config, c: cli::keyserver::Command)
     -> Result<()>
 {
+    // Figure out whether the set of key servers is the default set.
+    let default_servers = {
+        // XXX: This could be nicer, maybe with a custom clap parser
+        // that encodes it in the type.  For now we live with the
+        // false positive if someone explicitly provides the same set
+        // of servers.
+        use crate::cli::keyserver::DEFAULT_KEYSERVERS;
+        c.servers.len() == DEFAULT_KEYSERVERS.len()
+            && c.servers.iter().zip(DEFAULT_KEYSERVERS.iter())
+            .all(|(a, b)| a == b)
+    };
+
     let servers = c.servers.iter().map(
         |uri| KeyServer::new(uri)
             .with_context(|| format!("Malformed keyserver URI: {}", uri))
@@ -678,6 +690,19 @@ pub fn dispatch_keyserver(config: Config, c: cli::keyserver::Command)
                     Ok(()) => {
                         wprintln!("{}: ok", url);
                         one_ok = true;
+                    },
+                    Err(e) if default_servers
+                        && url == "hkps://mail-api.proton.me" =>
+                    {
+                        // Currently, the Proton keyserver is
+                        // read-only, but may change to accept updates
+                        // in the future.  We still send them updates
+                        // by default, but we will not consider this
+                        // an error, and only print the message in
+                        // verbose mode.
+                        if config.verbose {
+                            wprintln!("{}: {}", url, e);
+                        }
                     },
                     Err(e) => {
                         if result.is_ok() {

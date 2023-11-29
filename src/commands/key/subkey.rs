@@ -109,14 +109,14 @@ impl<'a> SubkeyRevocation<'a> {
                 let rev = rev.build(&mut signer, &cert, subkey.key(), None)?;
                 Packet::Signature(rev)
             } else {
-                eprintln!(
+                wprintln!(
                     "Subkey {} not found.\nValid subkeys:",
                     keyhandle.to_spaced_hex()
                 );
                 let mut have_valid = false;
                 for k in valid_cert.keys().subkeys() {
                     have_valid = true;
-                    eprintln!(
+                    wprintln!(
                         "  - {} {} [{:?}]",
                         k.fingerprint().to_hex(),
                         DateTime::<Utc>::from(k.creation_time()).date_naive(),
@@ -124,7 +124,7 @@ impl<'a> SubkeyRevocation<'a> {
                     );
                 }
                 if !have_valid {
-                    eprintln!("  - Certificate has no subkeys.");
+                    wprintln!("  - Certificate has no subkeys.");
                 }
                 return Err(anyhow!(
                     "The certificate does not contain the specified subkey."

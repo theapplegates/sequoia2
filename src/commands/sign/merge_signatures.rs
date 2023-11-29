@@ -76,8 +76,8 @@ fn compare_and_write_literal<'a, 'b, 'c>(
 
     let lp1 = normalize_literal(lp1)?;
     let lp2 = normalize_literal(lp2)?;
-    eprintln!("lp1: {:?}", lp1);
-    eprintln!("lp2: {:?}", lp2);
+    wprintln!("lp1: {:?}", lp1);
+    wprintln!("lp2: {:?}", lp2);
 
     if lp1 == lp2 {
         Ok((sink, ppr1, ppr2))

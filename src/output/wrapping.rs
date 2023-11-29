@@ -1,0 +1,28 @@
+//! Line wrapping human-readable output.
+
+use std::fmt;
+use std::sync::OnceLock;
+
+/// Prints the given message to stderr.
+///
+/// Hint: Use `wprintln!(..)` instead of invoking this function
+/// directly.
+pub fn wprintln(msg: fmt::Arguments) {
+    static OPTIONS: OnceLock<textwrap::Options> = OnceLock::new();
+    let options = OPTIONS.get_or_init(|| {
+        // It is better to use terminal_size instead of letting
+        // textwrap do it, because textwrap uses an older version,
+        // leading to duplicate crates.
+        let width =
+            terminal_size::terminal_size().map(|(w, _h)| w.0)
+            .unwrap_or(80)
+            .into();
+
+        textwrap::Options::new(width)
+    }).clone();
+
+    let m = format!("{}", msg);
+    for l in textwrap::wrap(&m, options) {
+        eprintln!("{}", l);
+    }
+}

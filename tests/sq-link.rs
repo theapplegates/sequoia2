@@ -523,7 +523,7 @@ fn sq_link_update_detection() -> Result<()> {
     // Make Alice a CA.
     let output = sq_link(&certd, &alice_fpr, &[],
                          &["--ca", "*", "--all"], true);
-    assert!(output.2.contains("was already linked at"),
+    assert!(output.2.contains("was already linked"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, false);
 
@@ -536,7 +536,7 @@ fn sq_link_update_detection() -> Result<()> {
     // Make her a partially trusted CA.
     let output = sq_link(&certd, &alice_fpr, &[],
                          &["--amount", "30", "--all"], true);
-    assert!(output.2.contains("was already linked at"),
+    assert!(output.2.contains("was already linked"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, false);
 

@@ -171,7 +171,7 @@ fn get_keys<C>(certs: &[C], p: &dyn Policy,
                         keys.push((signer, Some(input_password.clone())));
                         continue 'next_cert;
                     },
-                    Err(error) => eprintln!("Could not unlock key: {:?}", error),
+                    Err(error) => wprintln!("Could not unlock key: {:?}", error),
                 }
             }
         }
@@ -474,7 +474,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
         p(&mut status, "bad checksum", self.bad_checksums);
         p(&mut status, "broken signatures", self.broken_signatures);
         if ! status.is_empty() {
-            eprintln!("{}.", status);
+            wprintln!("{}.", status);
         }
     }
 
@@ -489,7 +489,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
             let (sig, ka) = match result {
                 Ok(GoodChecksum { sig, ka, .. }) => (sig, ka),
                 Err(MalformedSignature { error, .. }) => {
-                    eprintln!("Malformed signature:");
+                    wprintln!("Malformed signature:");
                     print_error_chain(error);
                     self.broken_signatures += 1;
                     continue;
@@ -502,19 +502,19 @@ impl<'a, 'store> VHelper<'a, 'store> {
                         0 => "checksum".into(),
                         n => format!("level {} notarizing checksum", n),
                     };
-                    eprintln!("No key to check {} from {}", what, issuer);
+                    wprintln!("No key to check {} from {}", what, issuer);
                     self.unknown_checksums += 1;
                     continue;
                 },
                 Err(UnboundKey { cert, error, .. }) => {
-                    eprintln!("Signing key on {} is not bound:",
+                    wprintln!("Signing key on {} is not bound:",
                               cert.fingerprint());
                     print_error_chain(error);
                     self.bad_checksums += 1;
                     continue;
                 },
                 Err(BadKey { ka, error, .. }) => {
-                    eprintln!("Signing key on {} is bad:",
+                    wprintln!("Signing key on {} is bad:",
                               ka.cert().fingerprint());
                     print_error_chain(error);
                     self.bad_checksums += 1;
@@ -526,7 +526,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
                         0 => "checksum".into(),
                         n => format!("level {} notarizing checksum", n),
                     };
-                    eprintln!("Error verifying {} from {}:",
+                    wprintln!("Error verifying {} from {}:",
                               what, issuer);
                     print_error_chain(error);
                     self.bad_checksums += 1;
@@ -549,7 +549,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
                 prefix = "  ";
 
                 // Web of trust.
-                eprintln!("Authenticating {} ({:?}) using the web of trust:",
+                wprintln!("Authenticating {} ({:?}) using the web of trust:",
                           cert_fpr, signer_userid);
 
                 if let Ok(Some(cert_store)) = self.config.cert_store() {
@@ -559,7 +559,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
 
                     let userids = if let Some(userid) = sig.signers_user_id() {
                         let userid = UserID::from(userid);
-                        eprintln!("{}Signature was made by {}",
+                        wprintln!("{}Signature was made by {}",
                                   prefix,
                                   String::from_utf8_lossy(userid.value()));
                         vec![ userid ]
@@ -568,7 +568,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
                     };
 
                     if userids.is_empty() {
-                        eprintln!("{}{} cannot be authenticated.  \
+                        wprintln!("{}{} cannot be authenticated.  \
                                    It has no User IDs",
                                   prefix, cert_fpr);
                     } else if let Ok(n) = sequoia_wot::Network::new(&cert_store) {
@@ -588,7 +588,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
 
                                 let amount = paths.amount();
                                 let authenticated = if amount >= sequoia_wot::FULLY_TRUSTED {
-                                    eprintln!("{}Fully authenticated \
+                                    wprintln!("{}Fully authenticated \
                                                ({} of {}) {}, {}",
                                               prefix,
                                               amount,
@@ -597,7 +597,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
                                               userid_str);
                                     true
                                 } else if amount > 0 {
-                                    eprintln!("{}Partially authenticated \
+                                    wprintln!("{}Partially authenticated \
                                                ({} of {}) {}, {:?} ",
                                               prefix,
                                               amount,
@@ -606,7 +606,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
                                               userid_str);
                                     false
                                 } else {
-                                    eprintln!("{}{}: {:?} is unauthenticated \
+                                    wprintln!("{}{}: {:?} is unauthenticated \
                                                and may be an impersonation!",
                                               prefix,
                                               cert_fpr,
@@ -616,7 +616,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
 
                                 for (i, (path, amount)) in paths.iter().enumerate() {
                                     let prefix = if paths.len() > 1 {
-                                        eprintln!("{}  Path #{} of {}, \
+                                        wprintln!("{}  Path #{} of {}, \
                                                   trust amount {}:",
                                                  prefix,
                                                  i + 1, paths.len(), amount);
@@ -640,10 +640,10 @@ impl<'a, 'store> VHelper<'a, 'store> {
                                 authenticated_userids[0].value()).to_string();
                         }
                     } else {
-                        eprintln!("Failed to build web of trust network.");
+                        wprintln!("Failed to build web of trust network.");
                     }
                 } else {
-                    eprintln!("Skipping, certificate store has been disabled");
+                    wprintln!("Skipping, certificate store has been disabled");
                 }
             }
 
@@ -653,27 +653,27 @@ impl<'a, 'store> VHelper<'a, 'store> {
             let level = sig.level();
             match (level == 0, trusted) {
                 (true,  true)  => {
-                    eprintln!("{}Good signature from {} ({:?})",
+                    wprintln!("{}Good signature from {} ({:?})",
                               prefix, label, signer_userid);
                 }
                 (false, true)  => {
-                    eprintln!("{}Good level {} notarization from {} ({:?})",
+                    wprintln!("{}Good level {} notarization from {} ({:?})",
                               prefix, level, label, signer_userid);
                 }
                 (true,  false) => {
-                    eprintln!("{}Unauthenticated checksum from {} ({:?})",
+                    wprintln!("{}Unauthenticated checksum from {} ({:?})",
                               prefix, label, signer_userid);
-                    eprintln!("{}  After checking that {} belongs to {:?}, \
+                    wprintln!("{}  After checking that {} belongs to {:?}, \
                                you can authenticate the binding using \
                                'sq link add {} {:?}'.",
                               prefix, issuer_str, signer_userid,
                               issuer_str, signer_userid);
                 }
                 (false, false) => {
-                    eprintln!("{}Unauthenticated level {} notarizing \
+                    wprintln!("{}Unauthenticated level {} notarizing \
                                checksum from {} ({:?})",
                               prefix, level, label, signer_userid);
-                    eprintln!("{}  After checking that {} belongs to {:?}, \
+                    wprintln!("{}  After checking that {} belongs to {:?}, \
                                you can authenticate the binding using \
                                'sq link add {} {:?}'.",
                               prefix, issuer_str, signer_userid,
@@ -687,7 +687,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
                 self.good_checksums += 1;
             }
 
-            eprintln!("");
+            wprintln!("");
         }
     }
 }
@@ -726,13 +726,13 @@ impl<'a, 'store> VerificationHelper for VHelper<'a, 'store> {
         for layer in structure {
             match layer {
                 MessageLayer::Compression { algo } =>
-                    eprintln!("Compressed using {}", algo),
+                    wprintln!("Compressed using {}", algo),
                 MessageLayer::Encryption { sym_algo, aead_algo } =>
                     if let Some(aead_algo) = aead_algo {
-                        eprintln!("Encrypted and protected using {}/{}",
+                        wprintln!("Encrypted and protected using {}/{}",
                                   sym_algo, aead_algo);
                     } else {
-                        eprintln!("Encrypted using {}", sym_algo);
+                        wprintln!("Encrypted using {}", sym_algo);
                     },
                 MessageLayer::SignatureGroup { ref results } =>
                     self.print_sigs(results),

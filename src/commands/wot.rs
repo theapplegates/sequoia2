@@ -308,7 +308,7 @@ fn authenticate<S>(
         if let Some(kh) = certificate {
             match q.network().lookup_synopses(kh) {
                 Err(err) => {
-                    eprintln!("Looking up target certificate ({}): {}",
+                    wprintln!("Looking up target certificate ({}): {}",
                              kh, err);
                 }
                 Ok(certs) => {
@@ -325,7 +325,7 @@ fn authenticate<S>(
                         match cert.revocation_status() {
                             RevocationStatus::Soft(_)
                             | RevocationStatus::Hard => {
-                                eprintln!("Warning: {} is revoked.", kh);
+                                wprintln!("Warning: {} is revoked.", kh);
                             }
                             RevocationStatus::NotAsFarAsWeKnow => (),
                         }
@@ -333,14 +333,14 @@ fn authenticate<S>(
                         // Check if the certificate has expired.
                         if let Some(e) = cert.expiration_time() {
                             if e <= q.network().reference_time() {
-                                eprintln!("Warning: {} is expired.", kh);
+                                wprintln!("Warning: {} is expired.", kh);
                             }
                         }
 
                         // See if there is a matching self-signed User ID.
                         if let Some(userid) = userid {
                             if ! have_self_signed_userid(cert, userid, email) {
-                                eprintln!("Warning: {} is not a \
+                                wprintln!("Warning: {} is not a \
                                           self-signed User ID for {}.",
                                          userid, kh);
                             }
@@ -358,7 +358,7 @@ fn authenticate<S>(
                                     })
                             })
                             {
-                                eprintln!("Warning: {} has no valid \
+                                wprintln!("Warning: {} has no valid \
                                           certifications.",
                                          kh);
                             }
@@ -377,7 +377,7 @@ fn authenticate<S>(
                     let userid_check = UserID::from(format!("<{}>", email));
                     if let Ok(Some(email_check)) = userid_check.email2() {
                         if email == email_check {
-                            eprintln!("WARNING: {} appears to be a bare \
+                            wprintln!("WARNING: {} appears to be a bare \
                                       email address.  Perhaps you forgot \
                                       to specify --email.",
                                      email);
@@ -392,7 +392,7 @@ fn authenticate<S>(
             if q.roots().iter().all(|r| {
                 let fpr = r.fingerprint();
                 if let Err(err) = q.network().lookup_synopsis_by_fpr(&fpr) {
-                    eprintln!("Looking up trust root ({}): {}.",
+                    wprintln!("Looking up trust root ({}): {}.",
                              fpr, err);
                     true
                 } else {
@@ -400,16 +400,16 @@ fn authenticate<S>(
                 }
             })
             {
-                eprintln!("No trust roots found.");
+                wprintln!("No trust roots found.");
             }
         }
     }
 
     if ! authenticated {
         if ! lint_input {
-            eprintln!("Could not authenticate any paths.");
+            wprintln!("Could not authenticate any paths.");
         } else {
-            eprintln!("No paths found.");
+            wprintln!("No paths found.");
         }
         std::process::exit(1);
     }
@@ -446,7 +446,7 @@ where S: wot::store::Store + wot::store::Backend<'a>
             match config.output_format {
                 #[cfg(feature = "dot-writer")]
                 crate::output::OutputFormat::DOT => {
-                    eprintln!(
+                    wprintln!(
                         "DOT output for \"sq wot path\" is not yet \
                          implemented!");
                 }
@@ -469,7 +469,7 @@ where S: wot::store::Store + wot::store::Backend<'a>
             match config.output_format {
                 #[cfg(feature = "dot-writer")]
                 crate::output::OutputFormat::DOT => {
-                    eprintln!(
+                    wprintln!(
                         "DOT output for \"sq wot path\" is not yet \
                          implemented!");
                 }
@@ -494,7 +494,7 @@ struct KeyServerUpdate {
 
 impl StatusListener for KeyServerUpdate {
     fn update(&self, update: &StatusUpdate) {
-        eprintln!("{}", update);
+        wprintln!("{}", update);
     }
 }
 

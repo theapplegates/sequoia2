@@ -56,7 +56,7 @@ pub fn dispatch(config: Config, c: inspect::Command)
         if let Some(path) = input.inner() {
             if ! path.exists() &&
                 format!("{}", input).parse::<KeyHandle>().is_ok() {
-                eprintln!("The file {} does not exist, \
+                wprintln!("The file {} does not exist, \
                            did you mean \"sq inspect --cert {}\"?",
                           input, input);
             }

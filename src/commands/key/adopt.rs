@@ -55,7 +55,7 @@ pub fn adopt(config: Config, command: cli::key::AdoptCommand) -> Result<()>
             let vc = match cert.with_policy(adoptee_policy, None) {
                 Ok(vc) => vc,
                 Err(err) => {
-                    eprintln!(
+                    wprintln!(
                         "Ignoring {} from '{}': {}",
                         cert.keyid().to_hex(),
                         keyring.display(),

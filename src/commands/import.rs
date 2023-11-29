@@ -45,7 +45,7 @@ pub fn dispatch<'store>(mut config: Config<'store>, cmd: import::Command)
                 let cert = match raw_cert {
                     Ok(raw_cert) => LazyCert::from(raw_cert),
                     Err(err) => {
-                        eprintln!("Error parsing input: {}", err);
+                        wprintln!("Error parsing input: {}", err);
                         stats.errors += 1;
                         continue;
                     }
@@ -55,12 +55,12 @@ pub fn dispatch<'store>(mut config: Config<'store>, cmd: import::Command)
                 let userid = best_effort_primary_uid(
                     cert.to_cert()?, &policy, time).clone();
                 if let Err(err) = cert_store.update_by(Cow::Owned(cert), &mut stats) {
-                    eprintln!("Error importing {}, {:?}: {}",
+                    wprintln!("Error importing {}, {:?}: {}",
                               fingerprint, userid, err);
                     stats.errors += 1;
                     continue;
                 } else {
-                    eprintln!("Imported {}, {}", fingerprint, Safe(&userid));
+                    wprintln!("Imported {}, {}", fingerprint, Safe(&userid));
                 }
             }
         }
@@ -70,7 +70,7 @@ pub fn dispatch<'store>(mut config: Config<'store>, cmd: import::Command)
 
     let result = inner();
 
-    eprintln!("Imported {} new certificates, updated {} certificates, \
+    wprintln!("Imported {} new certificates, updated {} certificates, \
                {} certificates unchanged, {} errors.",
               stats.new, stats.updated, stats.unchanged, stats.errors);
 

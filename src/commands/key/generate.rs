@@ -25,7 +25,7 @@ pub fn generate(
 
     // User ID
     if command.userid.is_empty() {
-        eprintln!("No user ID given, using direct key signature");
+        wprintln!("No user ID given, using direct key signature");
     } else {
         for uid in command.userid {
             builder = builder.add_userid(uid);

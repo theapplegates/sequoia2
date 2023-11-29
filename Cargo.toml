@@ -53,6 +53,7 @@ roff = "0.2.1"
 terminal_size = ">=0.2.6, <0.4"
 is-terminal = "0.4.7"
 termcolor = "1.2.0"
+textwrap = "0.15"
 
 [build-dependencies]
 anyhow = "1.0.18"

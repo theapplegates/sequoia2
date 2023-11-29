@@ -12,3 +12,13 @@ macro_rules! platform {
         }
     }
 }
+
+/// Like eprintln, but nicely wraps lines.
+macro_rules! wprintln {
+    {} => {
+        eprintln!();
+    };
+    { $($arg: expr),* } => {
+        crate::output::wrapping::wprintln(format_args!($($arg),*))
+    };
+}

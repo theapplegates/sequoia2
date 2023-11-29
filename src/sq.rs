@@ -292,7 +292,7 @@ fn decrypt_key<R>(key: Key<key::SecretParts, R>, passwords: &mut Vec<String>)
                             }
                         }
                         Err(err) => {
-                            eprintln!("While reading password: {}", err);
+                            wprintln!("While reading password: {}", err);
                             break;
                         }
                     }
@@ -313,7 +313,7 @@ fn decrypt_key<R>(key: Key<key::SecretParts, R>, passwords: &mut Vec<String>)
 #[allow(dead_code)]
 fn help_warning(arg: &str) {
     if arg == "help" {
-        eprintln!("Warning: \"help\" is not a subcommand here.  \
+        wprintln!("Warning: \"help\" is not a subcommand here.  \
                    Did you mean --help?");
     }
 }
@@ -611,11 +611,11 @@ impl<'store> Config<'store> {
                             }
 
                             if checked_id {
-                                eprintln!("Error: {} does not have a key with \
+                                wprintln!("Error: {} does not have a key with \
                                            the required capabilities ({:?})",
                                           cert.keyid(), keyflags);
                             } else {
-                                eprintln!("Error: The subkey {} (cert: {}) \
+                                wprintln!("Error: The subkey {} (cert: {}) \
                                            does not the required capabilities \
                                            ({:?})",
                                           kh, cert.keyid(), keyflags);
@@ -685,7 +685,7 @@ impl<'store> Config<'store> {
         for userid in userid.iter() {
             let matches: Vec<(Fingerprint, UserID)> = if email {
                 if let Err(err) = UserIDQueryParams::is_email(userid) {
-                    eprintln!("{:?} is not a valid email address", userid);
+                    wprintln!("{:?} is not a valid email address", userid);
                     if error.is_none() {
                         error = Some(err);
                     }
@@ -836,14 +836,14 @@ impl<'store> Config<'store> {
                     }
                 };
 
-                eprintln!("{:?}:\n", err);
+                wprintln!("{:?}:\n", err);
                 if error.is_none() {
                     error = Some(err);
                 }
 
                 // Print the errors.
                 for (i, Entry { fpr, userid, cert }) in bad.into_iter().enumerate() {
-                    eprintln!("{}. When considering {} ({}):",
+                    wprintln!("{}. When considering {} ({}):",
                               i + 1, fpr,
                               String::from_utf8_lossy(userid.value()));
                     let err = match cert {
@@ -1008,7 +1008,7 @@ impl<'store> Config<'store> {
                         // Not found.
                         Ok(None) => None,
                         Err(err) => {
-                            eprintln!("Error looking up local trust root: {}",
+                            wprintln!("Error looking up local trust root: {}",
                                       err);
                             None
                         }
@@ -1020,20 +1020,20 @@ impl<'store> Config<'store> {
                             match parser.next() {
                                 Some(Ok(cert)) => Some(cert.fingerprint()),
                                 Some(Err(err)) => {
-                                    eprintln!("Local trust root is \
+                                    wprintln!("Local trust root is \
                                                corrupted: {}",
                                               err);
                                     None
                                 }
                                 None =>  {
-                                    eprintln!("Local trust root is \
+                                    wprintln!("Local trust root is \
                                                corrupted: no data");
                                     None
                                 }
                             }
                         }
                         Err(err) => {
-                            eprintln!("Error parsing local trust root: {}",
+                            wprintln!("Error parsing local trust root: {}",
                                       err);
                             None
                         }
@@ -1053,7 +1053,7 @@ impl<'store> Config<'store> {
     /// Prints additional information in verbose mode.
     fn info(&self, msg: fmt::Arguments) {
         if self.verbose {
-            eprintln!("{}", msg);
+            wprintln!("{}", msg);
         }
     }
 }
@@ -1254,6 +1254,6 @@ fn error_chain(err: &anyhow::Error) -> Vec<String> {
 
 /// Prints the error and causes, if any.
 pub fn print_error_chain(err: &anyhow::Error) {
-    eprintln!("           {}", err);
-    err.chain().skip(1).for_each(|cause| eprintln!("  because: {}", cause));
+    wprintln!("           {}", err);
+    err.chain().skip(1).for_each(|cause| wprintln!("  because: {}", cause));
 }

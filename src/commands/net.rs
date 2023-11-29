@@ -82,22 +82,22 @@ pub fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
     let mut stats
         = cert_store::store::MergePublicCollectStats::new();
 
-    eprintln!("\nImporting {} certificates into the certificate store:\n",
+    wprintln!("\nImporting {} certificates into the certificate store:\n",
               certs.len());
     for (i, (fpr, userid, cert)) in certs.into_iter().enumerate() {
         cert_store.update_by(Cow::Owned(cert.into()), &mut stats)
             .with_context(|| format!("Inserting {}, {}", fpr, Safe(&userid)))?;
-        eprintln!("  {}. {} {}", i + 1, fpr, Safe(&userid));
+        wprintln!("  {}. {} {}", i + 1, fpr, Safe(&userid));
     }
 
-    eprintln!("\nImported {} new certificates, \
+    wprintln!("\nImported {} new certificates, \
                updated {} certificates, \
                {} certificates unchanged, \
                {} errors.",
               stats.new, stats.updated, stats.unchanged,
               stats.errors);
 
-    eprintln!("\nAfter checking that a certificate really belongs to the \
+    wprintln!("\nAfter checking that a certificate really belongs to the \
                stated owner, you can mark the certificate as authenticated \
                using: \n\
                \n    sq link add FINGERPRINT\n");
@@ -235,7 +235,7 @@ fn get_ca(config: &mut Config,
                         })?;
 
                     if config.verbose {
-                        eprintln!(
+                        wprintln!(
                               "Created the local CA {:?} for certifying \
                                certificates downloaded from this service.  \
                                The CA's trust amount is set to {} of {}.  \
@@ -249,7 +249,7 @@ fn get_ca(config: &mut Config,
                         use std::sync::Once;
                         static MSG: Once = Once::new();
                         MSG.call_once(|| {
-                            eprintln!("Note: Created a local CA to record \
+                            wprintln!("Note: Created a local CA to record \
                                        provenance information.\n\
                                        Note: See `sq link list --ca` \
                                        and `sq link --help` for more \
@@ -490,12 +490,12 @@ impl Response {
                                 certs.push(cert);
                             }
                         },
-                        Err(e) => eprintln!("{}: {}: {}",
+                        Err(e) => wprintln!("{}: {}: {}",
                                             response.method, response.query, e),
                     }
                 },
                 Err(e) =>
-                    eprintln!("{}: {}: {}", response.method, response.query, e),
+                    wprintln!("{}: {}: {}", response.method, response.query, e),
             }
         }
 
@@ -676,14 +676,14 @@ pub fn dispatch_keyserver(config: Config, c: cli::keyserver::Command)
                 let (url, response) = response?;
                 match response {
                     Ok(()) => {
-                        eprintln!("{}: ok", url);
+                        wprintln!("{}: ok", url);
                         one_ok = true;
                     },
                     Err(e) => {
                         if result.is_ok() {
                             result = Err((url, e));
                         } else {
-                            eprintln!("{}: {}", url, e);
+                            wprintln!("{}: {}", url, e);
                         }
                     },
                 }
@@ -695,7 +695,7 @@ pub fn dispatch_keyserver(config: Config, c: cli::keyserver::Command)
                 // error that we didn't yet report.  Report that now,
                 // and clear it.
                 let (url, e) = result.unwrap_err();
-                eprintln!("{}: {}", url, e);
+                wprintln!("{}: {}", url, e);
                 result = Ok(());
             }
 

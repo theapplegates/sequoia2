@@ -215,7 +215,7 @@ impl<'a, 'certdb> Helper<'a, 'certdb> {
         {
             Some(sk) => {
                 if self.dump_session_key {
-                    eprintln!("Session key: {}", hex::encode(&sk));
+                    wprintln!("Session key: {}", hex::encode(&sk));
                 }
                 Some(self.key_identities.get(&keyid).cloned())
             },
@@ -261,7 +261,7 @@ impl<'a, 'certdb> DecryptionHelper for Helper<'a, 'certdb> {
                     .any(|sa| decrypt(sa, &sk.session_key))
             };
             if decrypted {
-                eprintln!("Encrypted with Session Key {}", sk.display_sensitive());
+                wprintln!("Encrypted with Session Key {}", sk.display_sensitive());
                 return Ok(None);
             }
         }
@@ -303,7 +303,7 @@ impl<'a, 'certdb> DecryptionHelper for Helper<'a, 'certdb> {
 
                     match key.unlock(&p) {
                         Ok(decryptor) => break decryptor,
-                        Err(error) => eprintln!("Could not unlock key: {:?}", error),
+                        Err(error) => wprintln!("Could not unlock key: {:?}", error),
                     }
                 };
 
@@ -359,7 +359,7 @@ impl<'a, 'certdb> DecryptionHelper for Helper<'a, 'certdb> {
                     if let Ok(decryptor) = key.unlock(&p) {
                         break decryptor;
                     } else {
-                        eprintln!("Bad password.");
+                        wprintln!("Bad password.");
                     }
                 };
 
@@ -389,13 +389,13 @@ impl<'a, 'certdb> DecryptionHelper for Helper<'a, 'certdb> {
                     .and_then(|(algo, sk)| { if decrypt(algo, &sk) { Some(sk) } else { None }})
                 {
                     if self.dump_session_key {
-                        eprintln!("Session key: {}", hex::encode(&sk));
+                        wprintln!("Session key: {}", hex::encode(&sk));
                     }
                     return Ok(None);
                 }
             }
 
-            eprintln!("Bad password.");
+            wprintln!("Bad password.");
         }
     }
 }

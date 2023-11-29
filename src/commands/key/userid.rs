@@ -89,7 +89,7 @@ impl<'a> UserIDRevocation<'a> {
                     .any(|u| u.value() == userid.as_bytes());
 
                 if !present {
-                    eprintln!(
+                    wprintln!(
                         "User ID, cert: Cert, secret: Option<Cert>: '{}' not found.\nValid User IDs:",
                         userid
                     );
@@ -97,11 +97,11 @@ impl<'a> UserIDRevocation<'a> {
                     for ua in valid_cert.userids() {
                         if let Ok(u) = from_utf8(ua.userid().value()) {
                             have_valid = true;
-                            eprintln!("  - {}", u);
+                            wprintln!("  - {}", u);
                         }
                     }
                     if !have_valid {
-                        eprintln!("  - Certificate has no valid User IDs.");
+                        wprintln!("  - Certificate has no valid User IDs.");
                     }
                     return Err(anyhow!(
                         "The certificate does not contain the specified User \
@@ -437,7 +437,7 @@ fn userid_strip(
 
     if orig_cert_valid {
         if let Err(err) = cert.with_policy(&config.policy, None) {
-            eprintln!(
+            wprintln!(
                 "Removing the User ID(s) has resulted in a invalid key:
 {}
 

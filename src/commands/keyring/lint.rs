@@ -266,10 +266,10 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
                 Err(err) => {
                     if ! args.quiet {
                         if certi == 0 {
-                            eprintln!("{:?} does not appear to be a keyring: {}",
+                            wprintln!("{:?} does not appear to be a keyring: {}",
                                       filename, err);
                         } else {
-                            eprintln!("Encountered an error parsing {:?}: {}",
+                            wprintln!("Encountered an error parsing {:?}: {}",
                                       filename, err);
                         }
                     }
@@ -296,7 +296,7 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
                                     }
                                 }
                                 if ! args.quiet {
-                                    eprintln!($($arg)*);
+                                    wprintln!($($arg)*);
                                 }
                             }
                         }};
@@ -425,7 +425,7 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
                                         }
                                         Err(err) => {
                                             unfixed_issue += 1;
-                                            eprintln!("Certificate {}: \
+                                            wprintln!("Certificate {}: \
                                                        Failed to update \
                                                        revocation certificate \
                                                        {:02X}{:02X}: {}",
@@ -548,7 +548,7 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
                                     }
                                     Err(err) => {
                                         unfixed_issue += 1;
-                                        eprintln!("Certificate {}: User ID {}: \
+                                        wprintln!("Certificate {}: User ID {}: \
                                                    Failed to update \
                                                    binding signature: {}",
                                                   cert.keyid().to_hex(),
@@ -600,7 +600,7 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
                                         Ok(sig) => updates.push(sig),
                                         Err(err) => {
                                             unfixed_issue += 1;
-                                            eprintln!("Certificate {}, key {}: \
+                                            wprintln!("Certificate {}, key {}: \
                                                        Failed to update \
                                                        binding signature: {}",
                                                       cert.keyid().to_hex(),
@@ -649,7 +649,7 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
                             backsigs.dedup();
 
                             if backsigs.len() > 1 {
-                                eprintln!("Warning: multiple cryptographically \
+                                wprintln!("Warning: multiple cryptographically \
                                            valid backsigs.");
                             }
 
@@ -688,7 +688,7 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
                                         Ok(sig) => updates.push(sig),
                                         Err(err) => {
                                             unfixed_issue += 1;
-                                            eprintln!("Certificate {}, key: {}: \
+                                            wprintln!("Certificate {}, key: {}: \
                                                        Failed to update \
                                                        binding signature: {}",
                                                       cert.keyid().to_hex(),
@@ -751,12 +751,12 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
                     eprint!("GOOD");
                 }
             }
-            eprintln!(")");
+            wprintln!(")");
         }};
     }
 
     if certs_with_issues > 0 {
-        eprintln!("Examined {} {}.",
+        wprintln!("Examined {} {}.",
                   certs_valid + certs_invalid,
                   pl(certs_valid + certs_invalid,
                      "certificate", "certificates"));
@@ -768,7 +768,7 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
                  pl(certs_invalid, "certificate is", "certificates are"),
                  pl(certs_invalid, "was", "were"));
             if certs_valid > 0 {
-                eprintln!("  {} {} linted.",
+                wprintln!("  {} {} linted.",
                           certs_valid,
                           pl(certs_valid,
                              "certificate was", "certificates were"));
@@ -779,7 +779,7 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
                      certs_valid + certs_invalid,
                      certs_with_issues * 100 / (certs_valid + certs_invalid),
                      pl(certs_with_issues, "has", "have"));
-                eprintln!("{} of the linted certificates {} revoked.",
+                wprintln!("{} of the linted certificates {} revoked.",
                           certs_revoked,
                           pl(certs_revoked, "was", "were"));
                 err!(certs_with_inadequota_revocations,
@@ -788,10 +788,10 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
                       recreated.",
                      certs_with_inadequota_revocations,
                      certs_revoked);
-                eprintln!("{} of the linted certificates {} expired.",
+                wprintln!("{} of the linted certificates {} expired.",
                           certs_expired,
                           pl(certs_expired, "was", "were"));
-                eprintln!("{} of the non-revoked linted {} at least one non-revoked User ID:",
+                wprintln!("{} of the non-revoked linted {} at least one non-revoked User ID:",
                           certs_sp_sha1_userids,
                           pl(certs_sp_sha1_userids,
                              "certificate has", "certificates have"));
@@ -804,7 +804,7 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
                      certs_with_only_sha1_protected_userids,
                      pl(certs_with_only_sha1_protected_userids,
                         "has", "have"));
-                eprintln!("{} of the non-revoked linted certificates {} at least one \
+                wprintln!("{} of the non-revoked linted certificates {} at least one \
                            non-revoked, live subkey:",
                           certs_with_subkeys,
                           pl(certs_with_subkeys,
@@ -815,7 +815,7 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
                      certs_with_a_sha1_protected_binding_sig,
                      pl(certs_with_a_sha1_protected_binding_sig,
                         "has", "have"));
-                eprintln!("{} of the non-revoked linted certificates {} at least one non-revoked, live, \
+                wprintln!("{} of the non-revoked linted certificates {} at least one non-revoked, live, \
                            signing-capable subkey:",
                           certs_with_signing_subkeys,
                           pl(certs_with_signing_subkeys,

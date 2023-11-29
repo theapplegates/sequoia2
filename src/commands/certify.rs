@@ -65,16 +65,16 @@ pub fn certify(config: Config, c: certify::Command)
     let userid = if let Some(userid) = u {
         userid
     } else {
-        eprintln!("User ID: '{}' not found.\nValid User IDs:", userid);
+        wprintln!("User ID: '{}' not found.\nValid User IDs:", userid);
         let mut have_valid = false;
         for ua in vc.userids() {
             if let Ok(u) = std::str::from_utf8(ua.userid().value()) {
                 have_valid = true;
-                eprintln!("  - {}", u);
+                wprintln!("  - {}", u);
             }
         }
         if ! have_valid {
-            eprintln!("  - Certificate has no valid User IDs.");
+            wprintln!("  - Certificate has no valid User IDs.");
         }
         return Err(anyhow::format_err!("No matching User ID found"));
     };

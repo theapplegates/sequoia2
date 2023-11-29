@@ -209,6 +209,13 @@ $ sq --time 20130721T0550+0200 verify msg.pgp
                      trust, to authenticate certificates and User IDs."
     )]
     pub trust_roots: Vec<Fingerprint>,
+    #[clap(
+        short,
+        long,
+        global = true,
+        help = "Be more verbose.",
+    )]
+    pub verbose: bool,
     #[clap(subcommand)]
     pub subcommand: SqSubcommands,
 }

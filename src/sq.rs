@@ -1095,7 +1095,7 @@ fn main() -> Result<()> {
     };
 
     let config = Config {
-        verbose: false,
+        verbose: c.verbose,
         force,
         output_format,
         output_version,

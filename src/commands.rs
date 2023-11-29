@@ -454,25 +454,27 @@ impl<'a, 'store> VHelper<'a, 'store> {
     }
 
     fn print_status(&self) {
-        fn p(dirty: &mut bool, what: &str, quantity: usize) {
+        fn p(s: &mut String, what: &str, quantity: usize) {
             if quantity > 0 {
-                eprint!("{}{} {}{}",
-                        if *dirty { ", " } else { "" },
-                        quantity, what,
-                        if quantity == 1 { "" } else { "s" });
-                *dirty = true;
+                use std::fmt::Write;
+                let dirty = ! s.is_empty();
+                write!(s, "{}{} {}{}",
+                       if dirty { ", " } else { "" },
+                       quantity, what,
+                       if quantity == 1 { "" } else { "s" })
+                    .expect("writing to a string is infallible");
             }
         }
 
-        let mut dirty = false;
-        p(&mut dirty, "good signature", self.good_signatures);
-        p(&mut dirty, "unauthenticated checksum", self.good_checksums);
-        p(&mut dirty, "unknown checksum", self.unknown_checksums);
-        p(&mut dirty, "bad signature", self.bad_signatures);
-        p(&mut dirty, "bad checksum", self.bad_checksums);
-        p(&mut dirty, "broken signatures", self.broken_signatures);
-        if dirty {
-            eprintln!(".");
+        let mut status = String::new();
+        p(&mut status, "good signature", self.good_signatures);
+        p(&mut status, "unauthenticated checksum", self.good_checksums);
+        p(&mut status, "unknown checksum", self.unknown_checksums);
+        p(&mut status, "bad signature", self.bad_signatures);
+        p(&mut status, "bad checksum", self.bad_checksums);
+        p(&mut status, "broken signatures", self.broken_signatures);
+        if ! status.is_empty() {
+            eprintln!("{}.", status);
         }
     }
 

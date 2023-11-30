@@ -421,6 +421,7 @@ impl Query {
     }
 }
 
+#[derive(Clone)]
 enum Method {
     KeyServer(String),
     WKD,
@@ -462,12 +463,20 @@ struct Response {
 }
 
 impl Response {
+    /// Collects the responses, displays failures, and either writes
+    /// out a keyring or imports the certs.
+    ///
+    /// If `silent_errors` is given, then failure messages are
+    /// suppressed unless --verbose is given, or there was not a
+    /// single successful result.
     async fn collect(mut config: Config<'_>,
                      output: Option<FileOrStdout>,
                      binary: bool,
-                     mut responses: JoinSet<Response>)
+                     mut responses: JoinSet<Response>,
+                     silent_errors: bool)
                      -> Result<()> {
         let mut certs = Vec::new();
+        let mut errors = Vec::new();
         while let Some(response) = responses.join_next().await {
             let response = response?;
             match response.results {
@@ -490,13 +499,24 @@ impl Response {
                                 certs.push(cert);
                             }
                         },
-                        Err(e) => wprintln!("{}: {}: {}",
-                                            response.method, response.query, e),
+                        Err(e) =>
+                            errors.push((response.method.clone(),
+                                         response.query.clone(), e)),
                     }
                 },
                 Err(e) =>
-                    wprintln!("{}: {}: {}", response.method, response.query, e),
+                    errors.push((response.method, response.query, e)),
             }
+        }
+
+        if ! silent_errors || config.verbose || certs.is_empty() {
+            for (method, query, e) in errors {
+                wprintln!("{}: {}: {}", method, query, e);
+            }
+        }
+
+        if certs.is_empty() {
+            return Err(anyhow::anyhow!("No cert found."));
         }
 
         if let Some(file) = &output {
@@ -513,6 +533,7 @@ impl Response {
 pub fn dispatch_lookup(config: Config, c: cli::lookup::Command)
                        -> Result<()>
 {
+    let default_servers = default_keyservers_p(&c.servers);
     let servers = c.servers.iter().map(
         |uri| KeyServer::new(uri)
             .with_context(|| format!("Malformed keyserver URI: {}", uri))
@@ -564,7 +585,8 @@ pub fn dispatch_lookup(config: Config, c: cli::lookup::Command)
             }
         });
 
-        Response::collect(config, c.output, c.binary, requests).await?;
+        Response::collect(
+            config, c.output, c.binary, requests, default_servers).await?;
         Result::Ok(())
     })
 }
@@ -618,21 +640,23 @@ fn keyserver_ca(config: &Config, uri: &str) -> Option<(String, String, usize)> {
 
 const KEYSERVER_CA_TRUST_AMOUNT: usize = 1;
 
+/// Figures out whether the given set of key servers is the default
+/// set.
+fn default_keyservers_p(servers: &[String]) -> bool {
+    // XXX: This could be nicer, maybe with a custom clap parser
+    // that encodes it in the type.  For now we live with the
+    // false positive if someone explicitly provides the same set
+    // of servers.
+    use crate::cli::keyserver::DEFAULT_KEYSERVERS;
+    servers.len() == DEFAULT_KEYSERVERS.len()
+        && servers.iter().zip(DEFAULT_KEYSERVERS.iter())
+        .all(|(a, b)| a == b)
+}
+
 pub fn dispatch_keyserver(config: Config, c: cli::keyserver::Command)
     -> Result<()>
 {
-    // Figure out whether the set of key servers is the default set.
-    let default_servers = {
-        // XXX: This could be nicer, maybe with a custom clap parser
-        // that encodes it in the type.  For now we live with the
-        // false positive if someone explicitly provides the same set
-        // of servers.
-        use crate::cli::keyserver::DEFAULT_KEYSERVERS;
-        c.servers.len() == DEFAULT_KEYSERVERS.len()
-            && c.servers.iter().zip(DEFAULT_KEYSERVERS.iter())
-            .all(|(a, b)| a == b)
-    };
-
+    let default_servers = default_keyservers_p(&c.servers);
     let servers = c.servers.iter().map(
         |uri| KeyServer::new(uri)
             .with_context(|| format!("Malformed keyserver URI: {}", uri))
@@ -665,7 +689,8 @@ pub fn dispatch_keyserver(config: Config, c: cli::keyserver::Command)
                 }
             });
 
-            Response::collect(config, c.output, c.binary, requests).await?;
+            Response::collect(
+                config, c.output, c.binary, requests, default_servers).await?;
             Result::Ok(())
         })?,
         Send(c) => rt.block_on(async {
@@ -773,7 +798,8 @@ pub fn dispatch_wkd(config: Config, c: cli::wkd::Command) -> Result<()> {
                 });
             });
 
-            Response::collect(config, c.output, c.binary, requests).await?;
+            Response::collect(
+                config, c.output, c.binary, requests, false).await?;
             Result::Ok(())
         })?,
         Generate(c) => {
@@ -864,7 +890,8 @@ pub fn dispatch_dane(config: Config, c: cli::dane::Command) -> Result<()> {
                 });
             });
 
-            Response::collect(config, c.output, c.binary, requests).await?;
+            Response::collect(
+                config, c.output, c.binary, requests, false).await?;
             Result::Ok(())
         })?,
     }

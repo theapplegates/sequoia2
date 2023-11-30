@@ -189,7 +189,7 @@ mod integration {
                 call(&["--email", &userid], false, &[]);
                 call(&["--email", &email], true, &[data]);
                 // Email is case insensitive.
-                call(&["--email", &email.deref().to_uppercase()], true, &[data]);
+                call(&["--email", &email.to_uppercase()], true, &[data]);
                 // Substring should fail.
                 call(&["--email", &email[1..]], false, &[]);
 

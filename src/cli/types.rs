@@ -39,18 +39,8 @@ impl CliWarningOnce {
         static WARNING: Once = Once::new();
         WARNING.call_once(|| {
             // stdout is connected to a terminal, assume interactive use.
-            if platform! {
-                unix => {
-                    use std::os::unix::io::AsRawFd;
-                    terminal_size::terminal_size_using_fd(
-                        std::io::stdout().as_raw_fd())
-                },
-                windows => {
-                    use std::os::windows::io::AsRawHandle;
-                    terminal_size::terminal_size_using_handle(
-                        std::io::stdout().as_raw_handle())
-                },
-            }.is_none()
+            use std::io::IsTerminal;
+            if ! std::io::stdout().is_terminal()
                 // For bash shells, we can use a very simple heuristic.
                 // We simply look at whether the COLUMNS variable is defined in
                 // our environment.

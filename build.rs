@@ -6,6 +6,7 @@ use clap_complete::Shell;
 use anyhow::{Context, Result};
 
 pub mod cli {
+    #![allow(unused_macros)]
     include!("src/macros.rs");
     include!("src/cli/mod.rs");
 }

@@ -10,6 +10,7 @@ use std::io::Write;
 use anyhow::{anyhow, Result};
 use serde::Serialize;
 
+pub mod pluralize;
 pub mod sanitize;
 pub mod wrapping;
 

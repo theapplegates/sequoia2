@@ -116,7 +116,7 @@ fn sq_verify(cert_store: Option<&str>,
         assert!(status.success(),
                 "\nstdout:\n{}\nstderr:\n{}",
                 stdout, stderr);
-        assert!(stderr.contains(&format!("{} good signature",
+        assert!(stderr.contains(&format!("{} good signature",
                                          good_sigs)),
                 "stdout:\n{}\nstderr:\n{}",
                 stdout, stderr);
@@ -127,7 +127,7 @@ fn sq_verify(cert_store: Option<&str>,
     }
 
     if good_checksums > 0 {
-        assert!(stderr.contains(&format!("{} unauthenticated checksum",
+        assert!(stderr.contains(&format!("{} unauthenticated checksum",
                                          good_checksums)),
                 "stdout:\n{}\nstderr:\n{}", stdout, stderr);
     }

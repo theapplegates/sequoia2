@@ -1377,7 +1377,7 @@ when I run sq --no-cert-store sign --signer-file alice.pgp hello.txt -o signed1.
 when I run sq --no-cert-store sign --signer-file bob.pgp --append signed1.txt -o signed2.txt
 when I run sq --no-cert-store verify signed2.txt --signer-file alice-cert.pgp --signer-file bob-cert.pgp
 then stdout contains "hello, world"
-then stderr contains "2 good signatures"
+then stderr matches regex 2.good signatures
 ~~~
 
 ## Merge signed files
@@ -1398,7 +1398,7 @@ when I run sq --no-cert-store sign --signer-file bob.pgp hello.txt -o signed2.tx
 when I run sq --no-cert-store sign --merge=signed2.txt signed1.txt -o merged.txt
 when I run sq --no-cert-store verify merged.txt --signer-file alice-cert.pgp --signer-file bob-cert.pgp
 then stdout contains "hello, world"
-then stderr contains "2 good signatures"
+then stderr matches regex 2.good signatures
 ~~~
 
 

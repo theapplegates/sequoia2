@@ -457,11 +457,11 @@ impl<'a, 'store> VHelper<'a, 'store> {
         fn p(s: &mut String, what: &str, quantity: usize) {
             if quantity > 0 {
                 use std::fmt::Write;
+                use crate::output::pluralize::Pluralize;
                 let dirty = ! s.is_empty();
-                write!(s, "{}{} {}{}",
+                write!(s, "{}{}",
                        if dirty { ", " } else { "" },
-                       quantity, what,
-                       if quantity == 1 { "" } else { "s" })
+                       quantity.of(what))
                     .expect("writing to a string is infallible");
             }
         }

@@ -1055,7 +1055,7 @@ fn sq_sign_using_cert_store() -> Result<()> {
     // certificate store are not authenticated.
     assert!(stderr.contains("Good signature from "),
             "stdout:\n{}\nstderr: {}", stdout, stderr);
-    assert!(stderr.contains("1 good signature."),
+    assert!(stderr.contains("1 good signature."),
             "stdout:\n{}\nstderr: {}", stdout, stderr);
 
     Ok(())
@@ -1280,7 +1280,7 @@ fn sq_verify_wot() -> Result<()> {
         assert!(output.2.contains("Unauthenticated checksum from "),
                 "stdout:\n{}\nstderr:\n{}",
                 output.1, output.2);
-        assert!(output.2.contains("3 unauthenticated checksums"),
+        assert!(output.2.contains("3 unauthenticated checksums"),
                 "stdout:\n{}\nstderr:\n{}",
                 output.1, output.2);
     }
@@ -1297,7 +1297,7 @@ fn sq_verify_wot() -> Result<()> {
         assert!(output.2.contains("Good signature from "),
                 "stdout:\n{}\nstderr:\n{}",
                 output.1, output.2);
-        assert!(output.2.contains("1 good signature, 2 unauthenticated checksums"),
+        assert!(output.2.contains("1 good signature, 2 unauthenticated checksums"),
                 "stdout:\n{}\nstderr:\n{}",
                 output.1, output.2);
     }

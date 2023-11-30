@@ -42,7 +42,10 @@ use crate::{
         active_certification,
         get_certification_keys,
     },
-    output::sanitize::Safe,
+    output::{
+        pluralize::Pluralize,
+        sanitize::Safe,
+    },
     Config,
     Model,
     best_effort_primary_uid,
@@ -82,20 +85,19 @@ pub fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
     let mut stats
         = cert_store::store::MergePublicCollectStats::new();
 
-    wprintln!("\nImporting {} certificates into the certificate store:\n",
-              certs.len());
+    wprintln!("\nImporting {} into the certificate store:\n",
+              certs.len().of("certificate"));
     for (i, (fpr, userid, cert)) in certs.into_iter().enumerate() {
         cert_store.update_by(Cow::Owned(cert.into()), &mut stats)
             .with_context(|| format!("Inserting {}, {}", fpr, Safe(&userid)))?;
         wprintln!("  {}. {} {}", i + 1, fpr, Safe(&userid));
     }
 
-    wprintln!("\nImported {} new certificates, \
-               updated {} certificates, \
-               {} certificates unchanged, \
-               {} errors.",
-              stats.new, stats.updated, stats.unchanged,
-              stats.errors);
+    wprintln!("\nImported {}, updated {}, {} unchanged, {}.",
+              stats.new.of("new certificate"),
+              stats.updated.of("certificate"),
+              stats.unchanged.of("certificate"),
+              stats.errors.of("error"));
 
     wprintln!("\nAfter checking that a certificate really belongs to the \
                stated owner, you can mark the certificate as authenticated \

@@ -711,9 +711,9 @@ impl<'a, 'store> VerificationHelper for VHelper<'a, 'store> {
         if ! ids.is_empty() {
             if let Ok(Some(cert_store)) = self.config.cert_store() {
                 for id in ids.iter() {
-                    if let Ok(c) = cert_store.lookup_by_key(id) {
+                    if let Ok(c) = cert_store.lookup_by_cert_or_subkey(id) {
                         certs.extend(
-                            c.into_iter().filter_map(|c| c.as_cert().ok()));
+                            c.into_iter().filter_map(|c| c.to_cert().ok().cloned()));
                     }
                 }
             }

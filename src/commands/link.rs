@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
 use anyhow::Context;
@@ -601,7 +601,7 @@ pub fn add(mut config: Config, c: link::AddCommand)
     let cert = cert.insert_packets(certifications.clone())?;
 
     let cert_store = config.cert_store_mut_or_else()?;
-    cert_store.update(Cow::Owned(cert.into()))
+    cert_store.update(Arc::new(cert.into()))
         .with_context(|| format!("Updating {}", c.certificate))?;
 
     Ok(())
@@ -756,7 +756,7 @@ pub fn retract(mut config: Config, c: link::RetractCommand)
     let cert = cert.insert_packets(certifications.clone())?;
 
     let cert_store = config.cert_store_mut_or_else()?;
-    cert_store.update(Cow::Owned(cert.into()))
+    cert_store.update(Arc::new(cert.into()))
         .with_context(|| format!("Updating {}", c.certificate))?;
 
     Ok(())

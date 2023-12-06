@@ -131,7 +131,7 @@ pub fn dispatch(config: Config, cmd: export::Command) -> Result<()> {
         }
 
         for kh in cmd.key.iter() {
-            if let Ok(certs) = cert_store.lookup_by_key(kh) {
+            if let Ok(certs) = cert_store.lookup_by_cert_or_subkey(kh) {
                 for cert in certs {
                     if exported.get(&cert.fingerprint()).is_some() {
                         // Already exported this one.

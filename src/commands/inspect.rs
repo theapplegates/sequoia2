@@ -66,7 +66,7 @@ pub fn dispatch(config: Config, c: inspect::Command)
     } else {
         let cert_store = config.cert_store_or_else()?;
         for cert in c.cert.into_iter() {
-            let certs = cert_store.lookup_by_key(&cert)
+            let certs = cert_store.lookup_by_cert_or_subkey(&cert)
                 .with_context(|| format!("Looking up {}", cert))?;
 
             // Include non-exportable signatures, etc.

@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::sync::Arc;
 use std::path::PathBuf;
 
 use sequoia_openpgp as openpgp;
@@ -54,7 +54,7 @@ pub fn dispatch<'store>(mut config: Config<'store>, cmd: import::Command)
                 let fingerprint = cert.fingerprint();
                 let userid = best_effort_primary_uid(
                     cert.to_cert()?, &policy, time).clone();
-                if let Err(err) = cert_store.update_by(Cow::Owned(cert), &mut stats) {
+                if let Err(err) = cert_store.update_by(Arc::new(cert), &mut stats) {
                     wprintln!("Error importing {}, {:?}: {}",
                               fingerprint, userid, err);
                     stats.errors += 1;

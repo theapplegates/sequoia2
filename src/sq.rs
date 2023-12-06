@@ -10,7 +10,6 @@ use anyhow::Context as _;
 use is_terminal::IsTerminal;
 
 use std::borrow::Borrow;
-use std::borrow::Cow;
 use std::collections::btree_map::{BTreeMap, Entry};
 use std::fmt;
 use std::io;
@@ -18,6 +17,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
+use std::sync::Arc;
 use once_cell::unsync::OnceCell;
 
 use sequoia_openpgp as openpgp;
@@ -439,7 +439,7 @@ impl<'store> Config<'store> {
             for cert in parser {
                 match cert {
                     Ok(cert) => {
-                        keyring.update(Cow::Owned(cert.into()))
+                        keyring.update(Arc::new(cert.into()))
                             .expect("implementation doesn't fail");
                     }
                     Err(err) => {
@@ -557,7 +557,7 @@ impl<'store> Config<'store> {
 
         for kh in khs {
             let kh = kh.borrow();
-            match self.cert_store_or_else()?.lookup_by_key(&kh) {
+            match self.cert_store_or_else()?.lookup_by_cert_or_subkey(&kh) {
                 Err(err) => {
                     let err = anyhow::Error::from(err);
                     return Err(err.context(
@@ -567,8 +567,8 @@ impl<'store> Config<'store> {
                 Ok(certs) => {
                     let mut certs = certs.into_iter()
                         .filter_map(|cert| {
-                            match cert.as_cert() {
-                                Ok(cert) => Some(cert),
+                            match cert.to_cert() {
+                                Ok(cert) => Some(cert.clone()),
                                 Err(err) => {
                                     let err = err.context(
                                         format!("Failed to parse {} as loaded \
@@ -728,8 +728,8 @@ impl<'store> Config<'store> {
                 };
 
                 // Parse the LazyCerts.
-                let cert = match cert.into_owned().into_cert() {
-                    Ok(cert) => cert,
+                let cert = match cert.to_cert() {
+                    Ok(cert) => cert.clone(),
                     Err(err) => {
                         let err = err.context(format!(
                             "Error parsing {} ({:?})",
@@ -978,7 +978,7 @@ impl<'store> Config<'store> {
             // We also need to insert the trust root into the certificate
             // store, just without the secret key material.
             let cert_store = self.cert_store_mut_or_else()?;
-            cert_store.update(Cow::Owned(special.clone().into()))
+            cert_store.update(Arc::new(special.clone().into()))
                 .with_context(|| format!("Inserting {}", name))?;
 
             special

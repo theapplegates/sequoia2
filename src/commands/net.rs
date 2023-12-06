@@ -1,6 +1,5 @@
 //! Network services.
 
-use std::borrow::Cow;
 use std::fmt;
 use std::sync::Arc;
 use std::time::SystemTime;
@@ -88,7 +87,7 @@ pub fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
     wprintln!("\nImporting {} into the certificate store:\n",
               certs.len().of("certificate"));
     for (i, (fpr, userid, cert)) in certs.into_iter().enumerate() {
-        cert_store.update_by(Cow::Owned(cert.into()), &mut stats)
+        cert_store.update_by(Arc::new(cert.into()), &mut stats)
             .with_context(|| format!("Inserting {}, {}", fpr, Safe(&userid)))?;
         wprintln!("  {}. {} {}", i + 1, fpr, Safe(&userid));
     }
@@ -231,7 +230,7 @@ fn get_ca(config: &mut Config,
                 Ok(cert) => {
                     // Save it.
                     let cert_store = config.cert_store_mut_or_else()?;
-                    cert_store.update(Cow::Owned(cert.clone().into()))
+                    cert_store.update(Arc::new(cert.clone().into()))
                         .with_context(|| {
                             format!("Saving {:?}", ca_userid)
                         })?;

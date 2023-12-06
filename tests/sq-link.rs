@@ -1,11 +1,10 @@
 use std::path::Path;
 use std::process::ExitStatus;
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 
 use tempfile::TempDir;
 use assert_cmd::Command;
 
-use once_cell::sync::OnceCell;
 
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
@@ -24,7 +23,7 @@ fn artifact(filename: &str) -> String {
 //
 // This function drives the clock forward, and ensures that every
 // operation "happens" at a different point in time.
-static TIME: OnceCell<Mutex<chrono::DateTime<chrono::Utc>>> = OnceCell::new();
+static TIME: OnceLock<Mutex<chrono::DateTime<chrono::Utc>>> = OnceLock::new();
 
 fn tick() -> String {
     let t = TIME.get_or_init(|| Mutex::new(chrono::Utc::now()));

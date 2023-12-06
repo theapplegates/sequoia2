@@ -10,6 +10,7 @@ use anyhow::Context as _;
 use is_terminal::IsTerminal;
 
 use std::borrow::Borrow;
+use std::cell::OnceCell;
 use std::collections::btree_map::{BTreeMap, Entry};
 use std::fmt;
 use std::io;
@@ -18,7 +19,6 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use std::sync::Arc;
-use once_cell::unsync::OnceCell;
 
 use sequoia_openpgp as openpgp;
 
@@ -233,11 +233,10 @@ where
             primary_uid = Some(primary.userid());
         } else {
             // Special case, there is no user id.
-            use once_cell::sync::Lazy;
-            static FALLBACK: Lazy<UserID> = Lazy::new(|| {
-                UserID::from("<unknown>")
-            });
-            primary_uid = Some(&FALLBACK);
+            use std::sync::OnceLock;
+            static FALLBACK: OnceLock<UserID> = OnceLock::new();
+            primary_uid =
+                Some(FALLBACK.get_or_init(|| UserID::from("<unknown>")));
         }
     }
 

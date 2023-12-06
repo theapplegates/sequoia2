@@ -3135,7 +3135,6 @@ dependencies = [
  "fehler",
  "is-terminal",
  "itertools 0.12.0",
- "once_cell",
  "predicates",
  "roff",
  "rpassword",

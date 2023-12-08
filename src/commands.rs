@@ -375,6 +375,7 @@ fn active_certification(config: &Config,
 // specified, or the specified User ID does not occur, then the
 // primary User ID is used and the specified User ID is added without
 // a binding signature.
+#[allow(dead_code)]
 pub fn cert_stub(cert: Cert,
                  policy: &dyn Policy,
                  timestamp: Option<SystemTime>,

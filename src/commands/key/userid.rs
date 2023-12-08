@@ -29,7 +29,6 @@ use crate::Config;
 use crate::cli::key::UseridRevokeCommand;
 use crate::cli::types::FileOrStdout;
 use crate::cli;
-use crate::commands::cert_stub;
 use crate::commands::get_primary_keys;
 use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
@@ -47,6 +46,7 @@ struct UserIDRevocation<'a> {
     revocation_packet: Packet,
     first_party_issuer: bool,
     userid: String,
+    uid: UserID,
 }
 
 impl<'a> UserIDRevocation<'a> {
@@ -72,6 +72,7 @@ impl<'a> UserIDRevocation<'a> {
         )?;
 
         let first_party_issuer = secret.fingerprint() == cert.fingerprint();
+        let uid = UserID::from(userid.as_str());
 
         let revocation_packet = {
             // Create a revocation for a User ID.
@@ -86,7 +87,7 @@ impl<'a> UserIDRevocation<'a> {
                 let valid_cert = cert.with_policy(NULL_POLICY, None)?;
                 let present = valid_cert
                     .userids()
-                    .any(|u| u.value() == userid.as_bytes());
+                    .any(|u| u.userid() == &uid);
 
                 if !present {
                     wprintln!(
@@ -127,7 +128,7 @@ impl<'a> UserIDRevocation<'a> {
             let rev = rev.build(
                 &mut signer,
                 &cert,
-                &UserID::from(userid.as_str()),
+                &uid,
                 None,
             )?;
             Packet::Signature(rev)
@@ -141,6 +142,7 @@ impl<'a> UserIDRevocation<'a> {
             revocation_packet,
             first_party_issuer,
             userid,
+            uid,
         })
     }
 }
@@ -155,35 +157,18 @@ impl<'a> RevocationOutput for UserIDRevocation<'a> {
     ) -> Result<()> {
         let mut output = output.create_safe(force)?;
 
-        let (stub, packets): (Cert, Vec<Packet>) = {
-            let cert_stub = match cert_stub(
-                self.cert.clone(),
-                self.policy,
-                self.time,
-                Some(&UserID::from(self.userid.clone())),
-            ) {
-                Ok(stub) => stub,
-                // We failed to create a stub.  Just use the original
-                // certificate as is.
-                Err(_) => self.cert.clone(),
-            };
-
-            (
-                cert_stub.clone(),
-                cert_stub
-                    .strip_secret_key_material()
-                    .insert_packets(self.revocation_packet.clone())?
-                    .into_packets()
-                    .collect(),
-            )
-        };
+        // First, build a minimal revocation certificate containing
+        // the primary key, the revoked component, and the revocation
+        // signature.
+        let rev_cert = Cert::from_packets(vec![
+            self.cert.primary_key().key().clone().into(),
+            self.uid.clone().into(),
+            self.revocation_packet.clone(),
+        ].into_iter())?;
 
         if binary {
-            for packet in packets {
-                packet
-                    .serialize(&mut output)
-                    .context("serializing revocation certificate")?;
-            }
+            rev_cert.serialize(&mut output)
+                .context("serializing revocation certificate")?;
         } else {
             // Add some more helpful ASCII-armor comments.
             let mut more: Vec<String> = vec![];
@@ -192,27 +177,23 @@ impl<'a> RevocationOutput for UserIDRevocation<'a> {
             more.push(
                 "including a revocation to revoke the User ID".to_string(),
             );
-            more.push(format!("{:?}", self.userid));
+            more.push(format!("{}", self.userid));
 
             if !self.first_party_issuer {
                 // Then if it was issued by a third-party.
                 more.push("issued by".to_string());
                 more.push(self.secret.fingerprint().to_spaced_hex());
-                if let Ok(valid_cert) =
-                    &stub.with_policy(self.policy, self.time)
-                {
-                    if let Ok(uid) = valid_cert.primary_userid() {
-                        let uid = String::from_utf8_lossy(uid.value());
-                        // Truncate it, if it is too long.
-                        more.push(format!(
-                            "{:?}",
-                            uid.chars().take(70).collect::<String>()
-                        ));
-                    }
-                }
+                let issuer_uid = crate::best_effort_primary_uid(
+                    &self.secret, self.policy, self.time);
+                let issuer_uid = String::from_utf8_lossy(issuer_uid.value());
+                // Truncate it, if it is too long.
+                more.push(format!(
+                    "{:?}",
+                    issuer_uid.chars().take(70).collect::<String>()
+                ));
             }
 
-            let headers = &stub.armor_headers();
+            let headers = &self.cert.armor_headers();
             let headers: Vec<(&str, &str)> = headers
                 .iter()
                 .map(|s| ("Comment", s.as_str()))
@@ -221,11 +202,8 @@ impl<'a> RevocationOutput for UserIDRevocation<'a> {
 
             let mut writer =
                 Writer::with_headers(&mut output, Kind::PublicKey, headers)?;
-            for packet in packets {
-                packet
-                    .serialize(&mut writer)
-                    .context("serializing revocation certificate")?;
-            }
+            rev_cert.serialize(&mut writer)
+                .context("serializing revocation certificate")?;
             writer.finalize()?;
         }
         Ok(())

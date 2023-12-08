@@ -17,7 +17,6 @@ use openpgp::Result;
 use crate::Config;
 use crate::cli::key::RevokeCommand;
 use crate::cli::types::FileOrStdout;
-use crate::commands::cert_stub;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
 use crate::common::read_cert;
@@ -96,39 +95,17 @@ impl<'a> RevocationOutput for CertificateRevocation<'a> {
     ) -> Result<()> {
         let mut output = output.create_safe(force)?;
 
-        let (stub, packets): (Cert, Vec<Packet>) = {
-            if self.first_party_issuer {
-                (self.cert.clone(), vec![self.revocation_packet.clone()])
-            } else {
-                let cert_stub = match cert_stub(
-                    self.cert.clone(),
-                    self.policy,
-                    self.time,
-                    None,
-                ) {
-                    Ok(stub) => stub,
-                    // We failed to create a stub.  Just use the original
-                    // certificate as is.
-                    Err(_) => self.cert.clone(),
-                };
-
-                (
-                    cert_stub.clone(),
-                    cert_stub
-                        .strip_secret_key_material()
-                        .insert_packets(self.revocation_packet.clone())?
-                        .into_packets()
-                        .collect(),
-                )
-            }
-        };
+        // First, build a minimal revocation certificate containing
+        // the primary key, the revoked component, and the revocation
+        // signature.
+        let rev_cert = Cert::from_packets(vec![
+            self.cert.primary_key().key().clone().into(),
+            self.revocation_packet.clone(),
+        ].into_iter())?;
 
         if binary {
-            for packet in packets {
-                packet
-                    .serialize(&mut output)
-                    .context("serializing revocation certificate")?;
-            }
+            rev_cert.serialize(&mut output)
+                .context("serializing revocation certificate")?;
         } else {
             // Add some more helpful ASCII-armor comments.
             let mut more: Vec<String> = vec![];
@@ -140,21 +117,17 @@ impl<'a> RevocationOutput for CertificateRevocation<'a> {
                 // Then if it was issued by a third-party.
                 more.push("issued by".to_string());
                 more.push(self.secret.fingerprint().to_spaced_hex());
-                if let Ok(valid_cert) =
-                    &stub.with_policy(self.policy, self.time)
-                {
-                    if let Ok(uid) = valid_cert.primary_userid() {
-                        let uid = String::from_utf8_lossy(uid.value());
-                        // Truncate it, if it is too long.
-                        more.push(format!(
-                            "{:?}",
-                            uid.chars().take(70).collect::<String>()
-                        ));
-                    }
-                }
+                let issuer_uid = crate::best_effort_primary_uid(
+                    &self.secret, self.policy, self.time);
+                let issuer_uid = String::from_utf8_lossy(issuer_uid.value());
+                // Truncate it, if it is too long.
+                more.push(format!(
+                    "{:?}",
+                    issuer_uid.chars().take(70).collect::<String>()
+                ));
             }
 
-            let headers = &stub.armor_headers();
+            let headers = &self.cert.armor_headers();
             let headers: Vec<(&str, &str)> = headers
                 .iter()
                 .map(|s| ("Comment", s.as_str()))
@@ -163,11 +136,8 @@ impl<'a> RevocationOutput for CertificateRevocation<'a> {
 
             let mut writer =
                 Writer::with_headers(&mut output, Kind::PublicKey, headers)?;
-            for packet in packets {
-                packet
-                    .serialize(&mut writer)
-                    .context("serializing revocation certificate")?;
-            }
+            rev_cert.serialize(&mut writer)
+                .context("serializing revocation certificate")?;
             writer.finalize()?;
         }
 

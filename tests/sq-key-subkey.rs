@@ -239,8 +239,11 @@ fn sq_key_subkey_revoke() -> Result<()> {
         let mut found_revoked = false;
 
         // read revocation cert
-        let cert = Cert::from_file(&revocation)?;
-        assert!(! cert.is_tsk());
+        let rev = Cert::from_file(&revocation)?;
+        assert!(! rev.is_tsk());
+
+        // and merge it into the certificate.
+        let cert = cert.clone().merge_public(rev)?;
         let valid_cert =
             cert.with_policy(STANDARD_POLICY, revocation_time.map(Into::into))?;
         valid_cert
@@ -436,8 +439,11 @@ fn sq_key_subkey_revoke_thirdparty() -> Result<()> {
         let mut found_revoked = false;
 
         // read revocation cert
-        let cert = Cert::from_file(&revocation)?;
-        assert!(! cert.is_tsk());
+        let rev = Cert::from_file(&revocation)?;
+        assert!(! rev.is_tsk());
+
+        // and merge it into the certificate.
+        let cert = cert.clone().merge_public(rev)?;
         let valid_cert =
             cert.with_policy(STANDARD_POLICY, revocation_time.map(Into::into))?;
 

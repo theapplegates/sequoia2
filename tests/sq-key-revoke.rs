@@ -134,16 +134,16 @@ fn sq_key_revoke() -> Result<()> {
             );
         }
 
-        // We should get just a single signature packet.
+        // We should get the primary key and the revocation signature.
         let packet_pile = PacketPile::from_file(&revocation)?;
 
         assert_eq!(
             packet_pile.children().count(),
-            1,
-            "expected a single packet"
+            2,
+            "expected the primary key and the revocation signature"
         );
 
-        if let Some(Packet::Signature(sig)) = packet_pile.path_ref(&[0]) {
+        if let Some(Packet::Signature(sig)) = packet_pile.path_ref(&[1]) {
             // the issuer is the certificate owner
             assert_eq!(
                 sig.get_issuers().into_iter().next(),
@@ -311,11 +311,10 @@ fn sq_key_revoke_thirdparty() -> Result<()> {
         // read revocation cert
         let revocation_cert = Cert::from_file(&revocation)?;
         assert!(! revocation_cert.is_tsk());
-        let revocation_valid_cert = revocation_cert
-            .with_policy(STANDARD_POLICY, revocation_time.map(Into::into))?;
 
         // evaluate revocation status
-        let status = revocation_valid_cert.revocation_status();
+        let status = revocation_cert.revocation_status(
+            STANDARD_POLICY, revocation_time.map(Into::into));
         if let RevocationStatus::CouldBe(sigs) = status {
             // there is only one signature packet
             assert_eq!(sigs.len(), 1);

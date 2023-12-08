@@ -9,9 +9,9 @@ use chrono::Utc;
 use sequoia_openpgp as openpgp;
 use openpgp::armor::Kind;
 use openpgp::armor::Writer;
-use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::cert::KeyBuilder;
 use openpgp::cert::SubkeyRevocationBuilder;
+use openpgp::packet::{Key, key};
 use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::parse::Parse;
 use openpgp::policy::Policy;
@@ -29,7 +29,6 @@ use crate::cli::key::SubkeyAddCommand;
 use crate::cli::key::SubkeyCommand;
 use crate::cli::key::SubkeyRevokeCommand;
 use crate::cli::types::FileOrStdout;
-use crate::commands::cert_stub;
 use crate::commands::get_primary_keys;
 use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
@@ -47,8 +46,7 @@ struct SubkeyRevocation<'a> {
     time: Option<SystemTime>,
     revocation_packet: Packet,
     first_party_issuer: bool,
-    subkey_packets: Vec<Packet>,
-    subkey_as_hex: String,
+    subkey: Key<key::PublicParts, key::SubordinateRole>,
 }
 
 impl<'a> SubkeyRevocation<'a> {
@@ -74,25 +72,16 @@ impl<'a> SubkeyRevocation<'a> {
 
         let first_party_issuer = secret.fingerprint() == cert.fingerprint();
 
-        let mut subkey_packets = vec![];
-        let mut subkey_as_hex = String::new();
-        let mut subkey = None;
-
-        let revocation_packet = {
+        let (subkey, revocation_packet) = {
             let valid_cert = cert.with_policy(NULL_POLICY, None)?;
 
-            for key in valid_cert.keys().subkeys() {
-                if keyhandle.aliases(KeyHandle::from(key.fingerprint())) {
-                    subkey_packets.push(Packet::from(key.key().clone()));
-                    subkey_packets
-                        .push(Packet::from(key.binding_signature().clone()));
-                    subkey_as_hex.push_str(&key.fingerprint().to_spaced_hex());
-                    subkey = Some(key);
-                    break;
-                }
-            }
+            let keys = valid_cert.keys().subkeys()
+                .key_handle(keyhandle.clone())
+                .map(|skb| skb.key().clone())
+                .collect::<Vec<_>>();
 
-            if let Some(ref subkey) = subkey {
+            if keys.len() == 1 {
+                let subkey = keys[0].clone();
                 let mut rev = SubkeyRevocationBuilder::new()
                     .set_reason_for_revocation(reason, message.as_bytes())?;
                 if let Some(time) = time {
@@ -106,12 +95,26 @@ impl<'a> SubkeyRevocation<'a> {
                         *critical,
                     )?;
                 }
-                let rev = rev.build(&mut signer, &cert, subkey.key(), None)?;
-                Packet::Signature(rev)
+                let rev = rev.build(&mut signer, &cert, &subkey, None)?;
+                (subkey.into(), Packet::Signature(rev))
+            } else if keys.len() > 1 {
+                wprintln!("Key ID {} does not uniquely identify a subkey, \
+                           please use a fingerprint instead.\nValid subkeys:",
+                          keyhandle);
+                for k in keys {
+                    wprintln!(
+                        "  - {} {}",
+                        k.fingerprint(),
+                        DateTime::<Utc>::from(k.creation_time()).date_naive()
+                    );
+                }
+                return Err(anyhow!(
+                    "Subkey is ambiguous."
+                ));
             } else {
                 wprintln!(
                     "Subkey {} not found.\nValid subkeys:",
-                    keyhandle.to_spaced_hex()
+                    keyhandle
                 );
                 let mut have_valid = false;
                 for k in valid_cert.keys().subkeys() {
@@ -139,8 +142,7 @@ impl<'a> SubkeyRevocation<'a> {
             time,
             revocation_packet,
             first_party_issuer,
-            subkey_packets,
-            subkey_as_hex,
+            subkey,
         })
     }
 }
@@ -155,40 +157,18 @@ impl<'a> RevocationOutput for SubkeyRevocation<'a> {
     ) -> Result<()> {
         let mut output = output.create_safe(force)?;
 
-        let (stub, packets): (Cert, Vec<Packet>) = {
-            let mut cert_stub = match cert_stub(
-                self.cert.clone(),
-                self.policy,
-                self.time,
-                None,
-            ) {
-                Ok(stub) => stub,
-                // We failed to create a stub.  Just use the original
-                // certificate as is.
-                Err(_) => self.cert.clone(),
-            };
-
-            if !self.subkey_packets.is_empty() {
-                cert_stub =
-                    cert_stub.insert_packets(self.subkey_packets.clone())?;
-            }
-
-            (
-                cert_stub.clone(),
-                cert_stub
-                    .strip_secret_key_material()
-                    .insert_packets(self.revocation_packet.clone())?
-                    .into_packets()
-                    .collect(),
-            )
-        };
+        // First, build a minimal revocation certificate containing
+        // the primary key, the revoked component, and the revocation
+        // signature.
+        let rev_cert = Cert::from_packets(vec![
+            self.cert.primary_key().key().clone().into(),
+            self.subkey.clone().into(),
+            self.revocation_packet.clone(),
+        ].into_iter())?;
 
         if binary {
-            for packet in packets {
-                packet
-                    .serialize(&mut output)
-                    .context("serializing revocation certificate")?;
-            }
+            rev_cert.serialize(&mut output)
+                .context("serializing revocation certificate")?;
         } else {
             // Add some more helpful ASCII-armor comments.
             let mut more: Vec<String> = vec![];
@@ -197,27 +177,23 @@ impl<'a> RevocationOutput for SubkeyRevocation<'a> {
             more.push(
                 "including a revocation to revoke the subkey".to_string(),
             );
-            more.push(self.subkey_as_hex.clone());
+            more.push(self.subkey.fingerprint().to_spaced_hex());
 
             if !self.first_party_issuer {
                 // Then if it was issued by a third-party.
                 more.push("issued by".to_string());
                 more.push(self.secret.fingerprint().to_spaced_hex());
-                if let Ok(valid_cert) =
-                    &stub.with_policy(self.policy, self.time)
-                {
-                    if let Ok(uid) = valid_cert.primary_userid() {
-                        let uid = String::from_utf8_lossy(uid.value());
-                        // Truncate it, if it is too long.
-                        more.push(format!(
-                            "{:?}",
-                            uid.chars().take(70).collect::<String>()
-                        ));
-                    }
-                }
+                let issuer_uid = crate::best_effort_primary_uid(
+                    &self.secret, self.policy, self.time);
+                let issuer_uid = String::from_utf8_lossy(issuer_uid.value());
+                // Truncate it, if it is too long.
+                more.push(format!(
+                    "{:?}",
+                    issuer_uid.chars().take(70).collect::<String>()
+                ));
             }
 
-            let headers = &stub.armor_headers();
+            let headers = &self.cert.armor_headers();
             let headers: Vec<(&str, &str)> = headers
                 .iter()
                 .map(|s| ("Comment", s.as_str()))
@@ -226,11 +202,8 @@ impl<'a> RevocationOutput for SubkeyRevocation<'a> {
 
             let mut writer =
                 Writer::with_headers(&mut output, Kind::PublicKey, headers)?;
-            for packet in packets {
-                packet
-                    .serialize(&mut writer)
-                    .context("serializing revocation certificate")?;
-            }
+            rev_cert.serialize(&mut writer)
+                .context("serializing revocation certificate")?;
             writer.finalize()?;
         }
         Ok(())

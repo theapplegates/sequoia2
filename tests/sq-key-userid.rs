@@ -112,14 +112,11 @@ fn sq_key_userid_revoke() -> Result<()> {
         let mut found_revoked = false;
 
         // read revocation cert
-        let cert = Cert::from_file(&revocation)?;
-        assert!(! cert.is_tsk());
+        let rev = Cert::from_file(&revocation)?;
+        assert!(! rev.is_tsk());
+        let cert = cert.clone().merge_public(rev)?;
         let valid_cert =
             cert.with_policy(STANDARD_POLICY, revocation_time.map(Into::into))?;
-
-        // Make sure the certificate stub only contains the
-        // revoked User ID (the rest should be striped).
-        assert_eq!(valid_cert.userids().count(), 1);
 
         valid_cert.userids().for_each(|x| {
             if x.value() == userid_revoke.as_bytes() {
@@ -174,6 +171,7 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
     // revoke the last userid
     let userid_revoke = userids.last().unwrap();
     let (tmpdir, path, _) = sq_key_generate(Some(userids))?;
+    let cert = Cert::from_file(&path)?;
 
     let (thirdparty_tmpdir, thirdparty_path, thirdparty_time) =
         sq_key_generate(Some(&["bob <bob@example.org"]))?;
@@ -269,14 +267,11 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
         let mut found_revoked = false;
 
         // read revocation cert
-        let revocation_cert = Cert::from_file(&revocation)?;
-        assert!(! revocation_cert.is_tsk());
+        let rev = Cert::from_file(&revocation)?;
+        assert!(! rev.is_tsk());
+        let revocation_cert = cert.clone().merge_public(rev)?;
         let revocation_valid_cert = revocation_cert
             .with_policy(STANDARD_POLICY, revocation_time.map(Into::into))?;
-
-        // Make sure the certificate stub only contains the
-        // revoked User ID (the rest should be stripped).
-        assert_eq!(revocation_valid_cert.userids().count(), 1);
 
         revocation_valid_cert.userids().for_each(|x| {
             if x.value() == userid_revoke.as_bytes() {

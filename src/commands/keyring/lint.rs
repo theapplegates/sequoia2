@@ -4,6 +4,7 @@ use std::process::exit;
 use std::time::SystemTime;
 
 use is_terminal::IsTerminal;
+use openpgp::crypto::Password;
 use termcolor::{WriteColor, StandardStream, ColorChoice, ColorSpec, Color};
 
 use sequoia_openpgp as openpgp;
@@ -31,7 +32,7 @@ use crate::{
 
 
 fn update_cert_revocation(cert: &Cert, rev: &Signature,
-                          passwords: &mut Vec<String>,
+                          passwords: &mut Vec<Password>,
                           reference_time: &SystemTime)
     -> Result<Signature>
 {
@@ -64,7 +65,7 @@ const GOOD_HASHES: &[ HashAlgorithm ] = &[
 //
 // ua is using a weak policy.
 fn update_user_id_binding(ua: &ValidUserIDAmalgamation,
-                          passwords: &mut Vec<String>,
+                          passwords: &mut Vec<Password>,
                           reference_time: &SystemTime)
     -> Result<Signature>
 {
@@ -134,7 +135,7 @@ fn update_user_id_binding(ua: &ValidUserIDAmalgamation,
 //
 // ka is using a weak policy.
 fn update_subkey_binding<P>(ka: &ValidSubordinateKeyAmalgamation<P>,
-                            passwords: &mut Vec<String>,
+                            passwords: &mut Vec<Password>,
                             reference_time: &SystemTime)
     -> Result<Signature>
     where P: key::KeyParts + Clone
@@ -245,7 +246,7 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
 
     let reference_time = config.time;
 
-    let mut passwords: Vec<String> = args.password;
+    let mut passwords: Vec<Password> = args.password;
 
     let mut out = args.output.create_pgp_safe(
         config.force, args.binary,

@@ -248,7 +248,7 @@ where
 // The passwords in `passwords` are tried first.  If the key can't be
 // decrypted using those, the user is prompted.  If a valid password
 // is entered, it is added to `passwords`.
-fn decrypt_key<R>(key: Key<key::SecretParts, R>, passwords: &mut Vec<String>)
+fn decrypt_key<R>(key: Key<key::SecretParts, R>, passwords: &mut Vec<Password>)
     -> Result<Key<key::SecretParts, R>>
     where R: key::KeyRole + Clone
 {
@@ -260,7 +260,7 @@ fn decrypt_key<R>(key: Key<key::SecretParts, R>, passwords: &mut Vec<String>)
         SecretKeyMaterial::Encrypted(_) => {
             for p in passwords.iter() {
                 if let Ok(key)
-                    = key.clone().decrypt_secret(&Password::from(&p[..]))
+                    = key.clone().decrypt_secret(&p)
                 {
                     return Ok(key);
                 }
@@ -286,7 +286,7 @@ fn decrypt_key<R>(key: Key<key::SecretParts, R>, passwords: &mut Vec<String>)
                                 .clone()
                                 .decrypt_secret(&Password::from(&p[..]))
                             {
-                                passwords.push(p);
+                                passwords.push(p.into());
                                 return Ok(key);
                             }
                         }

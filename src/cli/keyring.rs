@@ -4,6 +4,7 @@ use clap::{Args, Parser, Subcommand};
 
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
+use openpgp::crypto::Password;
 
 use super::types::ClapData;
 use super::types::FileOrStdin;
@@ -394,7 +395,7 @@ pub struct LintCommand {
     /// connected to a tty, the linter will ask for a password when
     /// needed.
     #[arg(short, long)]
-    pub password: Vec<String>,
+    pub password: Vec<Password>,
 
     /// If set, outputs a list of fingerprints, one per line, of
     /// certificates that have issues.  This output is intended for

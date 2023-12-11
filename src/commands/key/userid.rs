@@ -171,6 +171,7 @@ impl<'a> RevocationOutput for UserIDRevocation<'a> {
             (
                 cert_stub.clone(),
                 cert_stub
+                    .strip_secret_key_material()
                     .insert_packets(self.revocation_packet.clone())?
                     .into_packets()
                     .collect(),

@@ -113,6 +113,7 @@ fn sq_key_userid_revoke() -> Result<()> {
 
         // read revocation cert
         let cert = Cert::from_file(&revocation)?;
+        assert!(! cert.is_tsk());
         let valid_cert =
             cert.with_policy(STANDARD_POLICY, revocation_time.map(Into::into))?;
 
@@ -269,6 +270,7 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
 
         // read revocation cert
         let revocation_cert = Cert::from_file(&revocation)?;
+        assert!(! revocation_cert.is_tsk());
         let revocation_valid_cert = revocation_cert
             .with_policy(STANDARD_POLICY, revocation_time.map(Into::into))?;
 

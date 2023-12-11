@@ -310,6 +310,7 @@ fn sq_key_revoke_thirdparty() -> Result<()> {
 
         // read revocation cert
         let revocation_cert = Cert::from_file(&revocation)?;
+        assert!(! revocation_cert.is_tsk());
         let revocation_valid_cert = revocation_cert
             .with_policy(STANDARD_POLICY, revocation_time.map(Into::into))?;
 

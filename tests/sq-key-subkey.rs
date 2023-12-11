@@ -240,6 +240,7 @@ fn sq_key_subkey_revoke() -> Result<()> {
 
         // read revocation cert
         let cert = Cert::from_file(&revocation)?;
+        assert!(! cert.is_tsk());
         let valid_cert =
             cert.with_policy(STANDARD_POLICY, revocation_time.map(Into::into))?;
         valid_cert
@@ -436,6 +437,7 @@ fn sq_key_subkey_revoke_thirdparty() -> Result<()> {
 
         // read revocation cert
         let cert = Cert::from_file(&revocation)?;
+        assert!(! cert.is_tsk());
         let valid_cert =
             cert.with_policy(STANDARD_POLICY, revocation_time.map(Into::into))?;
 

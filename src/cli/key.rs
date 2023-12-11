@@ -305,6 +305,18 @@ pub struct PasswordCommand {
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,
+    /// File containing password to decrypt key
+    ///
+    /// Note that the entire key file will be used as the password, including
+    /// surrounding whitespace like for example a trailing newline
+    #[clap(long)]
+    pub old_password_file: Vec<PathBuf>,
+    /// File containing password to encrypt key
+    ///
+    /// Note that the entire key file will be used as the password, including
+    /// surrounding whitespace like for example a trailing newline
+    #[clap(long)]
+    pub new_password_file: Option<PathBuf>,
     #[clap(
         long = "clear",
         help = "Emit a key with unencrypted secrets",

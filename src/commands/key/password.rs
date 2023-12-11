@@ -23,6 +23,9 @@ pub fn password(
 
     // First, decrypt all secrets.
     let passwords = &mut Vec::new();
+    for password in command.old_password_file {
+        passwords.push(std::fs::read(password)?.into());
+    };
     let mut decrypted: Vec<Packet> = vec![decrypt_key(
         key.primary_key().key().clone().parts_into_secret()?,
         passwords,
@@ -42,6 +45,8 @@ pub fn password(
 
     let new_password = if command.clear {
         None
+    } else if let Some(path) = command.new_password_file {
+        Some(std::fs::read(path)?.into())
     } else {
         prompt_for_password("New password: ", Some("Repeat new password: "))?
     };

@@ -135,7 +135,7 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
             // better to use Kind::SecretKey here.  However, this
             // requires buffering all certs, which has its own
             // problems.
-            let mut output = command.output.create_pgp_safe(
+            let mut output = command.output.for_secrets().create_pgp_safe(
                 config.force,
                 command.binary,
                 armor::Kind::PublicKey,
@@ -149,7 +149,7 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
             // better to use Kind::SecretKey here.  However, this
             // requires buffering all certs, which has its own
             // problems.
-            let mut output = c.output.create_pgp_safe(
+            let mut output = c.output.for_secrets().create_pgp_safe(
                 config.force,
                 c.binary,
                 armor::Kind::PublicKey,
@@ -158,7 +158,7 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
             output.finalize()
         },
         Merge(c) => {
-            let mut output = c.output.create_pgp_safe(
+            let mut output = c.output.for_secrets().create_pgp_safe(
                 config.force,
                 c.binary,
                 armor::Kind::PublicKey,

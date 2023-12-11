@@ -62,7 +62,7 @@ pub fn attest_certifications(
     // Finally, add the new signatures.
     let key = key.insert_packets(attestation_signatures)?;
 
-    let mut sink = command.output.create_safe(config.force)?;
+    let mut sink = command.output.for_secrets().create_safe(config.force)?;
     if command.binary {
         key.as_tsk().serialize(&mut sink)?;
     } else {

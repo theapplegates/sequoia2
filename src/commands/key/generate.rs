@@ -134,7 +134,7 @@ pub fn generate(
             .map(|value| ("Comment", value.as_str()))
             .collect();
 
-        let w = command.output.create_safe(config.force)?;
+        let w = command.output.for_secrets().create_safe(config.force)?;
         let mut w = Writer::with_headers(w, Kind::SecretKey, headers)?;
         cert.as_tsk().serialize(&mut w)?;
         w.finalize()?;

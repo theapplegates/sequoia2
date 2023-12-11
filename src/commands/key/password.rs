@@ -66,7 +66,7 @@ pub fn password(
         key = key.insert_packets(encrypted)?;
     }
 
-    let mut output = command.output.create_safe(config.force)?;
+    let mut output = command.output.for_secrets().create_safe(config.force)?;
     if command.binary {
         key.as_tsk().serialize(&mut output)?;
     } else {

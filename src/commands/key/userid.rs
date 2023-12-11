@@ -395,7 +395,7 @@ fn userid_add(
     // Merge additional User IDs into key
     let cert = key.insert_packets(add)?;
 
-    let mut sink = command.output.create_safe(config.force)?;
+    let mut sink = command.output.for_secrets().create_safe(config.force)?;
     if command.binary {
         cert.as_tsk().serialize(&mut sink)?;
     } else {
@@ -449,7 +449,7 @@ signatures on other User IDs to make the key valid again.",
         }
     }
 
-    let mut sink = command.output.create_safe(config.force)?;
+    let mut sink = command.output.for_secrets().create_safe(config.force)?;
     if command.binary {
         cert.as_tsk().serialize(&mut sink)?;
     } else {

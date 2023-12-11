@@ -366,14 +366,14 @@ impl FromStr for FileOrStdout {
         if "-" == s {
             Ok(FileOrStdout::default())
         } else {
-            Ok(FileOrStdout(Some(PathBuf::from(s))))
+            Ok(FileOrStdout::new(Some(PathBuf::from(s))))
         }
     }
 }
 
 impl Display for FileOrStdout {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        match &self.0 {
+        match self.path() {
             Some(path) => write!(f, "{}", path.display()),
             None => write!(f, "-"),
         }

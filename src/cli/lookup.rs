@@ -8,9 +8,9 @@ use super::keyserver::DEFAULT_KEYSERVERS;
 #[derive(Parser, Debug)]
 #[clap(
     name = "lookup",
-    about = "Looks certs up using network services",
+    about = "Searches for certificates using all supported network services.",
     long_about =
-"Looks certs up using network services.
+"Searches for certificates using all supported network services.
 
 By default, any returned certificates are stored in the local
 certificate store.  This can be overridden by using \"--output\"
@@ -30,19 +30,6 @@ the usual way.
 )]
 pub struct Command {
     #[clap(
-        help = FileOrCertStore::HELP,
-        long,
-        short,
-        value_name = FileOrCertStore::VALUE_NAME,
-    )]
-    pub output: Option<FileOrStdout>,
-    #[clap(
-        short = 'B',
-        long,
-        help = "Emits binary data",
-    )]
-    pub binary: bool,
-    #[clap(
         short,
         long = "server",
         default_values_t = DEFAULT_KEYSERVERS.iter().map(ToString::to_string),
@@ -50,6 +37,22 @@ pub struct Command {
         help = "Sets the keyserver to use.  Can be given multiple times.",
     )]
     pub servers: Vec<String>,
+
+    #[clap(
+        help = FileOrCertStore::HELP,
+        long,
+        short,
+        value_name = FileOrCertStore::VALUE_NAME,
+    )]
+    pub output: Option<FileOrStdout>,
+
+    #[clap(
+        short = 'B',
+        long,
+        help = "Emits binary data",
+    )]
+    pub binary: bool,
+
     #[clap(
         value_name = "QUERY",
         required = true,

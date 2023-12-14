@@ -887,14 +887,8 @@ impl<'store> Config<'store> {
     fn get_special(&mut self, name: &str, userid: &str, create: bool)
         -> Result<(bool, Cert)>
     {
-        // XXX: openpgp-cert-d only supports a single special,
-        // "trust-root", even though the spec allows for other special
-        // names.  To workaround this, we open the special files by
-        // hand.  This is a bit unfortunate as we don't implement the
-        // write lock.
-
-        let filename = if let Some(base) = self.cert_store_base() {
-            base.join(name)
+        let certd = if let Some(certd) = self.cert_store_or_else()?.certd() {
+            certd.certd()
         } else {
             return Err(anyhow::anyhow!(
                 "A local trust root and other special certificates are \
@@ -902,30 +896,18 @@ impl<'store> Config<'store> {
                  directory"));
         };
 
+        // Make sure the name is actually a special name.  (CertD::get
+        // will also accepts fingerprints.)
+        let filename = certd.get_path_by_special(name)?;
+
         // Read it.
-        //
-        // XXX: Because we don't lock the cert-d, there is a chance
-        // that we only read the first half of the key :/.
-        let cert_bytes = match std::fs::read(&filename) {
-            Ok(data) => Some(data),
-            Err(err) => {
-                let err = anyhow::Error::from(err);
-                let mut not_found = false;
-                if let Some(err) = err.downcast_ref::<std::io::Error>() {
-                    if err.kind() == std::io::ErrorKind::NotFound {
-                        not_found = true;
-                    }
-                }
-
-                if ! not_found {
-                    return Err(err).context(format!(
-                        "Looking up {} ({}) in the certificate directory",
-                        name, userid));
-                }
-
-                None
-            }
-        };
+        let cert_bytes = certd.get(&name)
+            .with_context(|| {
+                format!(
+                    "Looking up {} ({}) in the certificate directory",
+                    name, userid)
+            })?
+            .map(|(_tag, bytes)| bytes);
 
         let mut created = false;
         let special: Cert = if let Some(cert_bytes) = cert_bytes {

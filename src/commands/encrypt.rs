@@ -26,7 +26,7 @@ use crate::cli::types::FileOrStdin;
 use crate::cli::types::MetadataTime;
 use crate::Config;
 use crate::Result;
-use crate::common::prompt_for_password;
+use crate::common::password;
 use crate::load_certs;
 
 use crate::commands::CompressionMode;
@@ -101,7 +101,7 @@ pub fn encrypt<'a, 'b: 'a>(
     let mut passwords: Vec<crypto::Password> = Vec::with_capacity(npasswords);
     for n in 0..npasswords {
         let nprompt = format!("Enter password {}", n + 1);
-        if let Some(password) = prompt_for_password(
+        if let Some(password) = password::prompt_for_new(
             if npasswords > 1 {
                 &nprompt
             } else {

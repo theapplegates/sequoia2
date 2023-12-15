@@ -12,7 +12,7 @@ use openpgp::Packet;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
-use crate::common::prompt_for_password;
+use crate::common::password;
 use crate::Config;
 use crate::cli::types::FileOrStdout;
 use crate::cli;
@@ -103,7 +103,7 @@ pub fn generate(
 
     if command.with_password {
         builder = builder.set_password(
-            prompt_for_password(
+            password::prompt_for_new(
                 "Enter password to protect the key",
             )?);
     }

@@ -1,3 +1,5 @@
+//! Common password-related functionality such as prompting.
+
 use openpgp::crypto::Password;
 use openpgp::Result;
 use rpassword::prompt_password;
@@ -8,25 +10,37 @@ const REPEAT_PROMPT: &str = "Repeat password";
 
 /// Prompts twice for a new password and returns an optional [`Password`].
 ///
-/// Prompts twice for comparison and only returns a [`Password`] in a [`Result`]
-/// if both inputs match and are not empty.
-/// Returns [`None`](Option::None), if the password is empty.
-pub fn prompt_for_password(
+/// This function is intended for creating artifacts.  For example, if
+/// a new key or subkey is generated, or a message should be encrypted
+/// using a password.  The cost of mistyping is high, so we prompt
+/// twice.
+///
+/// If the two entered passwords match, the result is returned.  If
+/// the password was the empty string, `None` is returned.
+///
+/// If the passwords differ, an error message is printed and the
+/// process is repeated.
+pub fn prompt_for_new(
     prompt: &str,
 ) -> Result<Option<Password>> {
     let width = prompt.len().max(REPEAT_PROMPT.len());
     let p0 = format!("{:>1$}: ", prompt, width);
     let p1 = format!("{:>1$}: ", REPEAT_PROMPT, width);
-    let password = prompt_password(&p0)?;
-    let password_repeat = prompt_password(&p1)?;
 
-    if password != password_repeat {
-        return Err(anyhow::anyhow!("The passwords do not match!"));
-    }
+    loop {
+        let password = prompt_password(&p0)?;
+        let password_repeat = prompt_password(&p1)?;
 
-    if password.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some(password.into()))
+        if password != password_repeat {
+            wprintln!("The passwords do not match.  Please try again.");
+            wprintln!();
+            continue;
+        }
+
+        return if password.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(password.into()))
+        };
     }
 }

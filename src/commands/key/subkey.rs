@@ -30,10 +30,10 @@ use crate::cli::key::SubkeyCommand;
 use crate::cli::key::SubkeyRevokeCommand;
 use crate::cli::types::FileOrStdout;
 use crate::commands::get_primary_keys;
+use crate::common;
 use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
-use crate::common::prompt_for_password;
 use crate::common::read_cert;
 use crate::common::read_secret;
 use crate::parse_notations;
@@ -266,7 +266,7 @@ fn subkey_add(
                 if command.with_password {
                     (
                         keys.into_iter().next().unwrap().0,
-                        prompt_for_password(
+                        common::password::prompt_for_new(
                             "Please enter password to encrypt the new subkey",
                         )?
                     )

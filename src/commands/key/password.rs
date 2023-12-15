@@ -5,7 +5,7 @@ use openpgp::Packet;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
-use crate::common::prompt_for_password;
+use crate::common;
 use crate::Config;
 use crate::cli;
 use crate::decrypt_key;
@@ -48,7 +48,7 @@ pub fn password(
     } else if let Some(path) = command.new_password_file {
         Some(std::fs::read(path)?.into())
     } else {
-        prompt_for_password("New password")?
+        common::password::prompt_for_new("New password")?
     };
 
     if let Some(new) = new_password {

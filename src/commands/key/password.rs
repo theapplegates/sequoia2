@@ -48,7 +48,7 @@ pub fn password(
     } else if let Some(path) = command.new_password_file {
         Some(std::fs::read(path)?.into())
     } else {
-        prompt_for_password("New password: ", Some("Repeat new password: "))?
+        prompt_for_password("New password")?
     };
 
     if let Some(new) = new_password {

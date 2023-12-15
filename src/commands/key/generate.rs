@@ -104,8 +104,7 @@ pub fn generate(
     if command.with_password {
         builder = builder.set_password(
             prompt_for_password(
-                "Enter password to protect the key: ",
-                Some("Repeat the password once more: "),
+                "Enter password to protect the key",
             )?);
     }
 

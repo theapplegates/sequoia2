@@ -267,8 +267,7 @@ fn subkey_add(
                     (
                         keys.into_iter().next().unwrap().0,
                         prompt_for_password(
-                            "Please enter password to encrypt the new subkey: ",
-                            Some("Please repeat password to encrypt new subkey: "),
+                            "Please enter password to encrypt the new subkey",
                         )?
                     )
                 } else {

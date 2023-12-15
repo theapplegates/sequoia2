@@ -75,15 +75,15 @@ pub trait Convert<T> {
     fn convert(self) -> T;
 }
 
-impl Convert<chrono::Duration> for std::time::Duration {
-    fn convert(self) -> chrono::Duration {
-        chrono::Duration::seconds(self.as_secs() as i64)
+impl Convert<humantime::FormattedDuration> for std::time::Duration {
+    fn convert(self) -> humantime::FormattedDuration {
+        humantime::format_duration(self)
     }
 }
 
-impl Convert<chrono::Duration> for openpgp::types::Duration {
-    fn convert(self) -> chrono::Duration {
-        chrono::Duration::seconds(self.as_secs() as i64)
+impl Convert<humantime::FormattedDuration> for openpgp::types::Duration {
+    fn convert(self) -> humantime::FormattedDuration {
+        humantime::format_duration(self.into())
     }
 }
 

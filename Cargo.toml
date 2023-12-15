@@ -39,6 +39,7 @@ sequoia-policy-config = "0.6"
 anyhow = "1.0.18"
 chrono = "0.4.10"
 clap = { version = "4", features = ["derive", "env", "string", "wrap_help"] }
+humantime = "2"
 itertools = ">=0.10, <0.13"
 sequoia-cert-store = "0.4"
 sequoia-wot = "0.9"

@@ -3133,6 +3133,7 @@ dependencies = [
  "dirs",
  "dot-writer",
  "fehler",
+ "humantime",
  "is-terminal",
  "itertools 0.12.0",
  "predicates",

@@ -6,7 +6,7 @@ use rpassword::prompt_password;
 use sequoia_openpgp as openpgp;
 
 /// Prompt to repeat a password.
-const REPEAT_PROMPT: &str = "Repeat password";
+const REPEAT_PROMPT: &str = "Please repeat the password";
 
 /// Prompts twice for a new password and returns an optional [`Password`].
 ///
@@ -21,8 +21,9 @@ const REPEAT_PROMPT: &str = "Repeat password";
 /// If the passwords differ, an error message is printed and the
 /// process is repeated.
 pub fn prompt_for_new(
-    prompt: &str,
+    reason: &str,
 ) -> Result<Option<Password>> {
+    let prompt = format!("Please enter the password to protect the {}", reason);
     let width = prompt.len().max(REPEAT_PROMPT.len());
     let p0 = format!("{:>1$}: ", prompt, width);
     let p1 = format!("{:>1$}: ", REPEAT_PROMPT, width);

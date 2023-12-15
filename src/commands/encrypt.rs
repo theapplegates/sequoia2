@@ -100,12 +100,13 @@ pub fn encrypt<'a, 'b: 'a>(
 {
     let mut passwords: Vec<crypto::Password> = Vec::with_capacity(npasswords);
     for n in 0..npasswords {
-        let nprompt = format!("Enter password {}", n + 1);
+        let nprompt;
         if let Some(password) = password::prompt_for_new(
             if npasswords > 1 {
+                nprompt = format!("message (password {})", n + 1);
                 &nprompt
             } else {
-                "Enter password"
+                "message"
             },
         )? {
             passwords.push(password)

@@ -103,9 +103,7 @@ pub fn generate(
 
     if command.with_password {
         builder = builder.set_password(
-            password::prompt_for_new(
-                "Enter password to protect the key",
-            )?);
+            password::prompt_for_new("key")?);
     }
 
     if command.output.path().is_none() && command.rev_cert.is_none() {

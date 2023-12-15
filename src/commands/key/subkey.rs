@@ -266,9 +266,7 @@ fn subkey_add(
                 if command.with_password {
                     (
                         keys.into_iter().next().unwrap().0,
-                        common::password::prompt_for_new(
-                            "Please enter password to encrypt the new subkey",
-                        )?
+                        common::password::prompt_for_new("subkey")?,
                     )
                 } else {
                     keys.into_iter().next().unwrap()

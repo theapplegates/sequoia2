@@ -128,22 +128,13 @@ fn get_keys<C>(certs: &[C], p: &dyn Policy,
                 let (unencrypted, password) = match secret {
                     SecretKeyMaterial::Encrypted(ref e) => {
                         // try passwords from already existing keys
-                        match keys.iter().find(|&(_, password)| {
-                            password.is_some()
-                                && e.decrypt(
-                                    key.pk_algo(),
-                                    password.as_ref().unwrap(),
-                                )
-                                .is_ok()
+                        match keys.iter().find_map(|(_, password)| {
+                            password.as_ref().and_then(
+                                |p| e.decrypt(key.pk_algo(), p).ok()
+                                    .map(|key| (key, p.clone())))
                         }) {
-                            Some((_, password)) => (
-                                e.decrypt(
-                                    key.pk_algo(),
-                                    password.as_ref().unwrap(),
-                                )
-                                    .map_err(|_| anyhow!("Incorrect password."))?,
-                                Some(password.as_ref().unwrap().clone()),
-                            ),
+                            Some((unencrypted, password)) =>
+                                (unencrypted, Some(password)),
                             None => {
                                 let password = password::prompt_to_unlock(
                                     &format!("key {}/{}", tsk, key))?;

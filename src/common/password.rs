@@ -45,3 +45,24 @@ pub fn prompt_for_new(
         };
     }
 }
+
+/// Prompts once for a password to unlock an existing object.
+///
+/// This function is intended for consuming artifacts.  For example,
+/// if a key or subkey is locked and must be unlocked, or a message
+/// should be decrypted using a password.
+pub fn prompt_to_unlock(reason: &str) -> Result<Password> {
+    let prompt = format!("Please enter the password to decrypt the {}", reason);
+    let password = prompt_password(&prompt)?;
+    Ok(password.into())
+}
+
+/// Prompts once for a password to unlock an existing object.
+///
+/// This function is intended for consuming artifacts.  For example,
+/// if a key or subkey is locked and must be unlocked, or a message
+/// should be decrypted using a password.
+pub fn prompt_to_unlock_or_cancel(reason: &str) -> Result<Option<Password>> {
+    let password = prompt_to_unlock(reason)?;
+    Ok(if password.map(|p| p.is_empty()) { None } else { Some(password) })
+}

@@ -30,7 +30,10 @@ use cert_store::Store;
 
 use sequoia_wot::store::Store as _;
 
-use crate::Config;
+use crate::{
+    Config,
+    common::password,
+};
 
 use crate::cli::encrypt::CompressionMode;
 use crate::cli::encrypt::EncryptionMode;
@@ -138,16 +141,15 @@ fn get_keys<C>(certs: &[C], p: &dyn Policy,
                                     key.pk_algo(),
                                     password.as_ref().unwrap(),
                                 )
-                                    .map_err(|_| anyhow!("The provided password is incorrect."))?,
+                                    .map_err(|_| anyhow!("Incorrect password."))?,
                                 Some(password.as_ref().unwrap().clone()),
                             ),
                             None => {
-                                let password = Password::from(rpassword::prompt_password(
-                                    &format!("Please enter password to decrypt {}/{}: ", tsk, key))
-                                .context("Reading password from tty")?);
+                                let password = password::prompt_to_unlock(
+                                    &format!("key {}/{}", tsk, key))?;
                                 (
                                     e.decrypt(key.pk_algo(), &password)
-                                        .map_err(|_| anyhow!("The provided password is incorrect."))?,
+                                        .map_err(|_| anyhow!("Incorrect password."))?,
                                     Some(password),
                                 )
                             }
@@ -164,8 +166,8 @@ fn get_keys<C>(certs: &[C], p: &dyn Policy,
                 ));
                 continue 'next_cert;
             } else if let Some(private_key_store) = private_key_store {
-                let input_password = rpassword::prompt_password(
-                    &format!("Please enter password to key {}/{}: ", tsk, key)).unwrap().into();
+                let input_password = password::prompt_to_unlock(
+                    &format!("key {}/{}", tsk, key))?;
                 match pks::unlock_signer(private_key_store, key.clone(), &input_password) {
                     Ok(signer) => {
                         keys.push((signer, Some(input_password.clone())));

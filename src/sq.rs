@@ -267,28 +267,22 @@ fn decrypt_key<R>(key: Key<key::SecretParts, R>, passwords: &mut Vec<Password>)
             }
 
             if std::io::stdin().is_terminal() {
-                let mut first = true;
                 loop {
                     // Prompt the user.
-                    match rpassword::prompt_password(&format!(
-                        "{}Enter password to unlock {} (blank to skip): ",
-                        if first { "" } else { "Invalid password. " },
-                        key.keyid().to_hex()
+                    match common::password::prompt_to_unlock_or_cancel(&format!(
+                        "{} (blank to skip)", key.keyid().to_hex()
                     )) {
-                        Ok(p) => {
-                            first = false;
-                            if p.is_empty() {
-                                // Give up.
-                                break;
-                            }
-
+                        Ok(None) => break, // Give up.
+                        Ok(Some(p)) => {
                             if let Ok(key) = key
                                 .clone()
-                                .decrypt_secret(&Password::from(&p[..]))
+                                .decrypt_secret(&p)
                             {
                                 passwords.push(p.into());
                                 return Ok(key);
                             }
+
+                            wprintln!("Incorrect password.");
                         }
                         Err(err) => {
                             wprintln!("While reading password: {}", err);

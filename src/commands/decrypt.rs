@@ -27,6 +27,7 @@ use crate::{
         packet::dump::PacketDumper,
         VHelper,
     },
+    common::password,
     Config,
     load_certs,
 };
@@ -295,11 +296,10 @@ impl<'a, 'certdb> DecryptionHelper for Helper<'a, 'certdb> {
                         break keypair;
                     }
 
-                    let p = rpassword::prompt_password(&format!(
-                        "Enter password to decrypt key {}: ",
+                    let p = password::prompt_to_unlock(&format!(
+                        "key {}",
                         self.key_hints.get(keyid).unwrap()
-                    ))?
-                    .into();
+                    ))?;
 
                     match key.unlock(&p) {
                         Ok(decryptor) => break decryptor,
@@ -350,11 +350,10 @@ impl<'a, 'certdb> DecryptionHelper for Helper<'a, 'certdb> {
                         break keypair;
                     }
 
-                    let p = rpassword::prompt_password(&format!(
-                        "Enter password to decrypt key {}: ",
+                    let p = password::prompt_to_unlock(&format!(
+                        "key {}",
                         self.key_hints.get(&keyid).unwrap()
-                    ))?
-                    .into();
+                    ))?;
 
                     if let Ok(decryptor) = key.unlock(&p) {
                         break decryptor;
@@ -379,10 +378,7 @@ impl<'a, 'certdb> DecryptionHelper for Helper<'a, 'certdb> {
 
         // Finally, try to decrypt using the SKESKs.
         loop {
-            let password = rpassword::prompt_password(
-                "Enter password to decrypt message: ",
-            )?
-            .into();
+            let password = password::prompt_to_unlock("message")?;
 
             for skesk in skesks {
                 if let Some(sk) = skesk.decrypt(&password).ok()
@@ -395,7 +391,7 @@ impl<'a, 'certdb> DecryptionHelper for Helper<'a, 'certdb> {
                 }
             }
 
-            wprintln!("Bad password.");
+            wprintln!("Incorrect password.");
         }
     }
 }

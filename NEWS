@@ -2,6 +2,74 @@
 #+TITLE: sequoia-sq NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 0.32.0
+ * New functionality
+   - Support for password-encrypted keys has been improved.  For
+     example, a newly generated subkey can be password protected.
+
+   - When encrypting a message with a password, or creating a new
+     password-protected key or subkey, or changing passwords on a key,
+     sq now prompts you to repeat the password to catch typos.
+
+   - Literal data metadata can now be set using
+     `--set-metadata-filename` and `--set-metadata-time`.
+
+   - sq now reads the file
+
+       /etc/crypto-policies/back-ends/sequoia.config
+
+     to configure its cryptographic policy.  The file to load can be
+     overridden using the SEQUOIA_CRYPTO_POLICY environment variable.
+     For more information on the format, see:
+
+     https://docs.rs/sequoia-policy-config/latest/sequoia_policy_config/#format
+
+   - New subcommand: `sq dane generate`.
+
+     Generates DANE records for the given domain and certificates.  DANE is a
+     way to distribute OpenPGP certificates via DNS.
+
+     https://www.rfc-editor.org/rfc/rfc7929.html
+
+   - When querying network resources via `sq keyserver get`, `sq wkd
+     get`, or `sq dane get`, multiple queries can be given that are
+     executed simultaneously.
+
+   - When querying key servers via `sq keyserver get` or `sq keyserver
+     send`, multiple servers are queried simultaneously.
+
+   - There are now four default keyservers:
+
+     - hkps://keys.openpgp.org
+     - hkps://mail-api.proton.me
+     - hkps://keys.mailvelope.com
+     - hkps://keyserver.ubuntu.com
+
+   - New subcommand: `sq lookup`.
+
+     Searches for certificates using all supported network services.
+
+ * Notable changes
+   - Padding has been disabled to increase compatibility with other
+     implementations.
+
+     The padding method we previously used relies on a compressed data
+     packet to pad the message.  However, some implementations do not
+     gracefully process these padded encryption containers, so until
+     we get proper padding support from the next revision of OpenPGP,
+     we disable padding.
+
+   - Message notarization has been disabled.
+
+     Message notarization and their semantics are not well defined,
+     and there is no consensus on how to do that.
+
+   - When doing a userid, subkey, or third-party certificate
+     revocation, with the cert given to --certificate-file containing
+     secret key material, we previously emitted a revocation
+     certificate containing secret key material.  This has been fixed,
+     and tests have been added to ensure secret key material is only
+     emitted where we expect it to be.
 * Changes in 0.31.0
  * New functionality
   - `sq key subkey add` allows to create and add a new subkey to an

@@ -1,11 +1,6 @@
 use anyhow::anyhow;
-use anyhow::Context as _;
 use std::borrow::Borrow;
-use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use std::io::{self, Write};
-use std::path::Path;
 use std::time::SystemTime;
 
 use sequoia_net::pks;
@@ -14,13 +9,8 @@ use openpgp::cert::prelude::*;
 use openpgp::crypto::{self, Password};
 use openpgp::{Cert, Fingerprint, KeyID, Result};
 use openpgp::packet::prelude::*;
-use openpgp::parse::{
-    Parse,
-    PacketParserResult,
-};
 use openpgp::parse::stream::*;
 use openpgp::policy::HashAlgoSecurity;
-use openpgp::serialize::stream::Message;
 use openpgp::policy::Policy;
 use openpgp::types::KeyFlags;
 use openpgp::types::RevocationStatus;
@@ -38,7 +28,6 @@ use crate::{
 use crate::cli::encrypt::CompressionMode;
 use crate::cli::encrypt::EncryptionMode;
 use crate::cli::types::FileOrStdout;
-use crate::cli;
 
 pub mod armor;
 #[cfg(feature = "autocrypt")]
@@ -742,125 +731,4 @@ impl<'a, 'store> VerificationHelper for VHelper<'a, 'store> {
                                  authenticate any signatures"))
         }
     }
-}
-
-pub fn split<P>(input: &mut (dyn io::Read + Sync + Send), prefix: P)
-    -> Result<()>
-    where P: AsRef<Path>
-{
-    let prefix = prefix.as_ref();
-
-    // We (ab)use the mapping feature to create byte-accurate dumps of
-    // nested packets.
-    let mut ppr =
-        openpgp::parse::PacketParserBuilder::from_reader(input)?
-        .map(true).build()?;
-
-    // This encodes our position in the tree.
-    let mut pos = vec![0];
-
-    while let PacketParserResult::Some(pp) = ppr {
-        if let Some(map) = pp.map() {
-            let mut filename = prefix.as_os_str().to_os_string();
-            filename.push(
-                pos.iter().map(|n| format!("{}", n))
-                    .collect::<Vec<String>>().join("-"));
-            filename.push(pp.packet.kind().map(|_| "").unwrap_or("Unknown-"));
-            filename.push(format!("{}", pp.packet.tag()));
-
-            let mut sink = File::create(filename)
-                .context("Failed to create output file")?;
-
-            // Write all the bytes.
-            for field in map.iter() {
-                sink.write_all(field.as_bytes())?;
-            }
-        }
-
-        let old_depth = Some(pp.recursion_depth());
-        ppr = pp.recurse()?.1;
-        let new_depth = ppr.as_ref().map(|pp| pp.recursion_depth()).ok();
-
-        // Update pos.
-        match old_depth.cmp(&new_depth) {
-            Ordering::Less =>
-                pos.push(0),
-            Ordering::Equal =>
-                *pos.last_mut().unwrap() += 1,
-            Ordering::Greater => {
-                pos.pop();
-            },
-        }
-    }
-    Ok(())
-}
-
-/// Joins the given files.
-pub fn join(config: Config, c: cli::packet::JoinCommand) -> Result<()> {
-    // Either we know what kind of armor we want to produce, or we
-    // need to detect it using the first packet we see.
-    let kind = c.kind.into();
-    let output = c.output;
-    let mut sink = if c.binary {
-        // No need for any auto-detection.
-        Some(output.create_pgp_safe(
-            config.force, true, openpgp::armor::Kind::File)?)
-    } else if let Some(kind) = kind {
-        Some(output.create_pgp_safe(config.force, false, kind)?)
-    } else {
-        None // Defer.
-    };
-
-    /// Writes a bit-accurate copy of all top-level packets in PPR to
-    /// OUTPUT.
-    fn copy<'a, 'b>(config: &Config,
-            mut ppr: PacketParserResult,
-            output: &'a FileOrStdout,
-            sink: &'b mut Option<Message<'a>>)
-            -> Result<()> {
-        while let PacketParserResult::Some(pp) = ppr {
-            if sink.is_none() {
-                // Autodetect using the first packet.
-                let kind = match pp.packet {
-                    Packet::Signature(_) => openpgp::armor::Kind::Signature,
-                    Packet::SecretKey(_) => openpgp::armor::Kind::SecretKey,
-                    Packet::PublicKey(_) => openpgp::armor::Kind::PublicKey,
-                    Packet::PKESK(_) | Packet::SKESK(_) =>
-                        openpgp::armor::Kind::Message,
-                    _ => openpgp::armor::Kind::File,
-                };
-
-                *sink = Some(
-                    output.create_pgp_safe(config.force, false, kind)?
-                );
-            }
-
-            // We (ab)use the mapping feature to create byte-accurate
-            // copies.
-            for field in pp.map().expect("must be mapped").iter() {
-                sink.as_mut().expect("initialized at this point")
-                    .write_all(field.as_bytes())?;
-            }
-
-            ppr = pp.next()?.1;
-        }
-        Ok(())
-    }
-
-    if !c.input.is_empty() {
-        for name in c.input {
-            let ppr =
-                openpgp::parse::PacketParserBuilder::from_file(name)?
-                .map(true).build()?;
-            copy(&config, ppr, &output, &mut sink)?;
-        }
-    } else {
-        let ppr =
-            openpgp::parse::PacketParserBuilder::from_reader(io::stdin())?
-            .map(true).build()?;
-        copy(&config, ppr, &output, &mut sink)?;
-    }
-
-    sink.unwrap().finalize()?;
-    Ok(())
 }

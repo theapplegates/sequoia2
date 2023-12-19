@@ -120,17 +120,7 @@ pub fn encrypt<'a, 'b: 'a>(
             "Neither recipient nor password given"));
     }
 
-    let mode = match mode {
-        EncryptPurpose::Storage => {
-            KeyFlags::empty().set_storage_encryption()
-        }
-        EncryptPurpose::Transport => {
-            KeyFlags::empty().set_transport_encryption()
-        }
-        EncryptPurpose::Universal => KeyFlags::empty()
-            .set_storage_encryption()
-            .set_transport_encryption(),
-    };
+    let mode = KeyFlags::from(mode);
 
     let mut signers = get_signing_keys(
         &signers, policy, private_key_store, time, None)?;

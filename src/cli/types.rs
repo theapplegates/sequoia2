@@ -25,6 +25,7 @@ use openpgp::armor;
 use openpgp::fmt::hex;
 use openpgp::serialize::stream::Armorer;
 use openpgp::serialize::stream::Message;
+use openpgp::types::KeyFlags;
 use openpgp::types::SymmetricAlgorithm;
 use openpgp::types::Timestamp;
 
@@ -717,6 +718,22 @@ pub enum EncryptPurpose {
 
     /// Protects data in transport and at rest.
     Universal,
+}
+
+impl From<EncryptPurpose> for KeyFlags {
+    fn from(p: EncryptPurpose) -> Self {
+        match p {
+            EncryptPurpose::Storage => {
+                KeyFlags::empty().set_storage_encryption()
+            }
+            EncryptPurpose::Transport => {
+                KeyFlags::empty().set_transport_encryption()
+            }
+            EncryptPurpose::Universal => KeyFlags::empty()
+                .set_storage_encryption()
+                .set_transport_encryption(),
+        }
+    }
 }
 
 /// Holds a session key as parsed from the command line, with an optional

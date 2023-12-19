@@ -133,6 +133,9 @@ PEP_CERT_STORE.  The pEp Engine's default certificate store is at \
         long,
         value_name = "PATH",
         global = true,
+        // All global options should have a high display_order, so
+        // that they are sorted to the bottom.
+        display_order = 900,
         help = "Specifies the location of a keyring to use",
         long_help = "\
 Specifies the location of a keyring to use.  Keyrings are used in \
@@ -179,6 +182,9 @@ store, and the results are merged together."
         value_name = "TIME",
         help = "Sets the reference time as ISO 8601 formatted timestamp",
         global = true,
+        // All global options should have a high display_order, so
+        // that they are sorted to the bottom.
+        display_order = 900,
         long_help = "\
 Sets the reference time as an ISO 8601 formatted timestamp.  Normally, \
 commands use the current time as the reference time.  This argument allows \
@@ -213,6 +219,9 @@ $ sq --time 20130721T0550+0200 verify msg.pgp
         short,
         long,
         global = true,
+        // All global options should have a high display_order, so
+        // that they are sorted to the bottom.
+        display_order = 900,
         help = "Be more verbose.",
     )]
     pub verbose: bool,

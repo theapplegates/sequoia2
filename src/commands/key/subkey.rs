@@ -24,10 +24,10 @@ use openpgp::Packet;
 use openpgp::Result;
 
 use crate::Config;
-use crate::cli::key::EncryptPurpose;
 use crate::cli::key::SubkeyAddCommand;
 use crate::cli::key::SubkeyCommand;
 use crate::cli::key::SubkeyRevokeCommand;
+use crate::cli::types::EncryptPurpose;
 use crate::cli::types::FileOrStdout;
 use crate::commands::get_primary_keys;
 use crate::common;

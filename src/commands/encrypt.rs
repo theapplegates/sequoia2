@@ -22,6 +22,7 @@ use openpgp::types::CompressionAlgorithm;
 use openpgp::types::KeyFlags;
 
 use crate::cli;
+use crate::cli::types::EncryptPurpose;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::MetadataTime;
 use crate::Config;
@@ -30,7 +31,6 @@ use crate::common::password;
 use crate::load_certs;
 
 use crate::commands::CompressionMode;
-use crate::commands::EncryptionMode;
 use crate::commands::get_signing_keys;
 
 pub fn dispatch(config: Config, command: cli::encrypt::Command) -> Result<()> {
@@ -89,7 +89,7 @@ pub fn encrypt<'a, 'b: 'a>(
     npasswords: usize,
     recipients: &'b [openpgp::Cert],
     signers: Vec<openpgp::Cert>,
-    mode: EncryptionMode,
+    mode: EncryptPurpose,
     compression: CompressionMode,
     time: Option<SystemTime>,
     use_expired_subkey: bool,
@@ -121,13 +121,13 @@ pub fn encrypt<'a, 'b: 'a>(
     }
 
     let mode = match mode {
-        EncryptionMode::Rest => {
+        EncryptPurpose::Storage => {
             KeyFlags::empty().set_storage_encryption()
         }
-        EncryptionMode::Transport => {
+        EncryptPurpose::Transport => {
             KeyFlags::empty().set_transport_encryption()
         }
-        EncryptionMode::All => KeyFlags::empty()
+        EncryptPurpose::Universal => KeyFlags::empty()
             .set_storage_encryption()
             .set_transport_encryption(),
     };

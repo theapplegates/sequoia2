@@ -706,6 +706,19 @@ impl Display for Expiry {
     }
 }
 
+/// Describes the purpose of the encryption.
+#[derive(ValueEnum, Clone, Debug)]
+pub enum EncryptPurpose {
+    /// Protects data in transport.
+    Transport,
+
+    /// Protects data at rest.
+    Storage,
+
+    /// Protects data in transport and at rest.
+    Universal,
+}
+
 /// Holds a session key as parsed from the command line, with an optional
 /// algorithm specifier.
 ///

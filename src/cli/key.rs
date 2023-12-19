@@ -10,6 +10,7 @@ use openpgp::types::ReasonForRevocation as OpenPGPRevocationReason;
 use crate::cli::KEY_VALIDITY_DURATION;
 use crate::cli::KEY_VALIDITY_IN_YEARS;
 use crate::cli::types::ClapData;
+use crate::cli::types::EncryptPurpose;
 use crate::cli::types::Expiry;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
@@ -255,13 +256,6 @@ impl CipherSuite {
             CipherSuite::Cv25519 => SqCipherSuite::Cv25519,
         }
     }
-}
-
-#[derive(ValueEnum, Clone, Debug)]
-pub enum EncryptPurpose {
-    Transport,
-    Storage,
-    Universal
 }
 
 #[derive(Debug, Args)]

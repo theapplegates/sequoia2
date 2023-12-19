@@ -75,7 +75,7 @@ pub fn generate(
     }
 
     // Encryption Capability
-    use cli::key::EncryptPurpose::*;
+    use cli::types::EncryptPurpose::*;
     match (command.can_encrypt, command.cannot_encrypt) {
         (Some(Universal), false) | (None, false) => {
             builder = builder.add_subkey(

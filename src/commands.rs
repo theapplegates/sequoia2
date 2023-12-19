@@ -26,7 +26,6 @@ use crate::{
 };
 
 use crate::cli::encrypt::CompressionMode;
-use crate::cli::encrypt::EncryptionMode;
 use crate::cli::types::FileOrStdout;
 
 pub mod armor;

@@ -7,6 +7,7 @@ use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
 use super::types::ClapData;
+use super::types::EncryptPurpose;
 use super::types::MetadataTime;
 use super::types::FileOrStdin;
 use super::types::FileOrStdout;
@@ -155,20 +156,21 @@ pub struct Command {
     )]
     pub symmetric: u8,
     #[clap(
-        long = "mode",
-        value_name = "MODE",
-        default_value_t = EncryptionMode::All,
+        long = "encrypt-for",
+        value_name = "PURPOSE",
+        default_value_t = EncryptPurpose::Universal,
         help = "Selects what kind of keys are considered for encryption.",
         long_help =
             "Selects what kind of keys are considered for \
-            encryption.  Transport select subkeys marked \
-            as suitable for transport encryption, rest \
+            encryption.  'transport' select subkeys marked \
+            as suitable for transport encryption, 'storage' \
             selects those for encrypting data at rest, \
-            and all selects all encryption-capable \
+            and 'universal' selects all encryption-capable \
             subkeys.",
         value_enum,
     )]
-    pub mode: EncryptionMode,
+    pub mode: EncryptPurpose,
+
     #[clap(
         long = "compression",
         value_name = "KIND",
@@ -186,13 +188,6 @@ pub struct Command {
             to using the one that expired last",
     )]
     pub use_expired_subkey: bool,
-}
-
-#[derive(ValueEnum, Debug, Clone)]
-pub enum EncryptionMode {
-    Transport,
-    Rest,
-    All
 }
 
 #[derive(ValueEnum, Debug, Clone)]

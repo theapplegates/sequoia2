@@ -3,6 +3,7 @@ use openpgp::{
     Cert,
     Result,
     armor,
+    packet::UserID,
     parse::Parse,
     serialize::Serialize,
 };
@@ -28,13 +29,18 @@ pub fn dispatch(mut config: Config, c: &cli::autocrypt::Command) -> Result<()> {
 
             let input = command.input.open()?;
             let ac = autocrypt::AutocryptHeaders::from_reader(input)?;
+            let from = UserID::from(
+                ac.from.as_ref().ok_or(anyhow::anyhow!("no From: header"))?
+                    .as_str());
+            let from_addr = from.email2()?.ok_or(
+                    anyhow::anyhow!("no email address in From: header"))?;
+
             for h in ac.headers {
                 if let Some(addr) = h.attributes.iter()
-                    .find_map(|a| (&a.key == "addr").then(|| a.value.clone()))
+                    .find_map(|a| (&a.key == "addr"
+                                   && &a.value == &from_addr)
+                              .then(|| a.value.clone()))
                 {
-                    // XXX: The Autocrypt spec says we MUST validate
-                    // this against the From header, but we cannot
-                    // parse the mail structure yet.
                     if let Some(cert) = h.key {
                         let certs = certify_downloads(
                             &mut config,

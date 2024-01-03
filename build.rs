@@ -26,7 +26,7 @@ fn main() {
     dump_help(sq.clone()).unwrap();
 
     generate_shell_completions(&mut sq).unwrap();
-    build_man_pages().unwrap();
+    generate_man_pages(&sq).unwrap();
 }
 
 /// Generates shell completions.
@@ -103,32 +103,24 @@ fn dump_help_inner(
     Ok(())
 }
 
+/// Generates man pages.
+fn generate_man_pages(sq: &clap::Command) -> Result<()> {
+    let outdir: PathBuf =
+        env::var_os("OUT_DIR").expect("OUT_DIR not set").into();
+    assert!(outdir.is_dir());
+    let path = outdir.join("man-pages");
+    fs::create_dir_all(&path)?;
 
-fn build_man_pages() -> Result<()> {
-    // Man page support.
-    let out_dir = std::path::PathBuf::from(
-        std::env::var_os("OUT_DIR")
-            .ok_or(std::io::Error::from(std::io::ErrorKind::NotFound))?);
+    let man = clap_mangen::Man::new(sq.clone());
+    man.render(&mut fs::File::create(path.join("sq.1"))?)?;
 
-    let man = clap_mangen::Man::new(cli::build());
-    let mut buffer: Vec<u8> = Default::default();
-    man.render(&mut buffer)?;
-
-    let filename = out_dir.join("sq.1");
-    // println!("cargo:warning=writing man page to {}", filename.display());
-    std::fs::write(filename, buffer)?;
-
-    fn doit(out_dir: &Path, prefix: &str, command: &clap::Command) -> Result<()> {
+    fn doit(path: &Path, prefix: &str, command: &clap::Command) -> Result<()> {
         let man = clap_mangen::Man::new(command.clone());
-        let mut buffer: Vec<u8> = Default::default();
-        man.render(&mut buffer)?;
-
-        let filename = out_dir.join(format!("{}-{}.1", prefix, command.get_name()));
-        // println!("cargo:warning=writing man page to {}", filename.display());
-        std::fs::write(filename, buffer)?;
+        man.render(&mut fs::File::create(
+            path.join(format!("{}-{}.1", prefix, command.get_name())))?)?;
 
         for sc in command.get_subcommands() {
-            doit(out_dir,
+            doit(path,
                  &format!("{}-{}", prefix, command.get_name()),
                  sc)?;
         }
@@ -136,9 +128,11 @@ fn build_man_pages() -> Result<()> {
         Ok(())
     }
 
-    for sc in cli::build().get_subcommands() {
-        doit(&out_dir, "sq", sc)?;
+    for sc in sq.get_subcommands() {
+        doit(&path, "sq", sc)?;
     }
+
+    println!("cargo:warning=man pages written to {}", path.display());
 
     Ok(())
 }

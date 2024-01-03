@@ -63,12 +63,12 @@ use cli::SECONDS_IN_DAY;
 use cli::SECONDS_IN_YEAR;
 use cli::SqSubcommands;
 use cli::types::Time;
-use cli::output::OutputFormat;
+use cli::output::{OutputFormat, OutputVersion};
 
 mod man;
 mod commands;
 pub mod output;
-pub use output::{wkd::WkdUrlVariant, Model, OutputVersion};
+pub use output::{wkd::WkdUrlVariant, Model};
 
 /// Converts sequoia_openpgp types for rendering.
 pub trait Convert<T> {

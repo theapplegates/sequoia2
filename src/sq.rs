@@ -63,11 +63,12 @@ use cli::SECONDS_IN_DAY;
 use cli::SECONDS_IN_YEAR;
 use cli::SqSubcommands;
 use cli::types::Time;
+use cli::output::OutputFormat;
 
 mod man;
 mod commands;
 pub mod output;
-pub use output::{wkd::WkdUrlVariant, Model, OutputFormat, OutputVersion};
+pub use output::{wkd::WkdUrlVariant, Model, OutputVersion};
 
 /// Converts sequoia_openpgp types for rendering.
 pub trait Convert<T> {
@@ -1080,7 +1081,7 @@ fn main() -> Result<()> {
     policy.good_critical_notations(&known_notations);
 
     let force = c.force;
-    let output_format = OutputFormat::from_str(&c.output_format)?;
+
     let output_version = if let Some(v) = c.output_version {
         Some(OutputVersion::from_str(&v)?)
     } else {
@@ -1090,7 +1091,7 @@ fn main() -> Result<()> {
     let config = Config {
         verbose: c.verbose,
         force,
-        output_format,
+        output_format: c.output_format,
         output_version,
         policy,
         time,

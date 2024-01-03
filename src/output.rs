@@ -17,43 +17,10 @@ pub mod wrapping;
 pub use keyring::ListItem as KeyringListItem;
 pub use wkd::WkdUrlVariant;
 
+use crate::cli::output::OutputFormat;
+
 pub const DEFAULT_OUTPUT_VERSION: OutputVersion = OutputVersion::new(0, 0, 0);
 pub const OUTPUT_VERSIONS: &[OutputVersion] = &[OutputVersion::new(0, 0, 0)];
-
-/// What output format to prefer, when there's an option?
-#[derive(Clone)]
-pub enum OutputFormat {
-    /// Output that is meant to be read by humans, instead of programs.
-    ///
-    /// This type of output has no version, and is not meant to be
-    /// parsed by programs.
-    HumanReadable,
-
-    /// Output as JSON.
-    Json,
-
-    /// Output as DOT.
-    ///
-    /// This format is supported by a few commands that emit a
-    /// graphical network.  In particular, the \"sq wot\" subcommands
-    /// can emit this format.
-    #[cfg(feature = "dot-writer")]
-    DOT,
-}
-
-impl FromStr for OutputFormat {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "human-readable" => Ok(Self::HumanReadable),
-            "json" => Ok(Self::Json),
-            #[cfg(feature = "dot-writer")]
-            "dot" => Ok(Self::DOT),
-            _ => Err(anyhow!("unknown output format {:?}", s)),
-        }
-    }
-}
 
 /// What version of the output format is used or requested?
 ///

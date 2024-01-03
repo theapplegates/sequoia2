@@ -20,6 +20,7 @@ use wot::store::Backend;
 pub mod output;
 
 use crate::cli;
+use cli::output::OutputFormat;
 
 use crate::commands::wot as wot_cmd;
 use wot_cmd::output::print_path;
@@ -239,7 +240,7 @@ fn authenticate<S>(
 
     let mut output = match config.output_format {
         #[cfg(feature = "dot-writer")]
-        crate::output::OutputFormat::DOT => {
+        OutputFormat::DOT => {
             Box::new(output::DotOutputNetwork::new(
                 required_amount,
                 q.roots(),
@@ -445,7 +446,7 @@ where S: wot::store::Store + wot::store::Backend<'a>
         Ok(path) => {
             match config.output_format {
                 #[cfg(feature = "dot-writer")]
-                crate::output::OutputFormat::DOT => {
+                OutputFormat::DOT => {
                     wprintln!(
                         "DOT output for \"sq wot path\" is not yet \
                          implemented!");
@@ -468,7 +469,7 @@ where S: wot::store::Store + wot::store::Backend<'a>
         Err(err) => {
             match config.output_format {
                 #[cfg(feature = "dot-writer")]
-                crate::output::OutputFormat::DOT => {
+                OutputFormat::DOT => {
                     wprintln!(
                         "DOT output for \"sq wot path\" is not yet \
                          implemented!");

@@ -24,7 +24,7 @@ pub mod keyring;
 pub mod keyserver;
 pub mod link;
 pub mod lookup;
-mod output;
+pub mod output;
 pub mod packet;
 pub mod sign;
 pub mod verify;
@@ -148,12 +148,11 @@ store, and the results are merged together."
     #[clap(
         long = "output-format",
         value_name = "FORMAT",
-        value_parser = ["human-readable", "json", "dot"],
         default_value = "human-readable",
         env = "SQ_OUTPUT_FORMAT",
         help = "Produces output in FORMAT, if possible",
     )]
-    pub output_format: String,
+    pub output_format: output::OutputFormat,
     #[clap(
         long = "output-version",
         value_name = "VERSION",

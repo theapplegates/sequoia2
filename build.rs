@@ -21,10 +21,7 @@ fn main() {
         .expect("failed to generate code with Subplot");
 
     let mut sq = cli::build();
-
-    // Dump help output of all commands and subcommands, for inclusion in docs
-    dump_help(sq.clone()).unwrap();
-
+    generate_sq_usage_md(&sq).unwrap();
     generate_shell_completions(&mut sq).unwrap();
     generate_man_pages(&sq).unwrap();
 }
@@ -45,11 +42,16 @@ fn generate_shell_completions(sq: &mut clap::Command) -> Result<()> {
     Ok(())
 }
 
-fn dump_help(mut cmd: clap::Command) -> Result<()> {
-    cmd = cmd.term_width(80);
+/// Dump help output of all commands and subcommands, for inclusion in
+/// the top-level documentation.
+fn generate_sq_usage_md(cmd: &clap::Command) -> Result<()> {
+    let mut cmd = cmd.clone().term_width(80);
     cmd.build();
-    let path = PathBuf::from(env::var_os("OUT_DIR").unwrap())
-        .join("sq-usage.md");
+    let outdir: PathBuf =
+        env::var_os("OUT_DIR").expect("OUT_DIR not set").into();
+    assert!(outdir.is_dir());
+    let path = outdir.join("sq-usage.md");
+
     let mut sink = fs::File::create(&path)
         .with_context(|| format!("trying to create {}", path.display()))?;
 

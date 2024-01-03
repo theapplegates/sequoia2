@@ -65,7 +65,7 @@ fn dump_help_inner(
 
     let mut verbatim = false;
     for line in help.trim_end().split('\n').skip(1) {
-        if ! verbatim && line.starts_with("USAGE:") {
+        if ! verbatim && line.starts_with("Usage:") {
             writeln!(sink, "```text")?;
             verbatim = true;
         }

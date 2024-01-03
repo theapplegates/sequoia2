@@ -2,6 +2,7 @@ use std::env;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use clap::ValueEnum;
 use clap_complete::Shell;
 use anyhow::{Context, Result};
 
@@ -24,21 +25,24 @@ fn main() {
     // Dump help output of all commands and subcommands, for inclusion in docs
     dump_help(sq.clone()).unwrap();
 
-    // Generate shell completions
-    let outdir = match env::var_os("OUT_DIR") {
-        None => return,
-        Some(outdir) => outdir,
-    };
-
-    fs::create_dir_all(&outdir).unwrap();
-
-    for shell in &[Shell::Bash, Shell::Fish, Shell::Zsh, Shell::PowerShell,
-                   Shell::Elvish] {
-        let path = clap_complete::generate_to(*shell, &mut sq, "sq", &outdir).unwrap();
-        println!("cargo:warning=completion file is generated: {:?}", path);
-    };
-
+    generate_shell_completions(&mut sq).unwrap();
     build_man_pages().unwrap();
+}
+
+/// Generates shell completions.
+fn generate_shell_completions(sq: &mut clap::Command) -> Result<()> {
+    let outdir: PathBuf =
+        env::var_os("OUT_DIR").expect("OUT_DIR not set").into();
+    assert!(outdir.is_dir());
+    let path = outdir.join("shell-completions");
+    fs::create_dir_all(&path)?;
+
+    for shell in Shell::value_variants() {
+        clap_complete::generate_to(*shell, sq, "sq", &path)?;
+    };
+
+    println!("cargo:warning=shell completions written to {}", path.display());
+    Ok(())
 }
 
 fn dump_help(mut cmd: clap::Command) -> Result<()> {

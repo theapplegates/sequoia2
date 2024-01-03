@@ -4,7 +4,6 @@ use std::time::Duration;
 /// Command-line parser for sq.
 use clap::{Command, CommandFactory, Parser, Subcommand};
 
-#[cfg(feature = "autocrypt")]
 pub mod autocrypt;
 
 use sequoia_openpgp as openpgp;
@@ -255,7 +254,6 @@ pub enum SqSubcommands {
     Wot(wot::Command),
 
     Lookup(lookup::Command),
-    #[cfg(feature = "autocrypt")]
     Autocrypt(autocrypt::Command),
     Keyserver(keyserver::Command),
     Wkd(wkd::Command),

@@ -1133,7 +1133,6 @@ fn main() -> Result<()> {
         SqSubcommands::Dearmor(command) => {
             commands::dearmor::dispatch(config, command)?
         },
-        #[cfg(feature = "autocrypt")]
         SqSubcommands::Autocrypt(command) => {
             commands::autocrypt::dispatch(config, &command)?;
         },

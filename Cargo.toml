@@ -33,7 +33,7 @@ buffered-reader = { version = "1.0.0", default-features = false, features = ["co
 dirs = "5"
 dot-writer = { version = "0.1.3", optional = true }
 sequoia-openpgp = { version = "1.17", default-features = false, features = ["compression-deflate"] }
-sequoia-autocrypt = { version = "0.25", default-features = false, optional = true }
+sequoia-autocrypt = { version = "0.25", default-features = false }
 sequoia-net = { version = "0.28", default-features = false }
 sequoia-policy-config = "0.6"
 anyhow = "1.0.18"
@@ -83,7 +83,6 @@ bench = false
 default = [
     "crypto-nettle",
     "compression-bzip2",
-    "autocrypt",
     "dot-writer",
 ]
 crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
@@ -93,7 +92,6 @@ crypto-botan2 = ["sequoia-openpgp/crypto-botan2"]
 crypto-cng = ["sequoia-openpgp/crypto-cng"]
 crypto-rust = ["sequoia-openpgp/crypto-rust"]
 compression-bzip2 = ["sequoia-openpgp/compression-bzip2"]
-autocrypt = ["sequoia-autocrypt"]
 subplot = ["subplot-build"]
 
 [profile.release]

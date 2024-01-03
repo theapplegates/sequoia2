@@ -24,7 +24,7 @@ pub mod keyring;
 pub mod keyserver;
 pub mod link;
 pub mod lookup;
-mod output_versions;
+mod output;
 pub mod packet;
 pub mod sign;
 pub mod verify;
@@ -268,5 +268,5 @@ pub enum SqSubcommands {
     Inspect(inspect::Command),
     Packet(packet::Command),
 
-    OutputVersions(output_versions::Command),
+    OutputVersions(output::Command),
 }

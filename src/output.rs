@@ -154,28 +154,6 @@ mod keyring {
     }
 
     impl ListItem {
-        pub fn write(&self, i: usize, list_all_userids: bool) {
-            match self {
-                ListItem::Error(e) => {
-                    println!("{}. {}", i, e);
-                },
-                ListItem::Cert(cert) => {
-                    let line = format!("{}. {}", i, cert.fingerprint);
-                    let indent = line.chars().map(|_| ' ').collect::<String>();
-                    print!("{}", line);
-                    match &cert.primary_userid {
-                        Some(uid) => println!(" {}", uid),
-                        None => println!(),
-                    }
-                    if list_all_userids {
-                        for uid in &cert.userids {
-                            println!("{} {}", indent, uid);
-                        }
-                    }
-                }
-            }
-        }
-
         pub fn from_cert_with_config(item: Result<Cert>, config: &Config) -> Self {
             match item {
                 Ok(cert) => ListItem::Cert(OutputCert::from_cert_with_config(cert, config)),

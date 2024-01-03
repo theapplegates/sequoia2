@@ -25,7 +25,7 @@ fn main() {
     dump_help(sq.clone()).unwrap();
 
     // Generate shell completions
-    let outdir = match env::var_os("CARGO_TARGET_DIR") {
+    let outdir = match env::var_os("OUT_DIR") {
         None => return,
         Some(outdir) => outdir,
     };

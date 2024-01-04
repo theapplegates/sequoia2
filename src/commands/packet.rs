@@ -3,7 +3,6 @@ use std::{
     ffi::OsString,
     fs::File,
     io::{self, Write},
-    path::Path,
 };
 
 use anyhow::Context as _;
@@ -70,30 +69,8 @@ pub fn dispatch(config: Config, command: cli::packet::Command)
             output.finalize()?;
         },
 
-        cli::packet::Subcommands::Split(command) => {
-            let mut input = command.input.open()?;
-
-            let prefix =
-                // The prefix is either specified explicitly...
-                command.prefix.map(|p| p.into_os_string())
-                .unwrap_or_else(|| {
-                    // ... or we derive it from the input file...
-                    let mut prefix = command.input.and_then(|x| {
-                        // (but only use the filename)
-                        x.file_name().map(|f| {
-                            f.to_os_string()
-                        })
-                    })
-                    // ... or we use a generic prefix.
-                    .unwrap_or_else(|| OsString::from("output"));
-
-                    // We also add a hyphen to a derived prefix.
-                    prefix.push("-");
-                    prefix
-                });
-
-            split(&mut input, &prefix)?;
-        },
+        cli::packet::Subcommands::Split(command) =>
+            split(config, command)?,
         cli::packet::Subcommands::Join(command) => {
             join(config, command)?;
         }
@@ -103,11 +80,28 @@ pub fn dispatch(config: Config, command: cli::packet::Command)
 }
 
 
-pub fn split<P>(input: &mut (dyn io::Read + Sync + Send), prefix: P)
-    -> Result<()>
-    where P: AsRef<Path>
+pub fn split(_config: Config, c: cli::packet::SplitCommand) -> Result<()>
 {
-    let prefix = prefix.as_ref();
+    let input = c.input.open()?;
+
+    let prefix =
+        // The prefix is either specified explicitly...
+        c.prefix.map(|p| p.into_os_string())
+        .unwrap_or_else(|| {
+            // ... or we derive it from the input file...
+            let mut prefix = c.input.and_then(|x| {
+                // (but only use the filename)
+                x.file_name().map(|f| {
+                    f.to_os_string()
+                })
+            })
+            // ... or we use a generic prefix.
+                .unwrap_or_else(|| OsString::from("output"));
+
+            // We also add a hyphen to a derived prefix.
+            prefix.push("-");
+            prefix
+        });
 
     // We (ab)use the mapping feature to create byte-accurate dumps of
     // nested packets.

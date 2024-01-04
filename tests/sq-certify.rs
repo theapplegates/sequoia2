@@ -15,7 +15,7 @@ use openpgp::packet::signature::subpacket::NotationDataFlags;
 use openpgp::packet::UserID;
 use openpgp::parse::Parse;
 use openpgp::policy::StandardPolicy;
-use openpgp::serialize::Serialize;
+use openpgp::serialize::{Serialize, SerializeInto};
 
 const P: &StandardPolicy = &StandardPolicy::new();
 
@@ -50,6 +50,10 @@ fn sq_certify() -> Result<()> {
         .success()
         .stdout(predicate::function(|output: &[u8]| -> bool {
             let cert = Cert::from_bytes(output).unwrap();
+            assert_eq!(cert.bad_signatures().count(), 0,
+                       "Bad signatures in cert\n\n{}",
+                       String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
+
             let vc = cert.with_policy(P, None).unwrap();
 
             for ua in vc.userids() {
@@ -86,6 +90,10 @@ fn sq_certify() -> Result<()> {
         .success()
         .stdout(predicate::function(|output: &[u8]| -> bool {
             let cert = Cert::from_bytes(output).unwrap();
+            assert_eq!(cert.bad_signatures().count(), 0,
+                       "Bad signatures in cert\n\n{}",
+                       String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
+
             let vc = cert.with_policy(P, None).unwrap();
 
             for ua in vc.userids() {
@@ -127,6 +135,10 @@ fn sq_certify() -> Result<()> {
         .success()
         .stdout(predicate::function(|output: &[u8]| -> bool {
             let cert = Cert::from_bytes(output).unwrap();
+            assert_eq!(cert.bad_signatures().count(), 0,
+                       "Bad signatures in cert\n\n{}",
+                       String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
+
             let vc = cert.with_policy(P, None).unwrap();
 
             for ua in vc.userids() {
@@ -177,6 +189,9 @@ fn sq_certify() -> Result<()> {
         .success()
         .stdout(predicate::function(|output: &[u8]| -> bool {
             let cert = Cert::from_bytes(output).unwrap();
+            assert_eq!(cert.bad_signatures().count(), 0,
+                       "Bad signatures in cert\n\n{}",
+                       String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
 
             // The standard policy will reject the
             // certification, because it has an unknown
@@ -297,6 +312,9 @@ fn sq_certify_creation_time() -> Result<()>
     let stdout = String::from_utf8_lossy(&assertion.get_output().stdout);
 
     let cert = Cert::from_bytes(&*stdout)?;
+    assert_eq!(cert.bad_signatures().count(), 0,
+               "Bad signatures in cert\n\n{}",
+               String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
 
     let vc = cert.with_policy(P, t)?;
 
@@ -389,6 +407,9 @@ fn sq_certify_with_expired_key() -> Result<()>
     let stdout = String::from_utf8_lossy(&assertion.get_output().stdout);
 
     let cert = Cert::from_bytes(&*stdout)?;
+    assert_eq!(cert.bad_signatures().count(), 0,
+               "Bad signatures in cert\n\n{}",
+               String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
 
     let vc = cert.with_policy(P, None)?;
 
@@ -480,6 +501,9 @@ fn sq_certify_with_revoked_key() -> Result<()>
     let stdout = String::from_utf8_lossy(&assertion.get_output().stdout);
 
     let cert = Cert::from_bytes(&*stdout)?;
+    assert_eq!(cert.bad_signatures().count(), 0,
+               "Bad signatures in cert\n\n{}",
+               String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
 
     let vc = cert.with_policy(P, None)?;
 

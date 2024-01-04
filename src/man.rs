@@ -68,13 +68,13 @@ struct Builder {
     source: Option<String>,
     manual: Option<String>,
     version: Option<String>,
-    maincmd: LeafCommand,
-    subcommands: HashMap<String, Vec<LeafCommand>>,
+    maincmd: Command,
+    subcommands: HashMap<String, Vec<Command>>,
 }
 
 impl Builder {
     fn new(cmd: &clap::Command, section: &str) -> Self {
-        let mut subcommands: HashMap<String, Vec<LeafCommand>> = HashMap::new();
+        let mut subcommands: HashMap<String, Vec<Command>> = HashMap::new();
         for sub in cmd.get_subcommands() {
             let mut leaves = vec![];
             let mut top = vec![cmd.get_name().into()];
@@ -86,7 +86,7 @@ impl Builder {
         Self {
             title: cmd.get_name().into(),
             section: section.into(),
-            maincmd: LeafCommand::from_command(&[], cmd),
+            maincmd: Command::from_command(&[], cmd),
             date: None,
             source: None,
             manual: None,
@@ -125,9 +125,9 @@ impl Builder {
     }
 
     /// Collect into `cmds` all the subcommands that don't have subcommands.
-    fn leaves(cmds: &mut Vec<LeafCommand>, parent: &[String], cmd: &clap::Command) {
+    fn leaves(cmds: &mut Vec<Command>, parent: &[String], cmd: &clap::Command) {
         if cmd.get_subcommands().count() == 0 {
-            cmds.push(LeafCommand::from_command(parent, cmd));
+            cmds.push(Command::from_command(parent, cmd));
         } else {
             let mut parent = parent.to_vec();
             parent.push(cmd.get_name().into());
@@ -227,7 +227,7 @@ impl Builder {
     }
 
     /// Return a vector of all leaf subcommands.
-    fn all_subs(&self) -> Vec<&LeafCommand> {
+    fn all_subs(&self) -> Vec<&Command> {
         let mut subs = vec![];
         for (_, leaves) in self.subcommands.iter() {
             for leaf in leaves.iter() {
@@ -239,7 +239,7 @@ impl Builder {
     }
 
     /// Build a manual page for one leaf subcommand.
-    fn build_one_subcommand(&self, leaf: &LeafCommand) -> ManualPage {
+    fn build_one_subcommand(&self, leaf: &Command) -> ManualPage {
         let filename = format!("{}.{}", leaf.manpage_name(), self.section);
         let mut man = ManualPage::new(PathBuf::from(filename));
         self.th(&mut man);
@@ -302,11 +302,8 @@ impl Builder {
 /// We collect all the information about a command here so that it's
 /// handy when we generate various parts of a manual page that includes
 /// this command.
-//
-/// Despite the name, this can be the main command, or one of the leaf
-/// subcommands.
 #[derive(Debug)]
-struct LeafCommand {
+struct Command {
     command_words: Vec<String>,
     before_help: Option<String>,
     after_help: Option<String>,
@@ -317,8 +314,8 @@ struct LeafCommand {
     examples: Vec<String>,
 }
 
-impl LeafCommand {
-    /// Create a new `LeafCommand`. The command words are the part of
+impl Command {
+    /// Create a new `Command`. The command words are the part of
     /// the command line that invokes this command. For sq itself,
     /// they're `["sq"]`, but for a subcommand they might be `["sq",
     /// "key", "generate"]` for example.
@@ -445,36 +442,36 @@ impl LeafCommand {
         !self.examples.is_empty()
     }
 
-    /// Create a new `LeafComand` from a `clap::Command` structure.
+    /// Create a new `Command` from a `clap::Command` structure.
     fn from_command(parent: &[String], cmd: &clap::Command) -> Self {
         let mut words: Vec<String> = parent.into();
         words.push(cmd.get_name().to_string());
-        let mut leaf = Self::new(words);
+        let mut new = Self::new(words);
         if let Some(text) = cmd.get_before_help() {
-            leaf.before_help(&text.to_string());
+            new.before_help(&text.to_string());
         }
         if let Some(text) = cmd.get_after_help() {
-            leaf.after_help(&text.to_string());
+            new.after_help(&text.to_string());
         }
         if let Some(text) = cmd.get_about() {
-            leaf.about(&text.to_string());
+            new.about(&text.to_string());
         }
         if let Some(text) = cmd.get_long_about() {
-            leaf.long_about(&text.to_string());
+            new.long_about(&text.to_string());
         }
         for arg in cmd.get_arguments() {
             if !arg.is_positional() {
-                leaf.option(CommandOption::from_arg(arg));
+                new.option(CommandOption::from_arg(arg));
             }
         }
         for arg in cmd.get_positionals() {
             if let Some(names) = arg.get_value_names() {
                 for name in names {
-                    leaf.arg(name);
+                    new.arg(name);
                 }
             }
         }
-        leaf
+        new
     }
 }
 
@@ -628,7 +625,7 @@ impl ManualPage {
     }
 
     /// Typeset an EXAMPLES section, if a command has examples.
-    fn examples_section(&mut self, leaves: &[&LeafCommand]) {
+    fn examples_section(&mut self, leaves: &[&Command]) {
         if !leaves.iter().any(|leaf| leaf.has_examples()) {
             return;
         }

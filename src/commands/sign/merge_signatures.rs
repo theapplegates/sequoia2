@@ -137,6 +137,8 @@ fn read_while_by_tag(
     let mut result = vec![];
 
     while let PacketParserResult::Some(pp) = ppr {
+        pp.possible_message()?;
+
         let next_tag_matches = pp.header().ctb().tag() == tag;
         if !next_tag_matches {
             return Ok((result, PacketParserResult::Some(pp)));
@@ -146,6 +148,10 @@ fn read_while_by_tag(
         let (packet, next_ppr) = pp.recurse()?;
         ppr = next_ppr;
         result.push(packet);
+    }
+
+    if let PacketParserResult::EOF(eof) = &ppr {
+        eof.is_message()?;
     }
 
     Ok((result, ppr))

@@ -22,6 +22,7 @@ use openpgp::{
         UserID,
         UserAttribute,
         Key,
+        Tag,
     },
     parse::Parse,
     serialize::Serialize,
@@ -30,6 +31,7 @@ use openpgp::{
 use crate::{
     Config,
     Model,
+    cli::types::FileOrStdout,
     output::KeyringListItem,
     print_error_chain,
 };
@@ -128,44 +130,13 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
                 }
             };
 
-            let to_certificate = command.to_certificate;
-
-            // XXX: Armor type selection is a bit problematic.  If any
-            // of the certificates contain a secret key, it would be
-            // better to use Kind::SecretKey here.  However, this
-            // requires buffering all certs, which has its own
-            // problems.
-            let mut output = command.output.for_secrets().create_pgp_safe(
-                config.force,
-                command.binary,
-                armor::Kind::PublicKey,
-            )?;
-            filter(&command.input, &mut output, filter_fn, to_certificate)?;
-            output.finalize()
+            filter(&config, command.input, command.output, filter_fn,
+                   command.binary, command.to_certificate)
         },
-        Join(c) => {
-            // XXX: Armor type selection is a bit problematic.  If any
-            // of the certificates contain a secret key, it would be
-            // better to use Kind::SecretKey here.  However, this
-            // requires buffering all certs, which has its own
-            // problems.
-            let mut output = c.output.for_secrets().create_pgp_safe(
-                config.force,
-                c.binary,
-                armor::Kind::PublicKey,
-            )?;
-            filter(&c.input, &mut output, Some, false)?;
-            output.finalize()
-        },
-        Merge(c) => {
-            let mut output = c.output.for_secrets().create_pgp_safe(
-                config.force,
-                c.binary,
-                armor::Kind::PublicKey,
-            )?;
-            merge(&c.input, &mut output)?;
-            output.finalize()
-        },
+        Join(c) =>
+            filter(&config, c.input, c.output, Some, c.binary, false),
+        Merge(c) =>
+            merge(&config, c.input, c.output, c.binary),
         List(c) => {
             let mut input = c.input.open()?;
             list(config, &mut input, c.all_userids)
@@ -201,22 +172,22 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
 }
 
 /// Joins certificates and keyrings into a keyring, applying a filter.
-fn filter<F>(inputs: &[PathBuf], output: &mut dyn io::Write,
-             mut filter: F, to_certificate: bool)
+fn filter<F>(config: &Config, inputs: Vec<PathBuf>, output: FileOrStdout,
+             mut filter: F,
+             binary: bool,
+             to_certificate: bool)
              -> Result<()>
     where F: FnMut(Cert) -> Option<Cert>,
 {
+    let mut certs = Vec::new();
+
     if !inputs.is_empty() {
         for name in inputs {
             for cert in CertParser::from_file(name.deref())? {
                 let cert = cert.context(
                     format!("Malformed certificate in keyring {:?}", name.display()))?;
                 if let Some(cert) = filter(cert) {
-                    if to_certificate {
-                        cert.serialize(output)?;
-                    } else {
-                        cert.as_tsk().serialize(output)?;
-                    }
+                    certs.push(cert);
                 }
             }
         }
@@ -224,14 +195,32 @@ fn filter<F>(inputs: &[PathBuf], output: &mut dyn io::Write,
         for cert in CertParser::from_reader(io::stdin())? {
             let cert = cert.context("Malformed certificate in keyring")?;
             if let Some(cert) = filter(cert) {
-                if to_certificate {
-                    cert.serialize(output)?;
-                } else {
-                    cert.as_tsk().serialize(output)?;
-                }
+                certs.push(cert);
             }
         }
     }
+
+    let mut output = output.for_secrets().create_pgp_safe(
+        config.force,
+        binary,
+        if ! to_certificate && certs.iter().any(|c| c.is_tsk()) {
+            armor::Kind::SecretKey
+        } else {
+            armor::Kind::PublicKey
+        },
+    )?;
+
+    for cert in certs {
+        if let Some(cert) = filter(cert) {
+            if to_certificate {
+                cert.serialize(&mut output)?;
+            } else {
+                cert.as_tsk().serialize(&mut output)?;
+            }
+        }
+    }
+    output.finalize()?;
+
     Ok(())
 }
 
@@ -310,11 +299,20 @@ fn split(input: &mut (dyn io::Read + Sync + Send), prefix: &str, binary: bool)
                 },
             }
         } else {
+            let is_tsk = match &cert {
+                Ok(cert) => cert.is_tsk(),
+                Err(packets) => packets.iter().any(
+                    |p| p.tag() == Tag::SecretKey || p.tag() == Tag::SecretSubkey),
+            };
+
             use sequoia_openpgp::serialize::stream::{Message, Armorer};
             let message = Message::new(sink);
             let mut message = Armorer::new(message)
-            // XXX: should detect kind, see above
-                .kind(sequoia_openpgp::armor::Kind::PublicKey)
+                .kind(if is_tsk {
+                    armor::Kind::SecretKey
+                } else {
+                    armor::Kind::PublicKey
+                })
                 .build()?;
             match cert {
                 Ok(cert) => cert.as_tsk().serialize(&mut message)?,
@@ -329,8 +327,9 @@ fn split(input: &mut (dyn io::Read + Sync + Send), prefix: &str, binary: bool)
 }
 
 /// Merge multiple keyrings.
-fn merge(inputs: &[PathBuf], output: &mut dyn io::Write)
-             -> Result<()>
+fn merge(config: &Config, inputs: Vec<PathBuf>, output: FileOrStdout,
+         binary: bool)
+         -> Result<()>
 {
     let mut certs: HashMap<Fingerprint, Option<Cert>> = HashMap::new();
 
@@ -369,14 +368,26 @@ fn merge(inputs: &[PathBuf], output: &mut dyn io::Write)
         }
     }
 
+    let mut output = output.for_secrets().create_pgp_safe(
+        config.force,
+        binary,
+        if certs.values().any(|c| c.as_ref().map(Cert::is_tsk).unwrap_or(false))
+        {
+            armor::Kind::SecretKey
+        } else {
+            armor::Kind::PublicKey
+        },
+    )?;
+
     let mut fingerprints: Vec<Fingerprint> = certs.keys().cloned().collect();
     fingerprints.sort();
 
     for fpr in fingerprints.iter() {
         if let Some(Some(cert)) = certs.get(fpr) {
-            cert.as_tsk().serialize(output)?;
+            cert.as_tsk().serialize(&mut output)?;
         }
     }
+    output.finalize()?;
 
     Ok(())
 }

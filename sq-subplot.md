@@ -613,8 +613,8 @@ given an installed sq
 when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
-then file ring.pgp contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
-then file ring.pgp contains "-----END PGP PUBLIC KEY BLOCK-----"
+then file ring.pgp contains "-----BEGIN PGP PRIVATE KEY BLOCK-----"
+then file ring.pgp contains "-----END PGP PRIVATE KEY BLOCK-----"
 when I run sq --no-cert-store inspect ring.pgp
 then stdout contains "Transferable Secret Key."
 then stdout contains "Alice"

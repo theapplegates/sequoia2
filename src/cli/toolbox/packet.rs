@@ -192,6 +192,13 @@ pub struct SplitCommand {
     )]
     pub input: FileOrStdin,
     #[clap(
+        short = 'B',
+        long,
+        requires = "prefix",
+        help = "Emits binary data",
+    )]
+    pub binary: bool,
+    #[clap(
         short = 'p',
         long = "prefix",
         value_name = "PREFIX",

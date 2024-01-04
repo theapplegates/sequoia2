@@ -1,5 +1,4 @@
 use std::{
-    ffi::OsString,
     fs::File,
     io::{self, Write},
 };
@@ -9,7 +8,11 @@ use terminal_size::terminal_size;
 
 use sequoia_openpgp as openpgp;
 use openpgp::{
-    packet::Tag,
+    armor::{
+        Kind,
+        Writer,
+    },
+    packet::{Packet, Tag},
     parse::{
         Parse,
         PacketParserResult,
@@ -18,6 +21,7 @@ use openpgp::{
 use openpgp::serialize::stream::Message;
 
 use crate::Config;
+use crate::Convert;
 use crate::Result;
 use crate::cli::toolbox::packet::{
     Command,
@@ -87,24 +91,15 @@ pub fn split(_config: Config, c: SplitCommand) -> Result<()>
 {
     let input = c.input.open()?;
 
-    let prefix =
-        // The prefix is either specified explicitly...
-        c.prefix.map(|p| p.into_os_string())
-        .unwrap_or_else(|| {
-            // ... or we derive it from the input file...
-            let mut prefix = c.input.and_then(|x| {
-                // (but only use the filename)
-                x.file_name().map(|f| {
-                    f.to_os_string()
-                })
-            })
-            // ... or we use a generic prefix.
-                .unwrap_or_else(|| OsString::from("output"));
+    // If --binary is given, the user has to provide a prefix.
+    assert!(! c.binary || c.prefix.is_some(),
+            "clap failed to enforce --binary requiring --prefix");
 
-            // We also add a hyphen to a derived prefix.
-            prefix.push("-");
-            prefix
-        });
+    // We either emit one stream, or open one file per packet.
+    let mut sink = match c.prefix {
+        Some(p) => Err(p.into_os_string()),
+        None => Ok(io::stdout()),
+    };
 
     // We (ab)use the mapping feature to create byte-accurate dumps of
     // nested packets.
@@ -116,20 +111,86 @@ pub fn split(_config: Config, c: SplitCommand) -> Result<()>
         pos.iter().map(ToString::to_string).collect::<Vec<_>>().join(delimiter)
     }
 
+    let mut first = true;
     while let PacketParserResult::Some(pp) = ppr {
         if let Some(map) = pp.map() {
-            let mut filename = prefix.as_os_str().to_os_string();
-            filename.push(join(pp.path(), "-"));
-            filename.push(pp.packet.kind().map(|_| "").unwrap_or("Unknown-"));
-            filename.push(format!("{}", pp.packet.tag()));
+            let mut sink: Box<dyn io::Write> = match &mut sink {
+                Ok(sink) => Box::new(sink),
+                Err(prefix) => {
+                    let mut filename = prefix.as_os_str().to_os_string();
+                    filename.push("-");
+                    filename.push(join(pp.path(), "-"));
+                    filename.push(pp.packet.kind().map(|_| "").unwrap_or("Unknown-"));
+                    filename.push(format!("{}", pp.packet.tag()));
 
-            let mut sink = File::create(filename)
-                .context("Failed to create output file")?;
+                    let sink = File::create(filename)
+                        .context("Failed to create output file")?;
+                    Box::new(sink)
+                }
+            };
 
-            // Write all the bytes.
-            for field in map.iter() {
-                sink.write_all(field.as_bytes())?;
+            if c.binary {
+                // Write all the bytes.
+                for field in map.iter() {
+                    sink.write_all(field.as_bytes())?;
+                }
+            } else {
+                let mut headers = vec![
+                    ("Comment", if let Some(i) = c.input.inner() {
+                        format!(
+                            "{}[{}]: {}", i.display(), join(pp.path(), "."),
+                            pp.packet.tag())
+                    } else {
+                        format!(
+                            "{}: {}", join(pp.path(), "."), pp.packet.tag())
+                    }),
+                ];
+
+                match &pp.packet {
+                    Packet::PKESK(p) => headers.push(
+                        ("Comment", format!("Recipient: {}", p.recipient()))),
+                    Packet::PublicKey(k) => headers.push(
+                        ("Comment", format!("Fingerprint: {}", k.fingerprint()))),
+                    Packet::PublicSubkey(k) => headers.push(
+                        ("Comment", format!("Fingerprint: {}", k.fingerprint()))),
+                    Packet::SecretKey(k) => headers.push(
+                        ("Comment", format!("Fingerprint: {}", k.fingerprint()))),
+                    Packet::SecretSubkey(k) => headers.push(
+                        ("Comment", format!("Fingerprint: {}", k.fingerprint()))),
+                    Packet::Signature(s) => {
+                        headers.push(("Comment", format!("Type: {}", s.typ())));
+                        if let Some(t) = s.signature_creation_time() {
+                            headers.push(("Comment", format!("Created: {}", t.convert())));
+                        }
+                        if let Some(i) = s.get_issuers().get(0)
+                        {
+                            headers.push(
+                                ("Comment", format!("Issuer: {}", i)));
+                        }
+                    },
+                    Packet::UserID(u) => headers.push(
+                        ("Comment", format!("UserID: {}",
+                                            String::from_utf8_lossy(u.value())))),
+                    _ => (),
+                }
+
+                // Provide more structure to the human reader.
+                if ! first {
+                    writeln!(sink)?;
+                    writeln!(sink)?;
+                }
+
+                let mut writer = Writer::with_headers(
+                    &mut sink, Kind::File, headers)?;
+
+                // Write all the bytes.
+                for field in map.iter() {
+                    writer.write_all(field.as_bytes())?;
+                }
+                writer.finalize()?;
             }
+
+            first = false;
         }
 
         ppr = pp.recurse()?.1;

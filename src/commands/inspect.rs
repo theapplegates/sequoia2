@@ -160,10 +160,21 @@ pub fn dispatch(config: Config, c: inspect::Command)
             let cert = openpgp::Cert::try_from(pp)?;
             inspect_cert(policy, time, output, &cert, print_certifications)?;
         } else if packets.is_empty() && ! sigs.is_empty() {
-            writeln!(output, "Detached signature{}.",
-                     if sigs.len() > 1 { "s" } else { "" })?;
-            writeln!(output)?;
-            inspect_signatures(output, &sigs)?;
+            if sigs.iter().all(is_revocation_sig) {
+                writeln!(output, "Revocation Certificate{}.",
+                         if sigs.len() > 1 { "s" } else { "" })?;
+                writeln!(output)?;
+                for sig in sigs {
+                    inspect_bare_revocation(output, &sig)?;
+                }
+                writeln!(output, "           Note: \
+                                  Signatures have NOT been verified!")?;
+            } else {
+                writeln!(output, "Detached signature{}.",
+                         if sigs.len() > 1 { "s" } else { "" })?;
+                writeln!(output)?;
+                inspect_signatures(output, &sigs)?;
+            }
         } else if packets.is_empty() {
             writeln!(output, "No OpenPGP data.")?;
         } else {
@@ -179,6 +190,16 @@ pub fn dispatch(config: Config, c: inspect::Command)
     }
 
     Ok(())
+}
+
+/// Returns true iff all signatures in the cert are revocation
+/// signatures.
+fn is_revocation_sig(s: &Signature) -> bool {
+    [
+        SignatureType::KeyRevocation,
+        SignatureType::SubkeyRevocation,
+        SignatureType::CertificationRevocation,
+    ].contains(&s.typ())
 }
 
 /// Returns true iff all signatures in the cert are revocation
@@ -357,48 +378,50 @@ fn inspect_key(
     Ok(())
 }
 
+/// Prints the revocation reasons.
+fn print_reasons(output: &mut dyn io::Write, indent: &str,
+                 third_party: bool, sigs: &[&Signature])
+                 -> Result<()> {
+    for sig in sigs {
+        if let Some((r, msg)) = sig.reason_for_revocation() {
+            writeln!(output, "{}                  - {}", indent, r)?;
+            if third_party {
+                writeln!(output, "{}                    Issued by {}",
+                         indent,
+                         if let Some(issuer)
+                         = sig.get_issuers().into_iter().next()
+                         {
+                             issuer.to_string()
+                         } else {
+                             "an unknown certificate".into()
+                         })?;
+            }
+            writeln!(output, "{}                    Message: {:?}",
+                     indent, String::from_utf8_lossy(msg))?;
+        } else {
+            writeln!(output, "{}                  - No reason specified",
+                     indent)?;
+            if third_party {
+                writeln!(output, "{}                    Issued by {}",
+                         indent,
+                         if let Some(issuer)
+                         = &sig.get_issuers().into_iter().next()
+                         {
+                             issuer.to_string()
+                         } else {
+                             "an unknown certificate".into()
+                         })?;
+            }
+        }
+    }
+    Ok(())
+}
+
 fn inspect_revocation(output: &mut dyn io::Write,
                       indent: &str,
                       revoked: openpgp::types::RevocationStatus)
                       -> Result<()> {
     use openpgp::types::RevocationStatus::*;
-    fn print_reasons(output: &mut dyn io::Write, indent: &str,
-                     third_party: bool, sigs: &[&Signature])
-                     -> Result<()> {
-        for sig in sigs {
-            if let Some((r, msg)) = sig.reason_for_revocation() {
-                writeln!(output, "{}                  - {}", indent, r)?;
-                if third_party {
-                    writeln!(output, "{}                    Issued by {}",
-                             indent,
-                             if let Some(issuer)
-                                 = sig.get_issuers().into_iter().next()
-                             {
-                                 issuer.to_string()
-                             } else {
-                                 "an unknown certificate".into()
-                             })?;
-                }
-                writeln!(output, "{}                    Message: {:?}",
-                         indent, String::from_utf8_lossy(msg))?;
-            } else {
-                writeln!(output, "{}                  - No reason specified",
-                         indent)?;
-                if third_party {
-                    writeln!(output, "{}                    Issued by {}",
-                             indent,
-                             if let Some(issuer)
-                                 = &sig.get_issuers().into_iter().next()
-                             {
-                                 issuer.to_string()
-                             } else {
-                                 "an unknown certificate".into()
-                             })?;
-                }
-            }
-        }
-        Ok(())
-    }
     match revoked {
         Revoked(sigs) => {
             writeln!(output, "{}                 Revoked:", indent)?;
@@ -411,6 +434,16 @@ fn inspect_revocation(output: &mut dyn io::Write,
         NotAsFarAsWeKnow => (),
     }
 
+    Ok(())
+}
+
+fn inspect_bare_revocation(output: &mut dyn io::Write, sig: &Signature)
+                           -> Result<()> {
+    let indent = "";
+    inspect_issuers(output, &sig)?;
+    writeln!(output, "{}                 Possible revocation:", indent)?;
+    print_reasons(output, indent, false, &[sig])?;
+    writeln!(output)?;
     Ok(())
 }
 
@@ -455,25 +488,33 @@ fn inspect_signatures(output: &mut dyn io::Write,
                 writeln!(output, "           Kind: {}", signature_type)?,
         }
 
-        let mut fps: Vec<_> = sig.issuer_fingerprints().collect();
-        fps.sort();
-        fps.dedup();
-        let fps: Vec<KeyHandle> = fps.into_iter().map(|fp| fp.into()).collect();
-        for fp in fps.iter() {
-            writeln!(output, " Alleged signer: {}", fp)?;
-        }
-        let mut keyids: Vec<_> = sig.issuers().collect();
-        keyids.sort();
-        keyids.dedup();
-        for keyid in keyids {
-            if ! fps.iter().any(|fp| fp.aliases(&keyid.into())) {
-                writeln!(output, " Alleged signer: {}", keyid)?;
-            }
-        }
+        inspect_issuers(output, &sig)?;
     }
     if ! sigs.is_empty() {
         writeln!(output, "           Note: \
                           Signatures have NOT been verified!")?;
+    }
+
+    Ok(())
+}
+
+fn inspect_issuers(output: &mut dyn io::Write,
+                   sig: &Signature) -> Result<()> {
+    let mut fps: Vec<_> = sig.issuer_fingerprints().collect();
+    fps.sort();
+    fps.dedup();
+    let fps: Vec<KeyHandle> = fps.into_iter().map(|fp| fp.into()).collect();
+    for fp in fps.iter() {
+        writeln!(output, " Alleged signer: {}", fp)?;
+    }
+
+    let mut keyids: Vec<_> = sig.issuers().collect();
+    keyids.sort();
+    keyids.dedup();
+    for keyid in keyids {
+        if ! fps.iter().any(|fp| fp.aliases(&keyid.into())) {
+            writeln!(output, " Alleged signer: {}", keyid)?;
+        }
     }
 
     Ok(())

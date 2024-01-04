@@ -14,6 +14,7 @@ use openpgp::packet::{
 use openpgp::parse::{Parse, PacketParserResult};
 use openpgp::policy::{Policy, HashAlgoSecurity};
 use openpgp::packet::key::SecretKeyMaterial;
+use openpgp::types::SignatureType;
 
 use sequoia_cert_store as cert_store;
 use cert_store::Store;
@@ -180,6 +181,16 @@ pub fn dispatch(config: Config, c: inspect::Command)
     Ok(())
 }
 
+/// Returns true iff all signatures in the cert are revocation
+/// signatures.
+fn is_revocation_cert(c: &Cert) -> bool {
+    c.primary_key().signatures().all(|s| s.typ() == SignatureType::KeyRevocation)
+        && c.keys().subkeys().all(|skb| skb.signatures().all(
+            |s| s.typ() == SignatureType::SubkeyRevocation))
+        && c.userids().all(|uidb| uidb.signatures().all(
+            |s| s.typ() == SignatureType::CertificationRevocation))
+}
+
 fn inspect_cert(
     policy: &dyn Policy,
     time: Option<SystemTime>,
@@ -189,6 +200,8 @@ fn inspect_cert(
 ) -> Result<()> {
     if cert.is_tsk() {
         writeln!(output, "Transferable Secret Key.")?;
+    } else if is_revocation_cert(&cert) {
+        writeln!(output, "Revocation Certificate.")?;
     } else {
         writeln!(output, "OpenPGP Certificate.")?;
     }

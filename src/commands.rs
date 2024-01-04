@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use std::borrow::Borrow;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, btree_map::{BTreeMap, Entry}};
 use std::time::SystemTime;
 
 use sequoia_net::pks;
@@ -675,9 +675,22 @@ impl<'a, 'store> VHelper<'a, 'store> {
 
 impl<'a, 'store> VerificationHelper for VHelper<'a, 'store> {
     fn get_certs(&mut self, ids: &[openpgp::KeyHandle]) -> Result<Vec<Cert>> {
-        let mut certs = self.certs.take().unwrap();
+        let mut certs = BTreeMap::new();
+
+        for c in self.certs.take().unwrap() {
+            match certs.entry(c.fingerprint()) {
+                Entry::Vacant(e) => {
+                    e.insert(c);
+                },
+                Entry::Occupied(mut e) => {
+                    let merged = e.get().clone().merge_public(c)?;
+                    e.insert(merged);
+                },
+            }
+        }
+
         // Get all keys.
-        let seen: HashSet<_> = certs.iter()
+        let seen: HashSet<_> = certs.values()
             .flat_map(|cert| {
                 cert.keys().map(|ka| ka.key().fingerprint().into())
             }).collect();
@@ -692,15 +705,25 @@ impl<'a, 'store> VerificationHelper for VHelper<'a, 'store> {
         if ! ids.is_empty() {
             if let Ok(Some(cert_store)) = self.config.cert_store() {
                 for id in ids.iter() {
-                    if let Ok(c) = cert_store.lookup_by_cert_or_subkey(id) {
-                        certs.extend(
-                            c.into_iter().filter_map(|c| c.to_cert().ok().cloned()));
+                    for c in cert_store.lookup_by_cert_or_subkey(id)
+                        .unwrap_or_default()
+                    {
+                        let c = c.to_cert()?.clone();
+                        match certs.entry(c.fingerprint()) {
+                            Entry::Vacant(e) => {
+                                e.insert(c);
+                            },
+                            Entry::Occupied(mut e) => {
+                                let merged = e.get().clone().merge_public(c)?;
+                                e.insert(merged);
+                            },
+                        }
                     }
                 }
             }
         }
 
-        Ok(certs)
+        Ok(certs.into_values().collect())
     }
 
     fn check(&mut self, structure: MessageStructure) -> Result<()> {

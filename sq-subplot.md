@@ -478,16 +478,17 @@ when I run sq --no-cert-store inspect key.pgp
 then stdout contains "Secret key: Encrypted"
 ~~~
 
-### Update a key by adding a User ID
+### Update a key by adding User IDs
 
-_Requirement: We must be able to generate a key and add a User ID to it._
+_Requirement: We must be able to generate a key and add User IDs to it._
 
 ~~~scenario
 given an installed sq
 when I run sq --no-cert-store key generate --output key.pgp
-when I run sq --no-cert-store key userid add --userid "Juliet" --output new.pgp key.pgp
+when I run sq --no-cert-store key userid add key.pgp "Juliet" "<juliet@example.org>" --output new.pgp
 when I run sq --no-cert-store inspect new.pgp
 then stdout contains "UserID: Juliet"
+then stdout contains "UserID: <juliet@example.org>"
 ~~~
 
 ### Update a key by removing a User ID

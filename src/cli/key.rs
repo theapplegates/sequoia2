@@ -555,7 +555,6 @@ $ sq key userid add --userid \"Juliet\" --creation-time 20210628 \\
 )]
 pub struct UseridAddCommand {
     #[clap(
-        default_value_t = FileOrStdin::default(),
         help = FileOrStdin::HELP,
         value_name = FileOrStdin::VALUE_NAME,
     )]
@@ -570,8 +569,7 @@ pub struct UseridAddCommand {
     pub output: FileOrStdout,
     #[clap(
         value_name = "USERID",
-        short,
-        long,
+        required = true,
         help = "User ID to add",
     )]
     pub userid: Vec<String>,

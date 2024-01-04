@@ -9,8 +9,8 @@ use terminal_size::terminal_size;
 
 use sequoia_openpgp as openpgp;
 use openpgp::{
-    Packet,
     armor,
+    packet::Tag,
     parse::{
         Parse,
         PacketParserResult,
@@ -159,11 +159,11 @@ pub fn join(config: Config, c: cli::packet::JoinCommand) -> Result<()> {
         while let PacketParserResult::Some(pp) = ppr {
             if sink.is_none() {
                 // Autodetect using the first packet.
-                let kind = match pp.packet {
-                    Packet::Signature(_) => openpgp::armor::Kind::Signature,
-                    Packet::SecretKey(_) => openpgp::armor::Kind::SecretKey,
-                    Packet::PublicKey(_) => openpgp::armor::Kind::PublicKey,
-                    Packet::PKESK(_) | Packet::SKESK(_) =>
+                let kind = match pp.packet.tag() {
+                    Tag::Signature => openpgp::armor::Kind::Signature,
+                    Tag::SecretKey => openpgp::armor::Kind::SecretKey,
+                    Tag::PublicKey => openpgp::armor::Kind::PublicKey,
+                    Tag::PKESK | Tag::SKESK =>
                         openpgp::armor::Kind::Message,
                     _ => openpgp::armor::Kind::File,
                 };

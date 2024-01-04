@@ -163,7 +163,7 @@ pub fn join(config: Config, c: cli::packet::JoinCommand) -> Result<()> {
                     Tag::Signature => openpgp::armor::Kind::Signature,
                     Tag::SecretKey => openpgp::armor::Kind::SecretKey,
                     Tag::PublicKey => openpgp::armor::Kind::PublicKey,
-                    Tag::PKESK | Tag::SKESK =>
+                    Tag::PKESK | Tag::SKESK | Tag::OnePassSig =>
                         openpgp::armor::Kind::Message,
                     _ => openpgp::armor::Kind::File,
                 };

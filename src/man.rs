@@ -587,7 +587,7 @@ impl ManualPage {
             line.extend_from_slice(&local_options);
         }
         for (i, arg) in args.iter().enumerate() {
-            if i > 0 {
+            if i > 0 || ! sub_options {
                 line.push(roman(" "));
             }
             line.push(italic(arg));

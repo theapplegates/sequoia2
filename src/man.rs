@@ -740,7 +740,7 @@ impl ManualPage {
         }
     }
 
-    /// Like [`text`][], but add a period, if missing, to the end of
+    /// Like [`ManualPage::text`], but add a period, if missing, to the end of
     /// the first paragraph. In `clap` about texts, the first line
     /// conventionally doesn't end in a period, but in manual pages,
     /// when that text is used in a DESCRIPTION section, it should have

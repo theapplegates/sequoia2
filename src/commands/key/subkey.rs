@@ -210,7 +210,7 @@ impl<'a> RevocationOutput for SubkeyRevocation<'a> {
     }
 }
 
-pub fn subkey(config: Config, command: SubkeyCommand) -> Result<()> {
+pub fn dispatch(config: Config, command: SubkeyCommand) -> Result<()> {
     match command {
         SubkeyCommand::Add(c) => subkey_add(config, c)?,
         SubkeyCommand::Revoke(c) => subkey_revoke(config, c)?,

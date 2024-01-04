@@ -17,9 +17,7 @@ use password::password;
 mod revoke;
 use revoke::certificate_revoke;
 mod subkey;
-use subkey::subkey;
 mod userid;
-use userid::userid;
 
 pub fn dispatch(config: Config, command: cli::key::Command) -> Result<()>
 {
@@ -27,9 +25,9 @@ pub fn dispatch(config: Config, command: cli::key::Command) -> Result<()>
     match command.subcommand {
         Generate(c) => generate(config, c)?,
         Password(c) => password(config, c)?,
-        Userid(c) => userid(config, c)?,
+        Userid(c) => userid::dispatch(config, c)?,
         Revoke(c) => certificate_revoke(config, c)?,
-        Subkey(c) => subkey(config, c)?,
+        Subkey(c) => subkey::dispatch(config, c)?,
         ExtractCert(c) => extract_cert(config, c)?,
         Adopt(c) => adopt(config, c)?,
         AttestCertifications(c) => attest_certifications(config, c)?,

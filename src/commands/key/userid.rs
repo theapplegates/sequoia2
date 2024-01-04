@@ -210,7 +210,7 @@ impl<'a> RevocationOutput for UserIDRevocation<'a> {
     }
 }
 
-pub fn userid(
+pub fn dispatch(
     config: Config,
     command: cli::key::UseridCommand,
 ) -> Result<()> {

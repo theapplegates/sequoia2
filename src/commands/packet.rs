@@ -138,7 +138,7 @@ pub fn join(config: Config, c: cli::packet::JoinCommand) -> Result<()> {
     // Either we know what kind of armor we want to produce, or we
     // need to detect it using the first packet we see.
     let kind = c.kind.into();
-    let output = c.output;
+    let output = c.output.for_secrets();
     let mut sink = if c.binary {
         // No need for any auto-detection.
         Some(output.create_pgp_safe(

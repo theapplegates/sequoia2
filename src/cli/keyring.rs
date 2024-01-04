@@ -89,7 +89,7 @@ pub struct FilterCommand {
     pub input: Vec<PathBuf>,
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
@@ -188,7 +188,7 @@ pub struct JoinCommand {
     pub input: Vec<PathBuf>,
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
@@ -225,7 +225,7 @@ pub struct MergeCommand {
     pub input: Vec<PathBuf>,
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
@@ -261,7 +261,7 @@ $ sq keyring filter --domain example.org certs.pgp | sq keyring list
 pub struct ListCommand {
     #[clap(
         default_value_t = FileOrStdin::default(),
-        help = FileOrStdin::HELP,
+        help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
     )]
     pub input: FileOrStdin,
@@ -299,7 +299,7 @@ $ sq keyring merge certs.pgp | sq keyring split
 pub struct SplitCommand {
     #[clap(
         default_value_t = FileOrStdin::default(),
-        help = FileOrStdin::HELP,
+        help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
     )]
     pub input: FileOrStdin,
@@ -413,7 +413,7 @@ pub struct LintCommand {
 
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,

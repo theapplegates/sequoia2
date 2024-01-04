@@ -70,13 +70,13 @@ $ sq packet dump --session-key AAAABBBBCCCC... ciphertext.pgp
 pub struct DumpCommand {
     #[clap(
         default_value_t = FileOrStdin::default(),
-        help = FileOrStdin::HELP,
+        help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
     )]
     pub input: FileOrStdin,
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
@@ -120,13 +120,13 @@ $ sq packet decrypt --recipient-file juliet.pgp ciphertext.pgp
 pub struct DecryptCommand {
     #[clap(
         default_value_t = FileOrStdin::default(),
-        help = FileOrStdin::HELP,
+        help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
     )]
     pub input: FileOrStdin,
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
@@ -184,7 +184,7 @@ $ sq packet split juliet.pgp
 pub struct SplitCommand {
     #[clap(
         default_value_t = FileOrStdin::default(),
-        help = FileOrStdin::HELP,
+        help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
     )]
     pub input: FileOrStdin,
@@ -224,7 +224,7 @@ pub struct JoinCommand {
     pub input: Vec<PathBuf>,
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,

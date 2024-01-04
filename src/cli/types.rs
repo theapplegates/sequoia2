@@ -57,10 +57,22 @@ impl CliWarningOnce {
 
 /// A trait to provide const &str for clap annotations for custom structs
 pub trait ClapData {
-    /// The clap value name
+    /// The clap value name.
     const VALUE_NAME: &'static str;
-    /// The clap help text
-    const HELP: &'static str;
+
+    /// The clap help text for required arguments.
+    ///
+    /// Use this as the default help text if the value must be given.
+    const HELP_REQUIRED: &'static str;
+
+    /// The clap help text for optional arguments.
+    ///
+    /// Use this as the default help text if the value must not be
+    /// given, because either:
+    ///
+    ///   - there is a default value, or
+    ///   - the type is an `Option<T>`.
+    const HELP_OPTIONAL: &'static str;
 }
 
 /// A type wrapping an optional PathBuf to use as stdin or file input
@@ -79,7 +91,7 @@ pub trait ClapData {
 /// pub struct Example {
 ///     #[clap(
 ///         default_value_t = FileOrStdin::default(),
-///         help = FileOrStdin::HELP,
+///         help = FileOrStdin::HELP_OPTIONAL,
 ///         value_name = FileOrStdin::VALUE_NAME,
 ///     )]
 ///     pub input: FileOrStdin,
@@ -90,7 +102,10 @@ pub struct FileOrStdin(Option<PathBuf>);
 
 impl ClapData for FileOrStdin {
     const VALUE_NAME: &'static str = "FILE";
-    const HELP: &'static str = "Reads from FILE or stdin if omitted";
+    const HELP_REQUIRED: &'static str =
+        "Reads from FILE or stdin if FILE is '-'";
+    const HELP_OPTIONAL: &'static str =
+        "Reads from FILE or stdin if omitted";
 }
 
 impl FileOrStdin {
@@ -207,7 +222,7 @@ impl Display for FileOrStdin {
 /// #[clap(name = "example", about = "an example")]
 /// pub struct Example {
 ///     #[clap(
-///         help = FileOrCertStore::HELP,
+///         help = FileOrCertStore::HELP_OPTIONAL,
 ///         long,
 ///         short,
 ///         value_name = FileOrCertStore::VALUE_NAME,
@@ -220,8 +235,11 @@ pub struct FileOrCertStore{}
 
 impl ClapData for FileOrCertStore {
     const VALUE_NAME: &'static str = "FILE";
-    const HELP: &'static str
-        = "Writes to FILE (or stdout when providing \"-\") instead of \
+    const HELP_REQUIRED: &'static str
+        = "Writes to FILE (or stdout if FILE is '-') instead of \
+          importing into the certificate store";
+    const HELP_OPTIONAL: &'static str
+        = "Writes to FILE (or stdout when omitted) instead of \
           importing into the certificate store";
 }
 
@@ -242,7 +260,7 @@ impl ClapData for FileOrCertStore {
 /// pub struct Example {
 ///     #[clap(
 ///         default_value_t = FileOrStdout::default(),
-///         help = FileOrStdout::HELP,
+///         help = FileOrStdout::HELP_OPTIONAL,
 ///         long,
 ///         short,
 ///         value_name = FileOrStdout::VALUE_NAME,
@@ -260,7 +278,10 @@ pub struct FileOrStdout {
 
 impl ClapData for FileOrStdout {
     const VALUE_NAME: &'static str = "FILE";
-    const HELP: &'static str = "Writes to FILE or stdout if omitted";
+    const HELP_REQUIRED: &'static str =
+        "Writes to FILE or stdout if FILE is '-'";
+    const HELP_OPTIONAL: &'static str =
+        "Writes to FILE or stdout if omitted";
 }
 
 impl FileOrStdout {

@@ -52,7 +52,7 @@ $ sq certify --time 20130721 neal.pgp ada.pgp Ada
 pub struct Command {
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,

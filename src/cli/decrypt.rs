@@ -49,13 +49,13 @@ $ sq decrypt ciphertext.pgp
 pub struct Command {
     #[clap(
         default_value_t = FileOrStdin::default(),
-        help = FileOrStdin::HELP,
+        help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
     )]
     pub input: FileOrStdin,
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,

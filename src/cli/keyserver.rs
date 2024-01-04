@@ -66,7 +66,7 @@ the usual way.
 )]
 pub struct GetCommand {
     #[clap(
-        help = FileOrCertStore::HELP,
+        help = FileOrCertStore::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrCertStore::VALUE_NAME,
@@ -103,7 +103,7 @@ pub struct SendCommand {
     pub require_all: bool,
     #[clap(
         default_value_t = FileOrStdin::default(),
-        help = FileOrStdin::HELP,
+        help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
     )]
     pub input: FileOrStdin,

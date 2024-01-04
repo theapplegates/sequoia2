@@ -220,7 +220,7 @@ pub struct GenerateCommand {
     pub cannot_encrypt: bool,
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
@@ -287,13 +287,13 @@ $ sq key password --clear < juliet.encrypted_key.pgp > juliet.decrypted_key.pgp
 pub struct PasswordCommand {
     #[clap(
         default_value_t = FileOrStdin::default(),
-        help = FileOrStdin::HELP,
+        help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
     )]
     pub input: FileOrStdin,
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
@@ -446,7 +446,7 @@ that in the future.\"",
 
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
@@ -485,13 +485,13 @@ $ sq key extract-cert --output juliet.cert.pgp juliet.key.pgp
 pub struct ExtractCertCommand {
     #[clap(
         default_value_t = FileOrStdin::default(),
-        help = FileOrStdin::HELP,
+        help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
     )]
     pub input: FileOrStdin,
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
@@ -555,13 +555,13 @@ $ sq key userid add --userid \"Juliet\" --creation-time 20210628 \\
 )]
 pub struct UseridAddCommand {
     #[clap(
-        help = FileOrStdin::HELP,
+        help = FileOrStdin::HELP_REQUIRED,
         value_name = FileOrStdin::VALUE_NAME,
     )]
     pub input: FileOrStdin,
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
@@ -706,7 +706,7 @@ that in the future.\"",
 
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
@@ -761,13 +761,13 @@ $ sq key userid strip --userid \"<juliet@example.org>\" \\
 pub struct UseridStripCommand {
     #[clap(
         default_value_t = FileOrStdin::default(),
-        help = FileOrStdin::HELP,
+        help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
     )]
     pub input: FileOrStdin,
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
@@ -840,7 +840,7 @@ pub struct AdoptCommand {
     pub certificate: FileOrStdin,
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
@@ -902,7 +902,7 @@ pub struct AttestCertificationsCommand {
     pub key: FileOrStdin,
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
@@ -993,13 +993,13 @@ $ sq key subkey add --output alice-new.key.pgp --can-sign --cipher-suite rsa3k -
 pub struct SubkeyAddCommand {
     #[clap(
         default_value_t = FileOrStdin::default(),
-        help = FileOrStdin::HELP,
+        help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
     )]
     pub input: FileOrStdin,
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
@@ -1206,7 +1206,7 @@ the message \"I've created a new subkey, please refresh the certificate."
 
     #[clap(
         default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP,
+        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,

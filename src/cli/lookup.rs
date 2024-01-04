@@ -39,7 +39,7 @@ pub struct Command {
     pub servers: Vec<String>,
 
     #[clap(
-        help = FileOrCertStore::HELP,
+        help = FileOrCertStore::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrCertStore::VALUE_NAME,

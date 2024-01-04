@@ -84,7 +84,7 @@ pub struct GetCommand {
     )]
     pub binary: bool,
     #[clap(
-        help = FileOrCertStore::HELP,
+        help = FileOrCertStore::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrCertStore::VALUE_NAME,

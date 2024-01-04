@@ -1,5 +1,4 @@
 use std::{
-    cmp::Ordering,
     ffi::OsString,
     fs::File,
     io::{self, Write},
@@ -109,15 +108,14 @@ pub fn split(_config: Config, c: cli::packet::SplitCommand) -> Result<()>
         openpgp::parse::PacketParserBuilder::from_reader(input)?
         .map(true).build()?;
 
-    // This encodes our position in the tree.
-    let mut pos = vec![0];
+    fn join(pos: &[usize], delimiter: &str) -> String {
+        pos.iter().map(ToString::to_string).collect::<Vec<_>>().join(delimiter)
+    }
 
     while let PacketParserResult::Some(pp) = ppr {
         if let Some(map) = pp.map() {
             let mut filename = prefix.as_os_str().to_os_string();
-            filename.push(
-                pos.iter().map(|n| format!("{}", n))
-                    .collect::<Vec<String>>().join("-"));
+            filename.push(join(pp.path(), "-"));
             filename.push(pp.packet.kind().map(|_| "").unwrap_or("Unknown-"));
             filename.push(format!("{}", pp.packet.tag()));
 
@@ -130,20 +128,7 @@ pub fn split(_config: Config, c: cli::packet::SplitCommand) -> Result<()>
             }
         }
 
-        let old_depth = Some(pp.recursion_depth());
         ppr = pp.recurse()?.1;
-        let new_depth = ppr.as_ref().map(|pp| pp.recursion_depth()).ok();
-
-        // Update pos.
-        match old_depth.cmp(&new_depth) {
-            Ordering::Less =>
-                pos.push(0),
-            Ordering::Equal =>
-                *pos.last_mut().unwrap() += 1,
-            Ordering::Greater => {
-                pos.pop();
-            },
-        }
     }
     Ok(())
 }

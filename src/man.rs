@@ -96,26 +96,26 @@ impl Builder {
         }
     }
 
-    // Set the date for the manual page. This is typically typeset in
-    // the center of the footer of the page.
+    /// Set the date for the manual page. This is typically typeset in
+    /// the center of the footer of the page.
     fn date(&mut self, date: &str) {
         self.date = Some(date.into());
     }
 
-    // Set the source of the manual page. This is typically typeset on
-    // left of the footer of the page.
+    /// Set the source of the manual page. This is typically typeset on
+    /// left of the footer of the page.
     fn source(&mut self, source: &str) {
         self.source = Some(source.into());
     }
 
-    // Set the manual this page belongs to. This is typically typeset
-    // on the center of the header of the page.
+    /// Set the manual this page belongs to. This is typically typeset
+    /// on the center of the header of the page.
     fn manual(&mut self, manual: &str) {
         self.manual = Some(manual.into());
     }
 
-    // Return a one-line summary of the command. This goes in the NAME
-    // section of the manual page.
+    /// Return a one-line summary of the command. This goes in the NAME
+    /// section of the manual page.
     fn summary(about: &str) -> String {
         let line = if let Some(line) = about.lines().next() {
             line
@@ -125,7 +125,7 @@ impl Builder {
         line.to_string()
     }
 
-    // Collect into `cmds` all the subcommands that don't have subcommands.
+    /// Collect into `cmds` all the subcommands that don't have subcommands.
     fn leaves(cmds: &mut Vec<LeafCommand>, parent: &[String], cmd: &Command) {
         if cmd.get_subcommands().count() == 0 {
             cmds.push(LeafCommand::from_command(parent, cmd));
@@ -138,7 +138,7 @@ impl Builder {
         }
     }
 
-    // Build all manual pages for sq and one for each leaf subcommand.
+    /// Build all manual pages for sq and one for each leaf subcommand.
     fn build(&self) -> Vec<ManualPage> {
         let mut pages = vec![self.build_all_in_one()];
 
@@ -149,7 +149,7 @@ impl Builder {
         pages
     }
 
-    // Build one manual page for sq and all its subcommands.
+    /// Build one manual page for sq and all its subcommands.
     fn build_all_in_one(&self) -> ManualPage {
         let filename = format!("{}.{}", self.title, self.section);
         let mut man = ManualPage::new(PathBuf::from(filename));
@@ -215,7 +215,7 @@ impl Builder {
         man
     }
 
-    // Set the title of the page.
+    /// Set the title of the page.
     fn th(&self, man: &mut ManualPage) {
         let empty = String::new();
         man.th(
@@ -227,7 +227,7 @@ impl Builder {
         )
     }
 
-    // Return a vector of all leaf subcommands.
+    /// Return a vector of all leaf subcommands.
     fn all_subs(&self) -> Vec<&LeafCommand> {
         let mut subs = vec![];
         for (_, leaves) in self.subcommands.iter() {
@@ -239,7 +239,7 @@ impl Builder {
         subs.iter().map(|(_, leaf)| *leaf).collect()
     }
 
-    // Build a manual page for one leaf subcommand.
+    /// Build a manual page for one leaf subcommand.
     fn build_one_subcommand(&self, leaf: &LeafCommand) -> ManualPage {
         let filename = format!("{}.{}", leaf.manpage_name(), self.section);
         let mut man = ManualPage::new(PathBuf::from(filename));
@@ -319,10 +319,10 @@ struct LeafCommand {
 }
 
 impl LeafCommand {
-    // Create a new `LeafCommand`. The command words are the part of
-    // the command line that invokes this command. For sq itself,
-    // they're `["sq"]`, but for a subcommand they might be `["sq",
-    // "key", "generate"]` for example.
+    /// Create a new `LeafCommand`. The command words are the part of
+    /// the command line that invokes this command. For sq itself,
+    /// they're `["sq"]`, but for a subcommand they might be `["sq",
+    /// "key", "generate"]` for example.
     fn new(command_words: Vec<String>) -> Self {
         Self {
             command_words,
@@ -336,29 +336,29 @@ impl LeafCommand {
         }
     }
 
-    // Return the name of the command, with command words separated by
-    // spaces. This is suitable for, say, the NAME section.
+    /// Return the name of the command, with command words separated by
+    /// spaces. This is suitable for, say, the NAME section.
     fn name(&self) -> String {
         self.command_words.join(" ")
     }
 
-    // Return name of the subcommand, without the main command name.
+    /// Return name of the subcommand, without the main command name.
     fn subcommand_name(&self) -> String {
         let mut words = self.command_words.clone();
         words.remove(0);
         words.join(" ")
     }
 
-    // Return the name of the manual page for this command. This is
-    // the command words separated by dashes. Thus "sq key generate"
-    // would return "sq-key-generate". Manual page names mustn't
-    // contain spaces, thus the dash.
+    /// Return the name of the manual page for this command. This is
+    /// the command words separated by dashes. Thus "sq key generate"
+    /// would return "sq-key-generate". Manual page names mustn't
+    /// contain spaces, thus the dash.
     fn manpage_name(&self) -> String {
         self.command_words.join("-")
     }
 
-    // Return the description of the command. This is collected from
-    // the various about and help texts given to `clap`.
+    /// Return the description of the command. This is collected from
+    /// the various about and help texts given to `clap`.
     fn description(&self) -> String {
         let mut desc = String::new();
         if let Some(text) = &self.before_help {
@@ -381,39 +381,39 @@ impl LeafCommand {
         desc
     }
 
-    // Add the `before_help` help text for this command.
+    /// Add the `before_help` help text for this command.
     fn before_help(&mut self, help: &str) {
         self.before_help = Some(self.extract_example(help));
     }
 
-    // Add the `after_help` help text for this command.
+    /// Add the `after_help` help text for this command.
     fn after_help(&mut self, help: &str) {
         self.after_help = Some(self.extract_example(help));
     }
 
-    // Add the `about` help text for this command.
+    /// Add the `about` help text for this command.
     fn about(&mut self, help: &str) {
         self.about = Some(self.extract_example(help));
     }
 
-    // Add the `long_about` help text for this command.
+    /// Add the `long_about` help text for this command.
     fn long_about(&mut self, help: &str) {
         self.long_about = Some(self.extract_example(help));
     }
 
-    // Add an option to this command.
+    /// Add an option to this command.
     fn option(&mut self, opt: CommandOption) {
         self.options.push(opt);
     }
 
-    // Add a positional argument to this command.
+    /// Add a positional argument to this command.
     fn arg(&mut self, arg: &str) {
         self.args.push(arg.into());
     }
 
-    // Extract examples from help text: anything that follows a line
-    // consisting of "EXAMPLES:". This is a convention specific to sq,
-    // not something that comes from `clap`.
+    /// Extract examples from help text: anything that follows a line
+    /// consisting of "EXAMPLES:". This is a convention specific to sq,
+    /// not something that comes from `clap`.
     fn extract_example(&mut self, text: &str) -> String {
         const H: &str = "EXAMPLES:\n";
         if let Some(pos) = text.find(H) {
@@ -429,24 +429,24 @@ impl LeafCommand {
         }
     }
 
-    // Does this command have any options?
+    /// Does this command have any options?
     fn has_options(&self) -> bool {
         !self.options.is_empty()
     }
 
-    // Get the list of options for this command.
+    /// Get the list of options for this command.
     fn get_options(&self) -> Vec<CommandOption> {
         let mut opts = self.options.clone();
         opts.sort_by_cached_key(|opt| opt.sort_key());
         opts
     }
 
-    // Does this command have examples?
+    /// Does this command have examples?
     fn has_examples(&self) -> bool {
         !self.examples.is_empty()
     }
 
-    // Create a new `LeafComand` from a `clap::Command` structure.
+    /// Create a new `LeafComand` from a `clap::Command` structure.
     fn from_command(parent: &[String], cmd: &Command) -> Self {
         let mut words: Vec<String> = parent.into();
         words.push(cmd.get_name().to_string());
@@ -492,10 +492,10 @@ struct CommandOption {
 }
 
 impl CommandOption {
-    // Return a key for sorting a list of options. Manual pages list
-    // options in various places, and it enables quicker lookup by
-    // readers if they lists are sorted alphabetically. By convention,
-    // such lists are sorted by short option first, if one exists.
+    /// Return a key for sorting a list of options. Manual pages list
+    /// options in various places, and it enables quicker lookup by
+    /// readers if they lists are sorted alphabetically. By convention,
+    /// such lists are sorted by short option first, if one exists.
     fn sort_key(&self) -> String {
         let mut key = String::new();
         if let Some(name) = &self.short {
@@ -510,7 +510,7 @@ impl CommandOption {
 }
 
 impl CommandOption {
-    // Create a `CommandOption` from a `clap::Arg`.
+    /// Create a `CommandOption` from a `clap::Arg`.
     fn from_arg(arg: &Arg) -> Self {
         let value_name = if let Some(names) = arg.get_value_names() {
             names.first().map(|name| name.to_string())
@@ -545,28 +545,28 @@ impl ManualPage {
         }
     }
 
-    // Set the title of the manual page. The "TH" macro takes five
-    // arguments: name of the command; section of the manual; the date
-    // of latest update; the source of manual; and the name of the manual.
+    /// Set the title of the manual page. The "TH" macro takes five
+    /// arguments: name of the command; section of the manual; the date
+    /// of latest update; the source of manual; and the name of the manual.
     fn th(&mut self, name: &str, section: &str, date: &str, source: &str, manual: &str) {
         self.roff
             .control("TH", [name, section, date, source, manual]);
     }
 
-    // Typeset the NAME section: the title, and a line with the name
-    // of the command, followed by a dash, and a one-line. The dash
-    // should be escaped with backslash, but the `roff` crate does
-    // that for us.
+    /// Typeset the NAME section: the title, and a line with the name
+    /// of the command, followed by a dash, and a one-line. The dash
+    /// should be escaped with backslash, but the `roff` crate does
+    /// that for us.
     fn name_section(&mut self, name: &str, summary: &str) {
         self.section("NAME");
         self.roff.text([roman(&format!("{} - {}", name, summary))]);
     }
 
-    // Typeset the synopsis of a command. This is going to be part of
-    // the SYNOPSIS section. There are conventions for how it should
-    // be typeset. For sq, we simplify them by summarizing options
-    // into a placeholder, and only listing command words and
-    // positional arguments.
+    /// Typeset the synopsis of a command. This is going to be part of
+    /// the SYNOPSIS section. There are conventions for how it should
+    /// be typeset. For sq, we simplify them by summarizing options
+    /// into a placeholder, and only listing command words and
+    /// positional arguments.
     fn subcommand_synopsis(
         &mut self,
         bin: &str,
@@ -600,10 +600,10 @@ impl ManualPage {
         self.roff.text(line);
     }
 
-    // Typeset an option, for the OPTIONS section. This is typeset
-    // using "tagged paragraphs", where the first line lists the
-    // aliases of the option, and any values it may take, and the rest
-    // is indented paragraphs of text explaining what the option does.
+    /// Typeset an option, for the OPTIONS section. This is typeset
+    /// using "tagged paragraphs", where the first line lists the
+    /// aliases of the option, and any values it may take, and the rest
+    /// is indented paragraphs of text explaining what the option does.
     fn option(&mut self, opt: &CommandOption) {
         let mut line = vec![];
 
@@ -628,7 +628,7 @@ impl ManualPage {
         }
     }
 
-    // Typeset an EXAMPLES section, if a command has examples.
+    /// Typeset an EXAMPLES section, if a command has examples.
     fn examples_section(&mut self, leaves: &[&LeafCommand]) {
         if !leaves.iter().any(|leaf| leaf.has_examples()) {
             return;
@@ -670,8 +670,8 @@ impl ManualPage {
         }
     }
 
-    // Typeset the VERSION section, if the main command has a version
-    // set.
+    /// Typeset the VERSION section, if the main command has a version
+    /// set.
     fn version_section(&mut self, version: &Option<String>) {
         if let Some(v) = version {
             self.section("VERSION");
@@ -679,34 +679,34 @@ impl ManualPage {
         }
     }
 
-    // Start a new section with the SH troff command.
+    /// Start a new section with the SH troff command.
     fn section(&mut self, heading: &str) {
         self.roff.control("SH", [heading]);
     }
 
-    // Start a new subsection with the SS troff command.
+    /// Start a new subsection with the SS troff command.
     fn subsection(&mut self, heading: &str) {
         self.roff.control("SS", [heading]);
     }
 
-    // Start a new paragraph with the PP troff command.
+    /// Start a new paragraph with the PP troff command.
     fn paragraph(&mut self) {
         self.roff.control("PP", []);
     }
 
-    // Start a tagged paragraph with th TP troff command. This command
-    // takes the line after the command and typesets it, and the line
-    // after that starts an indented paragraph.
+    /// Start a tagged paragraph with th TP troff command. This command
+    /// takes the line after the command and typesets it, and the line
+    /// after that starts an indented paragraph.
     fn tagged_paragraph(&mut self, line: Vec<Inline>) {
         self.roff.control("TP", []);
         self.roff.text(line);
     }
 
-    // Typeset a list of references to manual pages, suitable for the
-    // SEE ALSO section. Manual page references are, by convention,
-    // typeset with the name of manual page in bold, and the section
-    // of the page in normal ("roman") font, enclosed in parentheses.
-    // The references are separated by commas, in normal font.
+    /// Typeset a list of references to manual pages, suitable for the
+    /// SEE ALSO section. Manual page references are, by convention,
+    /// typeset with the name of manual page in bold, and the section
+    /// of the page in normal ("roman") font, enclosed in parentheses.
+    /// The references are separated by commas, in normal font.
     fn man_page_refs(&mut self, names: &[String], section: &str) {
         let mut line = vec![];
         for name in names.iter() {
@@ -725,10 +725,10 @@ impl ManualPage {
         self.roff.control("hy", []);
     }
 
-    // Typeset normal text consisting of paragraphs. Paragraphs are
-    // separated by an empty line. All but the first paragraph are
-    // preceded by the troff paragraph command. The first one is not,
-    // to avoid unwanted empty lines in the output.
+    /// Typeset normal text consisting of paragraphs. Paragraphs are
+    /// separated by an empty line. All but the first paragraph are
+    /// preceded by the troff paragraph command. The first one is not,
+    /// to avoid unwanted empty lines in the output.
     fn text(&mut self, text: &str) {
         let mut paras = text.split("\n\n");
         if let Some(first) = paras.next() {
@@ -740,11 +740,11 @@ impl ManualPage {
         }
     }
 
-    // Like [`text`][], but add a period, if missing, to the end of
-    // the first paragraph. In `clap` about texts, the first line
-    // conventionally doesn't end in a period, but in manual pages,
-    // when that text is used in a DESCRIPTION section, it should have
-    // a period.
+    /// Like [`text`][], but add a period, if missing, to the end of
+    /// the first paragraph. In `clap` about texts, the first line
+    /// conventionally doesn't end in a period, but in manual pages,
+    /// when that text is used in a DESCRIPTION section, it should have
+    /// a period.
     fn text_with_period(&mut self, text: &str) {
         let mut paras = text.split("\n\n");
         if let Some(first) = paras.next() {

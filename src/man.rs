@@ -23,7 +23,6 @@
 //! Note that this module doesn't aim to be a generic manual page
 //! generator. The scope is specifically the Sequoia sq command.
 
-use clap::{Arg, Command};
 use roff::{bold, italic, roman, Inline, Roff};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -47,7 +46,7 @@ const SEE_ALSO: &str = "For the full documentation see <https://docs.sequoia-pgp
 ///
 /// This will produce a manual page for the whole sq, and one per
 /// subcommand. Each manual page knows what its filename should be.
-pub fn manpages(cmd: &Command) -> Vec<ManualPage> {
+pub fn manpages(cmd: &clap::Command) -> Vec<ManualPage> {
     let mut builder = Builder::new(cmd, "1");
     builder.date(env!("CARGO_PKG_VERSION"));
     builder.source(SOURCE);
@@ -74,7 +73,7 @@ struct Builder {
 }
 
 impl Builder {
-    fn new(cmd: &Command, section: &str) -> Self {
+    fn new(cmd: &clap::Command, section: &str) -> Self {
         let mut subcommands: HashMap<String, Vec<LeafCommand>> = HashMap::new();
         for sub in cmd.get_subcommands() {
             let mut leaves = vec![];
@@ -126,7 +125,7 @@ impl Builder {
     }
 
     /// Collect into `cmds` all the subcommands that don't have subcommands.
-    fn leaves(cmds: &mut Vec<LeafCommand>, parent: &[String], cmd: &Command) {
+    fn leaves(cmds: &mut Vec<LeafCommand>, parent: &[String], cmd: &clap::Command) {
         if cmd.get_subcommands().count() == 0 {
             cmds.push(LeafCommand::from_command(parent, cmd));
         } else {
@@ -447,7 +446,7 @@ impl LeafCommand {
     }
 
     /// Create a new `LeafComand` from a `clap::Command` structure.
-    fn from_command(parent: &[String], cmd: &Command) -> Self {
+    fn from_command(parent: &[String], cmd: &clap::Command) -> Self {
         let mut words: Vec<String> = parent.into();
         words.push(cmd.get_name().to_string());
         let mut leaf = Self::new(words);
@@ -511,7 +510,7 @@ impl CommandOption {
 
 impl CommandOption {
     /// Create a `CommandOption` from a `clap::Arg`.
-    fn from_arg(arg: &Arg) -> Self {
+    fn from_arg(arg: &clap::Arg) -> Self {
         let value_name = if let Some(names) = arg.get_value_names() {
             names.first().map(|name| name.to_string())
         } else {

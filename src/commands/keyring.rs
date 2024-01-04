@@ -1,6 +1,5 @@
 use std::{
-    collections::HashMap,
-    collections::hash_map::Entry,
+    collections::btree_map::{BTreeMap, Entry},
     fs::File,
     io,
     path::PathBuf,
@@ -331,7 +330,7 @@ fn merge(config: &Config, inputs: Vec<PathBuf>, output: FileOrStdout,
          binary: bool)
          -> Result<()>
 {
-    let mut certs: HashMap<Fingerprint, Option<Cert>> = HashMap::new();
+    let mut certs: BTreeMap<Fingerprint, Option<Cert>> = BTreeMap::new();
 
     if !inputs.is_empty() {
         for name in inputs {
@@ -379,13 +378,8 @@ fn merge(config: &Config, inputs: Vec<PathBuf>, output: FileOrStdout,
         },
     )?;
 
-    let mut fingerprints: Vec<Fingerprint> = certs.keys().cloned().collect();
-    fingerprints.sort();
-
-    for fpr in fingerprints.iter() {
-        if let Some(Some(cert)) = certs.get(fpr) {
-            cert.as_tsk().serialize(&mut output)?;
-        }
+    for cert in certs.values().filter_map(|v| v.as_ref()) {
+        cert.as_tsk().serialize(&mut output)?;
     }
     output.finalize()?;
 

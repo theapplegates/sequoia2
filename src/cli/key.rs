@@ -121,19 +121,19 @@ subkeys, and the binding signatures to the reference time.
     after_help =
 "EXAMPLES:
 
-# First, this generates a key
+# First, generate a key
 $ sq key generate --userid \"<juliet@example.org>\" --output juliet.key.pgp
 
-# Then, this extracts the certificate for distribution
+# Then, extract the certificate for distribution
 $ sq key extract-cert --output juliet.cert.pgp juliet.key.pgp
 
-# Generates a key protecting it with a password
+# Generate a key protecting it with a password
 $ sq key generate --userid \"<juliet@example.org>\" --with-password
 
-# Generates a key with multiple userids
+# Generate a key with multiple userids
 $ sq key generate --userid \"<juliet@example.org>\" --userid \"Juliet Capulet\"
 
-# Generates a key whose creation time is June 9, 2011 at midnight UTC
+# Generate a key whose creation time is June 9, 2011 at midnight UTC
 $ sq key generate --time 20110609 --userid \"Noam\" --output noam.pgp
 ",
 )]
@@ -475,10 +475,10 @@ it to a keyserver.
 ",
     after_help = "EXAMPLES:
 
-# First, this generates a key
+# First, generate a key
 $ sq key generate --userid \"<juliet@example.org>\" --output juliet.key.pgp
 
-# Then, this extracts the certificate for distribution
+# Then, extract the certificate for distribution
 $ sq key extract-cert --output juliet.cert.pgp juliet.key.pgp
 ",
 )]
@@ -976,7 +976,7 @@ time.
     after_help =
 "EXAMPLES:
 
-# First, this generates a key
+# First, generate a key
 $ sq key generate --userid \"alice <alice@example.org>\" --output alice.key.pgp
 
 # Add a new Subkey for universal encryption which expires at the same time as

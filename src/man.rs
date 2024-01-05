@@ -24,7 +24,7 @@
 //! generator. The scope is specifically the Sequoia sq command.
 
 use roff::{bold, italic, roman, Inline, Roff};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 /// The "manual" the manual page is meant for. The full Unix
@@ -69,12 +69,12 @@ struct Builder {
     manual: Option<String>,
     version: Option<String>,
     maincmd: Command,
-    subcommands: HashMap<String, Vec<Command>>,
+    subcommands: BTreeMap<String, Vec<Command>>,
 }
 
 impl Builder {
     fn new(cmd: &clap::Command, section: &str) -> Self {
-        let mut subcommands: HashMap<String, Vec<Command>> = HashMap::new();
+        let mut subcommands: BTreeMap<String, Vec<Command>> = BTreeMap::new();
         for sub in cmd.get_subcommands() {
             let mut subs = vec![];
             let mut top = vec![cmd.get_name().into()];
@@ -159,10 +159,7 @@ impl Builder {
 
         man.section("SYNOPSIS");
         let bin_name = self.maincmd.name();
-        let mut topnames: Vec<&String> = self.subcommands.keys().collect();
-        topnames.sort();
-        for topname in topnames {
-            let subs = self.subcommands.get(topname).unwrap();
+        for subs in self.subcommands.values() {
             for sub in subs.iter().filter(|s| s.leaf) {
                 man.subcommand_synopsis(
                     &bin_name,

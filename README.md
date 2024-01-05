@@ -28,11 +28,5 @@ This crate can be built using the standard `cargo` toolchain:
 cargo build
 ```
 
-The above creates the `sq` executable and its shell completions.
-
-To create the man pages for `sq` in a directory (here `manpages/`) use the
-built executable:
-
-```sh
-SQ_MAN=manpages cargo run
-```
+The above creates the `sq` executable, the manual pages, and its shell
+completions.

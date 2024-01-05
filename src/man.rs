@@ -1,27 +1,27 @@
-//! Generate Unix manual pages for sq from its `clap::Command` value.
-//!
-//! A Unix manual page is a document marked up with the
-//! [troff](https://en.wikipedia.org/wiki/Troff) language. The troff
-//! markup is the source code for the page, and is formatted and
-//! displayed using the "man" command.
-//!
-//! Troff is a child of the 1970s and is one of the earlier markup
-//! languages. It has little resemblance to markup languages born in
-//! the 21st century, such as Markdown. However, it's not actually
-//! difficult, merely old, and sometimes weird. Some of the design of
-//! the troff language was dictated by the constraints of 1970s
-//! hardware, programming languages, and fashions in programming. Let
-//! not those scare you.
-//!
-//! The troff language supports "macros", a way to define new commands
-//! based on built-in commands. There are a number of popular macro
-//! packages for various purposes. One of the most popular ones for
-//! manual pages is called "man", and this module generates manual
-//! pages for that package. It's supported by the "man" command on all
-//! Unix systems.
-//!
-//! Note that this module doesn't aim to be a generic manual page
-//! generator. The scope is specifically the Sequoia sq command.
+/// Generate Unix manual pages for sq from its `clap::Command` value.
+///
+/// A Unix manual page is a document marked up with the
+/// [troff](https://en.wikipedia.org/wiki/Troff) language. The troff
+/// markup is the source code for the page, and is formatted and
+/// displayed using the "man" command.
+///
+/// Troff is a child of the 1970s and is one of the earlier markup
+/// languages. It has little resemblance to markup languages born in
+/// the 21st century, such as Markdown. However, it's not actually
+/// difficult, merely old, and sometimes weird. Some of the design of
+/// the troff language was dictated by the constraints of 1970s
+/// hardware, programming languages, and fashions in programming. Let
+/// not those scare you.
+///
+/// The troff language supports "macros", a way to define new commands
+/// based on built-in commands. There are a number of popular macro
+/// packages for various purposes. One of the most popular ones for
+/// manual pages is called "man", and this module generates manual
+/// pages for that package. It's supported by the "man" command on all
+/// Unix systems.
+///
+/// Note that this module doesn't aim to be a generic manual page
+/// generator. The scope is specifically the Sequoia sq command.
 
 use roff::{bold, italic, roman, Inline, Roff};
 use std::path::{Path, PathBuf};
@@ -313,6 +313,7 @@ impl Command {
         let mut parent = parent.to_vec();
         parent.push(cmd.get_name().into());
         new.subcommands = cmd.get_subcommands()
+            .filter(|cmd| cmd.get_name() != "help")
             .map(|cmd| Command::from_command(&parent, cmd))
             .collect();
         new.leaf = cmd.get_subcommands().count() == 0;

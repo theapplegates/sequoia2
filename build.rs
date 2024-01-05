@@ -1,7 +1,7 @@
 use std::env;
 use std::fs;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use clap::ValueEnum;
 use clap_complete::Shell;
 use anyhow::{Context, Result};
@@ -12,12 +12,16 @@ pub mod cli {
     include!("src/cli/mod.rs");
 }
 
+pub mod man {
+    include!("src/man.rs");
+}
+
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
     // Generate subplot tests.
     #[cfg(feature = "subplot")]
-    subplot_build::codegen(Path::new("sq.subplot"))
+    subplot_build::codegen("sq.subplot")
         .expect("failed to generate code with Subplot");
 
     let mut sq = cli::build();
@@ -113,25 +117,8 @@ fn generate_man_pages(sq: &clap::Command) -> Result<()> {
     let path = outdir.join("man-pages");
     fs::create_dir_all(&path)?;
 
-    let man = clap_mangen::Man::new(sq.clone());
-    man.render(&mut fs::File::create(path.join("sq.1"))?)?;
-
-    fn doit(path: &Path, prefix: &str, command: &clap::Command) -> Result<()> {
-        let man = clap_mangen::Man::new(command.clone());
-        man.render(&mut fs::File::create(
-            path.join(format!("{}-{}.1", prefix, command.get_name())))?)?;
-
-        for sc in command.get_subcommands() {
-            doit(path,
-                 &format!("{}-{}", prefix, command.get_name()),
-                 sc)?;
-        }
-
-        Ok(())
-    }
-
-    for sc in sq.get_subcommands() {
-        doit(&path, "sq", sc)?;
+    for man in man::manpages(sq) {
+        std::fs::write(path.join(man.filename()), man.troff_source())?;
     }
 
     println!("cargo:warning=man pages written to {}", path.display());

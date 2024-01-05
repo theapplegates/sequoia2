@@ -65,7 +65,6 @@ use cli::SqSubcommands;
 use cli::types::Time;
 use cli::output::{OutputFormat, OutputVersion};
 
-mod man;
 mod commands;
 pub mod output;
 pub use output::{wkd::WkdUrlVariant, Model};
@@ -1055,17 +1054,6 @@ impl<'store> Config<'store> {
 // TODO: Use `derive`d command structs. No more values_of
 // TODO: Handling (and cli position) of global arguments
 fn main() -> Result<()> {
-    if let Ok(dirname) = std::env::var("SQ_MAN") {
-        let dirname = PathBuf::from(dirname);
-        if !dirname.exists() {
-            std::fs::create_dir(&dirname)?;
-        }
-        for man in man::manpages(&cli::build()) {
-            std::fs::write(dirname.join(man.filename()), man.troff_source())?;
-        }
-        return Ok(())
-    }
-
     let c = cli::SqCommand::from_arg_matches(&cli::build().get_matches())?;
 
     let time: SystemTime = c.time.unwrap_or_else(|| Time::now()).into();

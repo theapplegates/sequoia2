@@ -3110,7 +3110,6 @@ dependencies = [
  "chrono",
  "clap",
  "clap_complete",
- "clap_mangen",
  "dirs",
  "dot-writer",
  "fehler",

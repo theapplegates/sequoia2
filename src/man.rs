@@ -76,11 +76,11 @@ impl Builder {
     fn new(cmd: &clap::Command, section: &str) -> Self {
         let mut subcommands: HashMap<String, Vec<Command>> = HashMap::new();
         for sub in cmd.get_subcommands() {
-            let mut leaves = vec![];
+            let mut subs = vec![];
             let mut top = vec![cmd.get_name().into()];
-            Self::leaves(&mut leaves, &top, sub);
+            Self::walk(&mut subs, &top, sub);
             top.push(sub.get_name().into());
-            subcommands.insert(top.join(" "), leaves);
+            subcommands.insert(top.join(" "), subs);
         }
 
         Self {
@@ -124,15 +124,14 @@ impl Builder {
         line.to_string()
     }
 
-    /// Collect into `cmds` all the subcommands that don't have subcommands.
-    fn leaves(cmds: &mut Vec<Command>, parent: &[String], cmd: &clap::Command) {
-        if cmd.get_subcommands().count() == 0 {
-            cmds.push(Command::from_command(parent, cmd));
-        } else {
+    /// Collect into `cmds` all the subcommands.
+    fn walk(cmds: &mut Vec<Command>, parent: &[String], cmd: &clap::Command) {
+        cmds.push(Command::from_command(parent, cmd));
+        if cmd.get_subcommands().next().is_some() {
             let mut parent = parent.to_vec();
             parent.push(cmd.get_name().into());
             for sub in cmd.get_subcommands() {
-                Self::leaves(cmds, &parent, sub);
+                Self::walk(cmds, &parent, sub);
             }
         }
     }
@@ -141,7 +140,7 @@ impl Builder {
     fn build(&self) -> Vec<ManualPage> {
         let mut pages = vec![self.build_all_in_one()];
 
-        for sub in self.all_subs() {
+        for sub in self.all_subs().iter().filter(|s| s.leaf) {
             pages.push(self.build_one_subcommand(sub));
         }
 
@@ -164,7 +163,7 @@ impl Builder {
         topnames.sort();
         for topname in topnames {
             let subs = self.subcommands.get(topname).unwrap();
-            for sub in subs.iter() {
+            for sub in subs.iter().filter(|s| s.leaf) {
                 man.subcommand_synopsis(
                     &bin_name,
                     self.maincmd.has_options(),
@@ -188,7 +187,7 @@ impl Builder {
         if !self.subcommands.is_empty() {
             man.section("SUBCOMMANDS");
 
-            for sub in self.all_subs().iter() {
+            for sub in self.all_subs().iter().filter(|s| s.leaf) {
                 let desc = sub.description();
                 if !desc.is_empty() {
                     man.subsection(&sub.name());
@@ -203,6 +202,7 @@ impl Builder {
         let names: Vec<String> = self
             .all_subs()
             .iter()
+            .filter(|s| s.leaf)
             .map(|sub| sub.manpage_name())
             .collect();
         man.man_page_refs(&names, &self.section);
@@ -312,6 +312,7 @@ struct Command {
     options: Vec<CommandOption>,
     args: Vec<String>,
     examples: Vec<String>,
+    leaf: bool,
 }
 
 impl Command {
@@ -329,6 +330,7 @@ impl Command {
             options: vec![],
             args: vec![],
             examples: vec![],
+            leaf: false,
         }
     }
 
@@ -471,6 +473,7 @@ impl Command {
                 }
             }
         }
+        new.leaf = cmd.get_subcommands().count() == 0;
         new
     }
 }
@@ -625,7 +628,8 @@ impl ManualPage {
     }
 
     /// Typeset an EXAMPLES section, if a command has examples.
-    fn examples_section(&mut self, leaves: &[&Command]) {
+    fn examples_section(&mut self, subs: &[&Command]) {
+        let leaves = subs.iter().filter(|s| s.leaf).collect::<Vec<_>>();
         if !leaves.iter().any(|leaf| leaf.has_examples()) {
             return;
         }

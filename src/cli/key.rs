@@ -540,14 +540,14 @@ binding signature to the specified time.
     after_help =
 "EXAMPLES:
 
-# First, this generates a key
+# First, generate a key:
 $ sq key generate --userid \"<juliet@example.org>\" --output juliet.key.pgp
 
-# Then, this adds a User ID
+# Then, add a User ID:
 $ sq key userid add --userid \"Juliet\" juliet.key.pgp \\
   --output juliet-new.key.pgp
 
-# This adds a User ID whose creation time is set to June 28, 2022 at
+# Or, add a User ID whose creation time is set to June 28, 2022 at
 # midnight UTC:
 $ sq key userid add --userid \"Juliet\" --creation-time 20210628 \\
    juliet.key.pgp --output juliet-new.key.pgp
@@ -750,10 +750,10 @@ signature.
     after_help =
 "EXAMPLES:
 
-# First, this generates a key
+# First, generate a key:
 $ sq key generate --userid \"<juliet@example.org>\" --output juliet.key.pgp
 
-# Then, this strips a User ID
+# Then, strip a User ID:
 $ sq key userid strip --userid \"<juliet@example.org>\" \\
   --output juliet-new.key.pgp juliet.key.pgp
 ",

@@ -29,4 +29,7 @@ cargo build
 ```
 
 The above creates the `sq` executable, the manual pages, and its shell
-completions.
+completions.  By default, the manual pages and shell completions are
+put into the `cargo` target directory, but the exact location is
+unpredictable.  To write the assets to a predictable location, set the
+environment variable `ASSET_OUT_DIR` to a suitable location.

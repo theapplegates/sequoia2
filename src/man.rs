@@ -138,24 +138,24 @@ impl Builder {
 
     /// Build all manual pages for sq and one for each leaf subcommand.
     fn build(&self) -> Vec<ManualPage> {
-        let mut pages = vec![self.build_all_in_one()];
+        let mut pages = vec![self.build_overview_command(&self.maincmd)];
 
         for sub in self.all_subs().iter().filter(|s| s.leaf) {
-            pages.push(self.build_one_subcommand(sub));
+            pages.push(self.build_leaf_command(sub));
         }
 
         pages
     }
 
-    /// Build one manual page for sq and all its subcommands.
-    fn build_all_in_one(&self) -> ManualPage {
-        let filename = format!("{}.{}", self.title, self.section);
+    /// Build a manual page for an intermediate (i.e. non-leaf) command.
+    fn build_overview_command(&self, cmd: &Command) -> ManualPage {
+        let filename = format!("{}.{}", cmd.manpage_name(), self.section);
         let mut man = ManualPage::new(PathBuf::from(filename));
         self.th(&mut man);
 
-        let about = &self.maincmd.about.clone().unwrap();
+        let about = &cmd.about.clone().unwrap();
         let summary = Self::summary(about);
-        man.name_section(&self.maincmd.name(), &summary);
+        man.name_section(&cmd.name(), &summary);
 
         man.section("SYNOPSIS");
         let bin_name = self.maincmd.name();
@@ -175,11 +175,26 @@ impl Builder {
         }
 
         man.section("DESCRIPTION");
-        man.text_with_period(&self.maincmd.description());
+        man.text_with_period(&cmd.description());
 
-        if self.maincmd.has_options() {
+        let main_opts = self.maincmd.has_options() && cmd != &self.maincmd;
+        let cmd_opts = cmd.has_options();
+        if main_opts || cmd_opts {
             man.section("OPTIONS");
+        }
+        if main_opts {
+            if cmd_opts {
+                man.subsection("Global options");
+            }
             for opt in self.maincmd.get_options().iter() {
+                man.option(opt);
+            }
+        }
+        if cmd_opts {
+            if main_opts {
+                man.subsection("Subcommand options");
+            }
+            for opt in cmd.get_options().iter() {
                 man.option(opt);
             }
         }
@@ -239,7 +254,7 @@ impl Builder {
     }
 
     /// Build a manual page for one leaf subcommand.
-    fn build_one_subcommand(&self, leaf: &Command) -> ManualPage {
+    fn build_leaf_command(&self, leaf: &Command) -> ManualPage {
         let filename = format!("{}.{}", leaf.manpage_name(), self.section);
         let mut man = ManualPage::new(PathBuf::from(filename));
         self.th(&mut man);
@@ -275,7 +290,7 @@ impl Builder {
                 man.option(opt);
             }
         }
-        if leaf.has_options() {
+        if leaf_opts {
             if main_opts {
                 man.subsection("Subcommand options");
             }
@@ -302,7 +317,7 @@ impl Builder {
 /// We collect all the information about a command here so that it's
 /// handy when we generate various parts of a manual page that includes
 /// this command.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct Command {
     command_words: Vec<String>,
     before_help: Option<String>,
@@ -482,7 +497,7 @@ impl Command {
 //
 /// This doesn't capture all the things that `clap` allows, but is
 /// sufficient for what sq actually uses.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 struct CommandOption {
     short: Option<String>,
     long: Option<String>,

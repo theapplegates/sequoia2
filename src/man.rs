@@ -24,7 +24,6 @@
 //! generator. The scope is specifically the Sequoia sq command.
 
 use roff::{bold, italic, roman, Inline, Roff};
-use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 /// The "manual" the manual page is meant for. The full Unix
@@ -69,20 +68,10 @@ struct Builder {
     manual: Option<String>,
     version: Option<String>,
     maincmd: Command,
-    subcommands: BTreeMap<String, Vec<Command>>,
 }
 
 impl Builder {
     fn new(cmd: &clap::Command, section: &str) -> Self {
-        let mut subcommands: BTreeMap<String, Vec<Command>> = BTreeMap::new();
-        for sub in cmd.get_subcommands() {
-            let mut subs = vec![];
-            let mut top = vec![cmd.get_name().into()];
-            Self::walk(&mut subs, &top, sub);
-            top.push(sub.get_name().into());
-            subcommands.insert(top.join(" "), subs);
-        }
-
         Self {
             title: cmd.get_name().into(),
             section: section.into(),
@@ -91,7 +80,6 @@ impl Builder {
             source: None,
             manual: None,
             version: cmd.get_version().map(|v| v.to_string()),
-            subcommands,
         }
     }
 
@@ -124,26 +112,10 @@ impl Builder {
         line.to_string()
     }
 
-    /// Collect into `cmds` all the subcommands.
-    fn walk(cmds: &mut Vec<Command>, parent: &[String], cmd: &clap::Command) {
-        cmds.push(Command::from_command(parent, cmd));
-        if cmd.get_subcommands().next().is_some() {
-            let mut parent = parent.to_vec();
-            parent.push(cmd.get_name().into());
-            for sub in cmd.get_subcommands() {
-                Self::walk(cmds, &parent, sub);
-            }
-        }
-    }
-
     /// Build all manual pages for sq and one for each leaf subcommand.
     fn build(&self) -> Vec<ManualPage> {
         let mut pages = vec![self.maincmd.build_overview_command(self)];
-
-        for sub in self.all_subs().iter().filter(|s| s.leaf) {
-            pages.push(sub.build_leaf_command(self));
-        }
-
+        self.maincmd.build(self, &mut pages);
         pages
     }
 
@@ -157,18 +129,6 @@ impl Builder {
             self.source.as_ref().unwrap_or(&empty),
             self.manual.as_ref().unwrap_or(&empty),
         )
-    }
-
-    /// Return a vector of all leaf subcommands.
-    fn all_subs(&self) -> Vec<&Command> {
-        let mut subs = vec![];
-        for (_, leaves) in self.subcommands.iter() {
-            for leaf in leaves.iter() {
-                subs.push((leaf.name(), leaf));
-            }
-        }
-        subs.sort_by_cached_key(|(name, _)| name.to_string());
-        subs.iter().map(|(_, leaf)| *leaf).collect()
     }
 }
 
@@ -187,6 +147,7 @@ struct Command {
     options: Vec<CommandOption>,
     args: Vec<String>,
     examples: Vec<String>,
+    subcommands: Vec<Command>,
     leaf: bool,
 }
 
@@ -205,6 +166,7 @@ impl Command {
             options: vec![],
             args: vec![],
             examples: vec![],
+            subcommands: vec![],
             leaf: false,
         }
     }
@@ -348,8 +310,42 @@ impl Command {
                 }
             }
         }
+        let mut parent = parent.to_vec();
+        parent.push(cmd.get_name().into());
+        new.subcommands = cmd.get_subcommands()
+            .map(|cmd| Command::from_command(&parent, cmd))
+            .collect();
         new.leaf = cmd.get_subcommands().count() == 0;
         new
+    }
+
+    /// Return a vector of all leaf subcommands.
+    fn all_leaves(&self) -> Vec<&Command> {
+        fn walk<'a>(leaves: &mut Vec<&'a Command>, cmd: &'a Command) {
+            if cmd.leaf {
+                leaves.push(cmd);
+            } else {
+                for cmd in &cmd.subcommands {
+                    walk(leaves, cmd);
+                }
+            }
+        }
+
+        let mut leaves = vec![];
+        walk(&mut leaves, self);
+        leaves.sort_by_cached_key(|cmd| cmd.name());
+        leaves
+    }
+
+    /// Builds manpages recursively.
+    fn build(&self, builder: &Builder, acc: &mut Vec<ManualPage>) {
+        if self.leaf {
+            acc.push(self.build_leaf_command(builder));
+        } else {
+            for cmd in &self.subcommands {
+                cmd.build(builder, acc);
+            }
+        }
     }
 
     /// Build a manual page for an intermediate (i.e. non-leaf) command.
@@ -365,16 +361,14 @@ impl Command {
 
         man.section("SYNOPSIS");
         let bin_name = builder.maincmd.name();
-        for subs in builder.subcommands.values() {
-            for sub in subs.iter().filter(|s| s.leaf) {
-                man.subcommand_synopsis(
-                    &bin_name,
-                    builder.maincmd.has_options(),
-                    &sub.subcommand_name(),
-                    sub.has_options(),
-                    &sub.args,
-                );
-            }
+        for sub in self.all_leaves() {
+            man.subcommand_synopsis(
+                &bin_name,
+                builder.maincmd.has_options(),
+                &sub.subcommand_name(),
+                sub.has_options(),
+                &sub.args,
+            );
         }
 
         man.section("DESCRIPTION");
@@ -402,10 +396,10 @@ impl Command {
             }
         }
 
-        if !builder.subcommands.is_empty() {
+        if !self.subcommands.is_empty() {
             man.section("SUBCOMMANDS");
 
-            for sub in builder.all_subs().iter().filter(|s| s.leaf) {
+            for sub in self.all_leaves() {
                 let desc = sub.description();
                 if !desc.is_empty() {
                     man.subsection(&sub.name());
@@ -414,13 +408,12 @@ impl Command {
             }
         }
 
-        man.examples_section(&builder.all_subs());
+        man.examples_section(&self.all_leaves());
 
         man.section("SEE ALSO");
-        let names: Vec<String> = builder
-            .all_subs()
+        let names: Vec<String> = self
+            .all_leaves()
             .iter()
-            .filter(|s| s.leaf)
             .map(|sub| sub.manpage_name())
             .collect();
         man.man_page_refs(&names, &builder.section);

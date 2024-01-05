@@ -30,13 +30,19 @@ fn main() {
     generate_man_pages(&sq).unwrap();
 }
 
-/// Generates shell completions.
-fn generate_shell_completions(sq: &mut clap::Command) -> Result<()> {
+/// Returns the directory to write the given assets to.
+fn asset_out_dir(asset: &str) -> Result<PathBuf> {
     let outdir: PathBuf =
         env::var_os("OUT_DIR").expect("OUT_DIR not set").into();
     assert!(outdir.is_dir());
-    let path = outdir.join("shell-completions");
+    let path = outdir.join(asset);
     fs::create_dir_all(&path)?;
+    Ok(path)
+}
+
+/// Generates shell completions.
+fn generate_shell_completions(sq: &mut clap::Command) -> Result<()> {
+    let path = asset_out_dir("shell-completions")?;
 
     for shell in Shell::value_variants() {
         clap_complete::generate_to(*shell, sq, "sq", &path)?;
@@ -111,11 +117,7 @@ fn dump_help_inner(
 
 /// Generates man pages.
 fn generate_man_pages(sq: &clap::Command) -> Result<()> {
-    let outdir: PathBuf =
-        env::var_os("OUT_DIR").expect("OUT_DIR not set").into();
-    assert!(outdir.is_dir());
-    let path = outdir.join("man-pages");
-    fs::create_dir_all(&path)?;
+    let path = asset_out_dir("man-pages")?;
 
     for man in man::manpages(sq) {
         std::fs::write(path.join(man.filename()), man.troff_source())?;

@@ -57,9 +57,9 @@ pub fn manpages(cmd: &clap::Command) -> Vec<ManualPage> {
 //
 /// The main command is sq itself. It can have multiple levels of
 /// subcommands, and we treat the leaves of the subcommand tree
-/// specially: the main command and the leaves get manual pages of
-/// their own. For example, "sq encrypt" is a leaf, as is "sq key
-/// generate", but "sq key" is not.
+/// specially: every leaf gets a manual page, and every intermediate
+/// node gets an overview page. For example, "sq encrypt" is a leaf,
+/// as is "sq key generate", but "sq key" is not.
 struct Builder {
     title: String,
     section: String,
@@ -114,7 +114,7 @@ impl Builder {
 
     /// Build all manual pages for sq and one for each leaf subcommand.
     fn build(&self) -> Vec<ManualPage> {
-        let mut pages = vec![self.maincmd.build_overview_command(self)];
+        let mut pages = vec![];
         self.maincmd.build(self, &mut pages);
         pages
     }
@@ -319,29 +319,12 @@ impl Command {
         new
     }
 
-    /// Return a vector of all leaf subcommands.
-    fn all_leaves(&self) -> Vec<&Command> {
-        fn walk<'a>(leaves: &mut Vec<&'a Command>, cmd: &'a Command) {
-            if cmd.leaf {
-                leaves.push(cmd);
-            } else {
-                for cmd in &cmd.subcommands {
-                    walk(leaves, cmd);
-                }
-            }
-        }
-
-        let mut leaves = vec![];
-        walk(&mut leaves, self);
-        leaves.sort_by_cached_key(|cmd| cmd.name());
-        leaves
-    }
-
     /// Builds manpages recursively.
     fn build(&self, builder: &Builder, acc: &mut Vec<ManualPage>) {
         if self.leaf {
             acc.push(self.build_leaf_command(builder));
         } else {
+            acc.push(self.build_overview_command(builder));
             for cmd in &self.subcommands {
                 cmd.build(builder, acc);
             }
@@ -361,13 +344,14 @@ impl Command {
 
         man.section("SYNOPSIS");
         let bin_name = builder.maincmd.name();
-        for sub in self.all_leaves() {
+        for sub in &self.subcommands {
             man.subcommand_synopsis(
                 &bin_name,
                 builder.maincmd.has_options(),
                 &sub.subcommand_name(),
                 sub.has_options(),
                 &sub.args,
+                sub.leaf,
             );
         }
 
@@ -399,7 +383,7 @@ impl Command {
         if !self.subcommands.is_empty() {
             man.section("SUBCOMMANDS");
 
-            for sub in self.all_leaves() {
+            for sub in &self.subcommands {
                 let desc = sub.description();
                 if !desc.is_empty() {
                     man.subsection(&sub.name());
@@ -408,14 +392,17 @@ impl Command {
             }
         }
 
-        man.examples_section(&self.all_leaves());
+        man.examples_section(&self.subcommands.iter().collect::<Vec<_>>());
 
         man.section("SEE ALSO");
-        let names: Vec<String> = self
-            .all_leaves()
+        let mut names: Vec<String> = self
+            .subcommands
             .iter()
             .map(|sub| sub.manpage_name())
             .collect();
+        if self != &builder.maincmd {
+            names.insert(0, builder.maincmd.manpage_name());
+        }
         man.man_page_refs(&names, &builder.section);
         man.paragraph();
         man.text(SEE_ALSO);
@@ -445,6 +432,7 @@ impl Command {
             &self.subcommand_name(),
             self.has_options(),
             &self.args,
+            true,
         );
 
         man.section("DESCRIPTION");
@@ -580,6 +568,7 @@ impl ManualPage {
         sub: &str,
         sub_options: bool,
         args: &[String],
+        is_leaf: bool,
     ) {
         let options = vec![roman(" ["), italic("GLOBAL OPTIONS"), roman("] ")];
         let local_options = vec![roman(" ["), italic("OPTIONS"), roman("] ")];
@@ -601,6 +590,10 @@ impl ManualPage {
 
         if args.is_empty() {
             line.push(roman(" "));
+        }
+
+        if ! is_leaf {
+            line.push(italic("SUBCOMMAND"));
         }
 
         self.roff.text(line);

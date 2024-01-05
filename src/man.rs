@@ -138,92 +138,13 @@ impl Builder {
 
     /// Build all manual pages for sq and one for each leaf subcommand.
     fn build(&self) -> Vec<ManualPage> {
-        let mut pages = vec![self.build_overview_command(&self.maincmd)];
+        let mut pages = vec![self.maincmd.build_overview_command(self)];
 
         for sub in self.all_subs().iter().filter(|s| s.leaf) {
-            pages.push(self.build_leaf_command(sub));
+            pages.push(sub.build_leaf_command(self));
         }
 
         pages
-    }
-
-    /// Build a manual page for an intermediate (i.e. non-leaf) command.
-    fn build_overview_command(&self, cmd: &Command) -> ManualPage {
-        let filename = format!("{}.{}", cmd.manpage_name(), self.section);
-        let mut man = ManualPage::new(PathBuf::from(filename));
-        self.th(&mut man);
-
-        let about = &cmd.about.clone().unwrap();
-        let summary = Self::summary(about);
-        man.name_section(&cmd.name(), &summary);
-
-        man.section("SYNOPSIS");
-        let bin_name = self.maincmd.name();
-        for subs in self.subcommands.values() {
-            for sub in subs.iter().filter(|s| s.leaf) {
-                man.subcommand_synopsis(
-                    &bin_name,
-                    self.maincmd.has_options(),
-                    &sub.subcommand_name(),
-                    sub.has_options(),
-                    &sub.args,
-                );
-            }
-        }
-
-        man.section("DESCRIPTION");
-        man.text_with_period(&cmd.description());
-
-        let main_opts = self.maincmd.has_options() && cmd != &self.maincmd;
-        let cmd_opts = cmd.has_options();
-        if main_opts || cmd_opts {
-            man.section("OPTIONS");
-        }
-        if main_opts {
-            if cmd_opts {
-                man.subsection("Global options");
-            }
-            for opt in self.maincmd.get_options().iter() {
-                man.option(opt);
-            }
-        }
-        if cmd_opts {
-            if main_opts {
-                man.subsection("Subcommand options");
-            }
-            for opt in cmd.get_options().iter() {
-                man.option(opt);
-            }
-        }
-
-        if !self.subcommands.is_empty() {
-            man.section("SUBCOMMANDS");
-
-            for sub in self.all_subs().iter().filter(|s| s.leaf) {
-                let desc = sub.description();
-                if !desc.is_empty() {
-                    man.subsection(&sub.name());
-                    man.text_with_period(&desc);
-                }
-            }
-        }
-
-        man.examples_section(&self.all_subs());
-
-        man.section("SEE ALSO");
-        let names: Vec<String> = self
-            .all_subs()
-            .iter()
-            .filter(|s| s.leaf)
-            .map(|sub| sub.manpage_name())
-            .collect();
-        man.man_page_refs(&names, &self.section);
-        man.paragraph();
-        man.text(SEE_ALSO);
-
-        man.version_section(&self.version);
-
-        man
     }
 
     /// Set the title of the page.
@@ -248,64 +169,6 @@ impl Builder {
         }
         subs.sort_by_cached_key(|(name, _)| name.to_string());
         subs.iter().map(|(_, leaf)| *leaf).collect()
-    }
-
-    /// Build a manual page for one leaf subcommand.
-    fn build_leaf_command(&self, leaf: &Command) -> ManualPage {
-        let filename = format!("{}.{}", leaf.manpage_name(), self.section);
-        let mut man = ManualPage::new(PathBuf::from(filename));
-        self.th(&mut man);
-
-        let about = &leaf.about.clone().unwrap();
-        let summary = Self::summary(about);
-        man.name_section(&leaf.name(), &summary);
-
-        man.section("SYNOPSIS");
-        let bin_name = self.maincmd.name();
-        let has_global_options = self.maincmd.has_options();
-        man.subcommand_synopsis(
-            &bin_name,
-            has_global_options,
-            &leaf.subcommand_name(),
-            leaf.has_options(),
-            &leaf.args,
-        );
-
-        man.section("DESCRIPTION");
-        man.text_with_period(&leaf.description());
-
-        let main_opts = self.maincmd.has_options();
-        let leaf_opts = leaf.has_options();
-        if main_opts || leaf_opts {
-            man.section("OPTIONS");
-        }
-        if main_opts {
-            if leaf_opts {
-                man.subsection("Global options");
-            }
-            for opt in self.maincmd.get_options().iter() {
-                man.option(opt);
-            }
-        }
-        if leaf_opts {
-            if main_opts {
-                man.subsection("Subcommand options");
-            }
-            for opt in leaf.get_options().iter() {
-                man.option(opt);
-            }
-        }
-
-        man.examples_section(&[leaf]);
-
-        man.section("SEE ALSO");
-        man.man_page_refs(&[self.maincmd.manpage_name()], &self.section);
-        man.paragraph();
-        man.text(SEE_ALSO);
-
-        man.version_section(&self.version);
-
-        man
     }
 }
 
@@ -487,6 +350,145 @@ impl Command {
         }
         new.leaf = cmd.get_subcommands().count() == 0;
         new
+    }
+
+    /// Build a manual page for an intermediate (i.e. non-leaf) command.
+    fn build_overview_command(&self, builder: &Builder) -> ManualPage {
+        assert!(! self.leaf);
+        let filename = format!("{}.{}", self.manpage_name(), builder.section);
+        let mut man = ManualPage::new(PathBuf::from(filename));
+        builder.th(&mut man);
+
+        let about = &self.about.clone().unwrap();
+        let summary = Builder::summary(about);
+        man.name_section(&self.name(), &summary);
+
+        man.section("SYNOPSIS");
+        let bin_name = builder.maincmd.name();
+        for subs in builder.subcommands.values() {
+            for sub in subs.iter().filter(|s| s.leaf) {
+                man.subcommand_synopsis(
+                    &bin_name,
+                    builder.maincmd.has_options(),
+                    &sub.subcommand_name(),
+                    sub.has_options(),
+                    &sub.args,
+                );
+            }
+        }
+
+        man.section("DESCRIPTION");
+        man.text_with_period(&self.description());
+
+        let main_opts = builder.maincmd.has_options() && self != &builder.maincmd;
+        let cmd_opts = self.has_options();
+        if main_opts || cmd_opts {
+            man.section("OPTIONS");
+        }
+        if main_opts {
+            if cmd_opts {
+                man.subsection("Global options");
+            }
+            for opt in builder.maincmd.get_options().iter() {
+                man.option(opt);
+            }
+        }
+        if cmd_opts {
+            if main_opts {
+                man.subsection("Subcommand options");
+            }
+            for opt in self.get_options().iter() {
+                man.option(opt);
+            }
+        }
+
+        if !builder.subcommands.is_empty() {
+            man.section("SUBCOMMANDS");
+
+            for sub in builder.all_subs().iter().filter(|s| s.leaf) {
+                let desc = sub.description();
+                if !desc.is_empty() {
+                    man.subsection(&sub.name());
+                    man.text_with_period(&desc);
+                }
+            }
+        }
+
+        man.examples_section(&builder.all_subs());
+
+        man.section("SEE ALSO");
+        let names: Vec<String> = builder
+            .all_subs()
+            .iter()
+            .filter(|s| s.leaf)
+            .map(|sub| sub.manpage_name())
+            .collect();
+        man.man_page_refs(&names, &builder.section);
+        man.paragraph();
+        man.text(SEE_ALSO);
+
+        man.version_section(&builder.version);
+
+        man
+    }
+
+    /// Build a manual page for one leaf subcommand.
+    fn build_leaf_command(&self, builder: &Builder) -> ManualPage {
+        assert!(self.leaf);
+        let filename = format!("{}.{}", self.manpage_name(), builder.section);
+        let mut man = ManualPage::new(PathBuf::from(filename));
+        builder.th(&mut man);
+
+        let about = &self.about.clone().unwrap();
+        let summary = Builder::summary(about);
+        man.name_section(&self.name(), &summary);
+
+        man.section("SYNOPSIS");
+        let bin_name = builder.maincmd.name();
+        let has_global_options = builder.maincmd.has_options();
+        man.subcommand_synopsis(
+            &bin_name,
+            has_global_options,
+            &self.subcommand_name(),
+            self.has_options(),
+            &self.args,
+        );
+
+        man.section("DESCRIPTION");
+        man.text_with_period(&self.description());
+
+        let main_opts = builder.maincmd.has_options();
+        let self_opts = self.has_options();
+        if main_opts || self_opts {
+            man.section("OPTIONS");
+        }
+        if main_opts {
+            if self_opts {
+                man.subsection("Global options");
+            }
+            for opt in builder.maincmd.get_options().iter() {
+                man.option(opt);
+            }
+        }
+        if self_opts {
+            if main_opts {
+                man.subsection("Subcommand options");
+            }
+            for opt in self.get_options().iter() {
+                man.option(opt);
+            }
+        }
+
+        man.examples_section(&[self]);
+
+        man.section("SEE ALSO");
+        man.man_page_refs(&[builder.maincmd.manpage_name()], &builder.section);
+        man.paragraph();
+        man.text(SEE_ALSO);
+
+        man.version_section(&builder.version);
+
+        man
     }
 }
 

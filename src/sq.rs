@@ -7,7 +7,6 @@
 #![doc = include_str!(concat!(env!("OUT_DIR"), "/sq-usage.md"))]
 
 use anyhow::Context as _;
-use is_terminal::IsTerminal;
 
 use std::borrow::Borrow;
 use std::cell::OnceCell;
@@ -271,28 +270,26 @@ fn decrypt_key<R>(key: Key<key::SecretParts, R>, passwords: &mut Vec<Password>)
                 }
             }
 
-            if std::io::stdin().is_terminal() {
-                loop {
-                    // Prompt the user.
-                    match common::password::prompt_to_unlock_or_cancel(&format!(
-                        "{} (blank to skip)", key.keyid().to_hex()
-                    )) {
-                        Ok(None) => break, // Give up.
-                        Ok(Some(p)) => {
-                            if let Ok(key) = key
-                                .clone()
-                                .decrypt_secret(&p)
-                            {
-                                passwords.push(p.into());
-                                return Ok(key);
-                            }
+            loop {
+                // Prompt the user.
+                match common::password::prompt_to_unlock_or_cancel(&format!(
+                    "{} (blank to skip)", key.keyid().to_hex()
+                )) {
+                    Ok(None) => break, // Give up.
+                    Ok(Some(p)) => {
+                        if let Ok(key) = key
+                            .clone()
+                            .decrypt_secret(&p)
+                        {
+                            passwords.push(p.into());
+                            return Ok(key);
+                        }
 
-                            wprintln!("Incorrect password.");
-                        }
-                        Err(err) => {
-                            wprintln!("While reading password: {}", err);
-                            break;
-                        }
+                        wprintln!("Incorrect password.");
+                    }
+                    Err(err) => {
+                        wprintln!("While reading password: {}", err);
+                        break;
                     }
                 }
             }

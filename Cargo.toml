@@ -41,7 +41,7 @@ chrono = "0.4.10"
 clap = { version = "4", features = ["derive", "env", "string", "wrap_help"] }
 humantime = "2"
 itertools = ">=0.10, <0.13"
-sequoia-cert-store = "0.4"
+sequoia-cert-store = "0.4.1"
 sequoia-wot = "0.9"
 tempfile = "3.1"
 tokio = { version = "1.13.1" }

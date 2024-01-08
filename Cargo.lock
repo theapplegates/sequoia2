@@ -2951,9 +2951,9 @@ dependencies = [
 
 [[package]]
 name = "sequoia-cert-store"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f44e2775a51e844809b1f393c5098dd414f79555b61b29a98f0dede289b86515"
+checksum = "9359ae25b815675b04c89216709c4c6cc6b7b4d4a0a5547f0f3635c3a1803a58"
 dependencies = [
  "anyhow",
  "crossbeam",

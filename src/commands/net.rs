@@ -32,6 +32,7 @@ use net::{
 };
 
 use sequoia_cert_store as cert_store;
+use cert_store::LazyCert;
 use cert_store::StoreUpdate;
 use cert_store::store::UserIDQueryParams;
 
@@ -203,88 +204,6 @@ fn certify(config: &Config,
     }
 }
 
-/// Gets the specified CA.
-///
-/// The ca is found in the specified special (e.g. `_wkd.pgp`, or
-/// `_keyserver_keys.openpgp.org.pgp`).  If the CA does not exist, it
-/// is created with the specified User ID (e.g., `Downloaded from a
-/// WKD`, or `Downloaded from keys.openpgp.org`), and the specified
-/// trust amount.
-fn get_ca(config: &mut Config,
-          ca_special: &str, ca_userid: &str, ca_trust_amount: usize)
-    -> Result<Cert>
-{
-    let (created, ca) = config.get_special(ca_special, ca_userid, true)?;
-    if ! created {
-        // We didn't create it, and don't want to change how it is
-        // setup.
-        return Ok(ca);
-    }
-
-    // We just created the certificate.  Make it a CA by having
-    // the local trust root certify it.
-    match config.local_trust_root() {
-        Err(err) => {
-            Err(anyhow::anyhow!(
-                "Failed to certify {:?} using the local trust root: {}",
-                ca_userid, err))
-        }
-        Ok(trust_root) => {
-            let keys = get_certification_keys(
-                &[trust_root], &config.policy, None, Some(config.time), None)
-                .context("Getting trust root's certification key")?;
-            assert!(
-                keys.len() == 1,
-                "Expect exactly one result from get_certification_keys()"
-            );
-            let mut signer = keys.into_iter().next().unwrap().0;
-
-            match certify(config, &mut signer, &ca, &[UserID::from(ca_userid)],
-                          Some(config.time), 1, ca_trust_amount)
-            {
-                Err(err) => {
-                    Err(err).context(format!(
-                        "Error certifying {:?} with the local trust root",
-                        ca_userid))
-                }
-                Ok(cert) => {
-                    // Save it.
-                    let cert_store = config.cert_store_mut_or_else()?;
-                    cert_store.update(Arc::new(cert.clone().into()))
-                        .with_context(|| {
-                            format!("Saving {:?}", ca_userid)
-                        })?;
-
-                    if config.verbose {
-                        wprintln!(
-                              "Created the local CA {:?} for certifying \
-                               certificates downloaded from this service.  \
-                               The CA's trust amount is set to {} of {}.  \
-                               Use `sq link add --ca '*' --amount N {}` \
-                               to override it.  Or `sq link retract {}` to \
-                               disable it.",
-                              ca_userid,
-                              ca_trust_amount, sequoia_wot::FULLY_TRUSTED,
-                              cert.fingerprint(), cert.fingerprint());
-                    } else {
-                        use std::sync::Once;
-                        static MSG: Once = Once::new();
-                        MSG.call_once(|| {
-                            wprintln!("Note: Created a local CA to record \
-                                       provenance information.\n\
-                                       Note: See `sq link list --ca` \
-                                       and `sq link --help` for more \
-                                       information.");
-                        });
-                    }
-
-                    Ok(cert)
-                }
-            }
-        }
-    }
-}
-
 /// Certify the certificates using the specified CA.
 ///
 /// The certificates are certified for User IDs with the specified
@@ -294,13 +213,13 @@ fn get_ca(config: &mut Config,
 ///
 /// If a certificate cannot be certified for whatever reason, a
 /// diagnostic is emitted, and the certificate is returned as is.
-pub fn certify_downloads(config: &mut Config,
-                     ca_special: &str, ca_userid: &str, ca_trust_amount: usize,
-                     certs: Vec<Cert>, email: Option<&str>)
+pub fn certify_downloads<'store>(config: &mut Config<'store>,
+                                 ca: Arc<LazyCert<'store>>,
+                                 certs: Vec<Cert>, email: Option<&str>)
     -> Vec<Cert>
 {
-    let mut ca = || -> Result<_> {
-        let ca = get_ca(config, ca_special, ca_userid, ca_trust_amount)?;
+    let ca = || -> Result<_> {
+        let ca = ca.to_cert()?;
 
         let keys = get_certification_keys(
             &[ca], &config.policy, None, Some(config.time), None)?;
@@ -460,20 +379,98 @@ impl fmt::Display for Method {
 }
 
 impl Method {
-    fn ca(&self, config: &Config) -> Option<(String, String, usize)> {
-        match self {
-            Method::KeyServer(url) => keyserver_ca(config, url),
-            Method::WKD => Some((
-                WKD_CA_FILENAME.into(),
-                WKD_CA_USERID.into(),
-                WKD_CA_TRUST_AMOUNT,
-            )),
-            Method::DANE => Some((
-                DANE_CA_FILENAME.into(),
-                DANE_CA_USERID.into(),
-                DANE_CA_TRUST_AMOUNT,
-            )),
+    // Returns the CA's certificate.
+    //
+    // This doesn't return an error, because not all methods have
+    // shadow CAs, and a missing CA is not a hard error.
+    fn ca<'store>(&self, config: &Config<'store>) -> Option<Arc<LazyCert<'store>>> {
+        let ca = || -> Result<_> {
+            let certd = config.certd_or_else()?;
+            let (cert, created) = match self {
+                Method::KeyServer(url) => {
+                    let result = certd.shadow_ca_keyserver(url)?;
+
+                    match result {
+                        Some((cert, created)) => (cert, created),
+                        None => {
+                            if config.verbose {
+                                wprintln!(
+                                    "Not recording provenance information: \
+                                     {} is not known to be a verifying \
+                                     keyserver",
+                                    url);
+                            }
+                            return Ok(None);
+                        }
+                    }
+                }
+                Method::WKD => certd.shadow_ca_wkd()?,
+                Method::DANE => certd.shadow_ca_dane()?,
+            };
+
+            // Check that the data is a valid certificate.  If not,
+            // bail sooner rather than later.
+            let _ = cert.to_cert()?;
+
+            Ok(Some((cert, created)))
+        };
+
+        let (cert, created) = match ca() {
+            Ok(Some((cert, created))) => (cert, created),
+            Ok(None) => return None,
+            Err(err) => {
+                let print_err = || {
+                    wprintln!(
+                        "Not recording provenance information: {}",
+                        err);
+                };
+
+                if config.verbose {
+                    print_err();
+                } else {
+                    use std::sync::Once;
+                    static MSG: Once = Once::new();
+                    MSG.call_once(print_err);
+                }
+
+                return None;
+            }
+        };
+
+        if ! created {
+            // We didn't create it.
+            return Some(cert);
         }
+
+        if config.verbose {
+            let invalid = UserID::from(&b"invalid data"[..]);
+
+            wprintln!(
+                "Created the local CA {:?} for certifying \
+                 certificates downloaded from this service.  \
+                 Use `sq link add --ca '*' --amount N {}` \
+                 to change how much it is trusted.  Or \
+                 `sq link retract {}` to disable it.",
+                if let Ok(cert) = cert.to_cert() {
+                    best_effort_primary_uid(
+                        cert, &config.policy, None)
+                } else {
+                    &invalid
+                },
+                cert.fingerprint(), cert.fingerprint());
+        } else {
+            use std::sync::Once;
+            static MSG: Once = Once::new();
+            MSG.call_once(|| {
+                wprintln!("Note: Created a local CA to record \
+                           provenance information.\n\
+                           Note: See `sq link list --ca` \
+                           and `sq link --help` for more \
+                           information.");
+            });
+        }
+
+        Some(cert)
     }
 }
 
@@ -506,16 +503,10 @@ impl Response {
                         Ok(cert) => if output.is_some() {
                             certs.push(cert);
                         } else {
-                            if let Some((ca_filename, ca_userid,
-                                         ca_trust_amount)) =
-                                response.method.ca(&config)
+                            if let Some(ca) = response.method.ca(&config)
                             {
                                 certs.append(&mut certify_downloads(
-                                    &mut config,
-                                    ca_filename.as_str(),
-                                    ca_userid.as_str(),
-                                    ca_trust_amount,
-                                    vec![cert], None));
+                                    &mut config, ca, vec![cert], None));
                             } else {
                                 certs.push(cert);
                             }
@@ -611,55 +602,6 @@ pub fn dispatch_fetch(config: Config, c: cli::network::fetch::Command)
         Result::Ok(())
     })
 }
-
-/// Gets the filename for the CA's key and the default User ID.
-fn keyserver_ca(config: &Config, uri: &str) -> Option<(String, String, usize)> {
-    if let Some(server) = uri.strip_prefix("hkps://") {
-        // We only certify the certificate if the transport was
-        // encrypted and authenticated.
-
-        let server = server.strip_suffix("/").unwrap_or(server);
-        // A basic sanity check on the name, which we are about to
-        // use as a filename: it can't start with a dot, no
-        // slashes, and no colons are allowed.
-        if server.chars().next() == Some('.')
-            || server.contains('/')
-            || server.contains('\\')
-            || server.contains(':') {
-                return None;
-            }
-
-        let mut server = server.to_ascii_lowercase();
-
-        // Only record provenance information for certifying
-        // keyservers.  Anything else doesn't make sense.
-        match &server[..] {
-            "keys.openpgp.org" => (),
-            "keys.mailvelope.com" => (),
-            "mail-api.proton.me" | "api.protonmail.ch" => (),
-            _ => {
-                config.info(format_args!(
-                    "Not recording provenance information, {} is not \
-                     known to be a verifying keyserver",
-                    server));
-                return None;
-            },
-        }
-
-        // Unify aliases.
-        if &server == "api.protonmail.ch" {
-            server = "mail-api.proton.me".into();
-        }
-
-        Some((format!("_keyserver_{}.pgp", server),
-              format!("Downloaded from the keyserver {}", server),
-              KEYSERVER_CA_TRUST_AMOUNT))
-    } else {
-        None
-    }
-}
-
-const KEYSERVER_CA_TRUST_AMOUNT: usize = 1;
 
 /// Figures out whether the given set of key servers is the default
 /// set.
@@ -777,10 +719,6 @@ pub fn dispatch_keyserver(config: Config, c: cli::network::keyserver::Command)
     Ok(())
 }
 
-const WKD_CA_FILENAME: &'static str = "_wkd.pgp";
-const WKD_CA_USERID: &'static str = "Downloaded from a WKD";
-const WKD_CA_TRUST_AMOUNT: usize = 1;
-
 pub fn dispatch_wkd(config: Config, c: cli::network::wkd::Command) -> Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
 
@@ -859,10 +797,6 @@ pub fn dispatch_wkd(config: Config, c: cli::network::wkd::Command) -> Result<()>
 
     Ok(())
 }
-
-const DANE_CA_FILENAME: &'static str = "_dane.pgp";
-const DANE_CA_USERID: &'static str = "Downloaded from DANE";
-const DANE_CA_TRUST_AMOUNT: usize = 1;
 
 pub fn dispatch_dane(config: Config, c: cli::network::dane::Command) -> Result<()> {
     let rt = tokio::runtime::Runtime::new()?;

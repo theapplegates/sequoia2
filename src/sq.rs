@@ -13,10 +13,9 @@ use std::cell::OnceCell;
 use std::collections::btree_map::{BTreeMap, Entry};
 use std::fmt;
 use std::io;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 use std::sync::Arc;
 
 use sequoia_openpgp as openpgp;
@@ -36,12 +35,11 @@ use openpgp::packet::signature::subpacket::NotationDataFlags;
 use openpgp::serialize::Serialize;
 use openpgp::cert::prelude::*;
 use openpgp::policy::{Policy, StandardPolicy as P};
-use openpgp::serialize::SerializeInto;
 use openpgp::types::KeyFlags;
 use openpgp::types::RevocationStatus;
-use openpgp::types::SignatureType;
 
 use sequoia_cert_store as cert_store;
+use cert_store::LazyCert;
 use cert_store::Store;
 use cert_store::store::StoreError;
 use cert_store::store::StoreUpdate;
@@ -524,6 +522,25 @@ impl<'store> Config<'store> {
         }))
     }
 
+    /// Returns a reference to the underlying certificate directory,
+    /// if it is configured.
+    ///
+    /// If the cert direcgory is disabled, returns an error.
+    fn certd_or_else(&self)
+        -> Result<&cert_store::store::certd::CertD<'store>>
+    {
+        const NO_CERTD_ERR: &str =
+            "A local trust root and other special certificates are \
+             only available when using an OpenPGP certificate \
+             directory";
+
+        let cert_store = self.cert_store_or_else()
+            .with_context(|| NO_CERTD_ERR.to_string())?;
+
+        cert_store.certd()
+            .ok_or_else(|| anyhow::anyhow!(NO_CERTD_ERR))
+    }
+
     /// Looks up an identifier.
     ///
     /// This matches on both the primary key and the subkeys.
@@ -881,95 +898,11 @@ impl<'store> Config<'store> {
             })
     }
 
-    /// Returns a special, creating it if necessary.
-    ///
-    /// Returns whether a key was created, and the key.
-    fn get_special(&mut self, name: &str, userid: &str, create: bool)
-        -> Result<(bool, Cert)>
-    {
-        let certd = if let Some(certd) = self.cert_store_or_else()?.certd() {
-            certd.certd()
-        } else {
-            return Err(anyhow::anyhow!(
-                "A local trust root and other special certificates are \
-                 only available when using an OpenPGP certificate \
-                 directory"));
-        };
-
-        // Make sure the name is actually a special name.  (CertD::get
-        // will also accepts fingerprints.)
-        let filename = certd.get_path_by_special(name)?;
-
-        // Read it.
-        let cert_bytes = certd.get(&name)
-            .with_context(|| {
-                format!(
-                    "Looking up {} ({}) in the certificate directory",
-                    name, userid)
-            })?
-            .map(|(_tag, bytes)| bytes);
-
-        let mut created = false;
-        let special: Cert = if let Some(cert_bytes) = cert_bytes {
-            Cert::from_bytes(&cert_bytes)
-                .with_context(|| format!(
-                    "Parsing {} ({}) in the certificate directory",
-                    name, userid))?
-        } else if ! create {
-            return Err(anyhow::anyhow!(
-                "Special certificate {} ({}) does not exist",
-                name, userid));
-        } else {
-            // The special doesn't exist, but we should create it.
-            let cert_builder = CertBuilder::new()
-                .set_primary_key_flags(KeyFlags::empty().set_certification())
-                // Set it in the past so that it is possible to use
-                // the CA when the reference time is in the past.  Feb
-                // 2002.
-                .set_creation_time(
-                    SystemTime::UNIX_EPOCH + Duration::new(1014235320, 0))
-                // CAs should *not* expire.
-                .set_validity_period(None)
-                .add_userid_with(
-                    UserID::from(userid),
-                    SignatureBuilder::new(SignatureType::GenericCertification)
-                        .set_exportable_certification(false)?,
-                )?;
-
-            let (special, _) = cert_builder.generate()?;
-            let special_bytes = special.as_tsk().to_vec()?;
-
-            // XXX: Because we don't lock the cert-d, there is a
-            // (tiny) chance that we lost the race and the file will
-            // now exist.  In that case, we really should try
-            // rereading it.
-            let mut f = std::fs::File::options()
-                .read(true).write(true).create_new(true)
-                .open(&filename)
-                .with_context(|| format!("Creating {:?}", &filename))?;
-            f.write_all(&special_bytes)
-                .with_context(|| format!("Writing {:?}", &filename))?;
-
-            created = true;
-
-            // We also need to insert the trust root into the certificate
-            // store, just without the secret key material.
-            let cert_store = self.cert_store_mut_or_else()?;
-            cert_store.update(Arc::new(special.clone().into()))
-                .with_context(|| format!("Inserting {}", name))?;
-
-            special
-        };
-
-        Ok((created, special))
-    }
-
-    const TRUST_ROOT: &'static str = "trust-root";
-
     /// Returns the local trust root, creating it if necessary.
-    fn local_trust_root(&mut self) -> Result<Cert> {
-        self.get_special(Self::TRUST_ROOT, "Local Trust Root", true)
-            .map(|(_created, cert)| cert)
+    fn local_trust_root(&self) -> Result<Arc<LazyCert<'store>>> {
+        self.certd_or_else()?.trust_root().map(|(cert, _created)| {
+            cert
+        })
     }
 
     /// Returns the trust roots, including the cert store's trust
@@ -980,7 +913,7 @@ impl<'store> Config<'store> {
                 .ok()
                 .and_then(|cert_store| cert_store.certd())
                 .and_then(|certd| {
-                    match certd.certd().get(Self::TRUST_ROOT) {
+                    match certd.certd().get(cert_store::store::openpgp_cert_d::TRUST_ROOT) {
                         Ok(Some((_tag, cert_bytes))) => Some(cert_bytes),
                         // Not found.
                         Ok(None) => None,

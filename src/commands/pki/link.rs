@@ -333,6 +333,7 @@ pub fn add(mut config: Config, c: link::AddCommand)
     -> Result<()>
 {
     let trust_root = config.local_trust_root()?;
+    let trust_root = trust_root.to_cert()?;
 
     let cert = config.lookup_one(&c.certificate, None, true)?;
 
@@ -611,6 +612,7 @@ pub fn retract(mut config: Config, c: link::RetractCommand)
     -> Result<()>
 {
     let trust_root = config.local_trust_root()?;
+    let trust_root = trust_root.to_cert()?;
     let trust_root_kh = trust_root.key_handle();
 
     let cert = config.lookup_one(&c.certificate, None, true)?;
@@ -762,13 +764,14 @@ pub fn retract(mut config: Config, c: link::RetractCommand)
     Ok(())
 }
 
-pub fn list(mut config: Config, c: link::ListCommand)
+pub fn list(config: Config, c: link::ListCommand)
     -> Result<()>
 {
     let mut cert_store = config.cert_store_or_else()?;
     cert_store.prefetch_all();
 
     let trust_root = config.local_trust_root()?;
+    let trust_root = trust_root.to_cert()?;
     let trust_root_key = trust_root.primary_key().key().role_as_unspecified();
 
     let cert_store = config.cert_store_or_else()?;

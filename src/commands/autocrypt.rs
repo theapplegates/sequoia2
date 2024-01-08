@@ -23,10 +23,6 @@ pub fn dispatch(mut config: Config, c: &cli::autocrypt::Command) -> Result<()> {
 
     match &c.subcommand {
         Import(command) => {
-            let ca_filename = "_autocrypt.pgp";
-            let ca_userid = "Imported from Autocrypt";
-            let ca_trust_amount = 1;
-
             let input = command.input.open()?;
             let ac = autocrypt::AutocryptHeaders::from_reader(input)?;
             let from = UserID::from(
@@ -42,10 +38,16 @@ pub fn dispatch(mut config: Config, c: &cli::autocrypt::Command) -> Result<()> {
                               .then(|| a.value.clone()))
                 {
                     if let Some(cert) = h.key {
-                        let certs = certify_downloads(
-                            &mut config,
-                            ca_filename, ca_userid, ca_trust_amount,
-                            vec![cert], Some(&addr));
+                        let certs = if let Ok((ca, _)) = config.certd_or_else()
+                            .and_then(|certd| certd.shadow_ca_autocrypt())
+                        {
+                            certify_downloads(
+                                &mut config, ca,
+                                vec![cert], Some(&addr[..]))
+                        } else {
+                            vec![cert]
+                        };
+
                         import_certs(&mut config, certs)?;
                     }
                 }

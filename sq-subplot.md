@@ -69,8 +69,8 @@ executes the scenarios and checks they all pass.
 To achieve this, run the following commands:
 
 ~~~sh
-$ git clone https://gitlab.com/sequoia-pgp/sequoia.git
-$ cd sequoia/sq
+$ git clone https://gitlab.com/sequoia-pgp/sequoia-sq.git
+$ cd sequoia-sq
 $ subplot docgen sq-subplot.md -o sq-subplot.html
 $ subplot docgen sq-subplot.md -o sq-subplot.pdf
 $ cargo test

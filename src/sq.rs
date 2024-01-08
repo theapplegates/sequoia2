@@ -257,7 +257,12 @@ fn decrypt_key<R>(key: Key<key::SecretParts, R>, passwords: &mut Vec<Password>)
         SecretKeyMaterial::Unencrypted(_) => {
             Ok(key.clone())
         }
-        SecretKeyMaterial::Encrypted(_) => {
+        SecretKeyMaterial::Encrypted(e) => {
+            if ! e.s2k().is_supported() {
+                return Err(anyhow::anyhow!(
+                    "Unsupported key protection mechanism"));
+            }
+
             for p in passwords.iter() {
                 if let Ok(key)
                     = key.clone().decrypt_secret(&p)

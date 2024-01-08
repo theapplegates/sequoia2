@@ -323,9 +323,9 @@ pub struct SplitCommand {
 /// SHA-1.
 #[derive(Debug, Args)]
 #[clap(
-    about,
-    long_about = None,
-    after_help="\
+    about = "Checks certificates for issues",
+    long_about = "Checks certificates for issues
+
 `sq keyring lint` checks the supplied certificates for the following
 SHA-1-related issues:
 
@@ -351,8 +351,9 @@ repair the certificate.  In particular, it will be able to fix any
 issues with User ID self signatures and subkey binding signatures for
 encryption-capable subkeys, but it will not be able to generate new
 primary key binding signatures for any signing-capable subkeys.
-
-EXIT STATUS:
+",
+    after_help =
+"EXIT STATUS:
 
 If `--fix` is not specified:
   2  if any issues were found,
@@ -366,14 +367,17 @@ If `--fix` is specified:
 
 EXAMPLES:
 
-  # To gather statistics, simply run:
-  $ sq keyring lint keyring.pgp
+# To gather statistics, simply run:
+$ sq keyring lint keyring.pgp
 
-  # To fix a key:
-  $ gpg --export-secret-keys FPR | sq keyring lint --fix -p passw0rd -p password123 | gpg --import
+# To fix a key:
+$ gpg --export-secret-keys FPR \\
+    | sq keyring lint --fix -p passw0rd -p password123 \\
+    | gpg --import
 
-  # To get a list of keys with issues:
-  $ sq keyring lint --list-keys keyring.pgp | while read FPR; do something; done
+# To get a list of keys with issues:
+$ sq keyring lint --list-keys keyring.pgp \\
+    | while read FPR; do something; done
 "
 )]
 pub struct LintCommand {

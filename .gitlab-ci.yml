@@ -251,8 +251,8 @@ pages:
     - pandoc -s -o public/subplot/sq-subplot.pdf sq-subplot.md
 
     - echo "/sequoia-sq/ /sequoia-sq/man/sq.1.html 302" > public/_redirects
-    - echo "/sequoia-sq/impl /sequoia-sq/impl/sq/index.html 302" > public/_redirects
-    - echo "/sequoia-sq/man /sequoia-sq/man/sq.1.html 302" > public/_redirects
+    - echo "/sequoia-sq/impl /sequoia-sq/impl/sq/index.html 302" >> public/_redirects
+    - echo "/sequoia-sq/man /sequoia-sq/man/sq.1.html 302" >> public/_redirects
     - echo "/sequoia-sq/subplot /sequoia-sq/subplot/sq-subplot.html 302" >> public/_redirects
   artifacts:
     paths:

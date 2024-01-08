@@ -3116,6 +3116,7 @@ dependencies = [
  "humantime",
  "is-terminal",
  "itertools 0.10.5",
+ "libc",
  "predicates",
  "roff",
  "rpassword",

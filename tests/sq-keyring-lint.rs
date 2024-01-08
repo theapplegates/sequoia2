@@ -17,6 +17,44 @@ mod integration {
 
     const FROZEN_TIME: &str = "20220101";
 
+    /// Returns an assert_cmd::Command for sq with the console detached.
+    #[cfg(unix)]
+    fn sq() -> Command {
+        use std::os::fd::AsRawFd;
+        use std::os::unix::process::CommandExt;
+        use libc::{TIOCNOTTY, ioctl};
+
+        let mut c =
+            std::process::Command::new(assert_cmd::cargo::cargo_bin("sq"));
+        unsafe {
+            c.pre_exec(|| {
+                // Best-effort, ignores errors.
+                if let Ok(h) = std::fs::File::open("/dev/tty") {
+                    ioctl(h.as_raw_fd(), TIOCNOTTY);
+                } else {
+                    ioctl(std::io::stdin().as_raw_fd(), TIOCNOTTY);
+                }
+                Ok(())
+            });
+        }
+
+        c.into()
+    }
+
+    /// Returns an assert_cmd::Command for sq with the console detached.
+    #[cfg(windows)]
+    fn sq() -> Command {
+        use std::os::windows::process::CommandExt;
+
+        let mut c =
+            std::process::Command::new(assert_cmd::cargo::cargo_bin("sq"));
+
+        const DETACHED_PROCESS: u32 = 0x00000008;
+        c.creation_flags(DETACHED_PROCESS);
+
+        c.into()
+    }
+
     // passwords: one '-p' option per element.
     // required_fixes: the number of fixes (= new top-level signatures) needed.
     // expected_fixes: the number of them that we can create.
@@ -35,7 +73,7 @@ mod integration {
             // Lint it.
             let filename = &format!("{}-{}.pgp", base, suffix);
             eprintln!("Linting {}", filename);
-            Command::cargo_bin("sq").unwrap()
+            sq()
                 .current_dir(&dir)
                 .arg("--no-cert-store")
                 .arg("keyring").arg("lint")
@@ -68,7 +106,7 @@ mod integration {
                 expected_fixes
             };
 
-            let mut cmd = Command::cargo_bin("sq").unwrap();
+            let mut cmd = sq();
             let mut cmd = cmd.current_dir(&dir)
                 .args(&[
                     "--no-cert-store",

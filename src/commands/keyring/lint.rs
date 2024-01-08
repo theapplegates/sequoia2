@@ -3,7 +3,7 @@ use std::io:: Write;
 use std::process::exit;
 use std::time::SystemTime;
 
-use is_terminal::IsTerminal;
+use std::io::IsTerminal;
 use openpgp::crypto::Password;
 use termcolor::{WriteColor, StandardStream, ColorChoice, ColorSpec, Color};
 

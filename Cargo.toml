@@ -49,7 +49,6 @@ rpassword = "7.0"
 serde_json = "1.0.80"
 serde = { version = "1.0.137", features = ["derive"] }
 terminal_size = ">=0.2.6, <0.4"
-is-terminal = "0.4.7"
 termcolor = "1.2.0"
 textwrap = "0.15"
 

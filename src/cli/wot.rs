@@ -115,22 +115,22 @@ pub enum Subcommand {
     #[command(after_help("\
 EXAMPLES:
 
-  # Authenticate a binding.
-  $ sq --keyring keyring.pgp \\
-      wot \\
-      --partial \\
-      --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-    authenticate \\
-      C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
-      'Alice <alice@example.org>'
+# Authenticate a binding.
+$ sq --keyring keyring.pgp \\
+    wot \\
+    --partial \\
+    --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
+  authenticate \\
+    C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
+    'Alice <alice@example.org>'
 
-  # Try and authenticate each binding where the User ID has the
-  # specified email address.
-  $ sq --keyring keyring.pgp \\
-      --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-    wot authenticate \\
-      C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
-      --email 'alice@example.org'
+# Try and authenticate each binding where the User ID has the
+# specified email address.
+$ sq --keyring keyring.pgp \\
+    --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
+  wot authenticate \\
+    C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
+    --email 'alice@example.org'
 "))]
     Authenticate {
         #[command(flatten)]
@@ -158,18 +158,18 @@ EXAMPLES:
     #[command(after_help("\
 EXAMPLES:
 
-  # Lookup a certificate with the given User ID.
-  $ sq --keyring keyring.pgp \\
-      --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-    wot lookup \\
-      --partial \\
-      'Alice <alice@example.org>'
+# Lookup a certificate with the given User ID.
+$ sq --keyring keyring.pgp \\
+    --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
+  wot lookup \\
+    --partial \\
+    'Alice <alice@example.org>'
 
-  # Lookup a certificate with the given email address.
-  $ sq --keyring keyring.pgp \\
-      --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-    wot lookup \\
-      --email 'alice@example.org'
+# Lookup a certificate with the given email address.
+$ sq --keyring keyring.pgp \\
+    --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
+  wot lookup \\
+    --email 'alice@example.org'
 "))]
     Lookup {
         #[command(flatten)]
@@ -194,12 +194,12 @@ EXAMPLES:
     #[command(after_help("\
 EXAMPLES:
 
-  # Identify a certificate.
-  $ sq --keyring keyring.pgp \\
-      --partial \\
-      --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-    wot identify \\
-      C7B1406CD2F612E9CE2136156F2DA183236153AE
+# Identify a certificate.
+$ sq --keyring keyring.pgp \\
+    --partial \\
+    --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
+  wot identify \\
+    C7B1406CD2F612E9CE2136156F2DA183236153AE
 "))]
     Identify {
         #[command(flatten)]

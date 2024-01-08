@@ -647,8 +647,14 @@ impl ManualPage {
                 }
 
                 for ex in leaf.examples.iter() {
+                    // Was the last line a continuation?
+                    let mut continuation = false;
+
                     for line in ex.lines() {
-                        self.paragraph();
+                        if ! continuation {
+                            self.paragraph();
+                        }
+
                         if let Some(line) = line.strip_prefix("# ") {
                             self.roff.text([roman(line)]);
                         } else if let Some(line) = line.strip_prefix("$ ") {
@@ -657,9 +663,24 @@ impl ManualPage {
                             self.roff.text([roman(line)]);
                             self.roff.control("RE", []);
                             self.roff.control("fi", []);
+                        } else if continuation {
+                            self.roff.control("nf", []);
+                            self.roff.control("RS", []);
+                            self.roff.control("RS", []);
+                            self.roff.text([roman(line.trim())]);
+                            self.roff.control("RE", []);
+                            self.roff.control("RE", []);
+                            self.roff.control("fi", []);
                         } else {
                             self.roff.text([roman(line)]);
                         }
+
+                        // Update continuation for the next loop iteration.
+                        continuation = line.ends_with("\\");
+
+                        // We emitted at least one example, make sure
+                        // to add a new paragraph before going to the
+                        // next command.
                         need_para = true;
                     }
                 }

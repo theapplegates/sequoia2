@@ -273,7 +273,7 @@ fn decrypt_key<R>(key: Key<key::SecretParts, R>, passwords: &mut Vec<Password>)
             loop {
                 // Prompt the user.
                 match common::password::prompt_to_unlock_or_cancel(&format!(
-                    "{} (blank to skip)", key.keyid().to_hex()
+                    "key {}", key.keyid(),
                 )) {
                     Ok(None) => break, // Give up.
                     Ok(Some(p)) => {

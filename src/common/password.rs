@@ -52,7 +52,8 @@ pub fn prompt_for_new(
 /// if a key or subkey is locked and must be unlocked, or a message
 /// should be decrypted using a password.
 pub fn prompt_to_unlock(reason: &str) -> Result<Password> {
-    let prompt = format!("Please enter the password to decrypt the {}", reason);
+    let prompt =
+        format!("Please enter the password to decrypt the {}: ", reason);
     let password = prompt_password(&prompt)?;
     Ok(password.into())
 }
@@ -63,6 +64,6 @@ pub fn prompt_to_unlock(reason: &str) -> Result<Password> {
 /// if a key or subkey is locked and must be unlocked, or a message
 /// should be decrypted using a password.
 pub fn prompt_to_unlock_or_cancel(reason: &str) -> Result<Option<Password>> {
-    let password = prompt_to_unlock(reason)?;
+    let password = prompt_to_unlock(&format!("{} (blank to skip)", reason))?;
     Ok(if password.map(|p| p.is_empty()) { None } else { Some(password) })
 }

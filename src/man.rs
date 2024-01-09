@@ -655,19 +655,47 @@ impl ManualPage {
                             self.paragraph();
                         }
 
+                        const TARGET_LINE_LENGTH: usize = 78;
+                        const RS_INDENTATION: usize = 7;
+                        const EXAMPLE_COMMENT_MAX_WIDTH: usize =
+                            TARGET_LINE_LENGTH - RS_INDENTATION;
+                        const EXAMPLE_COMMAND_MAX_WIDTH: usize =
+                            TARGET_LINE_LENGTH - 2 * RS_INDENTATION;
+                        const EXAMPLE_CONTINUATION_MAX_WIDTH: usize =
+                            TARGET_LINE_LENGTH - 3 * RS_INDENTATION;
+
+                        macro_rules! warn {
+                            {$($exp: expr),*} => {
+                                println!("cargo:warning={}",
+                                         format_args!($($exp),*));
+                            };
+                        }
+
                         if let Some(line) = line.strip_prefix("# ") {
                             self.roff.text([roman(line)]);
                         } else if let Some(line) = line.strip_prefix("$ ") {
+                            let line = line.trim();
+                            if line.len() > EXAMPLE_COMMAND_MAX_WIDTH {
+                                warn!("Command in example exceeds {} chars:",
+                                      EXAMPLE_COMMAND_MAX_WIDTH);
+                                warn!("{}", line);
+                            }
                             self.roff.control("nf", []);
                             self.roff.control("RS", []);
                             self.roff.text([roman(line)]);
                             self.roff.control("RE", []);
                             self.roff.control("fi", []);
                         } else if continuation {
+                            let line = line.trim();
+                            if line.len() > EXAMPLE_CONTINUATION_MAX_WIDTH {
+                                warn!("Continuation in example exceeds {} chars:",
+                                      EXAMPLE_CONTINUATION_MAX_WIDTH);
+                                warn!("{}", line);
+                            }
                             self.roff.control("nf", []);
                             self.roff.control("RS", []);
                             self.roff.control("RS", []);
-                            self.roff.text([roman(line.trim())]);
+                            self.roff.text([roman(line)]);
                             self.roff.control("RE", []);
                             self.roff.control("RE", []);
                             self.roff.control("fi", []);

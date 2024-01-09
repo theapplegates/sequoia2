@@ -1405,7 +1405,7 @@ then stderr matches regex 2.good signatures
 
 
 
-# ASCII Armor data representation: `sq armor` and `sq dearmor`
+# ASCII Armor data representation: `sq packet armor` and `sq packet dearmor`
 
 The scenarios in this chapter verify that `sq` can convert data into
 the "ASCII Armor" representation and back.
@@ -1418,7 +1418,7 @@ stdout._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store armor hello.txt
+when I run sq --no-cert-store packet armor hello.txt
 then stdout contains "-----BEGIN PGP ARMORED FILE-----"
 then stdout contains "-----END PGP ARMORED FILE-----"
 ~~~
@@ -1432,7 +1432,7 @@ named file._
 given an installed sq
 given file hello.txt
 given file hello.asc
-when I run sq --no-cert-store armor hello.txt -o hello.out
+when I run sq --no-cert-store packet armor hello.txt -o hello.out
 then files hello.asc and hello.out match
 ~~~
 
@@ -1445,17 +1445,17 @@ the label we choose._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store armor hello.txt --label auto
+when I run sq --no-cert-store packet armor hello.txt --label auto
 then stdout contains "-----BEGIN PGP ARMORED FILE-----"
-when I run sq --no-cert-store armor hello.txt --label message
+when I run sq --no-cert-store packet armor hello.txt --label message
 then stdout contains "-----BEGIN PGP MESSAGE-----"
-when I run sq --no-cert-store armor hello.txt --label cert
+when I run sq --no-cert-store packet armor hello.txt --label cert
 then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
-when I run sq --no-cert-store armor hello.txt --label key
+when I run sq --no-cert-store packet armor hello.txt --label key
 then stdout contains "-----BEGIN PGP PRIVATE KEY BLOCK-----"
-when I run sq --no-cert-store armor hello.txt --label sig
+when I run sq --no-cert-store packet armor hello.txt --label sig
 then stdout contains "-----BEGIN PGP SIGNATURE-----"
-when I run sq --no-cert-store armor hello.txt --label file
+when I run sq --no-cert-store packet armor hello.txt --label file
 then stdout contains "-----BEGIN PGP ARMORED FILE-----"
 ~~~
 
@@ -1467,7 +1467,7 @@ stdout._
 ~~~scenario
 given an installed sq
 given file hello.asc
-when I run sq --no-cert-store dearmor hello.asc
+when I run sq --no-cert-store packet dearmor hello.asc
 then stdout contains "hello, world"
 ~~~
 
@@ -1480,7 +1480,7 @@ a named file._
 given an installed sq
 given file hello.txt
 given file hello.asc
-when I run sq --no-cert-store dearmor hello.asc -o hello.out
+when I run sq --no-cert-store packet dearmor hello.asc -o hello.out
 then files hello.txt and hello.out match
 ~~~
 
@@ -1492,8 +1492,8 @@ back._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq --no-cert-store armor hello.txt -o hello.tmp
-when I run sq --no-cert-store dearmor hello.tmp -o hello.out
+when I run sq --no-cert-store packet armor hello.txt -o hello.tmp
+when I run sq --no-cert-store packet dearmor hello.tmp -o hello.out
 then files hello.txt and hello.out match
 ~~~
 

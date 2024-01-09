@@ -9,7 +9,6 @@ use terminal_size::terminal_size;
 
 use sequoia_openpgp as openpgp;
 use openpgp::{
-    armor,
     packet::Tag,
     parse::{
         Parse,
@@ -25,6 +24,8 @@ use crate::cli::types::FileOrStdout;
 use crate::commands;
 use crate::load_keys;
 
+pub mod armor;
+pub mod dearmor;
 pub mod dump;
 
 pub fn dispatch(config: Config, command: cli::packet::Command)
@@ -53,7 +54,7 @@ pub fn dispatch(config: Config, command: cli::packet::Command)
             let mut output = command.output.create_pgp_safe(
                 config.force,
                 command.binary,
-                armor::Kind::Message,
+                openpgp::armor::Kind::Message,
             )?;
 
             let secrets =
@@ -73,6 +74,12 @@ pub fn dispatch(config: Config, command: cli::packet::Command)
         cli::packet::Subcommands::Join(command) => {
             join(config, command)?;
         }
+        cli::packet::Subcommands::Armor(command) => {
+            armor::dispatch(config, command)?
+        },
+        cli::packet::Subcommands::Dearmor(command) => {
+            dearmor::dispatch(config, command)?
+        },
     }
 
     Ok(())

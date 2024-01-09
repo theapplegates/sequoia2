@@ -1117,12 +1117,6 @@ fn main() -> Result<()> {
         SqSubcommands::Verify(command) => {
             commands::verify::dispatch(config, command)?
         },
-        SqSubcommands::Armor(command) => {
-            commands::armor::dispatch(config, command)?
-        },
-        SqSubcommands::Dearmor(command) => {
-            commands::dearmor::dispatch(config, command)?
-        },
         SqSubcommands::Autocrypt(command) => {
             commands::autocrypt::dispatch(config, &command)?;
         },

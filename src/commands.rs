@@ -28,9 +28,7 @@ use crate::{
 use crate::cli::encrypt::CompressionMode;
 use crate::cli::types::FileOrStdout;
 
-pub mod armor;
 pub mod autocrypt;
-pub mod dearmor;
 pub mod decrypt;
 pub mod encrypt;
 pub mod sign;

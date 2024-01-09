@@ -35,6 +35,8 @@ pub enum Subcommands {
     Decrypt(DecryptCommand),
     Split(SplitCommand),
     Join(JoinCommand),
+    Armor(super::armor::Command),
+    Dearmor(super::dearmor::Command),
 }
 
 #[derive(Debug, Args)]

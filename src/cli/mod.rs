@@ -259,9 +259,6 @@ pub enum SqSubcommands {
     Wkd(wkd::Command),
     Dane(dane::Command),
 
-    Armor(armor::Command),
-    Dearmor(dearmor::Command),
-
     Inspect(inspect::Command),
     Packet(packet::Command),
 

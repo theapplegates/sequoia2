@@ -39,7 +39,8 @@ The converse operation is \"sq encrypt\".
 $ sq decrypt --recipient-file juliet.pgp ciphertext.pgp
 
 # Decrypt a file verifying signatures
-$ sq decrypt --recipient-file juliet.pgp --signer-file romeo.pgp ciphertext.pgp
+$ sq decrypt --recipient-file juliet.pgp --signer-file romeo.pgp \\
+     ciphertext.pgp
 
 # Decrypt a file using a password
 $ sq decrypt ciphertext.pgp

@@ -34,7 +34,8 @@ $ sq sign --signer-file juliet.pgp message.txt
 $ sq sign --detached --signer-file juliet.pgp message.txt
 
 # Create a signature with the specified creation time
-$ sq sign --time 20020304 --detached --signer-file juliet.pgp message.txt
+$ sq sign --time 20020304 --detached --signer-file juliet.pgp \\
+     message.txt
 ",
     )]
 pub struct Command {

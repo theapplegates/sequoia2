@@ -51,10 +51,10 @@ reference time instead of the current time.
 "EXAMPLES:
 
 # Verify a signed message
-$ sq verify --signer-file juliet.pgp signed-message.pgp
+$ sq verify signed-message.pgp
 
 # Verify a detached message
-$ sq verify --signer-file juliet.pgp --detached message.sig message.txt
+$ sq verify --detached message.sig message.txt
 
 # Verify a message as of June 9, 2011 at midnight UTC:
 $ sq verify --time 20130721 msg.pgp

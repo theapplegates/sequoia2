@@ -71,7 +71,8 @@ $ sq keyring filter --to-cert cat juliet.pgp
 $ sq keyring filter --domain example.org keys.pgp
 
 # Gets the keys with a user id on example.org or example.net
-$ sq keyring filter --domain example.org --domain example.net keys.pgp
+$ sq keyring filter --domain example.org --domain example.net \\
+     keys.pgp
 
 # Gets the keys with a user id with the name Juliet
 $ sq keyring filter --name Juliet keys.pgp
@@ -255,7 +256,8 @@ certificate encountered in the keyring.
 $ sq keyring list certs.pgp
 
 # List all certs with a userid on example.org
-$ sq keyring filter --domain example.org certs.pgp | sq keyring list
+$ sq keyring filter --domain example.org certs.pgp \\
+     | sq keyring list
 ",
 )]
 pub struct ListCommand {

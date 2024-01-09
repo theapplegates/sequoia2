@@ -122,7 +122,8 @@ subkeys, and the binding signatures to the reference time.
 "EXAMPLES:
 
 # First, generate a key
-$ sq key generate --userid \"<juliet@example.org>\" --output juliet.key.pgp
+$ sq key generate --userid \"<juliet@example.org>\" \\
+     --output juliet.key.pgp
 
 # Then, extract the certificate for distribution
 $ sq key extract-cert --output juliet.cert.pgp juliet.key.pgp
@@ -131,10 +132,12 @@ $ sq key extract-cert --output juliet.cert.pgp juliet.key.pgp
 $ sq key generate --userid \"<juliet@example.org>\" --with-password
 
 # Generate a key with multiple userids
-$ sq key generate --userid \"<juliet@example.org>\" --userid \"Juliet Capulet\"
+$ sq key generate --userid \"<juliet@example.org>\" \\
+     --userid \"Juliet Capulet\"
 
 # Generate a key whose creation time is June 9, 2011 at midnight UTC
-$ sq key generate --time 20110609 --userid \"Noam\" --output noam.pgp
+$ sq key generate --time 20110609 --userid \"Noam\" \\
+     --output noam.pgp
 ",
 )]
 #[clap(group(ArgGroup::new("cap-sign").args(&["can_sign", "cannot_sign"])))]
@@ -275,13 +278,15 @@ supply a zero-length password when prompted for the new password.
 "EXAMPLES:
 
 # First, generate a key
-$ sq key generate --userid \"<juliet@example.org>\" --output juliet.key.pgp
+$ sq key generate --userid \"<juliet@example.org>\" \\
+     --output juliet.key.pgp
 
 # Then, encrypt the secrets in the key with a password.
 $ sq key password < juliet.key.pgp > juliet.encrypted_key.pgp
 
 # And remove the password again.
-$ sq key password --clear < juliet.encrypted_key.pgp > juliet.decrypted_key.pgp
+$ sq key password --clear < juliet.encrypted_key.pgp \\
+     > juliet.decrypted_key.pgp
 ",
 )]
 pub struct PasswordCommand {
@@ -476,7 +481,8 @@ it to a keyserver.
     after_help = "EXAMPLES:
 
 # First, generate a key
-$ sq key generate --userid \"<juliet@example.org>\" --output juliet.key.pgp
+$ sq key generate --userid \"<juliet@example.org>\" \\
+     --output juliet.key.pgp
 
 # Then, extract the certificate for distribution
 $ sq key extract-cert --output juliet.cert.pgp juliet.key.pgp
@@ -541,7 +547,8 @@ binding signature to the specified time.
 "EXAMPLES:
 
 # First, generate a key:
-$ sq key generate --userid \"<juliet@example.org>\" --output juliet.key.pgp
+$ sq key generate --userid \"<juliet@example.org>\" \\
+     --output juliet.key.pgp
 
 # Then, add a User ID:
 $ sq key userid add --userid \"Juliet\" juliet.key.pgp \\
@@ -751,11 +758,12 @@ signature.
 "EXAMPLES:
 
 # First, generate a key:
-$ sq key generate --userid \"<juliet@example.org>\" --output juliet.key.pgp
+$ sq key generate --userid \"<juliet@example.org>\" \\
+     --output juliet.key.pgp
 
 # Then, strip a User ID:
 $ sq key userid strip --userid \"<juliet@example.org>\" \\
-  --output juliet-new.key.pgp juliet.key.pgp
+     --output juliet-new.key.pgp juliet.key.pgp
 ",
 )]
 pub struct UseridStripCommand {
@@ -808,7 +816,8 @@ feasible.
 "EXAMPLES:
 
 # Adopt an subkey into the new cert
-$ sq key adopt --keyring juliet-old.pgp --key 0123456789ABCDEF -- juliet-new.pgp
+$ sq key adopt --keyring juliet-old.pgp --key 0123456789ABCDEF \\
+     juliet-new.pgp
 ",
 )]
 pub struct AdoptCommand {
@@ -977,14 +986,18 @@ time.
 "EXAMPLES:
 
 # First, generate a key
-$ sq key generate --userid \"alice <alice@example.org>\" --output alice.key.pgp
+$ sq key generate --userid \"<juliet@example.org>\" \\
+     --output juliet.key.pgp
 
-# Add a new Subkey for universal encryption which expires at the same time as
-# the primary key
-$ sq key subkey add --output alice-new.key.pgp --can-encrypt universal alice.key.pgp
+# Add a new Subkey for universal encryption which expires at the same
+# time as the primary key
+$ sq key subkey add --output juliet-new.key.pgp \\
+     --can-encrypt universal juliet.key.pgp
 
-# Add a new Subkey for signing using the rsa3k cipher suite which expires in five days
-$ sq key subkey add --output alice-new.key.pgp --can-sign --cipher-suite rsa3k --expiry 5d alice.key.pgp
+# Add a new Subkey for signing using the rsa3k cipher suite which
+# expires in five days
+$ sq key subkey add --output juliet-new.key.pgp --can-sign \\
+     --expiry 5d --cipher-suite rsa3k juliet.key.pgp
 ",
 )]
 #[clap(group(ArgGroup::new("authentication-group").args(&["can_authenticate", "can_encrypt"])))]

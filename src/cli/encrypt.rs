@@ -36,7 +36,8 @@ reference time.
 $ sq encrypt --recipient-file romeo.pgp message.txt
 
 # Encrypt a file creating a signature in the process
-$ sq encrypt --recipient-file romeo.pgp --signer-file juliet.pgp message.txt
+$ sq encrypt --recipient-file romeo.pgp --signer-file juliet.pgp \\
+     message.txt
 
 # Encrypt a file using a password
 $ sq encrypt --symmetric message.txt

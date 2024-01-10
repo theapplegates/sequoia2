@@ -662,8 +662,6 @@ impl ManualPage {
 
                         const TARGET_LINE_LENGTH: usize = 78;
                         const RS_INDENTATION: usize = 7;
-                        const EXAMPLE_COMMENT_MAX_WIDTH: usize =
-                            TARGET_LINE_LENGTH - RS_INDENTATION;
                         const EXAMPLE_COMMAND_MAX_WIDTH: usize =
                             TARGET_LINE_LENGTH - 2 * RS_INDENTATION;
                         const EXAMPLE_CONTINUATION_MAX_WIDTH: usize =

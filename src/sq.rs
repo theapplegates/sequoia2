@@ -4,7 +4,7 @@
 #![allow(rustdoc::invalid_rust_codeblocks)]
 #![allow(rustdoc::broken_intra_doc_links)]
 #![allow(rustdoc::bare_urls)]
-#![doc = include_str!(concat!(env!("OUT_DIR"), "/sq-usage.md"))]
+#![doc = include_str!("../README.md")]
 
 use anyhow::Context as _;
 

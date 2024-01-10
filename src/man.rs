@@ -366,7 +366,9 @@ impl Command {
         }
         if cmd_opts {
             man.subsection("Subcommand options");
-            for opt in self.get_options().iter() {
+            for opt in self.get_options().iter()
+                .filter(|o| ! builder.maincmd.get_options().contains(o))
+            {
                 man.option(opt);
             }
         }
@@ -440,19 +442,17 @@ impl Command {
         if main_opts || self_opts {
             man.section("OPTIONS");
         }
-        if main_opts {
-            if self_opts {
-                man.subsection("Global options");
-            }
-            for opt in builder.maincmd.get_options().iter() {
+        if self_opts {
+            man.subsection("Subcommand options");
+            for opt in self.get_options().iter()
+                .filter(|o| ! builder.maincmd.get_options().contains(o))
+            {
                 man.option(opt);
             }
         }
-        if self_opts {
-            if main_opts {
-                man.subsection("Subcommand options");
-            }
-            for opt in self.get_options().iter() {
+        if main_opts {
+            man.subsection("Global options");
+            for opt in builder.maincmd.get_options().iter() {
                 man.option(opt);
             }
         }

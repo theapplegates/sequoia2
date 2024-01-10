@@ -1122,7 +1122,6 @@ _Requirement: We can certify a user identity on a key._
 
 ~~~scenario
 given an installed sq
-given file hello.txt
 when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
 when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
@@ -1144,7 +1143,6 @@ _Requirement: We can certify a user identity on a key._
 
 ~~~scenario
 given an installed sq
-given file hello.txt
 when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
 when I run sq --no-cert-store key generate --userid Bob --output bob.pgp

@@ -518,7 +518,8 @@ impl CommandOption {
             short: arg.get_short().map(|o| format!("-{}", o)),
             long: arg.get_long().map(|o| format!("--{}", o)),
             value_names,
-            help: arg.get_help().map(|s| s.to_string()),
+            help: arg.get_long_help().or(arg.get_help())
+                .map(|s| s.to_string()),
         }
     }
 }

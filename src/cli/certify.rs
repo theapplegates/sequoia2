@@ -93,6 +93,7 @@ pub struct Command {
         short = 'r',
         long = "regex",
         value_name = "REGEX",
+        requires = "depth",
         help = "Adds a regular expression to constrain \
             what a trusted introducer can certify",
         long_help =

@@ -478,7 +478,7 @@ impl Command {
 struct CommandOption {
     short: Option<String>,
     long: Option<String>,
-    value_name: Option<String>,
+    value_names: Option<Vec<String>>,
     help: Option<String>,
 }
 
@@ -503,8 +503,8 @@ impl CommandOption {
 impl CommandOption {
     /// Create a `CommandOption` from a `clap::Arg`.
     fn from_arg(arg: &clap::Arg) -> Self {
-        let value_name = if let Some(names) = arg.get_value_names() {
-            names.first().map(|name| name.to_string())
+        let value_names = if let Some(names) = arg.get_value_names() {
+            Some(names.iter().map(|name| name.to_string()).collect())
         } else {
             None
         };
@@ -512,7 +512,7 @@ impl CommandOption {
         Self {
             short: arg.get_short().map(|o| format!("-{}", o)),
             long: arg.get_long().map(|o| format!("--{}", o)),
-            value_name,
+            value_names,
             help: arg.get_help().map(|s| s.to_string()),
         }
     }
@@ -613,9 +613,16 @@ impl ManualPage {
             line.push(bold(long));
         }
 
-        if let Some(value) = &opt.value_name {
-            line.push(roman("="));
-            line.push(italic(value));
+        if let Some(values) = &opt.value_names {
+            if values.len() == 1 {
+                line.push(roman("="));
+                line.push(italic(&values[0]));
+            } else {
+                for value in values {
+                    line.push(roman(" "));
+                    line.push(italic(value));
+                }
+            }
         }
 
         self.tagged_paragraph(line);

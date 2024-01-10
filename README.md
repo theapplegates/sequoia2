@@ -14,11 +14,15 @@ $ sq help
 ...
 ~~~
 
-These are collected as the [sq help][] page, for your convenience.
+You can also browse the [manual pages][], look at our [acceptance
+criteria][], and browse the [rustdoc output][] if you want to learn about
+the implementation.
 
 [Sequoia-PGP]: https://sequoia-pgp.org/
 [sq user guide]: https://sequoia-pgp.gitlab.io/sq-user-guide/
-[sq help]: https://docs.sequoia-pgp.org/sq/index.html
+[manual pages]: https://sequoia-pgp.gitlab.io/sequoia-sq/man/
+[acceptance criteria]: https://sequoia-pgp.gitlab.io/sequoia-sq/subplot/
+[rustdoc output]: https://sequoia-pgp.gitlab.io/sequoia-sq/impl/
 
 ## Building
 

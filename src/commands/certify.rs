@@ -56,10 +56,14 @@ pub fn certify(config: Config, c: certify::Command)
     for ua in vc.userids() {
         if let Ok(a_userid) = std::str::from_utf8(ua.userid().value()) {
             if a_userid == userid {
-                u = Some(ua.userid());
+                u = Some(ua.userid().clone());
                 break;
             }
         }
+    }
+
+    if u.is_none() && c.add_userid {
+        u = Some(UserID::from(userid.as_str()));
     }
 
     let userid = if let Some(userid) = u {
@@ -142,8 +146,11 @@ pub fn certify(config: Config, c: certify::Command)
         .sign_userid_binding(
             &mut signer,
             cert.primary_key().component(),
-            userid)?;
-    let cert = cert.insert_packets(certification.clone())?;
+            &userid)?;
+    let cert = cert.insert_packets(vec![
+        Packet::from(userid),
+        Packet::from(certification.clone()),
+    ])?;
     assert!(cert.clone().into_packets().any(|p| {
         match p {
             Packet::Signature(sig) => sig == certification,

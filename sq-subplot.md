@@ -1158,6 +1158,28 @@ when I run sq --no-cert-store inspect cert.pgp
 then stdout contains "Certifications: 1,"
 ~~~
 
+## Certify an identity that is not self-signed
+
+_Requirement: We can certify a user identity on a cert, even if that
+user identity doesn't exist on that cert, and consequently has no
+self-signature._
+
+~~~scenario
+given an installed sq
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
+when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
+when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
+
+when I run sq --no-cert-store inspect bob-cert.pgp
+then stdout doesn't contain "Certifications:"
+
+when I run sq --no-cert-store certify --add-userid alice.pgp bob-cert.pgp "My friend Bob" -o cert.pgp
+when I run sq --no-cert-store inspect cert.pgp
+then stdout contains "My friend Bob"
+then stdout contains "Certifications: 1,"
+~~~
+
 
 # Sign a document and verify the signature: `sq sign` and `sq verify`
 

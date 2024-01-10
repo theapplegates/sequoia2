@@ -160,6 +160,13 @@ pub struct Command {
     )]
     pub expiry: Expiry,
     #[clap(
+        long,
+        help = "Add the given user ID if it doesn't exist.",
+        long_help =
+            "Add the given user ID if it doesn't exist in the certificate.",
+    )]
+    pub add_userid: bool,
+    #[clap(
         long = "allow-not-alive-certifier",
         help = "Don't fail if the certificate making the \
                 certification is not alive.",

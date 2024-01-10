@@ -630,10 +630,7 @@ impl ManualPage {
             }
         }
 
-        self.tagged_paragraph(line);
-        if let Some(help) = &opt.help {
-            self.text(help);
-        }
+        self.tagged_paragraph(line, &opt.help);
     }
 
     /// Typeset an EXAMPLES section, if a command has examples.
@@ -758,12 +755,29 @@ impl ManualPage {
         self.roff.control("PP", []);
     }
 
-    /// Start a tagged paragraph with th TP troff command. This command
-    /// takes the line after the command and typesets it, and the line
-    /// after that starts an indented paragraph.
-    fn tagged_paragraph(&mut self, line: Vec<Inline>) {
+    /// Start a tagged paragraph with th TP troff command.
+    ///
+    /// This command takes the line after the command and typesets it,
+    /// and the line after that starts an indented paragraph.
+    ///
+    /// Additionally, if `text` is given, it is rendered after the
+    /// `line`, indenting it.
+    fn tagged_paragraph(&mut self, line: Vec<Inline>, text: &Option<String>) {
         self.roff.control("TP", []);
         self.roff.text(line);
+
+        if let Some(text) = text {
+            let mut paras = text.split("\n\n");
+            if let Some(first) = paras.next() {
+                self.roff.text([roman(first)]);
+            }
+            for para in paras {
+                self.paragraph();
+                self.roff.control("RS", []);
+                self.roff.text([roman(para)]);
+                self.roff.control("RE", []);
+            }
+        }
     }
 
     /// Typeset a list of references to manual pages, suitable for the

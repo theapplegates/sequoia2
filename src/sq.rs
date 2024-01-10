@@ -1176,12 +1176,12 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn parse_notations(n: Vec<String>) -> Result<Vec<(bool, NotationData)>> {
-
-    // TODO I'm not sure what to do about this requirement.  Setting
-    // number_of_values = 2 for the argument already makes clap bail if the
-    // length of the vec is odd.
-    assert_eq!(n.len() % 2, 0);
+fn parse_notations<N>(n: N) -> Result<Vec<(bool, NotationData)>>
+where
+    N: AsRef<[String]>,
+{
+    let n = n.as_ref();
+    assert_eq!(n.len() % 2, 0, "notations must be pairs of key and value");
 
     // Each --notation takes two values.  Iterate over them in chunks of 2.
     let notations: Vec<(bool, NotationData)> = n

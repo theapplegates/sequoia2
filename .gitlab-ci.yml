@@ -242,7 +242,7 @@ pages:
     - mkdir public
     - mv -v target/doc public/impl
 
-    - ( cd /tmp/assets/man-pages; for M in *; do pandoc -s $M | sed -e 's|<strong>\([^<]*\)</strong>(1)|<a href="\1.1.html">\1(1)</a>|g' >$M.html ; done )
+    - for M in /tmp/assets/man-pages/*; do pandoc -s $M -L src/man-pandoc.lua -o $M.html ; done
     - mkdir public/man
     - mv -v /tmp/assets/man-pages/*.html public/man
 

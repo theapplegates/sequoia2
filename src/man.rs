@@ -503,7 +503,12 @@ impl CommandOption {
 impl CommandOption {
     /// Create a `CommandOption` from a `clap::Arg`.
     fn from_arg(arg: &clap::Arg) -> Self {
-        let value_names = if let Some(names) = arg.get_value_names() {
+        let value_names = if arg.get_num_args()
+            .map(|r| r == clap::builder::ValueRange::EMPTY)
+            .unwrap_or(true)
+        {
+            None
+        } else if let Some(names) = arg.get_value_names() {
             Some(names.iter().map(|name| name.to_string()).collect())
         } else {
             None

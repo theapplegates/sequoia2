@@ -54,11 +54,9 @@ pub fn certify(config: Config, c: certify::Command)
     // Find the matching User ID.
     let mut u = None;
     for ua in vc.userids() {
-        if let Ok(a_userid) = std::str::from_utf8(ua.userid().value()) {
-            if a_userid == userid {
-                u = Some(ua.userid().clone());
-                break;
-            }
+        if ua.userid().value() == userid.as_bytes() {
+            u = Some(ua.userid().clone());
+            break;
         }
     }
 

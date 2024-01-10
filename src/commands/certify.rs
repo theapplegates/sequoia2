@@ -1,3 +1,5 @@
+use std::fmt;
+
 use chrono::DateTime;
 use chrono::Utc;
 
@@ -51,23 +53,29 @@ pub fn certify(config: Config, c: certify::Command)
 
     let vc = cert.with_policy(&config.policy, Some(time))?;
 
+    let query = UserIDQuery::Exact(userid);
+
     // Find the matching User ID.
-    let mut u = None;
+    let mut userids = Vec::new();
     for ua in vc.userids() {
-        if ua.userid().value() == userid.as_bytes() {
-            u = Some(ua.userid().clone());
-            break;
+        match &query {
+            UserIDQuery::Exact(q) => {
+                if ua.userid().value() == q.as_bytes() {
+                    userids.push(ua.userid().clone());
+                    break;
+                }
+            },
         }
     }
 
-    if u.is_none() && c.add_userid {
-        u = Some(UserID::from(userid.as_str()));
+    if userids.is_empty() && c.add_userid {
+        userids.push(match &query {
+            UserIDQuery::Exact(q) => UserID::from(q.as_str()),
+        });
     }
 
-    let userid = if let Some(userid) = u {
-        userid
-    } else {
-        wprintln!("User ID: '{}' not found.\nValid User IDs:", userid);
+    if userids.is_empty() {
+        wprintln!("User ID: '{}' not found.\nValid User IDs:", query);
         let mut have_valid = false;
         for ua in vc.userids() {
             if let Ok(u) = std::str::from_utf8(ua.userid().value()) {
@@ -81,45 +89,18 @@ pub fn certify(config: Config, c: certify::Command)
         return Err(anyhow::format_err!("No matching User ID found"));
     };
 
-    // Create the certification.
-    let mut builder
-        = SignatureBuilder::new(SignatureType::GenericCertification);
+    if userids.len() > 1 {
+        wprintln!("User ID query: '{}' matched multiple user IDs:", query);
+        for u in &userids {
+            if let Ok(u) = std::str::from_utf8(u.value()) {
+                wprintln!("  - {}", u);
+            }
+        }
 
-    if trust_depth != 0 || trust_amount != 120 {
-        builder = builder.set_trust_signature(trust_depth, trust_amount)?;
+        return Err(anyhow::anyhow!("Not certifying multiple user IDs."));
     }
 
-    for regex in regex {
-        builder = builder.add_regular_expression(regex)?;
-    }
-
-    if local {
-        builder = builder.set_exportable_certification(false)?;
-    }
-
-    if non_revocable {
-        builder = builder.set_revocable(false)?;
-    }
-
-    // Creation time.
-    builder = builder.set_signature_creation_time(time)?;
-
-    if let Some(validity) = c
-        .expiry
-        .as_duration(DateTime::<Utc>::from(config.time))?
-    {
-        builder = builder.set_signature_validity_period(validity)?;
-    }
-
-    let notations = parse_notations(c.notation)?;
-    for (critical, n) in notations {
-        builder = builder.add_notation(
-            n.name(),
-            n.value(),
-            NotationDataFlags::empty().set_human_readable(),
-            critical)?;
-    };
-
+    // Get the signer to certify with.
     let mut options = Vec::new();
     if c.allow_not_alive_certifier {
         options.push(GetKeysOptions::AllowNotAlive);
@@ -128,36 +109,71 @@ pub fn certify(config: Config, c: certify::Command)
         options.push(GetKeysOptions::AllowRevoked);
     }
 
-    // Sign it.
     let keys = get_certification_keys(
         &[certifier], &config.policy,
         private_key_store.as_deref(),
         Some(time),
         Some(&options))?;
-    assert!(
-        keys.len() == 1,
+    assert_eq!(
+        keys.len(), 1,
         "Expect exactly one result from get_certification_keys()"
     );
     let mut signer = keys.into_iter().next().unwrap().0;
 
-    let certification = builder
-        .sign_userid_binding(
-            &mut signer,
-            cert.primary_key().component(),
-            &userid)?;
-    let cert = cert.insert_packets(vec![
-        Packet::from(userid),
-        Packet::from(certification.clone()),
-    ])?;
-    assert!(cert.clone().into_packets().any(|p| {
-        match p {
-            Packet::Signature(sig) => sig == certification,
-            _ => false,
-        }
-    }));
+    // Create the certifications.
+    let mut new_packets: Vec<Packet> = Vec::new();
+    for userid in userids {
+        let mut builder
+            = SignatureBuilder::new(SignatureType::GenericCertification);
 
+        if trust_depth != 0 || trust_amount != 120 {
+            builder = builder.set_trust_signature(trust_depth, trust_amount)?;
+        }
+
+        for regex in &regex {
+            builder = builder.add_regular_expression(regex)?;
+        }
+
+        if local {
+            builder = builder.set_exportable_certification(false)?;
+        }
+
+        if non_revocable {
+            builder = builder.set_revocable(false)?;
+        }
+
+        // Creation time.
+        builder = builder.set_signature_creation_time(time)?;
+
+        if let Some(validity) = c
+            .expiry
+            .as_duration(DateTime::<Utc>::from(config.time))?
+        {
+            builder = builder.set_signature_validity_period(validity)?;
+        }
+
+        let notations = parse_notations(&c.notation)?;
+        for (critical, n) in notations {
+            builder = builder.add_notation(
+                n.name(),
+                n.value(),
+                NotationDataFlags::empty().set_human_readable(),
+                critical)?;
+        };
+
+        // Sign it.
+        let certification = builder
+            .sign_userid_binding(
+                &mut signer,
+                cert.primary_key().component(),
+                &userid)?;
+
+        new_packets.push(userid.into());
+        new_packets.push(certification.into());
+    }
 
     // And export it.
+    let cert = cert.insert_packets(new_packets)?;
     let mut message = c.output.create_pgp_safe(
         config.force,
         c.binary,
@@ -167,4 +183,19 @@ pub fn certify(config: Config, c: certify::Command)
     message.finalize()?;
 
     Ok(())
+}
+
+/// How to match on user IDs.
+#[derive(Debug)]
+enum UserIDQuery {
+    /// Exact match.
+    Exact(String),
+}
+
+impl fmt::Display for UserIDQuery {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UserIDQuery::Exact(q) => f.write_str(q),
+        }
+    }
 }

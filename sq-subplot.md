@@ -1158,6 +1158,46 @@ when I run sq --no-cert-store inspect cert.pgp
 then stdout contains "Certifications: 1,"
 ~~~
 
+## Certify an identity matched by email address
+
+_Requirement: We can certify a user identity on a cert identified by
+email address._
+
+~~~scenario
+given an installed sq
+when I run sq --no-cert-store key generate --userid "<alice@example.org>" --output alice.pgp
+when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
+when I run sq --no-cert-store key generate --userid "<bob@example.org>" --output bob.pgp
+when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
+
+when I run sq --no-cert-store certify alice.pgp bob-cert.pgp --email bob@example.org -o cert.pgp
+when I run sq --no-cert-store inspect cert.pgp
+then stdout contains "Certifications: 1,"
+~~~
+
+## Certify multiple identities matched by email address
+
+_Requirement: We can certify multiple user identities on a cert
+identified by email address._
+
+~~~scenario
+given an installed sq
+when I run sq --no-cert-store key generate --userid "<alice@example.org>" --output alice.pgp
+when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
+when I run sq --no-cert-store key generate --userid "<bob@example.org>" --userid "Bob <bob@example.org>" --output bob.pgp
+when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
+
+when I run sq --no-cert-store certify alice.pgp bob-cert.pgp --email bob@example.org -o cert.pgp
+
+when I run sq --no-cert-store key userid strip --userid "<bob@example.org>" -o cert.0.pgp cert.pgp
+when I run sq --no-cert-store inspect cert.0.pgp
+then stdout contains "Certifications: 1,"
+
+when I run sq --no-cert-store key userid strip --userid "Bob <bob@example.org>" -o cert.1.pgp cert.pgp
+when I run sq --no-cert-store inspect cert.1.pgp
+then stdout contains "Certifications: 1,"
+~~~
+
 ## Certify an identity that is not self-signed
 
 _Requirement: We can certify a user identity on a cert, even if that
@@ -1177,6 +1217,25 @@ then stdout doesn't contain "Certifications:"
 when I run sq --no-cert-store certify --add-userid alice.pgp bob-cert.pgp "My friend Bob" -o cert.pgp
 when I run sq --no-cert-store inspect cert.pgp
 then stdout contains "My friend Bob"
+then stdout contains "Certifications: 1,"
+~~~
+
+## Certify an email identity that is not self-signed
+
+_Requirement: We can certify an email on a cert, even if that
+email address doesn't exist on that cert, and consequently has no
+self-signature._
+
+~~~scenario
+given an installed sq
+when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
+when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
+when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
+when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
+
+when I run sq --no-cert-store certify --add-userid alice.pgp bob-cert.pgp --email "bob@example.org" -o cert.pgp
+when I run sq --no-cert-store inspect cert.pgp
+then stdout contains "<bob@example.org>"
 then stdout contains "Certifications: 1,"
 ~~~
 

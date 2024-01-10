@@ -162,6 +162,15 @@ pub struct Command {
     pub expiry: Expiry,
     #[clap(
         long,
+        help = "Treat the given user ID as an email address.",
+        long_help =
+            "Treat the given user ID as an email address.  \
+             If more than one user ID contain the given email \
+             address, all are certified.",
+    )]
+    pub email: bool,
+    #[clap(
+        long,
         help = "Add the given user ID if it doesn't exist.",
         long_help =
             "Add the given user ID if it doesn't exist in the certificate.",

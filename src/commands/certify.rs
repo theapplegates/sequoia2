@@ -53,7 +53,11 @@ pub fn certify(config: Config, c: certify::Command)
 
     let vc = cert.with_policy(&config.policy, Some(time))?;
 
-    let query = UserIDQuery::Exact(userid);
+    let query = if c.email {
+        UserIDQuery::Email(userid)
+    } else {
+        UserIDQuery::Exact(userid)
+    };
 
     // Find the matching User ID.
     let mut userids = Vec::new();
@@ -65,12 +69,31 @@ pub fn certify(config: Config, c: certify::Command)
                     break;
                 }
             },
+            UserIDQuery::Email(q) => {
+                if ua.userid().email2().map(|u| u == Some(q.as_str()))
+                    .unwrap_or(false)
+                {
+                    userids.push(ua.userid().clone());
+                }
+            },
         }
     }
 
     if userids.is_empty() && c.add_userid {
         userids.push(match &query {
             UserIDQuery::Exact(q) => UserID::from(q.as_str()),
+            UserIDQuery::Email(q) => {
+                // XXX: Ideally, we could just use the following
+                // expression, but currently this returns the bare
+                // email address without brackets, so currently we
+                // only use it to validate the address...
+                UserID::from_address(None, None, q.as_str())?;
+
+                // ... and construct the value by foot:
+                UserID::from(format!("<{}>", q))
+
+                // See https://gitlab.com/sequoia-pgp/sequoia/-/issues/1076
+            },
         });
     }
 
@@ -88,17 +111,6 @@ pub fn certify(config: Config, c: certify::Command)
         }
         return Err(anyhow::format_err!("No matching User ID found"));
     };
-
-    if userids.len() > 1 {
-        wprintln!("User ID query: '{}' matched multiple user IDs:", query);
-        for u in &userids {
-            if let Ok(u) = std::str::from_utf8(u.value()) {
-                wprintln!("  - {}", u);
-            }
-        }
-
-        return Err(anyhow::anyhow!("Not certifying multiple user IDs."));
-    }
 
     // Get the signer to certify with.
     let mut options = Vec::new();
@@ -190,12 +202,16 @@ pub fn certify(config: Config, c: certify::Command)
 enum UserIDQuery {
     /// Exact match.
     Exact(String),
+
+    /// Match on the email address.
+    Email(String),
 }
 
 impl fmt::Display for UserIDQuery {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UserIDQuery::Exact(q) => f.write_str(q),
+            UserIDQuery::Email(q) => write!(f, "<{}>", q),
         }
     }
 }

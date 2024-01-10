@@ -650,8 +650,13 @@ impl ManualPage {
                     // Was the last line a continuation?
                     let mut continuation = false;
 
+                    // Was the last line part of the description?
+                    let mut description = false;
+
                     for line in ex.lines() {
-                        if ! continuation {
+                        if ! continuation
+                            && ! (description && line.starts_with("#"))
+                        {
                             self.paragraph();
                         }
 
@@ -705,6 +710,9 @@ impl ManualPage {
 
                         // Update continuation for the next loop iteration.
                         continuation = line.ends_with("\\");
+
+                        // Update description for the next loop iteration.
+                        description = line.starts_with("#");
 
                         // We emitted at least one example, make sure
                         // to add a new paragraph before going to the

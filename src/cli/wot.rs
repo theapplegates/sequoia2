@@ -52,8 +52,8 @@ pub struct Command {
     ///
     /// EXAMPLES:
     ///
-    /// # Get gossip about a certificate.{n}
-    /// $ sq wot --keyring keyring.pgp \\{n}
+    /// # Get gossip about a certificate.
+    /// $ sq wot --keyring keyring.pgp \\
     ///     --gossip identify 3217C509292FC67076ECD75C7614269BDDF73B36
     #[arg(global=true, display_order=850, long)]
     pub gossip: bool,

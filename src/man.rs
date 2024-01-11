@@ -550,6 +550,9 @@ impl CommandOption {
 pub struct ManualPage {
     filename: PathBuf,
     roff: Roff,
+
+    // Are we in code mode (emitted .nf)?
+    in_code: bool,
 }
 
 impl ManualPage {
@@ -557,6 +560,7 @@ impl ManualPage {
         Self {
             filename,
             roff: Roff::new(),
+            in_code: false,
         }
     }
 
@@ -575,6 +579,22 @@ impl ManualPage {
     fn name_section(&mut self, name: &str, summary: &str) {
         self.section("NAME");
         self.roff.text([roman(&format!("{} - {}", name, summary))]);
+    }
+
+    /// Typeset code blocks, joining adjacent blocks.
+    fn code(&mut self, code: bool) {
+        match (self.in_code, code) {
+            (false, false) => (),
+            (false, true) => {
+                self.roff.control("nf", []);
+                self.in_code = true;
+            },
+            (true, false) => {
+                self.roff.control("fi", []);
+                self.in_code = false;
+            },
+            (true, true) => (),
+        }
     }
 
     /// Typeset the synopsis of a command. This is going to be part of
@@ -690,6 +710,7 @@ impl ManualPage {
                             TARGET_LINE_LENGTH - 3 * RS_INDENTATION;
 
                         if let Some(line) = line.strip_prefix("# ") {
+                            self.code(false);
                             self.roff.text([roman(line)]);
                         } else if let Some(line) = line.strip_prefix("$ ") {
                             let line = line.trim();
@@ -698,11 +719,10 @@ impl ManualPage {
                                       EXAMPLE_COMMAND_MAX_WIDTH);
                                 fail!("{}", line);
                             }
-                            self.roff.control("nf", []);
+                            self.code(true);
                             self.roff.control("RS", []);
                             self.roff.text([roman(line)]);
                             self.roff.control("RE", []);
-                            self.roff.control("fi", []);
                         } else if continuation {
                             let line = line.trim();
                             if line.len() > EXAMPLE_CONTINUATION_MAX_WIDTH {
@@ -710,14 +730,14 @@ impl ManualPage {
                                       EXAMPLE_CONTINUATION_MAX_WIDTH);
                                 fail!("{}", line);
                             }
-                            self.roff.control("nf", []);
+                            self.code(true);
                             self.roff.control("RS", []);
                             self.roff.control("RS", []);
                             self.roff.text([roman(line)]);
                             self.roff.control("RE", []);
                             self.roff.control("RE", []);
-                            self.roff.control("fi", []);
                         } else {
+                            self.code(false);
                             self.roff.text([roman(line)]);
                         }
 
@@ -733,6 +753,8 @@ impl ManualPage {
                         need_para = true;
                     }
                 }
+
+                self.code(false);
             }
         }
     }

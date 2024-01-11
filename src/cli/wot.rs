@@ -122,21 +122,15 @@ pub enum Subcommand {
 EXAMPLES:
 
 # Authenticate a binding.
-$ sq --keyring keyring.pgp \\
-    wot \\
-    --partial \\
-    --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-  authenticate \\
-    C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
-    'Alice <alice@example.org>'
+$ sq wot authenticate --partial \\
+     C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
+     'Alice <alice@example.org>'
 
 # Try and authenticate each binding where the User ID has the
 # specified email address.
-$ sq --keyring keyring.pgp \\
-    --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-  wot authenticate \\
-    C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
-    --email 'alice@example.org'
+$ sq wot authenticate \\
+     C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
+     --email 'alice@example.org'
 "))]
     Authenticate {
         #[command(flatten)]
@@ -165,17 +159,10 @@ $ sq --keyring keyring.pgp \\
 EXAMPLES:
 
 # Lookup a certificate with the given User ID.
-$ sq --keyring keyring.pgp \\
-    --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-  wot lookup \\
-    --partial \\
-    'Alice <alice@example.org>'
+$ sq wot lookup --partial 'Alice <alice@example.org>'
 
 # Lookup a certificate with the given email address.
-$ sq --keyring keyring.pgp \\
-    --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-  wot lookup \\
-    --email 'alice@example.org'
+$ sq wot lookup --email 'alice@example.org'
 "))]
     Lookup {
         #[command(flatten)]
@@ -201,16 +188,12 @@ $ sq --keyring keyring.pgp \\
 EXAMPLES:
 
 # Identify a certificate.
-$ sq --keyring keyring.pgp \\
-    --partial \\
-    --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-  wot identify \\
-    C7B1406CD2F612E9CE2136156F2DA183236153AE
+$ sq wot identify --partial \\
+     C7B1406CD2F612E9CE2136156F2DA183236153AE
 
 # Get gossip about a certificate.
-$ sq wot --keyring keyring.pgp \\
-    --gossip identify \\
-    3217C509292FC67076ECD75C7614269BDDF73B36
+$ sq wot identify --gossip \\
+     3217C509292FC67076ECD75C7614269BDDF73B36
 "))]
     Identify {
         #[command(flatten)]
@@ -236,11 +219,7 @@ EXAMPLES:
 
 # List all bindings for example.org that are at least partially
 # authenticated.
-$ sq --keyring keyring.pgp \\
-    --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-  wot list \\
-    --partial \\
-    @example.org
+$ sq wot list --partial @example.org
 "))]
     List {
         #[command(flatten)]
@@ -270,8 +249,7 @@ $ sq --keyring keyring.pgp \\
 EXAMPLES:
 
 # Verify that Neal ceritified Justus's certificate for a particular User ID.
-$ sq --keyring keyring.pgp \\
-  wot path \\
+$ sq wot path \\
     8F17777118A33DDA9BA48E62AACB3243630052D9 \\
     CBCD8F030588653EEDD7E2659B7DD433F254904A \\
     'Justus Winter <justus@sequoia-pgp.org>'

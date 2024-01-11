@@ -37,6 +37,22 @@ const SOURCE: &str = "Sequoia-PGP";
 /// Text to add to the end of the "SEE ALSO" section of sq manual page.
 const SEE_ALSO: &str = "For the full documentation see <https://docs.sequoia-pgp.org/sq/>.";
 
+/// Emits a warning.
+macro_rules! warn {
+    {$($exp: expr),*} => {
+        println!("cargo:warning={}",
+                 format_args!($($exp),*));
+    };
+}
+
+/// Emits a warning and exits with an error.
+macro_rules! fail {
+    {$($exp: expr),*} => {
+        warn!($($exp),*);
+        std::process::exit(1);
+    };
+}
+
 /// Generate manual page.
 ///
 /// `cmd` is a `clap::Command` that has been built to represent the sq
@@ -673,13 +689,6 @@ impl ManualPage {
                         const EXAMPLE_CONTINUATION_MAX_WIDTH: usize =
                             TARGET_LINE_LENGTH - 3 * RS_INDENTATION;
 
-                        macro_rules! warn {
-                            {$($exp: expr),*} => {
-                                println!("cargo:warning={}",
-                                         format_args!($($exp),*));
-                            };
-                        }
-
                         if let Some(line) = line.strip_prefix("# ") {
                             self.roff.text([roman(line)]);
                         } else if let Some(line) = line.strip_prefix("$ ") {
@@ -687,7 +696,7 @@ impl ManualPage {
                             if line.len() > EXAMPLE_COMMAND_MAX_WIDTH {
                                 warn!("Command in example exceeds {} chars:",
                                       EXAMPLE_COMMAND_MAX_WIDTH);
-                                warn!("{}", line);
+                                fail!("{}", line);
                             }
                             self.roff.control("nf", []);
                             self.roff.control("RS", []);
@@ -699,7 +708,7 @@ impl ManualPage {
                             if line.len() > EXAMPLE_CONTINUATION_MAX_WIDTH {
                                 warn!("Continuation in example exceeds {} chars:",
                                       EXAMPLE_CONTINUATION_MAX_WIDTH);
-                                warn!("{}", line);
+                                fail!("{}", line);
                             }
                             self.roff.control("nf", []);
                             self.roff.control("RS", []);

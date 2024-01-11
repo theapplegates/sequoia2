@@ -92,11 +92,19 @@ pub struct SqCommand {
     #[clap(
         short = 'f',
         long = "force",
+        global = true,
+        // All global options should have a high display_order, so
+        // that they are sorted to the bottom.
+        display_order = 900,
         help = "Overwrites existing files"
     )]
     pub force: bool,
     #[clap(
         long,
+        global = true,
+        // All global options should have a high display_order, so
+        // that they are sorted to the bottom.
+        display_order = 900,
         help = "Disables the use of a certificate store",
         long_help = "\
 Disables the use of a certificate store.  Normally sq uses the user's \
@@ -108,6 +116,10 @@ standard cert-d, which is located in $HOME/.local/share/pgp.cert.d."
         value_name = "PATH",
         env = "SQ_CERT_STORE",
         conflicts_with_all = &[ "no_cert_store" ],
+        global = true,
+        // All global options should have a high display_order, so
+        // that they are sorted to the bottom.
+        display_order = 900,
         help = "Specifies the location of the certificate store",
         long_help = "\
 Specifies the location of the certificate store.  By default, sq uses \
@@ -119,6 +131,10 @@ and creates it if it does not exist."
         long,
         value_name = "PATH",
         env = "PEP_CERT_STORE",
+        global = true,
+        // All global options should have a high display_order, so
+        // that they are sorted to the bottom.
+        display_order = 900,
         help = "Specifies the location of a pEp certificate store",
         long_help = "\
 Specifies the location of a pEp certificate store.  sq does not use a \
@@ -149,6 +165,10 @@ store, and the results are merged together."
         value_name = "FORMAT",
         default_value = "human-readable",
         env = "SQ_OUTPUT_FORMAT",
+        global = true,
+        // All global options should have a high display_order, so
+        // that they are sorted to the bottom.
+        display_order = 900,
         help = "Produces output in FORMAT, if possible",
     )]
     pub output_format: output::OutputFormat,
@@ -156,6 +176,10 @@ store, and the results are merged together."
         long = "output-version",
         value_name = "VERSION",
         env = "SQ_OUTPUT_VERSION",
+        global = true,
+        // All global options should have a high display_order, so
+        // that they are sorted to the bottom.
+        display_order = 900,
         help = "Produces output variant VERSION.",
         long_help = "Produces output variant VERSION, such as 0.0.0. \
                      The default is the newest version. The output version \
@@ -167,6 +191,10 @@ store, and the results are merged together."
     #[clap(
         long = "known-notation",
         value_name = "NOTATION",
+        global = true,
+        // All global options should have a high display_order, so
+        // that they are sorted to the bottom.
+        display_order = 900,
         help = "Adds NOTATION to the list of known notations",
         long_help = "Adds NOTATION to the list of known notations. \
             This is used when validating signatures. \
@@ -207,6 +235,10 @@ $ sq --time 20130721T0550+0200 verify msg.pgp
     #[clap(
         long = "trust-root",
         value_name = "FINGERPRINT|KEYID",
+        global = true,
+        // All global options should have a high display_order, so
+        // that they are sorted to the bottom.
+        display_order = 900,
         help = "Considers the specified certificate to be a trust root",
         long_help = "Considers the specified certificate to be a trust root. \
                      Trust roots are used by trust models, e.g., the web of \

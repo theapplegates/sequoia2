@@ -348,7 +348,6 @@ impl Command {
         for sub in &self.subcommands {
             man.subcommand_synopsis(
                 &bin_name,
-                builder.maincmd.has_options(),
                 &sub.subcommand_name(),
                 sub.has_options(),
                 &sub.args,
@@ -424,10 +423,8 @@ impl Command {
 
         man.section("SYNOPSIS");
         let bin_name = builder.maincmd.name();
-        let has_global_options = builder.maincmd.has_options();
         man.subcommand_synopsis(
             &bin_name,
-            has_global_options,
             &self.subcommand_name(),
             self.has_options(),
             &self.args,
@@ -567,23 +564,16 @@ impl ManualPage {
     fn subcommand_synopsis(
         &mut self,
         bin: &str,
-        global_options: bool,
         sub: &str,
         sub_options: bool,
         args: &[String],
         is_leaf: bool,
     ) {
-        let options = vec![roman(" ["), italic("GLOBAL OPTIONS"), roman("] ")];
-        let local_options = vec![roman(" ["), italic("OPTIONS"), roman("] ")];
-        self.roff.control("br", []);
-        let mut line = vec![bold(bin)];
-        if global_options {
-            line.extend_from_slice(&options);
-        }
-        line.push(bold(sub));
-        if sub_options {
-            line.extend_from_slice(&local_options);
-        }
+        let mut line = vec![
+            bold(format!("{} {}", bin, sub)),
+            roman(" ["), italic("OPTIONS"), roman("] "),
+        ];
+
         for (i, arg) in args.iter().enumerate() {
             if i > 0 || ! sub_options {
                 line.push(roman(" "));
@@ -599,6 +589,7 @@ impl ManualPage {
             line.push(italic("SUBCOMMAND"));
         }
 
+        self.roff.control("br", []);
         self.roff.text(line);
     }
 

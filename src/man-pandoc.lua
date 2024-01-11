@@ -19,46 +19,30 @@ local function rewrite_synopsis (inlines)
    --
    --      [1] LineBreak {}
    --      [2] Strong {
-   --        content: Inlines[1] {
+   --        content: Inlines[7] {
    --          [1] Str "sq"
+   --          [2] Space
+   --          [3] Str "key"
+   --          [4] Space
+   --          [5] Str "userid"
+   --          [6] Space
+   --          [7] Str "add"
    --        }
    --      }
    --      [3] Space
    --      [4] Str "["
-   --      [5] Emph {
-   --        content: Inlines[3] {
-   --          [1] Str "GLOBAL"
-   --          [2] Space
-   --          [3] Str "OPTIONS"
-   --        }
-   --      }
-   --      [6] Str "]"
-   --      [7] Space
-   --      [8] Strong {
-   --        content: Inlines[5] {
-   --          [1] Str "key"
-   --          [2] Space
-   --          [3] Str "userid"
-   --          [4] Space
-   --          [5] Str "add"
-   --        }
-   --      }
-   --      [9] Space
    local function synopsis_p (s)
       return s[1] and s[1].t == 'LineBreak'
-         and s[2] and s[2].t == 'Strong' and s[2].c[1].text == 'sq'
+         and s[2] and s[2].t == 'Strong'
+         and s[2].c[1].text == 'sq' and s[2].c[2].t == 'Space'
          and s[3] and s[3].t == 'Space'
          and s[4] and s[4].t == 'Str' and s[4].text == '['
-         and s[6] and s[6].t == 'Str' and s[6].text == ']'
-         and s[7] and s[7].t == 'Space'
-         and s[8] and s[8].t == 'Strong'
-         and s[9] and s[9].t == 'Space'
    end
 
    -- Given a sequence of subcommands, return the appropriate file
    -- name.
    local function subcommand_to_link (s)
-      t = "sq-"
+      t = ""
       for i = 1, #s do
          if s[i].t == 'Space' then
             t = t .. '-'
@@ -69,9 +53,9 @@ local function rewrite_synopsis (inlines)
       return t .. ".1.html"
    end
 
-   for i = 1, #inlines-9 do
-      if synopsis_p(table.pack(table.unpack(inlines, i, i + 8))) then
-         inlines[i+7] = pandoc.Link(inlines[i+7], subcommand_to_link(inlines[i+7].c))
+   for i = 1, #inlines-4 do
+      if synopsis_p(table.pack(table.unpack(inlines, i, i + 3))) then
+         inlines[i+1] = pandoc.Link(inlines[i+1], subcommand_to_link(inlines[i+1].c))
       end
    end
 end

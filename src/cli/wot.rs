@@ -9,18 +9,30 @@ use openpgp::KeyHandle;
 use openpgp::Result;
 use openpgp::packet::UserID;
 
-/// A frontend for Sequoia's web-of-trust engine.
-///
-/// This subcommand presents a CLI to query a web-of-trust network.
-///
-/// Functionality is grouped and available using subcommands.
-///
-/// We use the term `certificate`, or cert for short, to refer to
-/// OpenPGP keys that do not contain secret key material.  We reserve
-/// the term `key` for OpenPGP certificates that also contain secret
-/// key material.
 #[derive(Debug, Parser)]
-#[command(author, version, about, long_about = None)]
+#[clap(
+    name = "wot",
+    about = "Authenticate certs using the web-of-trust",
+    long_about =
+"Authenticate certs using the web-of-trust
+
+The web of trust is a decentralized trust model popularized by PGP.
+It is a superset of X.509, which is a hierarchical trust model, and is
+the most popular trust model on the public internet today.  As used on
+the public internet, however, X.509 relies on a handful of global
+certification authorities (CAs) who often undermine its security.
+
+The web of trust is more nuanced than X.509.  Using the web of trust,
+require multiple, independent paths to authenticate a binding by only
+partially trusting CAs.  This prevents a single bad actor from
+compromising their security.  And those who have stronger security
+requirements can use the web of trust in a completely decentralized
+manner where only the individuals they select---who are not
+necessarily institutions---act as trusted introducers.
+",
+    subcommand_required = true,
+    arg_required_else_help = true,
+    )]
 pub struct Command {
     /// Treats all certificates as unreliable trust roots.
     ///

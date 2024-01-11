@@ -49,12 +49,6 @@ pub struct Command {
     /// introducer, and authenticating Micah's certificate is easier
     /// than authenticating Laura's certificate, then Ed has learned
     /// about an easier way to authenticate Laura's certificate.
-    ///
-    /// EXAMPLES:
-    ///
-    /// # Get gossip about a certificate.
-    /// $ sq wot --keyring keyring.pgp \\
-    ///     --gossip identify 3217C509292FC67076ECD75C7614269BDDF73B36
     #[arg(global=true, display_order=850, long)]
     pub gossip: bool,
 
@@ -212,6 +206,11 @@ $ sq --keyring keyring.pgp \\
     --trust-root 8F17777118A33DDA9BA48E62AACB3243630052D9 \\
   wot identify \\
     C7B1406CD2F612E9CE2136156F2DA183236153AE
+
+# Get gossip about a certificate.
+$ sq wot --keyring keyring.pgp \\
+    --gossip identify \\
+    3217C509292FC67076ECD75C7614269BDDF73B36
 "))]
     Identify {
         #[command(flatten)]

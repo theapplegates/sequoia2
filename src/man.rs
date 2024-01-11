@@ -79,7 +79,11 @@ impl Builder {
             date: None,
             source: None,
             manual: None,
-            version: cmd.get_version().map(|v| v.to_string()),
+            version: Some(format!(
+                "{} (sequoia-openpgp {})",
+                env!("CARGO_PKG_VERSION"),
+                sequoia_openpgp::VERSION,
+            )),
         }
     }
 

@@ -274,7 +274,7 @@ $ sq --keyring keyring.pgp \\
   wot path \\
     8F17777118A33DDA9BA48E62AACB3243630052D9 \\
     CBCD8F030588653EEDD7E2659B7DD433F254904A \\
-    \"Justus Winter <justus@sequoia-pgp.org>\"
+    'Justus Winter <justus@sequoia-pgp.org>'
 "))]
     Path {
         #[command(flatten)]

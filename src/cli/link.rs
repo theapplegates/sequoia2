@@ -50,8 +50,8 @@ previous link.
 ",
 after_help = "EXAMPLES:
 
-# Link 0123456789ABCDEF and User ID \"<romeo@example.org>\".
-$ sq link add 0123456789ABCDEF \"<romeo@example.org>\"
+# Link 0123456789ABCDEF and User ID '<romeo@example.org>'.
+$ sq link add 0123456789ABCDEF '<romeo@example.org>'
 
 # Link the certificate 0123456789ABCDEF with its current set of
 # self-signed User IDs as a trusted introducer for example.org.
@@ -61,8 +61,8 @@ $ sq link add --ca example.org 0123456789ABCDEF
 # self-signed User IDs as a trusted introducer.
 $ sq link add --ca '*' 0123456789ABCDEF
 
-# Retract the link between 0123456789ABCDEF and \"<romeo@example.org>\".
-$ sq link retract 0123456789ABCDEF \"<romeo@example.org>\"
+# Retract the link between 0123456789ABCDEF and '<romeo@example.org>'.
+$ sq link retract 0123456789ABCDEF '<romeo@example.org>'
 
 # Retract all links associated with 0123456789ABCDEF.
 $ sq link retract 0123456789ABCDEF
@@ -116,8 +116,8 @@ argument. It sets the link's creation time to the reference time.
 "EXAMPLES:
 
 # The user links 0123456789ABCDEF and the User ID
-# \"<romeo@example.org>\".
-$ sq link add 0123456789ABCDEF \"<romeo@example.org>\"
+# '<romeo@example.org>'.
+$ sq link add 0123456789ABCDEF '<romeo@example.org>'
 
 # The user examines 0123456789ABCDEF and then accepts the certificate
 # 0123456789ABCDEF with its current set of self-signed User IDs.

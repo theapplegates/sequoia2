@@ -124,21 +124,21 @@ subkeys, and the binding signatures to the reference time.
 "EXAMPLES:
 
 # First, generate a key
-$ sq key generate --userid \"<juliet@example.org>\" \\
+$ sq key generate --userid '<juliet@example.org>' \\
      --output juliet.key.pgp
 
 # Then, extract the certificate for distribution
 $ sq key extract-cert --output juliet.cert.pgp juliet.key.pgp
 
 # Generate a key protecting it with a password
-$ sq key generate --userid \"<juliet@example.org>\" --with-password
+$ sq key generate --userid '<juliet@example.org>' --with-password
 
 # Generate a key with multiple userids
-$ sq key generate --userid \"<juliet@example.org>\" \\
-     --userid \"Juliet Capulet\"
+$ sq key generate --userid '<juliet@example.org>' \\
+     --userid 'Juliet Capulet'
 
 # Generate a key whose creation time is June 9, 2011 at midnight UTC
-$ sq key generate --time 20110609 --userid \"Noam\" \\
+$ sq key generate --time 20110609 --userid Noam \\
      --output noam.pgp
 ",
 )]
@@ -280,7 +280,7 @@ supply a zero-length password when prompted for the new password.
 "EXAMPLES:
 
 # First, generate a key
-$ sq key generate --userid \"<juliet@example.org>\" \\
+$ sq key generate --userid '<juliet@example.org>' \\
      --output juliet.key.pgp
 
 # Then, encrypt the secrets in the key with a password.
@@ -483,7 +483,7 @@ it to a keyserver.
     after_help = "EXAMPLES:
 
 # First, generate a key
-$ sq key generate --userid \"<juliet@example.org>\" \\
+$ sq key generate --userid '<juliet@example.org>' \\
      --output juliet.key.pgp
 
 # Then, extract the certificate for distribution
@@ -549,16 +549,16 @@ binding signature to the specified time.
 "EXAMPLES:
 
 # First, generate a key:
-$ sq key generate --userid \"<juliet@example.org>\" \\
+$ sq key generate --userid '<juliet@example.org>' \\
      --output juliet.key.pgp
 
 # Then, add a User ID:
-$ sq key userid add --userid \"Juliet\" juliet.key.pgp \\
+$ sq key userid add --userid Juliet juliet.key.pgp \\
   --output juliet-new.key.pgp
 
 # Or, add a User ID whose creation time is set to June 28, 2022 at
 # midnight UTC:
-$ sq key userid add --userid \"Juliet\" --creation-time 20210628 \\
+$ sq key userid add --userid Juliet --creation-time 20210628 \\
    juliet.key.pgp --output juliet-new.key.pgp
 ",
 )]
@@ -760,11 +760,11 @@ signature.
 "EXAMPLES:
 
 # First, generate a key:
-$ sq key generate --userid \"<juliet@example.org>\" \\
+$ sq key generate --userid '<juliet@example.org>' \\
      --output juliet.key.pgp
 
 # Then, strip a User ID:
-$ sq key userid strip --userid \"<juliet@example.org>\" \\
+$ sq key userid strip --userid '<juliet@example.org>' \\
      --output juliet-new.key.pgp juliet.key.pgp
 ",
 )]
@@ -988,7 +988,7 @@ time.
 "EXAMPLES:
 
 # First, generate a key
-$ sq key generate --userid \"<juliet@example.org>\" \\
+$ sq key generate --userid '<juliet@example.org>' \\
      --output juliet.key.pgp
 
 # Add a new Subkey for universal encryption which expires at the same

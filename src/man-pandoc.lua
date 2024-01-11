@@ -89,3 +89,17 @@ function Inlines (inlines)
    rewrite_see_also(inlines)
    return inlines
 end
+
+-- Turns implicit links into actual links.
+function Str (s)
+   s = s.text
+   a, b = string.find(s, "<https://[^>]+>")
+   if a and b then
+      target = string.sub(s, a+1, b-1)
+      return pandoc.Inlines {
+         pandoc.Str(string.sub(s, 0, a)),
+         pandoc.Link(target, target),
+         pandoc.Str(string.sub(s, b)),
+      }
+   end
+end

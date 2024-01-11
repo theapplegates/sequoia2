@@ -167,6 +167,7 @@ struct Command {
     options: Vec<CommandOption>,
     args: Vec<String>,
     examples: Vec<String>,
+    exit_status: Vec<String>,
     subcommands: Vec<Command>,
     leaf: bool,
 }
@@ -186,6 +187,7 @@ impl Command {
             options: vec![],
             args: vec![],
             examples: vec![],
+            exit_status: vec![],
             subcommands: vec![],
             leaf: false,
         }
@@ -238,22 +240,22 @@ impl Command {
 
     /// Add the `before_help` help text for this command.
     fn before_help(&mut self, help: &str) {
-        self.before_help = Some(self.extract_example(help));
+        self.before_help = Some(self.extract_all(help));
     }
 
     /// Add the `after_help` help text for this command.
     fn after_help(&mut self, help: &str) {
-        self.after_help = Some(self.extract_example(help));
+        self.after_help = Some(self.extract_all(help));
     }
 
     /// Add the `about` help text for this command.
     fn about(&mut self, help: &str) {
-        self.about = Some(self.extract_example(help));
+        self.about = Some(self.extract_all(help));
     }
 
     /// Add the `long_about` help text for this command.
     fn long_about(&mut self, help: &str) {
-        self.long_about = Some(self.extract_example(help));
+        self.long_about = Some(self.extract_all(help));
     }
 
     /// Add an option to this command.
@@ -266,17 +268,35 @@ impl Command {
         self.args.push(arg.into());
     }
 
+    /// Extracts all additional sections.
+    fn extract_all(&mut self, text: &str) -> String {
+        let text = self.extract_example(text);
+        let text = self.extract_exit_status(&text);
+        text
+    }
+
     /// Extract examples from help text: anything that follows a line
     /// consisting of "EXAMPLES:". This is a convention specific to sq,
     /// not something that comes from `clap`.
     fn extract_example(&mut self, text: &str) -> String {
-        const H: &str = "EXAMPLES:\n";
-        if let Some(pos) = text.find(H) {
+        Self::extract("EXAMPLES:\n", &mut self.examples, text)
+    }
+
+    /// Extract examples from help text: anything that follows a line
+    /// consisting of "EXAMPLES:". This is a convention specific to sq,
+    /// not something that comes from `clap`.
+    fn extract_exit_status(&mut self, text: &str) -> String {
+        Self::extract("EXIT STATUS:\n", &mut self.exit_status, text)
+    }
+
+    /// Extracts sections, like examples, putting them into `into`.
+    fn extract(marker: &str, into: &mut Vec<String>, text: &str) -> String {
+        if let Some(pos) = text.find(marker) {
             let (text, ex) = text.split_at(pos);
-            if let Some(ex) = ex.strip_prefix(H) {
-                self.examples.push(ex.into());
+            if let Some(ex) = ex.strip_prefix(marker) {
+                into.push(ex.into());
             } else {
-                self.examples.push(ex.into());
+                into.push(ex.into());
             }
             text.into()
         } else {
@@ -410,6 +430,7 @@ impl Command {
             }
         }
 
+        man.exit_status_section(self);
         man.examples_section(&self.subcommands.iter().collect::<Vec<_>>());
 
         man.section("SEE ALSO");
@@ -471,6 +492,7 @@ impl Command {
             }
         }
 
+        man.exit_status_section(self);
         man.examples_section(&[self]);
 
         man.section("SEE ALSO");
@@ -664,6 +686,18 @@ impl ManualPage {
         }
 
         self.tagged_paragraph(line, &opt.help);
+    }
+
+    /// Typeset an EXIT STATUS section, if available.
+    fn exit_status_section(&mut self, c: &Command) {
+        if c.exit_status.is_empty() {
+            return;
+        }
+
+        self.section("EXIT STATUS");
+        for chunk in &c.exit_status {
+            self.text(&chunk);
+        }
     }
 
     /// Typeset an EXAMPLES section, if a command has examples.

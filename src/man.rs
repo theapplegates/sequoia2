@@ -397,14 +397,11 @@ impl Command {
         man.examples_section(&self.subcommands.iter().collect::<Vec<_>>());
 
         man.section("SEE ALSO");
-        let mut names: Vec<String> = self
-            .subcommands
-            .iter()
-            .map(|sub| sub.manpage_name())
+        let names: Vec<String> =
+            (1..self.command_words.len())
+            .map(|n| self.command_words[0..n].join("-"))
+            .chain(self.subcommands.iter().map(|sub| sub.manpage_name()))
             .collect();
-        if self != &builder.maincmd {
-            names.insert(0, builder.maincmd.manpage_name());
-        }
         man.man_page_refs(&names, &builder.section);
         man.paragraph();
         man.text(SEE_ALSO);
@@ -461,7 +458,11 @@ impl Command {
         man.examples_section(&[self]);
 
         man.section("SEE ALSO");
-        man.man_page_refs(&[builder.maincmd.manpage_name()], &builder.section);
+        let names: Vec<String> =
+            (1..self.command_words.len())
+            .map(|n| self.command_words[0..n].join("-"))
+            .collect();
+        man.man_page_refs(&names, &builder.section);
         man.paragraph();
         man.text(SEE_ALSO);
 

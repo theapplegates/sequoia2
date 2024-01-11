@@ -1,3 +1,5 @@
+//! Command-line parser for `sq verify`.
+
 use std::path::PathBuf;
 
 use clap::Parser;

@@ -1,3 +1,5 @@
+//! Types used in the command-line parser.
+
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fs::OpenOptions;

@@ -1,3 +1,5 @@
+//! Command-line parser for `sq link`.
+
 use clap::{ArgGroup, Parser, Subcommand};
 
 use sequoia_openpgp as openpgp;

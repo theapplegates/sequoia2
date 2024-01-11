@@ -1,4 +1,4 @@
-/// Command-line parser for sq wot.
+//! Command-line parser for `sq wot`.
 
 use std::ops::Deref;
 

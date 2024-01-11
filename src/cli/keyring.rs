@@ -1,3 +1,5 @@
+//! Command-line parser for `sq keyring`.
+
 use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};

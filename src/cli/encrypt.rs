@@ -1,3 +1,5 @@
+//! Command-line parser for `sq encrypt`.
+
 use std::path::PathBuf;
 
 use clap::ArgAction::Count;

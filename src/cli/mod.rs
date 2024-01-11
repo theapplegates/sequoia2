@@ -1,3 +1,16 @@
+// XXX: The following comment should be an inner comment, but cannot
+// until https://github.com/rust-lang/rust/issues/66920 is resolved.
+
+/// Defines the command-line interface.
+///
+/// This module contains sq's command-line interface, i.e. the clap
+/// definitions and associated types that can be used by clap.
+///
+/// We also generate manual pages from this module.  To that end,
+/// `build.rs` includes this module, so all of its dependencies must
+/// be also listed as build-dependencies.  Further, this module must
+/// be self-contained, i.e. it must not use code from other parts of
+/// sq.
 use std::path::PathBuf;
 use std::time::Duration;
 

@@ -1,3 +1,5 @@
+//! Command-line parser for `sq key`.
+
 use std::path::PathBuf;
 
 use clap::{ValueEnum, ArgGroup, Args, Parser, Subcommand};

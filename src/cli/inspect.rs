@@ -1,3 +1,5 @@
+//! Command-line parser for `sq inspect`.
+
 use clap::Parser;
 
 use sequoia_openpgp as openpgp;

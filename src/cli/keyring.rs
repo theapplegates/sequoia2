@@ -388,7 +388,7 @@ pub struct LintCommand {
     pub quiet: bool,
 
     /// Attempts to fix certificates, when possible.
-    #[arg(short, long)]
+    #[arg(short = 'F', long)]
     pub fix: bool,
 
     /// When fixing a certificate, the fixed certificate is exported

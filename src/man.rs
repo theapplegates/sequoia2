@@ -834,10 +834,8 @@ impl ManualPage {
                 self.roff.text([roman(first)]);
             }
             for para in paras {
-                self.paragraph();
-                self.roff.control("RS", []);
+                self.roff.control("IP", []);
                 self.roff.text([roman(para)]);
-                self.roff.control("RE", []);
             }
         }
     }

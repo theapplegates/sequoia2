@@ -35,7 +35,7 @@ const MANUAL: &str = "User Commands";
 const SOURCE: &str = "Sequoia-PGP";
 
 /// Text to add to the end of the "SEE ALSO" section of sq manual page.
-const SEE_ALSO: &str = "For the full documentation see <https://docs.sequoia-pgp.org/sq/>.";
+const SEE_ALSO: &str = "For the full documentation see <https://book.sequoia-pgp.org>.";
 
 /// Emits a warning.
 macro_rules! warn {

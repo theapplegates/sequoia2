@@ -114,7 +114,7 @@ pub struct Command {
     #[clap(
         short = 'x',
         long = "hex",
-        help = "Prints a hexdump (implies --dump)",
+        help = "Prints a hexdump (implies `--dump`)",
     )]
     pub hex: bool,
 }

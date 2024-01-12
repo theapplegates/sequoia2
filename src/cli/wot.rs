@@ -209,7 +209,7 @@ $ sq wot identify --gossip \\
     ///
     /// Even if no bindings are shown, the exit status is 0.
     ///
-    /// If --email is provided, then a pattern matches if it is a case
+    /// If `--email` is provided, then a pattern matches if it is a case
     /// insensitive substring of the email address as-is or the
     /// normalized email address.  Note: unlike the email address, the
     /// pattern is not normalized.  In particular, puny code

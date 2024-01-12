@@ -37,7 +37,7 @@ emitted.  If multiple user IDs map to one email address, then all
 matching user IDs are included in the emitted certificates.
 
 By default, OPENPGPKEY resource records are emitted.  If your DNS
-server doesn't understand those, use --generic to emit generic
+server doesn't understand those, use `--generic` to emit generic
 records instead.",
     after_help =
 "EXAMPLES:

@@ -409,7 +409,7 @@ pub struct LintCommand {
     /// certificates that have issues.  This output is intended for
     /// use by scripts.
     ///
-    /// This option implies "--quiet". If you also specify "--fix",
+    /// This option implies `--quiet`. If you also specify `--fix`,
     /// errors will still be printed to stderr, and fixed certificates
     /// will still be emitted to stdout.
     #[arg(short='k', long)]

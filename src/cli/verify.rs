@@ -18,7 +18,7 @@ use super::types::FileOrStdout;
     long_about = "Verifies signed messages or detached signatures
 
 When verifying signed messages, the message is written to stdout or
-the file given to --output.
+the file given to `--output`.
 
 When a detached message is verified, no output is produced.  Detached
 signatures are often used to sign software packages.

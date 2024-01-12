@@ -656,7 +656,7 @@ then that key is used to sign the revocation certificate.",
         help = "The User ID to revoke",
         long_help =
 "The User ID to revoke.  By default, this must exactly match a \
-self-signed User ID.  Use --force to generate a revocation certificate \
+self-signed User ID.  Use `--force` to generate a revocation certificate \
 for a User ID, which is not self signed."
     )]
     pub userid: String,

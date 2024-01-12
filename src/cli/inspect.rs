@@ -20,8 +20,8 @@ file(1) what kind of OpenPGP one is looking at.  This subcommand
 inspects the data and provides a meaningful human-readable description
 of it.
 
-\"sq inspect\" respects the reference time set by the top-level
-\"--time\" argument.  It uses the reference time when determining what
+`sq inspect` respects the reference time set by the top-level
+`--time` argument.  It uses the reference time when determining what
 binding signatures are active.
 ",
     after_help =

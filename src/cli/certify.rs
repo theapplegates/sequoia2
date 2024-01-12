@@ -26,16 +26,16 @@ Trust.
 
 This command emits the certificate with the new certification.  The
 updated certificate has to be distributed, preferably by sending it to
-the certificate holder for attestation.  See also \"sq key
-attest-certifications\".
+the certificate holder for attestation.  See also `sq key
+attest-certifications`.
 
 By default a certification expires after {} years.
-Using the \"--expiry=EXPIRY\" argument specific validity periods may be defined.
+Using the `--expiry` argument specific validity periods may be defined.
 It allows for providing a point in time for validity to end or a validity
 duration.
 
-\"sq certify\" respects the reference time set by the top-level
-\"--time\" argument.  It sets the certification's creation time to the
+`sq certify` respects the reference time set by the top-level
+`--time` argument.  It sets the certification's creation time to the
 reference time.
 ",
         THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS,
@@ -136,7 +136,7 @@ pub struct Command {
         help = "Adds a notation to the certification.",
         long_help = "Adds a notation to the certification.  \
             A user-defined notation's name must be of the form \
-            \"name@a.domain.you.control.org\". If the notation's name starts \
+            `name@a.domain.you.control.org`. If the notation's name starts \
             with a !, then the notation is marked as being critical.  If a \
             consumer of a signature doesn't understand a critical notation, \
             then it will ignore the signature.  The notation is marked as \
@@ -155,11 +155,11 @@ pub struct Command {
             "Defines EXPIRY for the certification as ISO 8601 formatted string or \
             custom duration. \
             If an ISO 8601 formatted string is provided, the validity period \
-            reaches from the reference time (may be set using \"--time\") to \
+            reaches from the reference time (may be set using `--time`) to \
             the provided time. \
             Custom durations starting from the reference time may be set using \
-            \"N[ymwds]\", for N years, months, weeks, days, or seconds. \
-            The special keyword \"never\" sets an unlimited expiry.",
+            `N[ymwds]`, for N years, months, weeks, days, or seconds. \
+            The special keyword `never` sets an unlimited expiry.",
     )]
     pub expiry: Expiry,
     #[clap(

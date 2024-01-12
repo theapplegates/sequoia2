@@ -17,7 +17,7 @@ transparently handles armored data, but this subcommand can be used to
 explicitly convert existing ASCII-encoded OpenPGP data to its binary
 representation.
 
-The converse operation is \"sq armor\".
+The converse operation is `sq armor`.
 ",
     after_help =
 "EXAMPLES:

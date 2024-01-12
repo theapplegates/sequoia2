@@ -174,10 +174,10 @@ pub struct FilterCommand {
     long_about =
 "Joins keys or keyrings into a single keyring
 
-Unlike \"sq keyring merge\", multiple versions of the same key are not
+Unlike `sq keyring merge`, multiple versions of the same key are not
 merged together.
 
-The converse operation is \"sq keyring split\".
+The converse operation is `sq keyring split`.
 ",
     after_help =
 "EXAMPLES:
@@ -211,7 +211,7 @@ pub struct JoinCommand {
     long_about =
 "Merges keys or keyrings into a single keyring
 
-Unlike \"sq keyring join\", the certificates are buffered and multiple
+Unlike `sq keyring join`, the certificates are buffered and multiple
 versions of the same certificate are merged together.  Where data is
 replaced (e.g., secret key material), data from the later certificate
 is preferred.
@@ -288,7 +288,7 @@ pub struct ListCommand {
 Splitting up a keyring into individual keys helps with curating a
 keyring.
 
-The converse operation is \"sq keyring join\".
+The converse operation is `sq keyring join`.
 ",
     after_help =
 "EXAMPLES:
@@ -312,7 +312,7 @@ pub struct SplitCommand {
         long = "prefix",
         value_name = "PREFIX",
         help = "Writes to files with PREFIX \
-            [defaults: \"FILE-\" if FILE is set, or \"output-\" if read from stdin]",
+            [defaults: `FILE-` if FILE is set, or `output-` if read from stdin]",
     )]
     pub prefix: Option<String>,
     #[clap(

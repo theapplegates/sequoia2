@@ -19,7 +19,7 @@ can be transformed to an ASCII representation called ASCII Armor.  sq
 emits armored data by default, but this subcommand can be used to
 convert existing OpenPGP data to its ASCII-encoded representation.
 
-The converse operation is \"sq dearmor\".
+The converse operation is `sq dearmor`.
 ",
     after_help =
 "EXAMPLES:

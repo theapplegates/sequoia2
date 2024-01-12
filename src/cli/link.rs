@@ -14,37 +14,37 @@ use super::types::Expiry;
     long_about =
 "Manages authenticated certificate and User ID links
 
-Link a certificate and User ID is one way of making \"sq\" consider a
-binding to be authentic.  Another way is to use \"sq certify\" to
+Link a certificate and User ID is one way of making `sq` consider a
+binding to be authentic.  Another way is to use `sq certify` to
 certify the binding with an explicitly configured trust root.  The
 linking functionality is often easier to work with, and the
 information is private by default.
 
 Authenticated bindings can be used to designate a certificate using a
-symbolic name.  For instance, using \"sq encrypt\"'s
-\"--recipient-userid\" and \"--recipient-email\" options, a user can
+symbolic name.  For instance, using `sq encrypt`'s
+`--recipient-userid` and `--recipient-email` options, a user can
 designate a certificate using a User ID or an email address that is
 authenticated for that certificate.
 
-\"sq\" also uses authenticated certificates to authenticate other
-data.  For instance, \"sq verify\" considers signatures made by an
+`sq` also uses authenticated certificates to authenticate other
+data.  For instance, `sq verify` considers signatures made by an
 authenticated certificate to be authentic.
 
-Users can create a link using \"sq link add\".  That link can later be
-retracted using \"sq link retract\".  A certificate can also be
-accepted as a trusted introducer by passing the \"--ca\" option to
-\"sq link add\".
+Users can create a link using `sq link add`.  That link can later be
+retracted using `sq link retract`.  A certificate can also be
+accepted as a trusted introducer by passing the `--ca` option to
+`sq link add`.
 
-\"sq\" implements linking using non-exportable certifications, and an
+`sq` implements linking using non-exportable certifications, and an
 implicit trust root.  An OpenPGP certificate directory, the default
-certificate store used by \"sq\", includes a local trust root, which
-is stored under the \"trust-root\" special name.  When the user
-instructs \"sq\" to accept a binding, \"sq\" uses the local trust root
+certificate store used by `sq`, includes a local trust root, which
+is stored under the `trust-root` special name.  When the user
+instructs `sq` to accept a binding, `sq` uses the local trust root
 to create a non-exportable certification, which it stores in the
 certificate directory.  In this way, operations that use the web of
 trust to authenticate a binding automatically use links.
 
-When a user retracts a link, \"sq\" creates a new, non-exportable
+When a user retracts a link, `sq` creates a new, non-exportable
 certification with zero trust.  This certification suppresses the
 previous link.
 ",
@@ -87,16 +87,16 @@ pub enum Subcommands {
     name = "add",
     about = "Link a certificate and a User ID",
     long_about =
-"Link a certificate and a User ID.  This cause \"sq\" to considers
+"Link a certificate and a User ID.  This cause `sq` to considers
 the certificate and User ID binding to be authentic.
 
 A certificate can also be accepted as a certification authority, which
-is also known as a trusted introducer, by using the \"--ca\" or
-\"--depth\" option.
+is also known as a trusted introducer, by using the `--ca` or
+`--depth` option.
 
-A link can be retracted using \"sq link retract\".
+A link can be retracted using `sq link retract`.
 
-This command is similar to \"sq certify\", but the certifications it
+This command is similar to `sq certify`, but the certifications it
 makes are done using the certificate directory's trust root, not an
 arbitrary key.  Further, the certificates are marked as
 non-exportable.  The former makes it easier to manage certifications,
@@ -105,11 +105,11 @@ latter improves the user's privacy, by reducing the chance that parts
 of the user's social graph is leaked when a certificate is shared.
 
 By default a link never expires.
-Using the \"--expiry=EXPIRY\" argument specific validity periods may be defined.
+Using the `--expiry` argument specific validity periods may be defined.
 It allows for providing a point in time for validity to end or a validity
 duration.
 
-\"sq link\" respects the reference time set by the top-level \"--time\"
+`sq link` respects the reference time set by the top-level `--time`
 argument. It sets the link's creation time to the reference time.
 ",
     after_help =
@@ -170,7 +170,7 @@ pub struct AddCommand {
              A certification authority is also referred to as a trusted \
              introducer.  This command is equivalent to making the trust \
              depth unconstrained, i.e., setting the depth to 255.  See \
-             \"--depth\" for more information.",
+             `--depth` for more information.",
     )]
     pub ca: Vec<String>,
     #[clap(
@@ -209,8 +209,8 @@ pub struct AddCommand {
         help = "Adds a notation to the certification.",
         long_help = "Adds a notation to the certification.  \
             A user-defined notation's name must be of the form \
-            \"name@a.domain.you.control.org\". If the notation's name starts \
-            with a !, then the notation is marked as being critical.  If a \
+            `name@a.domain.you.control.org`. If the notation's name starts \
+            with a `!`, then the notation is marked as being critical.  If a \
             consumer of a signature doesn't understand a critical notation, \
             then it will ignore the signature.  The notation is marked as \
             being human readable."
@@ -241,11 +241,11 @@ pub struct AddCommand {
             "Defines EXPIRY for the acceptance as ISO 8601 formatted string or \
             custom duration. \
             If an ISO 8601 formatted string is provided, the validity period \
-            reaches from the reference time (may be set using \"--time\") to \
+            reaches from the reference time (may be set using `--time`) to \
             the provided time. \
             Custom durations starting from the reference time may be set using \
-            \"N[ymwds]\", for N years, months, weeks, days, or seconds. \
-            The special keyword \"never\" sets an unlimited expiry.",
+            `N[ymwds]`, for N years, months, weeks, days, or seconds. \
+            The special keyword `never` sets an unlimited expiry.",
     )]
     pub expiry: Expiry,
     #[clap(
@@ -272,7 +272,7 @@ pub struct AddCommand {
         long_help = "A User ID to link to the certificate.  This must match \
                      a self-signed User ID.  To link a User ID to the \
                      certificate that does not have a self-signature, use \
-                     \"--petname\".",
+                     `--petname`.",
     )]
     pub userid: Vec<String>,
     #[clap(
@@ -284,7 +284,7 @@ pub struct AddCommand {
                      address must match the email address of a \
                      self-signed User ID.  To link an email address to the \
                      certificate that does not appear in a self-signed \
-                     User ID, use \"--petname\".  If the specified email \
+                     User ID, use `--petname`.  If the specified email \
                      appears in multiple self-signed User IDs, then all of \
                      them are linked.",
     )]
@@ -294,11 +294,11 @@ pub struct AddCommand {
         value_name = "PETNAME",
         required = false,
         help = "A User ID to link to the certificate.",
-        long_help = "A User ID to link to the certificate.  Unlike \"--userid\", \
+        long_help = "A User ID to link to the certificate.  Unlike `--userid`, \
                      this does not need to match a self-signed User ID.  Bare \
                      email address are automatically wrapped in angle brackets. \
-                     That is if \"alice@example.org\" is provided, it is \
-                     silently converted to \"<alice@example.org>\".",
+                     That is if `alice@example.org` is provided, it is \
+                     silently converted to `<alice@example.org>`.",
     )]
     pub petname: Vec<String>,
 
@@ -309,8 +309,8 @@ pub struct AddCommand {
         long_help = "A User ID or email address to link to the certificate.  \
                      This must match a self-signed User ID.  To link a User ID \
                      to the certificate that does not have a self-signature, \
-                     use \"--petname\".  Scripts should prefer to use \
-                     \"--email\" or \"--userid\", as \"sq\" does not need to \
+                     use `--petname`.  Scripts should prefer to use \
+                     `--email` or `--userid`, as `sq` does not need to \
                      guess if a value is a User ID or an email address.",
     )]
     pub pattern: Vec<String>,
@@ -323,14 +323,14 @@ pub struct AddCommand {
     long_about =
 "Retracts links.
 
-This command retracts links that were previously created using \"sq
-link add\".  See that subcommand's documentation for more details.
-Note: this is called \"retract\" and not \"remove\", because the
+This command retracts links that were previously created using `sq
+link add`.  See that subcommand's documentation for more details.
+Note: this is called `retract` and not `remove`, because the
 certifications are not removed.  Instead a new certification is added,
 which says that the binding has not been authenticated.
 
-\"sq link retract\" respects the reference time set by the top-level
-\"--time\" argument.  This causes a link to be retracted as of a
+`sq link retract` respects the reference time set by the top-level
+`--time` argument.  This causes a link to be retracted as of a
 particular time instead of the current time.
 ",
 )]
@@ -342,7 +342,7 @@ pub struct RetractCommand {
         help = "Adds a notation to the certification.",
         long_help = "Adds a notation to the certification.  \
             A user-defined notation's name must be of the form \
-            \"name@a.domain.you.control.org\". If the notation's name starts \
+            `name@a.domain.you.control.org`. If the notation's name starts \
             with a !, then the notation is marked as being critical.  If a \
             consumer of a signature doesn't understand a critical notation, \
             then it will ignore the signature.  The notation is marked as \
@@ -383,7 +383,7 @@ pub struct RetractCommand {
         help = "A User ID or email address to unlink from the certificate.",
         long_help = "A User ID or email address to unlink from the certificate.  \
                      This must match a known User ID.  Scripts should prefer to \
-                     use \"--email\" or \"--userid\", as \"sq\" does not need to \
+                     use `--email` or `--userid`, as `sq` does not need to \
                      guess if a value is a User ID or an email address. \
                      If no User IDs, or email addresses are provided, \
                      then all known User IDs are unlinked.",

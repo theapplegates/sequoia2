@@ -19,7 +19,7 @@ use super::types::SessionKey;
 
 An OpenPGP data stream consists of packets.  These tools allow working
 with packet streams.  They are mostly of interest to developers, but
-\"sq packet dump\" may be helpful to a wider audience both to provide
+`sq packet dump` may be helpful to a wider audience both to provide
 valuable information in bug reports to OpenPGP-related software, and
 as a learning tool.
 ",
@@ -53,7 +53,7 @@ octet stream similar to hexdump(1), annotating specifically which
 bytes are parsed into OpenPGP values.
 
 To inspect encrypted messages, either supply the session key, or see
-\"sq decrypt --dump\" or \"sq packet decrypt\".
+`sq decrypt` with the `--dump` flag, or `sq packet decrypt`.
 ",
     after_help =
 "EXAMPLES:
@@ -112,7 +112,7 @@ pub struct DumpCommand {
 
 Decrypts a message, dumping the content of the encryption container
 without further processing.  The result is a valid OpenPGP message
-that can, among other things, be inspected using \"sq packet dump\".
+that can, among other things, be inspected using `sq packet dump`.
 ",
     after_help =
 "EXAMPLES:
@@ -173,10 +173,10 @@ pub struct DecryptCommand {
     long_about = "Splits a message into packets
 
 Splitting a packet sequence into individual packets, then recombining
-them freely with \"sq packet join\" is a great way to experiment with
+them freely with `sq packet join` is a great way to experiment with
 OpenPGP data.
 
-The converse operation is \"sq packet join\".
+The converse operation is `sq packet join`.
 ",
     after_help =
 "EXAMPLES:
@@ -197,7 +197,7 @@ pub struct SplitCommand {
         long = "prefix",
         value_name = "PREFIX",
         help = "Writes to files with PREFIX \
-            [defaults: \"FILE-\" if FILE is set, or \"output-\" if read from stdin]",
+            [defaults: `FILE-` if FILE is set, or `output-` if read from stdin]",
     )]
     pub prefix: Option<PathBuf>,
 }
@@ -208,10 +208,10 @@ pub struct SplitCommand {
     long_about = "Joins packets split across files
 
 Splitting a packet sequence into individual packets, then recombining
-them freely with \"sq packet join\" is a great way to experiment with
+them freely with `sq packet join` is a great way to experiment with
 OpenPGP data.
 
-The converse operation is \"sq packet split\".
+The converse operation is `sq packet split`.
 ",
     after_help =
 "EXAMPLES:

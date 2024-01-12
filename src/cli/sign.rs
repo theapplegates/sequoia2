@@ -18,10 +18,10 @@ use super::types::FileOrStdout;
 Creates signed messages or detached signatures.  Detached signatures
 are often used to sign software packages.
 
-The converse operation is \"sq verify\".
+The converse operation is `sq verify`.
 
-\"sq sign\" respects the reference time set by the top-level \
-\"--time\" argument.  When set, it uses the specified time instead of \
+`sq sign` respects the reference time set by the top-level \
+`--time` argument.  When set, it uses the specified time instead of \
 the current time, when determining what keys are valid, and it sets \
 the signature's creation time to the reference time instead of the \
 current time.
@@ -126,8 +126,8 @@ pub struct Command {
         conflicts_with = "merge",
         long_help = "Adds a notation to the certification.  \
             A user-defined notation's name must be of the form \
-            \"name@a.domain.you.control.org\". If the notation's name starts \
-            with a !, then the notation is marked as being critical.  If a \
+            `name@a.domain.you.control.org`. If the notation's name starts \
+            with a `!`, then the notation is marked as being critical.  If a \
             consumer of a signature doesn't understand a critical notation, \
             then it will ignore the signature.  The notation is marked as \
             being human readable."

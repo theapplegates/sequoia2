@@ -65,7 +65,7 @@ secrets.  This subcommand provides primitives to generate and
 otherwise manipulate keys.
 
 Conversely, we use the term \"certificate\", or cert for short, to refer
-to OpenPGP keys that do not contain secrets.  See \"sq keyring\" for
+to OpenPGP keys that do not contain secrets.  See `sq keyring` for
 operations on certificates.
 ",
     subcommand_required = true,
@@ -104,18 +104,18 @@ When generating a key, we also generate a revocation certificate.
 This can be used in case the key is superseded, lost, or compromised.
 It is a good idea to keep a copy of this in a safe place.
 
-After generating a key, use \"sq key extract-cert\" to get the
+After generating a key, use `sq key extract-cert` to get the
 certificate corresponding to the key.  The key must be kept secure,
 while the certificate should be handed out to correspondents, e.g. by
 uploading it to a keyserver.
 
 By default a key expires after {} years.
-Using the \"--expiry=EXPIRY\" argument specific validity periods may be defined.
+Using the `--expiry=` argument specific validity periods may be defined.
 It allows for providing a point in time for validity to end or a validity
 duration.
 
-\"sq key generate\" respects the reference time set by the top-level
-\"--time\" argument.  It sets the creation time of the key, any
+`sq key generate` respects the reference time set by the top-level
+`--time` argument.  It sets the creation time of the key, any
 subkeys, and the binding signatures to the reference time.
 ",
         KEY_VALIDITY_IN_YEARS,
@@ -178,11 +178,11 @@ pub struct GenerateCommand {
             "Defines EXPIRY for the key as ISO 8601 formatted string or \
             custom duration. \
             If an ISO 8601 formatted string is provided, the validity period \
-            reaches from the reference time (may be set using \"--time\") to \
+            reaches from the reference time (may be set using `--time`) to \
             the provided time. \
             Custom durations starting from the reference time may be set using \
-            \"N[ymwds]\", for N years, months, weeks, days, or seconds. \
-            The special keyword \"never\" sets an unlimited expiry.",
+            `N[ymwds]`, for N years, months, weeks, days, or seconds. \
+            The special keyword `never` sets an unlimited expiry.",
     )]
     pub expiry: Expiry,
     #[clap(
@@ -238,7 +238,7 @@ pub struct GenerateCommand {
         help = "Writes the revocation certificate to FILE",
         long_help =
             "Writes the revocation certificate to FILE. \
-            mandatory if OUTFILE is \"-\". \
+            mandatory if OUTFILE is `-`. \
             [default: <OUTFILE>.rev]",
     )]
     pub rev_cert: Option<PathBuf>
@@ -339,17 +339,17 @@ pub struct PasswordCommand {
 
 Creates a revocation certificate for the certificate.
 
-If \"--revocation-file\" is provided, then that key is used to create
+If `--revocation-file` is provided, then that key is used to create
 the signature.  If that key is different from the certificate being
 revoked, this creates a third-party revocation.  This is normally only
 useful if the owner of the certificate designated the key to be a
 designated revoker.
 
-If \"--revocation-file\" is not provided, then the certificate must
+If `--revocation-file` is not provided, then the certificate must
 include a certification-capable key.
 
-\"sq key revoke\" respects the reference time set by the top-level \
-\"--time\" argument.  When set, it uses the specified time instead of \
+`sq key revoke` respects the reference time set by the top-level \
+`--time` argument.  When set, it uses the specified time instead of \
 the current time, when determining what keys are valid, and it sets \
 the revocation certificate's creation time to the reference time \
 instead of the current time.
@@ -391,32 +391,32 @@ then that key is used to sign the revocation certificate.",
         required = true,
         help = "The reason for the revocation",
         long_help =
-"The reason for the revocation.  This must be either: compromised,
-superseded, retired, or unspecified:
+"The reason for the revocation.  This must be either: `compromised`,
+`superseded`, `retired`, or `unspecified`:
 
-  - compromised means that the secret key material may have been
+  - `compromised` means that the secret key material may have been
     compromised.  Prefer this value if you suspect that the secret
     key has been leaked.
 
-  - superseded means that the owner of the certificate has replaced
-    it with a new certificate.  Prefer \"compromised\" if the secret
+  - `superseded` means that the owner of the certificate has replaced
+    it with a new certificate.  Prefer `compromised` if the secret
     key material has been compromised even if the certificate is also
     being replaced!  You should include the fingerprint of the new
     certificate in the message.
 
-  - retired means that this certificate should not be used anymore,
+  - `retired` means that this certificate should not be used anymore,
     and there is no replacement.  This is appropriate when someone
-    leaves an organisation.  Prefer \"compromised\" if the secret key
+    leaves an organisation.  Prefer `compromised` if the secret key
     material has been compromised even if the certificate is also
     being retired!  You should include how to contact the owner, or
     who to contact instead in the message.
 
-  - unspecified means that none of the three other three reasons
+  - `unspecified` means that none of the three other three reasons
     apply.  OpenPGP implementations conservatively treat this type
     of revocation similar to a compromised key.
 
 If the reason happened in the past, you should specify that using the
---time argument.  This allows OpenPGP implementations to more
+`--time` argument.  This allows OpenPGP implementations to more
 accurately reason about objects whose validity depends on the validity
 of the certificate.",
     value_enum,
@@ -430,9 +430,9 @@ of the certificate.",
 "A short, explanatory text that is shown to a viewer of the revocation \
 certificate.  It explains why the certificate has been revoked.  For \
 instance, if Alice has created a new key, she would generate a \
-'superseded' revocation certificate for her old key, and might include \
-the message \"I've created a new certificate, FINGERPRINT, please use \
-that in the future.\"",
+`superseded` revocation certificate for her old key, and might include \
+the message `I've created a new certificate, FINGERPRINT, please use
+that in the future.`",
     )]
     pub message: String,
 
@@ -443,8 +443,8 @@ that in the future.\"",
         help = "Adds a notation to the certification.",
         long_help = "Adds a notation to the certification.  \
             A user-defined notation's name must be of the form \
-            \"name@a.domain.you.control.org\". If the notation's name starts \
-            with a !, then the notation is marked as being critical.  If a \
+            `name@a.domain.you.control.org`. If the notation's name starts \
+            with a `!`, then the notation is marked as being critical.  If a \
             consumer of a signature doesn't understand a critical notation, \
             then it will ignore the signature.  The notation is marked as \
             being human readable."
@@ -537,12 +537,12 @@ pub enum UseridCommand {
     long_about =
 "Adds a User ID
 
-A User ID can contain a name, like \"Juliet\" or an email address, like
-\"<juliet@example.org>\".  Historically, a name and email address were often
-combined as a single User ID, like \"Juliet <juliet@example.org>\".
+A User ID can contain a name, like `Juliet` or an email address, like
+`<juliet@example.org>`.  Historically, a name and email address were often
+combined as a single User ID, like `Juliet <juliet@example.org>`.
 
-\"sq userid add\" respects the reference time set by the top-level
-\"--time\" argument.  It sets the creation time of the User ID's
+`sq userid add` respects the reference time set by the top-level
+`--time` argument.  It sets the creation time of the User ID's
 binding signature to the specified time.
 ",
     after_help =
@@ -604,17 +604,17 @@ pub struct UseridAddCommand {
 
 Creates a revocation certificate for a User ID.
 
-If \"--revocation-key\" is provided, then that key is used to create \
+If `--revocation-key` is provided, then that key is used to create \
 the signature.  If that key is different from the certificate being \
 revoked, this creates a third-party revocation.  This is normally only \
 useful if the owner of the certificate designated the key to be a \
 designated revoker.
 
-If \"--revocation-key\" is not provided, then the certificate must \
+If `--revocation-key` is not provided, then the certificate must \
 include a certification-capable key.
 
-\"sq key userid revoke\" respects the reference time set by the top-level \
-\"--time\" argument.  When set, it uses the specified time instead of \
+`sq key userid revoke` respects the reference time set by the top-level \
+`--time` argument.  When set, it uses the specified time instead of \
 the current time, when determining what keys are valid, and it sets \
 the revocation certificate's creation time to the reference time \
 instead of the current time.
@@ -666,20 +666,20 @@ for a User ID, which is not self signed."
         value_name = "REASON",
         help = "The reason for the revocation",
         long_help =
-"The reason for the revocation.  This must be either: retired, or \
-unspecified:
+"The reason for the revocation.  This must be either: `retired`, or
+`unspecified`:
 
-  - retired means that this User ID is no longer valid.  This is
+  - `retired` means that this User ID is no longer valid.  This is
     appropriate when someone leaves an organisation, and the
     organisation does not have their secret key material.  For
     instance, if someone was part of Debian and retires, they would
     use this to indicate that a Debian-specific User ID is no longer
     valid.
 
-  - unspecified means that a different reason applies.
+  - `unspecified` means that a different reason applies.
 
 If the reason happened in the past, you should specify that using the \
---time argument.  This allows OpenPGP implementations to more \
+`--time` argument.  This allows OpenPGP implementations to more
 accurately reason about objects whose validity depends on the validity \
 of a User ID."
     )]
@@ -692,9 +692,9 @@ of a User ID."
 "A short, explanatory text that is shown to a viewer of the revocation \
 certificate.  It explains why the certificate has been revoked.  For \
 instance, if Alice has created a new key, she would generate a \
-'superseded' revocation certificate for her old key, and might include \
-the message \"I've created a new certificate, FINGERPRINT, please use \
-that in the future.\"",
+`superseded` revocation certificate for her old key, and might include \
+the message `I've created a new certificate, FINGERPRINT, please use
+that in the future.`",
     )]
     pub message: String,
 
@@ -705,8 +705,8 @@ that in the future.\"",
         help = "Adds a notation to the certification.",
         long_help = "Adds a notation to the certification.  \
             A user-defined notation's name must be of the form \
-            \"name@a.domain.you.control.org\". If the notation's name starts \
-            with a !, then the notation is marked as being critical.  If a \
+            `name@a.domain.you.control.org`. If the notation's name starts \
+            with a `!`, then the notation is marked as being critical.  If a \
             consumer of a signature doesn't understand a critical notation, \
             then it will ignore the signature.  The notation is marked as \
             being human readable."
@@ -952,36 +952,36 @@ pub enum SubkeyCommand {
     long_about =
 "Adds a newly generated Subkey
 
-A subkey has one or more flags. \"--can-sign\" sets the signing flag,
-and means that the key may be used for signing. \"--can-authenticate\"
+A subkey has one or more flags. `--can-sign` sets the signing flag,
+and means that the key may be used for signing. `--can-authenticate`
 sets the authentication flags, and means that the key may be used for
 authentication (e.g., as an SSH key). These two flags may be combined.
 
-\"--can-encrypt=storage\" sets the storage encryption flag, and means that the key
-may be used for storage encryption. \"--can-encrypt=transport\" sets the transport
+`--can-encrypt=storage` sets the storage encryption flag, and means that the key
+may be used for storage encryption. `--can-encrypt=transport` sets the transport
 encryption flag, and means that the key may be used for transport encryption.
-\"--can-encrypt=universal\" sets both the storage and the transport encryption
+`--can-encrypt=universal` sets both the storage and the transport encryption
 flag, and means that the key may be used for both storage and transport
 encryption. Only one of the encryption flags may be used and it can not be
 combined with the signing or authentication flag.
 
 At least one flag must be chosen.
 
-When using \"--with-password\", \"sq\" prompts the user for a password, that is
+When using `--with-password`, `sq` prompts the user for a password, that is
 used to encrypt the subkey.
 The password for the subkey may be different from that of the primary key.
 
 Furthermore the subkey may use one of several available cipher suites, that can
-be selected using \"--cipher-suite\".
+be selected using `--cipher-suite`.
 
 By default a new subkey never expires. However, its validity period is limited
 by that of the primary key it is added for.
-Using the \"--expiry=EXPIRY\" argument specific validity periods may be defined.
+Using the `--expiry` argument specific validity periods may be defined.
 It allows for providing a point in time for validity to end or a validity
 duration.
 
-\"sq key subkey add\" respects the reference time set by the top-level
-\"--time\" argument. It sets the creation time of the subkey to the specified
+`sq key subkey add` respects the reference time set by the top-level
+`--time` argument. It sets the creation time of the subkey to the specified
 time.
 ",
     after_help =
@@ -1052,11 +1052,11 @@ pub struct SubkeyAddCommand {
             "Defines EXPIRY for the subkey as ISO 8601 formatted string or \
             custom duration. \
             If an ISO 8601 formatted string is provided, the validity period \
-            reaches from the reference time (may be set using \"--time\") to \
+            reaches from the reference time (may be set using `--time`) to \
             the provided time. \
             Custom durations starting from the reference time may be set using \
-            \"N[ymwds]\", for N years, months, weeks, days, or seconds. \
-            The special keyword \"never\" sets an unlimited expiry.",
+            `N[ymwds]`, for N years, months, weeks, days, or seconds. \
+            The special keyword `never` sets an unlimited expiry.",
     )]
     pub expiry: Expiry,
     #[clap(
@@ -1097,17 +1097,17 @@ pub struct SubkeyAddCommand {
 
 Creates a revocation certificate for a subkey.
 
-If \"--revocation-file\" is provided, then that key is used to \
+If `--revocation-file` is provided, then that key is used to \
 create the signature.  If that key is different from the certificate \
 being revoked, this creates a third-party revocation.  This is \
 normally only useful if the owner of the certificate designated the \
 key to be a designated revoker.
 
-If \"--revocation-file\" is not provided, then the certificate \
+If `--revocation-file` is not provided, then the certificate \
 must include a certification-capable key.
 
-\"sq key subkey revoke\" respects the reference time set by the top-level \
-\"--time\" argument.  When set, it uses the specified time instead of \
+`sq key subkey revoke` respects the reference time set by the top-level \
+`--time` argument.  When set, it uses the specified time instead of \
 the current time, when determining what keys are valid, and it sets \
 the revocation certificate's creation time to the reference time \
 instead of the current time.
@@ -1160,33 +1160,33 @@ fingerprint.",
         required = true,
         help = "The reason for the revocation",
         long_help =
-"The reason for the revocation.  This must be either: compromised, \
-superseded, retired, or unspecified:
+"The reason for the revocation.  This must be either: `compromised`,
+`superseded`, `retired`, or `unspecified`:
 
-  - compromised means that the secret key material may have been
+  - `compromised` means that the secret key material may have been
     compromised.  Prefer this value if you suspect that the secret
     key has been leaked.
 
-  - superseded means that the owner of the certificate has replaced
-    it with a new certificate.  Prefer \"compromised\" if the secret
-    key material has been compromised even if the certificate is
-    also being replaced!  You should include the fingerprint of the
-    new certificate in the message.
+  - `superseded` means that the owner of the certificate has replaced
+    it with a new certificate.  Prefer `compromised` if the secret
+    key material has been compromised even if the certificate is also
+    being replaced!  You should include the fingerprint of the new
+    certificate in the message.
 
-  - retired means that this certificate should not be used anymore,
+  - `retired` means that this certificate should not be used anymore,
     and there is no replacement.  This is appropriate when someone
-    leaves an organisation.  Prefer \"compromised\" if the secret key
+    leaves an organisation.  Prefer `compromised` if the secret key
     material has been compromised even if the certificate is also
     being retired!  You should include how to contact the owner, or
     who to contact instead in the message.
 
-  - unspecified means that none of the three other three reasons
+  - `unspecified` means that none of the three other three reasons
     apply.  OpenPGP implementations conservatively treat this type
     of revocation similar to a compromised key.
 
-If the reason happened in the past, you should specify that using the \
---time argument.  This allows OpenPGP implementations to more \
-accurately reason about objects whose validity depends on the validity \
+If the reason happened in the past, you should specify that using the
+`--time` argument.  This allows OpenPGP implementations to more
+accurately reason about objects whose validity depends on the validity
 of the certificate.",
     value_enum,
     )]
@@ -1199,8 +1199,8 @@ of the certificate.",
 "A short, explanatory text that is shown to a viewer of the revocation \
 certificate.  It explains why the subkey has been revoked.  For \
 instance, if Alice has created a new key, she would generate a \
-'superseded' revocation certificate for her old key, and might include \
-the message \"I've created a new subkey, please refresh the certificate."
+`superseded` revocation certificate for her old key, and might include \
+the message `I've created a new subkey, please refresh the certificate.`"
     )]
     pub message: String,
 
@@ -1211,8 +1211,8 @@ the message \"I've created a new subkey, please refresh the certificate."
         help = "Adds a notation to the certification.",
         long_help = "Adds a notation to the certification.  \
             A user-defined notation's name must be of the form \
-            \"name@a.domain.you.control.org\". If the notation's name starts \
-            with a !, then the notation is marked as being critical.  If a \
+            `name@a.domain.you.control.org`. If the notation's name starts \
+            with a `!`, then the notation is marked as being critical.  If a \
             consumer of a signature doesn't understand a critical notation, \
             then it will ignore the signature.  The notation is marked as \
             being human readable."

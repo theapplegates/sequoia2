@@ -32,7 +32,7 @@ pub enum OutputFormat {
     /// Output as DOT.
     ///
     /// This format is supported by a few commands that emit a
-    /// graphical network.  In particular, the \"sq wot\" subcommands
+    /// graphical network.  In particular, the `sq wot` subcommands
     /// can emit this format.
     #[cfg(feature = "dot-writer")]
     DOT,

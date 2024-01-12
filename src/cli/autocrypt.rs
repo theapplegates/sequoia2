@@ -64,7 +64,7 @@ pub struct ImportCommand {
 Given an autocrypt header (or an key-gossip header), this command
 extracts the certificate encoded within it.
 
-The converse operation is \"sq autocrypt encode-sender\".
+The converse operation is `sq autocrypt encode-sender`.
 ",
     after_help = "EXAMPLES:
 
@@ -100,11 +100,11 @@ pub struct DecodeCommand {
 
 A certificate can be encoded and included in a header of an email
 message.  This command encodes the certificate, adds the senders email
-address (which must match the one used in the \"From\" header), and the
-senders \"prefer-encrypt\" state (see the Autocrypt spec for more
+address (which must match the one used in the `From` header), and the
+senders `prefer-encrypt` state (see the Autocrypt spec for more
 information).
 
-The converse operation is \"sq autocrypt decode\".
+The converse operation is `sq autocrypt decode`.
 ",
     after_help = "EXAMPLES:
 

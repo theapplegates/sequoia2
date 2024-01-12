@@ -20,11 +20,11 @@ Decrypts a message using either supplied keys, or by prompting for a
 password.  If message tampering is detected, an error is returned.
 See below for details.
 
-If certificates are supplied using the \"--signer-cert\" option, any
+If certificates are supplied using the `--signer-cert` option, any
 signatures that are found are checked using these certificates.
 Verification is only successful if there is no bad signature, and the
 number of successfully verified signatures reaches the threshold
-configured with the \"--signatures\" parameter.
+configured with the `--signatures` parameter.
 
 If the signature verification fails, or if message tampering is
 detected, the program terminates with an exit status indicating
@@ -32,7 +32,7 @@ failure.  In addition to that, the last 25 MiB of the message are
 withheld, i.e. if the message is smaller than 25 MiB, no output is
 produced, and if it is larger, then the output will be truncated.
 
-The converse operation is \"sq encrypt\".
+The converse operation is `sq encrypt`.
 ",
     after_help =
 "EXAMPLES:

@@ -58,7 +58,7 @@ pub struct DirectUrlCommand {
 "Looks up certificates in a Web Key Directory
 
 By default, any returned certificates are stored in the local
-certificate store.  This can be overridden by using \"--output\"
+certificate store.  This can be overridden by using `--output`
 option.
 
 When a certificate is downloaded from a WKD, and imported into the
@@ -66,7 +66,7 @@ local certificate store, any User IDs with the email address that was
 looked up are certificated with a local WKD-specific key.  That proxy
 certificate is in turn certified as a minimally trusted CA (trust
 amount: 1 of 120) by the local trust root.  How much the WKD proxy CA
-is trusted can be tuned using \"sq link add\" or \"sq link retract\"
+is trusted can be tuned using `sq link add` or `sq link retract`
 in the usual way.
 "
 )]

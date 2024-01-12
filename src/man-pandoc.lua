@@ -84,9 +84,80 @@ local function rewrite_see_also (inlines)
    end
 end
 
+-- Transforms text enclosed in backticks into inline code or links.
+local function rewrite_inline_code (inlines)
+   -- Returns the length of the token stream containing quoted text
+   -- starting from the first token, or nil if no quoted text is
+   -- found.
+   local function inline_quoted (s)
+      if s[1] and s[1].t == 'Str' and string.sub(s[1].text, 1, 1) == "`" then
+         -- Find the end, i.e. the first token containing the closing
+         -- tick (which may be the first token).
+         for i = 1, #s do
+            if s[i] and s[i].t == 'Str' and string.find(s[i].text, "`", 2) then
+               return i
+            end
+         end
+      end
+   end
+
+   -- Given a sequence of tokens, returns the text representation.
+   local function tokens_to_text (s)
+      t = ""
+      for i = 1, #s do
+         if s[i].t == 'Space' then
+            t = t .. ' '
+         else
+            t = t ..  s[i].text
+         end
+      end
+      return t
+   end
+
+   -- Given a string subcommand, return the appropriate file
+   -- name.
+   local function subcommand_to_link (s)
+      return string.gsub(s, " ", "-") .. ".1.html"
+   end
+
+   for i = 1, #inlines do
+      local len = inline_quoted(table.pack(table.unpack(inlines, i)))
+      if len then
+         -- First, flatten the matched tokens to a text.
+         local text = tokens_to_text(table.pack(table.unpack(inlines, i, i+len)))
+
+         -- Then, remove the tokens from the AST.
+         for j = math.min(i+len, #inlines), i, -1 do
+            inlines:remove(j)
+         end
+
+         -- We need to create a replacement node.
+         local replacement
+
+         -- See if the quoted text is a reference to a (sub)command.
+         local s, e = string.find(text, "`sq[^`]*`")
+         if s then
+            -- If so, we turn it into a link.
+            local sub = string.sub(text, s+1, e-1)
+            replacement = pandoc.Link(sub, subcommand_to_link(sub))
+         else
+            s, e = string.find(text, "`[^`]*`")
+            replacement = pandoc.Code(string.sub(text, s+1, e-1))
+         end
+
+         -- Finally, insert prefix, replacement, and suffix into the
+         -- AST.
+         inlines:insert(i+0, pandoc.Str(string.sub(text, 1, s-1)))
+         inlines:insert(i+1, replacement)
+         inlines:insert(i+2, pandoc.Str(string.sub(text, e+1)))
+      end
+   end
+end
+
 function Inlines (inlines)
    rewrite_synopsis(inlines)
    rewrite_see_also(inlines)
+   rewrite_inline_code(inlines)
    return inlines
 end
 

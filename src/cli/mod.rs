@@ -84,7 +84,7 @@ pub fn build() -> Command {
 Functionality is grouped and available using subcommands.  This
 interface is not completely stateless.  In particular, the user's
 default certificate store is used.  This can be disabled using
-\"--no-cert-store\".
+`--no-cert-store`.
 
 OpenPGP data can be provided in binary or ASCII armored form.  This
 will be handled automatically.  Emitted OpenPGP data is ASCII armored
@@ -118,7 +118,7 @@ pub struct SqCommand {
         help = "Disables the use of a certificate store",
         long_help = "\
 Disables the use of a certificate store.  Normally sq uses the user's \
-standard cert-d, which is located in $HOME/.local/share/pgp.cert.d."
+standard cert-d, which is located in `$HOME/.local/share/pgp.cert.d`."
     )]
     pub no_cert_store: bool,
     #[clap(
@@ -151,7 +151,7 @@ Specifies the location of a pEp certificate store.  sq does not use a \
 pEp certificate store by default; it must be explicitly enabled \
 using this argument or the corresponding environment variable, \
 PEP_CERT_STORE.  The pEp Engine's default certificate store is at \
-\"$HOME/.pEp/keys.db\"."
+`$HOME/.pEp/keys.db`."
     )]
     pub pep_cert_store: Option<PathBuf>,
     #[clap(
@@ -225,7 +225,7 @@ store, and the results are merged together."
 Sets the reference time as an ISO 8601 formatted timestamp.  Normally, \
 commands use the current time as the reference time.  This argument allows \
 the user to use a difference reference time.  For instance, when creating a \
-key using \"sq key generate\", the creation time is normally set to the \
+key using `sq key generate`, the creation time is normally set to the \
 current time, but can be overridden using this option.  Similarly, when \
 verifying a message, the message is verified with respect to the current \
 time.  This option allows the user to use a different time.

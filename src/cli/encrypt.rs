@@ -24,10 +24,10 @@ use super::types::FileOrStdout;
 Encrypts a message for any number of recipients and with any number of
 passwords, optionally signing the message in the process.
 
-The converse operation is \"sq decrypt\".
+The converse operation is `sq decrypt`.
 
-\"sq encrypt\" respects the reference time set by the top-level
-\"--time\" argument.  It uses the reference time when selecting
+`sq encrypt` respects the reference time set by the top-level
+`--time` argument.  It uses the reference time when selecting
 encryption keys, and it sets the signature's creation time to the
 reference time.
 ",
@@ -112,12 +112,12 @@ pub struct Command {
             "Sets time for encrypted file as metadata.  \
             Allows setting TIME either as ISO 8601 formatted string or by \
             providing custom keywords.  \
-            With \"{}\", the metadata is not set.  \
-            With \"{}\", the metadata is set to the file's creation \
+            With `{}`, the metadata is not set.  \
+            With `{}`, the metadata is set to the file's creation \
             timestamp.  \
-            With \"{}\", the metadata is set to the file's last \
+            With `{}`, the metadata is set to the file's last \
             modification timestamp.  \
-            With \"{}\", the metadata is set to the creation \
+            With `{}`, the metadata is set to the creation \
             timestamp of the message for which the metadata is added.  \
             Do note, that this metadata is not signed and as such relying on \
             it - on sender or receiver side - is generally considered \

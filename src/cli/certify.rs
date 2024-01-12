@@ -27,7 +27,7 @@ Trust.
 This command emits the certificate with the new certification.  The
 updated certificate has to be distributed, preferably by sending it to
 the certificate holder for attestation.  See also \"sq key
-attest-certification\".
+attest-certifications\".
 
 By default a certification expires after {} years.
 Using the \"--expiry=EXPIRY\" argument specific validity periods may be defined.

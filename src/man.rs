@@ -339,9 +339,7 @@ impl Command {
             new.long_about(&text.to_string());
         }
         for arg in cmd.get_arguments() {
-            if !arg.is_positional() {
-                new.option(CommandOption::from_arg(arg));
-            }
+            new.option(CommandOption::from_arg(arg));
         }
         for arg in cmd.get_positionals() {
             if let Some(names) = arg.get_value_names() {
@@ -524,6 +522,8 @@ impl Command {
 /// sufficient for what sq actually uses.
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct CommandOption {
+    /// Index for positional arguments.
+    index: Option<usize>,
     short: Option<String>,
     long: Option<String>,
     value_names: Option<Vec<String>>,
@@ -531,11 +531,15 @@ struct CommandOption {
 }
 
 impl CommandOption {
-    /// Return a key for sorting a list of options. Manual pages list
-    /// options in various places, and it enables quicker lookup by
-    /// readers if they lists are sorted alphabetically. By convention,
-    /// such lists are sorted by short option first, if one exists.
-    fn sort_key(&self) -> String {
+    /// Return a key for sorting a list of options.
+    ///
+    /// Manual pages list options in various places, and it enables
+    /// quicker lookup by readers if they lists are sorted
+    /// alphabetically.  By convention, such lists are sorted by short
+    /// option first, if one exists.  And, positional arguments are
+    /// sorted to the bottom, and in the order they appear on the
+    /// command line.
+    fn sort_key(&self) -> (usize, String) {
         let mut key = String::new();
         if let Some(name) = &self.short {
             key.push_str(name.strip_prefix('-').unwrap());
@@ -544,7 +548,7 @@ impl CommandOption {
         if let Some(name) = &self.long {
             key.push_str(name.strip_prefix("--").unwrap());
         }
-        key
+        (self.index.unwrap_or(0), key)
     }
 }
 
@@ -563,6 +567,7 @@ impl CommandOption {
         };
 
         Self {
+            index: arg.get_index(),
             short: arg.get_short().map(|o| format!("-{}", o)),
             long: arg.get_long().map(|o| format!("--{}", o)),
             value_names,
@@ -682,7 +687,9 @@ impl ManualPage {
         }
 
         if let Some(values) = &opt.value_names {
-            if values.len() == 1 {
+            if (opt.short.is_some() || opt.long.is_some())
+                && values.len() == 1
+            {
                 line.push(roman("="));
                 line.push(italic(&values[0]));
             } else {

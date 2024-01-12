@@ -15,7 +15,7 @@ end-to-end encryption of emails.  This subcommand provides a limited
 way to produce and consume headers that are used by Autocrypt to
 communicate certificates between clients.
 
-See https://autocrypt.org/
+See <https://autocrypt.org/>.
 ",
     subcommand_required = true,
     arg_required_else_help = true

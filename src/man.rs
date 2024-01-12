@@ -399,7 +399,11 @@ impl Command {
         man.text_with_period(&self.description());
 
         let main_opts = builder.maincmd.has_options();
-        let cmd_opts = self.has_options() && self != &builder.maincmd;
+        let cmd_opts = self.has_options() && self != &builder.maincmd
+            && self.get_options().iter()
+            .filter(|o| ! builder.maincmd.get_options().contains(o))
+            .next().is_some();
+
         if main_opts || cmd_opts {
             man.section("OPTIONS");
         }
@@ -473,7 +477,11 @@ impl Command {
         man.text_with_period(&self.description());
 
         let main_opts = builder.maincmd.has_options();
-        let self_opts = self.has_options();
+        let self_opts = self.has_options()
+            && self.get_options().iter()
+            .filter(|o| ! builder.maincmd.get_options().contains(o))
+            .next().is_some();
+
         if main_opts || self_opts {
             man.section("OPTIONS");
         }

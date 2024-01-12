@@ -119,7 +119,7 @@ mod integration {
             for arg in args {
                 cmd.arg(arg);
             }
-            cmd.args(&["--trust-amount", &format!("{}", amount)]);
+            cmd.args(&["--amount", &format!("{}", amount)]);
 
             if success {
                 let assertion = cmd.assert();

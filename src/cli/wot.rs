@@ -9,6 +9,8 @@ use openpgp::KeyHandle;
 use openpgp::Result;
 use openpgp::packet::UserID;
 
+use crate::cli::types::TrustAmount;
+
 #[derive(Debug, Parser)]
 #[clap(
     name = "wot",
@@ -71,31 +73,9 @@ pub struct Command {
     /// indicate partial authentication.  When
     /// `--certification-network` is passed, this defaults to 1200,
     /// i.e., sq wot tries to find 10 paths.
-    #[arg(global=true, display_order=800, short='a', long,
-          conflicts_with_all=["partial", "full", "double"])]
-    pub trust_amount: Option<usize>,
-
-    /// Require partial authentication.
-    ///
-    /// This is the same as passing `--trust-amount 40`.
-    #[arg(global=true, display_order=810, long,
-          conflicts_with_all=["trust_amount", "full", "double"])]
-    pub partial: bool,
-
-    /// Require full authentication.
-    ///
-    /// This is the same as passing `--trust-amount 120`.
-    #[arg(global=true, display_order=811, long,
-          conflicts_with_all=["trust_amount", "partial", "double"])]
-    pub full: bool,
-
-    /// Require double authentication.
-    ///
-    /// This is the same as passing `--trust-amount 240`.
-    #[arg(global=true, display_order=812, long,
-          conflicts_with_all=["trust_amount", "partial", "full"])]
-    pub double: bool,
-
+    #[arg(global=true, display_order=800, short='a', long="amount",
+          value_name = "AMOUNT")]
+    pub trust_amount: Option<TrustAmount<usize>>,
 
     #[command(subcommand)]
     pub subcommand: Subcommand,

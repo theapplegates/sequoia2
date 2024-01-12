@@ -6,6 +6,7 @@ use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
 use super::types::Expiry;
+use super::types::TrustAmount;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -176,15 +177,15 @@ pub struct AddCommand {
     #[clap(
         short = 'a',
         long = "amount",
-        value_name = "TRUST_AMOUNT",
-        default_value = "120",
+        value_name = "AMOUNT",
+        default_value = "full",
         help = "Sets the amount of trust",
         long_help =
             "Sets the amount of trust.  Values between 1 and 120 are meaningful. \
             120 means fully trusted.  Values less than 120 indicate the degree \
             of trust.  60 is usually used for partially trusted.",
     )]
-    pub amount: u8,
+    pub amount: TrustAmount<u8>,
     #[clap(
         short = 'r',
         long = "regex",

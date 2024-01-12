@@ -38,7 +38,7 @@ pub fn certify(config: Config, c: certify::Command)
     };
 
     let trust_depth: u8 = c.depth;
-    let trust_amount: u8 = c.amount;
+    let trust_amount: u8 = c.amount.amount();
     let regex = c.regex;
     if trust_depth == 0 && !regex.is_empty() {
         return Err(

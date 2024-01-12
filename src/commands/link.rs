@@ -378,7 +378,7 @@ pub fn add(mut config: Config, c: link::AddCommand)
     } else {
         0
     };
-    let trust_amount: u8 = c.amount;
+    let trust_amount: u8 = c.amount.amount();
 
     let mut regex = c.regex;
     if trust_depth == 0 && !regex.is_empty() {

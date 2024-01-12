@@ -34,14 +34,8 @@ use crate::Config;
 fn trust_amount(cli: &cli::wot::Command)
     -> Result<usize>
 {
-    let amount = if let Some(v) = cli.trust_amount {
-        v as usize
-    } else if cli.full {
-        wot::FULLY_TRUSTED
-    } else if cli.partial {
-        wot::PARTIALLY_TRUSTED
-    } else if cli.double {
-        2 * wot::FULLY_TRUSTED
+    let amount = if let Some(v) = &cli.trust_amount {
+        v.amount()
     } else {
         if cli.certification_network {
             // Look for multiple paths.  Specifically, try to find 10

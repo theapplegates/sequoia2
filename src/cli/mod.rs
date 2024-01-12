@@ -11,6 +11,42 @@
 /// be also listed as build-dependencies.  Further, this module must
 /// be self-contained, i.e. it must not use code from other parts of
 /// sq.
+///
+/// # Interface guidelines
+///
+/// In order to provide a consistent user experience, please follow
+/// these guidelines.
+///
+/// ## General guidelines
+///
+/// - The same subcommand or option in different places should do the
+///   same or an equivalent thing, and should use the same phrases in
+///   the help texts, to the extent possible.
+///
+/// ## Typography
+///
+/// - To define terms, enclose them in double quotes: "certificate".
+///
+/// - To include inline code fragments, like options or other
+///   subcommands, use back ticks: `--foo` or `sq foo bar`.
+///
+/// - When referring to options, do not include the VALUENAME.
+///
+/// - Enclose URLs in angle brackets: <https://example.org>.
+///
+/// ## Examples
+///
+/// - Every subcommand SHOULD have at least one example.
+///
+/// - Every example MUST have a brief description.
+///
+/// - Examples SHOULD be short and to the point, they SHOULD NOT
+///   include unnecessary options (like --keyring).
+///
+/// - Examples MUST use single quotes where necessary.
+///
+/// - Examples MUST NOT use unnecessary quoting.
+
 use std::path::PathBuf;
 use std::time::Duration;
 

@@ -44,9 +44,9 @@ reference time.
 "EXAMPLES:
 
 # Juliet certifies that Romeo controls romeo.pgp and romeo@example.org
-$ sq certify juliet.pgp romeo.pgp \"<romeo@example.org>\"
+$ sq certify juliet.pgp romeo.pgp '<romeo@example.org>'
 
-# Certify the User ID \"Ada\", and set the certification time to July
+# Certify the User ID Ada, and set the certification time to July
 # 21, 2013 at midnight UTC:
 $ sq certify --time 20130721 neal.pgp ada.pgp Ada
 ",

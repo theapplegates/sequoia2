@@ -239,15 +239,23 @@ fn inspect_cert(
     )?;
     writeln!(output)?;
 
-    for vka in cert.keys().subkeys().with_policy(policy, time) {
-        writeln!(output, "         Subkey: {}", vka.key().fingerprint())?;
-        inspect_revocation(output, "", vka.revocation_status())?;
+    for skb in cert.keys().subkeys() {
+        writeln!(output, "         Subkey: {}", skb.key().fingerprint())?;
+        inspect_revocation(output, "", skb.revocation_status(policy, None))?;
+        match skb.binding_signature(policy, None) {
+            Ok(sig) => {
+                if let Err(e) = sig.signature_alive(None, Duration::new(0, 0)) {
+                    print_error_chain(output, &e)?;
+                }
+            }
+            Err(e) => print_error_chain(output, &e)?,
+        }
         inspect_key(
             policy,
             time,
             output,
             "",
-            vka.into_key_amalgamation().into(),
+            skb.into(),
             print_certifications,
         )?;
         writeln!(output)?;

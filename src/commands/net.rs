@@ -56,6 +56,26 @@ use crate::{
 
 use crate::cli;
 
+pub fn dispatch(config: Config, c: cli::network::Command)
+                -> Result<()>
+{
+    use cli::network::Subcommands;
+    match c.subcommand {
+        Subcommands::Lookup(command) =>
+            dispatch_lookup(config, command),
+
+        Subcommands::Keyserver(command) =>
+            dispatch_keyserver(config, command),
+
+        Subcommands::Wkd(command) =>
+            dispatch_wkd(config, command),
+
+        Subcommands::Dane(command) =>
+            dispatch_dane(config, command),
+    }
+}
+
+
 /// Import the certificates into the local certificate store.
 ///
 /// This does not certify the certificates.
@@ -531,7 +551,7 @@ impl Response {
     }
 }
 
-pub fn dispatch_lookup(config: Config, c: cli::lookup::Command)
+pub fn dispatch_lookup(config: Config, c: cli::network::lookup::Command)
                        -> Result<()>
 {
     let default_servers = default_keyservers_p(&c.servers);
@@ -648,13 +668,13 @@ fn default_keyservers_p(servers: &[String]) -> bool {
     // that encodes it in the type.  For now we live with the
     // false positive if someone explicitly provides the same set
     // of servers.
-    use crate::cli::keyserver::DEFAULT_KEYSERVERS;
+    use crate::cli::network::keyserver::DEFAULT_KEYSERVERS;
     servers.len() == DEFAULT_KEYSERVERS.len()
         && servers.iter().zip(DEFAULT_KEYSERVERS.iter())
         .all(|(a, b)| a == b)
 }
 
-pub fn dispatch_keyserver(config: Config, c: cli::keyserver::Command)
+pub fn dispatch_keyserver(config: Config, c: cli::network::keyserver::Command)
     -> Result<()>
 {
     let default_servers = default_keyservers_p(&c.servers);
@@ -666,7 +686,7 @@ pub fn dispatch_keyserver(config: Config, c: cli::keyserver::Command)
 
     let rt = tokio::runtime::Runtime::new()?;
 
-    use crate::cli::keyserver::Subcommands::*;
+    use crate::cli::network::keyserver::Subcommands::*;
     match c.subcommand {
         Get(c) => rt.block_on(async {
             let queries = Query::parse(&c.query)?;
@@ -761,10 +781,10 @@ const WKD_CA_FILENAME: &'static str = "_wkd.pgp";
 const WKD_CA_USERID: &'static str = "Downloaded from a WKD";
 const WKD_CA_TRUST_AMOUNT: usize = 1;
 
-pub fn dispatch_wkd(config: Config, c: cli::wkd::Command) -> Result<()> {
+pub fn dispatch_wkd(config: Config, c: cli::network::wkd::Command) -> Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
 
-    use crate::cli::wkd::Subcommands::*;
+    use crate::cli::network::wkd::Subcommands::*;
     match c.subcommand {
         Url(c) => {
             let wkd_url = wkd::Url::from(&c.email_address)?;
@@ -844,10 +864,10 @@ const DANE_CA_FILENAME: &'static str = "_dane.pgp";
 const DANE_CA_USERID: &'static str = "Downloaded from DANE";
 const DANE_CA_TRUST_AMOUNT: usize = 1;
 
-pub fn dispatch_dane(config: Config, c: cli::dane::Command) -> Result<()> {
+pub fn dispatch_dane(config: Config, c: cli::network::dane::Command) -> Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
 
-    use crate::cli::dane::Subcommands::*;
+    use crate::cli::network::dane::Subcommands::*;
     match c.subcommand {
         Generate(c) => {
             for cert in CertParser::from_reader(c.input.open()?)? {

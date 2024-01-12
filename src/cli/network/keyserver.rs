@@ -1,9 +1,9 @@
 use clap::{Args, Parser, Subcommand};
 
-use super::types::ClapData;
-use super::types::FileOrCertStore;
-use super::types::FileOrStdin;
-use super::types::FileOrStdout;
+use crate::cli::types::ClapData;
+use crate::cli::types::FileOrCertStore;
+use crate::cli::types::FileOrStdin;
+use crate::cli::types::FileOrStdout;
 
 /// The default keyservers to query.
 pub const DEFAULT_KEYSERVERS: &[&'static str] = &[

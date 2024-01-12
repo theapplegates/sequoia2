@@ -1,8 +1,8 @@
 use clap::Parser;
 
-use super::types::ClapData;
-use super::types::FileOrCertStore;
-use super::types::FileOrStdout;
+use crate::cli::types::ClapData;
+use crate::cli::types::FileOrCertStore;
+use crate::cli::types::FileOrStdout;
 use super::keyserver::DEFAULT_KEYSERVERS;
 
 #[derive(Parser, Debug)]

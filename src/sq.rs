@@ -1140,24 +1140,8 @@ fn main() -> Result<()> {
             commands::packet::dispatch(config, command)?
         },
 
-        SqSubcommands::Lookup(command) => {
-            commands::net::dispatch_lookup(config, command)?
-        }
-
-        SqSubcommands::Keyserver(command) => {
-            commands::net::dispatch_keyserver(config, command)?
-        }
-
         SqSubcommands::Key(command) => {
             commands::key::dispatch(config, command)?
-        }
-
-        SqSubcommands::Wkd(command) => {
-            commands::net::dispatch_wkd(config, command)?
-        }
-
-        SqSubcommands::Dane(command) => {
-            commands::net::dispatch_dane(config, command)?
         }
 
         SqSubcommands::Certify(command) => {
@@ -1171,6 +1155,9 @@ fn main() -> Result<()> {
         SqSubcommands::Wot(command) => {
             commands::wot::dispatch(config, command)?
         }
+
+        SqSubcommands::Network(command) =>
+            commands::net::dispatch(config, command)?,
     }
 
     Ok(())

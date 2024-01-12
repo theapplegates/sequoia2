@@ -24,7 +24,6 @@ use openpgp::Fingerprint;
 
 pub mod armor;
 pub mod certify;
-pub mod dane;
 pub mod dearmor;
 pub mod decrypt;
 pub mod encrypt;
@@ -33,14 +32,12 @@ pub mod import;
 pub mod inspect;
 pub mod key;
 pub mod keyring;
-pub mod keyserver;
 pub mod link;
-pub mod lookup;
+pub mod network;
 pub mod output;
 pub mod packet;
 pub mod sign;
 pub mod verify;
-pub mod wkd;
 pub mod wot;
 
 pub mod types;
@@ -298,11 +295,8 @@ pub enum SqSubcommands {
     Link(link::Command),
     Wot(wot::Command),
 
-    Lookup(lookup::Command),
     Autocrypt(autocrypt::Command),
-    Keyserver(keyserver::Command),
-    Wkd(wkd::Command),
-    Dane(dane::Command),
+    Network(network::Command),
 
     Inspect(inspect::Command),
     Packet(packet::Command),

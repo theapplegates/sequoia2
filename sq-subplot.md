@@ -1605,10 +1605,10 @@ email address, and a subdirectory named after the email domain.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store wkd url me@example.com
+when I run sq --no-cert-store network wkd url me@example.com
 then stdout contains "https://openpgpkey.example.com/.well-known/openpgpkey/example.com/hu/s8y7oh5xrdpu9psba3i5ntk64ohouhga?l=me"
 
-when I run sq --no-cert-store --output-format=json wkd url me@example.com
+when I run sq --no-cert-store --output-format=json network wkd url me@example.com
 then stdout, as JSON, matches pattern wkd.json
 ~~~
 
@@ -1632,10 +1632,10 @@ The direct URL lacks the subdomain and subdirectory of an advanced one.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store wkd direct-url me@example.com
+when I run sq --no-cert-store network wkd direct-url me@example.com
 then stdout contains "https://example.com/.well-known/openpgpkey/hu/s8y7oh5xrdpu9psba3i5ntk64ohouhga?l=me"
 
-when I run sq --no-cert-store --output-format=json wkd url me@example.com
+when I run sq --no-cert-store --output-format=json network wkd url me@example.com
 then stdout, as JSON, matches pattern wkd.json
 ~~~
 
@@ -1649,9 +1649,9 @@ email address, and a subdirectory named after the email domain.
 
 ~~~scenario
 given an installed sq
-when I run sq --no-cert-store wkd url Joe.Doe@Example.ORG
+when I run sq --no-cert-store network wkd url Joe.Doe@Example.ORG
 then stdout contains "https://openpgpkey.example.org/.well-known/openpgpkey/example.org/hu/iy9q119eutrkn8s1mk4r39qejnbu3n5q?l=Joe.Doe"
-when I run sq --no-cert-store wkd direct-url Joe.Doe@Example.ORG
+when I run sq --no-cert-store network wkd direct-url Joe.Doe@Example.ORG
 then stdout contains "https://example.org/.well-known/openpgpkey/hu/iy9q119eutrkn8s1mk4r39qejnbu3n5q?l=Joe.Doe"
 ~~~
 

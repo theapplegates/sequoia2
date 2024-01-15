@@ -10,11 +10,14 @@ use sequoia_openpgp as openpgp;
 use openpgp::{
     armor::{
         Kind,
+        ReaderMode,
         Writer,
     },
     packet::{Packet, Tag},
     parse::{
+        Dearmor,
         Parse,
+        PacketParserBuilder,
         PacketParserResult,
     },
 };
@@ -216,11 +219,11 @@ pub fn join(config: Config, c: JoinCommand) -> Result<()> {
 
     /// Writes a bit-accurate copy of all top-level packets in PPR to
     /// OUTPUT.
-    fn copy<'a, 'b>(config: &Config,
-            mut ppr: PacketParserResult,
+    fn copy<'a, 'b, 'pp>(config: &Config,
+            mut ppr: PacketParserResult<'pp>,
             output: &'a FileOrStdout,
             sink: &'b mut Option<Message<'a>>)
-            -> Result<()> {
+            -> Result<PacketParserResult<'pp>> {
         while let PacketParserResult::Some(pp) = ppr {
             if sink.is_none() {
                 // Autodetect using the first packet.
@@ -247,7 +250,56 @@ pub fn join(config: Config, c: JoinCommand) -> Result<()> {
 
             ppr = pp.next()?.1;
         }
-        Ok(())
+        Ok(ppr)
+    }
+
+    /// Writes a bit-accurate copy of all top-level packets in all
+    /// armored sections in the input to OUTPUT.
+    fn copy_all<'a, 'b>(config: &Config,
+                        mut ppr: PacketParserResult,
+                        output: &'a FileOrStdout,
+                        sink: &'b mut Option<Message<'a>>)
+                        -> Result<()>
+    {
+        // First, copy all the packets, armored or not.
+        ppr = copy(config, ppr, output, sink)?;
+
+        loop {
+            // Now, the parser is exhausted, but we may find another
+            // armored blob.  Note that this can only happen if the
+            // first set of packets was also armored.
+            match ppr {
+                PacketParserResult::Some(_) =>
+                    unreachable!("copy exhausted the packet parser"),
+                PacketParserResult::EOF(eof) => {
+                    // See if there is another armor block.
+                    let reader = eof.into_reader();
+                    ppr = match
+                        PacketParserBuilder::from_buffered_reader(reader)
+                        .and_then(
+                            |builder| builder.map(true)
+                                .dearmor(Dearmor::Enabled(
+                                    ReaderMode::Tolerant(None)))
+                                .build())
+                    {
+                        Ok(ppr) => ppr,
+                        Err(e) => {
+                            // There isn't, or we encountered an error.
+                            if let Some(e) = e.downcast_ref::<io::Error>() {
+                                if e.kind() == io::ErrorKind::UnexpectedEof {
+                                    return Ok(());
+                                }
+                            }
+
+                            return Err(e);
+                        },
+                    }
+                },
+            }
+
+            // We found another armor block, copy all the packets.
+            ppr = copy(config, ppr, output, sink)?;
+        }
     }
 
     if !c.input.is_empty() {
@@ -255,13 +307,13 @@ pub fn join(config: Config, c: JoinCommand) -> Result<()> {
             let ppr =
                 openpgp::parse::PacketParserBuilder::from_file(name)?
                 .map(true).build()?;
-            copy(&config, ppr, &output, &mut sink)?;
+            copy_all(&config, ppr, &output, &mut sink)?;
         }
     } else {
         let ppr =
             openpgp::parse::PacketParserBuilder::from_reader(io::stdin())?
             .map(true).build()?;
-        copy(&config, ppr, &output, &mut sink)?;
+        copy_all(&config, ppr, &output, &mut sink)?;
     }
 
     sink.unwrap().finalize()?;

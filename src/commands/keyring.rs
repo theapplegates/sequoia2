@@ -132,8 +132,6 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
             filter(&config, command.input, command.output, filter_fn,
                    command.binary, command.to_certificate)
         },
-        Join(c) =>
-            filter(&config, c.input, c.output, Some, c.binary, false),
         Merge(c) =>
             merge(&config, c.input, c.output, c.binary),
         List(c) => {

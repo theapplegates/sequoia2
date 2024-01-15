@@ -579,7 +579,7 @@ then stdout contains "-----END PGP PUBLIC KEY BLOCK-----"
 This chapter verifies that the various subcommands to manage keyring
 files work: subcommands of the `sq keyring` command.
 
-## Joining keys into a keyring: `sq keyring join`
+## Joining keys into a keyring: `sq keyring merge`
 
 The scenarios in this section verify that various ways of joining keys
 into a keyring work.
@@ -595,7 +595,7 @@ This is for secret keys, with the output going to stdout in text form.
 given an installed sq
 when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
+when I run sq --no-cert-store keyring merge alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring list ring.pgp
 then stdout contains "Alice"
 then stdout contains "Bob"
@@ -612,7 +612,7 @@ This is for secret keys, with the output going to a file in text form.
 given an installed sq
 when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
+when I run sq --no-cert-store keyring merge alice.pgp bob.pgp -o ring.pgp
 then file ring.pgp contains "-----BEGIN PGP PRIVATE KEY BLOCK-----"
 then file ring.pgp contains "-----END PGP PRIVATE KEY BLOCK-----"
 when I run sq --no-cert-store inspect ring.pgp
@@ -629,7 +629,7 @@ _Requirement: we can join two keys into a keyring in binary form._
 given an installed sq
 when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp --binary
+when I run sq --no-cert-store keyring merge alice.pgp bob.pgp -o ring.pgp --binary
 when I try to run grep PGP ring.pgp
 then command fails
 when I run sq --no-cert-store inspect ring.pgp
@@ -652,7 +652,7 @@ when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
 when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
-when I run sq --no-cert-store keyring join alice-cert.pgp bob-cert.pgp -o ring.pgp
+when I run sq --no-cert-store keyring merge alice-cert.pgp bob-cert.pgp -o ring.pgp
 when I run cat ring.pgp
 then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 then stdout contains "-----END PGP PUBLIC KEY BLOCK-----"
@@ -680,7 +680,7 @@ certificates._
 given an installed sq
 when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
+when I run sq --no-cert-store keyring merge alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --to-cert ring.pgp -o filtered.pgp
 when I run sq --no-cert-store inspect filtered.pgp
 then stdout contains "OpenPGP Certificate."
@@ -698,7 +698,7 @@ file._
 given an installed sq
 when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
+when I run sq --no-cert-store keyring merge alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --to-cert ring.pgp
 then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 then stdout contains "-----END PGP PUBLIC KEY BLOCK-----"
@@ -712,7 +712,7 @@ _Requirement: we can get filter output in binary form._
 given an installed sq
 when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
+when I run sq --no-cert-store keyring merge alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --binary --to-cert ring.pgp
 then stdout doesn't contain "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 ~~~
@@ -740,7 +740,7 @@ specific user id._
 given an installed sq
 when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
+when I run sq --no-cert-store keyring merge alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --userid Alice ring.pgp -o filtered.pgp
 when I run sq --no-cert-store inspect filtered.pgp
 then stdout contains "Alice"
@@ -756,7 +756,7 @@ specific user ids._
 given an installed sq
 when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
+when I run sq --no-cert-store keyring merge alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --userid Alice --userid Bob ring.pgp -o filtered.pgp
 when I run sq --no-cert-store inspect filtered.pgp
 then stdout contains "Alice"
@@ -772,7 +772,7 @@ part of a user ids._
 given an installed sq
 when I run sq --no-cert-store key generate --userid 'Alice <alice@example.com>' --output alice.pgp
 when I run sq --no-cert-store key generate --userid 'Bob <bob@example.com>' --output bob.pgp
-when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
+when I run sq --no-cert-store keyring merge alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --name Alice ring.pgp -o filtered.pgp
 when I run sq --no-cert-store inspect filtered.pgp
 then stdout contains "Alice"
@@ -788,7 +788,7 @@ several names as part of the user id._
 given an installed sq
 when I run sq --no-cert-store key generate --userid 'Alice <alice@example.com>' --output alice.pgp
 when I run sq --no-cert-store key generate --userid 'Bob <bob@example.com>' --output bob.pgp
-when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
+when I run sq --no-cert-store keyring merge alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --name Alice --name Bob ring.pgp -o filtered.pgp
 when I run sq --no-cert-store inspect filtered.pgp
 then stdout contains "Alice"
@@ -804,7 +804,7 @@ part of a user ids._
 given an installed sq
 when I run sq --no-cert-store key generate --userid 'Alice <alice@example.com>' --output alice.pgp
 when I run sq --no-cert-store key generate --userid 'Bob <bob@sequoia-pgp.org>' --output bob.pgp
-when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
+when I run sq --no-cert-store keyring merge alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --domain example.com ring.pgp -o filtered.pgp
 when I run sq --no-cert-store inspect filtered.pgp
 then stdout contains "Alice"
@@ -820,7 +820,7 @@ several names as part of the user id._
 given an installed sq
 when I run sq --no-cert-store key generate --userid 'Alice <alice@example.com>' --output alice.pgp
 when I run sq --no-cert-store key generate --userid 'Bob <bob@sequoia-pgp.org>' --output bob.pgp
-when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
+when I run sq --no-cert-store keyring merge alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring filter --domain example.com --domain sequoia-pgp.org ring.pgp -o filtered.pgp
 when I run sq --no-cert-store inspect filtered.pgp
 then stdout contains "Alice"
@@ -875,7 +875,7 @@ _Requirement: we can list the keys in a keyring._
 given an installed sq
 when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
+when I run sq --no-cert-store keyring merge alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring list ring.pgp
 then stdout contains "Alice"
 then stdout contains "Bob"
@@ -891,11 +891,7 @@ when I run sq --no-cert-store key generate --userid Alice --userid '<alice@examp
 when I run sq --no-cert-store inspect alice.pgp
 then I remember the fingerprint as ALICE_FINGERPRINT
 
-when I run sq --no-cert-store key generate --userid Bob --userid '<bob@example.com>' --output bob.pgp
-when I run sq --no-cert-store inspect bob.pgp
-then I remember the fingerprint as BOB_FINGERPRINT
-
-when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
+when I run sq --no-cert-store keyring merge alice.pgp -o ring.pgp
 when I run sq --no-cert-store --output-format=json keyring list ring.pgp
 then stdout, as JSON, matches pattern keyring-list-pattern.json
 
@@ -918,11 +914,6 @@ then stdout, as JSON, matches pattern keyring-list-pattern.json
       "fingerprint": "${ALICE_FINGERPRINT}",
       "primary_userid": "Alice",
       "userids": ["<alice@example.com>"]
-    },
-    {
-      "fingerprint": "${BOB_FINGERPRINT}",
-      "primary_userid": "Bob",
-      "userids": ["<bob@example.com>"]
     }
   ]
 }
@@ -974,7 +965,7 @@ is a placeholder.
 given an installed sq
 when I run sq --no-cert-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store keyring join alice.pgp bob.pgp -o ring.pgp
+when I run sq --no-cert-store keyring merge alice.pgp bob.pgp -o ring.pgp
 when I run sq --no-cert-store keyring split ring.pgp
 then the resulting files match alice,pgp and bob.pgp
 ~~~

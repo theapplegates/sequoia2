@@ -22,7 +22,7 @@ use super::types::FileOrStdout;
 Collections of keys or certificates (also known as \"keyrings\" when
 they contain secret key material, and \"certrings\" when they don't) are
 any number of concatenated certificates.  This subcommand provides
-tools to list, split, join, merge, and filter keyrings.
+tools to list, split, merge, and filter keyrings.
 
 Note: In the documentation of this subcommand, we sometimes use the
 terms keys and certs interchangeably.
@@ -39,7 +39,6 @@ pub struct Command {
 pub enum Subcommands {
     List(ListCommand),
     Split(SplitCommand),
-    Join(JoinCommand),
     Merge(MergeCommand),
     Filter(FilterCommand),
     Lint(LintCommand),
@@ -170,48 +169,11 @@ pub struct FilterCommand {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Joins keys or keyrings into a single keyring",
-    long_about =
-"Joins keys or keyrings into a single keyring
-
-Unlike `sq keyring merge`, multiple versions of the same key are not
-merged together.
-
-The converse operation is `sq keyring split`.
-",
-    after_help =
-"EXAMPLES:
-
-# Collect certs for an email conversation
-$ sq keyring join juliet.pgp romeo.pgp alice.pgp
-",
-)]
-pub struct JoinCommand {
-    #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]
-    pub input: Vec<PathBuf>,
-    #[clap(
-        default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP_OPTIONAL,
-        long,
-        short,
-        value_name = FileOrStdout::VALUE_NAME,
-    )]
-    pub output: FileOrStdout,
-    #[clap(
-        short = 'B',
-        long = "binary",
-        help = "Don't ASCII-armor the keyring",
-    )]
-    pub binary: bool,
-}
-
-#[derive(Debug, Args)]
-#[clap(
     about = "Merges keys or keyrings into a single keyring",
     long_about =
 "Merges keys or keyrings into a single keyring
 
-Unlike `sq keyring join`, the certificates are buffered and multiple
+Multiple
 versions of the same certificate are merged together.  Where data is
 replaced (e.g., secret key material), data from the later certificate
 is preferred.
@@ -288,7 +250,7 @@ pub struct ListCommand {
 Splitting up a keyring into individual keys helps with curating a
 keyring.
 
-The converse operation is `sq keyring join`.
+The converse operation is `sq keyring merge`.
 ",
     after_help =
 "EXAMPLES:

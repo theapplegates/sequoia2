@@ -19,13 +19,13 @@ use wot::Path;
 use wot::Roots;
 use wot::FULLY_TRUSTED;
 
-use crate::commands::wot::output::OutputType;
+use crate::commands::pki::output::OutputType;
 
 const DOT_INSTRUCTIONS: &'static str = "\
 //
 // Example: To convert DOT to SVG (on many systems):
 //
-// sq --output-format dot wot ... | dot -Tsvg -o output.svg
+// sq --output-format dot pki ... | dot -Tsvg -o output.svg
 //
 // For further information on using graphviz see:
 // https://graphviz.org/doc/info/command.html

@@ -107,7 +107,7 @@ mod integration {
                 cmd.args(&["--trust-root", &trust_root.to_string()]);
             }
             cmd
-                .arg("wot")
+                .arg("pki")
                 .args(sqwot_args)
                 .arg(command);
             if let Some(target) = target {

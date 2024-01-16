@@ -13,7 +13,7 @@ use wot::FULLY_TRUSTED;
 use wot::PARTIALLY_TRUSTED;
 
 use crate::error_chain;
-use crate::commands::wot::output::OutputType;
+use crate::commands::pki::output::OutputType;
 
 /// Prints a Path Error
 pub fn print_path_error(err: Error) {

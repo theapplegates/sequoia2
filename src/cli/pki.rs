@@ -1,4 +1,4 @@
-//! Command-line parser for `sq wot`.
+//! Command-line parser for `sq pki`.
 
 use std::ops::Deref;
 
@@ -13,7 +13,7 @@ use crate::cli::types::TrustAmount;
 
 #[derive(Debug, Parser)]
 #[clap(
-    name = "wot",
+    name = "pki",
     about = "Authenticate certs using the web-of-trust",
     long_about =
 "Authenticate certs using the web-of-trust
@@ -56,7 +56,7 @@ pub struct Command {
 
     /// Treats the network as a certification network.
     ///
-    /// Normally, `sq wot` treats the web-of-trust network as an
+    /// Normally, `sq pki` treats the web-of-trust network as an
     /// authentication network where a certification only means that
     /// the binding is correct, not that the target should be treated
     /// as a trusted introducer.  In a certification network, the
@@ -72,7 +72,7 @@ pub struct Command {
     /// 120 indicates full authentication; values less than 120
     /// indicate partial authentication.  When
     /// `--certification-network` is passed, this defaults to 1200,
-    /// i.e., sq wot tries to find 10 paths.
+    /// i.e., `sq pki` tries to find 10 paths.
     #[arg(global=true, display_order=800, short='a', long="amount",
           value_name = "AMOUNT")]
     pub trust_amount: Option<TrustAmount<usize>>,
@@ -102,13 +102,13 @@ pub enum Subcommand {
 EXAMPLES:
 
 # Authenticate a binding.
-$ sq wot authenticate --partial \\
+$ sq pki authenticate --partial \\
      C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
      'Alice <alice@example.org>'
 
 # Try and authenticate each binding where the User ID has the
 # specified email address.
-$ sq wot authenticate \\
+$ sq pki authenticate \\
      C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
      --email 'alice@example.org'
 "))]
@@ -139,10 +139,10 @@ $ sq wot authenticate \\
 EXAMPLES:
 
 # Lookup a certificate with the given User ID.
-$ sq wot lookup --partial 'Alice <alice@example.org>'
+$ sq pki lookup --partial 'Alice <alice@example.org>'
 
 # Lookup a certificate with the given email address.
-$ sq wot lookup --email 'alice@example.org'
+$ sq pki lookup --email 'alice@example.org'
 "))]
     Lookup {
         #[command(flatten)]
@@ -168,11 +168,11 @@ $ sq wot lookup --email 'alice@example.org'
 EXAMPLES:
 
 # Identify a certificate.
-$ sq wot identify --partial \\
+$ sq pki identify --partial \\
      C7B1406CD2F612E9CE2136156F2DA183236153AE
 
 # Get gossip about a certificate.
-$ sq wot identify --gossip \\
+$ sq pki identify --gossip \\
      3217C509292FC67076ECD75C7614269BDDF73B36
 "))]
     Identify {
@@ -199,7 +199,7 @@ EXAMPLES:
 
 # List all bindings for example.org that are at least partially
 # authenticated.
-$ sq wot list --partial @example.org
+$ sq pki list --partial @example.org
 "))]
     List {
         #[command(flatten)]
@@ -229,7 +229,7 @@ $ sq wot list --partial @example.org
 EXAMPLES:
 
 # Verify that Neal ceritified Justus's certificate for a particular User ID.
-$ sq wot path \\
+$ sq pki path \\
     8F17777118A33DDA9BA48E62AACB3243630052D9 \\
     CBCD8F030588653EEDD7E2659B7DD433F254904A \\
     'Justus Winter <justus@sequoia-pgp.org>'
@@ -303,7 +303,7 @@ The following required arguments were not provided:
 
 {}
 
-Usage: sq wot path <FINGERPRINT|KEYID>... <USERID>
+Usage: sq pki path <FINGERPRINT|KEYID>... <USERID>
 
 For more information try '--help'",
                 if self.elements.len() == 0 {

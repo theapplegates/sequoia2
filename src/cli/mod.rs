@@ -85,7 +85,7 @@ pub mod output;
 pub mod packet;
 pub mod sign;
 pub mod verify;
-pub mod wot;
+pub mod pki;
 
 pub mod types;
 
@@ -340,7 +340,7 @@ pub enum SqSubcommands {
     Export(export::Command),
     Certify(certify::Command),
     Link(link::Command),
-    Wot(wot::Command),
+    Pki(pki::Command),
 
     Autocrypt(autocrypt::Command),
     Network(network::Command),

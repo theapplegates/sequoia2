@@ -42,7 +42,7 @@ pub mod certify;
 pub mod link;
 pub mod packet;
 pub mod verify;
-pub mod wot;
+pub mod pki;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GetKeysOptions {
@@ -458,7 +458,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
     }
 
     fn print_sigs(&mut self, results: &[VerificationResult]) {
-        use crate::commands::wot::output::print_path;
+        use crate::commands::pki::output::print_path;
         use crate::print_error_chain;
 
         let reference_time = self.config.time;

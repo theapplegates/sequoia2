@@ -1152,8 +1152,8 @@ fn main() -> Result<()> {
             commands::link::link(config, command)?
         }
 
-        SqSubcommands::Wot(command) => {
-            commands::wot::dispatch(config, command)?
+        SqSubcommands::Pki(command) => {
+            commands::pki::dispatch(config, command)?
         }
 
         SqSubcommands::Network(command) =>

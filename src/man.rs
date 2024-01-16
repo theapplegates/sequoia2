@@ -396,30 +396,6 @@ impl Command {
         man.section("DESCRIPTION");
         man.text_with_period(&self.description());
 
-        let main_opts = builder.maincmd.has_options();
-        let cmd_opts = self.has_options() && self != &builder.maincmd
-            && self.get_options().iter()
-            .filter(|o| ! builder.maincmd.get_options().contains(o))
-            .next().is_some();
-
-        if main_opts || cmd_opts {
-            man.section("OPTIONS");
-        }
-        if cmd_opts {
-            man.subsection("Subcommand options");
-            for opt in self.get_options().iter()
-                .filter(|o| ! builder.maincmd.get_options().contains(o))
-            {
-                man.option(opt);
-            }
-        }
-        if main_opts {
-            man.subsection("Global options");
-            for opt in builder.maincmd.get_options().iter() {
-                man.option(opt);
-            }
-        }
-
         if !self.subcommands.is_empty() {
             man.section("SUBCOMMANDS");
 

@@ -10,7 +10,13 @@ use crate::cli::types::FileOrStdout;
 #[derive(Parser, Debug)]
 #[clap(
     name = "wkd",
-    about = "Interacts with Web Key Directories",
+    about = "Retrieves and publishes certificates via Web Key Directories",
+    long_about =
+"Retrieves and publishes certificates via Web Key Directories
+
+The Web Key Directory (WKD) is a method for publishing and retrieving
+certificates from web servers.
+",
     subcommand_required = true,
     arg_required_else_help = true,
 )]

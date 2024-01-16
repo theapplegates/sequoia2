@@ -16,7 +16,13 @@ pub const DEFAULT_KEYSERVERS: &[&'static str] = &[
 #[derive(Parser, Debug)]
 #[clap(
     name = "keyserver",
-    about = "Interacts with keyservers",
+    about = "Retrieves and publishes certificates via key servers",
+    long_about =
+"Retrieves and publishes certificates via key servers
+
+The OpenPGP HTTP Keyserver Protocol (HKP) is a method for publishing
+and retrieving certificates from key servers.
+",
     subcommand_required = true,
     arg_required_else_help = true,
 )]

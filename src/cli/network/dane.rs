@@ -10,8 +10,15 @@ use crate::cli::types::FileOrStdout;
 #[derive(Parser, Debug)]
 #[clap(
     name = "dane",
-    about = "Interacts with DANE",
-    long_about = "DNS-Based Authentication of Named Entities (DANE) is a method for publishing public keys in DNS as specified in RFC 7929",
+    about = "Retrieves and publishes certificates via DANE",
+    long_about =
+"Retrieves and publishes certificates via DANE
+
+DNS-Based Authentication of Named Entities (DANE) is a method for
+publishing and retrieving certificates in DNS as specified in RFC
+7929.
+",
+
     subcommand_required = true,
     arg_required_else_help = true,
 )]

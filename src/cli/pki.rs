@@ -14,21 +14,21 @@ use crate::cli::types::TrustAmount;
 #[derive(Debug, Parser)]
 #[clap(
     name = "pki",
-    about = "Authenticate certs using the web-of-trust",
+    about = "Authenticate certs using the Web of Trust",
     long_about =
-"Authenticate certs using the web-of-trust
+"Authenticate certs using the Web of Trust
 
-The web of trust is a decentralized trust model popularized by PGP.
+The \"Web of Trust\" is a decentralized trust model popularized by PGP.
 It is a superset of X.509, which is a hierarchical trust model, and is
 the most popular trust model on the public internet today.  As used on
 the public internet, however, X.509 relies on a handful of global
 certification authorities (CAs) who often undermine its security.
 
-The web of trust is more nuanced than X.509.  Using the web of trust,
+The Web of Trust is more nuanced than X.509.  Using the Web of Trust,
 require multiple, independent paths to authenticate a binding by only
 partially trusting CAs.  This prevents a single bad actor from
 compromising their security.  And those who have stronger security
-requirements can use the web of trust in a completely decentralized
+requirements can use the Web of Trust in a completely decentralized
 manner where only the individuals they select---who are not
 necessarily institutions---act as trusted introducers.
 ",
@@ -56,7 +56,7 @@ pub struct Command {
 
     /// Treats the network as a certification network.
     ///
-    /// Normally, `sq pki` treats the web-of-trust network as an
+    /// Normally, `sq pki` treats the Web of Trust network as an
     /// authentication network where a certification only means that
     /// the binding is correct, not that the target should be treated
     /// as a trusted introducer.  In a certification network, the
@@ -87,7 +87,7 @@ pub enum Subcommand {
     ///
     /// Authenticate a binding (a certificate and User ID) by looking
     /// for a path from the trust roots to the specified binding in
-    /// the web of trust.  Because certifications may express
+    /// the Web of Trust.  Because certifications may express
     /// uncertainty (i.e., certifications may be marked as conveying
     /// only partial or marginal trust), multiple paths may be needed.
     ///

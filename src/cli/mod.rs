@@ -32,6 +32,8 @@
 ///
 /// - "key server" instead of "keyserver".
 ///
+/// - "Web of Trust" instead of other variations.
+///
 /// ## Typography
 ///
 /// - The first line of the about texts MUST NOT end in a period.

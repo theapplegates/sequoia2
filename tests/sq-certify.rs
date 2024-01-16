@@ -42,7 +42,7 @@ fn sq_certify() -> Result<()> {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
-        .arg("certify")
+        .arg("pki").arg("certify")
         .arg(alice_pgp.to_str().unwrap())
         .arg(bob_pgp.to_str().unwrap())
         .arg("bob@example.org")
@@ -81,7 +81,7 @@ fn sq_certify() -> Result<()> {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
-        .arg("certify")
+        .arg("pki").arg("certify")
         .arg(alice_pgp.to_str().unwrap())
         .arg(bob_pgp.to_str().unwrap())
         .arg("bob@example.org")
@@ -120,7 +120,7 @@ fn sq_certify() -> Result<()> {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
-        .arg("certify")
+        .arg("pki").arg("certify")
         .arg(alice_pgp.to_str().unwrap())
         .arg(bob_pgp.to_str().unwrap())
         .arg("bob@example.org")
@@ -167,7 +167,7 @@ fn sq_certify() -> Result<()> {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
-        .arg("certify")
+        .arg("pki").arg("certify")
         .arg(alice_pgp.to_str().unwrap())
         .arg(bob_pgp.to_str().unwrap())
         .arg("bob")
@@ -178,7 +178,7 @@ fn sq_certify() -> Result<()> {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
-        .arg("certify")
+        .arg("pki").arg("certify")
         .args(["--notation", "foo", "bar"])
         .args(["--notation", "!foo", "xyzzy"])
         .args(["--notation", "hello@example.org", "1234567890"])
@@ -303,7 +303,7 @@ fn sq_certify_creation_time() -> Result<()>
     // Build up the command line.
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--no-cert-store",
-              "certify",
+              "pki", "certify",
               &alice_pgp.to_string_lossy(),
               &bob_pgp.to_string_lossy(), bob,
               "--time", iso8601 ]);
@@ -389,7 +389,7 @@ fn sq_certify_with_expired_key() -> Result<()>
     // Make sure using an expired key fails by default.
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--no-cert-store",
-              "certify",
+              "pki", "certify",
               &alice_pgp.to_string_lossy(),
               &bob_pgp.to_string_lossy(), bob ]);
     cmd.assert().failure();
@@ -398,7 +398,7 @@ fn sq_certify_with_expired_key() -> Result<()>
     // Try again.
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--no-cert-store",
-              "certify",
+              "pki", "certify",
               "--allow-not-alive-certifier",
               &alice_pgp.to_string_lossy(),
               &bob_pgp.to_string_lossy(), bob ]);
@@ -483,7 +483,7 @@ fn sq_certify_with_revoked_key() -> Result<()>
     // Make sure using an expired key fails by default.
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--no-cert-store",
-              "certify",
+              "pki", "certify",
               &alice_pgp.to_string_lossy(),
               &bob_pgp.to_string_lossy(), bob ]);
     cmd.assert().failure();
@@ -492,7 +492,7 @@ fn sq_certify_with_revoked_key() -> Result<()>
     // Try again.
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--no-cert-store",
-              "certify",
+              "pki", "certify",
               "--allow-revoked-certifier",
               &alice_pgp.to_string_lossy(),
               &bob_pgp.to_string_lossy(), bob ]);
@@ -576,7 +576,8 @@ fn sq_certify_using_cert_store() -> Result<()>
     // Have alice certify bob.
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--cert-store", &certd,
-              "certify", &alice_pgp,
+              "pki", "certify",
+              &alice_pgp,
               &bob.fingerprint().to_string(),
               "<bob@example.org>"]);
 

@@ -11,6 +11,8 @@ use openpgp::packet::UserID;
 
 use crate::cli::types::TrustAmount;
 
+pub mod certify;
+
 #[derive(Debug, Parser)]
 #[clap(
     name = "pki",
@@ -45,6 +47,7 @@ pub enum Subcommands {
     Authenticate(AuthenticateCommand),
     Lookup(LookupCommand),
     Identify(IdentifyCommand),
+    Certify(certify::Command),
     List(ListCommand),
     Path(PathCommand),
 }

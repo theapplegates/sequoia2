@@ -1102,7 +1102,7 @@ then files alice.txt and empty match
 
 
 
-# Certify user identities: `sq certify`
+# Certify user identities: `sq pki certify`
 
 The scenarios in this chapter verify the certification functionality:
 the subcommand `sq certify` in its various variations.
@@ -1121,7 +1121,7 @@ when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
 when I run sq --no-cert-store inspect bob-cert.pgp
 then stdout doesn't contain "Certifications:"
 
-when I run sq --no-cert-store certify alice.pgp bob-cert.pgp Bob -o cert.pgp
+when I run sq --no-cert-store pki certify alice.pgp bob-cert.pgp Bob -o cert.pgp
 then file cert.pgp contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 then file cert.pgp contains "-----END PGP PUBLIC KEY BLOCK-----"
 when I run sq --no-cert-store inspect cert.pgp
@@ -1142,7 +1142,7 @@ when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
 when I run sq --no-cert-store inspect bob-cert.pgp
 then stdout doesn't contain "Certifications:"
 
-when I run sq --no-cert-store certify alice.pgp bob-cert.pgp Bob -o cert.pgp --binary
+when I run sq --no-cert-store pki certify alice.pgp bob-cert.pgp Bob -o cert.pgp --binary
 when I run cat cert.pgp
 then stdout doesn't contain "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 when I run sq --no-cert-store inspect cert.pgp
@@ -1161,7 +1161,7 @@ when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
 when I run sq --no-cert-store key generate --userid "<bob@example.org>" --output bob.pgp
 when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
 
-when I run sq --no-cert-store certify alice.pgp bob-cert.pgp --email bob@example.org -o cert.pgp
+when I run sq --no-cert-store pki certify alice.pgp bob-cert.pgp --email bob@example.org -o cert.pgp
 when I run sq --no-cert-store inspect cert.pgp
 then stdout contains "Certifications: 1,"
 ~~~
@@ -1178,7 +1178,7 @@ when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
 when I run sq --no-cert-store key generate --userid "<bob@example.org>" --userid "Bob <bob@example.org>" --output bob.pgp
 when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
 
-when I run sq --no-cert-store certify alice.pgp bob-cert.pgp --email bob@example.org -o cert.pgp
+when I run sq --no-cert-store pki certify alice.pgp bob-cert.pgp --email bob@example.org -o cert.pgp
 
 when I run sq --no-cert-store key userid strip --userid "<bob@example.org>" -o cert.0.pgp cert.pgp
 when I run sq --no-cert-store inspect cert.0.pgp
@@ -1205,7 +1205,7 @@ when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
 when I run sq --no-cert-store inspect bob-cert.pgp
 then stdout doesn't contain "Certifications:"
 
-when I run sq --no-cert-store certify --add-userid alice.pgp bob-cert.pgp "My friend Bob" -o cert.pgp
+when I run sq --no-cert-store pki certify --add-userid alice.pgp bob-cert.pgp "My friend Bob" -o cert.pgp
 when I run sq --no-cert-store inspect cert.pgp
 then stdout contains "My friend Bob"
 then stdout contains "Certifications: 1,"
@@ -1224,7 +1224,7 @@ when I run sq --no-cert-store key extract-cert alice.pgp -o alice-cert.pgp
 when I run sq --no-cert-store key generate --userid Bob --output bob.pgp
 when I run sq --no-cert-store key extract-cert bob.pgp -o bob-cert.pgp
 
-when I run sq --no-cert-store certify --add-userid alice.pgp bob-cert.pgp --email "bob@example.org" -o cert.pgp
+when I run sq --no-cert-store pki certify --add-userid alice.pgp bob-cert.pgp --email "bob@example.org" -o cert.pgp
 when I run sq --no-cert-store inspect cert.pgp
 then stdout contains "<bob@example.org>"
 then stdout contains "Certifications: 1,"

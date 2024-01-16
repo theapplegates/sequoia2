@@ -1,4 +1,4 @@
-//! Command-line parser for `sq certify`.
+//! Command-line parser for `sq pki certify`.
 
 use std::path::PathBuf;
 
@@ -7,10 +7,10 @@ use clap::Parser;
 use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION;
 use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS;
 
-use super::types::ClapData;
-use super::types::Expiry;
-use super::types::FileOrStdout;
-use super::types::TrustAmount;
+use crate::cli::types::ClapData;
+use crate::cli::types::Expiry;
+use crate::cli::types::FileOrStdout;
+use crate::cli::types::TrustAmount;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -35,7 +35,7 @@ Using the `--expiry` argument specific validity periods may be defined.
 It allows for providing a point in time for validity to end or a validity
 duration.
 
-`sq certify` respects the reference time set by the top-level
+`sq pki certify` respects the reference time set by the top-level
 `--time` argument.  It sets the certification's creation time to the
 reference time.
 ",
@@ -45,11 +45,11 @@ reference time.
 "EXAMPLES:
 
 # Juliet certifies that Romeo controls romeo.pgp and romeo@example.org
-$ sq certify juliet.pgp romeo.pgp '<romeo@example.org>'
+$ sq pki certify juliet.pgp romeo.pgp '<romeo@example.org>'
 
 # Certify the User ID Ada, and set the certification time to July
 # 21, 2013 at midnight UTC:
-$ sq certify --time 20130721 neal.pgp ada.pgp Ada
+$ sq pki certify --time 20130721 neal.pgp ada.pgp Ada
 ",
 )]
 pub struct Command {

@@ -74,7 +74,6 @@ use sequoia_openpgp as openpgp;
 use openpgp::Fingerprint;
 
 pub mod armor;
-pub mod certify;
 pub mod dearmor;
 pub mod decrypt;
 pub mod encrypt;
@@ -342,7 +341,6 @@ pub enum SqSubcommands {
     Keyring(keyring::Command),
     Import(import::Command),
     Export(export::Command),
-    Certify(certify::Command),
     Link(link::Command),
     Pki(pki::Command),
 

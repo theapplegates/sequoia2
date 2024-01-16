@@ -16,7 +16,7 @@ use super::types::TrustAmount;
 "Manages authenticated certificate and User ID links
 
 Link a certificate and User ID is one way of making `sq` consider a
-binding to be authentic.  Another way is to use `sq certify` to
+binding to be authentic.  Another way is to use `sq pki certify` to
 certify the binding with an explicitly configured trust root.  The
 linking functionality is often easier to work with, and the
 information is private by default.
@@ -99,7 +99,7 @@ is also known as a trusted introducer, by using the `--ca` or
 
 A link can be retracted using `sq link retract`.
 
-This command is similar to `sq certify`, but the certifications it
+This command is similar to `sq pki certify`, but the certifications it
 makes are done using the certificate directory's trust root, not an
 arbitrary key.  Further, the certificates are marked as
 non-exportable.  The former makes it easier to manage certifications,

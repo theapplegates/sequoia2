@@ -17,6 +17,7 @@ use wot::store::CertStore;
 use wot::store::Backend;
 use wot::store::Store;
 
+pub mod certify;
 pub mod output;
 
 use crate::cli;
@@ -595,6 +596,9 @@ pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
         }) => check_path(
             &config, *gossip, *certification_network, *trust_amount,
             path)?,
+
+        Subcommands::Certify(command) =>
+            self::certify::certify(config, command)?,
     }
 
     Ok(())

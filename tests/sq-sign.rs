@@ -1149,7 +1149,7 @@ fn sq_verify_wot() -> Result<()> {
     {
         let mut cmd = Command::cargo_bin("sq").expect("have sq");
         cmd.args(&["--cert-store", cert_store]);
-        cmd.args(&["certify", key, cert, userid]);
+        cmd.args(&["pki", "certify", key, cert, userid]);
         if let Some(trust_amount) = trust_amount {
             cmd.args(&["--amount", &trust_amount.to_string()[..]]);
         }
@@ -1158,7 +1158,7 @@ fn sq_verify_wot() -> Result<()> {
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
         assert!(output.status.success(),
-                "sq certify\nstdout:\n{}\nstderr:\n{}",
+                "sq pki certify\nstdout:\n{}\nstderr:\n{}",
                 stdout, stderr);
 
         // Import the certification.
@@ -1168,7 +1168,7 @@ fn sq_verify_wot() -> Result<()> {
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
         assert!(output.status.success(),
-                "sq certify | sq import\nstdout:\n{}\nstderr:\n{}",
+                "sq pki certify | sq import\nstdout:\n{}\nstderr:\n{}",
                 stdout, stderr);
     };
 

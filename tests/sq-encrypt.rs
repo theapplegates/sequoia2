@@ -226,14 +226,14 @@ mod integration {
         for userid in bob_certified_userids {
             let mut cmd = Command::cargo_bin("sq")?;
             cmd.args(["--cert-store", &certd,
-                      "certify", &alice_pgp, &bob_pgp, userid]);
+                      "pki", "certify", &alice_pgp, &bob_pgp, userid]);
 
             let output = cmd.output().expect("success");
             let stdout = String::from_utf8_lossy(&output.stdout);
             let stderr = String::from_utf8_lossy(&output.stderr);
 
             assert!(output.status.success(),
-                    "'sq certify {} ...' should have succeeded\
+                    "'sq pki certify {} ...' should have succeeded\
                      \nstdout:\n{}\nstderr:\n{}",
                     userid, stdout, stderr);
             let mut cmd = Command::cargo_bin("sq")?;

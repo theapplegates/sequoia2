@@ -396,15 +396,12 @@ impl Command {
         man.section("DESCRIPTION");
         man.text_with_period(&self.description());
 
-        if !self.subcommands.is_empty() {
-            man.section("SUBCOMMANDS");
-
-            for sub in &self.subcommands {
-                let desc = sub.description();
-                if !desc.is_empty() {
-                    man.subsection(&sub.name());
-                    man.text_with_period(&desc);
-                }
+        man.section("SUBCOMMANDS");
+        for sub in &self.subcommands {
+            let desc = sub.description();
+            if !desc.is_empty() {
+                man.subsection(&sub.name());
+                man.text_with_period(&desc);
             }
         }
 

@@ -88,8 +88,10 @@ pub enum Subcommands {
     name = "add",
     about = "Link a certificate and a User ID",
     long_about =
-"Link a certificate and a User ID.  This cause `sq` to considers
-the certificate and User ID binding to be authentic.
+"Link a certificate and a User ID
+
+This cause `sq` to considers the certificate and User ID binding to be
+authentic.
 
 A certificate can also be accepted as a certification authority, which
 is also known as a trusted introducer, by using the `--ca` or
@@ -322,7 +324,7 @@ pub struct AddCommand {
     name = "retract",
     about = "Retracts links",
     long_about =
-"Retracts links.
+"Retracts links
 
 This command retracts links that were previously created using `sq
 link add`.  See that subcommand's documentation for more details.
@@ -397,7 +399,7 @@ pub struct RetractCommand {
     name = "list",
     about = "Lists links",
     long_about =
-"Lists links.
+"Lists links
 
 This command lists all bindings that are linked or whose link has been
 retracted.

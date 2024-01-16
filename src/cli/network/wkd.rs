@@ -29,7 +29,7 @@ pub enum Subcommands {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Prints the advanced Web Key Directory URL of an email address.",
+    about = "Prints the advanced Web Key Directory URL of an email address",
 )]
 pub struct UrlCommand {
     #[clap(
@@ -41,7 +41,7 @@ pub struct UrlCommand {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Prints the direct Web Key Directory URL of an email address.",
+    about = "Prints the direct Web Key Directory URL of an email address",
 )]
 pub struct DirectUrlCommand {
     #[clap(
@@ -94,7 +94,7 @@ pub struct FetchCommand {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Generates a Web Key Directory for the given domain and keys.",
+    about = "Generates a Web Key Directory for the given domain and keys",
     long_about =
 "Generates a Web Key Directory for the given domain and keys
 

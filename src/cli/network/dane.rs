@@ -11,7 +11,7 @@ use crate::cli::types::FileOrStdout;
 #[clap(
     name = "dane",
     about = "Interacts with DANE",
-    long_about = "DNS-Based Authentication of Named Entities (DANE) is a method for publishing public keys in DNS as specified in RFC 7929.",
+    long_about = "DNS-Based Authentication of Named Entities (DANE) is a method for publishing public keys in DNS as specified in RFC 7929",
     subcommand_required = true,
     arg_required_else_help = true,
 )]
@@ -28,7 +28,7 @@ pub enum Subcommands {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Generates DANE records for the given domain and keys.",
+    about = "Generates DANE records for the given domain and keys",
     long_about =
 "Generates DANE records for the given domain and keys
 

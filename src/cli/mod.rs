@@ -25,6 +25,8 @@
 ///
 /// ## Typography
 ///
+/// - The first line of the about texts MUST NOT end in a period.
+///
 /// - To define terms, enclose them in double quotes: "certificate".
 ///
 /// - To include inline code fragments, like options or other

@@ -16,9 +16,9 @@ By default, any returned certificates are stored in the local
 certificate store.  This can be overridden by using `--output`
 option.
 
-When a certificate is downloaded from a verifying keyserver
-(currently, this is limited to a list of known servers:
-keys.openpgp.org, keys.mailvelope.com, and mail-api.proton.me), and
+When a certificate is retrieved from a verifying keyserver (currently,
+this is limited to a list of known servers: `hkps://keys.openpgp.org`,
+`hkps://keys.mailvelope.com`, and `hkps://mail-api.proton.me`), and
 imported into the local certificate store, the User IDs are also
 certificated with a local server-specific key.  That proxy certificate
 is in turn certified as a minimally trusted CA (trust amount: 1 of

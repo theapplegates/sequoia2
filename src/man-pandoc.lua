@@ -11,6 +11,28 @@ function Meta(m)
    return m
 end
 
+-- Turns subcommand headers into links.
+function Header (h)
+   -- Given a sequence of subcommands, return the appropriate file
+   -- name.
+   local function subcommand_to_link (s)
+      t = ""
+      for i = 1, #s do
+         if s[i].t == 'Space' then
+            t = t .. '-'
+         else
+            t = t ..  s[i].text
+         end
+      end
+      return t .. ".1.html"
+   end
+
+   if h.c[1].t == 'Str' and h.c[1].text == 'sq' then
+      h.c = pandoc.Link(h.c, subcommand_to_link(h.c))
+      return h
+   end
+end
+
 -- Transform the entries in the "SYNOPSIS" section into links.
 local function rewrite_synopsis (inlines)
    -- Returns true if we're looking at a synopsis entry.

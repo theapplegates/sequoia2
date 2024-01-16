@@ -23,6 +23,15 @@
 ///   same or an equivalent thing, and should use the same phrases in
 ///   the help texts, to the extent possible.
 ///
+/// ## Terminology
+///
+/// - "certificate" or "cert" instead of "public key", "key", or
+///   "TPK".
+///
+/// - "key" instead of "secret key", "private key", or "TSK".
+///
+/// - "key server" instead of "keyserver".
+///
 /// ## Typography
 ///
 /// - The first line of the about texts MUST NOT end in a period.

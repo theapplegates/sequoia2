@@ -5,7 +5,7 @@ use crate::cli::types::FileOrCertStore;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 
-/// The default keyservers to query.
+/// The default key servers to query.
 pub const DEFAULT_KEYSERVERS: &[&'static str] = &[
     "hkps://keys.openpgp.org",
     "hkps://mail-api.proton.me",
@@ -36,7 +36,7 @@ pub struct Command {
         // that they are sorted to the bottom.
         display_order = 800,
         value_name = "URI",
-        help = "Sets the keyserver to use.  Can be given multiple times.",
+        help = "Sets the key server to use.  Can be given multiple times.",
     )]
     pub servers: Vec<String>,
     #[clap(subcommand)]
@@ -59,7 +59,7 @@ By default, any returned certificates are stored in the local
 certificate store.  This can be overridden by using `--output`
 option.
 
-When a certificate is retrieved from a verifying keyserver (currently,
+When a certificate is retrieved from a verifying key server (currently,
 this is limited to a list of known servers: `hkps://keys.openpgp.org`,
 `hkps://keys.mailvelope.com`, and `hkps://mail-api.proton.me`), and
 imported into the local certificate store, the User IDs are also

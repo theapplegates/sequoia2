@@ -100,18 +100,18 @@ pub struct FetchCommand {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Generates a Web Key Directory for the given domain and keys",
+    about = "Generates a Web Key Directory for the given domain and certs",
     long_about =
-"Generates a Web Key Directory for the given domain and keys
+"Generates a Web Key Directory for the given domain and certs
 
-If the WKD exists, the new keys will be inserted and it \
-is updated and existing ones will be updated.
+If the WKD exists, the new certificates will be inserted and existing
+ones will be updated.
 
 A WKD is per domain, and can be queried using the advanced or the \
 direct method. The advanced method uses a URL with a subdomain \
 'openpgpkey'. As per the specification, the advanced method is to be \
 preferred. The direct method may only be used if the subdomain \
-doesn't exist. The advanced method allows web key directories for \
+doesn't exist. The advanced method allows Web Key Directories for \
 several domains on one web server.
 
 The contents of the generated WKD must be copied to a web server so that \

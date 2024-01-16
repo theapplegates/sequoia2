@@ -107,7 +107,7 @@ It is a good idea to keep a copy of this in a safe place.
 After generating a key, use `sq key extract-cert` to get the
 certificate corresponding to the key.  The key must be kept secure,
 while the certificate should be handed out to correspondents, e.g. by
-uploading it to a keyserver.
+uploading it to a key server.
 
 By default a key expires after {} years.
 Using the `--expiry=` argument specific validity periods may be defined.
@@ -478,7 +478,7 @@ that in the future.`",
 After generating a key, use this command to get the certificate
 corresponding to the key.  The key must be kept secure, while the
 certificate should be handed out to correspondents, e.g. by uploading
-it to a keyserver.
+it to a key server.
 ",
     after_help = "EXAMPLES:
 
@@ -880,7 +880,7 @@ the key holder needs to explicitly attest to third-party
 certifications.
 
 After the attestation has been created, the certificate has to be
-distributed, e.g. by uploading it to a keyserver.
+distributed, e.g. by uploading it to a key server.
 ",
     after_help =
 "EXAMPLES:

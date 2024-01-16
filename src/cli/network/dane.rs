@@ -35,9 +35,9 @@ pub enum Subcommands {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Generates DANE records for the given domain and keys",
+    about = "Generates DANE records for the given domain and certs",
     long_about =
-"Generates DANE records for the given domain and keys
+"Generates DANE records for the given domain and certs
 
 The certificates are minimized, and one record per email address is
 emitted.  If multiple user IDs map to one email address, then all

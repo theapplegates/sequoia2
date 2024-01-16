@@ -29,8 +29,8 @@ require multiple, independent paths to authenticate a binding by only
 partially trusting CAs.  This prevents a single bad actor from
 compromising their security.  And those who have stronger security
 requirements can use the Web of Trust in a completely decentralized
-manner where only the individuals they select---who are not
-necessarily institutions---act as trusted introducers.
+manner where only the individuals they select – who are not
+necessarily institutions – act as trusted introducers.
 ",
     subcommand_required = true,
     arg_required_else_help = true,

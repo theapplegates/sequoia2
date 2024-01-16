@@ -47,6 +47,8 @@
 ///
 /// - Enclose URLs in angle brackets: <https://example.org>.
 ///
+/// - Use a spaced en dash for parenthetical statements (" – ").
+///
 /// ## Examples
 ///
 /// - Every subcommand SHOULD have at least one example.
@@ -139,7 +141,7 @@ OpenPGP data can be provided in binary or ASCII armored form.  This
 will be handled automatically.  Emitted OpenPGP data is ASCII armored
 by default.
 
-We use the term \"certificate\", or cert for short, to refer to OpenPGP
+We use the term \"certificate\", or \"cert\" for short, to refer to OpenPGP
 keys that do not contain secrets.  Conversely, we use the term \"key\"
 to refer to OpenPGP keys that do contain secrets.
 ",

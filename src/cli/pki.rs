@@ -110,7 +110,7 @@ $ sq pki authenticate --partial \\
 # specified email address.
 $ sq pki authenticate \\
      C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
-     --email 'alice@example.org'
+     --email alice@example.org
 "))]
     Authenticate {
         #[command(flatten)]
@@ -142,7 +142,7 @@ EXAMPLES:
 $ sq pki lookup --partial 'Alice <alice@example.org>'
 
 # Lookup a certificate with the given email address.
-$ sq pki lookup --email 'alice@example.org'
+$ sq pki lookup --email alice@example.org
 "))]
     Lookup {
         #[command(flatten)]

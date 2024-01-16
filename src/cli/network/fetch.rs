@@ -7,10 +7,10 @@ use super::keyserver::DEFAULT_KEYSERVERS;
 
 #[derive(Parser, Debug)]
 #[clap(
-    name = "lookup",
-    about = "Searches for certificates using all supported network services.",
+    name = "fetch",
+    about = "Retrieves certificates using all supported network services",
     long_about =
-"Searches for certificates using all supported network services.
+"Retrieves certificates using all supported network services
 
 By default, any returned certificates are stored in the local
 certificate store.  This can be overridden by using `--output`

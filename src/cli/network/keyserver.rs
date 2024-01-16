@@ -39,21 +39,21 @@ pub struct Command {
 
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
-    Get(GetCommand),
-    Send(SendCommand),
+    Fetch(FetchCommand),
+    Publish(PublishCommand),
 }
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Retrieves a certificate",
+    about = "Retrieves certificates from key servers",
     long_about =
-"Retrieves a certificate from a keyserver.
+"Retrieves certificates from key servers
 
 By default, any returned certificates are stored in the local
 certificate store.  This can be overridden by using `--output`
 option.
 
-When a certificate is downloaded from a verifying keyserver
+When a certificate is retrieved from a verifying keyserver
 (currently, this is limited to a list of known servers:
 keys.openpgp.org, keys.mailvelope.com, and mail-api.proton.me), and
 imported into the local certificate store, the User IDs are also
@@ -64,7 +64,7 @@ trusted can be tuned using `sq link add` or `sq link retract` in
 the usual way.
 "
 )]
-pub struct GetCommand {
+pub struct FetchCommand {
     #[clap(
         help = FileOrCertStore::HELP_OPTIONAL,
         long,
@@ -90,14 +90,14 @@ pub struct GetCommand {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Sends a key",
+    about = "Publishes certificates",
 )]
-pub struct SendCommand {
+pub struct PublishCommand {
     #[clap(
         long,
-        help = "Requires that all send operations succeed \
+        help = "Requires that all publish operations succeed \
                 and return an error otherwise.  \
-                By default we only require that one send \
+                By default we only require that one publish \
                 operation succeeds.",
     )]
     pub require_all: bool,

@@ -61,8 +61,8 @@ pub fn dispatch(config: Config, c: cli::network::Command)
 {
     use cli::network::Subcommands;
     match c.subcommand {
-        Subcommands::Lookup(command) =>
-            dispatch_lookup(config, command),
+        Subcommands::Fetch(command) =>
+            dispatch_fetch(config, command),
 
         Subcommands::Keyserver(command) =>
             dispatch_keyserver(config, command),
@@ -551,8 +551,8 @@ impl Response {
     }
 }
 
-pub fn dispatch_lookup(config: Config, c: cli::network::lookup::Command)
-                       -> Result<()>
+pub fn dispatch_fetch(config: Config, c: cli::network::fetch::Command)
+                      -> Result<()>
 {
     let default_servers = default_keyservers_p(&c.servers);
     let servers = c.servers.iter().map(
@@ -688,7 +688,7 @@ pub fn dispatch_keyserver(config: Config, c: cli::network::keyserver::Command)
 
     use crate::cli::network::keyserver::Subcommands::*;
     match c.subcommand {
-        Get(c) => rt.block_on(async {
+        Fetch(c) => rt.block_on(async {
             let queries = Query::parse(&c.query)?;
 
             let mut requests = tokio::task::JoinSet::new();
@@ -714,7 +714,7 @@ pub fn dispatch_keyserver(config: Config, c: cli::network::keyserver::Command)
                 config, c.output, c.binary, requests, default_servers).await?;
             Result::Ok(())
         })?,
-        Send(c) => rt.block_on(async {
+        Publish(c) => rt.block_on(async {
             let mut input = c.input.open()?;
             let cert = Arc::new(Cert::from_reader(&mut input).
                 context("Malformed key")?);
@@ -802,7 +802,7 @@ pub fn dispatch_wkd(config: Config, c: cli::network::wkd::Command) -> Result<()>
                                        WkdUrlVariant::Direct, advanced, direct)?;
             output.write(config.output_format, &mut std::io::stdout())?;
         },
-        Get(c) => rt.block_on(async {
+        Fetch(c) => rt.block_on(async {
             let queries = Query::parse_addresses(&c.addresses)?;
             let mut requests = tokio::task::JoinSet::new();
             queries.into_iter().for_each(|query| {
@@ -895,7 +895,7 @@ pub fn dispatch_dane(config: Config, c: cli::network::dane::Command) -> Result<(
                 }
             }
         },
-        Get(c) => rt.block_on(async {
+        Fetch(c) => rt.block_on(async {
             let queries = Query::parse_addresses(&c.addresses)?;
             let mut requests = tokio::task::JoinSet::new();
             queries.into_iter().for_each(|query| {

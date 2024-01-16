@@ -23,7 +23,7 @@ pub struct Command {
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
     Generate(GenerateCommand),
-    Get(GetCommand),
+    Fetch(FetchCommand),
 }
 
 #[derive(Debug, Args)]
@@ -91,15 +91,15 @@ pub struct GenerateCommand {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Looks up certificates using DANE",
+    about = "Retrieves certificates using DANE",
     long_about =
-"Looks up certificates using DANE
+"Retrieves certificates using DANE
 
 By default, any returned certificates are stored in the local
 certificate store.  This can be overridden by using `--output`
 option.
 
-When a certificate is downloaded using DANE, and imported into the
+When a certificate is retrieved using DANE, and imported into the
 local certificate store, any User IDs with the email address that was
 looked up are certificated with a local DANE-specific key.  That proxy
 certificate is in turn certified as a minimally trusted CA (trust
@@ -108,7 +108,7 @@ is trusted can be tuned using `sq link add` or `sq link retract`
 in the usual way.
 "
 )]
-pub struct GetCommand {
+pub struct FetchCommand {
     #[clap(
         value_name = "ADDRESS",
         required = true,

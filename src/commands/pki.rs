@@ -6,7 +6,6 @@ use openpgp::Fingerprint;
 use openpgp::KeyHandle;
 use openpgp::Result;
 use openpgp::packet::UserID;
-use openpgp::policy::Policy;
 
 use sequoia_cert_store as cert_store;
 use cert_store::store::StatusListener;
@@ -16,11 +15,13 @@ use cert_store::store::StoreError;
 use sequoia_wot as wot;
 use wot::store::CertStore;
 use wot::store::Backend;
+use wot::store::Store;
 
 pub mod output;
 
 use crate::cli;
 use cli::output::OutputFormat;
+use cli::types::TrustAmount;
 
 use crate::commands::pki as pki_cmd;
 use pki_cmd::output::print_path;
@@ -31,13 +32,14 @@ use pki_cmd::output::OutputType as _;
 
 use crate::Config;
 
-fn trust_amount(cli: &cli::pki::Command)
+fn required_trust_amount(trust_amount: Option<TrustAmount<usize>>,
+                         certification_network: bool)
     -> Result<usize>
 {
-    let amount = if let Some(v) = &cli.trust_amount {
+    let amount = if let Some(v) = &trust_amount {
         v.amount()
     } else {
-        if cli.certification_network {
+        if certification_network {
             // Look for multiple paths.  Specifically, try to find 10
             // paths.
             10 * wot::FULLY_TRUSTED
@@ -73,18 +75,48 @@ fn have_self_signed_userid(cert: &wot::CertSynopsis,
 }
 
 /// Authenticate bindings defined by a Query on a Network
-fn authenticate<S>(
+fn authenticate(
     config: &Config,
-    cli: &cli::pki::Command,
-    q: &wot::Query<'_, S>,
-    gossip: bool,
+    precompute: bool,
+    list_pattern: Option<String>,
     email: bool,
+    gossip: bool,
+    certification_network: bool,
+    trust_amount: Option<TrustAmount<usize>>,
     userid: Option<&UserID>,
     certificate: Option<&KeyHandle>,
 ) -> Result<()>
-    where S: wot::store::Store
 {
-    let required_amount = trust_amount(cli)?;
+    // Build the network.
+    let cert_store = match config.cert_store() {
+        Ok(Some(cert_store)) => cert_store,
+        Ok(None) => {
+            return Err(anyhow::anyhow!("Certificate store has been disabled"));
+        }
+        Err(err) => {
+            return Err(err).context("Opening certificate store");
+        }
+    };
+
+    let mut cert_store = CertStore::from_store(
+        cert_store, &config.policy, config.time);
+    if precompute {
+        cert_store.precompute();
+    }
+
+    let n = wot::Network::new(cert_store)?;
+
+    let mut q = wot::QueryBuilder::new(&n);
+    if ! gossip {
+        q.roots(wot::Roots::new(config.trust_roots()));
+    }
+    if certification_network {
+        q.certification_network();
+    }
+    let q = q.build();
+
+    let required_amount =
+        required_trust_amount(trust_amount, certification_network)?;
 
     let fingerprint: Option<Fingerprint> = if let Some(kh) = certificate {
         Some(match kh {
@@ -186,8 +218,7 @@ fn authenticate<S>(
 
         bindings = q.network().certified_userids();
 
-        use cli::pki::*;
-        if let Subcommands::List(ListCommand { pattern: Some(pattern), .. }) = &cli.subcommand {
+        if let Some(pattern) = list_pattern {
             // Or rather, just User IDs that match the pattern.
             let pattern = pattern.to_lowercase();
 
@@ -239,7 +270,7 @@ fn authenticate<S>(
                 required_amount,
                 q.roots(),
                 gossip,
-                cli.certification_network,
+                certification_network,
             ))
             as Box<dyn output::OutputType>
         }
@@ -413,27 +444,47 @@ fn authenticate<S>(
 }
 
 // For `sq-wot path`.
-fn check_path<'a: 'b, 'b, S>(config: &Config,
-                             cli: &cli::pki::Command,
-                             q: &wot::Query<'b, S>,
-                             policy: &dyn Policy)
+fn check_path(config: &Config,
+              gossip: bool,
+              certification_network: bool,
+              trust_amount: Option<TrustAmount<usize>>,
+              path: cli::pki::PathArg)
     -> Result<()>
-where S: wot::store::Store + wot::store::Backend<'a>
 {
     tracer!(TRACE, "check_path");
 
-    let required_amount = trust_amount(cli)?;
-
-    use cli::pki::*;
-    let (khs, userid) = if let Subcommands::Path(PathCommand { path, .. }) = &cli.subcommand {
-        (path.certs()?, path.userid()?)
-    } else {
-        unreachable!("checked");
+    // Build the network.
+    let cert_store = match config.cert_store() {
+        Ok(Some(cert_store)) => cert_store,
+        Ok(None) => {
+            return Err(anyhow::anyhow!("Certificate store has been disabled"));
+        }
+        Err(err) => {
+            return Err(err).context("Opening certificate store");
+        }
     };
 
+    let cert_store = CertStore::from_store(
+        cert_store, &config.policy, config.time);
+
+    let n = wot::Network::new(cert_store)?;
+
+    let mut q = wot::QueryBuilder::new(&n);
+    if ! gossip {
+        q.roots(wot::Roots::new(config.trust_roots()));
+    }
+    if certification_network {
+        q.certification_network();
+    }
+    let q = q.build();
+
+    let required_amount =
+        required_trust_amount(trust_amount, certification_network)?;
+
+    let (khs, userid) = (path.certs()?, path.userid()?);
     assert!(khs.len() > 0, "guaranteed by clap");
 
-    let r = q.lint_path(&khs, &userid, required_amount, policy);
+    let r = q.lint_path(&khs, &userid, required_amount, &config.policy);
 
     let target_kh = khs.last().expect("have one");
 
@@ -497,89 +548,53 @@ impl StatusListener for KeyServerUpdate {
 pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
     tracer!(TRACE, "pki::dispatch");
 
-    // Build the network.
-    let cert_store = match config.cert_store() {
-        Ok(Some(cert_store)) => cert_store,
-        Ok(None) => {
-            return Err(anyhow::anyhow!("Certificate store has been disabled"));
-        }
-        Err(err) => {
-            return Err(err).context("Opening certificate store");
-        }
-    };
-
-    let mut cert_store = CertStore::from_store(
-        cert_store, &config.policy, config.time);
     use cli::pki::*;
-    if let Subcommands::List(ListCommand { pattern: None, .. }) = cli.subcommand {
-        cert_store.precompute();
-    }
-
-    let n = wot::Network::new(cert_store)?;
-
-    let mut q = wot::QueryBuilder::new(&n);
-    if ! cli.gossip {
-        q.roots(wot::Roots::new(config.trust_roots()));
-    }
-    if cli.certification_network {
-        q.certification_network();
-    }
-    let q = q.build();
-
-    match &cli.subcommand {
+    match cli.subcommand {
+        // Authenticate a given binding.
         Subcommands::Authenticate(AuthenticateCommand {
-            email,
-            cert,
-            userid,
-            ..
-        }) => {
-            // Authenticate a given binding.
-            authenticate(
-                &config, &cli, &q,
-                cli.gossip,
-                **email,
-                Some(userid), Some(cert))?;
-        }
+            email, gossip, certification_network, trust_amount,
+            cert, userid,
+        }) => authenticate(
+            &config, false, None,
+            *email, *gossip, *certification_network, *trust_amount,
+            Some(&userid), Some(&cert))?,
+
+        // Find all authenticated bindings for a given User ID, list
+        // the certificates.
         Subcommands::Lookup(LookupCommand {
-            email,
+            email, gossip, certification_network, trust_amount,
             userid,
-            ..
-        }) => {
-            // Find all authenticated bindings for a given
-            // User ID, list the certificates.
-            authenticate(
-                &config, &cli, &q,
-                cli.gossip,
-                **email,
-                Some(userid), None)?;
-        }
+        }) => authenticate(
+            &config, false, None,
+            *email, *gossip, *certification_network, *trust_amount,
+            Some(&userid), None)?,
+
+        // Find and list all authenticated bindings for a given
+        // certificate.
         Subcommands::Identify(IdentifyCommand {
+            gossip, certification_network, trust_amount,
             cert,
-            ..
-        }) => {
-            // Find and list all authenticated bindings for a given
-            // certificate.
-            authenticate(
-                &config, &cli, &q,
-                cli.gossip,
-                false,
-                None, Some(cert))?;
-        }
+        }) => authenticate(
+            &config, false, None,
+            false, *gossip, *certification_network, *trust_amount,
+            None, Some(&cert))?,
+
+        // List all authenticated bindings.
         Subcommands::List(ListCommand {
-            email,
-            ..
-        }) => {
-            // List all authenticated bindings.
-            authenticate(
-                &config, &cli, &q,
-                cli.gossip,
-                **email,
-                None, None)?;
-        }
-        Subcommands::Path(PathCommand { .. }) => {
-            check_path(
-                &config, &cli, &q, &config.policy)?;
-        }
+            email, gossip, certification_network, trust_amount,
+            pattern,
+        }) => authenticate(
+            &config, pattern.is_none(), pattern,
+            *email, *gossip, *certification_network, *trust_amount,
+            None, None)?,
+
+        // Authenticates a given path.
+        Subcommands::Path(PathCommand {
+            gossip, certification_network, trust_amount,
+            path,
+        }) => check_path(
+            &config, *gossip, *certification_network, *trust_amount,
+            path)?,
     }
 
     Ok(())

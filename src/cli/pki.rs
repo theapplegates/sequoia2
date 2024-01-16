@@ -36,47 +36,6 @@ necessarily institutions – act as trusted introducers.
     arg_required_else_help = true,
     )]
 pub struct Command {
-    /// Treats all certificates as unreliable trust roots.
-    ///
-    /// This option is useful for figuring out what others think about
-    /// a certificate (i.e., gossip or hearsay).  In other words, this
-    /// finds arbitrary paths to a particular certificate.
-    ///
-    /// Gossip is useful in helping to identify alternative ways to
-    /// authenticate a certificate.  For instance, imagine Ed wants to
-    /// authenticate Laura's certificate, but asking her directly is
-    /// inconvenient.  Ed discovers that Micah has certified Laura's
-    /// certificate, but Ed hasn't yet authenticated Micah's
-    /// certificate.  If Ed is willing to rely on Micah as a trusted
-    /// introducer, and authenticating Micah's certificate is easier
-    /// than authenticating Laura's certificate, then Ed has learned
-    /// about an easier way to authenticate Laura's certificate.
-    #[arg(global=true, display_order=850, long)]
-    pub gossip: bool,
-
-    /// Treats the network as a certification network.
-    ///
-    /// Normally, `sq pki` treats the Web of Trust network as an
-    /// authentication network where a certification only means that
-    /// the binding is correct, not that the target should be treated
-    /// as a trusted introducer.  In a certification network, the
-    /// targets of certifications are treated as trusted introducers
-    /// with infinite depth, and any regular expressions are ignored.
-    /// Note: The trust amount remains unchanged.  This is how most
-    /// so-called pgp path-finding algorithms work.
-    #[arg(global=true, display_order=860, long)]
-    pub certification_network: bool,
-
-    /// The required amount of trust.
-    ///
-    /// 120 indicates full authentication; values less than 120
-    /// indicate partial authentication.  When
-    /// `--certification-network` is passed, this defaults to 1200,
-    /// i.e., `sq pki` tries to find 10 paths.
-    #[arg(global=true, display_order=800, short='a', long="amount",
-          value_name = "AMOUNT")]
-    pub trust_amount: Option<TrustAmount<usize>>,
-
     #[command(subcommand)]
     pub subcommand: Subcommands,
 }
@@ -127,6 +86,15 @@ pub struct AuthenticateCommand {
     pub email: EmailArg,
 
     #[command(flatten)]
+    pub gossip: GossipArg,
+
+    #[command(flatten)]
+    pub certification_network: CertificationNetworkArg,
+
+    #[command(flatten)]
+    pub trust_amount: RequiredTrustAmountArg,
+
+    #[command(flatten)]
     pub cert: CertArg,
 
     #[command(flatten)]
@@ -162,6 +130,15 @@ pub struct LookupCommand {
     pub email: EmailArg,
 
     #[command(flatten)]
+    pub gossip: GossipArg,
+
+    #[command(flatten)]
+    pub certification_network: CertificationNetworkArg,
+
+    #[command(flatten)]
+    pub trust_amount: RequiredTrustAmountArg,
+
+    #[command(flatten)]
     pub userid: UserIDArg,
 }
 
@@ -193,6 +170,15 @@ $ sq pki identify --gossip \\
 ")]
 pub struct IdentifyCommand {
     #[command(flatten)]
+    pub gossip: GossipArg,
+
+    #[command(flatten)]
+    pub certification_network: CertificationNetworkArg,
+
+    #[command(flatten)]
+    pub trust_amount: RequiredTrustAmountArg,
+
+    #[command(flatten)]
     pub cert: CertArg,
 }
 
@@ -223,6 +209,15 @@ $ sq pki list --partial @example.org
 pub struct ListCommand {
     #[command(flatten)]
     pub email: EmailArg,
+
+    #[command(flatten)]
+    pub gossip: GossipArg,
+
+    #[command(flatten)]
+    pub certification_network: CertificationNetworkArg,
+
+    #[command(flatten)]
+    pub trust_amount: RequiredTrustAmountArg,
 
     /// A pattern to select the bindings to authenticate.
     ///
@@ -259,7 +254,13 @@ $ sq pki path \\
 ")]
 pub struct PathCommand {
     #[command(flatten)]
-    pub email: EmailArg,
+    pub gossip: GossipArg,
+
+    #[command(flatten)]
+    pub certification_network: CertificationNetworkArg,
+
+    #[command(flatten)]
+    pub trust_amount: RequiredTrustAmountArg,
 
     // This should actually be a repeatable positional argument
     // (Vec<Cert>) followed by a manadatory positional argument (a
@@ -400,3 +401,75 @@ impl Deref for EmailArg {
     }
 }
 
+#[derive(clap::Args, Debug)]
+pub struct GossipArg {
+    /// Treats all certificates as unreliable trust roots.
+    ///
+    /// This option is useful for figuring out what others think about
+    /// a certificate (i.e., gossip or hearsay).  In other words, this
+    /// finds arbitrary paths to a particular certificate.
+    ///
+    /// Gossip is useful in helping to identify alternative ways to
+    /// authenticate a certificate.  For instance, imagine Ed wants to
+    /// authenticate Laura's certificate, but asking her directly is
+    /// inconvenient.  Ed discovers that Micah has certified Laura's
+    /// certificate, but Ed hasn't yet authenticated Micah's
+    /// certificate.  If Ed is willing to rely on Micah as a trusted
+    /// introducer, and authenticating Micah's certificate is easier
+    /// than authenticating Laura's certificate, then Ed has learned
+    /// about an easier way to authenticate Laura's certificate.
+    #[arg(long)]
+    pub gossip: bool,
+}
+
+impl Deref for GossipArg {
+    type Target = bool;
+
+    fn deref(&self) -> &Self::Target {
+        &self.gossip
+    }
+}
+
+#[derive(clap::Args, Debug)]
+pub struct CertificationNetworkArg {
+    /// Treats the network as a certification network.
+    ///
+    /// Normally, `sq pki` treats the Web of Trust network as an
+    /// authentication network where a certification only means that
+    /// the binding is correct, not that the target should be treated
+    /// as a trusted introducer.  In a certification network, the
+    /// targets of certifications are treated as trusted introducers
+    /// with infinite depth, and any regular expressions are ignored.
+    /// Note: The trust amount remains unchanged.  This is how most
+    /// so-called pgp path-finding algorithms work.
+    #[arg(long)]
+    pub certification_network: bool,
+}
+
+impl Deref for CertificationNetworkArg {
+    type Target = bool;
+
+    fn deref(&self) -> &Self::Target {
+        &self.certification_network
+    }
+}
+
+#[derive(clap::Args, Debug)]
+pub struct RequiredTrustAmountArg {
+    /// The required amount of trust.
+    ///
+    /// 120 indicates full authentication; values less than 120
+    /// indicate partial authentication.  When
+    /// `--certification-network` is passed, this defaults to 1200,
+    /// i.e., `sq pki` tries to find 10 paths.
+    #[arg(short='a', long="amount", value_name = "AMOUNT")]
+    pub trust_amount: Option<TrustAmount<usize>>,
+}
+
+impl Deref for RequiredTrustAmountArg {
+    type Target = Option<TrustAmount<usize>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.trust_amount
+    }
+}

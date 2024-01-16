@@ -108,8 +108,8 @@ mod integration {
             }
             cmd
                 .arg("pki")
-                .args(sqwot_args)
-                .arg(command);
+                .arg(command)
+                .args(sqwot_args);
             if let Some(target) = target {
                 cmd.arg(&target.to_string());
             }

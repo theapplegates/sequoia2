@@ -760,7 +760,7 @@ impl From<EncryptPurpose> for KeyFlags {
 }
 
 /// Describes the purpose of the encryption.
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum TrustAmount<T> {
     /// Partial trust.
     Partial,

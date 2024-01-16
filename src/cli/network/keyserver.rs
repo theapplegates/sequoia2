@@ -11,6 +11,7 @@ pub const DEFAULT_KEYSERVERS: &[&'static str] = &[
     "hkps://mail-api.proton.me",
     "hkps://keys.mailvelope.com",
     "hkps://keyserver.ubuntu.com",
+    "hkps://sks.pod01.fleetstreetops.com",
 ];
 
 #[derive(Parser, Debug)]

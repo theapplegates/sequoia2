@@ -78,6 +78,7 @@ fn authenticate<S>(
     cli: &cli::pki::Command,
     q: &wot::Query<'_, S>,
     gossip: bool,
+    email: bool,
     userid: Option<&UserID>,
     certificate: Option<&KeyHandle>,
 ) -> Result<()>
@@ -111,8 +112,6 @@ fn authenticate<S>(
     } else {
         None
     };
-
-    let email = cli.subcommand.email();
 
     let mut bindings = Vec::new();
     if matches!(userid, Some(_)) && email {
@@ -187,7 +186,8 @@ fn authenticate<S>(
 
         bindings = q.network().certified_userids();
 
-        if let cli::pki::Subcommand::List { pattern: Some(pattern), .. } = &cli.subcommand {
+        use cli::pki::*;
+        if let Subcommands::List(ListCommand { pattern: Some(pattern), .. }) = &cli.subcommand {
             // Or rather, just User IDs that match the pattern.
             let pattern = pattern.to_lowercase();
 
@@ -424,7 +424,8 @@ where S: wot::store::Store + wot::store::Backend<'a>
 
     let required_amount = trust_amount(cli)?;
 
-    let (khs, userid) = if let cli::pki::Subcommand::Path { path, .. } = &cli.subcommand {
+    use cli::pki::*;
+    let (khs, userid) = if let Subcommands::Path(PathCommand { path, .. }) = &cli.subcommand {
         (path.certs()?, path.userid()?)
     } else {
         unreachable!("checked");
@@ -509,7 +510,8 @@ pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
 
     let mut cert_store = CertStore::from_store(
         cert_store, &config.policy, config.time);
-    if let cli::pki::Subcommand::List { pattern: None, .. } = cli.subcommand {
+    use cli::pki::*;
+    if let Subcommands::List(ListCommand { pattern: None, .. }) = cli.subcommand {
         cert_store.precompute();
     }
 
@@ -525,29 +527,56 @@ pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
     let q = q.build();
 
     match &cli.subcommand {
-        cli::pki::Subcommand::Authenticate { cert, userid, .. } => {
+        Subcommands::Authenticate(AuthenticateCommand {
+            email,
+            cert,
+            userid,
+            ..
+        }) => {
             // Authenticate a given binding.
             authenticate(
-                &config, &cli, &q, cli.gossip, Some(userid), Some(cert))?;
+                &config, &cli, &q,
+                cli.gossip,
+                **email,
+                Some(userid), Some(cert))?;
         }
-        cli::pki::Subcommand::Lookup { userid, .. } => {
+        Subcommands::Lookup(LookupCommand {
+            email,
+            userid,
+            ..
+        }) => {
             // Find all authenticated bindings for a given
             // User ID, list the certificates.
             authenticate(
-                &config, &cli, &q, cli.gossip, Some(userid), None)?;
+                &config, &cli, &q,
+                cli.gossip,
+                **email,
+                Some(userid), None)?;
         }
-        cli::pki::Subcommand::Identify { cert, .. } => {
+        Subcommands::Identify(IdentifyCommand {
+            cert,
+            ..
+        }) => {
             // Find and list all authenticated bindings for a given
             // certificate.
             authenticate(
-                &config, &cli, &q, cli.gossip, None, Some(cert))?;
+                &config, &cli, &q,
+                cli.gossip,
+                false,
+                None, Some(cert))?;
         }
-        cli::pki::Subcommand::List { .. } => {
+        Subcommands::List(ListCommand {
+            email,
+            ..
+        }) => {
             // List all authenticated bindings.
             authenticate(
-                &config, &cli, &q, cli.gossip, None, None)?;
+                &config, &cli, &q,
+                cli.gossip,
+                **email,
+                None, None)?;
         }
-        cli::pki::Subcommand::Path { .. } => {
+        Subcommands::Path(PathCommand { .. }) => {
             check_path(
                 &config, &cli, &q, &config.policy)?;
         }

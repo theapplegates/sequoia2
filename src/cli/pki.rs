@@ -78,28 +78,38 @@ pub struct Command {
     pub trust_amount: Option<TrustAmount<usize>>,
 
     #[command(subcommand)]
-    pub subcommand: Subcommand,
+    pub subcommand: Subcommands,
 }
 
 #[derive(clap::Subcommand, Debug)]
-pub enum Subcommand {
-    /// Authenticate a binding.
-    ///
-    /// Authenticate a binding (a certificate and User ID) by looking
-    /// for a path from the trust roots to the specified binding in
-    /// the Web of Trust.  Because certifications may express
-    /// uncertainty (i.e., certifications may be marked as conveying
-    /// only partial or marginal trust), multiple paths may be needed.
-    ///
-    /// If a binding could be authenticated to the specified level (by
-    /// default: fully authenticated, i.e., a trust amount of 120),
-    /// then the exit status is 0.  Otherwise the exit status is 1.
-    ///
-    /// If any valid paths to the binding are found, they are printed
-    /// on stdout whether they are sufficient to authenticate the
-    /// binding or not.
-    #[command(after_help("\
-EXAMPLES:
+pub enum Subcommands {
+    Authenticate(AuthenticateCommand),
+    Lookup(LookupCommand),
+    Identify(IdentifyCommand),
+    List(ListCommand),
+    Path(PathCommand),
+}
+
+/// Authenticate a binding.
+///
+/// Authenticate a binding (a certificate and User ID) by looking
+/// for a path from the trust roots to the specified binding in
+/// the Web of Trust.  Because certifications may express
+/// uncertainty (i.e., certifications may be marked as conveying
+/// only partial or marginal trust), multiple paths may be needed.
+///
+/// If a binding could be authenticated to the specified level (by
+/// default: fully authenticated, i.e., a trust amount of 120),
+/// then the exit status is 0.  Otherwise the exit status is 1.
+///
+/// If any valid paths to the binding are found, they are printed
+/// on stdout whether they are sufficient to authenticate the
+/// binding or not.
+#[derive(Parser, Debug)]
+#[clap(
+    name = "authenticate",
+    after_help =
+"EXAMPLES:
 
 # Authenticate a binding.
 $ sq pki authenticate --partial \\
@@ -111,61 +121,67 @@ $ sq pki authenticate --partial \\
 $ sq pki authenticate \\
      C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
      --email alice@example.org
-"))]
-    Authenticate {
-        #[command(flatten)]
-        email: EmailArg,
+")]
+pub struct AuthenticateCommand {
+    #[command(flatten)]
+    pub email: EmailArg,
 
-        #[command(flatten)]
-        cert: CertArg,
+    #[command(flatten)]
+    pub cert: CertArg,
 
-        #[command(flatten)]
-        userid: UserIDArg,
-    },
+    #[command(flatten)]
+    pub userid: UserIDArg,
+}
 
-    /// Lookup the certificates associated with a User ID.
-    ///
-    /// Identifies authenticated bindings (User ID and certificate
-    /// pairs) where the User ID matches the specified User ID.
-    ///
-    /// If a binding could be authenticated to the specified level (by
-    /// default: fully authenticated, i.e., a trust amount of 120),
-    /// then the exit status is 0.  Otherwise the exit status is 1.
-    ///
-    /// If a binding could be partially authenticated (i.e., its trust
-    /// amount is greater than 0), then the binding is displayed, even
-    /// if the trust is below the specified threshold.
-    #[command(after_help("\
-EXAMPLES:
+/// Lookup the certificates associated with a User ID.
+///
+/// Identifies authenticated bindings (User ID and certificate
+/// pairs) where the User ID matches the specified User ID.
+///
+/// If a binding could be authenticated to the specified level (by
+/// default: fully authenticated, i.e., a trust amount of 120),
+/// then the exit status is 0.  Otherwise the exit status is 1.
+///
+/// If a binding could be partially authenticated (i.e., its trust
+/// amount is greater than 0), then the binding is displayed, even
+/// if the trust is below the specified threshold.
+#[derive(Parser, Debug)]
+#[clap(
+    name = "lookup",
+    after_help =
+"EXAMPLES:
 
 # Lookup a certificate with the given User ID.
 $ sq pki lookup --partial 'Alice <alice@example.org>'
 
 # Lookup a certificate with the given email address.
 $ sq pki lookup --email alice@example.org
-"))]
-    Lookup {
-        #[command(flatten)]
-        email: EmailArg,
+")]
+pub struct LookupCommand {
+    #[command(flatten)]
+    pub email: EmailArg,
 
-        #[command(flatten)]
-        userid: UserIDArg,
-    },
+    #[command(flatten)]
+    pub userid: UserIDArg,
+}
 
-    /// Identify a certificate.
-    ///
-    /// Identify a certificate by finding authenticated bindings (User
-    /// ID and certificate pairs).
-    ///
-    /// If a binding could be authenticated to the specified level (by
-    /// default: fully authenticated, i.e., a trust amount of 120),
-    /// then the exit status is 0.  Otherwise the exit status is 1.
-    ///
-    /// If a binding could be partially authenticated (i.e., its trust
-    /// amount is greater than 0), then the binding is displayed, even
-    /// if the trust is below the specified threshold.
-    #[command(after_help("\
-EXAMPLES:
+/// Identify a certificate.
+///
+/// Identify a certificate by finding authenticated bindings (User
+/// ID and certificate pairs).
+///
+/// If a binding could be authenticated to the specified level (by
+/// default: fully authenticated, i.e., a trust amount of 120),
+/// then the exit status is 0.  Otherwise the exit status is 1.
+///
+/// If a binding could be partially authenticated (i.e., its trust
+/// amount is greater than 0), then the binding is displayed, even
+/// if the trust is below the specified threshold.
+#[derive(Parser, Debug)]
+#[clap(
+    name = "identify",
+    after_help =
+"EXAMPLES:
 
 # Identify a certificate.
 $ sq pki identify --partial \\
@@ -174,95 +190,87 @@ $ sq pki identify --partial \\
 # Get gossip about a certificate.
 $ sq pki identify --gossip \\
      3217C509292FC67076ECD75C7614269BDDF73B36
-"))]
-    Identify {
-        #[command(flatten)]
-        cert: CertArg,
-    },
+")]
+pub struct IdentifyCommand {
+    #[command(flatten)]
+    pub cert: CertArg,
+}
 
-    /// List all authenticated bindings (User ID and certificate
-    /// pairs).
-    ///
-    /// Only bindings that meet the specified trust amount (by default
-    /// bindings that are fully authenticated, i.e., have a trust
-    /// amount of 120), are shown.
-    ///
-    /// Even if no bindings are shown, the exit status is 0.
-    ///
-    /// If `--email` is provided, then a pattern matches if it is a case
-    /// insensitive substring of the email address as-is or the
-    /// normalized email address.  Note: unlike the email address, the
-    /// pattern is not normalized.  In particular, puny code
-    /// normalization is not done on the pattern.
-    #[command(after_help("\
-EXAMPLES:
+/// List all authenticated bindings (User ID and certificate
+/// pairs).
+///
+/// Only bindings that meet the specified trust amount (by default
+/// bindings that are fully authenticated, i.e., have a trust
+/// amount of 120), are shown.
+///
+/// Even if no bindings are shown, the exit status is 0.
+///
+/// If `--email` is provided, then a pattern matches if it is a case
+/// insensitive substring of the email address as-is or the
+/// normalized email address.  Note: unlike the email address, the
+/// pattern is not normalized.  In particular, puny code
+/// normalization is not done on the pattern.
+#[derive(Parser, Debug)]
+#[clap(
+    name = "list",
+    after_help =
+"EXAMPLES:
 
 # List all bindings for example.org that are at least partially
 # authenticated.
 $ sq pki list --partial @example.org
-"))]
-    List {
-        #[command(flatten)]
-        email: EmailArg,
+")]
+pub struct ListCommand {
+    #[command(flatten)]
+    pub email: EmailArg,
 
-        /// A pattern to select the bindings to authenticate.
-        ///
-        /// The pattern is treated as a UTF-8 encoded string and a
-        /// case insensitive substring search (using the current
-        /// locale) is performed against each User ID.  If a User ID
-        /// is not valid UTF-8, the binding is ignored.
-        pattern: Option<String>,
-    },
-    /// Verify the specified path.
+    /// A pattern to select the bindings to authenticate.
     ///
-    /// A path is a sequence of certificates starting at the root, and
-    /// a User ID.  This function checks that each path segment has a
-    /// valid certification, which also satisfies any constraints
-    /// (trust amount, trust depth, regular expressions).
-    ///
-    /// If a valid path is not found, then this subcommand also lints
-    /// the path.  In particular, it report if any certifications are
-    /// insufficient, e.g., not enough trust depth, or invalid, e.g.,
-    /// because they use SHA-1, but the use of SHA-1 has been
-    /// disabled.
-    #[command(after_help("\
-EXAMPLES:
+    /// The pattern is treated as a UTF-8 encoded string and a
+    /// case insensitive substring search (using the current
+    /// locale) is performed against each User ID.  If a User ID
+    /// is not valid UTF-8, the binding is ignored.
+    pub pattern: Option<String>,
+}
+
+/// Verify the specified path.
+///
+/// A path is a sequence of certificates starting at the root, and
+/// a User ID.  This function checks that each path segment has a
+/// valid certification, which also satisfies any constraints
+/// (trust amount, trust depth, regular expressions).
+///
+/// If a valid path is not found, then this subcommand also lints
+/// the path.  In particular, it report if any certifications are
+/// insufficient, e.g., not enough trust depth, or invalid, e.g.,
+/// because they use SHA-1, but the use of SHA-1 has been
+/// disabled.
+#[derive(Parser, Debug)]
+#[clap(
+    name = "path",
+    after_help =
+"EXAMPLES:
 
 # Verify that Neal ceritified Justus's certificate for a particular User ID.
 $ sq pki path \\
     8F17777118A33DDA9BA48E62AACB3243630052D9 \\
     CBCD8F030588653EEDD7E2659B7DD433F254904A \\
     'Justus Winter <justus@sequoia-pgp.org>'
-"))]
-    Path {
-        #[command(flatten)]
-        email: EmailArg,
+")]
+pub struct PathCommand {
+    #[command(flatten)]
+    pub email: EmailArg,
 
-        // This should actually be a repeatable positional argument
-        // (Vec<Cert>) followed by a manadatory positional argument (a
-        // User ID), but that is not allowed by Clap v3 and Clap v4
-        // even though it worked fine in Clap v2.  (Curiously, it
-        // works in `--release` mode fine and the only error appears
-        // to be one caught by a `debug_assert`).
-        //
-        // https://github.com/clap-rs/clap/issues/3281
-        #[command(flatten)]
-        path: PathArg,
-    },
-}
-
-impl Subcommand {
-    pub fn email(&self) -> bool {
-        use Subcommand::*;
-
-        match self {
-            Authenticate { email, .. } => email.email,
-            Lookup { email, .. } => email.email,
-            Identify { .. } => false,
-            Path { email, .. } => email.email,
-            List { email, .. } => email.email,
-        }
-    }
+    // This should actually be a repeatable positional argument
+    // (Vec<Cert>) followed by a manadatory positional argument (a
+    // User ID), but that is not allowed by Clap v3 and Clap v4
+    // even though it worked fine in Clap v2.  (Curiously, it
+    // works in `--release` mode fine and the only error appears
+    // to be one caught by a `debug_assert`).
+    //
+    // https://github.com/clap-rs/clap/issues/3281
+    #[command(flatten)]
+    pub path: PathArg,
 }
 
 #[derive(clap::Args, Debug)]

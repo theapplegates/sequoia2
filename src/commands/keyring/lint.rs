@@ -740,6 +740,7 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
                     let mut stderr = StandardStream::stderr(ColorChoice::Always);
                     stderr.set_color(ColorSpec::new().set_fg(Some(Color::Red)))?;
                     write!(&mut stderr, "BAD")?;
+                    stderr.reset()?;
                 } else {
                     eprint!("BAD");
                 }
@@ -748,6 +749,7 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
                     let mut stderr = StandardStream::stderr(ColorChoice::Always);
                     stderr.set_color(ColorSpec::new().set_fg(Some(Color::Green)))?;
                     write!(&mut stderr, "GOOD")?;
+                    stderr.reset()?;
                 } else {
                     eprint!("GOOD");
                 }

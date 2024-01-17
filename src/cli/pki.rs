@@ -441,7 +441,7 @@ pub struct CertificationNetworkArg {
     /// targets of certifications are treated as trusted introducers
     /// with infinite depth, and any regular expressions are ignored.
     /// Note: The trust amount remains unchanged.  This is how most
-    /// so-called pgp path-finding algorithms work.
+    /// so-called PGP path-finding algorithms work.
     #[arg(long)]
     pub certification_network: bool,
 }

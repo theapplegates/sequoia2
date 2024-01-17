@@ -898,6 +898,6 @@ impl ManualPage {
 
     /// Return the `troff` source code for the manual page.
     pub fn troff_source(&self) -> String {
-        self.roff.render()
+        self.roff.to_roff()
     }
 }

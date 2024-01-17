@@ -42,8 +42,8 @@ certificate store used by `sq`, includes a local trust root, which
 is stored under the `trust-root` special name.  When the user
 instructs `sq` to accept a binding, `sq` uses the local trust root
 to create a non-exportable certification, which it stores in the
-certificate directory.  In this way, operations that use the web of
-trust to authenticate a binding automatically use links.
+certificate directory.  In this way, operations that use the Web of
+Trust to authenticate a binding automatically use links.
 
 When a user retracts a link, `sq` creates a new, non-exportable
 certification with zero trust.  This certification suppresses the

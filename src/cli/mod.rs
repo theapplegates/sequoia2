@@ -301,8 +301,8 @@ $ sq --time 20130721T0550+0200 verify msg.pgp
         display_order = 900,
         help = "Considers the specified certificate to be a trust root",
         long_help = "Considers the specified certificate to be a trust root. \
-                     Trust roots are used by trust models, e.g., the web of \
-                     trust, to authenticate certificates and User IDs."
+                     Trust roots are used by trust models, e.g., the Web of \
+                     Trust, to authenticate certificates and User IDs."
     )]
     pub trust_roots: Vec<Fingerprint>,
     #[clap(

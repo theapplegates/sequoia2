@@ -22,7 +22,7 @@ use crate::cli::types::TrustAmount;
 Using a certification a keyholder may vouch for the fact that another
 certificate legitimately belongs to a user id.  In the context of
 emails this means that the same entity controls the key and the email
-address.  These kind of certifications form the basis for the Web Of
+address.  These kind of certifications form the basis for the Web of
 Trust.
 
 This command emits the certificate with the new certification.  The

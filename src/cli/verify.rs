@@ -34,7 +34,7 @@ if it is larger, then the output will be truncated.
 A signature is considered to have been authenticated if the signer can
 be authenticated.  If the signer is provided via `--signer-file`,
 then the signer is considered authenticated.  Otherwise, the signer is
-looked up and authenticated using the web of trust.  If at least one
+looked up and authenticated using the Web of Trust.  If at least one
 User ID can be fully authenticated, then the signature is considered
 to have been authenticated.  If the signature includes a Signer User
 ID subpacket, then only that User ID is considered.  Note: the User ID

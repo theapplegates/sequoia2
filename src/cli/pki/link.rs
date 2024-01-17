@@ -126,20 +126,20 @@ $ sq pki link add 0123456789ABCDEF '<romeo@example.org>'
 # 0123456789ABCDEF with its current set of self-signed User IDs.
 $ sq export --cert 0123456789ABCDEF | sq inspect
 ...
-$ sq pki link add 0123456789ABCDEF
+$ sq pki link add 0123456789ABCDEF --all
 
 # The user links the certificate and its current self-signed User
 # IDs for a week.
-$ sq pki link add --expires-in 1w 0123456789ABCDEF
+$ sq pki link add --expires-in 1w 0123456789ABCDEF --all
 
 # The user accepts the certificate, and its current self-signed User
 # IDs as a certification authority.  That is, the certificate is
 # considered a trust root.
-$ sq pki link add --ca '*' 0123456789ABCDEF
+$ sq pki link add --ca '*' 0123456789ABCDEF --all
 
 # The user accepts the certificate and its current self-signed User
 # IDs as a partially trusted certification authority.
-$ sq pki link add --ca --amount 60 0123456789ABCDEF
+$ sq pki link add --ca '*' --amount 60 0123456789ABCDEF --all
 
 # The user retracts their acceptance of 0123456789ABCDEF and any
 # associated User IDs.  This effectively invalidates any links.
@@ -167,9 +167,9 @@ pub struct AddCommand {
         help = "Marks the certificate as a certification authority for a domain",
         long_help =
             "Marks the certificate as a certification authority for a  \
-             domain.  Use * to make the certificate a certification for \
-             any User ID.  \
-             \
+             domain.  Use `*` to make the certificate a certification
+             authority for any User ID.
+
              A certification authority is also referred to as a trusted \
              introducer.  This command is equivalent to making the trust \
              depth unconstrained, i.e., setting the depth to 255.  See \

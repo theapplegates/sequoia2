@@ -737,7 +737,7 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
             eprint!(" (");
             if $n > 0 {
                 if std::io::stderr().is_terminal() {
-                    let mut stderr = StandardStream::stderr(ColorChoice::Always);
+                    let mut stderr = StandardStream::stderr(ColorChoice::Auto);
                     stderr.set_color(ColorSpec::new().set_fg(Some(Color::Red)))?;
                     write!(&mut stderr, "BAD")?;
                     stderr.reset()?;
@@ -746,7 +746,7 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
                 }
             } else {
                 if std::io::stderr().is_terminal() {
-                    let mut stderr = StandardStream::stderr(ColorChoice::Always);
+                    let mut stderr = StandardStream::stderr(ColorChoice::Auto);
                     stderr.set_color(ColorSpec::new().set_fg(Some(Color::Green)))?;
                     write!(&mut stderr, "GOOD")?;
                     stderr.reset()?;

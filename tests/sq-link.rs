@@ -140,7 +140,7 @@ fn sq_link(cert_store: &str,
 {
     let mut cmd = Command::cargo_bin("sq").expect("have sq");
     cmd.args(&["--cert-store", cert_store]);
-    cmd.args(&["link", "add", "--time", &tick(), cert]);
+    cmd.args(&["pki", "link", "add", "--time", &tick(), cert]);
     cmd.args(userids);
     cmd.args(more_args);
     eprintln!("{:?}", cmd);
@@ -151,12 +151,12 @@ fn sq_link(cert_store: &str,
 
     if success {
         assert!(output.status.success(),
-                "'sq link add' failed unexpectedly\
+                "'sq pki link add' failed unexpectedly\
                  \nstdout:\n{}\nstderr:\n{}",
                 stdout, stderr);
     } else {
         assert!(! output.status.success(),
-                "'sq link add' succeeded unexpectedly\
+                "'sq pki link add' succeeded unexpectedly\
                  \nstdout:\n{}\nstderr:\n{}",
                 stdout, stderr);
     }
@@ -169,7 +169,7 @@ fn sq_retract(cert_store: &str, cert: &str, userids: &[&str])
 {
     let mut cmd = Command::cargo_bin("sq").expect("have sq");
     cmd.args(&["--cert-store", cert_store]);
-    cmd.args(&["link", "retract", "--time", &tick(), cert]);
+    cmd.args(&["pki", "link", "retract", "--time", &tick(), cert]);
     cmd.args(userids);
     eprintln!("{:?}", cmd);
     let output = cmd.output().expect("can run");
@@ -177,7 +177,7 @@ fn sq_retract(cert_store: &str, cert: &str, userids: &[&str])
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
     assert!(output.status.success(),
-            "sq link retract\nstdout:\n{}\nstderr:\n{}",
+            "sq pki link retract\nstdout:\n{}\nstderr:\n{}",
             stdout, stderr);
 
     (output.status, stdout, stderr)

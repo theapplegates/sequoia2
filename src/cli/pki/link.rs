@@ -1,12 +1,12 @@
-//! Command-line parser for `sq link`.
+//! Command-line parser for `sq pki link`.
 
 use clap::{ArgGroup, Parser, Subcommand};
 
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
-use super::types::Expiry;
-use super::types::TrustAmount;
+use crate::cli::types::Expiry;
+use crate::cli::types::TrustAmount;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -31,10 +31,10 @@ authenticated for that certificate.
 data.  For instance, `sq verify` considers signatures made by an
 authenticated certificate to be authentic.
 
-Users can create a link using `sq link add`.  That link can later be
-retracted using `sq link retract`.  A certificate can also be
+Users can create a link using `sq pki link add`.  That link can later be
+retracted using `sq pki link retract`.  A certificate can also be
 accepted as a trusted introducer by passing the `--ca` option to
-`sq link add`.
+`sq pki link add`.
 
 `sq` implements linking using non-exportable certifications, and an
 implicit trust root.  An OpenPGP certificate directory, the default
@@ -52,21 +52,21 @@ previous link.
 after_help = "EXAMPLES:
 
 # Link 0123456789ABCDEF and User ID '<romeo@example.org>'.
-$ sq link add 0123456789ABCDEF '<romeo@example.org>'
+$ sq pki link add 0123456789ABCDEF '<romeo@example.org>'
 
 # Link the certificate 0123456789ABCDEF with its current set of
 # self-signed User IDs as a trusted introducer for example.org.
-$ sq link add --ca example.org 0123456789ABCDEF
+$ sq pki link add --ca example.org 0123456789ABCDEF
 
 # Link the certificate 0123456789ABCDEF with its current set of
 # self-signed User IDs as a trusted introducer.
-$ sq link add --ca '*' 0123456789ABCDEF
+$ sq pki link add --ca '*' 0123456789ABCDEF
 
 # Retract the link between 0123456789ABCDEF and '<romeo@example.org>'.
-$ sq link retract 0123456789ABCDEF '<romeo@example.org>'
+$ sq pki link retract 0123456789ABCDEF '<romeo@example.org>'
 
 # Retract all links associated with 0123456789ABCDEF.
-$ sq link retract 0123456789ABCDEF
+$ sq pki link retract 0123456789ABCDEF
 ",
     subcommand_required = true,
     arg_required_else_help = true,
@@ -97,7 +97,7 @@ A certificate can also be accepted as a certification authority, which
 is also known as a trusted introducer, by using the `--ca` or
 `--depth` option.
 
-A link can be retracted using `sq link retract`.
+A link can be retracted using `sq pki link retract`.
 
 This command is similar to `sq pki certify`, but the certifications it
 makes are done using the certificate directory's trust root, not an
@@ -112,7 +112,7 @@ Using the `--expiry` argument specific validity periods may be defined.
 It allows for providing a point in time for validity to end or a validity
 duration.
 
-`sq link` respects the reference time set by the top-level `--time`
+`sq pki link` respects the reference time set by the top-level `--time`
 argument. It sets the link's creation time to the reference time.
 ",
     after_help =
@@ -120,30 +120,30 @@ argument. It sets the link's creation time to the reference time.
 
 # The user links 0123456789ABCDEF and the User ID
 # '<romeo@example.org>'.
-$ sq link add 0123456789ABCDEF '<romeo@example.org>'
+$ sq pki link add 0123456789ABCDEF '<romeo@example.org>'
 
 # The user examines 0123456789ABCDEF and then accepts the certificate
 # 0123456789ABCDEF with its current set of self-signed User IDs.
 $ sq export --cert 0123456789ABCDEF | sq inspect
 ...
-$ sq link add 0123456789ABCDEF
+$ sq pki link add 0123456789ABCDEF
 
 # The user links the certificate and its current self-signed User
 # IDs for a week.
-$ sq link add --expires-in 1w 0123456789ABCDEF
+$ sq pki link add --expires-in 1w 0123456789ABCDEF
 
 # The user accepts the certificate, and its current self-signed User
 # IDs as a certification authority.  That is, the certificate is
 # considered a trust root.
-$ sq link add --ca '*' 0123456789ABCDEF
+$ sq pki link add --ca '*' 0123456789ABCDEF
 
 # The user accepts the certificate and its current self-signed User
 # IDs as a partially trusted certification authority.
-$ sq link add --ca --amount 60 0123456789ABCDEF
+$ sq pki link add --ca --amount 60 0123456789ABCDEF
 
 # The user retracts their acceptance of 0123456789ABCDEF and any
 # associated User IDs.  This effectively invalidates any links.
-$ sq link retract 0123456789ABCDEF
+$ sq pki link retract 0123456789ABCDEF
 ",
 )]
 #[clap(group(ArgGroup::new("expiration-group")
@@ -327,12 +327,12 @@ pub struct AddCommand {
 "Retracts links
 
 This command retracts links that were previously created using `sq
-link add`.  See that subcommand's documentation for more details.
+pki link add`.  See that subcommand's documentation for more details.
 Note: this is called `retract` and not `remove`, because the
 certifications are not removed.  Instead a new certification is added,
 which says that the binding has not been authenticated.
 
-`sq link retract` respects the reference time set by the top-level
+`sq pki link retract` respects the reference time set by the top-level
 `--time` argument.  This causes a link to be retracted as of a
 particular time instead of the current time.
 ",

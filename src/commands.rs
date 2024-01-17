@@ -38,7 +38,6 @@ pub mod keyring;
 pub mod import;
 pub mod export;
 pub mod net;
-pub mod link;
 pub mod packet;
 pub mod verify;
 pub mod pki;

@@ -82,7 +82,6 @@ pub mod import;
 pub mod inspect;
 pub mod key;
 pub mod keyring;
-pub mod link;
 pub mod network;
 pub mod output;
 pub mod packet;
@@ -341,7 +340,6 @@ pub enum SqSubcommands {
     Keyring(keyring::Command),
     Import(import::Command),
     Export(export::Command),
-    Link(link::Command),
     Pki(pki::Command),
 
     Autocrypt(autocrypt::Command),

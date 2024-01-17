@@ -1144,10 +1144,6 @@ fn main() -> Result<()> {
             commands::key::dispatch(config, command)?
         }
 
-        SqSubcommands::Link(command) => {
-            commands::link::link(config, command)?
-        }
-
         SqSubcommands::Pki(command) => {
             commands::pki::dispatch(config, command)?
         }

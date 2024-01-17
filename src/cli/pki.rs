@@ -12,6 +12,7 @@ use openpgp::packet::UserID;
 use crate::cli::types::TrustAmount;
 
 pub mod certify;
+pub mod link;
 
 #[derive(Debug, Parser)]
 #[clap(
@@ -48,6 +49,7 @@ pub enum Subcommands {
     Lookup(LookupCommand),
     Identify(IdentifyCommand),
     Certify(certify::Command),
+    Link(link::Command),
     List(ListCommand),
     Path(PathCommand),
 }

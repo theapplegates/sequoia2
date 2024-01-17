@@ -72,7 +72,7 @@ local certificate store, any User IDs with the email address that was
 looked up are certificated with a local WKD-specific key.  That proxy
 certificate is in turn certified as a minimally trusted CA (trust
 amount: 1 of 120) by the local trust root.  How much the WKD proxy CA
-is trusted can be tuned using `sq link add` or `sq link retract`
+is trusted can be tuned using `sq pki link add` or `sq pki link retract`
 in the usual way.
 "
 )]

@@ -18,6 +18,7 @@ use wot::store::Backend;
 use wot::store::Store;
 
 pub mod certify;
+pub mod link;
 pub mod output;
 
 use crate::cli;
@@ -599,6 +600,9 @@ pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
 
         Subcommands::Certify(command) =>
             self::certify::certify(config, command)?,
+
+        Subcommands::Link(command) =>
+            self::link::link(config, command)?,
     }
 
     Ok(())

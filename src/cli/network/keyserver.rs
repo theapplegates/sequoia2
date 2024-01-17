@@ -67,7 +67,7 @@ imported into the local certificate store, the User IDs are also
 certificated with a local server-specific key.  That proxy certificate
 is in turn certified as a minimally trusted CA (trust amount: 1 of
 120) by the local trust root.  How much a proxy key server CA is
-trusted can be tuned using `sq link add` or `sq link retract` in
+trusted can be tuned using `sq pki link add` or `sq pki link retract` in
 the usual way.
 "
 )]

@@ -61,6 +61,10 @@
 /// - Examples MUST use single quotes where necessary.
 ///
 /// - Examples MUST NOT use unnecessary quoting.
+// Workaround so that the above documentation is rendered somewhere in
+// the API docs.
+#[allow(dead_code)]
+pub const USER_INTERFACE_GUIDELINES: () = ();
 
 use std::path::PathBuf;
 use std::time::Duration;

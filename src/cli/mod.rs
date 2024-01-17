@@ -23,6 +23,15 @@
 ///   same or an equivalent thing, and should use the same phrases in
 ///   the help texts, to the extent possible.
 ///
+/// - Subcommands SHOULD be of the form `sq [OBJECT..] VERB`.
+///
+///   - The object SHOULD be present, except for the top level
+///     commands `encrypt`, `decrypt`, `sign`, `verify`, and
+///     `inspect`.
+///
+/// - Subcommands SHOULD be grouped by topic, and ordered from most
+///   often used to least often used.
+///
 /// ## Terminology
 ///
 /// - "certificate" or "cert" instead of "public key", "key", or
@@ -326,10 +335,10 @@ $ sq --time 20130721T0550+0200 verify msg.pgp
 ///
 ///   - Encryption & decryption
 ///   - Signing & verification
+///   - Inspection
 ///   - Key & cert-ring management
 ///   - Key discovery & networking
-///   - Armor
-///   - Inspection & packet manipulation
+///   - Tools for developers, maintainers, forensic specialists
 ///
 /// The order is derived from the order of variants in this enum.
 #[derive(Debug, Subcommand)]
@@ -340,6 +349,8 @@ pub enum SqSubcommands {
     Sign(sign::Command),
     Verify(verify::Command),
 
+    Inspect(inspect::Command),
+
     Key(key::Command),
     Keyring(keyring::Command),
     Import(import::Command),
@@ -349,7 +360,6 @@ pub enum SqSubcommands {
     Autocrypt(autocrypt::Command),
     Network(network::Command),
 
-    Inspect(inspect::Command),
     Packet(packet::Command),
 
     OutputVersions(output::Command),

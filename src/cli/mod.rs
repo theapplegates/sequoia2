@@ -47,16 +47,16 @@
 ///
 /// - The first line of the about texts MUST NOT end in a period.
 ///
-/// - To define terms, enclose them in double quotes: "certificate".
+/// - To define terms, enclose them in double quotes: `"certificate"`.
 ///
 /// - To include inline code fragments, like options or other
 ///   subcommands, use back ticks: `--foo` or `sq foo bar`.
 ///
-/// - When referring to options, do not include the VALUENAME.
+/// - When referring to options, do not include the `VALUENAME`.
 ///
-/// - Enclose URLs in angle brackets: <https://example.org>.
+/// - Enclose URLs in angle brackets: `<https://example.org>`.
 ///
-/// - Use a spaced en dash for parenthetical statements (" – ").
+/// - Use a spaced en dash for parenthetical statements (` – `).
 ///
 /// ## Examples
 ///
@@ -65,7 +65,7 @@
 /// - Every example MUST have a brief description.
 ///
 /// - Examples SHOULD be short and to the point, they SHOULD NOT
-///   include unnecessary options (like --keyring).
+///   include unnecessary options (like `--keyring`).
 ///
 /// - Examples MUST use single quotes where necessary.
 ///

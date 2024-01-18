@@ -35,6 +35,7 @@ fn sq_sign() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton-private.pgp")])
         .args(["--output", &sig.to_string_lossy()])
@@ -70,6 +71,7 @@ fn sq_sign() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
         .arg(&*sig.to_string_lossy())
@@ -86,6 +88,7 @@ fn sq_sign_with_notations() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton-private.pgp")])
         .args(["--output", &sig.to_string_lossy()])
@@ -149,6 +152,7 @@ fn sq_sign_with_notations() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .args(["--known-notation", "foo"])
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
@@ -166,6 +170,7 @@ fn sq_sign_append() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton-private.pgp")])
         .args(["--output", &sig0.to_string_lossy()])
@@ -201,6 +206,7 @@ fn sq_sign_append() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -212,6 +218,7 @@ fn sq_sign_append() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .arg("--append")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
@@ -262,6 +269,7 @@ fn sq_sign_append() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
         .arg(&*sig1.to_string_lossy())
@@ -270,6 +278,7 @@ fn sq_sign_append() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
         .arg(&*sig1.to_string_lossy())
@@ -332,6 +341,7 @@ fn sq_sign_append_on_compress_then_sign() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -343,6 +353,7 @@ fn sq_sign_append_on_compress_then_sign() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .arg("--append")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
@@ -396,6 +407,7 @@ fn sq_sign_append_on_compress_then_sign() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -405,6 +417,7 @@ fn sq_sign_append_on_compress_then_sign() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -421,6 +434,7 @@ fn sq_sign_detached() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .arg("--detached")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton-private.pgp")])
@@ -446,6 +460,7 @@ fn sq_sign_detached() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
         .args(["--detached", &sig.to_string_lossy()])
@@ -463,6 +478,7 @@ fn sq_sign_detached_append() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .arg("--detached")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton-private.pgp")])
@@ -488,6 +504,7 @@ fn sq_sign_detached_append() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
         .args(["--detached", &sig.to_string_lossy()])
@@ -499,6 +516,7 @@ fn sq_sign_detached_append() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .arg("--detached")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
@@ -511,6 +529,7 @@ fn sq_sign_detached_append() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .arg("--detached")
         .arg("--append")
@@ -542,6 +561,7 @@ fn sq_sign_detached_append() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
         .args(["--detached", &sig.to_string_lossy()])
@@ -552,6 +572,7 @@ fn sq_sign_detached_append() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
         .args(["--detached", &sig.to_string_lossy()])
@@ -564,6 +585,7 @@ fn sq_sign_detached_append() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .arg("--detached")
         .arg("--append")
@@ -602,6 +624,7 @@ fn sq_sign_append_a_notarization() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .arg("--append")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
@@ -663,6 +686,7 @@ fn sq_sign_append_a_notarization() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/neal.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -671,6 +695,7 @@ fn sq_sign_append_a_notarization() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -679,6 +704,7 @@ fn sq_sign_append_a_notarization() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -696,6 +722,7 @@ fn sq_sign_notarize() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .arg("--notarize")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
@@ -745,6 +772,7 @@ fn sq_sign_notarize() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/neal.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -753,6 +781,7 @@ fn sq_sign_notarize() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -770,6 +799,7 @@ fn sq_sign_notarize_a_notarization() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .arg("--notarize")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
@@ -831,6 +861,7 @@ fn sq_sign_notarize_a_notarization() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/neal.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -839,6 +870,7 @@ fn sq_sign_notarize_a_notarization() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -847,6 +879,7 @@ fn sq_sign_notarize_a_notarization() {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
         .arg(&*sig0.to_string_lossy())
@@ -878,7 +911,7 @@ fn sq_multiple_signers() -> Result<()> {
     // Sign message.
     let assertion = Command::cargo_bin("sq")?
         .args([
-            "--no-cert-store",
+            "--no-cert-store", "--no-key-store",
             "sign",
             "--signer-file", alice_pgp.to_str().unwrap(),
             "--signer-file", &bob_pgp.to_str().unwrap(),
@@ -957,6 +990,7 @@ fn sq_sign_using_cert_store() -> Result<()> {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .args(["--signer-file", &alice_pgp])
         .args(["--output", &msg_pgp])
@@ -998,6 +1032,7 @@ fn sq_sign_using_cert_store() -> Result<()> {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .args(["--signer-file", &alice_pgp])
         .arg(&msg_pgp)
@@ -1008,6 +1043,7 @@ fn sq_sign_using_cert_store() -> Result<()> {
     // certificate or use a certificate store.
     let mut cmd = Command::cargo_bin("sq").unwrap();
     cmd.arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("verify")
         .arg(&msg_pgp);
     let output = cmd.output().expect("success");
@@ -1098,6 +1134,7 @@ fn sq_verify_wot() -> Result<()> {
     {
         let mut cmd = Command::cargo_bin("sq").expect("have sq");
         cmd.args(["--no-cert-store",
+                  "--no-key-store",
                   "key", "generate",
                   "--expiry", "never",
                   "--output", file]);
@@ -1120,6 +1157,7 @@ fn sq_verify_wot() -> Result<()> {
                      msg_pgp: &str|
     {
         let mut cmd = Command::cargo_bin("sq").expect("have sq");
+        cmd.arg("--no-key-store");
         if let Some(cert_store) = cert_store {
             cmd.args(&["--cert-store", cert_store]);
         } else {
@@ -1186,6 +1224,7 @@ fn sq_verify_wot() -> Result<()> {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .args(["--signer-file", &bob_pgp])
         .args(["--signer-file", &carol_pgp])

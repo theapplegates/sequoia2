@@ -27,6 +27,18 @@
      write the assets to a predictable location, set the environment
      variable `ASSET_OUT_DIR` to a suitable location.
 
+   - `sq` now uses `sequoia-keystore` for secret key operations.
+
+     When decrypting a message, `sq` will automatically ask the
+     keystore to decrypt the message.  `sq sign --signer-key` can be
+     used to specify a signing key managed by the key store.
+
+   - New top-level option: `sq --no-key-store`: A new switch to
+     disable the use of the key store.
+
+   - New top-level option: `sq --key-store`: A new option to use an
+     alternate key store.
+
 * Changes in 0.32.0
 ** New functionality
    - Support for password-encrypted keys has been improved.  For

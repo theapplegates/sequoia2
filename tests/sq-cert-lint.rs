@@ -76,6 +76,7 @@ mod integration {
             sq()
                 .current_dir(&dir)
                 .arg("--no-cert-store")
+                .arg("--no-key-store")
                 .arg("cert").arg("lint")
                 .arg("--time").arg(FROZEN_TIME)
                 .arg(filename)
@@ -110,6 +111,7 @@ mod integration {
             let mut cmd = cmd.current_dir(&dir)
                 .args(&[
                     "--no-cert-store",
+                    "--no-key-store",
                     "cert", "lint",
                     "--time", FROZEN_TIME,
                     "--fix", &format!("{}-{}.pgp", base, suffix)
@@ -130,6 +132,7 @@ mod integration {
                         Command::cargo_bin("sq").unwrap()
                             .current_dir(&dir)
                             .arg("--no-cert-store")
+                            .arg("--no-key-store")
                             .arg("cert").arg("lint")
                             .arg("--time").arg(FROZEN_TIME)
                             .arg("-")
@@ -428,6 +431,7 @@ mod integration {
             .current_dir(&dir())
             .args(&[
                 "--no-cert-store",
+                "--no-key-store",
                 "cert", "lint",
                 "--time", FROZEN_TIME,
                 "--list-keys",
@@ -448,6 +452,7 @@ mod integration {
             .current_dir(&dir())
             .args(&[
                 "--no-cert-store",
+                "--no-key-store",
                 "cert", "lint",
                 "--time", FROZEN_TIME,
                 "msg.sig",

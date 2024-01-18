@@ -114,6 +114,7 @@ mod integration {
             let mut cmd = Command::cargo_bin("sq")?;
             cmd.current_dir(&dir())
                 .arg("--no-cert-store")
+                .arg("--no-key-store")
                 .args(&["--output-format", &format!("{}", outputformat)])
                 .args(&["--keyring", keyring]);
             if let Some(trust_root) = trust_root {

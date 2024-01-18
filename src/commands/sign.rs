@@ -7,6 +7,9 @@ use tempfile::NamedTempFile;
 
 use sequoia_openpgp as openpgp;
 use openpgp::armor;
+use openpgp::crypto::Password;
+use openpgp::KeyHandle;
+use openpgp::KeyID;
 use openpgp::{Packet, Result};
 use openpgp::packet::prelude::*;
 use openpgp::packet::signature::subpacket::NotationData;
@@ -20,6 +23,7 @@ use openpgp::serialize::stream::{
 };
 use openpgp::types::SignatureType;
 
+use crate::best_effort_primary_uid;
 use crate::Config;
 use crate::load_certs;
 use crate::parse_notations;
@@ -47,6 +51,7 @@ pub fn dispatch(config: Config, command: cli::sign::Command) -> Result<()> {
     let private_key_store = command.private_key_store.as_deref();
     let secrets =
         load_certs(command.secret_key_file.iter().map(|s| s.as_ref()))?;
+    let signer_keys = &command.signer_key[..];
     let time = Some(config.time);
 
     let notations = parse_notations(command.notation)?;
@@ -70,6 +75,7 @@ pub fn dispatch(config: Config, command: cli::sign::Command) -> Result<()> {
              &mut input,
              output,
              secrets,
+             signer_keys,
              detached,
              binary,
              append,
@@ -87,6 +93,7 @@ pub fn sign<'a, 'certdb>(
     input: &'a mut (dyn io::Read + Sync + Send),
     output: &'a FileOrStdout,
     secrets: Vec<openpgp::Cert>,
+    signer_keys: &[KeyHandle],
     detached: bool,
     binary: bool,
     append: bool,
@@ -102,6 +109,7 @@ pub fn sign<'a, 'certdb>(
                       input,
                       output,
                       secrets,
+                      signer_keys,
                       detached,
                       binary,
                       append,
@@ -126,6 +134,7 @@ fn sign_data<'a, 'certdb>(
     input: &'a mut (dyn io::Read + Sync + Send),
     output_path: &'a FileOrStdout,
     secrets: Vec<openpgp::Cert>,
+    signer_keys: &[KeyHandle],
     detached: bool,
     binary: bool,
     append: bool,
@@ -169,7 +178,77 @@ fn sign_data<'a, 'certdb>(
 
     let mut keypairs = super::get_signing_keys(
         &secrets, &config.policy, private_key_store, time, None)?;
-    if keypairs.is_empty() {
+
+    let mut signer_keys = if signer_keys.is_empty() {
+        Vec::new()
+    } else {
+        let mut ks = config.key_store_or_else()?.lock().unwrap();
+
+        signer_keys.into_iter()
+            .map(|kh| {
+                let keys = ks.find_key(kh.clone())?;
+
+                match keys.len() {
+                    0 => return Err(anyhow::anyhow!(
+                        "{} is not present on keystore", kh)),
+                    1 => (),
+                    n => {
+                        eprintln!("Warning: {} is present on multiple \
+                                   ({}) devices",
+                                  kh, n);
+                    }
+                }
+                let mut key = keys.into_iter().next().expect("checked for one");
+
+                match key.locked() {
+                    Ok(true) => {
+                        let fpr = key.fingerprint();
+                        let cert = config.lookup_one(
+                            &KeyHandle::from(&fpr), None, true);
+                        let display = match cert {
+                            Ok(cert) => {
+                                format!(" ({})",
+                                        String::from_utf8_lossy(
+                                            best_effort_primary_uid(
+                                                &cert, &config.policy,
+                                                config.time)
+                                                .value()))
+                            }
+                            Err(_) => {
+                                "".to_string()
+                            }
+                        };
+                        let keyid = KeyID::from(&fpr);
+
+                        loop {
+                            let password = Password::from(rpassword::prompt_password(
+                                format!("Enter password to unlock {}{}: ",
+                                        keyid, display))?);
+                            match key.unlock(password) {
+                                Ok(()) => break,
+                                Err(err) => {
+                                    wprintln!("Unlocking {}: {}.", keyid, err);
+                                }
+                            }
+                        }
+                    }
+                    Ok(false) => {
+                        // Already unlocked, nothing to do.
+                    }
+                    Err(err) => {
+                        // Failed to get the key's locked status.  Just print
+                        // a warning now.  We'll (probably) fail more later.
+                        wprintln!("Getting {}'s status: {}",
+                                  key.keyid(), err);
+                    }
+                }
+
+                Ok(key)
+            })
+        .collect::<Result<Vec<_>>>()?
+    };
+
+    if keypairs.is_empty() && signer_keys.is_empty() {
         return Err(anyhow::anyhow!("No signing keys found"));
     }
 
@@ -202,13 +281,25 @@ fn sign_data<'a, 'certdb>(
             *critical)?;
     }
 
-    let mut signer = Signer::with_template(
-        message, keypairs.pop().unwrap().0, builder);
+    let mut signer = if keypairs.is_empty() {
+        Signer::with_template(
+            message,
+            signer_keys.pop().unwrap(),
+            builder)
+    } else {
+        Signer::with_template(
+            message,
+            keypairs.pop().unwrap().0,
+            builder)
+    };
     if let Some(time) = time {
         signer = signer.creation_time(time);
     }
     for s in keypairs {
         signer = signer.add_signer(s.0);
+    }
+    for k in signer_keys {
+        signer = signer.add_signer(k);
     }
     if detached {
         signer = signer.detached();

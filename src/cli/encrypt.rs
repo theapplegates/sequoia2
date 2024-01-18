@@ -138,6 +138,12 @@ pub struct Command {
     )]
     pub signer_key_file: Vec<PathBuf>,
     #[clap(
+        long = "signer-key",
+        value_name = "KEYID|FINGERPRINT",
+        help = "Signs the message using the specified key on the key store",
+    )]
+    pub signer_key: Vec<KeyHandle>,
+    #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",
         help = "Provides parameters for private key store",

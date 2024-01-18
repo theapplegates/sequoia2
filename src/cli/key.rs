@@ -18,6 +18,11 @@ use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::Time;
 
+use crate::cli::examples;
+use examples::Action;
+use examples::Actions;
+use examples::Example;
+
 pub mod expire;
 
 /// The revocation reason for a certificate or subkey
@@ -80,6 +85,7 @@ pub struct Command {
 
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
+    List(ListCommand),
     Generate(GenerateCommand),
     Password(PasswordCommand),
     Expire(expire::Command),
@@ -91,6 +97,27 @@ pub enum Subcommands {
     ExtractCert(ExtractCertCommand),
     AttestCertifications(AttestCertificationsCommand),
     Adopt(AdoptCommand),
+}
+
+const LIST_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Lists the keys managed by the keystore server.",
+            command: &[
+                "sq", "key", "list",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_key_list, LIST_EXAMPLES);
+
+#[derive(Debug, Args)]
+#[clap(
+    about = "Lists keys managed by the key store",
+    after_help = LIST_EXAMPLES,
+)]
+pub struct ListCommand {
 }
 
 #[derive(Debug, Args)]

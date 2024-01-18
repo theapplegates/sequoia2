@@ -60,6 +60,7 @@ fn sq_gen_key(cert_store: Option<&str>, userids: &[&str], file: &str) -> Cert
 {
     let mut cmd = Command::cargo_bin("sq").expect("have sq");
     cmd.args(["--no-cert-store",
+              "--no-key-store",
               "key", "generate",
               "--time", &tick(),
               "--expiry", "never",
@@ -86,6 +87,7 @@ fn sq_verify(cert_store: Option<&str>,
              good_sigs: usize, good_checksums: usize)
 {
     let mut cmd = Command::cargo_bin("sq").expect("have sq");
+    cmd.arg("--no-key-store");
     if let Some(cert_store) = cert_store {
         cmd.args(&["--cert-store", cert_store]);
     } else {
@@ -270,6 +272,7 @@ fn sq_link_add_retract() -> Result<()> {
         Command::cargo_bin("sq")
             .unwrap()
             .arg("--no-cert-store")
+            .arg("--no-key-store")
             .arg("sign")
             .args(["--signer-file", &data.key_file])
             .args(["--output", &data.sig_file])
@@ -403,6 +406,7 @@ fn sq_link_add_retract() -> Result<()> {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .args(["--signer-file", &ed_pgp])
         .args(["--output", &ed_sig_file])
@@ -618,6 +622,7 @@ fn sq_link_add_temporary() -> Result<()> {
     Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
+        .arg("--no-key-store")
         .arg("sign")
         .args(["--signer-file", &alice_pgp])
         .args(["--output", &alice_sig_file])

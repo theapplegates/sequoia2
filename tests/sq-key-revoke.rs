@@ -106,6 +106,7 @@ fn sq_key_revoke() -> Result<()> {
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args([
             "--no-cert-store",
+            "--no-key-store",
             "key",
             "revoke",
             "--output",
@@ -278,6 +279,7 @@ fn sq_key_revoke_thirdparty() -> Result<()> {
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args([
             "--no-cert-store",
+            "--no-key-store",
             "key",
             "revoke",
             "--output",

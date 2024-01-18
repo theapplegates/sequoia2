@@ -78,6 +78,7 @@ fn sq_key_userid_revoke() -> Result<()> {
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args([
             "--no-cert-store",
+            "--no-key-store",
             "key",
             "userid",
             "revoke",
@@ -231,6 +232,7 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args([
             "--no-cert-store",
+            "--no-key-store",
             "key",
             "userid",
             "revoke",

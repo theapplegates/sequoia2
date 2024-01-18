@@ -38,6 +38,7 @@ pub fn sq_key_generate(
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args([
         "--no-cert-store",
+        "--no-key-store",
         "key",
         "generate",
         "--time",

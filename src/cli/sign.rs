@@ -4,6 +4,9 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
+use sequoia_openpgp as openpgp;
+use openpgp::KeyHandle;
+
 use super::types::ClapData;
 use super::types::FileOrStdin;
 use super::types::FileOrStdout;
@@ -118,6 +121,12 @@ pub struct Command {
         help = "Signs the message using the key in KEY_FILE",
     )]
     pub secret_key_file: Vec<PathBuf>,
+    #[clap(
+        long = "signer-key",
+        value_name = "KEYID|FINGERPRINT",
+        help = "Signs the message using the specified key on the key store",
+    )]
+    pub signer_key: Vec<KeyHandle>,
     #[clap(
         long,
         value_names = &["NAME", "VALUE"],

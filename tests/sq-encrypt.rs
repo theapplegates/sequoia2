@@ -189,6 +189,7 @@ mod integration {
                 for key in decryption_keys.iter() {
                     let mut cmd = Command::cargo_bin("sq").unwrap();
                     cmd.args(["--no-cert-store",
+                              "--no-key-store",
                               "decrypt",
                               "--recipient-file",
                               &key])
@@ -375,6 +376,7 @@ mod integration {
                 for key in decryption_keys.iter() {
                     let mut cmd = Command::cargo_bin("sq").unwrap();
                     cmd.args(["--no-cert-store",
+                              "--no-key-store",
                               "decrypt",
                               "--recipient-file",
                               &key])

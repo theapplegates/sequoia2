@@ -9,14 +9,16 @@
 use anyhow::Context as _;
 
 use std::borrow::Borrow;
-use std::cell::OnceCell;
 use std::collections::btree_map::{BTreeMap, Entry};
 use std::fmt;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::sync::Mutex;
 use std::time::SystemTime;
 use std::sync::Arc;
+
+use once_cell::sync::OnceCell;
 
 use sequoia_openpgp as openpgp;
 
@@ -47,6 +49,8 @@ use cert_store::store::UserIDQueryParams;
 
 use sequoia_wot as wot;
 use wot::store::Store as _;
+
+use sequoia_keystore as keystore;
 
 use clap::FromArgMatches;
 
@@ -332,6 +336,11 @@ pub struct Config<'a> {
     trust_roots: Vec<Fingerprint>,
     // The local trust root, as set in the cert store.
     trust_root_local: OnceCell<Option<Fingerprint>>,
+
+    // The key store.
+    no_key_store: bool,
+    key_store_path: Option<PathBuf>,
+    key_store: OnceCell<Mutex<keystore::Keystore>>,
 }
 
 impl<'store> Config<'store> {
@@ -540,6 +549,50 @@ impl<'store> Config<'store> {
 
         cert_store.certd()
             .ok_or_else(|| anyhow::anyhow!(NO_CERTD_ERR))
+    }
+
+
+    /// Returns the key store.
+    ///
+    /// If the key store is disabled, returns `Ok(None)`.  If it is not yet
+    /// open, opens it.
+    fn key_store(&self) -> Result<Option<&Mutex<keystore::Keystore>>> {
+        if self.no_key_store {
+            return Ok(None);
+        }
+
+        self.key_store
+            .get_or_try_init(|| {
+                let dir_;
+                let dir = if let Some(dir) = self.key_store_path.as_ref() {
+                    dir
+                } else if let Some(dir) = dirs::data_dir() {
+                    dir_ = dir.join("sequoia");
+                    &dir_
+                } else {
+                    return Err(anyhow::anyhow!(
+                        "No key store, the XDG data directory is not defined"));
+                };
+
+                let c = keystore::Context::configure()
+                    .home(dir)
+                    .build()?;
+                let ks = keystore::Keystore::connect(&c)
+                    .context("Connecting to key store")?;
+
+                Ok(Mutex::new(ks))
+            })
+            .map(Some)
+    }
+
+    /// Returns the key store.
+    ///
+    /// If the key store is disabled, returns an error.
+    fn key_store_or_else(&self) -> Result<&Mutex<keystore::Keystore>> {
+        self.key_store().and_then(|key_store| key_store.ok_or_else(|| {
+            anyhow::anyhow!("Operation requires a key store, \
+                             but the key store is disabled")
+        }))
     }
 
     /// Looks up an identifier.
@@ -1017,6 +1070,9 @@ fn main() -> Result<()> {
         cert_store: OnceCell::new(),
         trust_roots: c.trust_roots.clone(),
         trust_root_local: Default::default(),
+        no_key_store: c.no_key_store,
+        key_store_path: c.key_store.clone(),
+        key_store: OnceCell::new(),
     };
 
     commands::dispatch(config, c)

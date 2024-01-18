@@ -167,6 +167,7 @@ macro_rules! test_examples {
                 Command::cargo_bin(command[0]).unwrap()
                     .current_dir(&tmp_dir)
                     .env("SQ_CERT_STORE", &cert_store)
+                    .arg("--no-key-store")
                     .args(&command[1..])
                     .assert()
                     .success();

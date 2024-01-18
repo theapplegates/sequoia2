@@ -289,6 +289,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed570934406eb16438a4e976b1b4500774099c13b8cb96eec99f620f05090ddf"
 
 [[package]]
+name = "blanket"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0b121a9fe0df916e362fb3271088d071159cdf11db0e4182d02152850756eff"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.48",
+]
+
+[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -401,6 +412,45 @@ checksum = "3264e2574e9ef2b53ce6f536dea83a69ac0bc600b762d1523ff83fe07230ce30"
 dependencies = [
  "byteorder",
  "cipher",
+]
+
+[[package]]
+name = "capnp"
+version = "0.18.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "384b671a5b39eadb909b0c2b81d22a400d446526e651e64be9eb6674b33644a4"
+dependencies = [
+ "embedded-io",
+]
+
+[[package]]
+name = "capnp-futures"
+version = "0.18.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8697b857f5b014ff378f02817426d3b6fb90a69f32e330fe010f24fe10cf8f1"
+dependencies = [
+ "capnp",
+ "futures",
+]
+
+[[package]]
+name = "capnp-rpc"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94b87a9e0f74600628e227d39b79ef8652c558a408999ac46ba22b19dbad0010"
+dependencies = [
+ "capnp",
+ "capnp-futures",
+ "futures",
+]
+
+[[package]]
+name = "capnpc"
+version = "0.18.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a642faaaa78187e70bdcc0014c593c213553cfeda3b15054426d0d596048b131"
+dependencies = [
+ "capnp",
 ]
 
 [[package]]
@@ -694,6 +744,16 @@ dependencies = [
  "generic-array",
  "rand_core",
  "typenum",
+]
+
+[[package]]
+name = "ctor"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30d2b3721e861707777e3195b0158f950ae6dc4a27e4d02ff9f67e3eb3de199e"
+dependencies = [
+ "quote",
+ "syn 2.0.48",
 ]
 
 [[package]]
@@ -992,6 +1052,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "embedded-io"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "658bbadc628dc286b9ae02f0cb0f5411c056eb7487b72f0083203f115de94060"
+
+[[package]]
 name = "ena"
 version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1235,12 +1301,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "futures"
+version = "0.3.30"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "645c6916888f6cb6350d2550b80fb63e734897a8498abe35cfb732b6487804b0"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "futures-executor",
+ "futures-io",
+ "futures-sink",
+ "futures-task",
+ "futures-util",
+]
+
+[[package]]
 name = "futures-channel"
 version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eac8f7d7865dcb88bd4373ab671c8cf4508703796caa2b1985a9ca867b3fcb78"
 dependencies = [
  "futures-core",
+ "futures-sink",
 ]
 
 [[package]]
@@ -1248,6 +1330,17 @@ name = "futures-core"
 version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfc6580bb841c5a68e9ef15c77ccc837b40a7504914d52e47b8b0e9bbda25a1d"
+
+[[package]]
+name = "futures-executor"
+version = "0.3.30"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a576fc72ae164fca6b9db127eaa9a9dda0d61316034f33a0a0d4eda41f02b01d"
+dependencies = [
+ "futures-core",
+ "futures-task",
+ "futures-util",
+]
 
 [[package]]
 name = "futures-io"
@@ -1284,9 +1377,13 @@ version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d6401deb83407ab3da39eba7e33987a73c3df0c82b4bb5813ee871c19c41d48"
 dependencies = [
+ "futures-channel",
  "futures-core",
+ "futures-io",
  "futures-macro",
+ "futures-sink",
  "futures-task",
+ "memchr",
  "pin-project-lite",
  "pin-utils",
  "slab",
@@ -2357,6 +2454,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "paste"
+version = "1.0.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de3145af08024dea9fa9914f381a17b8fc6034dfb00f3a84013f7ff43f29ed4c"
+
+[[package]]
 name = "peeking_take_while"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3044,6 +3147,84 @@ dependencies = [
 ]
 
 [[package]]
+name = "sequoia-ipc"
+version = "0.31.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94fd8161ea44e9802c622e4cf088a6e9854baa573d1638f40600f76af90a9194"
+dependencies = [
+ "anyhow",
+ "buffered-reader",
+ "capnp-rpc",
+ "crossbeam-utils",
+ "ctor",
+ "dirs",
+ "fs2",
+ "futures",
+ "lalrpop",
+ "lalrpop-util",
+ "lazy_static",
+ "libc",
+ "memsec",
+ "rand",
+ "sequoia-openpgp",
+ "socket2",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tokio-util",
+ "winapi",
+]
+
+[[package]]
+name = "sequoia-keystore"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df8e6116f15b027cc5cc23093985cad774fa72671bf643813f9ef331765e9da6"
+dependencies = [
+ "anyhow",
+ "capnp",
+ "capnpc",
+ "dirs",
+ "env_logger",
+ "lazy_static",
+ "log",
+ "paste",
+ "sequoia-ipc",
+ "sequoia-keystore-backend",
+ "sequoia-keystore-softkeys",
+ "sequoia-openpgp",
+ "thiserror",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "sequoia-keystore-backend"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aaef68a858310acd7557868cf35ad4a394e155a1d6e5de8e7c651cb07e6f96fb"
+dependencies = [
+ "anyhow",
+ "blanket",
+ "sequoia-openpgp",
+ "thiserror",
+]
+
+[[package]]
+name = "sequoia-keystore-softkeys"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d24b52535e007fdefb5559902cf186fa5c2e4709d65e2ab8a99bf2fc320eccaa"
+dependencies = [
+ "anyhow",
+ "dirs",
+ "lazy_static",
+ "log",
+ "sequoia-keystore-backend",
+ "sequoia-openpgp",
+]
+
+[[package]]
 name = "sequoia-net"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3163,12 +3344,14 @@ dependencies = [
  "indicatif",
  "itertools",
  "libc",
+ "once_cell",
  "predicates",
  "regex",
  "roff",
  "rpassword",
  "sequoia-autocrypt",
  "sequoia-cert-store",
+ "sequoia-keystore",
  "sequoia-net",
  "sequoia-openpgp",
  "sequoia-policy-config",
@@ -3791,6 +3974,7 @@ checksum = "5419f34732d9eb6ee4c3578b7989078579b7f039cbbb9ca2c4da015749371e15"
 dependencies = [
  "bytes",
  "futures-core",
+ "futures-io",
  "futures-sink",
  "pin-project-lite",
  "tokio",

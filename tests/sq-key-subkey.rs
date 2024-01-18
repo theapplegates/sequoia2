@@ -23,6 +23,7 @@ fn sq_key_subkey_generate_authentication_subkey() -> Result<()> {
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args([
         "--no-cert-store",
+        "--no-key-store",
         "key",
         "subkey",
         "add",
@@ -52,6 +53,7 @@ fn sq_key_subkey_generate_encryption_subkey() -> Result<()> {
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args([
         "--no-cert-store",
+        "--no-key-store",
         "key",
         "subkey",
         "add",
@@ -91,6 +93,7 @@ fn sq_key_subkey_generate_signing_subkey() -> Result<()> {
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args([
         "--no-cert-store",
+        "--no-key-store",
         "key",
         "subkey",
         "add",
@@ -208,6 +211,7 @@ fn sq_key_subkey_revoke() -> Result<()> {
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args([
             "--no-cert-store",
+            "--no-key-store",
             "key",
             "subkey",
             "revoke",
@@ -406,6 +410,7 @@ fn sq_key_subkey_revoke_thirdparty() -> Result<()> {
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args([
             "--no-cert-store",
+            "--no-key-store",
             "key",
             "subkey",
             "revoke",

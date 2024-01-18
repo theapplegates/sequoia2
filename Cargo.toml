@@ -42,7 +42,9 @@ clap = { version = "4", features = ["derive", "env", "string", "wrap_help"] }
 humantime = "2"
 indicatif = "0.17"
 itertools = ">=0.10, <0.13"
+once_cell = "1.17"
 sequoia-cert-store = "0.4.2"
+sequoia-keystore = { version = "0.1" }
 sequoia-wot = "0.9"
 tempfile = "3.1"
 tokio = { version = "1.13.1" }

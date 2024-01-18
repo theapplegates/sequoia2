@@ -19,6 +19,8 @@ use openpgp::parse::stream::{
     VerificationHelper, DecryptionHelper, DecryptorBuilder, MessageStructure,
 };
 
+use sequoia_keystore as keystore;
+
 use crate::{
     cli,
     commands::{
@@ -200,6 +202,24 @@ impl<'a, 'certdb> Helper<'a, 'certdb> {
         }
     }
 
+    /// Checks if a session key can decrypt the packet parser using
+    /// `decrypt`.
+    fn try_session_key<D>(&self, keyid: &KeyID,
+                          algo: SymmetricAlgorithm, sk: SessionKey,
+                          decrypt: &mut D)
+        -> Option<Option<Fingerprint>>
+        where D: FnMut(SymmetricAlgorithm, &SessionKey) -> bool
+    {
+        if decrypt(algo, &sk) {
+            if self.dump_session_key {
+                wprintln!("Session key: {}", hex::encode(&sk));
+            }
+            Some(self.key_identities.get(keyid).cloned())
+        } else {
+            None
+        }
+    }
+
     /// Tries to decrypt the given PKESK packet with `keypair` and try
     /// to decrypt the packet parser using `decrypt`.
     fn try_decrypt<D>(&self, pkesk: &PKESK,
@@ -210,19 +230,8 @@ impl<'a, 'certdb> Helper<'a, 'certdb> {
         where D: FnMut(SymmetricAlgorithm, &SessionKey) -> bool
     {
         let keyid = keypair.public().fingerprint().into();
-        match pkesk.decrypt(&mut *keypair, sym_algo)
-            .and_then(|(algo, sk)| {
-                if decrypt(algo, &sk) { Some(sk) } else { None }
-            })
-        {
-            Some(sk) => {
-                if self.dump_session_key {
-                    wprintln!("Session key: {}", hex::encode(&sk));
-                }
-                Some(self.key_identities.get(&keyid).cloned())
-            },
-            None => None,
-        }
+        let (sym_algo, sk) = pkesk.decrypt(&mut *keypair, sym_algo)?;
+        self.try_session_key(&keyid, sym_algo, sk, decrypt)
     }
 }
 
@@ -260,6 +269,9 @@ impl<'a, 'certdb> DecryptionHelper for Helper<'a, 'certdb> {
                 return Ok(None);
             }
         }
+
+        // Now, we try the secret keys that the user supplied on the
+        // command line.
 
         // First, we try those keys that we can use without prompting
         // for a password.
@@ -362,6 +374,63 @@ impl<'a, 'certdb> DecryptionHelper for Helper<'a, 'certdb> {
                 {
                     return Ok(fp);
                 }
+            }
+        }
+
+        // Try the key store.
+        match self.vhelper.config.key_store_or_else() {
+            Ok(ks) => {
+                let mut ks = ks.lock().unwrap();
+                match ks.decrypt(&pkesks[..]) {
+                    // Success!
+                    Ok((_i, fpr, sym_algo, sk)) => {
+                        if let Some(fp) =
+                            self.try_session_key(
+                                &KeyID::from(fpr), sym_algo, sk, &mut decrypt)
+                        {
+                            return Ok(fp);
+                        }
+                    }
+
+                    Err(err) => {
+                        match err.downcast() {
+                            Ok(keystore::Error::InaccessibleDecryptionKey(keys)) => {
+                                for key_status in keys.into_iter() {
+                                    let pkesk = key_status.pkesk().clone();
+                                    let mut key = key_status.into_key();
+                                    let keyid = key.keyid();
+
+                                    let keypair = loop {
+                                        let password = rpassword::prompt_password(
+                                            format!(
+                                                "Enter password to unlock {}: ",
+                                                keyid))?
+                                            .into();
+
+                                        if let Ok(()) = key.unlock(password) {
+                                            break Box::new(key);
+                                        } else {
+                                            wprintln!("Bad password.");
+                                        }
+                                    };
+
+                                    if let Some(fp) = self.try_decrypt(
+                                        &pkesk, sym_algo, keypair, &mut decrypt)
+                                    {
+                                        return Ok(fp);
+                                    }
+                                }
+                            }
+                            // Failed to decrypt using the keystore.
+                            Ok(_err) => (),
+                            Err(_err) => (),
+                        }
+                    }
+                }
+            }
+            Err(err) => {
+                wprintln!("Warning: unable to connect to keystore: {}",
+                          err);
             }
         }
 

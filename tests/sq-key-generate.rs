@@ -27,6 +27,7 @@ mod integration {
         // Build up the command line.
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args(["--no-cert-store",
+                  "--no-key-store",
                   "key", "generate",
                   "--time", iso8601,
                   "--expiry", "never",

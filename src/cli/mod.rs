@@ -146,7 +146,9 @@ pub fn build() -> Command {
 Functionality is grouped and available using subcommands.  This
 interface is not completely stateless.  In particular, the user's
 default certificate store is used.  This can be disabled using
-`--no-cert-store`.
+`--no-cert-store`.  Similarly, a key store is used to manage and
+protect secret key material.  This can be disabled using
+`--no-key-store`.
 
 OpenPGP data can be provided in binary or ASCII armored form.  This
 will be handled automatically.  Emitted OpenPGP data is ASCII armored
@@ -172,6 +174,33 @@ pub struct SqCommand {
         help = "Overwrites existing files"
     )]
     pub force: bool,
+    #[clap(
+        long,
+        help = "Disables the use of the key store.",
+        long_help = "\
+Disables the use of the key store.
+
+It is still possible to use functionality that does not require the
+key store."
+    )]
+    pub no_key_store: bool,
+    #[clap(
+        long,
+        value_name = "PATH",
+        env = "SQ_KEY_STORE",
+        conflicts_with_all = &[ "no_key_store" ],
+        help = "Overrides the key store server and its data",
+        long_help = "\
+A key store server manages and protects secret key material.  By
+default, `sq` connects to the key store server listening on
+`$XDG_DATA_HOME/sequoia`.  If no key store server is running, one is
+started.
+
+This option causes `sq` to use an alternate key store server.  If
+necessary, a key store server is started, and configured to look for
+its data in the specified location."
+    )]
+    pub key_store: Option<PathBuf>,
     #[clap(
         long,
         global = true,

@@ -1128,9 +1128,8 @@ fn main() -> Result<()> {
             commands::keyring::dispatch(config, command)?
         },
 
-        SqSubcommands::Packet(command) => {
-            commands::packet::dispatch(config, command)?
-        },
+        SqSubcommands::Toolbox(command) =>
+            commands::toolbox::dispatch(config, command)?,
 
         SqSubcommands::Cert(command) =>
             commands::cert::dispatch(config, command)?,

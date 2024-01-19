@@ -1,14 +1,14 @@
-//! Command-line parser for `sq packet`.
+//! Command-line parser for `sq toolbox packet`.
 
 use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 
-use super::types::ArmorKind;
-use super::types::ClapData;
-use super::types::FileOrStdin;
-use super::types::FileOrStdout;
-use super::types::SessionKey;
+use crate::cli::types::ArmorKind;
+use crate::cli::types::ClapData;
+use crate::cli::types::FileOrStdin;
+use crate::cli::types::FileOrStdout;
+use crate::cli::types::SessionKey;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -19,7 +19,7 @@ use super::types::SessionKey;
 
 An OpenPGP data stream consists of packets.  These tools allow working
 with packet streams.  They are mostly of interest to developers, but
-`sq packet dump` may be helpful to a wider audience both to provide
+`sq toolbox packet dump` may be helpful to a wider audience both to provide
 valuable information in bug reports to OpenPGP-related software, and
 as a learning tool.
 ",
@@ -37,8 +37,6 @@ pub enum Subcommands {
     Decrypt(DecryptCommand),
     Split(SplitCommand),
     Join(JoinCommand),
-    Armor(super::armor::Command),
-    Dearmor(super::dearmor::Command),
 }
 
 #[derive(Debug, Args)]
@@ -53,22 +51,22 @@ octet stream similar to hexdump(1), annotating specifically which
 bytes are parsed into OpenPGP values.
 
 To inspect encrypted messages, either supply the session key, or see
-`sq decrypt` with the `--dump` flag, or `sq packet decrypt`.
+`sq decrypt` with the `--dump` flag, or `sq toolbox packet decrypt`.
 ",
     after_help =
 "EXAMPLES:
 
 # Prints the packets of a certificate
-$ sq packet dump juliet.pgp
+$ sq toolbox packet dump juliet.pgp
 
 # Prints cryptographic artifacts of a certificate
-$ sq packet dump --mpis juliet.pgp
+$ sq toolbox packet dump --mpis juliet.pgp
 
 # Prints a hexdump of a certificate
-$ sq packet dump --hex juliet.pgp
+$ sq toolbox packet dump --hex juliet.pgp
 
 # Prints the packets of an encrypted message
-$ sq packet dump --session-key AAAABBBBCCCC... ciphertext.pgp
+$ sq toolbox packet dump --session-key AABBCC... ciphertext.pgp
 ",
 )]
 pub struct DumpCommand {
@@ -112,13 +110,14 @@ pub struct DumpCommand {
 
 Decrypts a message, dumping the content of the encryption container
 without further processing.  The result is a valid OpenPGP message
-that can, among other things, be inspected using `sq packet dump`.
+that can, among other things, be inspected using `sq toolbox packet dump`.
 ",
     after_help =
 "EXAMPLES:
 
 # Unwraps the encryption revealing the signed message
-$ sq packet decrypt --recipient-file juliet.pgp ciphertext.pgp
+$ sq toolbox packet decrypt --recipient-file juliet.pgp \\
+     ciphertext.pgp
 ",
 )]
 pub struct DecryptCommand {
@@ -173,16 +172,16 @@ pub struct DecryptCommand {
     long_about = "Splits a message into packets
 
 Splitting a packet sequence into individual packets, then recombining
-them freely with `sq packet join` is a great way to experiment with
+them freely with `sq toolbox packet join` is a great way to experiment with
 OpenPGP data.
 
-The converse operation is `sq packet join`.
+The converse operation is `sq toolbox packet join`.
 ",
     after_help =
 "EXAMPLES:
 
 # Split a certificate into individual packets
-$ sq packet split juliet.pgp
+$ sq toolbox packet split juliet.pgp
 ",
 )]
 pub struct SplitCommand {
@@ -208,19 +207,19 @@ pub struct SplitCommand {
     long_about = "Joins packets split across files
 
 Splitting a packet sequence into individual packets, then recombining
-them freely with `sq packet join` is a great way to experiment with
+them freely with `sq toolbox packet join` is a great way to experiment with
 OpenPGP data.
 
-The converse operation is `sq packet split`.
+The converse operation is `sq toolbox packet split`.
 ",
     after_help =
 "EXAMPLES:
 
 # Split a certificate into individual packets
-$ sq packet split juliet.pgp
+$ sq toolbox packet split juliet.pgp
 
 # Then join only a subset of these packets
-$ sq packet join juliet.pgp-[0-3]*
+$ sq toolbox packet join juliet.pgp-[0-3]*
 ",
 )]
 pub struct JoinCommand {

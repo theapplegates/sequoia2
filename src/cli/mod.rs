@@ -86,9 +86,7 @@ pub mod autocrypt;
 use sequoia_openpgp as openpgp;
 use openpgp::Fingerprint;
 
-pub mod armor;
 pub mod cert;
-pub mod dearmor;
 pub mod decrypt;
 pub mod encrypt;
 pub mod inspect;
@@ -96,8 +94,8 @@ pub mod key;
 pub mod keyring;
 pub mod network;
 pub mod output;
-pub mod packet;
 pub mod sign;
+pub mod toolbox;
 pub mod verify;
 pub mod pki;
 
@@ -358,7 +356,7 @@ pub enum SqSubcommands {
     Autocrypt(autocrypt::Command),
     Network(network::Command),
 
-    Packet(packet::Command),
+    Toolbox(toolbox::Command),
 
     OutputVersions(output::Command),
 }

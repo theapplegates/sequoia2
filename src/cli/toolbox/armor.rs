@@ -1,9 +1,9 @@
 use clap::Parser;
 
-use super::types::ArmorKind;
-use super::types::ClapData;
-use super::types::FileOrStdin;
-use super::types::FileOrStdout;
+use crate::cli::types::ArmorKind;
+use crate::cli::types::ClapData;
+use crate::cli::types::FileOrStdin;
+use crate::cli::types::FileOrStdout;
 
 // TODO?: Option<_> conflicts with default value
 // TODO: use indoc to transparently (de-)indent static strings
@@ -19,16 +19,16 @@ can be transformed to an ASCII representation called ASCII Armor.  sq
 emits armored data by default, but this subcommand can be used to
 convert existing OpenPGP data to its ASCII-encoded representation.
 
-The converse operation is `sq dearmor`.
+The converse operation is `sq toolbox dearmor`.
 ",
     after_help =
 "EXAMPLES:
 
 # Convert a binary certificate to ASCII
-$ sq armor binary-juliet.pgp
+$ sq toolbox armor binary-juliet.pgp
 
 # Convert a binary message to ASCII
-$ sq armor binary-message.pgp
+$ sq toolbox armor binary-message.pgp
 "
     )]
 pub struct Command {

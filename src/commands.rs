@@ -37,7 +37,7 @@ pub mod inspect;
 pub mod key;
 pub mod keyring;
 pub mod net;
-pub mod packet;
+pub mod toolbox;
 pub mod verify;
 pub mod pki;
 

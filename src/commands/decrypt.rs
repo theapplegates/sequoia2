@@ -24,7 +24,7 @@ use openpgp::parse::stream::{
 use crate::{
     cli,
     commands::{
-        packet::dump::PacketDumper,
+        toolbox::packet::dump::PacketDumper,
         VHelper,
     },
     common::password,

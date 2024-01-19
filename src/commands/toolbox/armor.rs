@@ -41,7 +41,7 @@ fn detect_armor_kind(
     (dup.into_inner().unwrap().into_inner().unwrap(), kind)
 }
 
-pub fn dispatch(config: Config, command: cli::armor::Command)
+pub fn dispatch(config: Config, command: cli::toolbox::armor::Command)
     -> Result<()>
 {
     tracer!(TRACE, "armor::dispatch");

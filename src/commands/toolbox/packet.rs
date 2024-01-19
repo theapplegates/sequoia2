@@ -19,21 +19,24 @@ use openpgp::serialize::stream::Message;
 
 use crate::Config;
 use crate::Result;
-use crate::cli;
+use crate::cli::toolbox::packet::{
+    Command,
+    Subcommands,
+    SplitCommand,
+    JoinCommand,
+};
 use crate::cli::types::FileOrStdout;
 use crate::commands;
 use crate::load_keys;
 
-pub mod armor;
-pub mod dearmor;
 pub mod dump;
 
-pub fn dispatch(config: Config, command: cli::packet::Command)
+pub fn dispatch(config: Config, command: Command)
     -> Result<()>
 {
     tracer!(TRACE, "packet::dispatch");
     match command.subcommand {
-        cli::packet::Subcommands::Dump(command) => {
+        Subcommands::Dump(command) => {
             let mut input = command.input.open()?;
             let output_type = command.output;
             let mut output = output_type.create_unsafe(config.force)?;
@@ -49,7 +52,7 @@ pub fn dispatch(config: Config, command: cli::packet::Command)
                        session_key.as_ref(), width)?;
         },
 
-        cli::packet::Subcommands::Decrypt(command) => {
+        Subcommands::Decrypt(command) => {
             let mut input = command.input.open()?;
             let mut output = command.output.create_pgp_safe(
                 config.force,
@@ -69,24 +72,18 @@ pub fn dispatch(config: Config, command: cli::packet::Command)
             output.finalize()?;
         },
 
-        cli::packet::Subcommands::Split(command) =>
+        Subcommands::Split(command) =>
             split(config, command)?,
-        cli::packet::Subcommands::Join(command) => {
+        Subcommands::Join(command) => {
             join(config, command)?;
         }
-        cli::packet::Subcommands::Armor(command) => {
-            armor::dispatch(config, command)?
-        },
-        cli::packet::Subcommands::Dearmor(command) => {
-            dearmor::dispatch(config, command)?
-        },
     }
 
     Ok(())
 }
 
 
-pub fn split(_config: Config, c: cli::packet::SplitCommand) -> Result<()>
+pub fn split(_config: Config, c: SplitCommand) -> Result<()>
 {
     let input = c.input.open()?;
 
@@ -141,7 +138,7 @@ pub fn split(_config: Config, c: cli::packet::SplitCommand) -> Result<()>
 }
 
 /// Joins the given files.
-pub fn join(config: Config, c: cli::packet::JoinCommand) -> Result<()> {
+pub fn join(config: Config, c: JoinCommand) -> Result<()> {
     // Either we know what kind of armor we want to produce, or we
     // need to detect it using the first packet we see.
     let kind = c.kind.into();

@@ -1,8 +1,8 @@
 use clap::Parser;
 
-use super::types::ClapData;
-use super::types::FileOrStdin;
-use super::types::FileOrStdout;
+use crate::cli::types::ClapData;
+use crate::cli::types::FileOrStdin;
+use crate::cli::types::FileOrStdout;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -17,16 +17,16 @@ transparently handles armored data, but this subcommand can be used to
 explicitly convert existing ASCII-encoded OpenPGP data to its binary
 representation.
 
-The converse operation is `sq armor`.
+The converse operation is `sq toolbox armor`.
 ",
     after_help =
 "EXAMPLES:
 
 # Convert a ASCII certificate to binary
-$ sq dearmor ascii-juliet.pgp
+$ sq toolbox dearmor ascii-juliet.pgp
 
 # Convert a ASCII message to binary
-$ sq dearmor ascii-message.pgp
+$ sq toolbox dearmor ascii-message.pgp
 ",
     )]
 pub struct Command {

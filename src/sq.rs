@@ -1095,16 +1095,6 @@ fn main() -> Result<()> {
     };
 
     match c.subcommand {
-        SqSubcommands::OutputVersions(command) => {
-            if command.default {
-                println!("{}", output::DEFAULT_OUTPUT_VERSION);
-            } else {
-                for v in output::OUTPUT_VERSIONS {
-                    println!("{}", v);
-                }
-            }
-        }
-
         SqSubcommands::Decrypt(command) => {
             commands::decrypt::dispatch(config, command)?
         },
@@ -1143,6 +1133,8 @@ fn main() -> Result<()> {
 
         SqSubcommands::Network(command) =>
             commands::net::dispatch(config, command)?,
+        SqSubcommands::Version(command) =>
+            commands::version::dispatch(config, command)?,
     }
 
     Ok(())

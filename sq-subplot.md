@@ -109,9 +109,9 @@ then we can't expect anything else to work either.
 
 ~~~scenario
 given an installed sq
-when I run sq --version
+when I run sq version
 then exit code is 0
-then stdout matches regex ^sq \d+\.\d+\.\d+ .*$
+then stderr matches regex ^sq \d+\.\d+\.\d+
 ~~~
 
 # Key management: `sq key`

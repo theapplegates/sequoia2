@@ -94,10 +94,11 @@ pub mod key;
 pub mod keyring;
 pub mod network;
 pub mod output;
+pub mod pki;
 pub mod sign;
 pub mod toolbox;
 pub mod verify;
-pub mod pki;
+pub mod version;
 
 pub mod types;
 
@@ -156,6 +157,7 @@ to refer to OpenPGP keys that do contain secrets.
     subcommand_required = true,
     arg_required_else_help = true,
     disable_colored_help = true,
+    disable_version_flag = true,
 )]
 pub struct SqCommand {
     #[clap(
@@ -358,5 +360,5 @@ pub enum SqSubcommands {
 
     Toolbox(toolbox::Command),
 
-    OutputVersions(output::Command),
+    Version(version::Command),
 }

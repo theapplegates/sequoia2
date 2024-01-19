@@ -2,20 +2,8 @@ use std::fmt;
 use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
-use clap::{ValueEnum, Parser};
+use clap::ValueEnum;
 use serde::Serialize;
-
-#[derive(Parser, Debug)]
-#[clap(
-    name = "output-versions",
-    display_order = 110,
-    about = "List supported output versions",
-)]
-pub struct Command {
-    /// List only the default output version.
-    #[clap(long)]
-    pub default: bool,
-}
 
 /// What output format to prefer, when there's an option?
 #[derive(ValueEnum, Clone, Copy, Debug)]

@@ -37,9 +37,10 @@ pub mod inspect;
 pub mod key;
 pub mod keyring;
 pub mod net;
+pub mod pki;
 pub mod toolbox;
 pub mod verify;
-pub mod pki;
+pub mod version;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GetKeysOptions {

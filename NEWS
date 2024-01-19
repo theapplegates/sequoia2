@@ -2,6 +2,31 @@
 #+TITLE: sequoia-sq NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 0.33.0
+** Notable changes
+   - The command line interface has been restructured.  Please consult
+     the manual pages and review any code and documents using the
+     interface.  Notably:
+
+     - `sq import` and `sq export` have been moved to `sq cert`.
+     - `sq wot` has been renamed to `sq pki`.
+     - `sq link` and `sq certify` have been moved to `sq pki`.
+     - `sq lookup, `sq keyserver`, `sq wkd`, and `sq dane` have been
+       moved to `sq network`.
+     - All commands retrieving certificates from network services are
+       now called `fetch`, e.g. `sq network fetch` and `sq network
+       dane fetch`.  The command for publishing certs on key servers
+       is now called `sq network keyserver publish`.
+     - `sq armor`, `sq dearmor`, and `sq packet` have been moved to
+       `sq toolbox`.
+     - `sq --version` is now `sq version`, and `sq output-versions`
+       has been integrated with that command.
+
+   - The manual page generation has been improved, and manual pages
+     and shell completions are generated during the build process.  To
+     write the assets to a predictable location, set the environment
+     variable `ASSET_OUT_DIR` to a suitable location.
+
 * Changes in 0.32.0
 ** New functionality
    - Support for password-encrypted keys has been improved.  For

@@ -24,9 +24,23 @@ the implementation.
 [acceptance criteria]: https://sequoia-pgp.gitlab.io/sequoia-sq/subplot/
 [rustdoc output]: https://sequoia-pgp.gitlab.io/sequoia-sq/impl/
 
-## Building
+## Installing
 
-This crate can be built using the standard `cargo` toolchain:
+The `sq` tool can be installed using cargo:
+
+```sh
+cargo install sequoia-sq
+```
+
+Please see [sequoia-openpgp's README] for how to install build
+dependencies on your system.
+
+[sequoia-openpgp's README]: https://gitlab.com/sequoia-pgp/sequoia#requirements-and-msrv
+
+## Building from source
+
+This crate can be built from a source checkout using the standard
+`cargo` toolchain:
 
 ```sh
 cargo build

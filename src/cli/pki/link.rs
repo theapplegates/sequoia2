@@ -124,7 +124,7 @@ $ sq pki link add 0123456789ABCDEF '<romeo@example.org>'
 
 # The user examines 0123456789ABCDEF and then accepts the certificate
 # 0123456789ABCDEF with its current set of self-signed User IDs.
-$ sq export --cert 0123456789ABCDEF | sq inspect
+$ sq cert export --cert 0123456789ABCDEF | sq inspect
 ...
 $ sq pki link add 0123456789ABCDEF --all
 

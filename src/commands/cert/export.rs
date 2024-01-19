@@ -19,7 +19,7 @@ use crate::{
     print_error_chain,
 };
 
-use crate::cli::export;
+use crate::cli::cert::export;
 
 pub fn dispatch(config: Config, cmd: export::Command) -> Result<()> {
     let cert_store = config.cert_store_or_else()?;

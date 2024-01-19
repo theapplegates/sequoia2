@@ -17,7 +17,7 @@ use crate::{
     best_effort_primary_uid,
     output::sanitize::Safe,
 };
-use crate::cli::import;
+use crate::cli::cert::import;
 use crate::cli::types::FileOrStdin;
 
 

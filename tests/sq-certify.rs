@@ -569,7 +569,7 @@ fn sq_certify_using_cert_store() -> Result<()>
     // Import bob's (but not alice's!).
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--cert-store", &certd,
-              "import", &bob_pgp]);
+              "cert", "import", &bob_pgp]);
     cmd.assert().success();
 
 

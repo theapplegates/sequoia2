@@ -29,14 +29,13 @@ use crate::cli::encrypt::CompressionMode;
 use crate::cli::types::FileOrStdout;
 
 pub mod autocrypt;
+pub mod cert;
 pub mod decrypt;
 pub mod encrypt;
 pub mod sign;
 pub mod inspect;
 pub mod key;
 pub mod keyring;
-pub mod import;
-pub mod export;
 pub mod net;
 pub mod packet;
 pub mod verify;

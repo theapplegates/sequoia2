@@ -41,7 +41,7 @@ fn now() -> chrono::DateTime<chrono::Utc> {
 fn sq_import(cert_store: &str, files: &[&str], stdin: Option<&str>)
 {
     let mut cmd = Command::cargo_bin("sq").expect("have sq");
-    cmd.args(["--cert-store", cert_store, "import"]);
+    cmd.args(["--cert-store", cert_store, "cert", "import"]);
     for file in files {
         cmd.arg(file);
     }

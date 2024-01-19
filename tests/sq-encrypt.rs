@@ -47,7 +47,7 @@ mod integration {
         // Import the key.
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args(["--cert-store", &certd,
-                  "import", &key_pgp]);
+                  "cert", "import", &key_pgp]);
         cmd.assert().success();
 
         const MESSAGE: &str = "\na secret message\n\nor two\n";
@@ -140,12 +140,12 @@ mod integration {
         // Import the certificates.
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args(["--cert-store", &certd,
-                  "import", &alice_pgp]);
+                  "cert", "import", &alice_pgp]);
         cmd.assert().success();
 
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args(["--cert-store", &certd,
-                  "import", &bob_pgp]);
+                  "cert", "import", &bob_pgp]);
         cmd.assert().success();
 
         const MESSAGE: &[u8] = &[0x42; 24 * 1024 + 23];
@@ -238,7 +238,7 @@ mod integration {
                     userid, stdout, stderr);
             let mut cmd = Command::cargo_bin("sq")?;
             cmd.args(["--cert-store", &certd,
-                      "import"])
+                      "cert", "import"])
                 .write_stdin(stdout.as_bytes());
             cmd.assert().success();
         }
@@ -397,7 +397,7 @@ mod integration {
         // Import Alice's certificate.
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args(["--cert-store", &certd,
-                  "import", &alice_pgp]);
+                  "cert", "import", &alice_pgp]);
         let output = cmd.output().expect("success");
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);

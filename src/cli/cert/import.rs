@@ -13,7 +13,7 @@ use clap::Parser;
 "EXAMPLES:
 
 # Imports a certificate.
-$ sq import < juliet.pgp
+$ sq cert import < juliet.pgp
 ",
 )]
 pub struct Command {

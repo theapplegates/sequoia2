@@ -29,29 +29,29 @@ no search criteria are specified, then this will return success.",
 "EXAMPLES:
 
 # Exports all certificates.
-$ sq export > all.pgp
+$ sq cert export > all.pgp
 
 # Exports certificates with a matching User ID packet.  The binding
 # signatures are checked, but the User IDs are not authenticated.
 # Note: this check is case sensitive.
-$ sq export --userid 'Alice <alice@example.org>'
+$ sq cert export --userid 'Alice <alice@example.org>'
 
 # Exports certificates with a User ID containing the email address.
 # The binding signatures are checked, but the User IDs are not
 # authenticated.  Note: this check is case insensitive.
-$ sq export --email 'alice@example.org'
+$ sq cert export --email 'alice@example.org'
 
 # Exports certificates where the certificate (i.e., the primary key)
 # has the specified Key ID.
-$ sq export --cert 1234567812345678
+$ sq cert export --cert 1234567812345678
 
 # Exports certificates where the primary key or a subkey matches the
 # specified Key ID.
-$ sq export --key 1234567812345678
+$ sq cert export --key 1234567812345678
 
 # Exports certificates that contain a User ID with *either* (not
 # both!) email address.  Note: this check is case insensitive.
-$ sq export --email alice@example.org --email bob@example.org
+$ sq cert export --email alice@example.org --email bob@example.org
 ",
 )]
 pub struct Command {

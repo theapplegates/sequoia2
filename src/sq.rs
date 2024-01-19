@@ -1128,18 +1128,12 @@ fn main() -> Result<()> {
             commands::keyring::dispatch(config, command)?
         },
 
-        SqSubcommands::Import(command) => {
-            commands::import::dispatch(config, command)?
-        },
-
-        SqSubcommands::Export(command) => {
-            commands::export::dispatch(config, command)?
-        },
-
         SqSubcommands::Packet(command) => {
             commands::packet::dispatch(config, command)?
         },
 
+        SqSubcommands::Cert(command) =>
+            commands::cert::dispatch(config, command)?,
         SqSubcommands::Key(command) => {
             commands::key::dispatch(config, command)?
         }

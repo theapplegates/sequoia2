@@ -58,12 +58,12 @@ fn sq_import() -> Result<()>
 
         // Import.
         let mut cmd = Command::cargo_bin("sq").unwrap();
-        cmd.args(["--cert-store", &certd, "import"]);
+        cmd.args(["--cert-store", &certd, "cert", "import"]);
         cmd.args(files);
         if let Some(stdin) = stdin {
             cmd.write_stdin(stdin);
         }
-        eprintln!("sq import {}{}",
+        eprintln!("sq cert import {}{}",
                   files.join(" "),
                   if stdin.is_some() { "<BYTES" } else { "" });
         cmd.assert().success();
@@ -71,16 +71,16 @@ fn sq_import() -> Result<()>
 
         // Export.
         let mut cmd = Command::cargo_bin("sq").unwrap();
-        cmd.args(["--cert-store", &certd, "export"]);
+        cmd.args(["--cert-store", &certd, "cert", "export"]);
 
-        eprintln!("sq export...");
+        eprintln!("sq cert export...");
 
         let output = cmd.output().expect("success");
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
 
         assert!(output.status.success(),
-                "sq export should succeed\n\
+                "sq cert export should succeed\n\
                  stdout:\n{}\nstderr:\n{}",
                 stdout, stderr);
 

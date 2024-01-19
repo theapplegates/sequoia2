@@ -75,7 +75,7 @@ mod integration {
 
             let mut cmd = Command::cargo_bin("sq")?;
             cmd.args(["--cert-store", &certd,
-                      "import",
+                      "cert", "import",
                       &data.filename]);
             cmd.assert().success();
         }
@@ -126,14 +126,14 @@ mod integration {
         let call = |args: &[&str], success: bool, data: &[&Data]| {
             let mut cmd = Command::cargo_bin("sq").unwrap();
             cmd.args(["--cert-store", &certd,
-                      "export"]);
+                      "cert", "export"]);
             cmd.args(args);
 
             let args = args.iter()
                 .map(|s| format!("{:?}", s))
                 .collect::<Vec<_>>()
                 .join(" ");
-            eprintln!("sq export {}...", args);
+            eprintln!("sq cert export {}...", args);
 
             let output = cmd.output().expect("success");
             let stdout = String::from_utf8_lossy(&output.stdout);
@@ -141,13 +141,13 @@ mod integration {
 
             if success {
                 assert!(output.status.success(),
-                        "sq export {} should succeed\n\
+                        "sq cert export {} should succeed\n\
                          stdout:\n{}\nstderr:\n{}",
                         args, stdout, stderr);
                 check(data, stdout, stderr);
             } else {
                 assert!(! output.status.success(),
-                        "sq export {} should fail\n\
+                        "sq cert export {} should fail\n\
                          stdout:\n{}\nstderr:\n{}",
                         args, stdout, stderr);
                 check(&[], stdout, stderr);

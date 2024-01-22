@@ -76,11 +76,9 @@ sq-features:
     matrix:
       - FEATURES:
         - ""
-        - "autocrypt"
-        - "autocrypt,compression-bzip2"
-        - "compression-bzip2"
+        - ",compression-bzip2"
   script:
-    - cargo test --no-default-features --features crypto-nettle --features $FEATURES
+    - cargo test --no-default-features --features crypto-nettle$FEATURES
   variables:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo

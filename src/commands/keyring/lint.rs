@@ -119,7 +119,7 @@ fn update_user_id_binding(ua: &ValidUserIDAmalgamation,
     // Make sure the signature is integrated.
     assert!(ua.cert().cert().clone()
         .insert_packets(Packet::from(sig.clone())).unwrap()
-        .into_packets()
+        .into_packets2()
         .any(|p| {
             if let Packet::Signature(s) = p {
                 s == sig
@@ -187,7 +187,7 @@ fn update_subkey_binding<P>(ka: &ValidSubordinateKeyAmalgamation<P>,
     // Make sure the signature is integrated.
     assert!(ka.cert().cert().clone()
         .insert_packets(Packet::from(sig.clone())).unwrap()
-        .into_packets()
+        .into_packets2()
         .any(|p| {
             if let Packet::Signature(s) = p {
                 s == sig

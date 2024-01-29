@@ -396,7 +396,7 @@ pub fn cert_stub(cert: Cert,
     Ok(Cert::from_packets(packets.into_iter())?)
 }
 
-struct VHelper<'a, 'store> {
+pub struct VHelper<'a, 'store> {
     #[allow(dead_code)]
     config: &'a Config<'store>,
     signatures: usize,
@@ -409,6 +409,7 @@ struct VHelper<'a, 'store> {
     bad_signatures: usize,
     bad_checksums: usize,
     broken_signatures: usize,
+    quiet: bool,
 }
 
 impl<'a, 'store> VHelper<'a, 'store> {
@@ -427,7 +428,15 @@ impl<'a, 'store> VHelper<'a, 'store> {
             bad_signatures: 0,
             bad_checksums: 0,
             broken_signatures: 0,
+            quiet: false,
         }
+    }
+
+    /// Enables or disables quiet operation.
+    ///
+    /// In quiet operation, only errors are emitted.
+    pub fn quiet(&mut self, v: bool) {
+        self.quiet = v;
     }
 
     fn print_status(&self) {
@@ -456,6 +465,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
     }
 
     fn print_sigs(&mut self, results: &[VerificationResult]) {
+        make_qprintln!(self.quiet);
         use crate::commands::pki::output::print_path;
         use crate::print_error_chain;
 
@@ -526,7 +536,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
                 prefix = "  ";
 
                 // Web of trust.
-                wprintln!("Authenticating {} ({:?}) using the web of trust:",
+                qprintln!("Authenticating {} ({:?}) using the web of trust:",
                           cert_fpr, signer_userid);
 
                 if let Ok(Some(cert_store)) = self.config.cert_store() {
@@ -536,7 +546,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
 
                     let userids = if let Some(userid) = sig.signers_user_id() {
                         let userid = UserID::from(userid);
-                        wprintln!("{}Signature was made by {}",
+                        qprintln!("{}Signature was made by {}",
                                   prefix,
                                   String::from_utf8_lossy(userid.value()));
                         vec![ userid ]
@@ -545,7 +555,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
                     };
 
                     if userids.is_empty() {
-                        wprintln!("{}{} cannot be authenticated.  \
+                        qprintln!("{}{} cannot be authenticated.  \
                                    It has no User IDs",
                                   prefix, cert_fpr);
                     } else if let Ok(n) = sequoia_wot::Network::new(&cert_store) {
@@ -565,7 +575,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
 
                                 let amount = paths.amount();
                                 let authenticated = if amount >= sequoia_wot::FULLY_TRUSTED {
-                                    wprintln!("{}Fully authenticated \
+                                    qprintln!("{}Fully authenticated \
                                                ({} of {}) {}, {}",
                                               prefix,
                                               amount,
@@ -574,7 +584,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
                                               userid_str);
                                     true
                                 } else if amount > 0 {
-                                    wprintln!("{}Partially authenticated \
+                                    qprintln!("{}Partially authenticated \
                                                ({} of {}) {}, {:?} ",
                                               prefix,
                                               amount,
@@ -583,7 +593,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
                                               userid_str);
                                     false
                                 } else {
-                                    wprintln!("{}{}: {:?} is unauthenticated \
+                                    qprintln!("{}{}: {:?} is unauthenticated \
                                                and may be an impersonation!",
                                               prefix,
                                               cert_fpr,
@@ -593,7 +603,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
 
                                 for (i, (path, amount)) in paths.iter().enumerate() {
                                     let prefix = if paths.len() > 1 {
-                                        wprintln!("{}  Path #{} of {}, \
+                                        qprintln!("{}  Path #{} of {}, \
                                                   trust amount {}:",
                                                  prefix,
                                                  i + 1, paths.len(), amount);
@@ -602,7 +612,10 @@ impl<'a, 'store> VHelper<'a, 'store> {
                                         format!("{}  ", prefix)
                                     };
 
-                                    print_path(&path.into(), userid, &prefix)
+                                    if ! self.quiet {
+                                        print_path(&path.into(), userid,
+                                                   &prefix);
+                                    }
                                 }
 
                                 authenticated
@@ -617,10 +630,10 @@ impl<'a, 'store> VHelper<'a, 'store> {
                                 authenticated_userids[0].value()).to_string();
                         }
                     } else {
-                        wprintln!("Failed to build web of trust network.");
+                        qprintln!("Failed to build web of trust network.");
                     }
                 } else {
-                    wprintln!("Skipping, certificate store has been disabled");
+                    qprintln!("Skipping, certificate store has been disabled");
                 }
             }
 
@@ -630,27 +643,27 @@ impl<'a, 'store> VHelper<'a, 'store> {
             let level = sig.level();
             match (level == 0, trusted) {
                 (true,  true)  => {
-                    wprintln!("{}Good signature from {} ({:?})",
+                    qprintln!("{}Good signature from {} ({:?})",
                               prefix, label, signer_userid);
                 }
                 (false, true)  => {
-                    wprintln!("{}Good level {} notarization from {} ({:?})",
+                    qprintln!("{}Good level {} notarization from {} ({:?})",
                               prefix, level, label, signer_userid);
                 }
                 (true,  false) => {
-                    wprintln!("{}Unauthenticated checksum from {} ({:?})",
+                    qprintln!("{}Unauthenticated checksum from {} ({:?})",
                               prefix, label, signer_userid);
-                    wprintln!("{}  After checking that {} belongs to {:?}, \
+                    qprintln!("{}  After checking that {} belongs to {:?}, \
                                you can authenticate the binding using \
                                'sq link add {} {:?}'.",
                               prefix, issuer_str, signer_userid,
                               issuer_str, signer_userid);
                 }
                 (false, false) => {
-                    wprintln!("{}Unauthenticated level {} notarizing \
+                    qprintln!("{}Unauthenticated level {} notarizing \
                                checksum from {} ({:?})",
                               prefix, level, label, signer_userid);
-                    wprintln!("{}  After checking that {} belongs to {:?}, \
+                    qprintln!("{}  After checking that {} belongs to {:?}, \
                                you can authenticate the binding using \
                                'sq link add {} {:?}'.",
                               prefix, issuer_str, signer_userid,
@@ -664,7 +677,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
                 self.good_checksums += 1;
             }
 
-            wprintln!("");
+            qprintln!("");
         }
     }
 }
@@ -723,16 +736,17 @@ impl<'a, 'store> VerificationHelper for VHelper<'a, 'store> {
     }
 
     fn check(&mut self, structure: MessageStructure) -> Result<()> {
+        make_qprintln!(self.quiet);
         for layer in structure {
             match layer {
                 MessageLayer::Compression { algo } =>
-                    wprintln!("Compressed using {}", algo),
+                    qprintln!("Compressed using {}", algo),
                 MessageLayer::Encryption { sym_algo, aead_algo } =>
                     if let Some(aead_algo) = aead_algo {
-                        wprintln!("Encrypted and protected using {}/{}",
+                        qprintln!("Encrypted and protected using {}/{}",
                                   sym_algo, aead_algo);
                     } else {
-                        wprintln!("Encrypted using {}", sym_algo);
+                        qprintln!("Encrypted using {}", sym_algo);
                     },
                 MessageLayer::SignatureGroup { ref results } =>
                     self.print_sigs(results),
@@ -743,7 +757,9 @@ impl<'a, 'store> VerificationHelper for VHelper<'a, 'store> {
             && self.bad_signatures + self.bad_checksums == 0 {
             Ok(())
         } else {
-            self.print_status();
+            if ! self.quiet {
+                self.print_status();
+            }
             Err(anyhow::anyhow!("Verification failed: could not fully \
                                  authenticate any signatures"))
         }

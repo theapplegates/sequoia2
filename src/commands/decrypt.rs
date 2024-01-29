@@ -131,7 +131,7 @@ impl PrivateKey for RemotePrivateKey {
     }
 }
 
-struct Helper<'a, 'certdb> {
+pub struct Helper<'a, 'certdb> {
     vhelper: VHelper<'a, 'certdb>,
     secret_keys: HashMap<KeyID, Box<dyn PrivateKey>>,
     key_identities: HashMap<KeyID, Fingerprint>,
@@ -141,12 +141,26 @@ struct Helper<'a, 'certdb> {
     dumper: Option<PacketDumper>,
 }
 
+impl<'a, 'certdb> std::ops::Deref for Helper<'a, 'certdb> {
+    type Target = VHelper<'a, 'certdb>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.vhelper
+    }
+}
+
+impl<'a, 'certdb> std::ops::DerefMut for Helper<'a, 'certdb> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.vhelper
+    }
+}
+
 impl<'a, 'certdb> Helper<'a, 'certdb> {
-    fn new(config: &'a Config<'certdb>, private_key_store: Option<&str>,
-           signatures: usize, certs: Vec<Cert>, secrets: Vec<Cert>,
-           session_keys: Vec<cli::types::SessionKey>,
-           dump_session_key: bool, dump: bool)
-           -> Self
+    pub fn new(config: &'a Config<'certdb>, private_key_store: Option<&str>,
+               signatures: usize, certs: Vec<Cert>, secrets: Vec<Cert>,
+               session_keys: Vec<cli::types::SessionKey>,
+               dump_session_key: bool, dump: bool)
+               -> Self
     {
         let mut keys: HashMap<KeyID, Box<dyn PrivateKey>> = HashMap::new();
         let mut identities: HashMap<KeyID, Fingerprint> = HashMap::new();
@@ -250,6 +264,8 @@ impl<'a, 'certdb> DecryptionHelper for Helper<'a, 'certdb> {
                   mut decrypt: D) -> openpgp::Result<Option<Fingerprint>>
         where D: FnMut(SymmetricAlgorithm, &SessionKey) -> bool
     {
+        make_qprintln!(self.quiet);
+
         // Before anything else, try the session keys
         for sk in &self.session_keys {
             let decrypted = if let Some(sa) = sk.symmetric_algo {
@@ -262,7 +278,8 @@ impl<'a, 'certdb> DecryptionHelper for Helper<'a, 'certdb> {
                     .any(|sa| decrypt(sa, &sk.session_key))
             };
             if decrypted {
-                wprintln!("Encrypted with Session Key {}", sk.display_sensitive());
+                qprintln!("Encrypted with Session Key {}",
+                          sk.display_sensitive());
                 return Ok(None);
             }
         }

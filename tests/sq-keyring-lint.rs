@@ -148,7 +148,7 @@ mod integration {
                         // the number of expected new signatures.
                         let orig_sigs: isize =
                             Cert::from_file(dir.clone().join(filename)).unwrap()
-                            .into_packets()
+                            .into_packets2()
                             .map(|p| {
                                 if let Packet::Signature(_) = p {
                                     1
@@ -160,7 +160,7 @@ mod integration {
 
                         let fixed_sigs: isize = Cert::from_bytes(output)
                             .map(|cert| {
-                                cert.into_packets()
+                                cert.into_packets2()
                                     .map(|p| {
                                         match p {
                                             Packet::Signature(_) => 1,

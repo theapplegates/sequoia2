@@ -12,8 +12,12 @@ use openpgp::packet::prelude::*;
 use openpgp::parse::stream::*;
 use openpgp::policy::HashAlgoSecurity;
 use openpgp::policy::Policy;
-use openpgp::types::KeyFlags;
-use openpgp::types::RevocationStatus;
+use openpgp::types::{
+    AEADAlgorithm,
+    KeyFlags,
+    RevocationStatus,
+    SymmetricAlgorithm,
+};
 
 use sequoia_cert_store as cert_store;
 use cert_store::Store;
@@ -403,6 +407,13 @@ pub struct VHelper<'a, 'store> {
     certs: Option<Vec<Cert>>,
     labels: HashMap<KeyID, String>,
     trusted: HashSet<KeyID>,
+
+    /// Tracks the inner-most encryption container encountered.
+    sym_algo: Option<SymmetricAlgorithm>,
+    /// Tracks the inner-most encryption container encountered.
+    aead_algo: Option<AEADAlgorithm>,
+
+    // Tracks the signatures encountered.
     good_signatures: usize,
     good_checksums: usize,
     unknown_checksums: usize,
@@ -422,6 +433,8 @@ impl<'a, 'store> VHelper<'a, 'store> {
             certs: Some(certs),
             labels: HashMap::new(),
             trusted: HashSet::new(),
+            sym_algo: None,
+            aead_algo: None,
             good_signatures: 0,
             good_checksums: 0,
             unknown_checksums: 0,
@@ -741,13 +754,17 @@ impl<'a, 'store> VerificationHelper for VHelper<'a, 'store> {
             match layer {
                 MessageLayer::Compression { algo } =>
                     qprintln!("Compressed using {}", algo),
-                MessageLayer::Encryption { sym_algo, aead_algo } =>
+                MessageLayer::Encryption { sym_algo, aead_algo } => {
+                    self.sym_algo = Some(sym_algo);
+                    self.aead_algo = aead_algo;
+
                     if let Some(aead_algo) = aead_algo {
                         qprintln!("Encrypted and protected using {}/{}",
                                   sym_algo, aead_algo);
                     } else {
                         qprintln!("Encrypted using {}", sym_algo);
-                    },
+                    }
+                },
                 MessageLayer::SignatureGroup { ref results } =>
                     self.print_sigs(results),
             }

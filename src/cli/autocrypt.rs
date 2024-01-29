@@ -1,8 +1,11 @@
+use std::path::PathBuf;
+
 use clap::{ValueEnum, Args, Parser, Subcommand};
 
 use super::types::ClapData;
 use super::types::FileOrStdin;
 use super::types::FileOrStdout;
+use super::types::SessionKey;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -48,6 +51,20 @@ $ sq autocrypt import autocrypt.eml
 "
 )]
 pub struct ImportCommand {
+    #[clap(
+        long = "recipient-file",
+        value_name = "KEY_FILE",
+        help = "Decrypts the message using the key in KEY_FILE",
+    )]
+    pub secret_key_file: Vec<PathBuf>,
+
+    #[clap(
+        long = "session-key",
+        value_name = "SESSION-KEY",
+        help = "Decrypts an encrypted message using SESSION-KEY",
+    )]
+    pub session_key: Vec<SessionKey>,
+
     #[clap(
         default_value_t = FileOrStdin::default(),
         help = FileOrStdin::HELP_OPTIONAL,

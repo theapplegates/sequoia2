@@ -1,10 +1,13 @@
+use anyhow::Context;
+
+use buffered_reader::{BufferedReader, Dup, Generic};
 use sequoia_openpgp as openpgp;
 use openpgp::{
     Cert,
     Result,
     armor,
     packet::UserID,
-    parse::Parse,
+    parse::{Parse, stream::DecryptorBuilder},
     serialize::Serialize,
 };
 use sequoia_autocrypt as autocrypt;
@@ -32,34 +35,118 @@ fn import(mut config: Config, command: &cli::autocrypt::ImportCommand)
           -> Result<()>
 {
     let input = command.input.open()?;
-    let ac = autocrypt::AutocryptHeaders::from_reader(input)?;
+
+    // Accumulate certs and do one import so that we generate one
+    // report.
+    let mut acc = Vec::new();
+
+    // First, get the Autocrypt headers from the outside.
+    let input = Generic::new(input, None);
+    let mut dup = Dup::new(input);
+    let ac = autocrypt::AutocryptHeaders::from_reader(&mut dup)?;
     let from = UserID::from(
         ac.from.as_ref().ok_or(anyhow::anyhow!("no From: header"))?
             .as_str());
     let from_addr = from.email2()?.ok_or(
         anyhow::anyhow!("no email address in From: header"))?;
 
-    for h in ac.headers {
+    use autocrypt::AutocryptHeaderType::*;
+    let mut sender_cert = None;
+    for h in ac.headers.into_iter().filter(|h| h.header_type == Sender) {
         if let Some(addr) = h.attributes.iter()
             .find_map(|a| (&a.key == "addr"
                            && &a.value == &from_addr)
                       .then(|| a.value.clone()))
         {
             if let Some(cert) = h.key {
-                let certs = if let Ok((ca, _)) = config.certd_or_else()
+                sender_cert = Some(cert.clone());
+
+                if let Ok((ca, _)) = config.certd_or_else()
                     .and_then(|certd| certd.shadow_ca_autocrypt())
                 {
-                    certify_downloads(
+                    acc.append(&mut certify_downloads(
                         &mut config, ca,
-                        vec![cert], Some(&addr[..]))
+                        vec![cert], Some(&addr[..])));
                 } else {
-                    vec![cert]
-                };
-
-                import_certs(&mut config, certs)?;
+                    acc.push(cert);
+                }
             }
         }
     }
+
+    // If there is no Autocrypt header, don't bother looking for
+    // gossip.
+    let sender_cert = match sender_cert {
+        Some(c) => c,
+        None => {
+            // Import what we got.
+            import_certs(&mut config, acc)?;
+            return Ok(());
+        },
+    };
+
+    // Then, try to decrypt the message, and look for gossip headers.
+    use crate::{load_keys, commands::decrypt::Helper};
+    let input =
+        dup.into_boxed().into_inner().expect("dup has an inner");
+    let secrets =
+        load_keys(command.secret_key_file.iter().map(|s| s.as_ref()))?;
+
+    let mut helper = Helper::new(
+        &config, None,
+        1, // Require one trusted signature...
+        vec![sender_cert.clone()], // ... from this cert.
+        secrets, command.session_key.clone(), false, false);
+    helper.quiet(true);
+
+    let policy = config.policy.clone();
+    let mut decryptor = match
+        DecryptorBuilder::from_reader(input)?
+        .with_policy(&policy, None, helper)
+        .context("Decryption failed")
+    {
+        Ok(d) => d,
+        Err(e) => {
+            // The decryption failed, but we should still import the
+            // Autocrypt header.
+            wprintln!("Note: Decryption of message failed: {}", e);
+            import_certs(&mut config, acc)?;
+            return Ok(());
+        },
+    };
+
+    let ac = autocrypt::AutocryptHeaders::from_reader(&mut decryptor)?;
+    let helper = decryptor.into_helper();
+
+    // We know there has been one good signature from the sender.  Now
+    // check that the message was encrypted.  Note: it doesn't have to
+    // be encrypted for the purpose of the certification, but
+    // Autocrypt requires messages to be signed and encrypted.
+    if helper.sym_algo.is_none() {
+        return Err(anyhow::anyhow!("Message is not encrypted."));
+    }
+
+    for h in ac.headers.into_iter().filter(|h| h.header_type == Gossip) {
+        if let Some(addr) = h.attributes.iter()
+            .find_map(|a| (&a.key == "addr").then(|| a.value.clone()))
+        {
+            if let Some(cert) = h.key {
+                if let Ok((ca, _)) = config.certd_or_else()
+                    .and_then(|certd| certd.shadow_ca_autocrypt_gossip_for(
+                        &sender_cert, from_addr))
+                {
+                    acc.append(&mut certify_downloads(
+                        &mut config, ca,
+                        vec![cert], Some(&addr[..])));
+                } else {
+                    acc.push(cert);
+                }
+            }
+        }
+    }
+
+    // Finally, do one import.
+    import_certs(&mut config, acc)?;
 
     Ok(())
 }

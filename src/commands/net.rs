@@ -122,7 +122,7 @@ pub fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
     wprintln!("\nAfter checking that a certificate really belongs to the \
                stated owner, you can mark the certificate as authenticated \
                using: \n\
-               \n    sq link add FINGERPRINT\n");
+               \n    sq pki link add FINGERPRINT\n");
 
     Ok(())
 }

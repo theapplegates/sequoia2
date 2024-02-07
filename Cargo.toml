@@ -29,10 +29,10 @@ gitlab = { repository = "sequoia-pgp/sequoia-sq" }
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-buffered-reader = { version = "1.0.0", default-features = false, features = ["compression-deflate"] }
+buffered-reader = { version = "1.0.0", default-features = false, features = ["compression"] }
 dirs = "5"
 dot-writer = { version = "0.1.3", optional = true }
-sequoia-openpgp = { version = "1.18", default-features = false, features = ["compression-deflate"] }
+sequoia-openpgp = { version = "1.18", default-features = false, features = ["compression"] }
 sequoia-autocrypt = { version = "0.25", default-features = false }
 sequoia-net = { version = "0.28", default-features = false }
 sequoia-policy-config = "0.6"
@@ -54,7 +54,7 @@ textwrap = ">=0.15, <0.17"
 
 [build-dependencies]
 anyhow = "1.0.18"
-buffered-reader = { version = "1.0.0", default-features = false, features = ["compression-deflate"] }
+buffered-reader = { version = "1.0.0", default-features = false, features = ["compression"] }
 clap = { version = "4", features = ["derive", "env", "string", "wrap_help"] }
 clap_complete = "4"
 chrono = "0.4.10"
@@ -81,7 +81,6 @@ bench = false
 [features]
 default = [
     "crypto-nettle",
-    "compression-bzip2",
     "dot-writer",
 ]
 crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
@@ -90,7 +89,6 @@ crypto-botan = ["sequoia-openpgp/crypto-botan"]
 crypto-botan2 = ["sequoia-openpgp/crypto-botan2"]
 crypto-cng = ["sequoia-openpgp/crypto-cng"]
 crypto-rust = ["sequoia-openpgp/crypto-rust"]
-compression-bzip2 = ["sequoia-openpgp/compression-bzip2"]
 subplot = ["subplot-build"]
 
 [profile.release]

@@ -246,7 +246,7 @@ pub fn lint(config: Config, mut args: LintCommand) -> Result<()> {
 
     let reference_time = config.time;
 
-    let mut passwords: Vec<Password> = args.password;
+    let mut passwords = Vec::new();
 
     let mut out = args.output.create_pgp_safe(
         config.force, args.binary,

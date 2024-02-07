@@ -361,12 +361,6 @@ pub struct LintCommand {
     #[arg(short, long)]
     pub export_secret_keys: bool,
 
-    /// A key's password.  Normally this is not needed: if stdin is
-    /// connected to a tty, the linter will ask for a password when
-    /// needed.
-    #[arg(short, long)]
-    pub password: Vec<Password>,
-
     /// If set, outputs a list of fingerprints, one per line, of
     /// certificates that have issues.  This output is intended for
     /// use by scripts.

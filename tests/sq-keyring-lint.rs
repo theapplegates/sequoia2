@@ -254,7 +254,9 @@ mod integration {
         t("only-md5", Some("priv"), &[], 2, 0);
     }
 
-    #[test]
+    /// XXX: Disabled because there is no non-interactive way to feed
+    /// passwords to it.
+    #[allow(dead_code)]
     fn passwords() {
         // User ID: SHA1
         // Enc Subkey: SHA1
@@ -269,7 +271,9 @@ mod integration {
         t("all-sha1-password-Foobar", Some("priv"), &["bar", "Foobar"], 2, 2);
     }
 
-    #[test]
+    /// XXX: Disabled because there is no non-interactive way to feed
+    /// passwords to it.
+    #[allow(dead_code)]
     fn multiple_passwords() {
         // The primary is encrypted with foo and the signing subkey
         // with bar.  We need to provide both, because the signing

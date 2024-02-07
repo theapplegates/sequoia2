@@ -1,6 +1,9 @@
 //! Command-line parser for `sq toolbox packet`.
 
-use std::path::PathBuf;
+use std::{
+    ffi::OsString,
+    path::PathBuf,
+};
 
 use clap::{Args, Parser, Subcommand};
 
@@ -205,7 +208,7 @@ pub struct SplitCommand {
         help = "Writes to files with PREFIX \
             [defaults: `FILE-` if FILE is set, or `output-` if read from stdin]",
     )]
-    pub prefix: Option<PathBuf>,
+    pub prefix: Option<OsString>,
 }
 
 #[derive(Debug, Args)]

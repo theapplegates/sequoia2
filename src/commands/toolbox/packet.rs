@@ -100,7 +100,7 @@ pub fn split(_config: Config, c: SplitCommand) -> Result<()>
 
     // We either emit one stream, or open one file per packet.
     let mut sink = match c.prefix {
-        Some(p) => Err(p.into_os_string()),
+        Some(p) => Err(p),
         None => Ok(io::stdout()),
     };
 
@@ -120,7 +120,7 @@ pub fn split(_config: Config, c: SplitCommand) -> Result<()>
             let mut sink: Box<dyn io::Write> = match &mut sink {
                 Ok(sink) => Box::new(sink),
                 Err(prefix) => {
-                    let mut filename = prefix.as_os_str().to_os_string();
+                    let mut filename = prefix.clone();
                     filename.push("-");
                     filename.push(join(pp.path(), "-"));
                     filename.push(pp.packet.kind().map(|_| "").unwrap_or("Unknown-"));

@@ -14,7 +14,10 @@ use openpgp::packet::{
 use openpgp::parse::{Parse, PacketParserResult};
 use openpgp::policy::{Policy, HashAlgoSecurity};
 use openpgp::packet::key::SecretKeyMaterial;
-use openpgp::types::SignatureType;
+use openpgp::types::{
+    ReasonForRevocation,
+    SignatureType,
+};
 
 use sequoia_cert_store as cert_store;
 use cert_store::Store;
@@ -391,35 +394,25 @@ fn print_reasons(output: &mut dyn io::Write, indent: &str,
                  third_party: bool, sigs: &[&Signature])
                  -> Result<()> {
     for sig in sigs {
-        if let Some((r, msg)) = sig.reason_for_revocation() {
-            writeln!(output, "{}                  - {}", indent, r)?;
-            if third_party {
-                writeln!(output, "{}                    Issued by {}",
-                         indent,
-                         if let Some(issuer)
-                         = sig.get_issuers().into_iter().next()
-                         {
-                             issuer.to_string()
-                         } else {
-                             "an unknown certificate".into()
-                         })?;
-            }
+        let (reason, message) = sig.reason_for_revocation()
+            .map(|(r, m)| (r, Some(m)))
+            .unwrap_or((ReasonForRevocation::Unspecified, None));
+
+        writeln!(output, "{}                  - {}", indent, reason)?;
+        if third_party {
+            writeln!(output, "{}                    Issued by {}",
+                     indent,
+                     if let Some(issuer)
+                     = sig.get_issuers().into_iter().next()
+                     {
+                         issuer.to_string()
+                     } else {
+                         "an unknown certificate".into()
+                     })?;
+        }
+        if let Some(msg) = message {
             writeln!(output, "{}                    Message: {:?}",
                      indent, String::from_utf8_lossy(msg))?;
-        } else {
-            writeln!(output, "{}                  - No reason specified",
-                     indent)?;
-            if third_party {
-                writeln!(output, "{}                    Issued by {}",
-                         indent,
-                         if let Some(issuer)
-                         = &sig.get_issuers().into_iter().next()
-                         {
-                             issuer.to_string()
-                         } else {
-                             "an unknown certificate".into()
-                         })?;
-            }
         }
     }
     Ok(())

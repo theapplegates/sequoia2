@@ -399,6 +399,9 @@ fn print_reasons(output: &mut dyn io::Write, indent: &str,
             .unwrap_or((ReasonForRevocation::Unspecified, None));
 
         writeln!(output, "{}                  - {}", indent, reason)?;
+        writeln!(output, "{}                    On: {}",
+                 indent, sig.signature_creation_time()
+                 .expect("valid sigs have one").convert())?;
         if third_party {
             writeln!(output, "{}                    Issued by {}",
                      indent,

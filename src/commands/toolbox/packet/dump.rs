@@ -577,7 +577,7 @@ impl PacketDumper {
             Literal(ref l) => {
                 writeln!(output, "{}  Format: {}", i, l.format())?;
                 if let Some(filename) = l.filename() {
-                    writeln!(output, "{}  Filename: {}", i,
+                    writeln!(output, "{}  Filename: {:?}", i,
                              String::from_utf8_lossy(filename))?;
                 }
                 if let Some(timestamp) = l.date() {

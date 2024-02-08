@@ -25,12 +25,11 @@ use crate::cli;
 use cli::output::OutputFormat;
 use cli::types::TrustAmount;
 
-use crate::commands::pki as pki_cmd;
-use pki_cmd::output::print_path;
-use pki_cmd::output::print_path_header;
-use pki_cmd::output::print_path_error;
+use output::print_path;
+use output::print_path_header;
+use output::print_path_error;
 #[allow(unused_imports)]
-use pki_cmd::output::OutputType as _;
+use output::OutputType as _;
 
 use crate::Config;
 

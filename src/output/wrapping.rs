@@ -3,6 +3,9 @@
 use std::fmt;
 use std::sync::OnceLock;
 
+/// A non-breaking space.
+pub const NBSP: char = '\u{00A0}';
+
 /// Prints the given message to stderr.
 ///
 /// Hint: Use `wprintln!(..)` instead of invoking this function

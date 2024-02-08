@@ -2,6 +2,8 @@
 
 use std::fmt;
 
+use crate::output::wrapping::NBSP;
+
 /// Pluralizes countable things when formatted.
 pub struct Pluralized<'t, 's> {
     /// The amount of things we have.
@@ -16,9 +18,9 @@ pub struct Pluralized<'t, 's> {
 
 impl fmt::Display for Pluralized<'_, '_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Note: '\u{00A0}' is a non-breaking space.
-        write!(f, "{}\u{00A0}{}{}",
+        write!(f, "{}{}{}{}",
                self.count,
+               NBSP,
                self.thing,
                if self.count == 1 { "" } else { self.plural_suffix })
     }

@@ -2,6 +2,24 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
+use crate::cli::examples;
+use examples::Action;
+use examples::Actions;
+use examples::Example;
+
+const EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "Imports a certificate.",
+            command: &[
+                "sq", "cert", "import", "juliet.pgp",
+            ],
+        }),
+    ]
+};
+
+test_examples!(sq_cert_import, EXAMPLES);
+
 #[derive(Parser, Debug)]
 #[clap(
     name = "import",
@@ -9,12 +27,7 @@ use clap::Parser;
     long_about =
 "Imports certificates into the local certificate store
 ",
-    after_help =
-"EXAMPLES:
-
-# Imports a certificate.
-$ sq cert import < juliet.pgp
-",
+    after_help = EXAMPLES,
 )]
 pub struct Command {
     #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]

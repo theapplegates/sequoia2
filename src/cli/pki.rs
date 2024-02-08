@@ -14,6 +14,12 @@ use crate::cli::types::TrustAmount;
 pub mod certify;
 pub mod link;
 
+use crate::cli::examples;
+use examples::Action;
+use examples::Setup;
+use examples::Actions;
+use examples::Example;
+
 #[derive(Debug, Parser)]
 #[clap(
     name = "pki",
@@ -54,6 +60,38 @@ pub enum Subcommands {
     Path(PathCommand),
 }
 
+const AUTHENTICATE_EXAMPLES: Actions = Actions {
+    actions: &[
+        // Link Alice's certificate.
+        Action::Setup(Setup {
+            command: &[
+                "sq", "pki", "link", "add",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0", "--all",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Authenticate a specific binding.",
+            command: &[
+                "sq", "pki", "authenticate",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "Alice <alice@example.org>",
+            ]
+        }),
+        Action::Example(Example {
+            comment: "\
+Check whether we can authenticate any user ID with the specified email \
+address for the given certificate.",
+            command: &[
+                "sq", "pki", "authenticate",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--email", "alice@example.org",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_pki_authenticate, AUTHENTICATE_EXAMPLES);
+
 /// Authenticate a binding.
 ///
 /// Authenticate a binding (a certificate and User ID) by looking
@@ -72,20 +110,8 @@ pub enum Subcommands {
 #[derive(Parser, Debug)]
 #[clap(
     name = "authenticate",
-    after_help =
-"EXAMPLES:
-
-# Authenticate a binding.
-$ sq pki authenticate --partial \\
-     C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
-     'Alice <alice@example.org>'
-
-# Try and authenticate each binding where the User ID has the
-# specified email address.
-$ sq pki authenticate \\
-     C7966E3E7CE67DBBECE5FC154E2AD944CFC78C86 \\
-     --email alice@example.org
-")]
+    after_help = AUTHENTICATE_EXAMPLES,
+)]
 pub struct AuthenticateCommand {
     #[command(flatten)]
     pub email: EmailArg,
@@ -106,6 +132,34 @@ pub struct AuthenticateCommand {
     pub userid: UserIDArg,
 }
 
+const LOOKUP_EXAMPLES: Actions = Actions {
+    actions: &[
+        // Link Alice's certificate.
+        Action::Setup(Setup {
+            command: &[
+                "sq", "pki", "link", "add",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0", "--all",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Lookup certificates that can be authenticated for the given user ID.",
+            command: &[
+                "sq", "pki", "lookup", "Alice <alice@example.org>"
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Lookup certificates that have a user ID with the specified email \
+address, and that user ID can be authenticated.",
+            command: &[
+                "sq", "pki", "lookup", "--email", "alice@example.org",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_pki_lookup, LOOKUP_EXAMPLES);
+
 /// Lookup the certificates associated with a User ID.
 ///
 /// Identifies authenticated bindings (User ID and certificate
@@ -121,15 +175,8 @@ pub struct AuthenticateCommand {
 #[derive(Parser, Debug)]
 #[clap(
     name = "lookup",
-    after_help =
-"EXAMPLES:
-
-# Lookup a certificate with the given User ID.
-$ sq pki lookup --partial 'Alice <alice@example.org>'
-
-# Lookup a certificate with the given email address.
-$ sq pki lookup --email alice@example.org
-")]
+    after_help = LOOKUP_EXAMPLES,
+)]
 pub struct LookupCommand {
     #[command(flatten)]
     pub email: EmailArg,
@@ -147,6 +194,35 @@ pub struct LookupCommand {
     pub userid: UserIDArg,
 }
 
+const IDENTIFY_EXAMPLES: Actions = Actions {
+    actions: &[
+        // Link Alice's certificate.
+        Action::Setup(Setup {
+            command: &[
+                "sq", "pki", "link", "add",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0", "--all",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Identify the user IDs that can be authenticated for the certificate.",
+            command: &[
+                "sq", "pki", "identify",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+List all user IDs that have that have been certified by anyone.",
+            command: &[
+                "sq", "pki", "identify", "--gossip",
+                "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_pki_identify, IDENTIFY_EXAMPLES);
+
 /// Identify a certificate.
 ///
 /// Identify a certificate by finding authenticated bindings (User
@@ -162,17 +238,8 @@ pub struct LookupCommand {
 #[derive(Parser, Debug)]
 #[clap(
     name = "identify",
-    after_help =
-"EXAMPLES:
-
-# Identify a certificate.
-$ sq pki identify --partial \\
-     C7B1406CD2F612E9CE2136156F2DA183236153AE
-
-# Get gossip about a certificate.
-$ sq pki identify --gossip \\
-     3217C509292FC67076ECD75C7614269BDDF73B36
-")]
+    after_help = IDENTIFY_EXAMPLES,
+)]
 pub struct IdentifyCommand {
     #[command(flatten)]
     pub gossip: GossipArg,
@@ -186,6 +253,26 @@ pub struct IdentifyCommand {
     #[command(flatten)]
     pub cert: CertArg,
 }
+
+const LIST_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Setup(Setup {
+            command: &[
+                "sq", "pki", "link", "add",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0", "--all",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+List all bindings for user IDs containing an email address from \
+example.org, and that can be authenticated.",
+            command: &[
+                "sq", "pki", "list", "@example.org",
+            ],
+        })
+    ]
+};
+test_examples!(sq_pki_list, LIST_EXAMPLES);
 
 /// List all authenticated bindings (User ID and certificate
 /// pairs).
@@ -204,13 +291,8 @@ pub struct IdentifyCommand {
 #[derive(Parser, Debug)]
 #[clap(
     name = "list",
-    after_help =
-"EXAMPLES:
-
-# List all bindings for example.org that are at least partially
-# authenticated.
-$ sq pki list --partial @example.org
-")]
+    after_help = LIST_EXAMPLES,
+)]
 pub struct ListCommand {
     #[command(flatten)]
     pub email: EmailArg,
@@ -233,6 +315,22 @@ pub struct ListCommand {
     pub pattern: Option<String>,
 }
 
+const PATH_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Verify that Alice ceritified a particular User ID for Bob's certificate.",
+            command: &[
+                "sq", "pki", "path",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+                "Bob <bob@example.org>",
+            ],
+        })
+    ],
+};
+test_examples!(sq_pki_path, PATH_EXAMPLES);
+
 /// Verify the specified path.
 ///
 /// A path is a sequence of certificates starting at the root, and
@@ -248,15 +346,8 @@ pub struct ListCommand {
 #[derive(Parser, Debug)]
 #[clap(
     name = "path",
-    after_help =
-"EXAMPLES:
-
-# Verify that Neal ceritified Justus's certificate for a particular User ID.
-$ sq pki path \\
-    8F17777118A33DDA9BA48E62AACB3243630052D9 \\
-    CBCD8F030588653EEDD7E2659B7DD433F254904A \\
-    'Justus Winter <justus@sequoia-pgp.org>'
-")]
+    after_help = PATH_EXAMPLES,
+)]
 pub struct PathCommand {
     #[command(flatten)]
     pub gossip: GossipArg,

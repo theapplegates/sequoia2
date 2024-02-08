@@ -63,10 +63,12 @@ serde = { version = "1.0.137", features = ["derive"] }
 sequoia-openpgp = { version = "1.17", default-features = false }
 sequoia-net = { version = "0.28", default-features = false }
 subplot-build = { version = ">=0.7, <0.10", optional = true }
+textwrap = "0.16"
 cfg-if = "1"
 terminal_size = ">=0.2.6, <0.4"
 
 [dev-dependencies]
+dircpy = "0.3"
 subplotlib = ">=0.7, <0.10"
 fehler = "1.0.0"
 assert_cmd = "2"

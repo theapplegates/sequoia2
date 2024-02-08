@@ -86,6 +86,9 @@ pub mod autocrypt;
 use sequoia_openpgp as openpgp;
 use openpgp::Fingerprint;
 
+#[macro_use]
+pub mod examples;
+
 pub mod cert;
 pub mod decrypt;
 pub mod encrypt;

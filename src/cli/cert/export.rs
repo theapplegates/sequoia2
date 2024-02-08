@@ -3,6 +3,70 @@ use clap::Parser;
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
+use crate::cli::examples;
+use examples::Action;
+use examples::Actions;
+use examples::Example;
+
+const EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "Exports all certificates.",
+            command: &[
+                "sq", "cert", "export",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Exports certificates with a matching User ID packet.  The binding \
+signatures are checked, but the User IDs are not authenticated. \
+Note: this check is case sensitive.",
+            command: &[
+                "sq", "cert", "export",
+                "--userid", "Alice <alice@example.org>",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Exports certificates with a User ID containing the email address. \
+The binding signatures are checked, but the User IDs are not \
+authenticated.  Note: this check is case insensitive.",
+            command: &[
+                "sq", "cert", "export", "--email", "alice@example.org",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Exports certificates where the certificate (i.e., the primary key) \
+has the specified Key ID.",
+            command: &[
+                "sq", "cert", "export", "--cert", "6F0073F60FD0CBF0",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Exports certificates where the primary key or a subkey matches the \
+specified Key ID.",
+            command: &[
+                "sq", "cert", "export", "--key", "24F3955B0B8DECC8",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Exports certificates that contain a User ID with *either* (not both!) \
+email address.  Note: this check is case insensitive.",
+            command: &[
+                "sq", "cert", "export",
+                "--email", "alice@example.org",
+                "--email", "bob@example.org",
+            ],
+        }),
+    ],
+};
+
+test_examples!(sq_cert_export, EXAMPLES);
+
+
 #[derive(Parser, Debug)]
 #[clap(
     name = "export",
@@ -25,34 +89,7 @@ all certificates.
 Fails if search criteria are specified and none of them matches any
 certificates.  Note: this means if the certificate store is empty and
 no search criteria are specified, then this will return success.",
-    after_help =
-"EXAMPLES:
-
-# Exports all certificates.
-$ sq cert export > all.pgp
-
-# Exports certificates with a matching User ID packet.  The binding
-# signatures are checked, but the User IDs are not authenticated.
-# Note: this check is case sensitive.
-$ sq cert export --userid 'Alice <alice@example.org>'
-
-# Exports certificates with a User ID containing the email address.
-# The binding signatures are checked, but the User IDs are not
-# authenticated.  Note: this check is case insensitive.
-$ sq cert export --email 'alice@example.org'
-
-# Exports certificates where the certificate (i.e., the primary key)
-# has the specified Key ID.
-$ sq cert export --cert 1234567812345678
-
-# Exports certificates where the primary key or a subkey matches the
-# specified Key ID.
-$ sq cert export --key 1234567812345678
-
-# Exports certificates that contain a User ID with *either* (not
-# both!) email address.  Note: this check is case insensitive.
-$ sq cert export --email alice@example.org --email bob@example.org
-",
+    after_help = EXAMPLES,
 )]
 pub struct Command {
     #[clap(

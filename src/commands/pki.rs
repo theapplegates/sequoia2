@@ -505,7 +505,7 @@ fn check_path(config: &Config,
                         path.amount(),
                         required_amount,
                     );
-                    print_path(&path, &userid, "  ");
+                    print_path(&path, &userid, "  ")?;
                 }
             };
 

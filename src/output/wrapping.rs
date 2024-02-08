@@ -17,6 +17,22 @@ pub fn wprintln(msg: fmt::Arguments) {
     }
 }
 
+/// Prints the given message to stderr, indenting continuations.
+///
+/// Hint: Use `make_iwprintln!(..)` and `iwprintln!(..)` instead of
+/// invoking this function directly.
+pub fn iwprintln(initial_indent: &str,
+                 subsequent_indent: &str,
+                 msg: fmt::Arguments) {
+    let m = format!("{}", msg);
+    for l in textwrap::wrap(&m,
+                            options()
+                            .initial_indent(initial_indent)
+                            .subsequent_indent(subsequent_indent)) {
+        eprintln!("{}", l);
+    }
+}
+
 /// Returns options for text-wrapping.
 fn options() -> textwrap::Options<'static> {
     static OPTIONS: OnceLock<textwrap::Options> = OnceLock::new();

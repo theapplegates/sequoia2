@@ -18,6 +18,24 @@ macro_rules! wprintln {
     {} => {
         eprintln!();
     };
+
+    { indent=$i: expr, $($arg: expr),* } => {{
+        let i = $i;
+        crate::output::wrapping::iwprintln(i.as_ref(), i.as_ref(),
+                                           format_args!($($arg),*))
+    }};
+
+    {
+        initial_indent=$ii: expr,
+        subsequent_indent=$si: expr,
+        $($arg: expr),*
+    } => {{
+        let ii = $ii;
+        let si = $si;
+        crate::output::wrapping::iwprintln(ii.as_ref(), si.as_ref(),
+                                           format_args!($($arg),*))
+    }};
+
     { $($arg: expr),* } => {
         crate::output::wrapping::wprintln(format_args!($($arg),*))
     };

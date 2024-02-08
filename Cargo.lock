@@ -3088,6 +3088,7 @@ dependencies = [
  "itertools",
  "libc",
  "predicates",
+ "regex",
  "roff",
  "rpassword",
  "sequoia-autocrypt",

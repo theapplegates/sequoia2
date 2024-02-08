@@ -626,8 +626,9 @@ impl<'a, 'store> VHelper<'a, 'store> {
                                     };
 
                                     if ! self.quiet {
-                                        print_path(&path.into(), userid,
-                                                   &prefix);
+                                        let _ =
+                                            print_path(&path.into(), userid,
+                                                       &prefix);
                                     }
                                 }
 

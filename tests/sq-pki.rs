@@ -8,6 +8,7 @@ mod integration {
 
     use assert_cmd::Command;
     use predicates::prelude::*;
+    use regex::bytes::Regex;
 
     use sequoia_openpgp as openpgp;
 
@@ -26,6 +27,13 @@ mod integration {
     const HR_OK: &'static str = "[✓]";
     const HR_NOT_OK: &'static str = "[ ]";
     const HR_PATH: &'static str = "◯ ";
+
+    fn no_output() -> &'static HashMap::<OutputFormat, Vec<(usize, Regex)>> {
+        use std::sync::OnceLock;
+        static NO_OUTPUT: OnceLock<HashMap::<OutputFormat, Vec<(usize, Regex)>>>
+            = OnceLock::new();
+        NO_OUTPUT.get_or_init(|| Default::default())
+    }
 
     /// Supported output types
     ///
@@ -64,22 +72,28 @@ mod integration {
         path::Path::new("tests").join("data").join("keyrings")
     }
 
+    fn regexify(needle: &str) -> Regex {
+        Regex::new(&regex::escape(needle).replace(char::is_whitespace, "\\s*"))
+            .unwrap()
+    }
+
     /// Create a HashMap, containing per OutputFormat lists of occurrences
     /// of strings
-    fn output_map<'a, S>(
-        human: &'a [(usize, S)],
-        dot: &'a [(usize, S)],
-    ) -> HashMap<OutputFormat, &'a [(usize, S)]>
-    where
-        S: AsRef<str>,
+    fn output_map<S>(
+        human: &[(usize, S)],
+        dot: &[(usize, S)],
+    ) -> HashMap<OutputFormat, Vec<(usize, Regex)>>
+        where S: AsRef<str>,
     {
-        let mut output = HashMap::<OutputFormat, &[(usize, S)]>::new();
-        output.insert(OutputFormat::HumanReadable, &human);
-        output.insert(OutputFormat::Dot, &dot);
+        let mut output = HashMap::<OutputFormat, Vec<(usize, Regex)>>::new();
+        output.insert(OutputFormat::HumanReadable,
+                      human.iter().map(|(c, n)| (*c, regexify(n.as_ref()))).collect());
+        output.insert(OutputFormat::Dot,
+                      dot.iter().map(|(c, n)| (*c, regexify(n.as_ref()))).collect());
         output
     }
 
-    fn test<'a, R, S>(
+    fn test<'a, R>(
         keyring: &str,
         trust_root: R,
         sqwot_args: &[&str],
@@ -89,11 +103,10 @@ mod integration {
         userid: Option<&UserID>,
         target: Option<&Fingerprint>,
         success: bool,
-        output: &HashMap<OutputFormat, &[(usize, S)]>,
+        output: &HashMap<OutputFormat, Vec<(usize, Regex)>>,
     ) -> Result<()>
     where
         R: Into<Option<&'a Fingerprint>>,
-        S: AsRef<str>,
     {
         let trust_root = trust_root.into();
 
@@ -125,38 +138,49 @@ mod integration {
                 let assertion = cmd.assert();
                 let assertion = assertion.success();
 
-                let stdout =
-                    String::from_utf8_lossy(&assertion.get_output().stdout);
                 if let Some(output) = output.get(outputformat) {
-                    for (expected_occurrences, s) in *output {
-                        let s = s.as_ref();
-                        let occurrences = stdout.split(s).count() - 1;
+                    for (expected_occurrences, s) in output {
+                        let haystack =
+                            if outputformat == &OutputFormat::HumanReadable {
+                                &assertion.get_output().stderr
+                            } else {
+                                &assertion.get_output().stdout
+                            };
+                        let occurrences =
+                            s.find_iter(haystack.as_ref()).count();
 
                         assert_eq!(
                             occurrences, *expected_occurrences,
                             "Failed to find: '{}' {} times\n\
-                                    in stdout:\n\
+                                    in output:\n\
                                     {}",
-                            s, *expected_occurrences, stdout
+                            s, expected_occurrences,
+                            String::from_utf8_lossy(haystack),
                         );
                     }
                 }
             } else {
                 let assertion = cmd.assert();
                 let assertion = assertion.code(predicate::eq(1));
-                let stdout =
-                    String::from_utf8_lossy(&assertion.get_output().stdout);
+
                 if let Some(output) = output.get(outputformat) {
-                    for (expected_occurrences, s) in *output {
-                        let s = s.as_ref();
-                        let occurrences = stdout.split(s).count() - 1;
+                    for (expected_occurrences, s) in output {
+                        let haystack =
+                            if outputformat == &OutputFormat::HumanReadable {
+                                &assertion.get_output().stderr
+                            } else {
+                                &assertion.get_output().stdout
+                            };
+                        let occurrences =
+                            s.find_iter(haystack.as_ref()).count();
 
                         assert_eq!(
                             occurrences, *expected_occurrences,
                             "Failed to find: '{}' {} times\n\
-                                    in stdout:\n\
+                                    in output:\n\
                                     {}",
-                            s, *expected_occurrences, stdout
+                            s, expected_occurrences,
+                            String::from_utf8_lossy(haystack),
                         );
                     }
                 }
@@ -196,7 +220,6 @@ mod integration {
         let sqwot_args = &[];
         let command = "authenticate";
         let args = &[];
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &dave_fpr, &dave_uid))];
@@ -245,7 +268,7 @@ mod integration {
             Some(&dave_uid),
             Some(&dave_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         // Not enough depth.
@@ -259,7 +282,7 @@ mod integration {
             Some(&ellen_uid),
             Some(&ellen_fpr),
             false,
-            &no_output,
+            no_output(),
         );
         test(
             keyring,
@@ -271,7 +294,7 @@ mod integration {
             Some(&ellen_uid),
             Some(&ellen_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         // No such User ID on dave's key.
@@ -285,7 +308,7 @@ mod integration {
             Some(&ellen_uid),
             Some(&dave_fpr),
             false,
-            &no_output,
+            no_output(),
         );
         test(
             keyring,
@@ -297,7 +320,7 @@ mod integration {
             Some(&ellen_uid),
             Some(&dave_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         Ok(())
@@ -337,7 +360,6 @@ mod integration {
         let sqwot_args = &[];
         let command = "authenticate";
         let args = &["--email"];
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         test(
             keyring,
@@ -349,7 +371,7 @@ mod integration {
             Some(&dave_uid),
             Some(&dave_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         let human_output =
@@ -399,7 +421,7 @@ mod integration {
             Some(&dave_uid),
             Some(&dave_fpr),
             false,
-            &no_output,
+            no_output(),
         );
         test(
             keyring,
@@ -411,7 +433,7 @@ mod integration {
             Some(&dave_email),
             Some(&dave_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         // Not enough depth.
@@ -425,7 +447,7 @@ mod integration {
             Some(&ellen_uid),
             Some(&ellen_fpr),
             false,
-            &no_output,
+            no_output(),
         );
         test(
             keyring,
@@ -437,7 +459,7 @@ mod integration {
             Some(&ellen_email),
             Some(&ellen_fpr),
             false,
-            &no_output,
+            no_output(),
         );
         test(
             keyring,
@@ -449,7 +471,7 @@ mod integration {
             Some(&ellen_uid),
             Some(&ellen_fpr),
             false,
-            &no_output,
+            no_output(),
         );
         test(
             keyring,
@@ -461,7 +483,7 @@ mod integration {
             Some(&ellen_email),
             Some(&ellen_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         // No such User ID on dave's key.
@@ -475,7 +497,7 @@ mod integration {
             Some(&ellen_uid),
             Some(&dave_fpr),
             false,
-            &no_output,
+            no_output(),
         );
         test(
             keyring,
@@ -487,7 +509,7 @@ mod integration {
             Some(&ellen_email),
             Some(&dave_fpr),
             false,
-            &no_output,
+            no_output(),
         );
         test(
             keyring,
@@ -499,7 +521,7 @@ mod integration {
             Some(&ellen_uid),
             Some(&dave_fpr),
             false,
-            &no_output,
+            no_output(),
         );
         test(
             keyring,
@@ -511,7 +533,7 @@ mod integration {
             Some(&ellen_email),
             Some(&dave_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         // Normalized.
@@ -761,7 +783,6 @@ mod integration {
         let sqwot_args = &[];
         let command = "lookup";
         let args = &[];
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
@@ -855,7 +876,7 @@ mod integration {
             Some(&dave_uid),
             None,
             false,
-            &no_output,
+            no_output(),
         );
 
         // Not enough depth.
@@ -869,7 +890,7 @@ mod integration {
             Some(&ellen_uid),
             None,
             false,
-            &no_output,
+            no_output(),
         );
         test(
             keyring,
@@ -881,7 +902,7 @@ mod integration {
             Some(&ellen_uid),
             None,
             false,
-            &no_output,
+            no_output(),
         );
 
         // No such User ID.
@@ -895,7 +916,7 @@ mod integration {
             Some(&UserID::from("Gary <gary@some.org>")),
             None,
             false,
-            &no_output,
+            no_output(),
         );
 
         // We need an exact match.
@@ -909,7 +930,7 @@ mod integration {
             Some(&alice_uid_uppercase),
             None,
             false,
-            &no_output,
+            no_output(),
         );
         test(
             keyring,
@@ -921,7 +942,7 @@ mod integration {
             Some(&alice_uid_uppercase2),
             None,
             false,
-            &no_output,
+            no_output(),
         );
         test(
             keyring,
@@ -933,7 +954,7 @@ mod integration {
             Some(&dave_uid_uppercase),
             None,
             false,
-            &no_output,
+            no_output(),
         );
         test(
             keyring,
@@ -945,7 +966,7 @@ mod integration {
             Some(&dave_uid_uppercase2),
             None,
             false,
-            &no_output,
+            no_output(),
         );
 
         Ok(())
@@ -982,7 +1003,6 @@ mod integration {
         let command = "lookup";
         let args = ["--email"];
         let target = None;
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, alice_fpr, alice_uid))];
@@ -1074,7 +1094,7 @@ mod integration {
             Some(&dave_email),
             target,
             false,
-            &no_output,
+            no_output(),
         );
 
         // Not enough depth.
@@ -1088,7 +1108,7 @@ mod integration {
             Some(&ellen_email),
             target,
             false,
-            &no_output,
+            no_output(),
         );
         test(
             keyring,
@@ -1100,7 +1120,7 @@ mod integration {
             Some(&ellen_email),
             target,
             false,
-            &no_output,
+            no_output(),
         );
 
         // No such User ID.
@@ -1114,7 +1134,7 @@ mod integration {
             Some(&UserID::from("gary@some.org")),
             target,
             false,
-            &no_output,
+            no_output(),
         );
 
         Ok(())
@@ -1161,7 +1181,6 @@ mod integration {
         let command = "identify";
         let args = &[];
         let userid = None;
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         let userids = &[&alice_uid];
         let human_output = userids
@@ -1273,7 +1292,7 @@ mod integration {
             userid,
             Some(&dave_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         let userids = &[&bob_uid, &bob_some_org_uid];
@@ -1332,7 +1351,7 @@ mod integration {
             userid,
             Some(&bob_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         Ok(())
@@ -1839,7 +1858,6 @@ mod integration {
         let trust_root = &alice_fpr;
         let sqwot_args = &[];
         let command = "list";
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         let bindings = &[(&hans_uid, &hans_fpr)];
         let human_output = bindings
@@ -1938,7 +1956,7 @@ mod integration {
             None,
             None,
             false,
-            &no_output,
+            no_output(),
         );
 
         test(
@@ -1951,7 +1969,7 @@ mod integration {
             None,
             None,
             false,
-            &no_output,
+            no_output(),
         );
 
         Ok(())
@@ -1997,7 +2015,6 @@ mod integration {
         let trust_root = &alice_fpr;
         let sqwot_args = &[];
         let command = "list";
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         let bindings = &[(&hans_uid, &hans_fpr)];
         let human_output = bindings
@@ -2080,7 +2097,7 @@ mod integration {
             None,
             None,
             false,
-            &no_output,
+            no_output(),
         );
 
         test(
@@ -2160,7 +2177,6 @@ mod integration {
         let trust_root = None; // No trust root for path.
         let sqwot_args = &[];
         let command = "path";
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         // Alice certifies Bob at trust amount = 100. (120 required).
         let human_output =
@@ -2388,7 +2404,6 @@ mod integration {
         let trust_root = None; // No trust root for path.
         let sqwot_args = &[];
         let command = "path";
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         let human_output =
             [(1, format!("{} {} {}", HR_OK, carol_fpr, carol_uid))];
@@ -2535,7 +2550,6 @@ mod integration {
         let trust_root = None; // No trust root for path.
         let sqwot_args = &[];
         let command = "path";
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
@@ -2620,7 +2634,6 @@ mod integration {
         let trust_root = None; // No trust root for path.
         let sqwot_args = &[];
         let command = "path";
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         // Alice certifies Bob as:
         //   a level 2 trusted introducer, amount = 50
@@ -2731,7 +2744,6 @@ mod integration {
         let trust_root = None; // No trust root for path.
         let sqwot_args = &[];
         let command = "path";
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         let human_output = [(1, format!("{} {}", HR_OK, frank_fpr))];
         // TODO: add output to check against once sq-wot graph is supported
@@ -2896,7 +2908,6 @@ mod integration {
         let trust_root = None; // No trust root for path.
         let sqwot_args = &[ "--time", "2023-01-10T15:07:01" ];
         let command = "path";
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         // Alice certifies Bob as
         //   a level 1 trusted introducer, amount = 120 using sha1
@@ -3053,7 +3064,6 @@ mod integration {
         let sqwot_args = &[];
         let command = "authenticate";
         let args = &[];
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         test(
             keyring,
@@ -3065,7 +3075,7 @@ mod integration {
             Some(&ellen_uid),
             Some(&ellen_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         let sqwot_args = &["--certification-network"];
@@ -3147,7 +3157,6 @@ mod integration {
         let sqwot_args = &[];
         let command = "authenticate";
         let args = &[];
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
@@ -3200,7 +3209,7 @@ mod integration {
             Some(&carol_uid),
             Some(&carol_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         test(
@@ -3213,7 +3222,7 @@ mod integration {
             Some(&dave_uid),
             Some(&dave_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         // With --certification-network, she can authenticate them all.
@@ -3345,7 +3354,7 @@ mod integration {
             Some(&alice_uid),
             Some(&alice_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         let human_output =
@@ -3398,7 +3407,7 @@ mod integration {
             Some(&alice_uid),
             Some(&alice_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         let human_output =
@@ -3452,7 +3461,7 @@ mod integration {
             Some(&alice_uid),
             Some(&alice_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         // use --certification-network
@@ -3572,7 +3581,6 @@ mod integration {
         let trust_root = &alice_fpr;
         let sqwot_args = &[];
         let command = "path";
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
@@ -4052,7 +4060,6 @@ mod integration {
         let trust_root: Option<&Fingerprint> = Some(&alice_fpr);
         let sqwot_args = &[];
         let command = "authenticate";
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
@@ -4131,7 +4138,7 @@ mod integration {
             Some(&bob_uid),
             Some(&bob_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         let trust_root = None;
@@ -4200,7 +4207,6 @@ mod integration {
         let trust_root: Option<&Fingerprint> = Some(&alice_fpr);
         let sqwot_args = &[];
         let command = "authenticate";
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         // Bob's certificate is hard revoked.
         test(
@@ -4213,7 +4219,7 @@ mod integration {
             Some(&bob_uid),
             Some(&bob_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         let trust_root: Option<&Fingerprint> = None;
@@ -4280,7 +4286,6 @@ mod integration {
         let sqwot_args = &["--time", "20200228"];
         let command = "authenticate";
         let args = &[];
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
@@ -4360,7 +4365,7 @@ mod integration {
             Some(&bob_uid),
             Some(&bob_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         let command = "path";
@@ -4418,7 +4423,6 @@ mod integration {
         let trust_root = Some(&alice_fpr);
         let sqwot_args = &["--time", "20200228"];
         let command = "authenticate";
-        let no_output = HashMap::<OutputFormat, &[(usize, String)]>::new();
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
@@ -4497,7 +4501,7 @@ mod integration {
             Some(&bob_uid),
             Some(&bob_fpr),
             false,
-            &no_output,
+            no_output(),
         );
 
         let trust_root = None;

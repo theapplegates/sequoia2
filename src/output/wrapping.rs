@@ -11,8 +11,16 @@ pub const NBSP: char = '\u{00A0}';
 /// Hint: Use `wprintln!(..)` instead of invoking this function
 /// directly.
 pub fn wprintln(msg: fmt::Arguments) {
+    let m = format!("{}", msg);
+    for l in textwrap::wrap(&m, options()) {
+        eprintln!("{}", l);
+    }
+}
+
+/// Returns options for text-wrapping.
+fn options() -> textwrap::Options<'static> {
     static OPTIONS: OnceLock<textwrap::Options> = OnceLock::new();
-    let options = OPTIONS.get_or_init(|| {
+    OPTIONS.get_or_init(|| {
         // It is better to use terminal_size instead of letting
         // textwrap do it, because textwrap uses an older version,
         // leading to duplicate crates.
@@ -22,10 +30,5 @@ pub fn wprintln(msg: fmt::Arguments) {
             .into();
 
         textwrap::Options::new(width)
-    }).clone();
-
-    let m = format!("{}", msg);
-    for l in textwrap::wrap(&m, options) {
-        eprintln!("{}", l);
-    }
+    }).clone()
 }

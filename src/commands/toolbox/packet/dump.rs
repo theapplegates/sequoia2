@@ -1,6 +1,7 @@
 use std::io::{self, Read};
 
 use sequoia_openpgp as openpgp;
+use openpgp::armor::ReaderMode;
 use self::openpgp::types::SymmetricAlgorithm;
 use self::openpgp::fmt::hex;
 use self::openpgp::crypto::mpi;
@@ -10,7 +11,13 @@ use self::openpgp::packet::header::CTB;
 use self::openpgp::packet::{Header, header::BodyLength, Signature};
 use self::openpgp::packet::signature::subpacket::{Subpacket, SubpacketValue};
 use self::openpgp::crypto::S2K;
-use self::openpgp::parse::{map::Map, Parse, PacketParserResult};
+use self::openpgp::parse::{
+    Dearmor,
+    Parse,
+    PacketParserBuilder,
+    PacketParserResult,
+    map::Map,
+};
 
 use crate::Convert;
 use crate::cli::types::SessionKey;
@@ -40,7 +47,10 @@ pub fn dump<W>(input: &mut (dyn io::Read + Sync + Send),
     let mut message_encrypted = false;
     let width = width.into().unwrap_or(80);
     let mut dumper = PacketDumper::new(width, mpis);
+    let mut first_armor_block = true;
+    let mut is_keyring = true;
 
+  loop {
     while let PacketParserResult::Some(mut pp) = ppr {
         let additional_fields = match pp.packet {
             Packet::Literal(_) => {
@@ -135,20 +145,53 @@ pub fn dump<W>(input: &mut (dyn io::Read + Sync + Send),
     dumper.flush(output)?;
 
     if let PacketParserResult::EOF(eof) = ppr {
-        if eof.is_message().is_ok() {
-            Ok(Kind::Message {
-                encrypted: message_encrypted,
-            })
-        } else if eof.is_cert().is_ok() {
-            Ok(Kind::Cert)
-        } else if eof.is_keyring().is_ok() {
-            Ok(Kind::Keyring)
-        } else {
-            Ok(Kind::Unknown)
+        let is_message = eof.is_message().is_ok() && first_armor_block;
+        let is_cert = eof.is_cert().is_ok() && first_armor_block;
+        is_keyring &= eof.is_keyring().is_ok();
+        first_armor_block = false;
+
+        // Now, the parser is exhausted, but we may find another
+        // armored blob.  Note that this can only happen if the first
+        // set of packets was also armored.
+        match PacketParserBuilder::from_buffered_reader(eof.into_reader())
+            .and_then(
+                |builder| builder
+                    .dearmor(Dearmor::Enabled(
+                        ReaderMode::Tolerant(None)))
+                    .build())
+        {
+            Ok(ppr_) => {
+                writeln!(output, "Note: There is another block of armored \
+                                  OpenPGP data.")?;
+
+                if is_message {
+                    writeln!(output, "Note: Data concatenated to a message is \
+                                      likely an error.")?;
+                } else if is_cert || is_keyring {
+                    writeln!(output, "Note: This is a non-standard extension \
+                                      to OpenPGP.")?;
+                }
+                writeln!(output)?;
+
+                ppr = ppr_;
+                continue;
+            },
+            Err(_) => break if is_message {
+                Ok(Kind::Message {
+                    encrypted: message_encrypted,
+                })
+            } else if is_cert {
+                Ok(Kind::Cert)
+            } else if is_keyring {
+                Ok(Kind::Keyring)
+            } else {
+                Ok(Kind::Unknown)
+            }
         }
     } else {
         unreachable!()
     }
+  }
 }
 
 struct Node {

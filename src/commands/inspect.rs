@@ -186,7 +186,7 @@ pub fn dispatch(config: Config, c: inspect::Command)
             writeln!(output, "  Cert: {}", is_cert.unwrap_err())?;
             writeln!(output, "  Keyring: {}", is_keyring.unwrap_err())?;
             writeln!(output)?;
-            writeln!(output, "Hint: Try 'sq packet dump {}'", input)?;
+            writeln!(output, "Hint: Try 'sq toolbox packet dump {}'", input)?;
         }
     } else {
         unreachable!()

@@ -6,12 +6,13 @@ use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
 use openpgp::{KeyHandle, Packet, Result};
+use openpgp::armor::ReaderMode;
 use openpgp::cert::prelude::*;
 use openpgp::packet::{
     Signature,
     key::PublicParts,
 };
-use openpgp::parse::{Parse, PacketParserResult};
+use openpgp::parse::{Dearmor, Parse, PacketParserBuilder, PacketParserResult};
 use openpgp::policy::{Policy, HashAlgoSecurity};
 use openpgp::packet::key::SecretKeyMaterial;
 use openpgp::types::{
@@ -45,15 +46,6 @@ pub fn dispatch(config: Config, c: inspect::Command)
     let print_certifications = c.certifications;
 
     let input = c.input;
-    write!(output, "{}: ", input)?;
-
-    let mut type_called = false;  // Did we print the type yet?
-    let mut encrypted = false;    // Is it an encrypted message?
-    let mut packets = Vec::new(); // Accumulator for packets.
-    let mut pkesks = Vec::new();  // Accumulator for PKESKs.
-    let mut n_skesks = 0;         // Number of SKESKs.
-    let mut sigs = Vec::new();    // Accumulator for signatures.
-    let mut literal_prefix = Vec::new();
 
     let mut bytes: Vec<u8> = Vec::new();
     let mut ppr = if c.cert.is_empty() {
@@ -82,6 +74,17 @@ pub fn dispatch(config: Config, c: inspect::Command)
 
         openpgp::parse::PacketParser::from_bytes(&bytes)?
     };
+
+  loop {
+    write!(output, "{}: ", input)?;
+
+    let mut type_called = false;  // Did we print the type yet?
+    let mut encrypted = false;    // Is it an encrypted message?
+    let mut packets = Vec::new(); // Accumulator for packets.
+    let mut pkesks = Vec::new();  // Accumulator for PKESKs.
+    let mut n_skesks = 0;         // Number of SKESKs.
+    let mut sigs = Vec::new();    // Accumulator for signatures.
+    let mut literal_prefix = Vec::new();
 
     while let PacketParserResult::Some(mut pp) = ppr {
         match pp.packet {
@@ -136,6 +139,17 @@ pub fn dispatch(config: Config, c: inspect::Command)
         let is_cert = eof.is_cert();
         let is_keyring = eof.is_keyring();
 
+        // Now, the parser is exhausted, but we may find another
+        // armored blob.  Note that this can only happen if the first
+        // set of packets was also armored.
+        let next_ppr =
+            PacketParserBuilder::from_buffered_reader(eof.into_reader())
+            .and_then(
+                |builder| builder
+                    .dearmor(Dearmor::Enabled(
+                        ReaderMode::Tolerant(None)))
+                    .build());
+
         if is_message.is_ok() {
             writeln!(output, "{}OpenPGP Message.",
                      match (encrypted, ! sigs.is_empty()) {
@@ -182,15 +196,37 @@ pub fn dispatch(config: Config, c: inspect::Command)
             writeln!(output, "No OpenPGP data.")?;
         } else {
             writeln!(output, "Unknown sequence of OpenPGP packets.")?;
-            writeln!(output, "  Message: {}", is_message.unwrap_err())?;
-            writeln!(output, "  Cert: {}", is_cert.unwrap_err())?;
-            writeln!(output, "  Keyring: {}", is_keyring.unwrap_err())?;
+            writeln!(output, "  Message: {}", is_message.as_ref().unwrap_err())?;
+            writeln!(output, "  Cert: {}", is_cert.as_ref().unwrap_err())?;
+            writeln!(output, "  Keyring: {}", is_keyring.as_ref().unwrap_err())?;
             writeln!(output)?;
             writeln!(output, "Hint: Try 'sq toolbox packet dump {}'", input)?;
+        }
+
+        // See if there is another armor block.
+        match next_ppr {
+            Ok(ppr_) => {
+                writeln!(output, "Note: There is another block of armored \
+                                  OpenPGP data.")?;
+
+                if is_message.is_ok() {
+                    writeln!(output, "Note: Data concatenated to a message is \
+                                      likely an error.")?;
+                } else if is_cert.is_ok() || is_keyring.is_ok() {
+                    writeln!(output, "Note: This is a non-standard extension \
+                                      to OpenPGP.")?;
+                }
+                writeln!(output)?;
+
+                ppr = ppr_;
+                continue;
+            },
+            Err(_) => break,
         }
     } else {
         unreachable!()
     }
+  }
 
     Ok(())
 }

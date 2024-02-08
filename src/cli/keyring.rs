@@ -6,7 +6,6 @@ use clap::{Args, Parser, Subcommand};
 
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
-use openpgp::crypto::Password;
 
 use super::types::ClapData;
 use super::types::FileOrStdin;

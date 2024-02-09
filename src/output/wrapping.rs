@@ -19,8 +19,9 @@ pub fn wprintln(msg: fmt::Arguments) {
 
 /// Prints the given message to stderr, indenting continuations.
 ///
-/// Hint: Use `make_iwprintln!(..)` and `iwprintln!(..)` instead of
-/// invoking this function directly.
+/// Hint: Use `wprintln!(indent="...", ..)` or
+/// `wprintln!(initial_indent="...", subsequent_indent="...", ..)`
+/// instead of invoking this function directly.
 pub fn iwprintln(initial_indent: &str,
                  subsequent_indent: &str,
                  msg: fmt::Arguments) {

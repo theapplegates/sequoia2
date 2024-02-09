@@ -481,18 +481,17 @@ struct Response {
 }
 
 impl Response {
-    /// Collects the responses, displays failures, and either writes
-    /// out a keyring or imports the certs.
+    /// Collects the responses, and displays failures.
     ///
     /// If `silent_errors` is given, then failure messages are
     /// suppressed unless --verbose is given, or there was not a
     /// single successful result.
-    async fn collect(mut config: Config<'_>,
-                     output: Option<FileOrStdout>,
-                     binary: bool,
+    async fn collect(config: &mut Config<'_>,
                      mut responses: JoinSet<Response>,
+                     certify: bool,
                      silent_errors: bool)
-                     -> Result<()> {
+                     -> Result<Vec<Cert>>
+    {
         let mut certs = Vec::new();
         let mut errors = Vec::new();
         while let Some(response) = responses.join_next().await {
@@ -500,13 +499,13 @@ impl Response {
             match response.results {
                 Ok(returned_certs) => for cert in returned_certs {
                     match cert {
-                        Ok(cert) => if output.is_some() {
+                        Ok(cert) => if ! certify {
                             certs.push(cert);
                         } else {
-                            if let Some(ca) = response.method.ca(&config)
+                            if let Some(ca) = response.method.ca(config)
                             {
                                 certs.append(&mut certify_downloads(
-                                    &mut config, ca, vec![cert], None));
+                                    config, ca, vec![cert], None));
                             } else {
                                 certs.push(cert);
                             }
@@ -528,9 +527,19 @@ impl Response {
         }
 
         if certs.is_empty() {
-            return Err(anyhow::anyhow!("No cert found."));
+            Err(anyhow::anyhow!("No cert found."))
+        } else {
+            Ok(certs)
         }
+    }
 
+    /// Either writes out a keyring or imports the certs.
+    fn import_or_emit(mut config: Config<'_>,
+                      output: Option<FileOrStdout>,
+                      binary: bool,
+                      certs: Vec<Cert>)
+                      -> Result<()>
+    {
         if let Some(file) = &output {
             let mut output = file.create_safe(config.force)?;
             serialize_keyring(&mut output, certs, binary)?;
@@ -542,7 +551,7 @@ impl Response {
     }
 }
 
-pub fn dispatch_fetch(config: Config, c: cli::network::fetch::Command)
+pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
                       -> Result<()>
 {
     let default_servers = default_keyservers_p(&c.servers);
@@ -597,8 +606,9 @@ pub fn dispatch_fetch(config: Config, c: cli::network::fetch::Command)
             }
         });
 
-        Response::collect(
-            config, c.output, c.binary, requests, default_servers).await?;
+        let certs = Response::collect(
+            &mut config, requests, c.output.is_none(), default_servers).await?;
+        Response::import_or_emit(config, c.output, c.binary, certs)?;
         Result::Ok(())
     })
 }
@@ -616,7 +626,8 @@ fn default_keyservers_p(servers: &[String]) -> bool {
         .all(|(a, b)| a == b)
 }
 
-pub fn dispatch_keyserver(config: Config, c: cli::network::keyserver::Command)
+pub fn dispatch_keyserver(mut config: Config,
+                          c: cli::network::keyserver::Command)
     -> Result<()>
 {
     let default_servers = default_keyservers_p(&c.servers);
@@ -652,8 +663,9 @@ pub fn dispatch_keyserver(config: Config, c: cli::network::keyserver::Command)
                 }
             });
 
-            Response::collect(
-                config, c.output, c.binary, requests, default_servers).await?;
+            let certs = Response::collect(
+                &mut config, requests, c.output.is_none(), default_servers).await?;
+            Response::import_or_emit(config, c.output, c.binary, certs)?;
             Result::Ok(())
         })?,
         Publish(c) => rt.block_on(async {
@@ -719,7 +731,8 @@ pub fn dispatch_keyserver(config: Config, c: cli::network::keyserver::Command)
     Ok(())
 }
 
-pub fn dispatch_wkd(config: Config, c: cli::network::wkd::Command) -> Result<()> {
+pub fn dispatch_wkd(mut config: Config, c: cli::network::wkd::Command)
+                    -> Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
 
     use crate::cli::network::wkd::Subcommands::*;
@@ -757,8 +770,9 @@ pub fn dispatch_wkd(config: Config, c: cli::network::wkd::Command) -> Result<()>
                 });
             });
 
-            Response::collect(
-                config, c.output, c.binary, requests, false).await?;
+            let certs = Response::collect(
+                &mut config, requests, c.output.is_none(), false).await?;
+            Response::import_or_emit(config, c.output, c.binary, certs)?;
             Result::Ok(())
         })?,
         Generate(c) => {
@@ -798,7 +812,8 @@ pub fn dispatch_wkd(config: Config, c: cli::network::wkd::Command) -> Result<()>
     Ok(())
 }
 
-pub fn dispatch_dane(config: Config, c: cli::network::dane::Command) -> Result<()> {
+pub fn dispatch_dane(mut config: Config, c: cli::network::dane::Command)
+                     -> Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
 
     use crate::cli::network::dane::Subcommands::*;
@@ -845,8 +860,9 @@ pub fn dispatch_dane(config: Config, c: cli::network::dane::Command) -> Result<(
                 });
             });
 
-            Response::collect(
-                config, c.output, c.binary, requests, false).await?;
+            let certs = Response::collect(
+                &mut config, requests, c.output.is_none(), false).await?;
+            Response::import_or_emit(config, c.output, c.binary, certs)?;
             Result::Ok(())
         })?,
     }

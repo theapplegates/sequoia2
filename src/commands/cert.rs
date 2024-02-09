@@ -8,6 +8,7 @@ use crate::{
 
 pub mod import;
 pub mod export;
+pub mod lint;
 
 pub fn dispatch(config: Config, command: Command) -> Result<()>
 {
@@ -17,5 +18,8 @@ pub fn dispatch(config: Config, command: Command) -> Result<()>
 
         Subcommands::Export(command) =>
             export::dispatch(config, command),
+
+        Subcommands::Lint(command) =>
+            lint::lint(config, command),
     }
 }

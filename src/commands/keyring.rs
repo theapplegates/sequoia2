@@ -3,7 +3,6 @@ use std::{
     fs::File,
     io,
     path::PathBuf,
-    process::exit,
 };
 use std::ops::Deref;
 use anyhow::Context;
@@ -32,12 +31,9 @@ use crate::{
     Model,
     cli::types::FileOrStdout,
     output::KeyringListItem,
-    print_error_chain,
 };
 
 use crate::cli::keyring;
-
-mod lint;
 
 pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
     use crate::cli::keyring::Subcommands::*;
@@ -156,15 +152,6 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
                         + "-");
             split(&mut input, &prefix, c.binary)
         },
-        Lint(l) => {
-            match lint::lint(config, l) {
-                Ok(()) => Ok(()),
-                Err(e) => {
-                    print_error_chain(&e);
-                    exit(1);
-                },
-            }
-        }
     }
 }
 

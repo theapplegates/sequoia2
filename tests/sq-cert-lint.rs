@@ -12,7 +12,7 @@ mod integration {
     use openpgp::parse::Parse;
 
     fn dir() -> path::PathBuf {
-        path::Path::new("tests").join("data").join("keyring-lint")
+        path::Path::new("tests").join("data").join("cert-lint")
     }
 
     const FROZEN_TIME: &str = "20220101";
@@ -76,7 +76,7 @@ mod integration {
             sq()
                 .current_dir(&dir)
                 .arg("--no-cert-store")
-                .arg("keyring").arg("lint")
+                .arg("cert").arg("lint")
                 .arg("--time").arg(FROZEN_TIME)
                 .arg(filename)
                 .assert()
@@ -110,7 +110,7 @@ mod integration {
             let mut cmd = cmd.current_dir(&dir)
                 .args(&[
                     "--no-cert-store",
-                    "keyring", "lint",
+                    "cert", "lint",
                     "--time", FROZEN_TIME,
                     "--fix", &format!("{}-{}.pgp", base, suffix)
                 ]);
@@ -130,7 +130,7 @@ mod integration {
                         Command::cargo_bin("sq").unwrap()
                             .current_dir(&dir)
                             .arg("--no-cert-store")
-                            .arg("keyring").arg("lint")
+                            .arg("cert").arg("lint")
                             .arg("--time").arg(FROZEN_TIME)
                             .arg("-")
                             .write_stdin(output)
@@ -428,7 +428,7 @@ mod integration {
             .current_dir(&dir())
             .args(&[
                 "--no-cert-store",
-                "keyring", "lint",
+                "cert", "lint",
                 "--time", FROZEN_TIME,
                 "--list-keys",
                 // 94F19D3CB5656E0BC3977C09A8AC5ACC2FB87104
@@ -448,7 +448,7 @@ mod integration {
             .current_dir(&dir())
             .args(&[
                 "--no-cert-store",
-                "keyring", "lint",
+                "cert", "lint",
                 "--time", FROZEN_TIME,
                 "msg.sig",
             ])

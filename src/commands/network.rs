@@ -3,7 +3,7 @@
 use std::collections::HashSet;
 use std::fmt;
 use std::sync::Arc;
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 use anyhow::Context;
 use tokio::task::JoinSet;
@@ -57,6 +57,15 @@ use crate::{
 };
 
 use crate::cli;
+
+/// User agent for http communications.
+pub const USER_AGENT: &'static str = concat!("sq/", env!("CARGO_PKG_VERSION"));
+
+/// How long to wait for the initial http connection.
+pub const CONNECT_TIMEOUT: Duration = Duration::new(5, 0);
+
+/// How long to wait for each individual http request.
+pub const REQUEST_TIMEOUT: Duration = Duration::new(5, 0);
 
 pub fn dispatch(config: Config, c: cli::network::Command)
                 -> Result<()>
@@ -559,8 +568,9 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
                       -> Result<()>
 {
     let default_servers = default_keyservers_p(&c.servers);
+    let http_client = http_client()?;
     let servers = c.servers.iter().map(
-        |uri| KeyServer::new(uri)
+        |uri| KeyServer::with_client(uri, http_client.clone())
             .with_context(|| format!("Malformed keyserver URI: {}", uri))
             .map(Arc::new))
         .collect::<Result<Vec<_>>>()?;
@@ -609,9 +619,10 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
 
             if let Some(address) = query.as_address() {
                 let a = address.to_string();
+                let http_client = http_client.clone();
                 requests.spawn(async move {
                     let results =
-                        wkd::get(&net::reqwest::Client::new(), &a).await;
+                        wkd::get(&http_client, &a).await;
                     Response {
                         query: Query::Address(a),
                         results,
@@ -678,7 +689,7 @@ pub fn dispatch_keyserver(mut config: Config,
 {
     let default_servers = default_keyservers_p(&c.servers);
     let servers = c.servers.iter().map(
-        |uri| KeyServer::new(uri)
+        |uri| KeyServer::with_client(uri, http_client()?)
             .with_context(|| format!("Malformed keyserver URI: {}", uri))
             .map(Arc::new))
         .collect::<Result<Vec<_>>>()?;
@@ -800,12 +811,14 @@ pub fn dispatch_wkd(mut config: Config, c: cli::network::wkd::Command)
             output.write(config.output_format, &mut std::io::stdout())?;
         },
         Fetch(c) => rt.block_on(async {
+            let http_client = http_client()?;
             let queries = Query::parse_addresses(&c.addresses)?;
             let mut requests = tokio::task::JoinSet::new();
             queries.into_iter().for_each(|query| {
+                let http_client = http_client.clone();
                 requests.spawn(async move {
                     let results = wkd::get(
-                        &net::reqwest::Client::new(),
+                        &http_client,
                         query.as_address().expect("parsed only addresses"))
                         .await;
                     Response {
@@ -914,4 +927,13 @@ pub fn dispatch_dane(mut config: Config, c: cli::network::dane::Command)
     }
 
     Ok(())
+}
+
+/// Makes a http client.
+fn http_client() -> Result<net::reqwest::Client> {
+    Ok(net::reqwest::Client::builder()
+        .user_agent(USER_AGENT)
+	.connect_timeout(CONNECT_TIMEOUT)
+	.timeout(REQUEST_TIMEOUT)
+        .build()?)
 }

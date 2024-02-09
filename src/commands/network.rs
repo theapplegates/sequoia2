@@ -595,7 +595,7 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
                 });
 
                 let a = address.to_string();
-               requests.spawn(async move {
+                requests.spawn(async move {
                     let results = dane::get(&a).await;
                     Response {
                         query: Query::Address(a),

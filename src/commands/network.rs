@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
 use anyhow::Context;
+use indicatif::ProgressBar;
 use tokio::task::JoinSet;
 
 use sequoia_openpgp as openpgp;
@@ -499,6 +500,15 @@ struct Response {
 }
 
 impl Response {
+    /// Creates a progress bar.
+    fn progress_bar(config: &Config) -> ProgressBar {
+        if config.verbose {
+            ProgressBar::hidden()
+        } else {
+            ProgressBar::new(0)
+        }
+    }
+
     /// Collects the responses, and displays failures.
     ///
     /// If `silent_errors` is given, then failure messages are
@@ -507,12 +517,14 @@ impl Response {
     async fn collect(config: &mut Config<'_>,
                      mut responses: JoinSet<Response>,
                      certify: bool,
-                     silent_errors: bool)
+                     silent_errors: bool,
+                     pb: &mut ProgressBar)
                      -> Result<Vec<Cert>>
     {
         let mut certs = Vec::new();
         let mut errors = Vec::new();
         while let Some(response) = responses.join_next().await {
+            pb.inc(1);
             let response = response?;
             match response.results {
                 Ok(returned_certs) => for cert in returned_certs {
@@ -540,7 +552,7 @@ impl Response {
 
         if ! silent_errors || config.verbose || certs.is_empty() {
             for (method, query, e) in errors {
-                wprintln!("{}: {}: {}", method, query, e);
+                pb.suspend(|| wprintln!("{}: {}: {}", method, query, e));
             }
         }
 
@@ -588,6 +600,8 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
     let mut seen_ids = HashSet::new();
     let mut queries = Query::parse(&c.query)?;
     let mut results = Vec::new();
+    let mut pb = Response::progress_bar(&config);
+
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async {
       for _ in 0..FETCH_MAX_QUERY_ITERATIONS {
@@ -611,6 +625,7 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
 
             for ks in servers.iter().cloned() {
                 let query = query.clone();
+                pb.inc_length(1);
                 requests.spawn(async move {
                     let results = match query.clone() {
                         Query::Handle(h) => ks.get(h).await,
@@ -628,6 +643,7 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
             if let Some(address) = query.as_address() {
                 let a = address.to_string();
                 let http_client = http_client.clone();
+                pb.inc_length(1);
                 requests.spawn(async move {
                     let results =
                         wkd::get(&http_client, &a).await;
@@ -639,6 +655,7 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
                 });
 
                 let a = address.to_string();
+                pb.inc_length(1);
                 requests.spawn(async move {
                     let results = dane::get(&a).await;
                     Response {
@@ -655,7 +672,7 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
         }
 
         let mut certs = Response::collect(
-            &mut config, requests, c.output.is_none(), default_servers).await?;
+            &mut config, requests, c.output.is_none(), default_servers, &mut pb).await?;
 
         // Expand certs to discover new identifiers to query.
         for cert in &certs {
@@ -673,6 +690,7 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
 
       Result::Ok(())
     })?;
+    drop(pb);
 
     Response::import_or_emit(config, c.output, c.binary, results)?;
     Ok(())
@@ -707,12 +725,14 @@ pub fn dispatch_keyserver(mut config: Config,
     use crate::cli::network::keyserver::Subcommands::*;
     match c.subcommand {
         Fetch(c) => rt.block_on(async {
+            let mut pb = Response::progress_bar(&config);
             let queries = Query::parse(&c.query)?;
 
             let mut requests = tokio::task::JoinSet::new();
             queries.into_iter().for_each(|query| {
                 for ks in servers.iter().cloned() {
                     let query = query.clone();
+                    pb.inc_length(1);
                     requests.spawn(async move {
                         let results = match query.clone() {
                             Query::Handle(h) => ks.get(h).await,
@@ -729,7 +749,8 @@ pub fn dispatch_keyserver(mut config: Config,
             });
 
             let certs = Response::collect(
-                &mut config, requests, c.output.is_none(), default_servers).await?;
+                &mut config, requests, c.output.is_none(), default_servers, &mut pb).await?;
+            drop(pb);
             Response::import_or_emit(config, c.output, c.binary, certs)?;
             Result::Ok(())
         })?,
@@ -819,10 +840,12 @@ pub fn dispatch_wkd(mut config: Config, c: cli::network::wkd::Command)
             output.write(config.output_format, &mut std::io::stdout())?;
         },
         Fetch(c) => rt.block_on(async {
+            let mut pb = Response::progress_bar(&config);
             let http_client = http_client()?;
             let queries = Query::parse_addresses(&c.addresses)?;
             let mut requests = tokio::task::JoinSet::new();
             queries.into_iter().for_each(|query| {
+                pb.inc_length(1);
                 let http_client = http_client.clone();
                 requests.spawn(async move {
                     let results = wkd::get(
@@ -838,7 +861,8 @@ pub fn dispatch_wkd(mut config: Config, c: cli::network::wkd::Command)
             });
 
             let certs = Response::collect(
-                &mut config, requests, c.output.is_none(), false).await?;
+                &mut config, requests, c.output.is_none(), false, &mut pb).await?;
+            drop(pb);
             Response::import_or_emit(config, c.output, c.binary, certs)?;
             Result::Ok(())
         })?,
@@ -912,9 +936,11 @@ pub fn dispatch_dane(mut config: Config, c: cli::network::dane::Command)
             }
         },
         Fetch(c) => rt.block_on(async {
+            let mut pb = Response::progress_bar(&config);
             let queries = Query::parse_addresses(&c.addresses)?;
             let mut requests = tokio::task::JoinSet::new();
             queries.into_iter().for_each(|query| {
+                pb.inc_length(1);
                 requests.spawn(async move {
                     let results = dane::get(
                         query.as_address().expect("parsed only addresses"))
@@ -928,7 +954,8 @@ pub fn dispatch_dane(mut config: Config, c: cli::network::dane::Command)
             });
 
             let certs = Response::collect(
-                &mut config, requests, c.output.is_none(), false).await?;
+                &mut config, requests, c.output.is_none(), false, &mut pb).await?;
+            drop(pb);
             Response::import_or_emit(config, c.output, c.binary, certs)?;
             Result::Ok(())
         })?,

@@ -245,7 +245,9 @@ pub fn certify_downloads<'store>(config: &mut Config<'store>,
             let err = err.context(
                 "Warning: not recording provenance information, \
                  failed to load CA key");
-            print_error_chain(&err);
+            if config.verbose {
+                print_error_chain(&err);
+            }
             return certs;
         }
     };
@@ -265,7 +267,9 @@ pub fn certify_downloads<'store>(config: &mut Config<'store>,
                     "Warning: not recording provenance information \
                      for {}, not valid",
                     cert.fingerprint()));
-                print_error_chain(&err);
+                if config.verbose {
+                    print_error_chain(&err);
+                }
                 return cert;
             }
             Ok(vc) => vc,
@@ -285,12 +289,14 @@ pub fn certify_downloads<'store>(config: &mut Config<'store>,
                 .collect::<Vec<UserID>>();
 
             if userids.is_empty() {
-                config.info(format_args!(
-                          "Warning: not recording provenance information \
-                           for {}, it does not contain a valid User ID with \
-                           the specified email address ({:?})",
-                          cert.fingerprint(),
-                          email));
+                if config.verbose {
+                    config.info(format_args!(
+                        "Warning: not recording provenance information \
+                         for {}, it does not contain a valid User ID with \
+                         the specified email address ({:?})",
+                        cert.fingerprint(),
+                        email));
+                }
                 return cert;
             }
 
@@ -309,7 +315,9 @@ pub fn certify_downloads<'store>(config: &mut Config<'store>,
                     "Warning: not recording provenance information \
                      for {}, failed to certify it",
                     cert.fingerprint()));
-                print_error_chain(&err);
+                if config.verbose {
+                    print_error_chain(&err);
+                }
 
                 cert
             }

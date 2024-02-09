@@ -1,5 +1,6 @@
 //! Network services.
 
+use std::collections::HashSet;
 use std::fmt;
 use std::sync::Arc;
 use std::time::SystemTime;
@@ -551,6 +552,9 @@ impl Response {
     }
 }
 
+/// How many times to iterate to discover related certificates.
+const FETCH_MAX_QUERY_ITERATIONS: usize = 3;
+
 pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
                       -> Result<()>
 {
@@ -561,11 +565,32 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
             .map(Arc::new))
         .collect::<Result<Vec<_>>>()?;
 
-    let queries = Query::parse(&c.query)?;
+    let mut seen_emails = HashSet::new();
+    let mut seen_fps = HashSet::new();
+    let mut seen_ids = HashSet::new();
+    let mut queries = Query::parse(&c.query)?;
+    let mut results = Vec::new();
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async {
+      for _ in 0..FETCH_MAX_QUERY_ITERATIONS {
         let mut requests = JoinSet::new();
-        queries.into_iter().for_each(|query| {
+        let mut converged = true;
+        std::mem::take(&mut queries).into_iter().for_each(|query| {
+            let new = match &query {
+                Query::Handle(KeyHandle::Fingerprint(fp)) =>
+                    seen_fps.insert(fp.clone()),
+                Query::Handle(KeyHandle::KeyID(id)) =>
+                    seen_ids.insert(id.clone()),
+                Query::Address(addr) =>
+                    seen_emails.insert(addr.clone()),
+            };
+
+            // Skip queries that we already did.
+            if ! new {
+                return;
+            }
+            converged = false;
+
             for ks in servers.iter().cloned() {
                 let query = query.clone();
                 requests.spawn(async move {
@@ -606,11 +631,32 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
             }
         });
 
-        let certs = Response::collect(
+        if converged {
+            return Result::Ok(());
+        }
+
+        let mut certs = Response::collect(
             &mut config, requests, c.output.is_none(), default_servers).await?;
-        Response::import_or_emit(config, c.output, c.binary, certs)?;
-        Result::Ok(())
-    })
+
+        // Expand certs to discover new identifiers to query.
+        for cert in &certs {
+            queries.push(Query::Handle(cert.key_handle()));
+
+            for uid in cert.userids() {
+                if let Ok(Some(addr)) = uid.email2() {
+                    queries.push(Query::Address(addr.into()));
+                }
+            }
+        }
+
+        results.append(&mut certs);
+      }
+
+      Result::Ok(())
+    })?;
+
+    Response::import_or_emit(config, c.output, c.binary, results)?;
+    Ok(())
 }
 
 /// Figures out whether the given set of key servers is the default

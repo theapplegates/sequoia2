@@ -40,7 +40,7 @@ pub mod sign;
 pub mod inspect;
 pub mod key;
 pub mod keyring;
-pub mod net;
+pub mod network;
 pub mod pki;
 pub mod toolbox;
 pub mod verify;

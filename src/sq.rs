@@ -1047,7 +1047,7 @@ fn main() -> Result<()> {
         }
 
         SqSubcommands::Network(command) =>
-            commands::net::dispatch(config, command)?,
+            commands::network::dispatch(config, command)?,
         SqSubcommands::Version(command) =>
             commands::version::dispatch(config, command)?,
     }

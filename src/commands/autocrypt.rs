@@ -15,7 +15,7 @@ use sequoia_autocrypt as autocrypt;
 use crate::{
     Config,
     cli,
-    commands::net::{
+    commands::network::{
         certify_downloads,
         import_certs,
     },

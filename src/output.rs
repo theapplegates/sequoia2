@@ -52,7 +52,7 @@ impl Model {
         Ok(result)
     }
 
-    /// Create a model for the output of the `sq keyring list`
+    /// Create a model for the output of the `sq toolbox keyring list`
     /// subcommand.
     pub fn keyring_list(version: Option<OutputVersion>, certs: Vec<keyring::ListItem>, all_uids: bool) -> Result<Self> {
         let version = Self::version(version);

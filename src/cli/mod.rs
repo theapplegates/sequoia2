@@ -94,7 +94,6 @@ pub mod decrypt;
 pub mod encrypt;
 pub mod inspect;
 pub mod key;
-pub mod keyring;
 pub mod network;
 pub mod output;
 pub mod pki;
@@ -355,7 +354,6 @@ pub enum SqSubcommands {
 
     Cert(cert::Command),
     Key(key::Command),
-    Keyring(keyring::Command),
     Pki(pki::Command),
 
     Autocrypt(autocrypt::Command),

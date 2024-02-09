@@ -1,4 +1,4 @@
-//! Command-line parser for `sq keyring`.
+//! Command-line parser for `sq toolbox keyring`.
 
 use std::path::PathBuf;
 
@@ -7,9 +7,9 @@ use clap::{Args, Parser, Subcommand};
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
-use super::types::ClapData;
-use super::types::FileOrStdin;
-use super::types::FileOrStdout;
+use crate::cli::types::ClapData;
+use crate::cli::types::FileOrStdin;
+use crate::cli::types::FileOrStdout;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -64,24 +64,26 @@ inspiration.
 "EXAMPLES:
 
 # Converts a key to a cert (i.e., remove any secret key material)
-$ sq keyring filter --to-cert cat juliet.pgp
+$ sq toolbox keyring filter --to-cert cat juliet.pgp
 
 # Gets the keys with a user id on example.org
-$ sq keyring filter --domain example.org keys.pgp
+$ sq toolbox keyring filter --domain example.org keys.pgp
 
 # Gets the keys with a user id on example.org or example.net
-$ sq keyring filter --domain example.org --domain example.net \\
+$ sq toolbox keyring filter --domain example.org \\
+     --domain example.net \\
      keys.pgp
 
 # Gets the keys with a user id with the name Juliet
-$ sq keyring filter --name Juliet keys.pgp
+$ sq toolbox keyring filter --name Juliet keys.pgp
 
 # Gets the keys with a user id with the name Juliet on example.org
-$ sq keyring filter --domain example.org keys.pgp | \\
-  sq keyring filter --name Juliet
+$ sq toolbox keyring filter --domain example.org keys.pgp | \\
+  sq toolbox keyring filter --name Juliet
 
 # Gets the keys with a user id on example.org, pruning other userids
-$ sq keyring filter --domain example.org --prune-certs certs.pgp
+$ sq toolbox keyring filter --domain example.org --prune-certs \\
+     certs.pgp
 ",
 )]
 pub struct FilterCommand {
@@ -180,7 +182,7 @@ is preferred.
 "EXAMPLES:
 
 # Merge certificate updates
-$ sq keyring merge certs.pgp romeo-updates.pgp
+$ sq toolbox keyring merge certs.pgp romeo-updates.pgp
 ",
 )]
 pub struct MergeCommand {
@@ -215,11 +217,11 @@ certificate encountered in the keyring.
 "EXAMPLES:
 
 # List all certs
-$ sq keyring list certs.pgp
+$ sq toolbox keyring list certs.pgp
 
 # List all certs with a userid on example.org
-$ sq keyring filter --domain example.org certs.pgp \\
-     | sq keyring list
+$ sq toolbox keyring filter --domain example.org certs.pgp \\
+     | sq toolbox keyring list
 ",
 )]
 pub struct ListCommand {
@@ -248,16 +250,16 @@ pub struct ListCommand {
 Splitting up a keyring into individual keys helps with curating a
 keyring.
 
-The converse operation is `sq keyring merge`.
+The converse operation is `sq toolbox keyring merge`.
 ",
     after_help =
 "EXAMPLES:
 
 # Split all certs
-$ sq keyring split certs.pgp
+$ sq toolbox keyring split certs.pgp
 
 # Split all certs, merging them first to avoid duplicates
-$ sq keyring merge certs.pgp | sq keyring split
+$ sq toolbox keyring merge certs.pgp | sq toolbox keyring split
 ",
 )]
 pub struct SplitCommand {

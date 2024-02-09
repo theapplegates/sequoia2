@@ -8,11 +8,14 @@ use crate::{
 
 pub mod armor;
 pub mod dearmor;
+pub mod keyring;
 pub mod packet;
 
 pub fn dispatch(config: Config, command: Command) -> Result<()>
 {
     match command.subcommand {
+        Subcommands::Keyring(command) =>
+            keyring::dispatch(config, command),
         Subcommands::Packet(command) =>
             packet::dispatch(config, command),
         Subcommands::Armor(command) =>

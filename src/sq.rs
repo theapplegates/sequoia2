@@ -1029,10 +1029,6 @@ fn main() -> Result<()> {
             commands::inspect::dispatch(config, command)?
         },
 
-        SqSubcommands::Keyring(command) => {
-            commands::keyring::dispatch(config, command)?
-        },
-
         SqSubcommands::Toolbox(command) =>
             commands::toolbox::dispatch(config, command)?,
 

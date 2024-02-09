@@ -35,6 +35,7 @@ use net::{
 
 use sequoia_cert_store as cert_store;
 use cert_store::LazyCert;
+use cert_store::Store;
 use cert_store::StoreUpdate;
 use cert_store::store::UserIDQueryParams;
 
@@ -385,6 +386,7 @@ enum Method {
     KeyServer(String),
     WKD,
     DANE,
+    CertStore,
 }
 
 impl fmt::Display for Method {
@@ -393,6 +395,7 @@ impl fmt::Display for Method {
             Method::KeyServer(url) => write!(f, "{}", url),
             Method::WKD => write!(f, "WKD"),
             Method::DANE => write!(f, "DANE"),
+            Method::CertStore => write!(f, "CertStore"),
         }
     }
 }
@@ -425,6 +428,7 @@ impl Method {
                 }
                 Method::WKD => certd.shadow_ca_wkd()?,
                 Method::DANE => certd.shadow_ca_dane()?,
+                Method::CertStore => return Ok(None),
             };
 
             // Check that the data is a valid certificate.  If not,
@@ -662,6 +666,28 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
                         query: Query::Address(a),
                         results,
                         method: Method::DANE,
+                    }
+                });
+            }
+
+            // Finally, we also consult the certificate store to
+            // discover more identifiers.  This is sync, but we use
+            // the same mechanism to merge the result back in.
+            if let Ok(Some(store)) = config.cert_store() {
+                pb.inc_length(1);
+                let mut email_query = UserIDQueryParams::new();
+                email_query.set_email(true);
+                email_query.set_ignore_case(true);
+
+                let results = match &query {
+                    Query::Handle(h) => store.lookup_by_cert(h),
+                    Query::Address(a) => store.select_userid(&email_query, a),
+                }.map(|r| r.into_iter().map(|c| c.to_cert().cloned()).collect());
+                requests.spawn(async move {
+                    Response {
+                        query,
+                        results,
+                        method: Method::CertStore,
                     }
                 });
             }

@@ -365,8 +365,9 @@ impl fmt::Display for Query {
 }
 
 impl Query {
-    /// Parses command line arguments to queries.
-    fn parse(args: &[String]) -> Result<Vec<Query>> {
+    /// Parses command line arguments to queries suitable for key
+    /// servers.
+    fn parse_keyserver_queries(args: &[String]) -> Result<Vec<Query>> {
         args.iter().map(
             |q| if let Ok(h) = q.parse::<KeyHandle>() {
                 Ok(Query::Handle(h))
@@ -670,7 +671,7 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
     let mut queries = if c.all {
         Query::all_certs(&config)?
     } else {
-        Query::parse(&c.query)?
+        Query::parse_keyserver_queries(&c.query)?
     };
     let mut results = Vec::new();
     let mut pb = Response::progress_bar(&config);
@@ -824,7 +825,7 @@ pub fn dispatch_keyserver(mut config: Config,
             let queries = if c.all {
                 Query::all_certs(&config)?
             } else {
-                Query::parse(&c.query)?
+                Query::parse_keyserver_queries(&c.query)?
             };
 
             let mut requests = tokio::task::JoinSet::new();

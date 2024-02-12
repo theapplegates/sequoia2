@@ -92,9 +92,11 @@ pub struct Command {
     #[arg(short='k', long)]
     pub list_keys: bool,
 
-    /// A list of OpenPGP keyrings to process.  If none are specified,
-    /// a keyring is read from stdin.
-    pub file: Vec<FileOrStdin>,
+    #[clap(
+        help = FileOrStdin::HELP_OPTIONAL,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub inputs: Vec<FileOrStdin>,
 
     #[clap(
         default_value_t = FileOrStdout::default(),

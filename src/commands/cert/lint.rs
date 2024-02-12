@@ -255,7 +255,13 @@ pub fn lint(config: Config, mut args: Command) -> Result<()> {
         } else {
             armor::Kind::PublicKey
         })?;
-    'next_input: for input in args.file {
+
+    // If no inputs are given, read from stdin.
+    if args.inputs.is_empty() {
+        args.inputs.push(Default::default());
+    }
+
+    'next_input: for input in args.inputs {
         let mut input_reader = input.open()?;
         let filename = match input.inner() {
             Some(path) => path.display().to_string(),

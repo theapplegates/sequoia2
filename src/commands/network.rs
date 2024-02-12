@@ -32,6 +32,7 @@ use net::{
     KeyServer,
     wkd,
     dane,
+    reqwest::Url,
 };
 
 use sequoia_cert_store as cert_store;
@@ -347,6 +348,7 @@ fn cert_exportable(c: &Cert) -> bool {
 enum Query {
     Handle(KeyHandle),
     Address(String),
+    Url(Url),
 }
 
 impl From<Fingerprint> for Query {
@@ -360,11 +362,28 @@ impl fmt::Display for Query {
         match self {
             Query::Handle(h) => write!(f, "{}", h),
             Query::Address(a) => write!(f, "{}", a),
+            Query::Url(u) => write!(f, "{}", u),
         }
     }
 }
 
 impl Query {
+    /// Parses command line arguments to queries.
+    fn parse(args: &[String]) -> Result<Vec<Query>> {
+        args.iter().map(
+            |q| if let Ok(h) = q.parse::<KeyHandle>() {
+                Ok(Query::Handle(h))
+            } else if let Ok(Some(addr)) = UserID::from(q.as_str()).email2() {
+                Ok(Query::Address(addr.to_string()))
+            } else if let Ok(url) = Url::parse(q.as_str()) {
+                Ok(Query::Url(url))
+            } else {
+                Err(anyhow::anyhow!(
+                    "Query must be a fingerprint, a keyid, \
+                     an http or https Url, or an email address: {:?}", q))
+            }).collect::<Result<Vec<Query>>>()
+    }
+
     /// Parses command line arguments to queries suitable for key
     /// servers.
     fn parse_keyserver_queries(args: &[String]) -> Result<Vec<Query>> {
@@ -445,6 +464,15 @@ impl Query {
             None
         }
     }
+
+    /// Returns the query if suitable for keyservers.
+    fn as_keyserver_query(&self) -> Option<&Query> {
+        match self {
+            Query::Address(_) => Some(self),
+            Query::Handle(_) => Some(self),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -452,6 +480,7 @@ enum Method {
     KeyServer(String),
     WKD,
     DANE,
+    Http(Url),
     CertStore,
 }
 
@@ -461,6 +490,7 @@ impl fmt::Display for Method {
             Method::KeyServer(url) => write!(f, "{}", url),
             Method::WKD => write!(f, "WKD"),
             Method::DANE => write!(f, "DANE"),
+            Method::Http(_) => write!(f, "http"),
             Method::CertStore => write!(f, "CertStore"),
         }
     }
@@ -494,6 +524,7 @@ impl Method {
                 }
                 Method::WKD => certd.shadow_ca_wkd()?,
                 Method::DANE => certd.shadow_ca_dane()?,
+                Method::Http(_) => return Ok(None),
                 Method::CertStore => return Ok(None),
             };
 
@@ -668,10 +699,11 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
     let mut seen_emails = HashSet::new();
     let mut seen_fps = HashSet::new();
     let mut seen_ids = HashSet::new();
+    let mut seen_urls = HashSet::new();
     let mut queries = if c.all {
         Query::all_certs(&config)?
     } else {
-        Query::parse_keyserver_queries(&c.query)?
+        Query::parse(&c.query)?
     };
     let mut results = Vec::new();
     let mut pb = Response::progress_bar(&config);
@@ -689,6 +721,8 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
                     seen_ids.insert(id.clone()),
                 Query::Address(addr) =>
                     seen_emails.insert(addr.clone()),
+                Query::Url(url) =>
+                    seen_urls.insert(url.clone()),
             };
 
             // Skip queries that we already did.
@@ -697,21 +731,24 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
             }
             converged = false;
 
-            for ks in servers.iter().cloned() {
-                let query = query.clone();
-                pb.inc_length(1);
-                requests.spawn(async move {
-                    let results = match query.clone() {
-                        Query::Handle(h) => ks.get(h).await,
-                        Query::Address(a) => ks.search(a).await,
-                    };
-                    Response {
-                        query,
-                        results,
-                        method: Method::KeyServer(
-                            ks.url().as_str().to_string()),
-                    }
-                });
+            if let Some(query) = query.as_keyserver_query() {
+                for ks in servers.iter().cloned() {
+                    pb.inc_length(1);
+                    let query = query.clone();
+                    requests.spawn(async move {
+                        let results = match query.clone() {
+                            Query::Handle(h) => ks.get(h).await,
+                            Query::Address(a) => ks.search(a).await,
+                            Query::Url(_) => unreachable!(),
+                        };
+                        Response {
+                            query,
+                            results,
+                            method: Method::KeyServer(
+                                ks.url().as_str().to_string()),
+                        }
+                    });
+                }
             }
 
             if let Some(address) = query.as_address() {
@@ -740,6 +777,27 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
                 });
             }
 
+            if let Query::Url(url) = &query {
+                let query = query.clone();
+                let http_client = http_client.clone();
+                let url = url.clone();
+                requests.spawn(async move {
+                    Response {
+                        query,
+                        results: match http_client.get(url.clone()).send().await
+                        {
+                            Ok(response) =>
+                                response.bytes().await
+                                .map_err(Into::into)
+                                .and_then(|b| CertParser::from_bytes(&b)
+                                          .map(|cp| cp.collect())),
+                            Err(e) => Err(e.into()),
+                        },
+                        method: Method::Http(url),
+                    }
+                });
+            }
+
             // Finally, we also consult the certificate store to
             // discover more identifiers.  This is sync, but we use
             // the same mechanism to merge the result back in.
@@ -752,6 +810,7 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
                 let results = match &query {
                     Query::Handle(h) => store.lookup_by_cert(h),
                     Query::Address(a) => store.select_userid(&email_query, a),
+                    Query::Url(_) => return,
                 }.map(|r| r.into_iter().map(|c| c.to_cert().cloned()).collect());
                 requests.spawn(async move {
                     Response {
@@ -837,6 +896,7 @@ pub fn dispatch_keyserver(mut config: Config,
                         let results = match query.clone() {
                             Query::Handle(h) => ks.get(h).await,
                             Query::Address(a) => ks.search(a).await,
+                            Query::Url(_) => unreachable!(),
                         };
                         Response {
                             query,

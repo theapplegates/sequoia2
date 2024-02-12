@@ -524,7 +524,12 @@ impl Method {
                 }
                 Method::WKD => certd.shadow_ca_wkd()?,
                 Method::DANE => certd.shadow_ca_dane()?,
-                Method::Http(_) => return Ok(None),
+                Method::Http(url) =>
+                    if let Some(r) = certd.shadow_ca_for_url(&url.to_string())? {
+                        r
+                    } else {
+                        return Ok(None);
+                    },
                 Method::CertStore => return Ok(None),
             };
 

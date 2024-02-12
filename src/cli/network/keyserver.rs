@@ -85,6 +85,14 @@ pub struct FetchCommand {
         help = "Emits binary data",
     )]
     pub binary: bool,
+
+    #[clap(
+        long,
+        conflicts_with = "query",
+        help = "Fetch all known certificates",
+    )]
+    pub all: bool,
+
     #[clap(
         value_name = "QUERY",
         required = true,

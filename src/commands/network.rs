@@ -11,6 +11,7 @@ use tokio::task::JoinSet;
 
 use sequoia_openpgp as openpgp;
 use openpgp::{
+    Fingerprint,
     Result,
     KeyHandle,
     cert::{
@@ -329,10 +330,29 @@ pub fn certify_downloads<'store>(config: &mut Config<'store>,
     certs
 }
 
+/// Checks if a cert is exportable *and* has an exportable user ID.
+///
+/// Note: Versions of sequoia-openpgp earlier than 1.19 didn't have a
+/// nice way to create non-exportable direct key signatures using the
+/// CertBuilder.  Therefore, we used to create shadow CAs with
+/// exportable direct key signatures.  Hence, we also check that the
+/// certificates have at least one exportable user ID.
+fn cert_exportable(c: &Cert) -> bool {
+    c.exportable()
+        && c.userids().any(|uid| uid.self_signatures().any(
+            |s| s.exportable().is_ok()))
+}
+
 #[derive(Clone)]
 enum Query {
     Handle(KeyHandle),
     Address(String),
+}
+
+impl From<Fingerprint> for Query {
+    fn from(fp: Fingerprint) -> Query {
+        Query::Handle(fp.into())
+    }
 }
 
 impl fmt::Display for Query {
@@ -357,6 +377,51 @@ impl Query {
                     "Query must be a fingerprint, a keyid, \
                      or an email address: {:?}", q))
             }).collect::<Result<Vec<Query>>>()
+    }
+
+    /// Returns all known addresses and fingerprints of exportable
+    /// certificates as queries.
+    fn all_certs(config: &Config) -> Result<Vec<Query>> {
+        if let Some(store) = config.cert_store()? {
+            let mut fingerprints = HashSet::new();
+            let mut addresses = HashSet::new();
+            for cert in store.certs().filter(
+                |c| c.to_cert().map(|c| cert_exportable(c)).unwrap_or(false))
+            {
+                fingerprints.insert(cert.fingerprint());
+                for address in cert.userids().filter_map(
+                    |uid| uid.email2().ok().flatten().map(|s| s.to_string()))
+                {
+                    addresses.insert(address);
+                }
+            }
+
+            Ok(fingerprints.into_iter().map(|fp| Query::Handle(fp.into()))
+               .chain(addresses.into_iter().map(Query::Address))
+               .collect())
+        } else {
+            Err(anyhow::anyhow!("no known certificates"))
+        }
+    }
+
+
+    /// Returns all known addresses of exportable certificates as
+    /// queries.
+    fn all_addresses(config: &Config) -> Result<Vec<Query>> {
+        if let Some(store) = config.cert_store()? {
+            let mut addresses = store.certs()
+                .filter(
+                    |c| c.to_cert().map(|c| cert_exportable(c)).unwrap_or(false))
+                .flat_map(|cert| cert.userids().filter_map(
+                    |uid| uid.email2().ok().flatten().map(|s| s.to_string()))
+                          .collect::<Vec<_>>())
+                .collect::<Vec<_>>();
+            addresses.sort_unstable();
+            addresses.dedup();
+            Ok(addresses.into_iter().map(Query::Address).collect())
+        } else {
+            Err(anyhow::anyhow!("no known certificates"))
+        }
     }
 
     /// Parses command line arguments to queries that only contain
@@ -602,7 +667,11 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
     let mut seen_emails = HashSet::new();
     let mut seen_fps = HashSet::new();
     let mut seen_ids = HashSet::new();
-    let mut queries = Query::parse(&c.query)?;
+    let mut queries = if c.all {
+        Query::all_certs(&config)?
+    } else {
+        Query::parse(&c.query)?
+    };
     let mut results = Vec::new();
     let mut pb = Response::progress_bar(&config);
 
@@ -752,7 +821,11 @@ pub fn dispatch_keyserver(mut config: Config,
     match c.subcommand {
         Fetch(c) => rt.block_on(async {
             let mut pb = Response::progress_bar(&config);
-            let queries = Query::parse(&c.query)?;
+            let queries = if c.all {
+                Query::all_certs(&config)?
+            } else {
+                Query::parse(&c.query)?
+            };
 
             let mut requests = tokio::task::JoinSet::new();
             queries.into_iter().for_each(|query| {
@@ -868,7 +941,11 @@ pub fn dispatch_wkd(mut config: Config, c: cli::network::wkd::Command)
         Fetch(c) => rt.block_on(async {
             let mut pb = Response::progress_bar(&config);
             let http_client = http_client()?;
-            let queries = Query::parse_addresses(&c.addresses)?;
+            let queries = if c.all {
+                Query::all_addresses(&config)?
+            } else {
+                Query::parse_addresses(&c.addresses)?
+            };
             let mut requests = tokio::task::JoinSet::new();
             queries.into_iter().for_each(|query| {
                 pb.inc_length(1);
@@ -963,7 +1040,11 @@ pub fn dispatch_dane(mut config: Config, c: cli::network::dane::Command)
         },
         Fetch(c) => rt.block_on(async {
             let mut pb = Response::progress_bar(&config);
-            let queries = Query::parse_addresses(&c.addresses)?;
+            let queries = if c.all {
+                Query::all_addresses(&config)?
+            } else {
+                Query::parse_addresses(&c.addresses)?
+            };
             let mut requests = tokio::task::JoinSet::new();
             queries.into_iter().for_each(|query| {
                 pb.inc_length(1);

@@ -117,6 +117,13 @@ in the usual way.
 )]
 pub struct FetchCommand {
     #[clap(
+        long,
+        conflicts_with = "addresses",
+        help = "Fetch all known certificates",
+    )]
+    pub all: bool,
+
+    #[clap(
         value_name = "ADDRESS",
         required = true,
         help = "Queries a cert for ADDRESS",

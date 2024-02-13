@@ -637,7 +637,7 @@ impl Response {
                     match cert {
                         Ok(cert) => if ! certify {
                             certs.push(cert);
-                        } else {
+                        } else { pb.suspend(|| {
                             if let Some(ca) = response.method.ca(config)
                             {
                                 certs.append(&mut certify_downloads(
@@ -645,7 +645,7 @@ impl Response {
                             } else {
                                 certs.push(cert);
                             }
-                        },
+                        })},
                         Err(e) =>
                             errors.push((response.method.clone(),
                                          response.query.clone(), e)),

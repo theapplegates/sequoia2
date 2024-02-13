@@ -92,7 +92,15 @@ pub struct DumpCommand {
         value_name = "SESSION-KEY",
         help = "Decrypts an encrypted message using SESSION-KEY",
     )]
-    pub session_key: Option<SessionKey>,
+    pub session_key: Vec<SessionKey>,
+
+    #[clap(
+        long = "recipient-file",
+        value_name = "KEY_FILE",
+        help = "Decrypts the message using the key in KEY_FILE",
+    )]
+    pub recipient_file: Vec<PathBuf>,
+
     #[clap(
         long = "mpis",
         help = "Prints cryptographic artifacts",

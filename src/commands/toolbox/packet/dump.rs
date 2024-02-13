@@ -2,10 +2,9 @@ use std::io::{self, Read};
 
 use sequoia_openpgp as openpgp;
 use openpgp::armor::ReaderMode;
-use self::openpgp::types::SymmetricAlgorithm;
 use self::openpgp::fmt::hex;
 use self::openpgp::crypto::mpi;
-use self::openpgp::{Packet, Result};
+use self::openpgp::{Cert, Packet, Result};
 use self::openpgp::packet::prelude::*;
 use self::openpgp::packet::header::CTB;
 use self::openpgp::packet::{Header, header::BodyLength, Signature};
@@ -17,6 +16,7 @@ use self::openpgp::parse::{
     PacketParserBuilder,
     PacketParserResult,
     map::Map,
+    stream::DecryptionHelper,
 };
 
 use crate::Convert;
@@ -33,10 +33,12 @@ pub enum Kind {
 }
 
 #[allow(clippy::redundant_pattern_matching)]
-pub fn dump<W>(input: &mut (dyn io::Read + Sync + Send),
+pub fn dump<W>(config: &crate::Config,
+               secrets: Vec<Cert>,
+               input: &mut (dyn io::Read + Sync + Send),
                output: &mut dyn io::Write,
                mpis: bool, hex: bool,
-               sk: Option<&SessionKey>,
+               session_keys: Vec<SessionKey>,
                width: W)
                -> Result<Kind>
     where W: Into<Option<usize>>
@@ -49,10 +51,23 @@ pub fn dump<W>(input: &mut (dyn io::Read + Sync + Send),
     let mut dumper = PacketDumper::new(width, mpis);
     let mut first_armor_block = true;
     let mut is_keyring = true;
+    let mut helper = crate::commands::decrypt::Helper::new(
+        &config, None, 0, Vec::new(), secrets, session_keys.clone(), false);
+
+    let mut pkesks = vec![];
+    let mut skesks = vec![];
 
   loop {
     while let PacketParserResult::Some(mut pp) = ppr {
         let additional_fields = match pp.packet {
+            Packet::PKESK(ref p) => {
+                pkesks.push(p.clone());
+                vec![]
+            },
+            Packet::SKESK(ref p) => {
+                skesks.push(p.clone());
+                vec![]
+            },
             Packet::Literal(_) => {
                 let mut prefix = vec![0; 40];
                 let n = pp.read(&mut prefix)?;
@@ -62,61 +77,44 @@ pub fn dump<W>(input: &mut (dyn io::Read + Sync + Send),
                             if n == prefix.len() { "..." } else { "" }),
                 ]
             },
-            Packet::SEIP(_) if sk.is_none() => {
+            Packet::SEIP(_) | Packet::AED(_) => {
+                dumper.flush(output)?;
                 message_encrypted = true;
-                vec!["No session key supplied".into()]
-            }
-            Packet::SEIP(_) if sk.is_some() => {
-                message_encrypted = true;
-                let sk = sk.unwrap();
-                let decrypted_with = if let Some(algo) = sk.symmetric_algo {
-                    // We know which algorithm to use, so only try decrypting
-                    // with that one.
-                    pp.decrypt(algo, &sk.session_key).is_ok().then(|| algo)
+
+                let mut success = false;
+                let mut fields = Vec::new();
+                let sym_algo_hint = if let Packet::AED(ref aed) = pp.packet {
+                    Some(aed.symmetric_algo())
                 } else {
-                    // We don't know which algorithm to use,
-                    // try to find one that decrypts the message.
-                    (1u8..=19)
-                        .map(SymmetricAlgorithm::from)
-                        .find(|algo| pp.decrypt(*algo, &sk.session_key).is_ok())
+                    None
+                };
+                let decryption_proxy = |algo, secret: &_| {
+                    // Take the algo from the AED packet over
+                    // the dummy one from the SKESK5 packet.
+                    let algo = sym_algo_hint.unwrap_or(algo);
+                    let result = pp.decrypt(algo, secret);
+                    if let Ok(_) = result {
+                        fields.push(
+                            format!("Session key: {}", &hex::encode(secret)));
+                        fields.push(format!("Symmetric algo: {}", algo));
+                        fields.push("Decryption successful".into());
+                        success = true;
+                        true
+                    } else {
+                        false
+                    }
                 };
 
-                let mut fields = Vec::new();
-                fields.push(format!("Session key: {}", &sk.display_sensitive()));
-                if let Some(algo) = decrypted_with {
-                    fields.push(format!("Symmetric algo: {}", algo));
-                    fields.push("Decryption successful".into());
-                } else {
-                    if let Some(algo) = sk.symmetric_algo {
+                if let Err(e) = helper.decrypt(&pkesks[..], &skesks[..],
+                                               sym_algo_hint, decryption_proxy)
+                {
+                    for algo in session_keys.iter()
+                        .filter_map(|sk| sk.symmetric_algo)
+                    {
                         fields.push(format!(
-                            "Indicated Symmetric algo: {}", algo
-                        ));
-                    };
-                    fields.push("Decryption failed".into());
-                }
-                fields
-            },
-            Packet::AED(_) if sk.is_none() => {
-                message_encrypted = true;
-                vec!["No session key supplied".into()]
-            }
-            Packet::AED(_) if sk.is_some() => {
-                message_encrypted = true;
-                let sk = sk.as_ref().unwrap();
-                let algo = if let Packet::AED(ref aed) = pp.packet {
-                    aed.symmetric_algo()
-                } else {
-                    unreachable!()
-                };
-
-                let _ = pp.decrypt(algo, &sk.session_key);
-
-                let mut fields = Vec::new();
-                fields.push(format!("Session key: {}", sk.display_sensitive()));
-                if pp.processed() {
-                    fields.push("Decryption successful".into());
-                } else {
-                    fields.push("Decryption failed".into());
+                            "Indicated Symmetric algo: {}", algo));
+                    }
+                    fields.push(format!("Decryption failed: {}", e));
                 }
                 fields
             },

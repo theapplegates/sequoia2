@@ -48,15 +48,18 @@ pub fn dispatch(config: Config, command: Command)
             let output_type = command.output;
             let mut output = output_type.create_unsafe(config.force)?;
 
-            let session_key = command.session_key;
             let width = if let Some((width, _)) = terminal_size() {
                 Some(width.0.into())
             } else {
                 None
             };
-            dump::dump(&mut input, &mut output,
+            let secrets =
+                load_keys(command.recipient_file.iter().map(|s| s.as_ref()))?;
+            dump::dump(&config,
+                       secrets,
+                       &mut input, &mut output,
                        command.mpis, command.hex,
-                       session_key.as_ref(), width)?;
+                       command.session_key, width)?;
         },
 
         Subcommands::Decrypt(command) => {

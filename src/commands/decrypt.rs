@@ -27,6 +27,7 @@ use crate::{
     common::password,
     Config,
     load_certs,
+    load_keys,
 };
 
 pub fn dispatch(config: Config, command: cli::decrypt::Command) -> Result<()> {
@@ -52,9 +53,8 @@ pub fn dispatch(config: Config, command: cli::decrypt::Command) -> Result<()> {
             1
         }
     });
-    // TODO: should this be load_keys?
     let secrets =
-        load_certs(command.secret_key_file.iter().map(|s| s.as_ref()))?;
+        load_keys(command.secret_key_file.iter().map(|s| s.as_ref()))?;
     let private_key_store = command.private_key_store;
     let session_keys = command.session_key;
     decrypt(config, private_key_store.as_deref(),

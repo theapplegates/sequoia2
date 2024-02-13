@@ -58,7 +58,6 @@ mod common;
 mod cli;
 use cli::SECONDS_IN_DAY;
 use cli::SECONDS_IN_YEAR;
-use cli::SqSubcommands;
 use cli::types::Time;
 use cli::output::{OutputFormat, OutputVersion};
 
@@ -973,13 +972,15 @@ impl<'store> Config<'store> {
 fn main() -> Result<()> {
     let c = cli::SqCommand::from_arg_matches(&cli::build().get_matches())?;
 
-    let time: SystemTime = c.time.unwrap_or_else(|| Time::now()).into();
+    let time: SystemTime =
+        c.time.clone().unwrap_or_else(|| Time::now()).into();
 
     let mut policy = sequoia_policy_config::ConfiguredStandardPolicy::new();
     policy.parse_default_config()?;
     let mut policy = policy.build();
 
-    let known_notations = c.known_notation
+    let known_notations_store = c.known_notation.clone();
+    let known_notations = known_notations_store
         .iter()
         .map(|n| n.as_str())
         .collect::<Vec<&str>>();
@@ -987,8 +988,8 @@ fn main() -> Result<()> {
 
     let force = c.force;
 
-    let output_version = if let Some(v) = c.output_version {
-        Some(OutputVersion::from_str(&v)?)
+    let output_version = if let Some(v) = &c.output_version {
+        Some(OutputVersion::from_str(v)?)
     } else {
         None
     };
@@ -1009,46 +1010,7 @@ fn main() -> Result<()> {
         trust_root_local: Default::default(),
     };
 
-    match c.subcommand {
-        SqSubcommands::Decrypt(command) => {
-            commands::decrypt::dispatch(config, command)?
-        },
-        SqSubcommands::Encrypt(command) => {
-            commands::encrypt::dispatch(config, command)?
-        },
-        SqSubcommands::Sign(command) => {
-            commands::sign::dispatch(config, command)?
-        },
-        SqSubcommands::Verify(command) => {
-            commands::verify::dispatch(config, command)?
-        },
-        SqSubcommands::Autocrypt(command) => {
-            commands::autocrypt::dispatch(config, &command)?;
-        },
-        SqSubcommands::Inspect(command) => {
-            commands::inspect::dispatch(config, command)?
-        },
-
-        SqSubcommands::Toolbox(command) =>
-            commands::toolbox::dispatch(config, command)?,
-
-        SqSubcommands::Cert(command) =>
-            commands::cert::dispatch(config, command)?,
-        SqSubcommands::Key(command) => {
-            commands::key::dispatch(config, command)?
-        }
-
-        SqSubcommands::Pki(command) => {
-            commands::pki::dispatch(config, command)?
-        }
-
-        SqSubcommands::Network(command) =>
-            commands::network::dispatch(config, command)?,
-        SqSubcommands::Version(command) =>
-            commands::version::dispatch(config, command)?,
-    }
-
-    Ok(())
+    commands::dispatch(config, c)
 }
 
 fn parse_notations<N>(n: N) -> Result<Vec<(bool, NotationData)>>

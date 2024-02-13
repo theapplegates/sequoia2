@@ -31,6 +31,7 @@ use crate::{
 
 use crate::cli::encrypt::CompressionMode;
 use crate::cli::types::FileOrStdout;
+use crate::cli::{SqCommand, SqSubcommands};
 
 pub mod autocrypt;
 pub mod cert;
@@ -44,6 +45,42 @@ pub mod pki;
 pub mod toolbox;
 pub mod verify;
 pub mod version;
+
+/// Dispatches the top-level subcommand.
+pub fn dispatch(config: Config, command: SqCommand) -> Result<()>
+{
+    match command.subcommand {
+        SqSubcommands::Encrypt(command) =>
+            encrypt::dispatch(config, command),
+        SqSubcommands::Decrypt(command) =>
+            decrypt::dispatch(config, command),
+        SqSubcommands::Sign(command) =>
+            sign::dispatch(config, command),
+        SqSubcommands::Verify(command) =>
+            verify::dispatch(config, command),
+
+        SqSubcommands::Inspect(command) =>
+            inspect::dispatch(config, command),
+
+        SqSubcommands::Cert(command) =>
+            cert::dispatch(config, command),
+        SqSubcommands::Key(command) =>
+            key::dispatch(config, command),
+
+        SqSubcommands::Pki(command) =>
+            pki::dispatch(config, command),
+
+        SqSubcommands::Autocrypt(command) =>
+            autocrypt::dispatch(config, &command),
+        SqSubcommands::Network(command) =>
+            network::dispatch(config, command),
+        SqSubcommands::Toolbox(command) =>
+            toolbox::dispatch(config, command),
+
+        SqSubcommands::Version(command) =>
+            version::dispatch(config, command),
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GetKeysOptions {

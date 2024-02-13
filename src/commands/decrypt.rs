@@ -371,6 +371,7 @@ impl<'a, 'certdb> DecryptionHelper for Helper<'a, 'certdb> {
         }
 
         // Finally, try to decrypt using the SKESKs.
+        let mut first = true;
         loop {
             let password = password::prompt_to_unlock("message")?;
 
@@ -385,7 +386,17 @@ impl<'a, 'certdb> DecryptionHelper for Helper<'a, 'certdb> {
                 }
             }
 
-            wprintln!("Incorrect password.");
+            if password.map(|p| p.is_empty()) {
+                break Err(anyhow::anyhow!("Decryption failed."));
+            }
+
+            if first {
+                wprintln!("Incorrect password.  \
+                           Hint: enter empty password to cancel.");
+                first = false;
+            } else {
+                wprintln!("Incorrect password.");
+            }
         }
     }
 }

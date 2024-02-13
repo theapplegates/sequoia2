@@ -106,15 +106,4 @@ pub struct Command {
         help = "Decrypts an encrypted message using SESSION-KEY",
     )]
     pub session_key: Vec<SessionKey>,
-    #[clap(
-        long = "dump",
-        help = "Prints a packet dump to stderr",
-    )]
-    pub dump: bool,
-    #[clap(
-        short = 'x',
-        long = "hex",
-        help = "Prints a hexdump (implies `--dump`)",
-    )]
-    pub hex: bool,
 }

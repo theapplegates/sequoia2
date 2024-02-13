@@ -96,7 +96,7 @@ fn import(mut config: Config, command: &cli::autocrypt::ImportCommand)
         &config, None,
         1, // Require one trusted signature...
         vec![sender_cert.clone()], // ... from this cert.
-        secrets, command.session_key.clone(), false, false);
+        secrets, command.session_key.clone(), false);
     helper.quiet(true);
 
     let policy = config.policy.clone();

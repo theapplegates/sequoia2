@@ -2,8 +2,6 @@ use anyhow::Context as _;
 use std::collections::HashMap;
 use std::io;
 
-use terminal_size::terminal_size;
-
 use sequoia_net::pks;
 use sequoia_openpgp as openpgp;
 use openpgp::types::SymmetricAlgorithm;
@@ -24,7 +22,6 @@ use openpgp::parse::stream::{
 use crate::{
     cli,
     commands::{
-        toolbox::packet::dump::PacketDumper,
         VHelper,
     },
     common::password,
@@ -64,8 +61,7 @@ pub fn dispatch(config: Config, command: cli::decrypt::Command) -> Result<()> {
             &mut input, &mut output,
             signatures, certs, secrets,
             command.dump_session_key,
-            session_keys,
-            command.dump, command.hex)?;
+            session_keys)?;
 
     Ok(())
 }
@@ -138,7 +134,6 @@ pub struct Helper<'a, 'certdb> {
     key_hints: HashMap<KeyID, String>,
     session_keys: Vec<cli::types::SessionKey>,
     dump_session_key: bool,
-    dumper: Option<PacketDumper>,
 }
 
 impl<'a, 'certdb> std::ops::Deref for Helper<'a, 'certdb> {
@@ -159,7 +154,7 @@ impl<'a, 'certdb> Helper<'a, 'certdb> {
     pub fn new(config: &'a Config<'certdb>, private_key_store: Option<&str>,
                signatures: usize, certs: Vec<Cert>, secrets: Vec<Cert>,
                session_keys: Vec<cli::types::SessionKey>,
-               dump_session_key: bool, dump: bool)
+               dump_session_key: bool)
                -> Self
     {
         let mut keys: HashMap<KeyID, Box<dyn PrivateKey>> = HashMap::new();
@@ -202,14 +197,6 @@ impl<'a, 'certdb> Helper<'a, 'certdb> {
             key_hints: hints,
             session_keys,
             dump_session_key,
-            dumper: if dump {
-                let width = terminal_size()
-                    .map(|(width, _height)| width.0.into())
-                    .unwrap_or(80);
-                Some(PacketDumper::new(width, false))
-            } else {
-                None
-            },
         }
     }
 
@@ -240,16 +227,6 @@ impl<'a, 'certdb> Helper<'a, 'certdb> {
 }
 
 impl<'a, 'certdb> VerificationHelper for Helper<'a, 'certdb> {
-    fn inspect(&mut self, pp: &PacketParser) -> Result<()> {
-        if let Some(dumper) = self.dumper.as_mut() {
-            dumper.packet(&mut io::stderr(),
-                          pp.recursion_depth() as usize,
-                          pp.header().clone(), pp.packet.clone(),
-                          pp.map().cloned(), Vec::new())?;
-        }
-        Ok(())
-    }
-
     fn get_certs(&mut self, ids: &[openpgp::KeyHandle]) -> Result<Vec<Cert>> {
         self.vhelper.get_certs(ids)
     }
@@ -421,22 +398,17 @@ pub fn decrypt(config: Config,
                output: &mut dyn io::Write,
                signatures: usize, certs: Vec<Cert>, secrets: Vec<Cert>,
                dump_session_key: bool,
-               sk: Vec<cli::types::SessionKey>,
-               dump: bool, hex: bool)
+               sk: Vec<cli::types::SessionKey>)
                -> Result<()> {
     let helper = Helper::new(&config, private_key_store, signatures, certs,
-                             secrets, sk, dump_session_key, dump || hex);
+                             secrets, sk, dump_session_key);
     let mut decryptor = DecryptorBuilder::from_reader(input)?
-        .mapping(hex)
         .with_policy(&config.policy, None, helper)
         .context("Decryption failed")?;
 
     io::copy(&mut decryptor, output).context("Decryption failed")?;
 
     let helper = decryptor.into_helper();
-    if let Some(dumper) = helper.dumper.as_ref() {
-        dumper.flush(&mut io::stderr())?;
-    }
     helper.vhelper.print_status();
     Ok(())
 }
@@ -451,7 +423,7 @@ pub fn decrypt_unwrap(config: Config,
 {
     let mut helper = Helper::new(&config, None, 0, Vec::new(), secrets,
                                  session_keys,
-                                 dump_session_key, false);
+                                 dump_session_key);
 
     let mut ppr = PacketParser::from_reader(input)?;
 

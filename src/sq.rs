@@ -54,6 +54,7 @@ use clap::FromArgMatches;
 #[macro_use] mod log;
 
 mod common;
+pub mod utils;
 
 mod cli;
 use cli::SECONDS_IN_DAY;

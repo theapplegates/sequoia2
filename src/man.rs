@@ -396,6 +396,14 @@ impl Command {
         man.section("DESCRIPTION");
         man.text_with_period(&self.description());
 
+        if self == &builder.maincmd && self.has_options() {
+            man.section("OPTIONS");
+            man.subsection("Global options");
+            for opt in self.get_options().iter() {
+                man.option(opt);
+            }
+        }
+
         man.section("SUBCOMMANDS");
         for sub in &self.subcommands {
             let desc = sub.description();
@@ -453,10 +461,8 @@ impl Command {
             .filter(|o| ! builder.maincmd.get_options().contains(o))
             .next().is_some();
 
-        if main_opts || self_opts {
-            man.section("OPTIONS");
-        }
         if self_opts {
+            man.section("OPTIONS");
             man.subsection("Subcommand options");
             for opt in self.get_options().iter()
                 .filter(|o| ! builder.maincmd.get_options().contains(o))
@@ -466,9 +472,11 @@ impl Command {
         }
         if main_opts {
             man.subsection("Global options");
-            for opt in builder.maincmd.get_options().iter() {
-                man.option(opt);
-            }
+            man.roff.text(vec![
+                roman("See "),
+                bold("sq"), roman("("), roman("1"), roman(")"),
+                roman(" for a description of the global options."),
+            ]);
         }
 
         man.exit_status_section(self);

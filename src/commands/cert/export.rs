@@ -17,6 +17,7 @@ use crate::cli::types::FileOrStdout;
 use crate::{
     Config,
     print_error_chain,
+    utils::cert_exportable,
 };
 
 use crate::cli::cert::export;
@@ -112,7 +113,9 @@ pub fn dispatch(config: Config, mut cmd: export::Command) -> Result<()> {
 
     if cmd.all {
         // Export everything.
-        for cert in cert_store.certs() {
+        for cert in cert_store.certs()
+            .filter(|c| c.to_cert().map(cert_exportable).unwrap_or(false))
+        {
             // Turn parse errors into warnings: we want users to be
             // able to recover as much of their data as possible.
             let result = cert.to_cert()
@@ -145,7 +148,9 @@ pub fn dispatch(config: Config, mut cmd: export::Command) -> Result<()> {
 
         for kh in cmd.cert.iter() {
             if let Ok(certs) = cert_store.lookup_by_cert(kh) {
-                for cert in certs {
+                for cert in certs.into_iter().filter(
+                    |c| c.to_cert().map(cert_exportable).unwrap_or(false))
+                {
                     if exported.insert(cert.fingerprint()) {
                         exported_something = true;
                         cert.export(&mut sink)?;
@@ -156,7 +161,9 @@ pub fn dispatch(config: Config, mut cmd: export::Command) -> Result<()> {
 
         for kh in cmd.key.iter() {
             if let Ok(certs) = cert_store.lookup_by_cert_or_subkey(kh) {
-                for cert in certs {
+                for cert in certs.into_iter().filter(
+                        |c| c.to_cert().map(cert_exportable).unwrap_or(false))
+                {
                     if exported.get(&cert.fingerprint()).is_some() {
                         // Already exported this one.
                         continue;
@@ -187,7 +194,9 @@ pub fn dispatch(config: Config, mut cmd: export::Command) -> Result<()> {
 
         for (q, pattern) in userid_query.iter() {
             if let Ok(certs) = cert_store.select_userid(q, pattern) {
-                for cert in certs {
+                for cert in certs.into_iter().filter(
+                    |c| c.to_cert().map(cert_exportable).unwrap_or(false))
+                {
                     if exported.get(&cert.fingerprint()).is_some() {
                         // Already exported this one.
                         continue;

@@ -21,7 +21,7 @@ use crate::{
 
 use crate::cli::cert::export;
 
-pub fn dispatch(config: Config, cmd: export::Command) -> Result<()> {
+pub fn dispatch(config: Config, mut cmd: export::Command) -> Result<()> {
     let cert_store = config.cert_store_or_else()?;
 
     let mut userid_query = Vec::new();
@@ -77,6 +77,30 @@ pub fn dispatch(config: Config, cmd: export::Command) -> Result<()> {
         return Err(anyhow::anyhow!("Invalid arguments."));
     }
 
+    for query in cmd.query {
+        if let Ok(h) = query.parse() {
+            cmd.key.push(h);
+        } else if let Ok(email) = UserIDQueryParams::is_email(&query) {
+            let mut q = UserIDQueryParams::new();
+            q.set_email(true);
+            userid_query.push((q, email));
+        } else {
+            let mut q = UserIDQueryParams::new();
+            q.set_anchor_start(false)
+                .set_anchor_end(false)
+                .set_ignore_case(true);
+            userid_query.push((q, query));
+        }
+    }
+
+    if cmd.cert.is_empty() && cmd.key.is_empty() && userid_query.is_empty()
+        && ! cmd.all
+    {
+        config.hint(format_args!(
+            "Use --all to export all certs, or give a query."));
+        return Err(anyhow::anyhow!("no query given"));
+    }
+
     let output = FileOrStdout::default();
     let mut sink = output.create_pgp_safe(
         config.force,
@@ -86,7 +110,7 @@ pub fn dispatch(config: Config, cmd: export::Command) -> Result<()> {
 
     let mut exported_something = false;
 
-    if cmd.cert.is_empty() && cmd.key.is_empty() && userid_query.is_empty() {
+    if cmd.all {
         // Export everything.
         for cert in cert_store.certs() {
             // Turn parse errors into warnings: we want users to be

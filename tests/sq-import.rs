@@ -71,7 +71,7 @@ fn sq_import() -> Result<()>
 
         // Export.
         let mut cmd = Command::cargo_bin("sq").unwrap();
-        cmd.args(["--cert-store", &certd, "cert", "export"]);
+        cmd.args(["--cert-store", &certd, "cert", "export", "--all"]);
 
         eprintln!("sq cert export...");
 

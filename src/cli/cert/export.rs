@@ -13,7 +13,7 @@ const EXAMPLES: Actions = Actions {
         Action::Example(Example {
             comment: "Exports all certificates.",
             command: &[
-                "sq", "cert", "export",
+                "sq", "cert", "export", "--all",
             ],
         }),
         Action::Example(Example {
@@ -100,6 +100,15 @@ pub struct Command {
     pub binary: bool,
 
     #[clap(
+        long,
+        conflicts_with_all = [
+            "cert", "key", "userid", "grep", "email", "domain", "query",
+        ],
+        help = "Export all certificates",
+    )]
+    pub all: bool,
+
+    #[clap(
         long = "cert",
         value_name = "FINGERPRINT|KEYID",
         help = "Returns certificates that \
@@ -146,4 +155,12 @@ pub struct Command {
                 an email address from the specified domain",
     )]
     pub domain: Vec<String>,
+
+    #[clap(
+        value_name = "QUERY",
+        help = "Returns certificates matching QUERY. \
+                This may be a subkey fingerprint or key ID, \
+                an email address, or an User ID fragment.",
+    )]
+    pub query: Vec<String>,
 }

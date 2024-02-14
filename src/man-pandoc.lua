@@ -7,7 +7,7 @@
 --
 -- It just says 'sq` which looks odd.
 function Meta(m)
-   m.title = "Sequoia-PGP Manual Pages"
+   m.title = "Sequoia PGP Manual Pages"
    return m
 end
 

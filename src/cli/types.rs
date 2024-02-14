@@ -710,6 +710,15 @@ impl Expiry {
             Expiry::Never => Ok(None),
         }
     }
+
+    /// Return the expiry as absolute time.
+    pub fn to_systemtime(&self) -> Option<SystemTime> {
+        match self {
+            Expiry::Timestamp(t) => Some(t.clone().into()),
+            Expiry::Duration(d) => Some(SystemTime::now() + *d),
+            Expiry::Never => None,
+        }
+    }
 }
 
 impl FromStr for Expiry {

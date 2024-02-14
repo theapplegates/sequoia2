@@ -18,6 +18,8 @@ use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::Time;
 
+pub mod expire;
+
 /// The revocation reason for a certificate or subkey
 #[derive(ValueEnum, Clone, Debug)]
 pub enum RevocationReason {
@@ -80,6 +82,7 @@ pub struct Command {
 pub enum Subcommands {
     Generate(GenerateCommand),
     Password(PasswordCommand),
+    Expire(expire::Command),
     Revoke(RevokeCommand),
     #[clap(subcommand)]
     Userid(UseridCommand),

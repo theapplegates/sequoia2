@@ -64,6 +64,7 @@ use cli::output::{OutputFormat, OutputVersion};
 mod commands;
 pub mod output;
 pub use output::{wkd::WkdUrlVariant, Model};
+use output::hint::Hint;
 
 /// Converts sequoia_openpgp types for rendering.
 pub trait Convert<T> {
@@ -964,6 +965,13 @@ impl<'store> Config<'store> {
         if self.verbose {
             wprintln!("{}", msg);
         }
+    }
+
+    /// Prints a hint for the user.
+    fn hint(&self, msg: fmt::Arguments) -> Hint {
+        // XXX: If we gain a --quiet, pass it to Hint::new.
+        Hint::new(false)
+            .hint(msg)
     }
 }
 

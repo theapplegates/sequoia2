@@ -7,6 +7,7 @@ use std::io::Write;
 
 use anyhow::{anyhow, Result};
 
+pub mod hint;
 pub mod pluralize;
 pub mod sanitize;
 pub mod wrapping;

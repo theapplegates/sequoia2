@@ -584,10 +584,22 @@ pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
         Subcommands::List(ListCommand {
             email, gossip, certification_network, trust_amount,
             pattern,
-        }) => authenticate(
-            &config, pattern.is_none(), pattern,
-            *email, *gossip, *certification_network, *trust_amount,
-            None, None)?,
+        }) => if let Some(handle) = pattern.as_ref()
+            .and_then(|p| p.parse().ok())
+            .iter().filter(|_| ! *email).next()
+        {
+            // A key handle was given as pattern and --email was not
+            // given.  Act like `sq pki identify`.
+            authenticate(
+                &config, false, None,
+                false, *gossip, *certification_network, *trust_amount,
+                None, Some(&handle))?;
+        } else {
+            authenticate(
+                &config, pattern.is_none(), pattern,
+                *email, *gossip, *certification_network, *trust_amount,
+                None, None)?;
+        },
 
         // Authenticates a given path.
         Subcommands::Path(PathCommand {

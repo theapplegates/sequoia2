@@ -753,11 +753,16 @@ impl PacketDumper {
         writeln!(output, "{}", i)?;
 
         if let Some(map) = map {
+            if map.iter().next().is_none() {
+                // There is no data, we cannot dump anything.
+                return Ok(());
+            }
+
             let mut hd = hex::Dumper::new(output, self.indentation_for_hexdump(
                 i, map.iter()
                     .map(|f| if f.name() == "body" { 16 } else { f.name().len() })
                     .max()
-                    .expect("we always have one entry")));
+                    .expect("we checked that there is one entry")));
 
             for field in map.iter() {
                 if field.name() == "body" {

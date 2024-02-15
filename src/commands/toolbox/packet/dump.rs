@@ -56,18 +56,18 @@ pub fn dump<W>(config: &crate::Config,
 
     let mut ppr = ppr.build()?;
 
-    let mut message_encrypted = false;
     let width = width.into().unwrap_or(80);
-    let mut dumper = PacketDumper::new(width, mpis);
     let mut first_armor_block = true;
     let mut is_keyring = true;
     let mut helper = crate::commands::decrypt::Helper::new(
         &config, None, 0, Vec::new(), secrets, session_keys.clone(), false);
 
+  loop {
+    let mut dumper = PacketDumper::new(width, mpis);
+    let mut message_encrypted = false;
     let mut pkesks = vec![];
     let mut skesks = vec![];
 
-  loop {
     while let PacketParserResult::Some(mut pp) = ppr {
         let additional_fields = match pp.packet {
             Packet::PKESK(ref p) => {

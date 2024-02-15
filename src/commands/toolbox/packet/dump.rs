@@ -44,8 +44,18 @@ pub fn dump<W>(config: &crate::Config,
     where W: Into<Option<usize>>
 {
     let mut ppr
-        = self::openpgp::parse::PacketParserBuilder::from_reader(input)?
-        .map(hex).build()?;
+        = self::openpgp::parse::PacketParserBuilder::from_reader(input)?;
+
+    // To produce hex dumps, we need to enable mapping, but also turn
+    // on buffering.  This makes sure that the map contains the whole
+    // packet content, even if it has not been parsed (such as when
+    // encountering unknown or junk pseudo packets).
+    if hex {
+        ppr = ppr.map(true).buffer_unread_content();
+    }
+
+    let mut ppr = ppr.build()?;
+
     let mut message_encrypted = false;
     let width = width.into().unwrap_or(80);
     let mut dumper = PacketDumper::new(width, mpis);

@@ -39,6 +39,9 @@
    - New top-level option: `sq --key-store`: A new option to use an
      alternate key store.
 
+   - New subcommand `sq key list` to list keys managed by the key
+     store.
+
 * Changes in 0.32.0
 ** New functionality
    - Support for password-encrypted keys has been improved.  For

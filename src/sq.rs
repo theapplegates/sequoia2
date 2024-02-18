@@ -552,6 +552,38 @@ impl<'store> Config<'store> {
     }
 
 
+    /// Returns the key store's path.
+    ///
+    /// If the key store is disabled, returns `Ok(None)`.
+    fn key_store_path(&self) -> Result<Option<PathBuf>> {
+        if self.no_key_store {
+            Ok(None)
+        } else if let Some(dir) = self.key_store_path.as_ref() {
+            Ok(Some(dir.clone()))
+        } else if let Some(dir) = dirs::data_dir() {
+            Ok(Some(dir.join("sequoia")))
+        } else {
+            Err(anyhow::anyhow!(
+                "No key store, the XDG data directory is not defined"))
+        }
+    }
+
+    /// Returns the key store's path.
+    ///
+    /// If the key store is disabled, returns an error.
+    fn key_store_path_or_else(&self) -> Result<PathBuf> {
+        const NO_KEY_STORE_ERROR: &str =
+            "Operation requires a key store, \
+             but the key store is disabled";
+
+        if self.no_key_store {
+            Err(anyhow::anyhow!(NO_KEY_STORE_ERROR))
+        } else {
+            self.key_store_path()?
+                .ok_or(anyhow::anyhow!(NO_KEY_STORE_ERROR))
+        }
+    }
+
     /// Returns the key store.
     ///
     /// If the key store is disabled, returns `Ok(None)`.  If it is not yet
@@ -563,19 +595,8 @@ impl<'store> Config<'store> {
 
         self.key_store
             .get_or_try_init(|| {
-                let dir_;
-                let dir = if let Some(dir) = self.key_store_path.as_ref() {
-                    dir
-                } else if let Some(dir) = dirs::data_dir() {
-                    dir_ = dir.join("sequoia");
-                    &dir_
-                } else {
-                    return Err(anyhow::anyhow!(
-                        "No key store, the XDG data directory is not defined"));
-                };
-
                 let c = keystore::Context::configure()
-                    .home(dir)
+                    .home(self.key_store_path_or_else()?)
                     .build()?;
                 let ks = keystore::Keystore::connect(&c)
                     .context("Connecting to key store")?;

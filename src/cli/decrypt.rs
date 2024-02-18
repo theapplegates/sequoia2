@@ -9,6 +9,48 @@ use super::types::FileOrStdin;
 use super::types::FileOrStdout;
 use super::types::SessionKey;
 
+use crate::cli::examples;
+use examples::Action;
+use examples::Actions;
+use examples::Example;
+use examples::Setup;
+
+const DECRYPT_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Decrypt a file using a secret key",
+            command: &[
+                "sq", "decrypt",
+                "--recipient-file", "juliet-secret.pgp", "ciphertext.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Decrypt a file verifying signatures",
+            command: &[
+                "sq", "decrypt",
+                "--recipient-file", "juliet-secret.pgp",
+                "--signer-file", "romeo.pgp",
+                "ciphertext.pgp"
+            ],
+        }),
+        Action::Setup(Setup {
+            command: &[
+                "sq", "key", "import", "juliet-secret.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Decrypt a file using the key store",
+            command: &[
+                "sq", "decrypt", "ciphertext.pgp",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_decrypt, DECRYPT_EXAMPLES);
+
 #[derive(Parser, Debug)]
 #[clap(
     name = "decrypt",
@@ -34,19 +76,7 @@ produced, and if it is larger, then the output will be truncated.
 
 The converse operation is `sq encrypt`.
 ",
-    after_help =
-"EXAMPLES:
-
-# Decrypt a file using a secret key
-$ sq decrypt --recipient-file juliet.pgp ciphertext.pgp
-
-# Decrypt a file verifying signatures
-$ sq decrypt --recipient-file juliet.pgp --signer-file romeo.pgp \\
-     ciphertext.pgp
-
-# Decrypt a file using a password
-$ sq decrypt ciphertext.pgp
-",
+    after_help = DECRYPT_EXAMPLES,
 )]
 // TODO use usize
 pub struct Command {

@@ -28,6 +28,11 @@ By using static data, we can use known fingerprints in the examples.
 
     - NOT imported into the cert store.
 
+- romeo.pgp: A general-purpose certificate for Romeo Montague
+  <romeo@example.org>.
+
+    - NOT imported into the cert store.
+
 - document.txt, document.sig: A document, and a detached signatured.
 
     - `sq sign --detached --signer-file juliet-secret.pgp document.txt > document.sig`

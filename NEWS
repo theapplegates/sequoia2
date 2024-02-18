@@ -42,6 +42,9 @@
    - New subcommand `sq key list` to list keys managed by the key
      store.
 
+   - New subcommand `sq key import` to import a key into the key
+     store.
+
 * Changes in 0.32.0
 ** New functionality
    - Support for password-encrypted keys has been improved.  For

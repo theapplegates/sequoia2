@@ -87,6 +87,7 @@ pub struct Command {
 pub enum Subcommands {
     List(ListCommand),
     Generate(GenerateCommand),
+    Import(ImportCommand),
     Password(PasswordCommand),
     Expire(expire::Command),
     Revoke(RevokeCommand),
@@ -291,6 +292,32 @@ impl CipherSuite {
             CipherSuite::Cv25519 => SqCipherSuite::Cv25519,
         }
     }
+}
+
+const IMPORT_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Import the keys into the keystore server.",
+            command: &[
+                "sq", "key", "import", "alice-secret.pgp",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_key_import, IMPORT_EXAMPLES);
+
+#[derive(Debug, Args)]
+#[clap(
+    about = "Import keys into the key store",
+    after_help = IMPORT_EXAMPLES,
+)]
+pub struct ImportCommand {
+    #[clap(
+        value_name = "KEY_FILE",
+        help = "Imports the keys in KEY_FILE",
+    )]
+    pub file: Vec<PathBuf>,
 }
 
 #[derive(Debug, Args)]

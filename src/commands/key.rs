@@ -11,6 +11,8 @@ use attest_certifications::attest_certifications;
 mod expire;
 mod extract_cert;
 use extract_cert::extract_cert;
+mod import;
+use import::import;
 mod list;
 use list::list;
 mod generate;
@@ -28,6 +30,7 @@ pub fn dispatch(config: Config, command: cli::key::Command) -> Result<()>
     match command.subcommand {
         List(c) => list(config, c)?,
         Generate(c) => generate(config, c)?,
+        Import(c) => import(config, c)?,
         Password(c) => password(config, c)?,
         Expire(c) => expire::dispatch(config, c)?,
         Userid(c) => userid::dispatch(config, c)?,

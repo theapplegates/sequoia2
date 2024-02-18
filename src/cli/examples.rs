@@ -154,6 +154,7 @@ macro_rules! test_examples {
                                  fixtures, &tmp_dir));
 
             let cert_store = tmp_dir.path().join("cert-store");
+            let key_store = tmp_dir.path().join("key-store");
 
             for action in $actions.actions {
                 let command = if let Some(command) = action.command() {
@@ -167,7 +168,7 @@ macro_rules! test_examples {
                 Command::cargo_bin(command[0]).unwrap()
                     .current_dir(&tmp_dir)
                     .env("SQ_CERT_STORE", &cert_store)
-                    .arg("--no-key-store")
+                    .env("SQ_KEY_STORE", &key_store)
                     .args(&command[1..])
                     .assert()
                     .success();

@@ -145,12 +145,26 @@ pub fn build(globals_hidden: bool) -> Command {
 
     // Change the globals to be hidden.
     if globals_hidden {
-        command = command.mut_args(|mut a| {
-            if a.is_global_set() {
-                a = a.hide(globals_hidden);
+        fn add_after_help(command: &mut Command) {
+            *command = command.clone()
+                .after_long_help(format!("\
+{}:\n  See 'sq --help' for a description of the global options.",
+                                         GLOBAL_OPTIONS_HEADER));
+
+            for sc in command.get_subcommands_mut() {
+                add_after_help(sc);
             }
-            a
-        });
+        }
+
+        command = command
+            .mut_args(|mut a| {
+                if a.is_global_set() {
+                    a = a.hide(globals_hidden);
+                }
+                a
+            });
+
+        add_after_help(&mut command);
     };
 
     command

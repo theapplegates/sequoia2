@@ -1053,7 +1053,57 @@ impl<'store> Config<'store> {
 // TODO: Use `derive`d command structs. No more values_of
 // TODO: Handling (and cli position) of global arguments
 fn main() -> Result<()> {
-    let c = cli::SqCommand::from_arg_matches(&cli::build().get_matches())?;
+    let mut cli = cli::build(true);
+    let matches = cli.clone().try_get_matches();
+    let c = match matches {
+        Ok(matches) => {
+            cli::SqCommand::from_arg_matches(&matches)?
+        }
+        Err(err) => {
+            // Warning: hack ahead!
+            //
+            // If we are showing the help output, we only want to
+            // display the global options at the top-level; for
+            // subcommands we hide the global options to not overwhelm
+            // the user.
+            //
+            // Ideally, clap would provide a mechanism to only show
+            // the help output for global options at the level they
+            // are defined at.  That's not the case.
+            //
+            // We can use `err` to figure out if we are showing the
+            // help output, but it doesn't tell us what subcommand we
+            // are showing the help for.  Instead (and here's the
+            // hack!), we compare the output.  If it is the output for
+            // the top-level `--help` or `-h`, then we are showing the
+            // help for the top-level.  If not, then we are showing
+            // the help for a subcommand.  In the former case, we
+            // unhide the global options.
+            use clap::error::ErrorKind;
+            if err.kind() == ErrorKind::DisplayHelp
+                || err.kind() == ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+            {
+                let output = err.render();
+                let output = if output == cli.render_long_help() {
+                    Some(cli::build(false).render_long_help())
+                } else if output == cli.render_help() {
+                    Some(cli::build(false).render_help())
+                } else {
+                    None
+                };
+
+                if let Some(output) = output {
+                    if err.use_stderr() {
+                        eprint!("{}", output);
+                    } else {
+                        print!("{}", output);
+                    }
+                    std::process::exit(err.exit_code());
+                }
+            }
+            err.exit();
+        }
+    };
 
     let time: SystemTime =
         c.time.clone().unwrap_or_else(|| Time::now()).into();

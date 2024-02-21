@@ -125,7 +125,12 @@ pub const THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION: Duration = Duration::new(
 
 pub const GLOBAL_OPTIONS_HEADER: &str = "Global Options";
 
-pub fn build() -> Command {
+/// Builds the top-level Clap command.
+///
+/// If `globals_hidden` is true, then top-level, global arguments are
+/// marked as hidden, which means they won't be displayed in the help
+/// output.
+pub fn build(globals_hidden: bool) -> Command {
     let sq_version = Box::leak(
         format!(
             "{} (sequoia-openpgp {}, using {})",
@@ -135,7 +140,20 @@ pub fn build() -> Command {
         )
         .into_boxed_str(),
     ) as &str;
-    SqCommand::command().version(sq_version)
+
+    let mut command = SqCommand::command().version(sq_version);
+
+    // Change the globals to be hidden.
+    if globals_hidden {
+        command = command.mut_args(|mut a| {
+            if a.is_global_set() {
+                a = a.hide(globals_hidden);
+            }
+            a
+        });
+    };
+
+    command
 }
 
 /// Defines the CLI.

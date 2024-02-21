@@ -23,7 +23,7 @@ fn main() {
     subplot_build::codegen("sq.subplot")
         .expect("failed to generate code with Subplot");
 
-    let mut sq = cli::build();
+    let mut sq = cli::build(false);
     generate_shell_completions(&mut sq).unwrap();
     generate_man_pages(&sq).unwrap();
 }

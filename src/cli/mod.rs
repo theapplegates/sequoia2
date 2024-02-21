@@ -208,6 +208,8 @@ pub struct SqCommand {
     pub force: bool,
     #[clap(
         long,
+        global = true,
+        help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Disables the use of the key store.",
         long_help = "\
 Disables the use of the key store.
@@ -221,6 +223,8 @@ key store."
         value_name = "PATH",
         env = "SQ_KEY_STORE",
         conflicts_with_all = &[ "no_key_store" ],
+        global = true,
+        help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Overrides the key store server and its data",
         long_help = "\
 A key store server manages and protects secret key material.  By

@@ -123,6 +123,8 @@ pub const THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION: Duration = Duration::new(
     0,
 );
 
+pub const GLOBAL_OPTIONS_HEADER: &str = "Global Options";
+
 pub fn build() -> Command {
     let sq_version = Box::leak(
         format!(
@@ -168,10 +170,8 @@ pub struct SqCommand {
         short = 'f',
         long = "force",
         global = true,
-        // All global options should have a high display_order, so
-        // that they are sorted to the bottom.
-        display_order = 900,
-        help = "Overwrites existing files"
+        help_heading = GLOBAL_OPTIONS_HEADER,
+        help = "Overwrites existing files",
     )]
     pub force: bool,
     #[clap(
@@ -204,9 +204,7 @@ its data in the specified location."
     #[clap(
         long,
         global = true,
-        // All global options should have a high display_order, so
-        // that they are sorted to the bottom.
-        display_order = 900,
+        help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Disables the use of a certificate store",
         long_help = "\
 Disables the use of a certificate store.  Normally sq uses the user's \
@@ -219,9 +217,7 @@ standard cert-d, which is located in `$HOME/.local/share/pgp.cert.d`."
         env = "SQ_CERT_STORE",
         conflicts_with_all = &[ "no_cert_store" ],
         global = true,
-        // All global options should have a high display_order, so
-        // that they are sorted to the bottom.
-        display_order = 900,
+        help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Specifies the location of the certificate store",
         long_help = "\
 Specifies the location of the certificate store.  By default, sq uses \
@@ -234,9 +230,7 @@ and creates it if it does not exist."
         value_name = "PATH",
         env = "PEP_CERT_STORE",
         global = true,
-        // All global options should have a high display_order, so
-        // that they are sorted to the bottom.
-        display_order = 900,
+        help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Specifies the location of a pEp certificate store",
         long_help = "\
 Specifies the location of a pEp certificate store.  sq does not use a \
@@ -250,9 +244,7 @@ PEP_CERT_STORE.  The pEp Engine's default certificate store is at \
         long,
         value_name = "PATH",
         global = true,
-        // All global options should have a high display_order, so
-        // that they are sorted to the bottom.
-        display_order = 900,
+        help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Specifies the location of a keyring to use",
         long_help = "\
 Specifies the location of a keyring to use.  Keyrings are used in \
@@ -268,9 +260,7 @@ store, and the results are merged together."
         default_value = "human-readable",
         env = "SQ_OUTPUT_FORMAT",
         global = true,
-        // All global options should have a high display_order, so
-        // that they are sorted to the bottom.
-        display_order = 900,
+        help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Produces output in FORMAT, if possible",
     )]
     pub output_format: output::OutputFormat,
@@ -279,9 +269,7 @@ store, and the results are merged together."
         value_name = "VERSION",
         env = "SQ_OUTPUT_VERSION",
         global = true,
-        // All global options should have a high display_order, so
-        // that they are sorted to the bottom.
-        display_order = 900,
+        help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Produces output variant VERSION.",
         long_help = "Produces output variant VERSION, such as 0.0.0. \
                      The default is the newest version. The output version \
@@ -294,9 +282,7 @@ store, and the results are merged together."
         long = "known-notation",
         value_name = "NOTATION",
         global = true,
-        // All global options should have a high display_order, so
-        // that they are sorted to the bottom.
-        display_order = 900,
+        help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Adds NOTATION to the list of known notations",
         long_help = "Adds NOTATION to the list of known notations. \
             This is used when validating signatures. \
@@ -310,9 +296,7 @@ store, and the results are merged together."
         value_name = "TIME",
         help = "Sets the reference time as ISO 8601 formatted timestamp",
         global = true,
-        // All global options should have a high display_order, so
-        // that they are sorted to the bottom.
-        display_order = 900,
+        help_heading = GLOBAL_OPTIONS_HEADER,
         long_help = "\
 Sets the reference time as an ISO 8601 formatted timestamp.  Normally, \
 commands use the current time as the reference time.  This argument allows \
@@ -338,9 +322,7 @@ $ sq --time 20130721T0550+0200 verify msg.pgp
         long = "trust-root",
         value_name = "FINGERPRINT|KEYID",
         global = true,
-        // All global options should have a high display_order, so
-        // that they are sorted to the bottom.
-        display_order = 900,
+        help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Considers the specified certificate to be a trust root",
         long_help = "Considers the specified certificate to be a trust root. \
                      Trust roots are used by trust models, e.g., the Web of \
@@ -351,9 +333,7 @@ $ sq --time 20130721T0550+0200 verify msg.pgp
         short,
         long,
         global = true,
-        // All global options should have a high display_order, so
-        // that they are sorted to the bottom.
-        display_order = 900,
+        help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Be more verbose.",
     )]
     pub verbose: bool,

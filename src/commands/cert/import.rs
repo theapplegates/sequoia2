@@ -46,7 +46,7 @@ pub fn dispatch<'store>(mut config: Config<'store>, cmd: import::Command)
                     Ok(raw_cert) => LazyCert::from(raw_cert),
                     Err(err) => {
                         wprintln!("Error parsing input: {}", err);
-                        stats.errors += 1;
+                        stats.inc_errors();
                         continue;
                     }
                 };
@@ -57,7 +57,7 @@ pub fn dispatch<'store>(mut config: Config<'store>, cmd: import::Command)
                 if let Err(err) = cert_store.update_by(Arc::new(cert), &mut stats) {
                     wprintln!("Error importing {}, {:?}: {}",
                               fingerprint, userid, err);
-                    stats.errors += 1;
+                    stats.inc_errors();
                     continue;
                 } else {
                     wprintln!("Imported {}, {}", fingerprint, Safe(&userid));
@@ -72,7 +72,8 @@ pub fn dispatch<'store>(mut config: Config<'store>, cmd: import::Command)
 
     wprintln!("Imported {} new certificates, updated {} certificates, \
                {} certificates unchanged, {} errors.",
-              stats.new, stats.updated, stats.unchanged, stats.errors);
+              stats.new_certs(), stats.updated_certs(),
+              stats.unchanged_certs(), stats.errors());
 
     Ok(result?)
 }

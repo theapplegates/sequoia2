@@ -431,7 +431,7 @@ impl<'store> Config<'store> {
             cert_store::CertStore::empty()
         };
 
-        let mut keyring = cert_store::store::Certs::empty();
+        let keyring = cert_store::store::Certs::empty();
         let mut error = None;
         for filename in self.keyrings.iter() {
             let f = std::fs::File::open(filename)

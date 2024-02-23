@@ -767,7 +767,7 @@ pub fn retract(mut config: Config, c: link::RetractCommand)
 pub fn list(config: Config, c: link::ListCommand)
     -> Result<()>
 {
-    let mut cert_store = config.cert_store_or_else()?;
+    let cert_store = config.cert_store_or_else()?;
     cert_store.prefetch_all();
 
     let trust_root = config.local_trust_root()?;

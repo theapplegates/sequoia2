@@ -129,10 +129,10 @@ pub fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
     }
 
     wprintln!("\nImported {}, updated {}, {} unchanged, {}.",
-              stats.new.of("new certificate"),
-              stats.updated.of("certificate"),
-              stats.unchanged.of("certificate"),
-              stats.errors.of("error"));
+              stats.new_certs().of("new certificate"),
+              stats.updated_certs().of("certificate"),
+              stats.unchanged_certs().of("certificate"),
+              stats.errors().of("error"));
 
     wprintln!("\nAfter checking that a certificate really belongs to the \
                stated owner, you can mark the certificate as authenticated \

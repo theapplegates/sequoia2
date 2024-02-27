@@ -40,7 +40,6 @@ pub fn dispatch(config: Config, c: inspect::Command)
     let output_type = FileOrStdout::default();
     let output = &mut output_type.create_unsafe(config.force)?;
 
-    let policy = &config.policy;
     let time = Some(config.time);
 
     let print_certifications = c.certifications;
@@ -101,7 +100,7 @@ pub fn dispatch(config: Config, c: inspect::Command)
                         std::mem::take(&mut packets));
                     let cert = openpgp::Cert::try_from(pp)?;
                     inspect_cert(
-                        policy,
+                        config.policy,
                         time,
                         output,
                         &cert,
@@ -175,7 +174,7 @@ pub fn dispatch(config: Config, c: inspect::Command)
         } else if is_cert.is_ok() || is_keyring.is_ok() {
             let pp = openpgp::PacketPile::from(packets);
             let cert = openpgp::Cert::try_from(pp)?;
-            inspect_cert(policy, time, output, &cert, print_certifications)?;
+            inspect_cert(config.policy, time, output, &cert, print_certifications)?;
         } else if packets.is_empty() && ! sigs.is_empty() {
             if sigs.iter().all(is_revocation_sig) {
                 writeln!(output, "Revocation Certificate{}.",

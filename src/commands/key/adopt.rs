@@ -42,7 +42,7 @@ pub fn adopt(config: Config, command: cli::key::AdoptCommand) -> Result<()>
     let adoptee_policy: &dyn Policy = if command.allow_broken_crypto {
         null_policy
     } else {
-        &config.policy
+        config.policy
     };
 
     // Find the corresponding keys.
@@ -207,7 +207,7 @@ pub fn adopt(config: Config, command: cli::key::AdoptCommand) -> Result<()>
         cert.as_tsk().armored().serialize(&mut sink)?;
     }
 
-    let vc = cert.with_policy(&config.policy, None).expect("still valid");
+    let vc = cert.with_policy(config.policy, None).expect("still valid");
     for pair in packets[..].chunks(2) {
         let newkey: &Key<key::PublicParts, key::UnspecifiedRole> = match pair[0]
         {

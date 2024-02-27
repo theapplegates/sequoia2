@@ -51,7 +51,7 @@ pub fn certify(config: Config, c: certify::Command)
 
     let time = config.time;
 
-    let vc = cert.with_policy(&config.policy, Some(time))?;
+    let vc = cert.with_policy(config.policy, Some(time))?;
 
     let query = if c.email {
         UserIDQuery::Email(userid)
@@ -122,7 +122,7 @@ pub fn certify(config: Config, c: certify::Command)
     }
 
     let keys = get_certification_keys(
-        &[certifier], &config.policy,
+        &[certifier], config.policy,
         private_key_store.as_deref(),
         Some(time),
         Some(&options))?;

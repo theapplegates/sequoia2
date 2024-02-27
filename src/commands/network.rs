@@ -107,7 +107,7 @@ pub fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
         .map(|cert| {
             let fpr = cert.fingerprint();
             let userid =
-                best_effort_primary_uid(&cert, &config.policy, config.time)
+                best_effort_primary_uid(&cert, config.policy, config.time)
                 .clone();
 
             (fpr, userid, cert)
@@ -237,7 +237,7 @@ pub fn certify_downloads<'store>(config: &mut Config<'store>,
         let ca = ca.to_cert()?;
 
         let keys = get_certification_keys(
-            &[ca], &config.policy, None, Some(config.time), None)?;
+            &[ca], config.policy, None, Some(config.time), None)?;
             assert!(
                 keys.len() == 1,
                 "Expect exactly one result from get_certification_keys()"
@@ -266,7 +266,7 @@ pub fn certify_downloads<'store>(config: &mut Config<'store>,
     });
 
     let certs: Vec<Cert> = certs.into_iter().map(|cert| {
-        let vc = match cert.with_policy(&config.policy, config.time) {
+        let vc = match cert.with_policy(config.policy, config.time) {
             Err(err) => {
                 let err = err.context(format!(
                     "Warning: not recording provenance information \
@@ -566,7 +566,7 @@ impl Method {
                  `sq link retract {}` to disable it.",
                 if let Ok(cert) = cert.to_cert() {
                     best_effort_primary_uid(
-                        cert, &config.policy, None)
+                        cert, config.policy, None)
                 } else {
                     &invalid
                 },
@@ -1034,11 +1034,10 @@ pub fn dispatch_wkd(mut config: Config, c: cli::network::wkd::Command)
                 wkd::Variant::Advanced
             };
             let parser = CertParser::from_reader(f)?;
-            let policy = &config.policy;
             let certs: Vec<Cert> = parser.filter_map(|cert| cert.ok())
                 .collect();
             for cert in certs {
-                let vc = match cert.with_policy(policy, config.time) {
+                let vc = match cert.with_policy(config.policy, config.time) {
                     Ok(vc) => vc,
                     e @ Err(_) if !skip => e?,
                     _ => continue,
@@ -1069,7 +1068,7 @@ pub fn dispatch_dane(mut config: Config, c: cli::network::dane::Command)
         Generate(c) => {
             for cert in CertParser::from_reader(c.input.open()?)? {
                 let cert = cert?;
-                let vc = match cert.with_policy(&config.policy, config.time) {
+                let vc = match cert.with_policy(config.policy, config.time) {
                     Ok(vc) => vc,
                     e @ Err(_) if ! c.skip => e?,
                     _ => continue,

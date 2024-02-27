@@ -163,7 +163,7 @@ impl<'a, 'certdb> Helper<'a, 'certdb> {
         let mut identities: HashMap<KeyID, Fingerprint> = HashMap::new();
         let mut hints: HashMap<KeyID, String> = HashMap::new();
         for tsk in secrets {
-            let hint = match tsk.with_policy(&config.policy, None)
+            let hint = match tsk.with_policy(config.policy, None)
                 .and_then(|valid_cert| valid_cert.primary_userid()).ok()
             {
                 Some(uid) => format!("{} ({})", uid.userid(),
@@ -173,7 +173,7 @@ impl<'a, 'certdb> Helper<'a, 'certdb> {
 
             for ka in tsk.keys()
             // XXX: Should use the message's creation time that we do not know.
-                .with_policy(&config.policy, None)
+                .with_policy(config.policy, None)
                 .for_transport_encryption().for_storage_encryption()
             {
                 let id: KeyID = ka.key().fingerprint().into();
@@ -483,7 +483,7 @@ pub fn decrypt(config: Config,
     let helper = Helper::new(&config, private_key_store, signatures, certs,
                              secrets, sk, dump_session_key);
     let mut decryptor = DecryptorBuilder::from_reader(input)?
-        .with_policy(&config.policy, None, helper)
+        .with_policy(config.policy, None, helper)
         .context("Decryption failed")?;
 
     io::copy(&mut decryptor, output).context("Decryption failed")?;

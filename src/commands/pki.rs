@@ -100,7 +100,7 @@ fn authenticate(
     };
 
     let mut cert_store = CertStore::from_store(
-        cert_store, &config.policy, config.time);
+        cert_store, config.policy, config.time);
     if precompute {
         cert_store.precompute();
     }
@@ -466,7 +466,7 @@ fn check_path(config: &Config,
     };
 
     let cert_store = CertStore::from_store(
-        cert_store, &config.policy, config.time);
+        cert_store, config.policy, config.time);
 
     let n = wot::Network::new(cert_store)?;
 
@@ -485,7 +485,7 @@ fn check_path(config: &Config,
     let (khs, userid) = (path.certs()?, path.userid()?);
     assert!(khs.len() > 0, "guaranteed by clap");
 
-    let r = q.lint_path(&khs, &userid, required_amount, &config.policy);
+    let r = q.lint_path(&khs, &userid, required_amount, config.policy);
 
     let target_kh = khs.last().expect("have one");
 

@@ -179,12 +179,12 @@ fn encode_sender(config: Config, command: &cli::autocrypt::EncodeSenderCommand)
     let cert = Cert::from_reader(input)?;
     let addr = command.address.clone()
         .or_else(|| {
-            cert.with_policy(&config.policy, None)
+            cert.with_policy(config.policy, None)
                 .and_then(|vcert| vcert.primary_userid()).ok()
                 .map(|ca| ca.userid().to_string())
         });
     let ac = autocrypt::AutocryptHeader::new_sender(
-        &config.policy,
+        config.policy,
         &cert,
         &addr.ok_or_else(|| anyhow::anyhow!(
             "No well-formed primary userid found, use \

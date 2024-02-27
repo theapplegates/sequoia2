@@ -177,7 +177,7 @@ fn sign_data<'a, 'certdb>(
         };
 
     let mut keypairs = super::get_signing_keys(
-        &secrets, &config.policy, private_key_store, time, None)?;
+        &secrets, config.policy, private_key_store, time, None)?;
 
     let mut signer_keys = if signer_keys.is_empty() {
         Vec::new()
@@ -210,7 +210,7 @@ fn sign_data<'a, 'certdb>(
                                 format!(" ({})",
                                         String::from_utf8_lossy(
                                             best_effort_primary_uid(
-                                                &cert, &config.policy,
+                                                &cert, config.policy,
                                                 config.time)
                                                 .value()))
                             }
@@ -374,7 +374,7 @@ fn sign_message_<'a, 'certdb>(
     -> Result<()>
 {
     let mut keypairs = super::get_signing_keys(
-        &secrets, &config.policy, private_key_store, time, None)?;
+        &secrets, config.policy, private_key_store, time, None)?;
     if keypairs.is_empty() {
         return Err(anyhow::anyhow!("No signing keys found"));
     }
@@ -581,7 +581,7 @@ pub fn clearsign(config: Config,
                  -> Result<()>
 {
     let mut keypairs = super::get_signing_keys(
-        &secrets, &config.policy, private_key_store, time, None)?;
+        &secrets, config.policy, private_key_store, time, None)?;
     if keypairs.is_empty() {
         return Err(anyhow::anyhow!("No signing keys found"));
     }

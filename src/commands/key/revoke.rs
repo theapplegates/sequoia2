@@ -161,7 +161,7 @@ pub fn certificate_revoke(
     let revocation = CertificateRevocation::new(
         cert,
         secret,
-        &config.policy,
+        config.policy,
         time,
         command.private_key_store.as_deref(),
         command.reason.into(),

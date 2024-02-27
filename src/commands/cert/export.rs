@@ -177,7 +177,7 @@ pub fn dispatch(config: Config, mut cmd: export::Command) -> Result<()> {
                         exported.insert(cert.fingerprint());
                     } else {
                         // But, when matching a subkey, we do.
-                        if let Ok(vc) = cert.with_policy(&config.policy, None) {
+                        if let Ok(vc) = cert.with_policy(config.policy, None) {
                             if vc.keys().subkeys().any(|ka| {
                                 ka.key_handle().aliases(kh)
                             })
@@ -203,7 +203,7 @@ pub fn dispatch(config: Config, mut cmd: export::Command) -> Result<()> {
                     }
 
                     // Matching User IDs need a valid self signature.
-                    if let Ok(vc) = cert.with_policy(&config.policy, None) {
+                    if let Ok(vc) = cert.with_policy(config.policy, None) {
                         if vc.userids().any(|ua| {
                             q.check(ua.userid(), pattern)
                         }) {

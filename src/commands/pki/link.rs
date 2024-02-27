@@ -78,7 +78,7 @@ pub fn check_userids(config: &Config, cert: &Cert, self_signed: bool,
     }
 
     let self_signed_userids = || -> Result<Vec<UserID>> {
-        let vc = cert.with_policy(&config.policy, config.time)
+        let vc = cert.with_policy(config.policy, config.time)
             .with_context(|| {
                 format!("{} is not valid according to the current policy",
                         cert.fingerprint())
@@ -349,7 +349,7 @@ pub fn add(mut config: Config, c: link::AddCommand)
         }
     }));
 
-    let vc = cert.with_policy(&config.policy, Some(config.time))?;
+    let vc = cert.with_policy(config.policy, Some(config.time))?;
 
     let user_supplied_userids = if userids.is_empty() {
         if c.all {
@@ -480,7 +480,7 @@ pub fn add(mut config: Config, c: link::AddCommand)
 
     // Sign it.
     let keys = get_certification_keys(
-        &[trust_root], &config.policy, None, Some(config.time), None)
+        &[trust_root], config.policy, None, Some(config.time), None)
         .context("Looking up local trust root")?;
     assert!(
         keys.len() == 1,
@@ -623,7 +623,7 @@ pub fn retract(mut config: Config, c: link::RetractCommand)
 
     // Nothing was specified.  Retract all known User IDs.
     if userids.is_empty() {
-        let vc = cert.with_policy(&config.policy, Some(config.time))?;
+        let vc = cert.with_policy(config.policy, Some(config.time))?;
         userids = vc.userids().map(|ua| ua.userid().clone()).collect();
     }
 
@@ -648,7 +648,7 @@ pub fn retract(mut config: Config, c: link::RetractCommand)
 
     // Sign it.
     let keys = get_certification_keys(
-        &[trust_root], &config.policy, None, Some(config.time), None)
+        &[trust_root], config.policy, None, Some(config.time), None)
         .context("Looking up local trust root")?;
     assert!(
         keys.len() == 1,

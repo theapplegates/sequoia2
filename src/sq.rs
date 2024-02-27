@@ -321,7 +321,7 @@ pub struct Config<'a> {
     force: bool,
     output_format: OutputFormat,
     output_version: Option<OutputVersion>,
-    policy: P<'a>,
+    policy: &'a P<'a>,
     time: SystemTime,
     // --no-cert-store
     no_rw_cert_store: bool,
@@ -670,7 +670,7 @@ impl<'store> Config<'store> {
                     if let Some(keyflags) = keyflags.as_ref() {
                         certs.retain(|cert| {
                             let vc = match cert.with_policy(
-                                &self.policy, self.time)
+                                self.policy, self.time)
                             {
                                 Ok(vc) => vc,
                                 Err(err) => {
@@ -753,7 +753,7 @@ impl<'store> Config<'store> {
         // Build a WoT network.
 
         let cert_store = wot::store::CertStore::from_store(
-            cert_store, &self.policy, self.time);
+            cert_store, self.policy, self.time);
         let n = wot::Network::new(&cert_store)?;
         let mut q = wot::QueryBuilder::new(&n);
         q.roots(wot::Roots::new(self.trust_roots().iter().cloned()));
@@ -826,7 +826,7 @@ impl<'store> Config<'store> {
                 };
 
                 // Check the certs for validity.
-                let vc = match cert.with_policy(&self.policy, self.time) {
+                let vc = match cert.with_policy(self.policy, self.time) {
                     Ok(vc) => vc,
                     Err(err) => {
                         let err = err.context(format!(
@@ -1132,7 +1132,7 @@ fn main() -> Result<()> {
         force,
         output_format: c.output_format,
         output_version,
-        policy,
+        policy: &policy,
         time,
         no_rw_cert_store: c.no_cert_store,
         cert_store_path: c.cert_store.clone(),

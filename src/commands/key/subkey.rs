@@ -230,7 +230,7 @@ fn subkey_add(
 ) -> Result<()> {
     let input = command.input.open()?;
     let cert = Cert::from_reader(input)?;
-    let valid_cert = cert.with_policy(&config.policy, config.time)?;
+    let valid_cert = cert.with_policy(config.policy, config.time)?;
 
     let validity = command
         .expiry
@@ -252,7 +252,7 @@ fn subkey_add(
     let (primary_key, password) =
         match get_primary_keys(
             &[cert.clone()],
-            &config.policy,
+            config.policy,
             command.private_key_store.as_deref(),
             Some(config.time),
             None,
@@ -318,7 +318,7 @@ pub fn subkey_revoke(
         &command.subkey,
         cert,
         secret,
-        &config.policy,
+        config.policy,
         time,
         command.private_key_store.as_deref(),
         command.reason.into(),

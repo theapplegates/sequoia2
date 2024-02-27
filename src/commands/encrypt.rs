@@ -69,7 +69,7 @@ pub fn dispatch(config: Config, command: cli::encrypt::Command) -> Result<()> {
 
     encrypt(
         &config,
-        &config.policy,
+        config.policy,
         command.private_key_store.as_deref(),
         command.input,
         output,
@@ -165,7 +165,7 @@ pub fn encrypt<'a, 'b: 'a>(
                                 format!(" ({})",
                                         String::from_utf8_lossy(
                                             best_effort_primary_uid(
-                                                &cert, &config.policy,
+                                                &cert, config.policy,
                                                 config.time)
                                                 .value()))
                             }

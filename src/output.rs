@@ -189,7 +189,7 @@ mod keyring {
             let mut primary_uid: Option<Vec<u8>> = None;
 
             // First, apply our policy.
-            if let Ok(vcert) = cert.with_policy(&config.policy, None) {
+            if let Ok(vcert) = cert.with_policy(config.policy, None) {
                 if let Ok(primary) = vcert.primary_userid() {
                     primary_uid = Some(primary.value().to_vec());
                 }

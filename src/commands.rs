@@ -591,7 +591,7 @@ impl<'a, 'store> VHelper<'a, 'store> {
                 if let Ok(Some(cert_store)) = self.config.cert_store() {
                     // Build the network.
                     let cert_store = sequoia_wot::store::CertStore::from_store(
-                        cert_store, &self.config.policy, reference_time);
+                        cert_store, self.config.policy, reference_time);
 
                     let userids = if let Some(userid) = sig.signers_user_id() {
                         let userid = UserID::from(userid);

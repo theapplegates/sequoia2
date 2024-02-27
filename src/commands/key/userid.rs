@@ -249,7 +249,7 @@ fn userid_add(
 
     let mut pk = match get_primary_keys(
         &[key.clone()],
-        &config.policy,
+        config.policy,
         command.private_key_store.as_deref(),
         creation_time,
         None,
@@ -267,7 +267,7 @@ fn userid_add(
     };
 
     let vcert = key
-        .with_policy(&config.policy, creation_time)
+        .with_policy(config.policy, creation_time)
         .with_context(|| {
             format!("Certificate {} is not valid", key.fingerprint())
         })?;
@@ -389,7 +389,7 @@ fn userid_strip(
     let input = command.input.open()?;
     let key = Cert::from_reader(input)?;
 
-    let orig_cert_valid = key.with_policy(&config.policy, None).is_ok();
+    let orig_cert_valid = key.with_policy(config.policy, None).is_ok();
 
     let strip: Vec<_> = command.userid;
 
@@ -415,7 +415,7 @@ fn userid_strip(
     });
 
     if orig_cert_valid {
-        if let Err(err) = cert.with_policy(&config.policy, None) {
+        if let Err(err) = cert.with_policy(config.policy, None) {
             wprintln!(
                 "Removing the User ID(s) has resulted in a invalid key:
 {}
@@ -459,7 +459,7 @@ pub fn userid_revoke(
         config.force,
         cert,
         secret,
-        &config.policy,
+        config.policy,
         time,
         command.private_key_store.as_deref(),
         command.reason.into(),

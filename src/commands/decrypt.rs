@@ -129,8 +129,10 @@ impl PrivateKey for RemotePrivateKey {
     }
 }
 
-pub struct Helper<'a, 'certdb> {
-    vhelper: VHelper<'a, 'certdb>,
+pub struct Helper<'c, 'store, 'rstore>
+    where 'store: 'rstore
+{
+    vhelper: VHelper<'c, 'store, 'rstore>,
     secret_keys: HashMap<KeyID, Box<dyn PrivateKey>>,
     key_identities: HashMap<KeyID, Fingerprint>,
     key_hints: HashMap<KeyID, String>,
@@ -138,22 +140,26 @@ pub struct Helper<'a, 'certdb> {
     dump_session_key: bool,
 }
 
-impl<'a, 'certdb> std::ops::Deref for Helper<'a, 'certdb> {
-    type Target = VHelper<'a, 'certdb>;
+impl<'c, 'store, 'rstore> std::ops::Deref for Helper<'c, 'store, 'rstore>
+    where 'store: 'rstore
+{
+    type Target = VHelper<'c, 'store, 'rstore>;
 
     fn deref(&self) -> &Self::Target {
         &self.vhelper
     }
 }
 
-impl<'a, 'certdb> std::ops::DerefMut for Helper<'a, 'certdb> {
+impl<'c, 'store, 'rstore> std::ops::DerefMut for Helper<'c, 'store, 'rstore> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.vhelper
     }
 }
 
-impl<'a, 'certdb> Helper<'a, 'certdb> {
-    pub fn new(config: &'a Config<'certdb>, private_key_store: Option<&str>,
+impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
+    where 'store: 'rstore
+{
+    pub fn new(config: &'c Config<'store, 'rstore>, private_key_store: Option<&str>,
                signatures: usize, certs: Vec<Cert>, secrets: Vec<Cert>,
                session_keys: Vec<cli::types::SessionKey>,
                dump_session_key: bool)
@@ -235,7 +241,9 @@ impl<'a, 'certdb> Helper<'a, 'certdb> {
     }
 }
 
-impl<'a, 'certdb> VerificationHelper for Helper<'a, 'certdb> {
+impl<'c, 'store, 'rstore> VerificationHelper for Helper<'c, 'store, 'rstore>
+    where 'store: 'rstore
+{
     fn get_certs(&mut self, ids: &[openpgp::KeyHandle]) -> Result<Vec<Cert>> {
         self.vhelper.get_certs(ids)
     }
@@ -244,7 +252,9 @@ impl<'a, 'certdb> VerificationHelper for Helper<'a, 'certdb> {
     }
 }
 
-impl<'a, 'certdb> DecryptionHelper for Helper<'a, 'certdb> {
+impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
+    where 'store: 'rstore
+{
     fn decrypt<D>(&mut self, pkesks: &[PKESK], skesks: &[SKESK],
                   sym_algo: Option<SymmetricAlgorithm>,
                   mut decrypt: D) -> openpgp::Result<Option<Fingerprint>>

@@ -436,9 +436,11 @@ pub fn cert_stub(cert: Cert,
     Ok(Cert::from_packets(packets.into_iter())?)
 }
 
-pub struct VHelper<'a, 'store> {
+pub struct VHelper<'c, 'store, 'rstore>
+    where 'store: 'rstore
+{
     #[allow(dead_code)]
-    config: &'a Config<'store>,
+    config: &'c Config<'store, 'rstore>,
     signatures: usize,
     certs: Option<Vec<Cert>>,
     labels: HashMap<KeyID, String>,
@@ -459,8 +461,8 @@ pub struct VHelper<'a, 'store> {
     quiet: bool,
 }
 
-impl<'a, 'store> VHelper<'a, 'store> {
-    fn new(config: &'a Config<'store>, signatures: usize,
+impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
+    fn new(config: &'c Config<'store, 'rstore>, signatures: usize,
            certs: Vec<Cert>)
            -> Self {
         VHelper {
@@ -732,7 +734,9 @@ impl<'a, 'store> VHelper<'a, 'store> {
     }
 }
 
-impl<'a, 'store> VerificationHelper for VHelper<'a, 'store> {
+impl<'c, 'store, 'rstore> VerificationHelper for VHelper<'c, 'store, 'rstore>
+    where 'store: 'rstore
+{
     fn get_certs(&mut self, ids: &[openpgp::KeyHandle]) -> Result<Vec<Cert>> {
         let mut certs = BTreeMap::new();
 

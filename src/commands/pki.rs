@@ -13,7 +13,6 @@ use cert_store::store::StatusUpdate;
 use cert_store::store::StoreError;
 
 use sequoia_wot as wot;
-use wot::store::CertStore;
 use wot::store::Backend;
 use wot::store::Store;
 
@@ -76,8 +75,8 @@ fn have_self_signed_userid(cert: &wot::CertSynopsis,
 }
 
 /// Authenticate bindings defined by a Query on a Network
-fn authenticate(
-    config: &Config,
+fn authenticate<'store, 'rstore>(
+    config: Config<'store, 'rstore>,
     precompute: bool,
     list_pattern: Option<String>,
     email: bool,
@@ -87,9 +86,10 @@ fn authenticate(
     userid: Option<&UserID>,
     certificate: Option<&KeyHandle>,
 ) -> Result<()>
+    where 'store: 'rstore,
 {
     // Build the network.
-    let cert_store = match config.cert_store() {
+    let mut cert_store = match config.cert_store() {
         Ok(Some(cert_store)) => cert_store,
         Ok(None) => {
             return Err(anyhow::anyhow!("Certificate store has been disabled"));
@@ -99,8 +99,6 @@ fn authenticate(
         }
     };
 
-    let mut cert_store = CertStore::from_store(
-        cert_store, config.policy, config.time);
     if precompute {
         cert_store.precompute();
     }
@@ -465,9 +463,6 @@ fn check_path(config: &Config,
         }
     };
 
-    let cert_store = CertStore::from_store(
-        cert_store, config.policy, config.time);
-
     let n = wot::Network::new(cert_store)?;
 
     let mut q = wot::QueryBuilder::new(&n);
@@ -556,7 +551,7 @@ pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
             email, gossip, certification_network, trust_amount,
             cert, userid,
         }) => authenticate(
-            &config, false, None,
+            config, false, None,
             *email, *gossip, *certification_network, *trust_amount,
             Some(&userid), Some(&cert))?,
 
@@ -566,7 +561,7 @@ pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
             email, gossip, certification_network, trust_amount,
             userid,
         }) => authenticate(
-            &config, false, None,
+            config, false, None,
             *email, *gossip, *certification_network, *trust_amount,
             Some(&userid), None)?,
 
@@ -576,7 +571,7 @@ pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
             gossip, certification_network, trust_amount,
             cert,
         }) => authenticate(
-            &config, false, None,
+            config, false, None,
             false, *gossip, *certification_network, *trust_amount,
             None, Some(&cert))?,
 
@@ -591,12 +586,12 @@ pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
             // A key handle was given as pattern and --email was not
             // given.  Act like `sq pki identify`.
             authenticate(
-                &config, false, None,
+                config, false, None,
                 false, *gossip, *certification_network, *trust_amount,
                 None, Some(&handle))?;
         } else {
             authenticate(
-                &config, pattern.is_none(), pattern,
+                config, pattern.is_none(), pattern,
                 *email, *gossip, *certification_network, *trust_amount,
                 None, None)?;
         },

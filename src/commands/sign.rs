@@ -87,8 +87,8 @@ pub fn dispatch(config: Config, command: cli::sign::Command) -> Result<()> {
     Ok(())
 }
 
-pub fn sign<'a, 'certdb>(
-    config: Config<'certdb>,
+pub fn sign<'a, 'store, 'rstore>(
+    config: Config<'store, 'rstore>,
     private_key_store: Option<&'a str>,
     input: &'a mut (dyn io::Read + Sync + Send),
     output: &'a FileOrStdout,
@@ -128,8 +128,8 @@ pub fn sign<'a, 'certdb>(
     }
 }
 
-fn sign_data<'a, 'certdb>(
-    config: Config<'certdb>,
+fn sign_data<'a, 'store, 'rstore>(
+    config: Config<'store, 'rstore>,
     private_key_store: Option<&'a str>,
     input: &'a mut (dyn io::Read + Sync + Send),
     output_path: &'a FileOrStdout,
@@ -333,8 +333,8 @@ fn sign_data<'a, 'certdb>(
     Ok(())
 }
 
-fn sign_message<'a, 'certdb>(
-    config: Config<'certdb>,
+fn sign_message<'a, 'store, 'rstore>(
+    config: Config<'store, 'rstore>,
     private_key_store: Option<&'a str>,
     input: &'a mut (dyn io::Read + Sync + Send),
     output: &'a FileOrStdout,
@@ -362,8 +362,8 @@ fn sign_message<'a, 'certdb>(
     Ok(())
 }
 
-fn sign_message_<'a, 'certdb>(
-    config: Config<'certdb>,
+fn sign_message_<'a, 'store, 'rstore>(
+    config: Config<'store, 'rstore>,
     private_key_store: Option<&'a str>,
     input: &'a mut (dyn io::Read + Sync + Send),
     secrets: Vec<openpgp::Cert>,

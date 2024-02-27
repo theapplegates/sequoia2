@@ -316,12 +316,18 @@ fn help_warning(arg: &str) {
     }
 }
 
-pub struct Config<'a> {
+// A shorthand for our store type.
+type WotStore<'store, 'rstore>
+    = wot::store::CertStore<'store, 'rstore, cert_store::CertStore<'store>>;
+
+pub struct Config<'store, 'rstore>
+    where 'store: 'rstore
+{
     verbose: bool,
     force: bool,
     output_format: OutputFormat,
     output_version: Option<OutputVersion>,
-    policy: &'a P<'a>,
+    policy: &'rstore P<'rstore>,
     time: SystemTime,
     // --no-cert-store
     no_rw_cert_store: bool,
@@ -330,7 +336,7 @@ pub struct Config<'a> {
     keyrings: Vec<PathBuf>,
     // This will be set if --no-cert-store is not passed, OR --keyring
     // is passed.
-    cert_store: OnceCell<cert_store::CertStore<'a>>,
+    cert_store: OnceCell<WotStore<'store, 'rstore>>,
 
     // The value of --trust-root.
     trust_roots: Vec<Fingerprint>,
@@ -343,7 +349,7 @@ pub struct Config<'a> {
     key_store: OnceCell<Mutex<keystore::Keystore>>,
 }
 
-impl<'store> Config<'store> {
+impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     /// Returns the cert store's base directory, if it is enabled.
     fn cert_store_base(&self) -> Option<PathBuf> {
         if self.no_rw_cert_store {
@@ -365,7 +371,7 @@ impl<'store> Config<'store> {
     ///
     /// If the cert store is disabled, returns `Ok(None)`.  If it is not yet
     /// open, opens it.
-    fn cert_store(&self) -> Result<Option<&cert_store::CertStore<'store>>> {
+    fn cert_store(&self) -> Result<Option<&WotStore<'store, 'rstore>>> {
         if self.no_rw_cert_store
             && self.keyrings.is_empty()
             && self.pep_cert_store_path.is_none()
@@ -488,6 +494,9 @@ impl<'store> Config<'store> {
                 cert_store::AccessMode::Always);
         }
 
+        let cert_store = WotStore::from_store(
+            cert_store, self.policy, self.time);
+
         let _ = self.cert_store.set(cert_store);
 
         Ok(Some(self.cert_store.get().expect("just configured")))
@@ -496,7 +505,7 @@ impl<'store> Config<'store> {
     /// Returns the cert store.
     ///
     /// If the cert store is disabled, returns an error.
-    fn cert_store_or_else(&self) -> Result<&cert_store::CertStore<'store>> {
+    fn cert_store_or_else(&self) -> Result<&WotStore<'store, 'rstore>> {
         self.cert_store().and_then(|cert_store| cert_store.ok_or_else(|| {
             anyhow::anyhow!("Operation requires a certificate store, \
                              but the certificate store is disabled")
@@ -508,7 +517,7 @@ impl<'store> Config<'store> {
     /// If the cert store is disabled, returns None.  If it is not yet
     /// open, opens it.
     fn cert_store_mut(&mut self)
-        -> Result<Option<&mut cert_store::CertStore<'store>>>
+        -> Result<Option<&mut WotStore<'store, 'rstore>>>
     {
         if self.no_rw_cert_store {
             return Err(anyhow::anyhow!(
@@ -525,7 +534,7 @@ impl<'store> Config<'store> {
     /// Returns a mutable reference to the cert store.
     ///
     /// If the cert store is disabled, returns an error.
-    fn cert_store_mut_or_else(&mut self) -> Result<&mut cert_store::CertStore<'store>> {
+    fn cert_store_mut_or_else(&mut self) -> Result<&mut WotStore<'store, 'rstore>> {
         self.cert_store_mut().and_then(|cert_store| cert_store.ok_or_else(|| {
             anyhow::anyhow!("Operation requires a certificate store, \
                              but the certificate store is disabled")

@@ -228,10 +228,11 @@ fn certify(config: &Config,
 ///
 /// If a certificate cannot be certified for whatever reason, a
 /// diagnostic is emitted, and the certificate is returned as is.
-pub fn certify_downloads<'store>(config: &mut Config<'store>,
-                                 ca: Arc<LazyCert<'store>>,
-                                 certs: Vec<Cert>, email: Option<&str>)
+pub fn certify_downloads<'store, 'rstore>(config: &mut Config<'store, 'rstore>,
+                                          ca: Arc<LazyCert<'store>>,
+                                          certs: Vec<Cert>, email: Option<&str>)
     -> Vec<Cert>
+    where 'store: 'rstore
 {
     let ca = || -> Result<_> {
         let ca = ca.to_cert()?;
@@ -489,7 +490,10 @@ impl Method {
     //
     // This doesn't return an error, because not all methods have
     // shadow CAs, and a missing CA is not a hard error.
-    fn ca<'store>(&self, config: &Config<'store>) -> Option<Arc<LazyCert<'store>>> {
+    fn ca<'store, 'rstore>(&self, config: &Config<'store, 'rstore>)
+        -> Option<Arc<LazyCert<'store>>>
+        where 'store: 'rstore
+    {
         let ca = || -> Result<_> {
             let certd = config.certd_or_else()?;
             let (cert, created) = match self {
@@ -608,12 +612,13 @@ impl Response {
     /// If `silent_errors` is given, then failure messages are
     /// suppressed unless --verbose is given, or there was not a
     /// single successful result.
-    async fn collect(config: &mut Config<'_>,
-                     mut responses: JoinSet<Response>,
-                     certify: bool,
-                     silent_errors: bool,
-                     pb: &mut ProgressBar)
-                     -> Result<Vec<Cert>>
+    async fn collect<'store, 'rstore>(config: &mut Config<'store, 'rstore>,
+                                      mut responses: JoinSet<Response>,
+                                      certify: bool,
+                                      silent_errors: bool,
+                                      pb: &mut ProgressBar)
+                                      -> Result<Vec<Cert>>
+        where 'store: 'rstore
     {
         let mut certs = Vec::new();
         let mut errors = Vec::new();
@@ -658,7 +663,7 @@ impl Response {
     }
 
     /// Either writes out a keyring or imports the certs.
-    fn import_or_emit(mut config: Config<'_>,
+    fn import_or_emit(mut config: Config<'_, '_>,
                       output: Option<FileOrStdout>,
                       binary: bool,
                       certs: Vec<Cert>)

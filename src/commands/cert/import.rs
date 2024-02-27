@@ -21,8 +21,10 @@ use crate::cli::cert::import;
 use crate::cli::types::FileOrStdin;
 
 
-pub fn dispatch<'store>(mut config: Config<'store>, cmd: import::Command)
+pub fn dispatch<'store, 'rstore>(mut config: Config<'store, 'rstore>,
+                                 cmd: import::Command)
     -> Result<()>
+where 'store: 'rstore
 {
     let inputs = if cmd.input.is_empty() {
         vec![ PathBuf::from("-") ]

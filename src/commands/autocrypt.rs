@@ -31,8 +31,10 @@ pub fn dispatch(config: Config, c: &cli::autocrypt::Command) -> Result<()> {
     }
 }
 
-fn import(mut config: Config, command: &cli::autocrypt::ImportCommand)
+fn import<'store, 'rstore>(mut config: Config<'store, 'rstore>,
+                   command: &cli::autocrypt::ImportCommand)
           -> Result<()>
+    where 'store: 'rstore
 {
     let input = command.input.open()?;
 

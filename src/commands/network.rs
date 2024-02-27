@@ -95,7 +95,7 @@ pub fn dispatch(config: Config, c: cli::network::Command)
 /// Import the certificates into the local certificate store.
 ///
 /// This does not certify the certificates.
-pub fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
+pub fn import_certs(config: &Config, certs: Vec<Cert>) -> Result<()> {
     if certs.is_empty() {
         // No need to do and say anything.
         return Ok(());
@@ -114,7 +114,7 @@ pub fn import_certs(config: &mut Config, certs: Vec<Cert>) -> Result<()> {
         })
         .collect::<Vec<_>>();
 
-    let cert_store = config.cert_store_mut_or_else()
+    let cert_store = config.cert_store_or_else()
         .context("Inserting results")?;
 
     let mut stats

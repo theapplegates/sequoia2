@@ -329,7 +329,7 @@ pub fn link(config: Config, c: link::Command) -> Result<()> {
     Ok(())
 }
 
-pub fn add(mut config: Config, c: link::AddCommand)
+pub fn add(config: Config, c: link::AddCommand)
     -> Result<()>
 {
     let trust_root = config.local_trust_root()?;
@@ -601,14 +601,14 @@ pub fn add(mut config: Config, c: link::AddCommand)
 
     let cert = cert.insert_packets(certifications.clone())?;
 
-    let cert_store = config.cert_store_mut_or_else()?;
+    let cert_store = config.cert_store_or_else()?;
     cert_store.update(Arc::new(cert.into()))
         .with_context(|| format!("Updating {}", c.certificate))?;
 
     Ok(())
 }
 
-pub fn retract(mut config: Config, c: link::RetractCommand)
+pub fn retract(config: Config, c: link::RetractCommand)
     -> Result<()>
 {
     let trust_root = config.local_trust_root()?;
@@ -757,7 +757,7 @@ pub fn retract(mut config: Config, c: link::RetractCommand)
 
     let cert = cert.insert_packets(certifications.clone())?;
 
-    let cert_store = config.cert_store_mut_or_else()?;
+    let cert_store = config.cert_store_or_else()?;
     cert_store.update(Arc::new(cert.into()))
         .with_context(|| format!("Updating {}", c.certificate))?;
 

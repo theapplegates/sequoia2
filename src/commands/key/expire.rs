@@ -20,12 +20,12 @@ use crate::{
     cli,
 };
 
-pub fn dispatch(mut config: Config, command: cli::key::expire::Command)
+pub fn dispatch(config: Config, command: cli::key::expire::Command)
                 -> Result<()>
 {
     let policy = config.policy.clone();
     let cert_store = if command.output.is_none() {
-        Some(config.cert_store_mut_or_else()?)
+        Some(config.cert_store_or_else()?)
     } else {
         None
     };

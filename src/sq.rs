@@ -534,6 +534,7 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     /// Returns a mutable reference to the cert store.
     ///
     /// If the cert store is disabled, returns an error.
+    #[allow(unused)]
     fn cert_store_mut_or_else(&mut self) -> Result<&mut WotStore<'store, 'rstore>> {
         self.cert_store_mut().and_then(|cert_store| cert_store.ok_or_else(|| {
             anyhow::anyhow!("Operation requires a certificate store, \

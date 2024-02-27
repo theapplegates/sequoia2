@@ -18,7 +18,7 @@ use crate::cli;
 use crate::Config;
 use crate::Result;
 
-pub fn import(mut config: Config, command: cli::key::ImportCommand) -> Result<()> {
+pub fn import(config: Config, command: cli::key::ImportCommand) -> Result<()> {
     let softkeys = config.key_store_path_or_else()?
         .join("keystore").join("softkeys");
 
@@ -103,7 +103,7 @@ pub fn import(mut config: Config, command: cli::key::ImportCommand) -> Result<()
             // Also insert the certificate into the certificate store.
             // If we can't, we don't fail.  This allows, in
             // particular, `sq --no-cert-store key import` to work.
-            match config.cert_store_mut_or_else() {
+            match config.cert_store_or_else() {
                 Ok(cert_store) => {
                     if let Err(err) = cert_store.update(
                         Arc::new(LazyCert::from(cert)))

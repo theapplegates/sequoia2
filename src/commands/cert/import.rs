@@ -21,7 +21,7 @@ use crate::cli::cert::import;
 use crate::cli::types::FileOrStdin;
 
 
-pub fn dispatch<'store, 'rstore>(mut config: Config<'store, 'rstore>,
+pub fn dispatch<'store, 'rstore>(config: Config<'store, 'rstore>,
                                  cmd: import::Command)
     -> Result<()>
 where 'store: 'rstore
@@ -41,7 +41,7 @@ where 'store: 'rstore
 
             let policy = config.policy.clone();
             let time = config.time;
-            let cert_store = config.cert_store_mut_or_else()?;
+            let cert_store = config.cert_store_or_else()?;
 
             for raw_cert in raw_certs {
                 let cert = match raw_cert {

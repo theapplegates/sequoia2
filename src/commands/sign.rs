@@ -210,8 +210,8 @@ fn sign_data<'a, 'store, 'rstore>(
                                 format!(" ({})",
                                         String::from_utf8_lossy(
                                             best_effort_primary_uid(
-                                                &cert, config.policy,
-                                                config.time)
+                                                Some(&config), &cert,
+                                                config.policy, config.time)
                                                 .value()))
                             }
                             Err(_) => {

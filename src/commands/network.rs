@@ -107,7 +107,8 @@ pub fn import_certs(config: &Config, certs: Vec<Cert>) -> Result<()> {
         .map(|cert| {
             let fpr = cert.fingerprint();
             let userid =
-                best_effort_primary_uid(&cert, config.policy, config.time)
+                best_effort_primary_uid(
+                    Some(&config), &cert, config.policy, config.time)
                 .clone();
 
             (fpr, userid, cert)
@@ -569,8 +570,10 @@ impl Method {
                  to change how much it is trusted.  Or \
                  `sq link retract {}` to disable it.",
                 if let Ok(cert) = cert.to_cert() {
+                    // We really want the self-signed, primary user
+                    // ID.
                     best_effort_primary_uid(
-                        cert, config.policy, None)
+                        None, cert, config.policy, None)
                 } else {
                     &invalid
                 },

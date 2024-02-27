@@ -117,8 +117,11 @@ impl<'a> RevocationOutput for CertificateRevocation<'a> {
                 // Then if it was issued by a third-party.
                 more.push("issued by".to_string());
                 more.push(self.secret.fingerprint().to_spaced_hex());
+                // This information may be published so only consider
+                // self-signed user IDs to avoid leaking information
+                // about the user's web of trust.
                 let issuer_uid = crate::best_effort_primary_uid(
-                    &self.secret, self.policy, self.time);
+                    None, &self.secret, self.policy, self.time);
                 let issuer_uid = String::from_utf8_lossy(issuer_uid.value());
                 // Truncate it, if it is too long.
                 more.push(format!(

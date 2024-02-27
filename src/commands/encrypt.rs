@@ -165,7 +165,7 @@ pub fn encrypt<'a, 'b: 'a>(
                                 format!(" ({})",
                                         String::from_utf8_lossy(
                                             best_effort_primary_uid(
-                                                &cert, config.policy,
+                                                Some(&config), &cert, config.policy,
                                                 config.time)
                                                 .value()))
                             }

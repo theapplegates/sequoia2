@@ -33,7 +33,7 @@ pub fn import(config: Config, command: cli::key::ImportCommand) -> Result<()> {
             let id = format!("{} {}",
                              cert.fingerprint(),
                              best_effort_primary_uid(
-                                 &cert, config.policy, config.time));
+                                 Some(&config), &cert, config.policy, config.time));
 
             config.info(format_args!(
                 "Importing {} from {}", id, file.display()));

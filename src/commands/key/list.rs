@@ -38,7 +38,8 @@ pub fn list(config: Config, _command: cli::key::ListCommand) -> Result<()> {
                 let fpr = KeyHandle::from(key.fingerprint());
 
                 let userid = if let Ok(cert) = config.lookup_one(&fpr, None, true) {
-                    best_effort_primary_uid(&cert, config.policy, None).to_string()
+                    best_effort_primary_uid(
+                        Some(&config), &cert, config.policy, None).to_string()
                 } else {
                     "(Unknown)".to_string()
                 };

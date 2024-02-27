@@ -197,7 +197,8 @@ fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
 }
 
 /// Best-effort heuristic to compute the primary User ID of a given cert.
-pub fn best_effort_primary_uid<'u, T>(cert: &'u Cert,
+pub fn best_effort_primary_uid<'u, T>(_config: Option<&Config>,
+                                      cert: &'u Cert,
                                       policy: &'u dyn Policy,
                                       time: T)
                                       -> &'u UserID

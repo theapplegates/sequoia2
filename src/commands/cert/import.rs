@@ -55,7 +55,7 @@ where 'store: 'rstore
 
                 let fingerprint = cert.fingerprint();
                 let userid = best_effort_primary_uid(
-                    cert.to_cert()?, &policy, time).clone();
+                    Some(&config), cert.to_cert()?, &policy, time).clone();
                 if let Err(err) = cert_store.update_by(Arc::new(cert), &mut stats) {
                     wprintln!("Error importing {}, {:?}: {}",
                               fingerprint, userid, err);

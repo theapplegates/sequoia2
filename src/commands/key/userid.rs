@@ -189,7 +189,7 @@ impl<'a> RevocationOutput for UserIDRevocation<'a> {
                 let sanitized_uid = crate::best_effort_primary_uid(
                     None, &self.secret, self.policy, self.time);
                 // Truncate it, if it is too long.
-                more.push(sanitized_uid.chars().take(70).collect::<String>());
+                more.push(format!("{:.70}", sanitized_uid));
             }
 
             let headers = &self.cert.armor_headers();

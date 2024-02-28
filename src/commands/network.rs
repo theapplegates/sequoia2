@@ -100,8 +100,6 @@ pub fn import_certs(config: &Config, certs: Vec<Cert>) -> Result<()> {
         return Ok(());
     }
 
-    // Once we get a mutable reference to the cert_store, we're locked
-    // out of config.  Gather the information we need first.
     let certs = merge_keyring(certs)?.into_values()
         .map(|cert| {
             let fpr = cert.fingerprint();
@@ -573,7 +571,7 @@ impl Method {
                     // We really want the self-signed, primary user
                     // ID.
                     best_effort_primary_uid(
-                        None, cert, config.policy, None)
+                        None, cert, config.policy, None).to_string()
                 } else {
                     invalid
                 },

@@ -43,7 +43,7 @@ pub fn list(config: Config, _command: cli::key::ListCommand) -> Result<()> {
                     best_effort_primary_uid(
                         Some(&config), &cert, config.policy, None)
                 } else {
-                    "(Unknown)".to_string()
+                    crate::PreferredUserID::unknown()
                 };
 
                 let signing_capable = key.signing_capable().unwrap_or(false);

@@ -58,6 +58,7 @@ use clap::FromArgMatches;
 #[macro_use] mod log;
 
 mod common;
+use common::PreferredUserID;
 pub mod utils;
 
 mod cli;
@@ -70,7 +71,6 @@ mod commands;
 pub mod output;
 pub use output::{wkd::WkdUrlVariant, Model};
 use output::hint::Hint;
-use output::sanitize::Safe;
 
 /// Converts sequoia_openpgp types for rendering.
 pub trait Convert<T> {
@@ -204,7 +204,7 @@ pub fn best_effort_primary_uid<'u, T>(config: Option<&Config>,
                                       cert: &'u Cert,
                                       policy: &'u dyn Policy,
                                       time: T)
-                                      -> String
+                                      -> PreferredUserID
 where
     T: Into<Option<SystemTime>>,
 {
@@ -284,17 +284,10 @@ where
         }
 
         let (uid, amount) = candidate;
-        let uid = Safe(uid);
-        if amount == 0 {
-            format!("{} (UNAUTHENTICATED)", uid)
-        } else if amount < wot::FULLY_TRUSTED {
-            format!("{} (partially authenticated, {}/{})", uid, amount, wot::FULLY_TRUSTED)
-        } else {
-            format!("{} (authenticated)", uid)
-        }
+        PreferredUserID::from_userid(uid.clone(), amount)
     } else {
         // Special case, there is no user id.
-        "<unknown>".to_string()
+        PreferredUserID::unknown()
     }
 }
 

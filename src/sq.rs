@@ -70,6 +70,7 @@ mod commands;
 pub mod output;
 pub use output::{wkd::WkdUrlVariant, Model};
 use output::hint::Hint;
+use output::sanitize::Safe;
 
 /// Converts sequoia_openpgp types for rendering.
 pub trait Convert<T> {
@@ -197,11 +198,13 @@ fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
 }
 
 /// Best-effort heuristic to compute the primary User ID of a given cert.
+///
+/// The returned string is already sanitized, and safe for displaying.
 pub fn best_effort_primary_uid<'u, T>(_config: Option<&Config>,
                                       cert: &'u Cert,
                                       policy: &'u dyn Policy,
                                       time: T)
-                                      -> &'u UserID
+                                      -> String
 where
     T: Into<Option<SystemTime>>,
 {
@@ -243,7 +246,8 @@ where
         }
     }
 
-    primary_uid.expect("set at this point")
+    let primary_uid = primary_uid.expect("set at this point");
+    Safe(primary_uid).to_string()
 }
 
 // Decrypts a key, if possible.

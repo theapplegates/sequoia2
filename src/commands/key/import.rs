@@ -30,16 +30,19 @@ pub fn import(config: Config, command: cli::key::ImportCommand) -> Result<()> {
                 format!("While reading {}", file.display())
             })?;
 
-            let id = format!("{} {}",
-                             cert.fingerprint(),
-                             best_effort_primary_uid(
-                                 Some(&config), &cert, config.policy, config.time));
+            let sanitized_userid
+                = format!("{} {}",
+                          cert.fingerprint(),
+                          best_effort_primary_uid(
+                              Some(&config), &cert, config.policy,
+                              config.time));
 
             config.info(format_args!(
-                "Importing {} from {}", id, file.display()));
+                "Importing {} from {}", sanitized_userid, file.display()));
 
             if ! cert.is_tsk() {
-                wprintln!("Skipping {}: no secret key material", id);
+                wprintln!("Skipping {}: no secret key material",
+                          sanitized_userid);
                 continue;
             }
 
@@ -62,7 +65,7 @@ pub fn import(config: Config, command: cli::key::ImportCommand) -> Result<()> {
                     cert = old.clone().merge_public_and_secret(cert.clone())?;
 
                     if cert == old {
-                        wprintln!("Skipping {}: unchanged.", id);
+                        wprintln!("Skipping {}: unchanged.", sanitized_userid);
                         continue;
                     }
                 }
@@ -95,9 +98,9 @@ pub fn import(config: Config, command: cli::key::ImportCommand) -> Result<()> {
             std::fs::rename(&tmp_filename, &filename)?;
 
             if update {
-                wprintln!("Updated {}", id);
+                wprintln!("Updated {}", sanitized_userid);
             } else {
-                wprintln!("Imported {}", id);
+                wprintln!("Imported {}", sanitized_userid);
             }
 
             // Also insert the certificate into the certificate store.
@@ -110,13 +113,13 @@ pub fn import(config: Config, command: cli::key::ImportCommand) -> Result<()> {
                     {
                         config.info(format_args!(
                             "While importing {} into cert store: {}",
-                            id, err));
+                            sanitized_userid, err));
                     }
                 }
                 Err(err) => {
                     config.info(format_args!(
                         "Not importing {} into cert store: {}",
-                        id, err));
+                        sanitized_userid, err));
                 }
             }
         }

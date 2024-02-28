@@ -186,14 +186,10 @@ impl<'a> RevocationOutput for SubkeyRevocation<'a> {
                 // This information may be published, so only consider
                 // self-signed user IDs to avoid leaking information
                 // about the user's web of trust.
-                let issuer_uid = crate::best_effort_primary_uid(
+                let sanitized_uid = crate::best_effort_primary_uid(
                     None, &self.secret, self.policy, self.time);
-                let issuer_uid = String::from_utf8_lossy(issuer_uid.value());
                 // Truncate it, if it is too long.
-                more.push(format!(
-                    "{:?}",
-                    issuer_uid.chars().take(70).collect::<String>()
-                ));
+                more.push(sanitized_uid.chars().take(70).collect::<String>());
             }
 
             let headers = &self.cert.armor_headers();

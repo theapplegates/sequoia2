@@ -15,7 +15,6 @@ use cert_store::StoreUpdate;
 use crate::{
     Config,
     best_effort_primary_uid,
-    output::sanitize::Safe,
 };
 use crate::cli::cert::import;
 use crate::cli::types::FileOrStdin;
@@ -54,15 +53,15 @@ where 'store: 'rstore
                 };
 
                 let fingerprint = cert.fingerprint();
-                let userid = best_effort_primary_uid(
-                    Some(&config), cert.to_cert()?, &policy, time).clone();
+                let sanitized_userid = best_effort_primary_uid(
+                    Some(&config), cert.to_cert()?, &policy, time);
                 if let Err(err) = cert_store.update_by(Arc::new(cert), &mut stats) {
-                    wprintln!("Error importing {}, {:?}: {}",
-                              fingerprint, userid, err);
+                    wprintln!("Error importing {}, {}: {}",
+                              fingerprint, sanitized_userid, err);
                     stats.inc_errors();
                     continue;
                 } else {
-                    wprintln!("Imported {}, {}", fingerprint, Safe(&userid));
+                    wprintln!("Imported {}, {}", fingerprint, sanitized_userid);
                 }
             }
         }

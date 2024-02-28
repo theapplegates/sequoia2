@@ -163,11 +163,9 @@ pub fn encrypt<'a, 'b: 'a>(
                         let display = match cert {
                             Ok(cert) => {
                                 format!(" ({})",
-                                        String::from_utf8_lossy(
-                                            best_effort_primary_uid(
-                                                Some(&config), &cert, config.policy,
-                                                config.time)
-                                                .value()))
+                                        best_effort_primary_uid(
+                                            Some(&config), &cert, config.policy,
+                                            config.time))
                             }
                             Err(_) => {
                                 "".to_string()

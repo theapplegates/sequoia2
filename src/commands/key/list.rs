@@ -37,9 +37,11 @@ pub fn list(config: Config, _command: cli::key::ListCommand) -> Result<()> {
             for mut key in keys.into_iter() {
                 let fpr = KeyHandle::from(key.fingerprint());
 
-                let userid = if let Ok(cert) = config.lookup_one(&fpr, None, true) {
+                let sanitized_userid = if let Ok(cert)
+                    = config.lookup_one(&fpr, None, true)
+                {
                     best_effort_primary_uid(
-                        Some(&config), &cert, config.policy, None).to_string()
+                        Some(&config), &cert, config.policy, None)
                 } else {
                     "(Unknown)".to_string()
                 };
@@ -47,7 +49,7 @@ pub fn list(config: Config, _command: cli::key::ListCommand) -> Result<()> {
                 let signing_capable = key.signing_capable().unwrap_or(false);
                 let decryption_capable = key.decryption_capable().unwrap_or(false);
                 println!("     - {} {} ({}, {}, {})",
-                         fpr, userid,
+                         fpr, sanitized_userid,
                          if key.available().unwrap_or(false) {
                              "available"
                          } else {

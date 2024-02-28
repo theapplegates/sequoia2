@@ -49,7 +49,6 @@ use crate::{
     },
     output::{
         pluralize::Pluralize,
-        sanitize::Safe,
     },
     Config,
     Model,
@@ -108,8 +107,7 @@ pub fn import_certs(config: &Config, certs: Vec<Cert>) -> Result<()> {
             let fpr = cert.fingerprint();
             let userid =
                 best_effort_primary_uid(
-                    Some(&config), &cert, config.policy, config.time)
-                .clone();
+                    Some(&config), &cert, config.policy, config.time);
 
             (fpr, userid, cert)
         })
@@ -123,10 +121,12 @@ pub fn import_certs(config: &Config, certs: Vec<Cert>) -> Result<()> {
 
     wprintln!("\nImporting {} into the certificate store:\n",
               certs.len().of("certificate"));
-    for (i, (fpr, userid, cert)) in certs.into_iter().enumerate() {
+    for (i, (fpr, sanitized_userid, cert)) in certs.into_iter().enumerate() {
         cert_store.update_by(Arc::new(cert.into()), &mut stats)
-            .with_context(|| format!("Inserting {}, {}", fpr, Safe(&userid)))?;
-        wprintln!("  {}. {} {}", i + 1, fpr, Safe(&userid));
+            .with_context(|| {
+                format!("Inserting {}, {}", fpr, sanitized_userid)
+            })?;
+        wprintln!("  {}. {} {}", i + 1, fpr, sanitized_userid);
     }
 
     wprintln!("\nImported {}, updated {}, {} unchanged, {}.",
@@ -561,10 +561,10 @@ impl Method {
         }
 
         if config.verbose {
-            let invalid = UserID::from(&b"invalid data"[..]);
+            let invalid = "invalid data".to_string();
 
             wprintln!(
-                "Created the local CA {:?} for certifying \
+                "Created the local CA {} for certifying \
                  certificates downloaded from this service.  \
                  Use `sq link add --ca '*' --amount N {}` \
                  to change how much it is trusted.  Or \
@@ -575,7 +575,7 @@ impl Method {
                     best_effort_primary_uid(
                         None, cert, config.policy, None)
                 } else {
-                    &invalid
+                    invalid
                 },
                 cert.fingerprint(), cert.fingerprint());
         } else {

@@ -4,62 +4,32 @@ stages:
   - test
   - deploy
 
-# These stanzas do some common management tasks before and after the
-# job-specific before_script and after_script stanzas are run.
-# before_script_start configures any default global state.  The
-# job-specific before_script can override this state, if required.
-# before_script_end prints out information about the environment to
-# improve debugging; it does not modify the environment.
-# after_script_end does some common management tasks after the
-# job-specific after_script is run.  It prints information about the
-# environment, and does some clean up.
-#
-# Add this to your stanza as follows:
-#
-#   before_script:
-#     - *before_script_start
-#     - *** YOUR CODE HERE ***
-#     - *before_script_end
-#   after_script:
-#     - *** YOUR CODE HERE ***
-#     - *after_script_end
+include:
+  - component: gitlab.com/sequoia-pgp/common-ci/precheck@main
+    inputs:
+      codespell_ignore_words: "crate,ede,iff,mut,nd,te,uint,KeyServer,keyserver,Keyserver,keyservers,Keyservers,keypair,keypairs,KeyPair,fpr,dedup,deriver,certi,certp,certo"
+      codespell_skip_files: "*.bin,*.gpg,*.pgp,./.git,*/target,Cargo.lock,./tests/data,openpgp-policy.toml"
+  - component: gitlab.com/sequoia-pgp/common-ci/authenticate-commits@main
+  - component: gitlab.com/sequoia-pgp/common-ci/rust-basic@main
+    inputs:
+      job_name: trixie
+      image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-prebuild
+      cargo_args: '--features=subplot'
+  - component: gitlab.com/sequoia-pgp/common-ci/rust-basic@main
+    inputs:
+      job_name: trixie-crypto-openssl
+      image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-prebuild
+      cargo_args: '--no-default-features --features crypto-openssl'
+  - component: gitlab.com/sequoia-pgp/common-ci/rust-basic@main
+    inputs:
+      job_name: rust-stable
+      image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild
+      cargo_args: '--features=subplot'
 
-.before_script_start: &before_script_start
-  - 'if test "x${RUSTFLAGS+SET}" = xSET; then echo "\$RUSTFLAGS is set ($RUSTFLAGS)"; exit 1; fi'
-
-.before_script_end: &before_script_end
-  - 'if test "x${RUSTFLAGS+SET}" = xSET; then echo "WARNING: before_script set \$RUSTFLAGS ($RUSTFLAGS)"; fi'
-  - rustc --version --verbose
-  - cargo --version
-  - clang -v
-  - if [ -d $CARGO_TARGET_DIR ]; then find $CARGO_TARGET_DIR | wc --lines; du -sh $CARGO_TARGET_DIR; fi
-  - if [ -d $CARGO_HOME ]; then find $CARGO_HOME | wc --lines; du -sh $CARGO_HOME; fi
-
-.after_script_end: &after_script_end
-  - if [ -d $CARGO_TARGET_DIR ]; then find $CARGO_TARGET_DIR -type f -atime +7 -delete; fi
-  - if [ -d $CARGO_TARGET_DIR ]; then du -sh $CARGO_TARGET_DIR; fi
-  - if [ -d $CARGO_HOME ]; then du -sh $CARGO_HOME; fi
-
-before_script:
-  - *before_script_start
-  - *before_script_end
-
-after_script:
-  - *after_script_end
-
-trixie:
-  tags:
-    - linux
-  stage: build
-  interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie:latest
-  script:
-    - cargo test --features=subplot
+trixie-build:
+  after_script:
     - if ! git diff --quiet Cargo.lock ; then echo "Cargo.lock changed.  Please add the change to the corresponding commit." ; git diff ; false ; fi
     - if ! git diff --quiet ; then echo "The build changed the source.  Please investigate." ; git diff ; fi
-  variables:
-    CARGO_TARGET_DIR: /target
-    CARGO_HOME: /cargo
 
 sq-features:
   tags:
@@ -78,50 +48,19 @@ sq-features:
         - ""
   script:
     - cargo test --no-default-features --features crypto-nettle$FEATURES
-  variables:
-    CARGO_TARGET_DIR: /target
-    CARGO_HOME: /cargo
-
-trixie-crypto-openssl:
-  tags:
-    - linux
-  stage: build
-  interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie:latest
-  dependencies:
-    - codespell
-  script:
-    - cargo test --no-default-features --features crypto-openssl
-  variables:
-    CARGO_TARGET_DIR: /target
-    CARGO_HOME: /cargo
 
 all_commits:
   # Test each commit up to main, to facilitate bisecting.
   stage: test
   interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable:latest
-  needs: ["rust-stable"]
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-prebuild:latest
+  needs: ["rust-stable-build"]
   script:
     - .ci/all_commits.sh
+  rules:
+    - !reference [.default_rules, rules]
   variables:
-    CARGO_TARGET_DIR: /target
-    CARGO_HOME: /cargo
     GIT_STRATEGY: clone
-
-codespell:
-  tags:
-    - linux
-  stage: pre-check
-  interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie:latest
-
-  before_script:
-    - *before_script_start
-    - codespell --version
-    - *before_script_end
-  script:
-    - codespell --summary -L "crate,ede,iff,mut,nd,te,uint,KeyServer,keyserver,Keyserver,keyservers,Keyservers,keypair,keypairs,KeyPair,fpr,dedup,deriver,certi,certp,certo" -S "*.bin,*.gpg,*.pgp,./.git,*/target,Cargo.lock,./tests/data,openpgp-policy.toml"
 
 deny:
   tags:
@@ -131,46 +70,28 @@ deny:
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable:latest
 
   before_script:
-    - *before_script_start
+    - !reference [.before_script, start]
     - cargo install --locked cargo-deny
-    - *before_script_end
+    - !reference [.before_script, end]
   script:
     - cargo deny check
-
-rust-stable:
-  tags:
-    - linux
-  stage: build
-  interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable:latest
-  before_script:
-    - *before_script_start
-    - rustup override set stable
-    - *before_script_end
-  script:
-    - cargo test --features=subplot
-  variables:
-    CARGO_TARGET_DIR: /target
-    CARGO_HOME: /cargo
 
 clippy:
   tags:
     - linux
   stage: build
   interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
   before_script:
-    - *before_script_start
-    - apt-get -y install libssl-dev capnproto libsqlite3-dev
-    - rustup default 1.70.0
+    - !reference [.before_script, start]
+    - rustup default 1.70.0 # Pin clippy.
     - rustup component add clippy
     - cargo clippy --version
-    - *before_script_end
+    - !reference [.before_script, end]
   script:
     - cargo clippy
-  variables:
-    CARGO_TARGET_DIR: /target
-    CARGO_HOME: /cargo
+  rules:
+    - !reference [.default_rules, rules]
 
 windows-gnu-cng:
   tags:
@@ -256,12 +177,3 @@ pages:
       - public
   only:
     - main
-
-variables:
-  DEBIAN_FRONTEND: noninteractive
-  CARGO_HOME: $CI_PROJECT_DIR/../cargo
-  CARGO_FLAGS: --color always
-  CARGO_INCREMENTAL: 0
-  RUST_BACKTRACE: full
-  CFLAGS: -Werror
-  QUICKCHECK_GENERATOR_SIZE: 500 # https://github.com/BurntSushi/quickcheck/pull/240

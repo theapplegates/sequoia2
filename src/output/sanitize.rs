@@ -28,3 +28,27 @@ impl fmt::Display for Safe<&str> {
         }
     }
 }
+
+impl fmt::Display for Safe<&[u8]> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Safe(String::from_utf8_lossy(&self.0[..])).fmt(f)
+    }
+}
+
+impl fmt::Display for Safe<std::borrow::Cow<'_, str>> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Safe(&self.0[..]).fmt(f)
+    }
+}
+
+impl fmt::Display for Safe<&String> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Safe(&self.0[..]).fmt(f)
+    }
+}
+
+impl fmt::Display for Safe<String> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Safe(&self.0[..]).fmt(f)
+    }
+}

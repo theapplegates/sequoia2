@@ -89,7 +89,7 @@ fn authenticate<'store, 'rstore>(
     where 'store: 'rstore,
 {
     // Build the network.
-    let mut cert_store = match config.cert_store() {
+    let cert_store = match config.cert_store() {
         Ok(Some(cert_store)) => cert_store,
         Ok(None) => {
             return Err(anyhow::anyhow!("Certificate store has been disabled"));

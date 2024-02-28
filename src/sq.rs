@@ -200,7 +200,7 @@ fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
 /// Best-effort heuristic to compute the primary User ID of a given cert.
 ///
 /// The returned string is already sanitized, and safe for displaying.
-pub fn best_effort_primary_uid<'u, T>(_config: Option<&Config>,
+pub fn best_effort_primary_uid<'u, T>(config: Option<&Config>,
                                       cert: &'u Cert,
                                       policy: &'u dyn Policy,
                                       time: T)
@@ -237,17 +237,65 @@ where
     if primary_uid.is_none() {
         if let Some(primary) = cert.userids().next() {
             primary_uid = Some(primary.userid());
-        } else {
-            // Special case, there is no user id.
-            use std::sync::OnceLock;
-            static FALLBACK: OnceLock<UserID> = OnceLock::new();
-            primary_uid =
-                Some(FALLBACK.get_or_init(|| UserID::from("<unknown>")));
         }
     }
 
-    let primary_uid = primary_uid.expect("set at this point");
-    Safe(primary_uid).to_string()
+    if let Some(primary_uid) = primary_uid {
+        let fpr = cert.fingerprint();
+
+        let mut candidate: (&UserID, usize) = (primary_uid, 0);
+
+        #[allow(clippy::never_loop)]
+        loop {
+            // Don't fail if we can't query the user's web of trust.
+            let Some(config) = config else { break; };
+            let Ok(q) = config.wot_query() else { break; };
+            let q = q.build();
+            let authenticate = move |userid: &UserID| {
+                let paths = q.authenticate(userid, &fpr, wot::FULLY_TRUSTED);
+                paths.amount()
+            };
+
+            // We're careful to *not* use a ValidCert so that we see all
+            // user IDs, even those that are not self signed.
+
+            candidate = (primary_uid, authenticate(primary_uid));
+
+            for userid in cert.userids() {
+                let userid = userid.component();
+
+                if candidate.1 >= wot::FULLY_TRUSTED {
+                    // Done.
+                    break;
+                }
+
+                if userid == primary_uid {
+                    // We already considered this one.
+                    continue;
+                }
+
+                let amount = authenticate(&userid);
+                if amount > candidate.1 {
+                    candidate = (userid, amount);
+                }
+            }
+
+            break;
+        }
+
+        let (uid, amount) = candidate;
+        let uid = Safe(uid);
+        if amount == 0 {
+            format!("{} (UNAUTHENTICATED)", uid)
+        } else if amount < wot::FULLY_TRUSTED {
+            format!("{} (partially authenticated, {}/{})", uid, amount, wot::FULLY_TRUSTED)
+        } else {
+            format!("{} (authenticated)", uid)
+        }
+    } else {
+        // Special case, there is no user id.
+        "<unknown>".to_string()
+    }
 }
 
 // Decrypts a key, if possible.
@@ -566,6 +614,18 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
             .ok_or_else(|| anyhow::anyhow!(NO_CERTD_ERR))
     }
 
+
+    /// Returns a web-of-trust query builder.
+    ///
+    /// The trust roots are already set appropriately.
+    fn wot_query(&self) -> Result<wot::QueryBuilder<&WotStore<'store, 'rstore>>>
+    {
+        let cert_store = self.cert_store_or_else()?;
+        let network = wot::Network::new(cert_store)?;
+        let mut query = wot::QueryBuilder::new_owned(network.into());
+        query.roots(wot::Roots::new(self.trust_roots()));
+        Ok(query)
+    }
 
     /// Returns the key store's path.
     ///

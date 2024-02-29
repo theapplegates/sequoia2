@@ -2,6 +2,28 @@
 #+TITLE: sequoia-sq NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 0.34.0
+** Notable changes
+   - `sq` now uses `sequoia-keystore` for secret key operations.
+
+     When decrypting a message, `sq` will automatically ask the
+     keystore to decrypt the message.  `sq sign --signer-key` can be
+     used to specify a signing key managed by the key store.
+
+   - New top-level option: `sq --no-key-store`: A new switch to
+     disable the use of the key store.
+
+   - New top-level option: `sq --key-store`: A new option to use an
+     alternate key store.
+
+   - New subcommand `sq key list` to list keys managed by the key
+     store.
+
+   - New subcommand `sq key import` to import a key into the key
+     store.
+
+   - When showing a user ID for a certificate, choose the one that is
+     most authenticated.
 * Changes in 0.33.0
 ** Notable changes
    - The command line interface has been restructured.  Please consult
@@ -26,25 +48,6 @@
      and shell completions are generated during the build process.  To
      write the assets to a predictable location, set the environment
      variable `ASSET_OUT_DIR` to a suitable location.
-
-   - `sq` now uses `sequoia-keystore` for secret key operations.
-
-     When decrypting a message, `sq` will automatically ask the
-     keystore to decrypt the message.  `sq sign --signer-key` can be
-     used to specify a signing key managed by the key store.
-
-   - New top-level option: `sq --no-key-store`: A new switch to
-     disable the use of the key store.
-
-   - New top-level option: `sq --key-store`: A new option to use an
-     alternate key store.
-
-   - New subcommand `sq key list` to list keys managed by the key
-     store.
-
-   - New subcommand `sq key import` to import a key into the key
-     store.
-
 * Changes in 0.32.0
 ** New functionality
    - Support for password-encrypted keys has been improved.  For

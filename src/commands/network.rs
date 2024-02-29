@@ -100,31 +100,40 @@ pub fn import_certs(config: &Config, certs: Vec<Cert>) -> Result<()> {
         return Ok(());
     }
 
-    let certs = merge_keyring(certs)?.into_values()
-        .map(|cert| {
-            let fpr = cert.fingerprint();
-            let userid =
-                best_effort_primary_uid(
-                    Some(&config), &cert, config.policy, config.time);
-
-            (fpr, userid, cert)
-        })
-        .collect::<Vec<_>>();
-
     let cert_store = config.cert_store_or_else()
         .context("Inserting results")?;
 
     let mut stats
         = cert_store::store::MergePublicCollectStats::new();
 
+    let certs = merge_keyring(certs)?.into_values().collect::<Vec<_>>();
+
     wprintln!("\nImporting {} into the certificate store:\n",
               certs.len().of("certificate"));
-    for (i, (fpr, sanitized_userid, cert)) in certs.into_iter().enumerate() {
-        cert_store.update_by(Arc::new(cert.into()), &mut stats)
+    for cert in certs.iter() {
+        cert_store.update_by(Arc::new(cert.clone().into()), &mut stats)
             .with_context(|| {
-                format!("Inserting {}, {}", fpr, sanitized_userid)
+                let sanitized_userid = best_effort_primary_uid(
+                    Some(&config), &cert, config.policy, config.time);
+
+                format!("Inserting {}, {}",
+                        cert.fingerprint(), sanitized_userid)
             })?;
-        wprintln!("  {}. {} {}", i + 1, fpr, sanitized_userid);
+    }
+
+    let mut certs = certs.into_iter()
+        .map(|cert| {
+            let userid = best_effort_primary_uid(
+                Some(&config), &cert, config.policy, config.time);
+            (userid, cert)
+        })
+        .collect::<Vec<_>>();
+
+    // Reverse sort, i.e., most authenticated first.
+    certs.sort_unstable_by_key(|cert| usize::MAX - cert.0.trust_amount());
+
+    for (i, (userid, cert)) in certs.into_iter().enumerate() {
+        wprintln!("  {}. {} {}", i + 1, cert.fingerprint(), userid);
     }
 
     wprintln!("\nImported {}, updated {}, {} unchanged, {}.",

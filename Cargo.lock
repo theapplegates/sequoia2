@@ -2928,7 +2928,7 @@ dependencies = [
  "anyhow",
  "serde",
  "serde_yaml 0.8.26",
- "textwrap 0.15.2",
+ "textwrap",
  "thiserror",
 ]
 
@@ -3368,8 +3368,7 @@ dependencies = [
  "tempfile",
  "termcolor",
  "terminal_size",
- "textwrap 0.15.2",
- "textwrap 0.16.1",
+ "textwrap",
  "tokio",
 ]
 
@@ -3839,17 +3838,6 @@ name = "textwrap"
 version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7b3e525a49ec206798b40326a44121291b530c963cfb01018f63e135bac543d"
-dependencies = [
- "smawk",
- "unicode-linebreak",
- "unicode-width",
-]
-
-[[package]]
-name = "textwrap"
-version = "0.16.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23d434d3f8967a09480fb04132ebe0a3e088c173e6d0ee7897abbdf4eab0f8b9"
 dependencies = [
  "smawk",
  "unicode-linebreak",

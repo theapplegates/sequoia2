@@ -11,6 +11,7 @@ use anyhow::Context as _;
 use std::borrow::Borrow;
 use std::collections::btree_map::{BTreeMap, Entry};
 use std::fmt;
+use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -393,6 +394,20 @@ pub struct Config<'store, 'rstore>
     no_key_store: bool,
     key_store_path: Option<PathBuf>,
     key_store: OnceCell<Mutex<keystore::Keystore>>,
+}
+
+/// Whether a cert or key was freshly imported, updated, or unchanged.
+///
+/// Returned by [`Config::import_key`].
+enum ImportStatus {
+    /// The certificate or key is new.
+    New,
+
+    /// The certificate or key has been updated.
+    Updated,
+
+    /// The certificate or key is unchanged.
+    Unchanged,
 }
 
 impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
@@ -1100,6 +1115,100 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
                 .collect()
         } else {
             self.trust_roots.clone()
+        }
+    }
+
+    /// Imports the TSK into the soft key backend.
+    ///
+    /// On success, returns whether the key was imported, updated, or
+    /// unchanged.
+    fn import_key(&self, mut cert: Cert) -> Result<ImportStatus> {
+        if ! cert.is_tsk() {
+            return Err(anyhow::anyhow!(
+                "Certificate does not contain any secret key material"));
+        }
+
+        let softkeys = self.key_store_path_or_else()?
+            .join("keystore").join("softkeys");
+
+        std::fs::create_dir_all(&softkeys)?;
+
+        let fpr = cert.fingerprint();
+
+        let filename = softkeys.join(format!("{}.pgp", fpr));
+
+        let mut update = false;
+        match Cert::from_file(&filename) {
+            Ok(old) => {
+                if old.fingerprint() != fpr {
+                    return Err(anyhow::anyhow!(
+                        "{} contains {}, but expected {}",
+                        filename.display(),
+                        old.fingerprint(),
+                        fpr));
+                }
+
+                update = true;
+
+                // Prefer secret key material from `cert`.
+                cert = old.clone().merge_public_and_secret(cert.clone())?;
+
+                if cert == old {
+                    return Ok(ImportStatus::Unchanged);
+                }
+            }
+            Err(err) => {
+                // If the file doesn't exist yet, it's not an
+                // error: it just means that we don't have to
+                // merge.
+                if let Some(ioerr) = err.downcast_ref::<std::io::Error>() {
+                    if ioerr.kind() == std::io::ErrorKind::NotFound {
+                        // Not found.  No problem.
+                    } else {
+                        return Err(err);
+                    }
+                } else {
+                    return Err(err);
+                }
+            }
+        }
+
+        // We write to a temporary file and then move it into
+        // place.  This doesn't eliminate races, but it does
+        // prevent a partial update from destroying the existing
+        // data.
+        let mut tmp_filename = filename.clone();
+        tmp_filename.set_extension("pgp~");
+
+        let mut f = File::create(&tmp_filename)?;
+        cert.as_tsk().serialize(&mut f)?;
+
+        std::fs::rename(&tmp_filename, &filename)?;
+
+        // Also insert the certificate into the certificate store.
+        // If we can't, we don't fail.  This allows, in
+        // particular, `sq --no-cert-store key import` to work.
+        match self.cert_store_or_else() {
+            Ok(cert_store) => {
+                if let Err(err) = cert_store.update(
+                    Arc::new(LazyCert::from(cert)))
+                {
+                    self.info(format_args!(
+                        "While importing {} into cert store: {}",
+                        fpr, err));
+                }
+            }
+            Err(err) => {
+                self.info(format_args!(
+                    "Not importing {} into cert store: {}",
+                    fpr, err));
+            }
+        }
+
+        if update {
+            return Ok(ImportStatus::Updated);
+        } else {
+            return Ok(ImportStatus::New);
         }
     }
 

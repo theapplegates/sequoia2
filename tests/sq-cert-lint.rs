@@ -30,9 +30,9 @@ mod integration {
             c.pre_exec(|| {
                 // Best-effort, ignores errors.
                 if let Ok(h) = std::fs::File::open("/dev/tty") {
-                    ioctl(h.as_raw_fd(), TIOCNOTTY);
+                    ioctl(h.as_raw_fd(), TIOCNOTTY.into());
                 } else {
-                    ioctl(std::io::stdin().as_raw_fd(), TIOCNOTTY);
+                    ioctl(std::io::stdin().as_raw_fd(), TIOCNOTTY.into());
                 }
                 Ok(())
             });

@@ -121,7 +121,7 @@ codespell:
     - codespell --version
     - *before_script_end
   script:
-    - codespell --summary -L "crate,ede,iff,mut,nd,te,uint,KeyServer,keyserver,Keyserver,keyservers,Keyservers,keypair,keypairs,KeyPair,fpr,dedup,deriver,certi,certp,certo" -S "*.bin,*.gpg,*.pgp,./.git,*/target,Cargo.lock,./tests/data"
+    - codespell --summary -L "crate,ede,iff,mut,nd,te,uint,KeyServer,keyserver,Keyserver,keyservers,Keyservers,keypair,keypairs,KeyPair,fpr,dedup,deriver,certi,certp,certo" -S "*.bin,*.gpg,*.pgp,./.git,*/target,Cargo.lock,./tests/data,openpgp-policy.toml"
 
 deny:
   tags:

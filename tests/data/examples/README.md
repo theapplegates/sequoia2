@@ -27,3 +27,13 @@ By using static data, we can use known fingerprints in the examples.
   <juliet@example.org>.
 
     - NOT imported into the cert store.
+
+- document.txt, document.sig: A document, and a detached signatured.
+
+    - `sq sign --detached --signer-file juliet-secret.pgp document.txt > document.sig`
+    - `sq verify --signer-file juliet-secret.pgp --detached document.sig document.txt`
+
+- message.pgp: A document encrypted for Bob, and signed by Alice.
+
+    - `echo 'Golf this afternoon?' | sq encrypt --recipient-file bob-secret.pgp --signer-file alice-secret.pgp > message.pgp`
+

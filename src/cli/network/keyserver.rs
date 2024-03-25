@@ -89,7 +89,7 @@ pub struct FetchCommand {
     #[clap(
         long,
         conflicts_with = "query",
-        help = "Fetch all known certificates",
+        help = "Fetch updates for all known certificates",
     )]
     pub all: bool,
 

@@ -126,7 +126,7 @@ pub struct FetchCommand {
     #[clap(
         value_name = "ADDRESS",
         required = true,
-        help = "Queries a cert for ADDRESS",
+        help = "Retrieve certificate(s) for ADDRESS",
     )]
     pub addresses: Vec<String>,
     #[clap(

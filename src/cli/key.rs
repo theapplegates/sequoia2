@@ -95,7 +95,6 @@ pub enum Subcommands {
     Userid(UseridCommand),
     #[clap(subcommand)]
     Subkey(SubkeyCommand),
-    ExtractCert(ExtractCertCommand),
     AttestCertifications(AttestCertificationsCommand),
     Adopt(AdoptCommand),
 }
@@ -135,7 +134,7 @@ When generating a key, we also generate a revocation certificate.
 This can be used in case the key is superseded, lost, or compromised.
 It is a good idea to keep a copy of this in a safe place.
 
-After generating a key, use `sq key extract-cert` to get the
+After generating a key, use `sq toolbox extract-cert` to get the
 certificate corresponding to the key.  The key must be kept secure,
 while the certificate should be handed out to correspondents, e.g. by
 uploading it to a key server.
@@ -159,7 +158,7 @@ $ sq key generate --userid '<juliet@example.org>' \\
      --output juliet.key.pgp
 
 # Then, extract the certificate for distribution
-$ sq key extract-cert --output juliet.cert.pgp juliet.key.pgp
+$ sq toolbox extract-cert --output juliet.cert.pgp juliet.key.pgp
 
 # Generate a key protecting it with a password
 $ sq key generate --userid '<juliet@example.org>' --with-password
@@ -517,51 +516,6 @@ that in the future.`",
     )]
     pub output: FileOrStdout,
 
-    #[clap(
-        short = 'B',
-        long,
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
-}
-
-#[derive(Debug, Args)]
-#[clap(
-    name = "extract-cert",
-    about = "Convert a key to a cert",
-    long_about =
-"Convert a key to a cert
-
-After generating a key, use this command to get the certificate
-corresponding to the key.  The key must be kept secure, while the
-certificate should be handed out to correspondents, e.g. by uploading
-it to a key server.
-",
-    after_help = "EXAMPLES:
-
-# First, generate a key
-$ sq key generate --userid '<juliet@example.org>' \\
-     --output juliet.key.pgp
-
-# Then, extract the certificate for distribution
-$ sq key extract-cert --output juliet.cert.pgp juliet.key.pgp
-",
-)]
-pub struct ExtractCertCommand {
-    #[clap(
-        default_value_t = FileOrStdin::default(),
-        help = FileOrStdin::HELP_OPTIONAL,
-        value_name = FileOrStdin::VALUE_NAME,
-    )]
-    pub input: FileOrStdin,
-    #[clap(
-        default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP_OPTIONAL,
-        long,
-        short,
-        value_name = FileOrStdout::VALUE_NAME,
-    )]
-    pub output: FileOrStdout,
     #[clap(
         short = 'B',
         long,

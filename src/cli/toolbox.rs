@@ -4,6 +4,7 @@ use clap::{Parser, Subcommand};
 
 pub mod armor;
 pub mod dearmor;
+pub mod extract_cert;
 pub mod keyring;
 pub mod packet;
 
@@ -28,6 +29,7 @@ pub struct Command {
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
     Keyring(keyring::Command),
+    ExtractCert(extract_cert::Command),
     Packet(packet::Command),
     Armor(armor::Command),
     Dearmor(dearmor::Command),

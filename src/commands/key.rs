@@ -9,8 +9,6 @@ use adopt::adopt;
 mod attest_certifications;
 use attest_certifications::attest_certifications;
 mod expire;
-mod extract_cert;
-use extract_cert::extract_cert;
 mod import;
 use import::import;
 mod list;
@@ -36,7 +34,6 @@ pub fn dispatch(config: Config, command: cli::key::Command) -> Result<()>
         Userid(c) => userid::dispatch(config, c)?,
         Revoke(c) => certificate_revoke(config, c)?,
         Subkey(c) => subkey::dispatch(config, c)?,
-        ExtractCert(c) => extract_cert(config, c)?,
         Adopt(c) => adopt(config, c)?,
         AttestCertifications(c) => attest_certifications(config, c)?,
     }

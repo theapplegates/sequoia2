@@ -1,3 +1,5 @@
+//! Converts a key to a cert.
+
 use openpgp::parse::Parse;
 use openpgp::serialize::Serialize;
 use openpgp::Cert;
@@ -7,9 +9,9 @@ use sequoia_openpgp as openpgp;
 use crate::Config;
 use crate::cli;
 
-pub fn extract_cert(
+pub fn dispatch(
     config: Config,
-    command: cli::key::ExtractCertCommand,
+    command: cli::toolbox::extract_cert::Command,
 ) -> Result<()> {
     let input = command.input.open()?;
     let mut output = command.output.create_safe(config.force)?;

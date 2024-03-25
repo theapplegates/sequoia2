@@ -504,10 +504,10 @@ then stdout doesn't contain "UserID:"
 ~~~
 
 
-## Certificate extraction: `sq key extract-cert`
+## Certificate extraction: `sq toolbox extract-cert`
 
-This section covers extraction of certificates from keys: the `sq key
-extract-certificate` subcommand and its variations.
+This section covers extraction of certificates from keys: the `sq
+toolbox extract-certificate` subcommand and its variations.
 
 
 ### Extract certificate to the standard output
@@ -518,7 +518,7 @@ output._
 ~~~scenario
 given an installed sq
 when I run sq --no-cert-store --no-key-store key generate --output key.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert key.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert key.pgp
 then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 then stdout contains "-----END PGP PUBLIC KEY BLOCK-----"
 ~~~
@@ -532,7 +532,7 @@ file._
 ~~~scenario
 given an installed sq
 when I run sq --no-cert-store --no-key-store key generate --output key.pgp --userid Alice
-when I run sq --no-cert-store --no-key-store key extract-cert key.pgp -o cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert key.pgp -o cert.pgp
 when I run sq --no-cert-store --no-key-store inspect cert.pgp
 then stdout contains "OpenPGP Certificate."
 then stdout contains "Alice"
@@ -550,7 +550,7 @@ textual certificate. It could certainly be improved.
 ~~~scenario
 given an installed sq
 when I run sq --no-cert-store --no-key-store key generate --output key.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert key.pgp --binary
+when I run sq --no-cert-store --no-key-store toolbox extract-cert key.pgp --binary
 then stdout doesn't contain "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 then stdout doesn't contain "-----END PGP PUBLIC KEY BLOCK-----"
 ~~~
@@ -568,7 +568,7 @@ placeholder until Subplot learns a new trick.
 ~~~
 given an installed sq
 when I run sq --no-cert-store --no-key-store key generate --output key.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert < key.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert < key.pgp
 then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 then stdout contains "-----END PGP PUBLIC KEY BLOCK-----"
 ~~~
@@ -650,8 +650,8 @@ so we don't change writing to stdout separately.
 given an installed sq
 when I run sq --no-cert-store --no-key-store key generate --userid Alice --output alice.pgp
 when I run sq --no-cert-store --no-key-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert alice.pgp -o alice-cert.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert bob.pgp -o bob-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert alice.pgp -o alice-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert bob.pgp -o bob-cert.pgp
 when I run sq --no-cert-store --no-key-store toolbox keyring merge alice-cert.pgp bob-cert.pgp -o ring.pgp
 when I run cat ring.pgp
 then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
@@ -989,7 +989,7 @@ in cleartext, just in case.
 given an installed sq
 given file hello.txt
 when I run sq --no-cert-store --no-key-store key generate --output key.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert -o cert.pgp key.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert -o cert.pgp key.pgp
 when I run sq --no-cert-store --no-key-store encrypt --recipient-file cert.pgp hello.txt
 then stdout contains "-----BEGIN PGP MESSAGE-----"
 then stdout doesn't contain "hello, world"
@@ -1008,7 +1008,7 @@ in cleartext, just in case.
 given an installed sq
 given file hello.txt
 when I run sq --no-cert-store --no-key-store key generate --output key.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert -o cert.pgp key.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert -o cert.pgp key.pgp
 when I run sq --no-cert-store --no-key-store encrypt --binary --recipient-file cert.pgp hello.txt
 then stdout doesn't contain "-----BEGIN PGP MESSAGE-----"
 then stdout doesn't contain "hello, world"
@@ -1030,7 +1030,7 @@ files, etc).
 given an installed sq
 given file hello.txt
 when I run sq --no-cert-store --no-key-store key generate --output key.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert -o cert.pgp key.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert -o cert.pgp key.pgp
 when I run sq --no-cert-store --no-key-store encrypt -o x.pgp --recipient-file cert.pgp hello.txt
 when I run sq --no-cert-store --no-key-store decrypt -o output.txt --recipient-file key.pgp x.pgp
 then files hello.txt and output.txt match
@@ -1046,9 +1046,9 @@ recipients at a time._
 given an installed sq
 given file hello.txt
 when I run sq --no-cert-store --no-key-store key generate --output alice.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert -o alice-cert.pgp alice.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert -o alice-cert.pgp alice.pgp
 when I run sq --no-cert-store --no-key-store key generate --output bob.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert -o bob-cert.pgp bob.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert -o bob-cert.pgp bob.pgp
 
 when I run sq --no-cert-store --no-key-store encrypt --recipient-file alice-cert.pgp --recipient-file bob-cert.pgp hello.txt -o x.pgp
 
@@ -1069,7 +1069,7 @@ same time._
 given an installed sq
 given file hello.txt
 when I run sq --no-cert-store --no-key-store key generate --output alice.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert -o alice-cert.pgp alice.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert -o alice-cert.pgp alice.pgp
 
 when I run sq --no-cert-store --no-key-store encrypt --recipient-file alice-cert.pgp --signer-file alice.pgp hello.txt -o x.pgp
 
@@ -1088,9 +1088,9 @@ given an installed sq
 given file hello.txt
 given file empty
 when I run sq --no-cert-store --no-key-store key generate --output alice.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert -o alice-cert.pgp alice.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert -o alice-cert.pgp alice.pgp
 when I run sq --no-cert-store --no-key-store key generate --output bob.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert -o bob-cert.pgp bob.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert -o bob-cert.pgp bob.pgp
 
 when I run sq --no-cert-store --no-key-store encrypt --recipient-file alice-cert.pgp --signer-file alice.pgp hello.txt -o x.pgp
 
@@ -1114,9 +1114,9 @@ _Requirement: We can certify a user identity on a key._
 ~~~scenario
 given an installed sq
 when I run sq --no-cert-store --no-key-store key generate --userid Alice --output alice.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert alice.pgp -o alice-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert alice.pgp -o alice-cert.pgp
 when I run sq --no-cert-store --no-key-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert bob.pgp -o bob-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert bob.pgp -o bob-cert.pgp
 
 when I run sq --no-cert-store --no-key-store inspect bob-cert.pgp
 then stdout doesn't contain "Certifications:"
@@ -1135,9 +1135,9 @@ _Requirement: We can certify a user identity on a key._
 ~~~scenario
 given an installed sq
 when I run sq --no-cert-store --no-key-store key generate --userid Alice --output alice.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert alice.pgp -o alice-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert alice.pgp -o alice-cert.pgp
 when I run sq --no-cert-store --no-key-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert bob.pgp -o bob-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert bob.pgp -o bob-cert.pgp
 
 when I run sq --no-cert-store --no-key-store inspect bob-cert.pgp
 then stdout doesn't contain "Certifications:"
@@ -1157,9 +1157,9 @@ email address._
 ~~~scenario
 given an installed sq
 when I run sq --no-cert-store --no-key-store key generate --userid "<alice@example.org>" --output alice.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert alice.pgp -o alice-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert alice.pgp -o alice-cert.pgp
 when I run sq --no-cert-store --no-key-store key generate --userid "<bob@example.org>" --output bob.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert bob.pgp -o bob-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert bob.pgp -o bob-cert.pgp
 
 when I run sq --no-cert-store --no-key-store pki certify alice.pgp bob-cert.pgp --email bob@example.org -o cert.pgp
 when I run sq --no-cert-store --no-key-store inspect cert.pgp
@@ -1174,9 +1174,9 @@ identified by email address._
 ~~~scenario
 given an installed sq
 when I run sq --no-cert-store --no-key-store key generate --userid "<alice@example.org>" --output alice.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert alice.pgp -o alice-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert alice.pgp -o alice-cert.pgp
 when I run sq --no-cert-store --no-key-store key generate --userid "<bob@example.org>" --userid "Bob <bob@example.org>" --output bob.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert bob.pgp -o bob-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert bob.pgp -o bob-cert.pgp
 
 when I run sq --no-cert-store --no-key-store pki certify alice.pgp bob-cert.pgp --email bob@example.org -o cert.pgp
 
@@ -1198,9 +1198,9 @@ self-signature._
 ~~~scenario
 given an installed sq
 when I run sq --no-cert-store --no-key-store key generate --userid Alice --output alice.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert alice.pgp -o alice-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert alice.pgp -o alice-cert.pgp
 when I run sq --no-cert-store --no-key-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert bob.pgp -o bob-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert bob.pgp -o bob-cert.pgp
 
 when I run sq --no-cert-store --no-key-store inspect bob-cert.pgp
 then stdout doesn't contain "Certifications:"
@@ -1220,9 +1220,9 @@ self-signature._
 ~~~scenario
 given an installed sq
 when I run sq --no-cert-store --no-key-store key generate --userid Alice --output alice.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert alice.pgp -o alice-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert alice.pgp -o alice-cert.pgp
 when I run sq --no-cert-store --no-key-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert bob.pgp -o bob-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert bob.pgp -o bob-cert.pgp
 
 when I run sq --no-cert-store --no-key-store pki certify --add-userid alice.pgp bob-cert.pgp --email "bob@example.org" -o cert.pgp
 when I run sq --no-cert-store --no-key-store inspect cert.pgp
@@ -1288,7 +1288,7 @@ _Requirement: We can sign a file and verify the signature._
 given an installed sq
 given file hello.txt
 when I run sq --no-cert-store --no-key-store key generate --output key.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert key.pgp -o cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert key.pgp -o cert.pgp
 when I run sq --no-cert-store --no-key-store sign --signer-file key.pgp hello.txt -o signed.txt
 when I run sq --no-cert-store --no-key-store verify --signer-file cert.pgp signed.txt
 then stdout contains "hello, world"
@@ -1307,9 +1307,9 @@ not enough, when we need two.
 given an installed sq
 given file hello.txt
 when I run sq --no-cert-store --no-key-store key generate --userid Alice --output alice.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert alice.pgp -o alice-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert alice.pgp -o alice-cert.pgp
 when I run sq --no-cert-store --no-key-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert bob.pgp -o bob-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert bob.pgp -o bob-cert.pgp
 
 when I run sq --no-cert-store --no-key-store sign --signer-file alice.pgp hello.txt -o signed1.txt
 when I try to run sq verify --signer-file alice-cert.pgp --signer-file bob-cert.pgp --signatures=2 signed1.txt
@@ -1337,7 +1337,7 @@ given an installed sq
 given file hello.txt
 given file sed-in-place
 when I run sq --no-cert-store --no-key-store key generate --output key.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert key.pgp -o cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert key.pgp -o cert.pgp
 when I run sq --no-cert-store --no-key-store sign --signer-file key.pgp hello.txt -o signed.txt
 when I run bash sed-in-place 3d signed.txt
 when I try to run sq verify --signer-file cert.pgp signed.txt
@@ -1363,7 +1363,7 @@ included in a readable form._
 given an installed sq
 given file hello.txt
 when I run sq --no-cert-store --no-key-store key generate --output key.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert key.pgp -o cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert key.pgp -o cert.pgp
 
 when I run sq --no-cert-store --no-key-store sign --cleartext-signature --signer-file key.pgp hello.txt -o signed.txt
 then file signed.txt contains "-----BEGIN PGP SIGNED MESSAGE-----"
@@ -1384,7 +1384,7 @@ given an installed sq
 given file hello.txt
 given file sed-in-place
 when I run sq --no-cert-store --no-key-store key generate --output key.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert key.pgp -o cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert key.pgp -o cert.pgp
 
 when I run sq --no-cert-store --no-key-store sign --cleartext-signature --signer-file key.pgp hello.txt -o signed.txt
 when I run bash sed-in-place s/hello/HELLO/ signed.txt
@@ -1401,7 +1401,7 @@ data it signs._
 given an installed sq
 given file hello.txt
 when I run sq --no-cert-store --no-key-store key generate --output key.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert key.pgp -o cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert key.pgp -o cert.pgp
 
 when I run sq --no-cert-store --no-key-store sign --detached --signer-file key.pgp hello.txt -o sig.txt
 then file sig.txt contains "-----BEGIN PGP SIGNATURE-----"
@@ -1422,7 +1422,7 @@ given an installed sq
 given file hello.txt
 given file sed-in-place
 when I run sq --no-cert-store --no-key-store key generate --output key.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert key.pgp -o cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert key.pgp -o cert.pgp
 
 when I run sq --no-cert-store --no-key-store sign --detached --signer-file key.pgp hello.txt -o sig.txt
 when I run bash sed-in-place s/hello/HELLO/ hello.txt
@@ -1440,9 +1440,9 @@ message._
 given an installed sq
 given file hello.txt
 when I run sq --no-cert-store --no-key-store key generate --userid Alice --output alice.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert alice.pgp -o alice-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert alice.pgp -o alice-cert.pgp
 when I run sq --no-cert-store --no-key-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert bob.pgp -o bob-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert bob.pgp -o bob-cert.pgp
 
 when I run sq --no-cert-store --no-key-store sign --signer-file alice.pgp hello.txt -o signed1.txt
 when I run sq --no-cert-store --no-key-store sign --signer-file bob.pgp --append signed1.txt -o signed2.txt
@@ -1460,9 +1460,9 @@ twice separately._
 given an installed sq
 given file hello.txt
 when I run sq --no-cert-store --no-key-store key generate --userid Alice --output alice.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert alice.pgp -o alice-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert alice.pgp -o alice-cert.pgp
 when I run sq --no-cert-store --no-key-store key generate --userid Bob --output bob.pgp
-when I run sq --no-cert-store --no-key-store key extract-cert bob.pgp -o bob-cert.pgp
+when I run sq --no-cert-store --no-key-store toolbox extract-cert bob.pgp -o bob-cert.pgp
 
 when I run sq --no-cert-store --no-key-store sign --signer-file alice.pgp hello.txt -o signed1.txt
 when I run sq --no-cert-store --no-key-store sign --signer-file bob.pgp hello.txt -o signed2.txt

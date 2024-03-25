@@ -1,4 +1,4 @@
-//! Operations on certs.
+//! Tools for developers, maintainers, and forensic specialists.
 
 use crate::{
     Config,

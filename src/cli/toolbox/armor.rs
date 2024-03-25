@@ -10,9 +10,9 @@ use crate::cli::types::FileOrStdout;
 #[derive(Parser, Debug)]
 #[clap(
     name = "armor",
-    about = "Converts binary to ASCII",
+    about = "Convert binary to ASCII",
     long_about =
-"Converts binary to ASCII
+"Convert binary to ASCII
 
 To make encrypted data easier to handle and transport, OpenPGP data
 can be transformed to an ASCII representation called ASCII Armor.  sq
@@ -49,7 +49,7 @@ pub struct Command {
     #[clap(
         long = "label",
         value_name = "LABEL",
-        help = "Selects the kind of armor header",
+        help = "Select the kind of armor header",
         default_value_t = ArmorKind::Auto,
         value_enum
     )]

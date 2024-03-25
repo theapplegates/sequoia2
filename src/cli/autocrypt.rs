@@ -10,8 +10,8 @@ use super::types::SessionKey;
 #[derive(Parser, Debug)]
 #[clap(
     name = "autocrypt",
-    about = "Communicates certificates using Autocrypt",
-    long_about = "Communicates certificates using Autocrypt
+    about = "Communicate certificates using Autocrypt",
+    long_about = "Communicate certificates using Autocrypt
 
 Autocrypt is a standard for mail user agents to provide convenient
 end-to-end encryption of emails.  This subcommand provides a limited
@@ -38,8 +38,8 @@ pub enum Subcommands {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Imports Autocrypt-encoded certificates",
-    long_about = "Imports Autocrypt-encoded certificates
+    about = "Import Autocrypt-encoded certificates",
+    long_about = "Import Autocrypt-encoded certificates
 
 Given a mail containing autocrypt headers (or an key-gossip headers),
 this command extracts and imports the certificates encoded within it.
@@ -54,14 +54,14 @@ pub struct ImportCommand {
     #[clap(
         long = "recipient-file",
         value_name = "KEY_FILE",
-        help = "Decrypts the message using the key in KEY_FILE",
+        help = "Decrypt the message using the key in KEY_FILE",
     )]
     pub secret_key_file: Vec<PathBuf>,
 
     #[clap(
         long = "session-key",
         value_name = "SESSION-KEY",
-        help = "Decrypts an encrypted message using SESSION-KEY",
+        help = "Decrypt an encrypted message using SESSION-KEY",
     )]
     pub session_key: Vec<SessionKey>,
 
@@ -75,8 +75,8 @@ pub struct ImportCommand {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Reads Autocrypt-encoded certificates",
-    long_about = "Reads Autocrypt-encoded certificates
+    about = "Read Autocrypt-encoded certificates",
+    long_about = "Read Autocrypt-encoded certificates
 
 Given an autocrypt header (or an key-gossip header), this command
 extracts the certificate encoded within it.
@@ -104,7 +104,7 @@ pub struct DecodeCommand {
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,
-    #[clap(short = 'B', long, help = "Emits binary data")]
+    #[clap(short = 'B', long, help = "Emit binary data")]
     pub binary: bool,
 }
 
@@ -112,8 +112,8 @@ pub struct DecodeCommand {
 #[derive(Debug, Args)]
 #[clap(
     name = "encode-sender",
-    about = "Encodes a certificate into an Autocrypt header",
-    long_about = "Encodes a certificate into an Autocrypt header
+    about = "Encode a certificate into an Autocrypt header",
+    long_about = "Encode a certificate into an Autocrypt header
 
 A certificate can be encoded and included in a header of an email
 message.  This command encodes the certificate, adds the senders email
@@ -155,14 +155,14 @@ pub struct EncodeSenderCommand {
     #[clap(
         long = "email",
         value_name = "ADDRESS",
-        help = "Sets the address [default: primary userid]"
+        help = "Set the address [default: primary userid]"
     )]
     pub address: Option<String>,
     #[clap(
             long = "prefer-encrypt",
             value_name = "PREFER-ENCRYPT",
             default_value_t = PreferEncryptArgs::NoPreference,
-            help = "Sets the prefer-encrypt attribute",
+            help = "Set the prefer-encrypt attribute",
             value_enum,
         )]
     pub prefer_encrypt: PreferEncryptArgs,

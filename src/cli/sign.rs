@@ -14,9 +14,9 @@ use super::types::FileOrStdout;
 #[derive(Parser, Debug)]
 #[clap(
     name = "sign",
-    about = "Signs messages or data files",
+    about = "Sign messages or data files",
     long_about =
-"Signs messages or data files
+"Sign messages or data files
 
 Creates signed messages or detached signatures.  Detached signatures
 are often used to sign software packages.
@@ -62,23 +62,23 @@ pub struct Command {
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",
-        help = "Provides parameters for private key store",
+        help = "Provide parameters for private key store",
     )]
     pub private_key_store: Option<String>,
     #[clap(
         long,
-        help = "Creates a detached signature",
+        help = "Create a detached signature",
     )]
     pub detached: bool,
     #[clap(
         long = "cleartext-signature",
-        help = "Creates a cleartext signature",
+        help = "Create a cleartext signature",
         conflicts_with_all = &[
             "detached",
             "append",
@@ -91,7 +91,7 @@ pub struct Command {
         short,
         long,
         conflicts_with = "notarize",
-        help = "Appends a signature to existing signature",
+        help = "Append a signature to existing signature",
     )]
     pub append: bool,
     #[clap(
@@ -99,7 +99,7 @@ pub struct Command {
         short,
         long,
         conflicts_with = "append",
-        help = "Signs a message and all existing signatures",
+        help = "Sign a message and all existing signatures",
     )]
     pub notarize: bool,
     #[clap(
@@ -112,28 +112,28 @@ pub struct Command {
             "notarize",
             "secret_key_file",
         ],
-        help = "Merges signatures from the input and SIGNED-MESSAGE",
+        help = "Merge signatures from the input and SIGNED-MESSAGE",
     )]
     pub merge: Option<PathBuf>,
     #[clap(
         long = "signer-file",
         value_name = "KEY_FILE",
-        help = "Signs the message using the key in KEY_FILE",
+        help = "Sign the message using the key in KEY_FILE",
     )]
     pub secret_key_file: Vec<PathBuf>,
     #[clap(
         long = "signer-key",
         value_name = "KEYID|FINGERPRINT",
-        help = "Signs the message using the specified key on the key store",
+        help = "Sign the message using the specified key on the key store",
     )]
     pub signer_key: Vec<KeyHandle>,
     #[clap(
         long,
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
-        help = "Adds a notation to the certification.",
+        help = "Add a notation to the certification.",
         conflicts_with = "merge",
-        long_help = "Adds a notation to the certification.  \
+        long_help = "Add a notation to the certification.  \
             A user-defined notation's name must be of the form \
             `name@a.domain.you.control.org`. If the notation's name starts \
             with a `!`, then the notation is marked as being critical.  If a \

@@ -10,9 +10,9 @@ pub mod wkd;
 #[derive(Parser, Debug)]
 #[clap(
     name = "network",
-    about = "Retrieves and publishes certificates over the network",
+    about = "Retrieve and publish certificates over the network",
     long_about =
-"Retrieves and publishes certificates over the network
+"Retrieve and publish certificates over the network
 
 OpenPGP certificates can be discovered and updated from, and published
 on services accessible over the network.  This is a collection of

@@ -15,9 +15,9 @@ use crate::cli::types::TrustAmount;
 #[derive(Parser, Debug)]
 #[clap(
     name = "certify",
-    about = "Certifies a User ID for a Certificate",
+    about = "Certify a User ID for a Certificate",
     long_about = format!(
-"Certifies a User ID for a Certificate
+"Certify a User ID for a Certificate
 
 Using a certification a keyholder may vouch for the fact that another
 certificate legitimately belongs to a user id.  In the context of
@@ -64,7 +64,7 @@ pub struct Command {
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
     #[clap(
@@ -72,9 +72,9 @@ pub struct Command {
         long = "depth",
         value_name = "TRUST_DEPTH",
         default_value = "0",
-        help = "Sets the trust depth",
+        help = "Set the trust depth",
         long_help =
-            "Sets the trust depth (sometimes referred to as the trust level).  \
+            "Set the trust depth (sometimes referred to as the trust level).  \
             0 means a normal certification of <CERTIFICATE, USERID>.  \
             1 means CERTIFICATE is also a trusted introducer, 2 means \
             CERTIFICATE is a meta-trusted introducer, etc.",
@@ -85,9 +85,9 @@ pub struct Command {
         long = "amount",
         value_name = "AMOUNT",
         default_value = "full",
-        help = "Sets the amount of trust",
+        help = "Set the amount of trust",
         long_help =
-            "Sets the amount of trust.  Values between 1 and 120 are meaningful. \
+            "Set the amount of trust.  Values between 1 and 120 are meaningful. \
             120 means fully trusted.  Values less than 120 indicate the degree \
             of trust.  60 is usually used for partially trusted.",
     )]
@@ -97,10 +97,10 @@ pub struct Command {
         long = "regex",
         value_name = "REGEX",
         requires = "depth",
-        help = "Adds a regular expression to constrain \
+        help = "Add a regular expression to constrain \
             what a trusted introducer can certify",
         long_help =
-            "Adds a regular expression to constrain \
+            "Add a regular expression to constrain \
             what a trusted introducer can certify.  \
             The regular expression must match \
             the certified User ID in all intermediate \
@@ -113,18 +113,18 @@ pub struct Command {
     #[clap(
         short = 'l',
         long = "local",
-        help = "Makes the certification a local certification",
+        help = "Make the certification a local certification",
         long_help =
-            "Makes the certification a local \
+            "Make the certification a local \
             certification.  Normally, local \
             certifications are not exported.",
     )]
     pub local: bool,
     #[clap(
         long = "non-revocable",
-        help = "Marks the certification as being non-revocable",
+        help = "Mark the certification as being non-revocable",
         long_help =
-            "Marks the certification as being non-revocable. \
+            "Mark the certification as being non-revocable. \
             That is, you cannot later revoke this \
             certification.  This should normally only \
             be used with an expiration.",
@@ -134,8 +134,8 @@ pub struct Command {
         long,
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
-        help = "Adds a notation to the certification.",
-        long_help = "Adds a notation to the certification.  \
+        help = "Add a notation to the certification.",
+        long_help = "Add a notation to the certification.  \
             A user-defined notation's name must be of the form \
             `name@a.domain.you.control.org`. If the notation's name starts \
             with a !, then the notation is marked as being critical.  If a \
@@ -150,10 +150,10 @@ pub struct Command {
         default_value_t =
             Expiry::Duration(THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION),
         help =
-            "Defines EXPIRY for the certification as ISO 8601 formatted string or \
+            "Define EXPIRY for the certification as ISO 8601 formatted string or \
             custom duration.",
         long_help =
-            "Defines EXPIRY for the certification as ISO 8601 formatted string or \
+            "Define EXPIRY for the certification as ISO 8601 formatted string or \
             custom duration. \
             If an ISO 8601 formatted string is provided, the validity period \
             reaches from the reference time (may be set using `--time`) to \
@@ -184,7 +184,7 @@ pub struct Command {
         help = "Don't fail if the certificate making the \
                 certification is not alive.",
         long_help =
-            "Allows the key to make a certification even if \
+            "Allow the key to make a certification even if \
              the current time is prior to its creation time \
              or the current time is at or after its expiration \
              time.",
@@ -199,28 +199,28 @@ pub struct Command {
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",
-        help = "Provides parameters for private key store",
+        help = "Provide parameters for private key store",
     )]
     pub private_key_store: Option<String>,
     #[clap(
         value_name = "CERTIFIER-KEY",
         required = true,
         index = 1,
-        help = "Creates the certification using CERTIFIER-KEY.",
+        help = "Create the certification using CERTIFIER-KEY.",
     )]
     pub certifier: PathBuf,
     #[clap(
         value_name = "KEY_ID|FINGERPRINT|FILE",
         required = true,
         index = 2,
-        help = "Certifies CERTIFICATE.",
+        help = "Certify CERTIFICATE.",
     )]
     pub certificate: String,
     #[clap(
         value_name = "USERID",
         required = true,
         index = 3,
-        help = "Certifies USERID for CERTIFICATE.",
+        help = "Certify USERID for CERTIFICATE.",
     )]
     pub userid: String,
 }

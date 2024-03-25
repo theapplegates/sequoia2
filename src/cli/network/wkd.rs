@@ -10,9 +10,9 @@ use crate::cli::types::FileOrStdout;
 #[derive(Parser, Debug)]
 #[clap(
     name = "wkd",
-    about = "Retrieves and publishes certificates via Web Key Directories",
+    about = "Retrieve and publishes certificates via Web Key Directories",
     long_about =
-"Retrieves and publishes certificates via Web Key Directories
+"Retrieve and publishes certificates via Web Key Directories
 
 The Web Key Directory (WKD) is a method for publishing and retrieving
 certificates from web servers.
@@ -35,33 +35,33 @@ pub enum Subcommands {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Prints the advanced Web Key Directory URL of an email address",
+    about = "Print the advanced Web Key Directory URL of an email address",
 )]
 pub struct UrlCommand {
     #[clap(
         value_name = "ADDRESS",
-        help = "Queries for ADDRESS",
+        help = "Query for ADDRESS",
     )]
     pub email_address: String,
 }
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Prints the direct Web Key Directory URL of an email address",
+    about = "Print the direct Web Key Directory URL of an email address",
 )]
 pub struct DirectUrlCommand {
     #[clap(
         value_name = "ADDRESS",
-        help = "Queries for ADDRESS",
+        help = "Query for ADDRESS",
     )]
     pub email_address: String,
 }
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Retrieves certificates from a Web Key Directory",
+    about = "Retrieve certificates from a Web Key Directory",
     long_about =
-"Retrieves certificates from a Web Key Directory
+"Retrieve certificates from a Web Key Directory
 
 By default, any returned certificates are stored in the local
 certificate store.  This can be overridden by using `--output`
@@ -93,7 +93,7 @@ pub struct FetchCommand {
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
     #[clap(
@@ -107,9 +107,9 @@ pub struct FetchCommand {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Generates a Web Key Directory for the given domain and certs",
+    about = "Generate a Web Key Directory for the given domain and certs",
     long_about =
-"Generates a Web Key Directory for the given domain and certs
+"Generate a Web Key Directory for the given domain and certs
 
 If the WKD exists, the new certificates will be inserted and existing
 ones will be updated.
@@ -135,32 +135,32 @@ $ sq wkd generate /tmp/wkdroot example.com certs.pgp
 pub struct GenerateCommand {
     #[clap(
         value_name = "WEB-ROOT",
-        help = "Writes the WKD to WEB-ROOT",
-        long_help = "Writes the WKD to WEB-ROOT. Transfer this directory to \
+        help = "Write the WKD to WEB-ROOT",
+        long_help = "Write the WKD to WEB-ROOT. Transfer this directory to \
             the webserver.",
     )]
     pub base_directory: PathBuf,
     #[clap(
         value_name = "FQDN",
-        help = "Generates a WKD for a fully qualified domain name for email",
+        help = "Generate a WKD for a fully qualified domain name for email",
     )]
     pub domain: String,
     #[clap(
         default_value_t = FileOrStdin::default(),
         value_name = "CERT-RING",
-        help = "Adds certificates from CERT-RING (or stdin if omitted) to the WKD",
+        help = "Add certificates from CERT-RING (or stdin if omitted) to the WKD",
     )]
     pub input: FileOrStdin,
     #[clap(
         short = 'd',
         long = "direct-method",
-        help = "Uses the direct method [default: advanced method]",
+        help = "Use the direct method [default: advanced method]",
     )]
     pub direct_method: bool,
     #[clap(
         short = 's',
         long = "skip",
-        help = "Skips certificates that do not have User IDs for given domain.",
+        help = "Skip certificates that do not have User IDs for given domain.",
     )]
     pub skip: bool,
 }

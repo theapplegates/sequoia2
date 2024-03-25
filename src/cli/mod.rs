@@ -32,6 +32,9 @@
 /// - Subcommands SHOULD be grouped by topic, and ordered from most
 ///   often used to least often used.
 ///
+/// - Use the imperative mood in the first sentence documenting
+///   commands, subcommands, and arguments.
+///
 /// ## Terminology
 ///
 /// - "certificate" or "cert" instead of "public key", "key", or
@@ -203,16 +206,16 @@ pub struct SqCommand {
         long = "force",
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Overwrites existing files",
+        help = "Overwrite existing files",
     )]
     pub force: bool,
     #[clap(
         long,
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Disables the use of the key store.",
+        help = "Disable the use of the key store.",
         long_help = "\
-Disables the use of the key store.
+Disable the use of the key store.
 
 It is still possible to use functionality that does not require the
 key store."
@@ -225,7 +228,7 @@ key store."
         conflicts_with_all = &[ "no_key_store" ],
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Overrides the key store server and its data",
+        help = "Override the key store server and its data",
         long_help = "\
 A key store server manages and protects secret key material.  By
 default, `sq` connects to the key store server listening on
@@ -241,9 +244,9 @@ its data in the specified location."
         long,
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Disables the use of a certificate store",
+        help = "Disable the use of a certificate store",
         long_help = "\
-Disables the use of a certificate store.  Normally sq uses the user's \
+Disable the use of a certificate store.  Normally sq uses the user's \
 standard cert-d, which is located in `$HOME/.local/share/pgp.cert.d`."
     )]
     pub no_cert_store: bool,
@@ -254,9 +257,9 @@ standard cert-d, which is located in `$HOME/.local/share/pgp.cert.d`."
         conflicts_with_all = &[ "no_cert_store" ],
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Specifies the location of the certificate store",
+        help = "Specify the location of the certificate store",
         long_help = "\
-Specifies the location of the certificate store.  By default, sq uses \
+Specify the location of the certificate store.  By default, sq uses \
 the OpenPGP certificate directory at `$HOME/.local/share/pgp.cert.d`, \
 and creates it if it does not exist."
     )]
@@ -267,9 +270,9 @@ and creates it if it does not exist."
         env = "PEP_CERT_STORE",
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Specifies the location of a pEp certificate store",
+        help = "Specify the location of a pEp certificate store",
         long_help = "\
-Specifies the location of a pEp certificate store.  sq does not use a \
+Specify the location of a pEp certificate store.  sq does not use a \
 pEp certificate store by default; it must be explicitly enabled \
 using this argument or the corresponding environment variable, \
 PEP_CERT_STORE.  The pEp Engine's default certificate store is at \
@@ -281,9 +284,9 @@ PEP_CERT_STORE.  The pEp Engine's default certificate store is at \
         value_name = "PATH",
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Specifies the location of a keyring to use",
+        help = "Specify the location of a keyring to use",
         long_help = "\
-Specifies the location of a keyring to use.  Keyrings are used in \
+Specify the location of a keyring to use.  Keyrings are used in \
 addition to any certificate store.  The content of the keyring is \
 not imported into the certificate store.  When a certificate is \
 looked up, it is looked up in all keyrings and any certificate \
@@ -297,7 +300,7 @@ store, and the results are merged together."
         env = "SQ_OUTPUT_FORMAT",
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Produces output in FORMAT, if possible",
+        help = "Produce output in FORMAT, if possible",
     )]
     pub output_format: output::OutputFormat,
     #[clap(
@@ -306,8 +309,8 @@ store, and the results are merged together."
         env = "SQ_OUTPUT_VERSION",
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Produces output variant VERSION.",
-        long_help = "Produces output variant VERSION, such as 0.0.0. \
+        help = "Produce output variant VERSION.",
+        long_help = "Produce output variant VERSION, such as 0.0.0. \
                      The default is the newest version. The output version \
                      is separate from the version of the sq program. To see \
                      the current supported versions, use output-versions \
@@ -319,8 +322,8 @@ store, and the results are merged together."
         value_name = "NOTATION",
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Adds NOTATION to the list of known notations",
-        long_help = "Adds NOTATION to the list of known notations. \
+        help = "Add NOTATION to the list of known notations",
+        long_help = "Add NOTATION to the list of known notations. \
             This is used when validating signatures. \
             Signatures that have unknown notations with the \
             critical bit set are considered invalid."
@@ -330,11 +333,11 @@ store, and the results are merged together."
     #[clap(
         long = "time",
         value_name = "TIME",
-        help = "Sets the reference time as ISO 8601 formatted timestamp",
+        help = "Set the reference time as ISO 8601 formatted timestamp",
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
         long_help = "\
-Sets the reference time as an ISO 8601 formatted timestamp.  Normally, \
+Set the reference time as an ISO 8601 formatted timestamp.  Normally, \
 commands use the current time as the reference time.  This argument allows \
 the user to use a difference reference time.  For instance, when creating a \
 key using `sq key generate`, the creation time is normally set to the \
@@ -359,8 +362,8 @@ $ sq --time 20130721T0550+0200 verify msg.pgp
         value_name = "FINGERPRINT|KEYID",
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Considers the specified certificate to be a trust root",
-        long_help = "Considers the specified certificate to be a trust root. \
+        help = "Consider the specified certificate to be a trust root",
+        long_help = "Consider the specified certificate to be a trust root. \
                      Trust roots are used by trust models, e.g., the Web of \
                      Trust, to authenticate certificates and User IDs."
     )]

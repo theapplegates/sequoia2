@@ -11,9 +11,9 @@ use crate::cli::types::TrustAmount;
 #[derive(Parser, Debug)]
 #[clap(
     name = "link",
-    about = "Manages authenticated certificate and User ID links",
+    about = "Manage authenticated certificate and User ID links",
     long_about =
-"Manages authenticated certificate and User ID links
+"Manage authenticated certificate and User ID links
 
 Link a certificate and User ID is one way of making `sq` consider a
 binding to be authentic.  Another way is to use `sq pki certify` to
@@ -153,9 +153,9 @@ pub struct AddCommand {
         short = 'd',
         long = "depth",
         value_name = "TRUST_DEPTH",
-        help = "Sets the trust depth",
+        help = "Set the trust depth",
         long_help =
-            "Sets the trust depth (sometimes referred to as the trust level).  \
+            "Set the trust depth (sometimes referred to as the trust level).  \
             0 means a normal certification of <CERTIFICATE, USERID>.  \
             1 means CERTIFICATE is also a trusted introducer, 2 means \
             CERTIFICATE is a meta-trusted introducer, etc.",
@@ -164,9 +164,9 @@ pub struct AddCommand {
     #[clap(
         long = "ca",
         value_name = "*|DOMAIN",
-        help = "Marks the certificate as a certification authority for a domain",
+        help = "Mark the certificate as a certification authority for a domain",
         long_help =
-            "Marks the certificate as a certification authority for a  \
+            "Mark the certificate as a certification authority for a  \
              domain.  Use `*` to make the certificate a certification
              authority for any User ID.
 
@@ -181,9 +181,9 @@ pub struct AddCommand {
         long = "amount",
         value_name = "AMOUNT",
         default_value = "full",
-        help = "Sets the amount of trust",
+        help = "Set the amount of trust",
         long_help =
-            "Sets the amount of trust.  Values between 1 and 120 are meaningful. \
+            "Set the amount of trust.  Values between 1 and 120 are meaningful. \
             120 means fully trusted.  Values less than 120 indicate the degree \
             of trust.  60 is usually used for partially trusted.",
     )]
@@ -192,10 +192,10 @@ pub struct AddCommand {
         short = 'r',
         long = "regex",
         value_name = "REGEX",
-        help = "Adds a regular expression to constrain \
+        help = "Add a regular expression to constrain \
             what a trusted introducer can certify",
         long_help =
-            "Adds a regular expression to constrain \
+            "Add a regular expression to constrain \
             what a trusted introducer can certify.  \
             The regular expression must match \
             the certified User ID in all intermediate \
@@ -209,8 +209,8 @@ pub struct AddCommand {
         long,
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
-        help = "Adds a notation to the certification.",
-        long_help = "Adds a notation to the certification.  \
+        help = "Add a notation to the certification.",
+        long_help = "Add a notation to the certification.  \
             A user-defined notation's name must be of the form \
             `name@a.domain.you.control.org`. If the notation's name starts \
             with a `!`, then the notation is marked as being critical.  If a \
@@ -238,10 +238,10 @@ pub struct AddCommand {
         default_value_t =
             Expiry::Never,
         help =
-            "Defines EXPIRY for the acceptance as ISO 8601 formatted string or \
+            "Define EXPIRY for the acceptance as ISO 8601 formatted string or \
             custom duration.",
         long_help =
-            "Defines EXPIRY for the acceptance as ISO 8601 formatted string or \
+            "Define EXPIRY for the acceptance as ISO 8601 formatted string or \
             custom duration. \
             If an ISO 8601 formatted string is provided, the validity period \
             reaches from the reference time (may be set using `--time`) to \
@@ -262,8 +262,8 @@ pub struct AddCommand {
         long = "all",
         conflicts_with_all = &[ "userid", "email", "petname", "pattern" ],
         required = false,
-        help = "Links all valid self-signed User ID to the certificate.",
-        long_help = "Links all valid self-signed User ID to the certificate.",
+        help = "Link all valid self-signed User ID to the certificate.",
+        long_help = "Link all valid self-signed User ID to the certificate.",
     )]
     pub all: bool,
 
@@ -322,9 +322,9 @@ pub struct AddCommand {
 #[derive(Parser, Debug)]
 #[clap(
     name = "retract",
-    about = "Retracts links",
+    about = "Retract links",
     long_about =
-"Retracts links
+"Retract links
 
 This command retracts links that were previously created using `sq
 pki link add`.  See that subcommand's documentation for more details.
@@ -342,8 +342,8 @@ pub struct RetractCommand {
         long,
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
-        help = "Adds a notation to the certification.",
-        long_help = "Adds a notation to the certification.  \
+        help = "Add a notation to the certification.",
+        long_help = "Add a notation to the certification.  \
             A user-defined notation's name must be of the form \
             `name@a.domain.you.control.org`. If the notation's name starts \
             with a !, then the notation is marked as being critical.  If a \
@@ -397,9 +397,9 @@ pub struct RetractCommand {
 #[derive(Parser, Debug)]
 #[clap(
     name = "list",
-    about = "Lists links",
+    about = "List links",
     long_about =
-"Lists links
+"List links
 
 This command lists all bindings that are linked or whose link has been
 retracted.

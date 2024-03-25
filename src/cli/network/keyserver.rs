@@ -17,9 +17,9 @@ pub const DEFAULT_KEYSERVERS: &[&'static str] = &[
 #[derive(Parser, Debug)]
 #[clap(
     name = "keyserver",
-    about = "Retrieves and publishes certificates via key servers",
+    about = "Retrieve and publishes certificates via key servers",
     long_about =
-"Retrieves and publishes certificates via key servers
+"Retrieve and publishes certificates via key servers
 
 The OpenPGP HTTP Keyserver Protocol (HKP) is a method for publishing
 and retrieving certificates from key servers.
@@ -37,7 +37,7 @@ pub struct Command {
         // that they are sorted to the bottom.
         display_order = 800,
         value_name = "URI",
-        help = "Sets the key server to use.  Can be given multiple times.",
+        help = "Set the key server to use.  Can be given multiple times.",
     )]
     pub servers: Vec<String>,
     #[clap(subcommand)]
@@ -52,9 +52,9 @@ pub enum Subcommands {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Retrieves certificates from key servers",
+    about = "Retrieve certificates from key servers",
     long_about =
-"Retrieves certificates from key servers
+"Retrieve certificates from key servers
 
 By default, any returned certificates are stored in the local
 certificate store.  This can be overridden by using `--output`
@@ -82,7 +82,7 @@ pub struct FetchCommand {
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 
@@ -105,9 +105,9 @@ pub struct FetchCommand {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Publishes certificates on key servers",
+    about = "Publish certificates on key servers",
     long_about = format!(
-"Publishes certificates on key servers
+"Publish certificates on key servers
 
 Sends certificates to the configured key servers for publication.  By
 default, the certificates are sent to {}.  This can be tweaked using
@@ -117,7 +117,7 @@ default, the certificates are sent to {}.  This can be tweaked using
 pub struct PublishCommand {
     #[clap(
         long,
-        help = "Requires that all publish operations succeed \
+        help = "Require that all publish operations succeed \
                 and return an error otherwise.  \
                 By default we only require that one publish \
                 operation succeeds.",

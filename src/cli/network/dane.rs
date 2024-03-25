@@ -10,9 +10,9 @@ use crate::cli::types::FileOrStdout;
 #[derive(Parser, Debug)]
 #[clap(
     name = "dane",
-    about = "Retrieves and publishes certificates via DANE",
+    about = "Retrieve and publishes certificates via DANE",
     long_about =
-"Retrieves and publishes certificates via DANE
+"Retrieve and publishes certificates via DANE
 
 DNS-Based Authentication of Named Entities (DANE) is a method for
 publishing and retrieving certificates in DNS as specified in RFC
@@ -35,9 +35,9 @@ pub enum Subcommands {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Generates DANE records for the given domain and certs",
+    about = "Generate DANE records for the given domain and certs",
     long_about =
-"Generates DANE records for the given domain and certs
+"Generate DANE records for the given domain and certs
 
 The certificates are minimized, and one record per email address is
 emitted.  If multiple user IDs map to one email address, then all
@@ -56,13 +56,13 @@ $ sq dane generate example.com certs.pgp
 pub struct GenerateCommand {
     #[clap(
         value_name = "FQDN",
-        help = "Generates DANE records for this domain name",
+        help = "Generate DANE records for this domain name",
     )]
     pub domain: String,
     #[clap(
         default_value_t = FileOrStdin::default(),
         value_name = "CERT-RING",
-        help = "Emits records for certificates from CERT-RING \
+        help = "Emit records for certificates from CERT-RING \
                 (or stdin if omitted)",
     )]
     pub input: FileOrStdin,
@@ -72,7 +72,7 @@ pub struct GenerateCommand {
         value_parser = |arg: &str| -> Result<Duration, std::num::ParseIntError>
             { Ok(Duration::from_secs(arg.parse()?)) },
         default_value = "10800",
-        help = "Sets the TTL (maximum cache duration) of the resource records",
+        help = "Set the TTL (maximum cache duration) of the resource records",
     )]
     pub ttl: Duration,
     #[clap(
@@ -84,13 +84,13 @@ pub struct GenerateCommand {
     pub size_limit: usize,
     #[clap(
         long = "generic",
-        help = "Emits generic resource records [default: OPENPGPKEY records]",
+        help = "Emit generic resource records [default: OPENPGPKEY records]",
     )]
     pub generic: bool,
     #[clap(
         short = 's',
         long = "skip",
-        help = "Skips expired certificates and those that do not have \
+        help = "Skip expired certificates and those that do not have \
                 User IDs for given domain.",
     )]
     pub skip: bool,
@@ -98,9 +98,9 @@ pub struct GenerateCommand {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Retrieves certificates using DANE",
+    about = "Retrieve certificates using DANE",
     long_about =
-"Retrieves certificates using DANE
+"Retrieve certificates using DANE
 
 By default, any returned certificates are stored in the local
 certificate store.  This can be overridden by using `--output`
@@ -132,7 +132,7 @@ pub struct FetchCommand {
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
     #[clap(

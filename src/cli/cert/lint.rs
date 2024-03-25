@@ -10,8 +10,8 @@ use crate::cli::types::FileOrStdout;
 /// SHA-1.
 #[derive(Debug, Args)]
 #[clap(
-    about = "Checks certificates for issues",
-    long_about = "Checks certificates for issues
+    about = "Check certificates for issues",
+    long_about = "Check certificates for issues
 
 `sq cert lint` checks the supplied certificates for the following
 SHA-1-related issues:
@@ -109,7 +109,7 @@ pub struct Command {
     #[clap(
         short = 'B',
         long = "binary",
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 }

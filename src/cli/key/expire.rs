@@ -43,9 +43,9 @@ test_examples!(sq_key_expire, EXAMPLES);
 #[derive(Debug, Args)]
 #[clap(
     name = "expire",
-    about = "Changes expiration times",
+    about = "Change expiration times",
     long_about =
-"Changes expiration times
+"Change expiration times
 
 Keys and their individual subkeys can expire.  This subcommand changes
 or clears the expiration times.
@@ -68,7 +68,7 @@ pub struct Command {
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 
@@ -81,10 +81,10 @@ pub struct Command {
     #[clap(
         value_name = "EXPIRY",
         help =
-            "Defines EXPIRY for the key as ISO 8601 formatted string or \
+            "Define EXPIRY for the key as ISO 8601 formatted string or \
             custom duration.",
         long_help =
-            "Defines EXPIRY for the key as ISO 8601 formatted string or \
+            "Define EXPIRY for the key as ISO 8601 formatted string or \
             custom duration. \
             If an ISO 8601 formatted string is provided, the validity period \
             reaches from the reference time (may be set using `--time`) to \

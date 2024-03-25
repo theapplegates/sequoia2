@@ -7,9 +7,9 @@ use crate::cli::types::FileOrStdout;
 #[derive(Parser, Debug)]
 #[clap(
     name = "dearmor",
-    about = "Converts ASCII to binary",
+    about = "Convert ASCII to binary",
     long_about =
-"Converts ASCII to binary
+"Convert ASCII to binary
 
 To make encrypted data easier to handle and transport, OpenPGP data
 can be transformed to an ASCII representation called ASCII Armor.  sq

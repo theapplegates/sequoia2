@@ -12,11 +12,11 @@ use super::types::SessionKey;
 #[derive(Parser, Debug)]
 #[clap(
     name = "decrypt",
-    about = "Decrypts a message",
+    about = "Decrypt a message",
     long_about =
-"Decrypts a message
+"Decrypt a message
 
-Decrypts a message using either supplied keys, or by prompting for a
+Decrypt a message using either supplied keys, or by prompting for a
 password.  If message tampering is detected, an error is returned.
 See below for details.
 
@@ -68,9 +68,9 @@ pub struct Command {
         short = 'n',
         long = "signatures",
         value_name = "N",
-        help = "Sets the threshold of valid signatures to N",
+        help = "Set the threshold of valid signatures to N",
         long_help =
-            "Sets the threshold of valid signatures to N. \
+            "Set the threshold of valid signatures to N. \
             The message will only be considered \
             verified if this threshold is reached. \
             [default: 1 if at least one signer cert file \
@@ -80,30 +80,30 @@ pub struct Command {
     #[clap(
         long = "signer-file",
         value_name = "CERT_FILE",
-        help = "Verifies signatures using the certificates in CERT_FILE",
+        help = "Verify signatures using the certificates in CERT_FILE",
     )]
     pub sender_cert_file: Vec<PathBuf>,
     #[clap(
         long = "recipient-file",
         value_name = "KEY_FILE",
-        help = "Decrypts the message using the key in KEY_FILE",
+        help = "Decrypt the message using the key in KEY_FILE",
     )]
     pub secret_key_file: Vec<PathBuf>,
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",
-        help = "Provides parameters for private key store",
+        help = "Provide parameters for private key store",
     )]
     pub private_key_store: Option<String>,
     #[clap(
             long = "dump-session-key",
-            help = "Prints the session key to stderr",
+            help = "Print the session key to stderr",
     )]
     pub dump_session_key: bool,
     #[clap(
         long = "session-key",
         value_name = "SESSION-KEY",
-        help = "Decrypts an encrypted message using SESSION-KEY",
+        help = "Decrypt an encrypted message using SESSION-KEY",
     )]
     pub session_key: Vec<SessionKey>,
 }

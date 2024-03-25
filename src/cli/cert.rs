@@ -9,9 +9,9 @@ pub mod lint;
 #[derive(Parser, Debug)]
 #[clap(
     name = "cert",
-    about = "Manages certificates",
+    about = "Manage certificates",
     long_about =
-"Manages certificates
+"Manage certificates
 
 We use the term \"certificate\", or \"cert\" for short, to refer to
 OpenPGP keys that do not contain secrets.  This subcommand provides

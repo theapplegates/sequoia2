@@ -44,9 +44,9 @@ pub enum Subcommands {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Lists packets",
+    about = "List packets",
     long_about =
-"Lists packets
+"List packets
 
 Creates a human-readable description of the packet sequence.
 Additionally, it can print cryptographic artifacts, and print the raw
@@ -90,34 +90,34 @@ pub struct DumpCommand {
     #[clap(
         long = "session-key",
         value_name = "SESSION-KEY",
-        help = "Decrypts an encrypted message using SESSION-KEY",
+        help = "Decrypt an encrypted message using SESSION-KEY",
     )]
     pub session_key: Vec<SessionKey>,
 
     #[clap(
         long = "recipient-file",
         value_name = "KEY_FILE",
-        help = "Decrypts the message using the key in KEY_FILE",
+        help = "Decrypt the message using the key in KEY_FILE",
     )]
     pub recipient_file: Vec<PathBuf>,
 
     #[clap(
         long = "mpis",
-        help = "Prints cryptographic artifacts",
+        help = "Print cryptographic artifacts",
     )]
     pub mpis: bool,
     #[clap(
         short = 'x',
         long = "hex",
-        help = "Prints a hexdump",
+        help = "Print a hexdump",
     )]
     pub hex: bool,
 }
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Unwraps an encryption container",
-    long_about = "Unwraps an encryption container
+    about = "Unwrap an encryption container",
+    long_about = "Unwrap an encryption container
 
 Decrypts a message, dumping the content of the encryption container
 without further processing.  The result is a valid OpenPGP message
@@ -149,38 +149,38 @@ pub struct DecryptCommand {
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
     #[clap(
         long = "recipient-file",
         value_name = "KEY_FILE",
-        help = "Decrypts the message using the key in KEY_FILE",
+        help = "Decrypt the message using the key in KEY_FILE",
     )]
     pub secret_key_file: Vec<PathBuf>,
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",
-        help = "Provides parameters for private key store",
+        help = "Provide parameters for private key store",
     )]
     pub private_key_store: Option<String>,
     #[clap(
         long = "session-key",
         value_name = "SESSION-KEY",
-        help = "Decrypts an encrypted message using SESSION-KEY",
+        help = "Decrypt an encrypted message using SESSION-KEY",
     )]
     pub session_key: Vec<SessionKey>,
     #[clap(
             long = "dump-session-key",
-            help = "Prints the session key to stderr",
+            help = "Print the session key to stderr",
     )]
     pub dump_session_key: bool,
 }
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Splits a message into packets",
-    long_about = "Splits a message into packets
+    about = "Split a message into packets",
+    long_about = "Split a message into packets
 
 Splitting a packet sequence into individual packets, then recombining
 them freely with `sq toolbox packet join` is a great way to experiment with
@@ -206,14 +206,14 @@ pub struct SplitCommand {
         short = 'B',
         long,
         requires = "prefix",
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
     #[clap(
         short = 'p',
         long = "prefix",
         value_name = "PREFIX",
-        help = "Writes to files with PREFIX \
+        help = "Write to files with PREFIX \
             [defaults: `FILE-` if FILE is set, or `output-` if read from stdin]",
     )]
     pub prefix: Option<OsString>,
@@ -221,8 +221,8 @@ pub struct SplitCommand {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Joins packets split across files",
-    long_about = "Joins packets split across files
+    about = "Join packets split across files",
+    long_about = "Join packets split across files
 
 Splitting a packet sequence into individual packets, then recombining
 them freely with `sq toolbox packet join` is a great way to experiment with
@@ -241,7 +241,7 @@ $ sq toolbox packet join juliet.pgp-[0-3]*
 ",
 )]
 pub struct JoinCommand {
-    #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]
+    #[clap(value_name = "FILE", help = "Read from FILE or stdin if omitted")]
     pub input: Vec<PathBuf>,
     #[clap(
         default_value_t = FileOrStdout::default(),
@@ -256,14 +256,14 @@ pub struct JoinCommand {
         value_name = "LABEL",
         default_value_t = ArmorKind::Auto,
         conflicts_with = "binary",
-        help = "Selects the kind of armor header",
+        help = "Select the kind of armor header",
         value_enum,
     )]
     pub kind: ArmorKind,
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 }

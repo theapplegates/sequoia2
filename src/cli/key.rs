@@ -63,9 +63,9 @@ impl From<UseridRevocationReason> for OpenPGPRevocationReason {
 #[derive(Parser, Debug)]
 #[clap(
     name = "key",
-    about = "Manages keys",
+    about = "Manage keys",
     long_about =
-"Manages keys
+"Manage keys
 
 We use the term \"key\" to refer to OpenPGP keys that do contain
 secrets.  This subcommand provides primitives to generate and
@@ -104,7 +104,7 @@ const LIST_EXAMPLES: Actions = Actions {
     actions: &[
         Action::Example(Example {
             comment: "\
-Lists the keys managed by the keystore server.",
+List the keys managed by the keystore server.",
             command: &[
                 "sq", "key", "list",
             ],
@@ -115,7 +115,7 @@ test_examples!(sq_key_list, LIST_EXAMPLES);
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Lists keys managed by the key store",
+    about = "List keys managed by the key store",
     after_help = LIST_EXAMPLES,
 )]
 pub struct ListCommand {
@@ -123,9 +123,9 @@ pub struct ListCommand {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Generates a new key",
+    about = "Generate a new key",
     long_about = format!(
-"Generates a new key
+"Generate a new key
 
 Generating a key is the prerequisite to receiving encrypted messages
 and creating signatures.  There are a few parameters to this process,
@@ -181,7 +181,7 @@ pub struct GenerateCommand {
         short = 'u',
         long = "userid",
         value_name = "EMAIL",
-        help = "Adds a userid to the key"
+        help = "Add a userid to the key"
     )]
     pub userid: Vec<String>,
     #[clap(
@@ -189,13 +189,13 @@ pub struct GenerateCommand {
         long = "cipher-suite",
         value_name = "CIPHER-SUITE",
         default_value_t = CipherSuite::Cv25519,
-        help = "Selects the cryptographic algorithms for the key",
+        help = "Select the cryptographic algorithms for the key",
         value_enum,
     )]
     pub cipher_suite: CipherSuite,
     #[clap(
         long = "with-password",
-        help = "Protects the key with a password",
+        help = "Protect the key with a password",
     )]
     pub with_password: bool,
     #[clap(
@@ -203,10 +203,10 @@ pub struct GenerateCommand {
         value_name = "EXPIRY",
         default_value_t = Expiry::Duration(KEY_VALIDITY_DURATION),
         help =
-            "Defines EXPIRY for the key as ISO 8601 formatted string or \
+            "Define EXPIRY for the key as ISO 8601 formatted string or \
             custom duration.",
         long_help =
-            "Defines EXPIRY for the key as ISO 8601 formatted string or \
+            "Define EXPIRY for the key as ISO 8601 formatted string or \
             custom duration. \
             If an ISO 8601 formatted string is provided, the validity period \
             reaches from the reference time (may be set using `--time`) to \
@@ -218,30 +218,30 @@ pub struct GenerateCommand {
     pub expiry: Expiry,
     #[clap(
         long = "can-sign",
-        help ="Adds a signing-capable subkey (default)",
+        help ="Add a signing-capable subkey (default)",
     )]
     pub can_sign: bool,
     #[clap(
         long = "cannot-sign",
-        help = "Adds no signing-capable subkey",
+        help = "Add no signing-capable subkey",
     )]
     pub cannot_sign: bool,
     #[clap(
         long = "can-authenticate",
-        help = "Adds an authentication-capable subkey (default)",
+        help = "Add an authentication-capable subkey (default)",
     )]
     pub can_authenticate: bool,
     #[clap(
         long = "cannot-authenticate",
-        help = "Adds no authentication-capable subkey",
+        help = "Add no authentication-capable subkey",
     )]
     pub cannot_authenticate: bool,
     #[clap(
         long = "can-encrypt",
         value_name = "PURPOSE",
-        help = "Adds an encryption-capable subkey [default: universal]",
+        help = "Add an encryption-capable subkey [default: universal]",
         long_help =
-            "Adds an encryption-capable subkey. \
+            "Add an encryption-capable subkey. \
             Encryption-capable subkeys can be marked as \
             suitable for transport encryption, storage \
             encryption, or both, i.e., universal. \
@@ -251,7 +251,7 @@ pub struct GenerateCommand {
     pub can_encrypt: Option<EncryptPurpose>,
     #[clap(
         long = "cannot-encrypt",
-        help = "Adds no encryption-capable subkey",
+        help = "Add no encryption-capable subkey",
     )]
     pub cannot_encrypt: bool,
     #[clap(
@@ -266,9 +266,9 @@ pub struct GenerateCommand {
         long = "rev-cert",
         value_name = "FILE or -",
         required_if_eq("output", "-"),
-        help = "Writes the revocation certificate to FILE",
+        help = "Write the revocation certificate to FILE",
         long_help =
-            "Writes the revocation certificate to FILE. \
+            "Write the revocation certificate to FILE. \
             mandatory if OUTFILE is `-`. \
             [default: <OUTFILE>.rev]",
     )]
@@ -315,7 +315,7 @@ test_examples!(sq_key_import, IMPORT_EXAMPLES);
 pub struct ImportCommand {
     #[clap(
         value_name = "KEY_FILE",
-        help = "Imports the keys in KEY_FILE",
+        help = "Import the keys in KEY_FILE",
     )]
     pub file: Vec<PathBuf>,
 }
@@ -323,9 +323,9 @@ pub struct ImportCommand {
 #[derive(Debug, Args)]
 #[clap(
     name = "password",
-    about = "Changes password protecting secrets",
+    about = "Change password protecting secrets",
     long_about = 
-"Changes password protecting secrets
+"Change password protecting secrets
 
 Secret key material in keys can be protected by a password.  This
 subcommand changes or clears this encryption password.
@@ -383,7 +383,7 @@ pub struct PasswordCommand {
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 }
@@ -392,7 +392,7 @@ pub struct PasswordCommand {
 #[clap(
     about = "Revoke a certificate",
     long_about =
-"Revokes a certificate
+"Revoke a certificate
 
 Creates a revocation certificate for the certificate.
 
@@ -419,7 +419,7 @@ pub struct RevokeCommand {
         alias = "cert-file",
         help = "The certificate to revoke",
         long_help =
-"Reads the certificate to revoke from FILE or stdin, if omitted.  It is \
+"Read the certificate to revoke from FILE or stdin, if omitted.  It is \
 an error for the file to contain more than one certificate.",
     )]
     pub input: Option<PathBuf>,
@@ -427,9 +427,9 @@ an error for the file to contain more than one certificate.",
     #[clap(
         long = "revocation-file",
         value_name = "KEY_FILE",
-        help = "Signs the revocation certificate using the key in KEY_FILE",
+        help = "Sign the revocation certificate using the key in KEY_FILE",
         long_help =
-"Signs the revocation certificate using the key in KEY_FILE.  If the key is \
+"Sign the revocation certificate using the key in KEY_FILE.  If the key is \
 different from the certificate, this creates a third-party revocation.  If \
 this option is not provided, and the certificate includes secret key material, \
 then that key is used to sign the revocation certificate.",
@@ -439,7 +439,7 @@ then that key is used to sign the revocation certificate.",
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",
-        help = "Provides parameters for private key store",
+        help = "Provide parameters for private key store",
     )]
     pub private_key_store: Option<String>,
 
@@ -497,8 +497,8 @@ that in the future.`",
         long,
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
-        help = "Adds a notation to the certification.",
-        long_help = "Adds a notation to the certification.  \
+        help = "Add a notation to the certification.",
+        long_help = "Add a notation to the certification.  \
             A user-defined notation's name must be of the form \
             `name@a.domain.you.control.org`. If the notation's name starts \
             with a `!`, then the notation is marked as being critical.  If a \
@@ -520,7 +520,7 @@ that in the future.`",
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 }
@@ -528,9 +528,9 @@ that in the future.`",
 #[derive(Debug, Args)]
 #[clap(
     name = "extract-cert",
-    about = "Converts a key to a cert",
+    about = "Convert a key to a cert",
     long_about =
-"Converts a key to a cert
+"Convert a key to a cert
 
 After generating a key, use this command to get the certificate
 corresponding to the key.  The key must be kept secure, while the
@@ -565,7 +565,7 @@ pub struct ExtractCertCommand {
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 }
@@ -573,9 +573,9 @@ pub struct ExtractCertCommand {
 #[derive(Debug, Subcommand)]
 #[clap(
     name = "userid",
-    about = "Manages User IDs",
+    about = "Manage User IDs",
     long_about =
-"Manages User IDs
+"Manage User IDs
 
 Add User IDs to, or strip User IDs from a key.
 ",
@@ -590,9 +590,9 @@ pub enum UseridCommand {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Adds a User ID",
+    about = "Add a User ID",
     long_about =
-"Adds a User ID
+"Add a User ID
 
 A User ID can contain a name, like `Juliet` or an email address, like
 `<juliet@example.org>`.  Historically, a name and email address were often
@@ -642,13 +642,13 @@ pub struct UseridAddCommand {
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",
-        help = "Provides parameters for private key store",
+        help = "Provide parameters for private key store",
     )]
     pub private_key_store: Option<String>,
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 }
@@ -657,7 +657,7 @@ pub struct UseridAddCommand {
 #[clap(
     about = "Revoke a User ID",
     long_about =
-"Revokes a User ID
+"Revoke a User ID
 
 Creates a revocation certificate for a User ID.
 
@@ -683,7 +683,7 @@ pub struct UseridRevokeCommand {
         alias = "cert-file",
         help = "The certificate containing the User ID to revoke",
         long_help =
-"Reads the certificate to revoke from CERT_FILE or stdin, \
+"Read the certificate to revoke from CERT_FILE or stdin, \
 if omitted.  It is an error for the file to contain more than one \
 certificate."
     )]
@@ -692,9 +692,9 @@ certificate."
     #[clap(
         long = "revocation-file",
         value_name = "KEY_FILE",
-        help = "Signs the revocation certificate using the key in KEY_FILE",
+        help = "Sign the revocation certificate using the key in KEY_FILE",
         long_help =
-"Signs the revocation certificate using the key in KEY_FILE.  If the key is \
+"Sign the revocation certificate using the key in KEY_FILE.  If the key is \
 different from the certificate, this creates a third-party revocation.  If \
 this option is not provided, and the certificate includes secret key material, \
 then that key is used to sign the revocation certificate.",
@@ -704,7 +704,7 @@ then that key is used to sign the revocation certificate.",
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",
-        help = "Provides parameters for private key store",
+        help = "Provide parameters for private key store",
     )]
     pub private_key_store: Option<String>,
 
@@ -759,8 +759,8 @@ that in the future.`",
         long,
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
-        help = "Adds a notation to the certification.",
-        long_help = "Adds a notation to the certification.  \
+        help = "Add a notation to the certification.",
+        long_help = "Add a notation to the certification.  \
             A user-defined notation's name must be of the form \
             `name@a.domain.you.control.org`. If the notation's name starts \
             with a `!`, then the notation is marked as being critical.  If a \
@@ -782,16 +782,16 @@ that in the future.`",
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 }
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Strips a User ID",
+    about = "Strip a User ID",
     long_about =
-"Strips a User ID
+"Strip a User ID
 
 Note that this operation does not reliably remove User IDs from a
 certificate that has already been disseminated! (OpenPGP software
@@ -852,7 +852,7 @@ User ID."
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 }
@@ -860,9 +860,9 @@ User ID."
 #[derive(Debug, Args)]
 #[clap(
     name = "adopt",
-    about = "Binds keys from one certificate to another",
+    about = "Bind keys from one certificate to another",
     long_about =
-"Binds keys from one certificate to another
+"Bind keys from one certificate to another
 
 This command allows one to transfer primary keys and subkeys into an
 existing certificate.  Say you want to transition to a new
@@ -885,25 +885,25 @@ pub struct AdoptCommand {
         long = "key",
         value_name = "KEY",
         required(true),
-        help = "Adds the key or subkey KEY to the TARGET-KEY",
+        help = "Add the key or subkey KEY to the TARGET-KEY",
     )]
     pub key: Vec<KeyHandle>,
     #[clap(
         long = "expire",
         value_name = "KEY-EXPIRATION-TIME",
-        help = "Makes adopted subkeys expire at the given time",
+        help = "Make adopted subkeys expire at the given time",
     )]
     pub expire: Option<Time>,
     #[clap(
         long = "allow-broken-crypto",
-        help = "Allows adopting keys from certificates \
+        help = "Allow adopting keys from certificates \
             using broken cryptography",
     )]
     pub allow_broken_crypto: bool,
     #[clap(
         default_value_t = FileOrStdin::default(),
         value_name = "TARGET-KEY",
-        help = "Adds keys to TARGET-KEY or reads keys from stdin if omitted",
+        help = "Add keys to TARGET-KEY or reads keys from stdin if omitted",
     )]
     pub certificate: FileOrStdin,
     #[clap(
@@ -917,7 +917,7 @@ pub struct AdoptCommand {
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 }
@@ -925,9 +925,9 @@ pub struct AdoptCommand {
 #[derive(Debug, Args)]
 #[clap(
     name = "attest-certifications",
-    about = "Attests to third-party certifications",
+    about = "Attest to third-party certifications",
     long_about =
-"Attests to third-party certifications allowing for their distribution
+"Attest to third-party certifications allowing for their distribution
 
 To prevent certificate flooding attacks, modern key servers prevent
 uncontrolled distribution of third-party certifications on
@@ -953,19 +953,19 @@ pub struct AttestCertificationsCommand {
     #[clap(
         long = "none",
         conflicts_with = "all",
-        help = "Removes all prior attestations",
+        help = "Remove all prior attestations",
     )]
     pub none: bool,
     #[clap(
         long = "all",
         conflicts_with = "none",
-        help = "Attests to all certifications [default]",
+        help = "Attest to all certifications [default]",
     )]
     pub all: bool,
     #[clap(
         default_value_t = FileOrStdin::default(),
         value_name = "KEY",
-        help = "Changes attestations on KEY or reads from stdin if omitted",
+        help = "Change attestations on KEY or reads from stdin if omitted",
     )]
     pub key: FileOrStdin,
     #[clap(
@@ -979,7 +979,7 @@ pub struct AttestCertificationsCommand {
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 
@@ -988,9 +988,9 @@ pub struct AttestCertificationsCommand {
 #[derive(Debug, Subcommand)]
 #[clap(
     name = "subkey",
-    about = "Manages Subkeys",
+    about = "Manage Subkeys",
     long_about =
-"Manages Subkeys
+"Manage Subkeys
 
 Add new subkeys to an existing key.
 ",
@@ -1005,9 +1005,9 @@ pub enum SubkeyCommand {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Adds a newly generated Subkey",
+    about = "Add a newly generated Subkey",
     long_about =
-"Adds a newly generated Subkey
+"Add a newly generated Subkey
 
 A subkey has one or more flags. `--can-sign` sets the signing flag,
 and means that the key may be used for signing. `--can-authenticate`
@@ -1080,13 +1080,13 @@ pub struct SubkeyAddCommand {
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",
-        help = "Provides parameters for private key store",
+        help = "Provide parameters for private key store",
     )]
     pub private_key_store: Option<String>,
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
     #[clap(
@@ -1094,7 +1094,7 @@ pub struct SubkeyAddCommand {
         long = "cipher-suite",
         value_name = "CIPHER-SUITE",
         default_value_t = CipherSuite::Cv25519,
-        help = "Selects the cryptographic algorithms for the subkey",
+        help = "Select the cryptographic algorithms for the subkey",
         value_enum,
     )]
     pub cipher_suite: CipherSuite,
@@ -1103,10 +1103,10 @@ pub struct SubkeyAddCommand {
         value_name = "EXPIRY",
         default_value_t = Expiry::Never,
         help =
-            "Defines EXPIRY for the subkey as ISO 8601 formatted string or \
+            "Define EXPIRY for the subkey as ISO 8601 formatted string or \
             custom duration.",
         long_help =
-            "Defines EXPIRY for the subkey as ISO 8601 formatted string or \
+            "Define EXPIRY for the subkey as ISO 8601 formatted string or \
             custom duration. \
             If an ISO 8601 formatted string is provided, the validity period \
             reaches from the reference time (may be set using `--time`) to \
@@ -1118,20 +1118,20 @@ pub struct SubkeyAddCommand {
     pub expiry: Expiry,
     #[clap(
         long = "can-sign",
-        help = "Adds signing capability to subkey",
+        help = "Add signing capability to subkey",
     )]
     pub can_sign: bool,
     #[clap(
         long = "can-authenticate",
-        help = "Adds authentication capability to subkey",
+        help = "Add authentication capability to subkey",
     )]
     pub can_authenticate: bool,
     #[clap(
         long = "can-encrypt",
         value_name = "PURPOSE",
-        help = "Adds an encryption capability to subkey [default: universal]",
+        help = "Add an encryption capability to subkey [default: universal]",
         long_help =
-            "Adds an encryption capability to subkey. \
+            "Add an encryption capability to subkey. \
             Encryption-capable subkeys can be marked as \
             suitable for transport encryption, storage \
             encryption, or both, i.e., universal. \
@@ -1141,7 +1141,7 @@ pub struct SubkeyAddCommand {
     pub can_encrypt: Option<EncryptPurpose>,
     #[clap(
         long = "with-password",
-        help = "Protects the subkey with a password",
+        help = "Protect the subkey with a password",
     )]
     pub with_password: bool,
 }
@@ -1150,7 +1150,7 @@ pub struct SubkeyAddCommand {
 #[clap(
     about = "Revoke a subkey",
     long_about =
-"Revokes a subkey
+"Revoke a subkey
 
 Creates a revocation certificate for a subkey.
 
@@ -1177,7 +1177,7 @@ pub struct SubkeyRevokeCommand {
         alias = "cert-file",
         help = "The certificate containing the subkey to revoke",
         long_help =
-"Reads the certificate containing the subkey to revoke from FILE or stdin, \
+"Read the certificate containing the subkey to revoke from FILE or stdin, \
 if omitted.  It is an error for the file to contain more than one \
 certificate."
     )]
@@ -1186,10 +1186,10 @@ certificate."
     #[clap(
         long = "revocation-file",
         value_name = "KEY_FILE",
-        help = "Signs the revocation certificate using the key in KEY_FILE",
+        help = "Sign the revocation certificate using the key in KEY_FILE",
         long_help =
 
-"Signs the revocation certificate using the key in KEY_FILE.  If the key \
+"Sign the revocation certificate using the key in KEY_FILE.  If the key \
 is different from the certificate, this creates a third-party revocation.  \
 If this option is not provided, and the certificate includes secret key \
 material, then that key is used to sign the revocation certificate.",
@@ -1199,7 +1199,7 @@ material, then that key is used to sign the revocation certificate.",
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",
-        help = "Provides parameters for private key store",
+        help = "Provide parameters for private key store",
     )]
     pub private_key_store: Option<String>,
 
@@ -1265,8 +1265,8 @@ the message `I've created a new subkey, please refresh the certificate.`"
         long,
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
-        help = "Adds a notation to the certification.",
-        long_help = "Adds a notation to the certification.  \
+        help = "Add a notation to the certification.",
+        long_help = "Add a notation to the certification.  \
             A user-defined notation's name must be of the form \
             `name@a.domain.you.control.org`. If the notation's name starts \
             with a `!`, then the notation is marked as being critical.  If a \
@@ -1288,7 +1288,7 @@ the message `I've created a new subkey, please refresh the certificate.`"
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 }

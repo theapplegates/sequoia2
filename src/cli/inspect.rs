@@ -17,28 +17,28 @@ const INSPECT_EXAMPLES: Actions = Actions {
     actions: &[
         Action::Example(Example {
             comment: "\
-Inspects a certificate.",
+Inspect a certificate.",
             command: &[
                 "sq", "inspect", "juliet.pgp",
             ],
         }),
         Action::Example(Example {
             comment: "\
-Shows how the certificate looked on July 21, 2013.",
+Show how the certificate looked on July 21, 2013.",
             command: &[
                 "sq", "inspect", "--time", "20130721", "juliet.pgp",
             ],
         }),
         Action::Example(Example {
             comment: "\
-Inspects an encrypted message.",
+Inspect an encrypted message.",
             command: &[
                 "sq", "inspect", "message.pgp",
             ],
         }),
         Action::Example(Example {
             comment: "\
-Inspects a detachted signature.",
+Inspect a detachted signature.",
             command: &[
                 "sq", "inspect", "document.sig",
             ],
@@ -50,9 +50,9 @@ test_examples!(sq_inspect, INSPECT_EXAMPLES);
 #[derive(Parser, Debug)]
 #[clap(
     name = "inspect",
-    about = "Inspects data, like file(1)",
+    about = "Inspect data, like file(1)",
     long_about =
-"Inspects data, like file(1)
+"Inspect data, like file(1)
 
 It is often difficult to tell from cursory inspection using cat(1) or
 file(1) what kind of OpenPGP one is looking at.  This subcommand
@@ -76,12 +76,12 @@ pub struct Command {
         long = "cert",
         value_name = "FINGERPRINT|KEYID",
         conflicts_with = "input",
-        help = "Reads the specified certificate from the certificate store",
+        help = "Read the specified certificate from the certificate store",
     )]
     pub cert: Vec<KeyHandle>,
     #[clap(
         long = "certifications",
-        help = "Prints third-party certifications",
+        help = "Print third-party certifications",
     )]
     pub certifications: bool,
 }

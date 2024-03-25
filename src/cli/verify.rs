@@ -14,8 +14,8 @@ use super::types::FileOrStdout;
 #[derive(Parser, Debug)]
 #[clap(
     name = "verify",
-    about = "Verifies signed messages or detached signatures",
-    long_about = "Verifies signed messages or detached signatures
+    about = "Verify signed messages or detached signatures",
+    long_about = "Verify signed messages or detached signatures
 
 When verifying signed messages, the message is written to stdout or
 the file given to `--output`.
@@ -80,7 +80,7 @@ pub struct Command {
     #[clap(
         long = "detached",
         value_name = "SIG",
-        help = "Verifies a detached signature"
+        help = "Verify a detached signature"
     )]
     pub detached: Option<PathBuf>,
     #[clap(
@@ -88,8 +88,8 @@ pub struct Command {
         long = "signatures",
         value_name = "N",
         default_value_t = 1,
-        help = "Sets the threshold of valid signatures to N",
-        long_help = "Sets the threshold of valid signatures to N. \
+        help = "Set the threshold of valid signatures to N",
+        long_help = "Set the threshold of valid signatures to N. \
                             If this threshold is not reached, the message \
                             will not be considered verified."
     )]
@@ -97,7 +97,7 @@ pub struct Command {
     #[clap(
         long = "signer-file",
         value_name = "CERT_FILE",
-        help = "Verifies signatures using the certificate in CERT_FILE",
+        help = "Verify signatures using the certificate in CERT_FILE",
     )]
     // TODO: Should at least one sender_file be required? Verification does not make sense
     // without one, does it?
@@ -105,9 +105,9 @@ pub struct Command {
     #[clap(
         long = "signer-cert",
         value_name = "FINGERPRINT|KEYID",
-        help = "Verifies signatures using the specified certificate",
+        help = "Verify signatures using the specified certificate",
         long_help = "\
-Verifies signatures using the specified certificate.  This reads the
+Verify signatures using the specified certificate.  This reads the
 certificate from the certificate store, and considers it to be
 authenticated.  When this option is not provided, the certificate is
 still read from the certificate store, if it exists, but it is not

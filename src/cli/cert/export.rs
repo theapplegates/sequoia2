@@ -11,14 +11,14 @@ use examples::Example;
 const EXAMPLES: Actions = Actions {
     actions: &[
         Action::Example(Example {
-            comment: "Exports all certificates.",
+            comment: "Export all certificates.",
             command: &[
                 "sq", "cert", "export", "--all",
             ],
         }),
         Action::Example(Example {
             comment: "\
-Exports certificates with a matching User ID packet.  The binding \
+Export certificates with a matching User ID packet.  The binding \
 signatures are checked, but the User IDs are not authenticated. \
 Note: this check is case sensitive.",
             command: &[
@@ -28,7 +28,7 @@ Note: this check is case sensitive.",
         }),
         Action::Example(Example {
             comment: "\
-Exports certificates with a User ID containing the email address. \
+Export certificates with a User ID containing the email address. \
 The binding signatures are checked, but the User IDs are not \
 authenticated.  Note: this check is case insensitive.",
             command: &[
@@ -37,7 +37,7 @@ authenticated.  Note: this check is case insensitive.",
         }),
         Action::Example(Example {
             comment: "\
-Exports certificates where the certificate (i.e., the primary key) \
+Export certificates where the certificate (i.e., the primary key) \
 has the specified Key ID.",
             command: &[
                 "sq", "cert", "export", "--cert", "6F0073F60FD0CBF0",
@@ -45,7 +45,7 @@ has the specified Key ID.",
         }),
         Action::Example(Example {
             comment: "\
-Exports certificates where the primary key or a subkey matches the \
+Export certificates where the primary key or a subkey matches the \
 specified Key ID.",
             command: &[
                 "sq", "cert", "export", "--key", "24F3955B0B8DECC8",
@@ -53,7 +53,7 @@ specified Key ID.",
         }),
         Action::Example(Example {
             comment: "\
-Exports certificates that contain a User ID with *either* (not both!) \
+Export certificates that contain a User ID with *either* (not both!) \
 email address.  Note: this check is case insensitive.",
             command: &[
                 "sq", "cert", "export",
@@ -70,9 +70,9 @@ test_examples!(sq_cert_export, EXAMPLES);
 #[derive(Parser, Debug)]
 #[clap(
     name = "export",
-    about = "Exports certificates from the local certificate store",
+    about = "Export certificates from the local certificate store",
     long_about =
-"Exports certificates from the local certificate store
+"Export certificates from the local certificate store
 
 If multiple predicates are specified a certificate is returned if
 at least one of them matches.
@@ -95,7 +95,7 @@ pub struct Command {
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 
@@ -111,7 +111,7 @@ pub struct Command {
     #[clap(
         long = "cert",
         value_name = "FINGERPRINT|KEYID",
-        help = "Returns certificates that \
+        help = "Return certificates that \
                 have the specified fingerprint or key ID",
     )]
     pub cert: Vec<KeyHandle>,
@@ -119,7 +119,7 @@ pub struct Command {
     #[clap(
         long = "key",
         value_name = "FINGERPRINT|KEYID",
-        help = "Returns certificates where the primary key or \
+        help = "Return certificates where the primary key or \
                 a subkey has the specified fingerprint or key ID",
     )]
     pub key: Vec<KeyHandle>,
@@ -127,7 +127,7 @@ pub struct Command {
     #[clap(
         long = "userid",
         value_name = "USERID",
-        help = "Returns certificates that have a User ID that \
+        help = "Return certificates that have a User ID that \
                 matches exactly, including case",
     )]
     pub userid: Vec<String>,
@@ -135,7 +135,7 @@ pub struct Command {
     #[clap(
         long = "grep",
         value_name = "PATTERN",
-        help = "Returns certificates that have a User ID that \
+        help = "Return certificates that have a User ID that \
                 contains the string, case insensitively",
     )]
     pub grep: Vec<String>,
@@ -143,7 +143,7 @@ pub struct Command {
     #[clap(
         long = "email",
         value_name = "EMAIL",
-        help = "Returns certificates that have a User ID with \
+        help = "Return certificates that have a User ID with \
                 the specified email address, case insensitively",
     )]
     pub email: Vec<String>,
@@ -151,14 +151,14 @@ pub struct Command {
     #[clap(
         long = "domain",
         value_name = "DOMAIN",
-        help = "Returns certificates that have a User ID with \
+        help = "Return certificates that have a User ID with \
                 an email address from the specified domain",
     )]
     pub domain: Vec<String>,
 
     #[clap(
         value_name = "QUERY",
-        help = "Returns certificates matching QUERY. \
+        help = "Return certificates matching QUERY. \
                 This may be a subkey fingerprint or key ID, \
                 an email address, or an User ID fragment.",
     )]

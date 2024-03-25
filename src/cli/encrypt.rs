@@ -17,11 +17,11 @@ use super::types::FileOrStdout;
 #[derive(Parser, Debug)]
 #[clap(
     name = "encrypt",
-    about = "Encrypts a message",
+    about = "Encrypt a message",
     long_about =
-"Encrypts a message
+"Encrypt a message
 
-Encrypts a message for any number of recipients and with any number of
+Encrypt a message for any number of recipients and with any number of
 passwords, optionally signing the message in the process.
 
 The converse operation is `sq decrypt`.
@@ -63,42 +63,42 @@ pub struct Command {
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 
     #[clap(
         long = "recipient-email",
         value_name = "EMAIL",
-        help = "Encrypts to all certificates that can be authenticated \
+        help = "Encrypt to all certificates that can be authenticated \
                 for the specified email address",
     )]
     pub recipients_email: Vec<String>,
     #[clap(
         long = "recipient-userid",
         value_name = "USERID",
-        help = "Encrypts to all certificates that can be authenticated \
+        help = "Encrypt to all certificates that can be authenticated \
                 for the specified User ID",
     )]
     pub recipients_userid: Vec<String>,
     #[clap(
         long = "recipient-cert",
         value_name = "FINGERPRINT|KEYID",
-        help = "Encrypts to the named certificates",
+        help = "Encrypt to the named certificates",
     )]
     pub recipients_cert: Vec<KeyHandle>,
     #[clap(
         long = "recipient-file",
         value_name = "CERT_RING_FILE",
-        help = "Encrypts to all certificates in CERT_RING_FILE",
+        help = "Encrypt to all certificates in CERT_RING_FILE",
     )]
     pub recipients_file: Vec<PathBuf>,
 
     #[clap(
-        help = "Sets the filename of the encrypted file as metadata",
+        help = "Set the filename of the encrypted file as metadata",
         long,
         long_help =
-            "Sets the filename of the encrypted file as metadata.  \
+            "Set the filename of the encrypted file as metadata.  \
             Do note, that this metadata is not signed and as such relying on \
             it - on sender or receiver side - is generally considered \
             dangerous.",
@@ -106,10 +106,10 @@ pub struct Command {
     pub set_metadata_filename: bool,
     #[clap(
         default_value_t = MetadataTime::default(),
-        help = "Sets time for encrypted file as metadata",
+        help = "Set time for encrypted file as metadata",
         long,
         long_help = format!(
-            "Sets time for encrypted file as metadata.  \
+            "Set time for encrypted file as metadata.  \
             Allows setting TIME either as ISO 8601 formatted string or by \
             providing custom keywords.  \
             With `{}`, the metadata is not set.  \
@@ -134,27 +134,27 @@ pub struct Command {
     #[clap(
         long = "signer-file",
         value_name = "KEY_FILE",
-        help = "Signs the message using the key in KEY_FILE",
+        help = "Sign the message using the key in KEY_FILE",
     )]
     pub signer_key_file: Vec<PathBuf>,
     #[clap(
         long = "signer-key",
         value_name = "KEYID|FINGERPRINT",
-        help = "Signs the message using the specified key on the key store",
+        help = "Sign the message using the specified key on the key store",
     )]
     pub signer_key: Vec<KeyHandle>,
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",
-        help = "Provides parameters for private key store",
+        help = "Provide parameters for private key store",
     )]
     pub private_key_store: Option<String>,
     #[clap(
         short = 's',
         long = "symmetric",
-        help = "Prompts to add a password to encrypt with",
+        help = "Prompt to add a password to encrypt with",
         long_help =
-            "Prompts to add a password to encrypt with.  \
+            "Prompt to add a password to encrypt with.  \
             When using this option, the user is asked to provide a password, \
             which is used to encrypt the message. \
             This option can be provided more than once to provide more than \
@@ -168,10 +168,10 @@ pub struct Command {
         long = "encrypt-for",
         value_name = "PURPOSE",
         default_value_t = EncryptPurpose::Universal,
-        help = "Selects what kind of keys are considered for encryption.",
+        help = "Select what kind of keys are considered for encryption.",
         long_help =
-            "Selects what kind of keys are considered for \
-            encryption.  'transport' select subkeys marked \
+            "Select what kind of keys are considered for \
+            encryption.  'transport' selects subkeys marked \
             as suitable for transport encryption, 'storage' \
             selects those for encrypting data at rest, \
             and 'universal' selects all encryption-capable \
@@ -184,16 +184,16 @@ pub struct Command {
         long = "compression",
         value_name = "KIND",
         default_value_t = CompressionMode::None,
-        help = "Selects compression scheme to use",
+        help = "Select compression scheme to use",
         value_enum,
     )]
     pub compression: CompressionMode,
     #[clap(
         long = "use-expired-subkey",
-        help = "Falls back to expired encryption subkeys",
+        help = "Fall back to expired encryption subkeys",
         long_help =
             "If a certificate has only expired \
-            encryption-capable subkeys, falls back \
+            encryption-capable subkeys, fall back \
             to using the one that expired last",
     )]
     pub use_expired_subkey: bool,

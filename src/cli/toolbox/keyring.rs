@@ -14,9 +14,9 @@ use crate::cli::types::FileOrStdout;
 #[derive(Parser, Debug)]
 #[clap(
     name = "keyring",
-    about = "Manages collections of keys or certs",
+    about = "Manage collections of keys or certs",
     long_about =
-"Manages collections of keys or certs
+"Manage collections of keys or certs
 
 Collections of keys or certificates (also known as \"keyrings\" when
 they contain secret key material, and \"certrings\" when they don't) are
@@ -44,9 +44,9 @@ pub enum Subcommands {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Joins keys into a keyring applying a filter",
+    about = "Join keys into a keyring applying a filter",
     long_about =
-"Joins keys into a keyring applying a filter
+"Join keys into a keyring applying a filter
 
 This can be used to filter keys based on given predicates,
 e.g. whether they have a user id containing an email address with a
@@ -87,7 +87,7 @@ $ sq toolbox keyring filter --domain example.org --prune-certs \\
 ",
 )]
 pub struct FilterCommand {
-    #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]
+    #[clap(value_name = "FILE", help = "Read from FILE or stdin if omitted")]
     pub input: Vec<PathBuf>,
     #[clap(
         default_value_t = FileOrStdout::default(),
@@ -100,7 +100,7 @@ pub struct FilterCommand {
     #[clap(
         long = "userid",
         value_name = "USERID",
-        help = "Matches on USERID",
+        help = "Match on USERID",
         long_help = "Case-sensitively matches on the \
                 user id, requiring an exact match.",
     )]
@@ -108,8 +108,8 @@ pub struct FilterCommand {
     #[clap(
         long = "name",
         value_name = "NAME",
-        help = "Matches on NAME",
-        long_help = "Parses user ids into name and email \
+        help = "Match on NAME",
+        long_help = "Parse user ids into name and email \
             and case-sensitively matches on the \
             name, requiring an exact match.",
     )]
@@ -117,8 +117,8 @@ pub struct FilterCommand {
     #[clap(
         long = "email",
         value_name = "ADDRESS",
-        help = "Matches on email ADDRESS",
-        long_help = "Parses user ids into name and email \
+        help = "Match on email ADDRESS",
+        long_help = "Parse user ids into name and email \
             address and case-sensitively matches \
             on the email address, requiring an exact match.",
     )]
@@ -126,9 +126,9 @@ pub struct FilterCommand {
     #[clap(
         long = "domain",
         value_name = "FQDN",
-        help = "Matches on email domain FQDN",
+        help = "Match on email domain FQDN",
         long_help =
-            "Parses user ids into name and email \
+            "Parse user ids into name and email \
             address and case-sensitively matches \
             on the domain of the email address, \
             requiring an exact match.",
@@ -137,9 +137,9 @@ pub struct FilterCommand {
     #[clap(
         long = "handle",
         value_name = "FINGERPRINT|KEYID",
-        help = "Matches on (sub)key fingerprints and key ids",
+        help = "Match on (sub)key fingerprints and key ids",
         long_help =
-            "Matches on both primary keys and subkeys, \
+            "Match on both primary keys and subkeys, \
             including those certificates that match the \
             given fingerprint or key id.",
     )]
@@ -147,18 +147,18 @@ pub struct FilterCommand {
     #[clap(
         short = 'P',
         long = "prune-certs",
-        help = "Removes certificate components not matching the filter",
+        help = "Remove certificate components not matching the filter",
     )]
     pub prune_certs: bool,
     #[clap(
         short = 'B',
         long = "binary",
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
     #[clap(
         long = "to-cert",
-        help = "Converts any keys in the input to \
+        help = "Convert any keys in the input to \
             certificates.  Converting a key to a \
             certificate removes secret key material \
             from the key thereby turning it into \
@@ -169,9 +169,9 @@ pub struct FilterCommand {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Merges keys or keyrings into a single keyring",
+    about = "Merge keys or keyrings into a single keyring",
     long_about =
-"Merges keys or keyrings into a single keyring
+"Merge keys or keyrings into a single keyring
 
 Multiple
 versions of the same certificate are merged together.  Where data is
@@ -186,7 +186,7 @@ $ sq toolbox keyring merge certs.pgp romeo-updates.pgp
 ",
 )]
 pub struct MergeCommand {
-    #[clap(value_name = "FILE", help = "Reads from FILE or stdin if omitted")]
+    #[clap(value_name = "FILE", help = "Read from FILE or stdin if omitted")]
     pub input: Vec<PathBuf>,
     #[clap(
         default_value_t = FileOrStdout::default(),
@@ -199,16 +199,16 @@ pub struct MergeCommand {
     #[clap(
         short = 'B',
         long = "binary",
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 }
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Lists keys in a keyring",
+    about = "List keys in a keyring",
     long_about =
-"Lists keys in a keyring
+"List keys in a keyring
 
 Prints the fingerprint as well as the primary userid for every
 certificate encountered in the keyring.
@@ -233,8 +233,8 @@ pub struct ListCommand {
     pub input: FileOrStdin,
     #[clap(
         long = "all-userids",
-        help = "Lists all user ids",
-        long_help = "Lists all user ids, even those that are \
+        help = "List all user ids",
+        long_help = "List all user ids, even those that are \
             expired, revoked, or not valid under the \
             standard policy.",
     )]
@@ -243,9 +243,9 @@ pub struct ListCommand {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Splits a keyring into individual keys",
+    about = "Split a keyring into individual keys",
     long_about =
-"Splits a keyring into individual keys
+"Split a keyring into individual keys
 
 Splitting up a keyring into individual keys helps with curating a
 keyring.
@@ -273,14 +273,14 @@ pub struct SplitCommand {
         short = 'p',
         long = "prefix",
         value_name = "PREFIX",
-        help = "Writes to files with PREFIX \
+        help = "Write to files with PREFIX \
             [defaults: `FILE-` if FILE is set, or `output-` if read from stdin]",
     )]
     pub prefix: Option<String>,
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 }

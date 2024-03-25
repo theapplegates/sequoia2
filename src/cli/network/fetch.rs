@@ -8,9 +8,9 @@ use super::keyserver::DEFAULT_KEYSERVERS;
 #[derive(Parser, Debug)]
 #[clap(
     name = "fetch",
-    about = "Retrieves certificates using all supported network services",
+    about = "Retrieve certificates using all supported network services",
     long_about =
-"Retrieves certificates using all supported network services
+"Retrieve certificates using all supported network services
 
 This command will try to locate relevant certificates given a query,
 which may be a fingerprint, a key ID, an email address, or a https
@@ -46,7 +46,7 @@ pub struct Command {
         long = "server",
         default_values_t = DEFAULT_KEYSERVERS.iter().map(ToString::to_string),
         value_name = "URI",
-        help = "Sets the key server to use.  Can be given multiple times.",
+        help = "Set the key server to use.  Can be given multiple times.",
     )]
     pub servers: Vec<String>,
 
@@ -61,7 +61,7 @@ pub struct Command {
     #[clap(
         short = 'B',
         long,
-        help = "Emits binary data",
+        help = "Emit binary data",
     )]
     pub binary: bool,
 

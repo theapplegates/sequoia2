@@ -105,9 +105,9 @@ pub struct FileOrStdin(Option<PathBuf>);
 impl ClapData for FileOrStdin {
     const VALUE_NAME: &'static str = "FILE";
     const HELP_REQUIRED: &'static str =
-        "Reads from FILE or stdin if FILE is '-'";
+        "Read from FILE or stdin if FILE is '-'";
     const HELP_OPTIONAL: &'static str =
-        "Reads from FILE or stdin if omitted";
+        "Read from FILE or stdin if omitted";
 }
 
 impl FileOrStdin {
@@ -238,10 +238,10 @@ pub struct FileOrCertStore{}
 impl ClapData for FileOrCertStore {
     const VALUE_NAME: &'static str = "FILE";
     const HELP_REQUIRED: &'static str
-        = "Writes to FILE (or stdout if FILE is '-') instead of \
+        = "Write to FILE (or stdout if FILE is '-') instead of \
           importing into the certificate store";
     const HELP_OPTIONAL: &'static str
-        = "Writes to FILE (or stdout when omitted) instead of \
+        = "Write to FILE (or stdout when omitted) instead of \
           importing into the certificate store";
 }
 
@@ -281,9 +281,9 @@ pub struct FileOrStdout {
 impl ClapData for FileOrStdout {
     const VALUE_NAME: &'static str = "FILE";
     const HELP_REQUIRED: &'static str =
-        "Writes to FILE or stdout if FILE is '-'";
+        "Write to FILE or stdout if FILE is '-'";
     const HELP_OPTIONAL: &'static str =
-        "Writes to FILE or stdout if omitted";
+        "Write to FILE or stdout if omitted";
 }
 
 impl FileOrStdout {

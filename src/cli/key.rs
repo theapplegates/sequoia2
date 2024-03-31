@@ -254,21 +254,21 @@ pub struct GenerateCommand {
     )]
     pub cannot_encrypt: bool,
     #[clap(
-        default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
     )]
-    pub output: FileOrStdout,
+    pub output: Option<FileOrStdout>,
     #[clap(
         long = "rev-cert",
         value_name = "FILE or -",
-        required_if_eq("output", "-"),
+        required_if_eq_any([("output", ""),
+                            ("output", "-")]),
         help = "Write the revocation certificate to FILE",
         long_help =
             "Write the revocation certificate to FILE. \
-            mandatory if OUTFILE is `-`. \
+            mandatory if OUTFILE is `-` or not specified. \
             [default: <OUTFILE>.rev]",
     )]
     pub rev_cert: Option<PathBuf>

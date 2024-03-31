@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use chrono::DateTime;
 use chrono::Utc;
 
@@ -16,6 +14,7 @@ use crate::common::password;
 use crate::Config;
 use crate::cli::types::FileOrStdout;
 use crate::cli;
+use crate::ImportStatus;
 
 pub fn generate(
     config: Config,
@@ -106,21 +105,21 @@ pub fn generate(
             password::prompt_for_new("key")?);
     }
 
-    if command.output.path().is_none() && command.rev_cert.is_none() {
+    let rev_path = if let Some(rev_cert) = command.rev_cert {
+        FileOrStdout::new(Some(rev_cert))
+    } else if let Some(path) = command.output.as_ref().and_then(|o| o.path()) {
+        let mut path = path.clone();
+        path.as_mut_os_string().push(".rev");
+        FileOrStdout::from(path)
+    } else {
         return Err(anyhow::anyhow!(
-            "Missing arguments: --rev-cert is mandatory if --output is '-'."
-        ))
-    }
+            "Missing arguments: --rev-cert is mandatory if --output is '-' \
+             or not provided."
+        ));
+    };
 
     // Generate the key
     let (cert, rev) = builder.generate()?;
-
-    // Export
-    let rev_path = if command.rev_cert.is_some() {
-        FileOrStdout::new(command.rev_cert)
-    } else {
-        FileOrStdout::from(PathBuf::from(format!("{}.rev", command.output)))
-    };
 
     let headers = cert.armor_headers();
 
@@ -131,10 +130,35 @@ pub fn generate(
             .map(|value| ("Comment", value.as_str()))
             .collect();
 
-        let w = command.output.for_secrets().create_safe(config.force)?;
-        let mut w = Writer::with_headers(w, Kind::SecretKey, headers)?;
-        cert.as_tsk().serialize(&mut w)?;
-        w.finalize()?;
+        match command.output {
+            Some(output_file) => {
+                // Write the key to a file or to stdout.
+                let w = output_file.for_secrets().create_safe(config.force)?;
+                let mut w = Writer::with_headers(w, Kind::SecretKey, headers)?;
+                cert.as_tsk().serialize(&mut w)?;
+                w.finalize()?;
+            }
+            None => {
+                // write the key to the key store
+                match config.import_key(cert.clone()) {
+                    Ok(ImportStatus::New) => { /* success */ }
+                    Ok(ImportStatus::Unchanged) => {
+                        panic!(
+                            "The new key is identical to an existing one; this \
+                             should never happen");
+                    }
+                    Ok(ImportStatus::Updated) => {
+                        panic!(
+                            "The new key collides with an existing one; this \
+                             should never happen")
+                    }
+                    Err(err) => {
+                        return Err(anyhow::anyhow!(
+                            "Failed saving to the store: {}", err))
+                    }
+                }
+            }
+        }
     }
 
     // write out rev cert

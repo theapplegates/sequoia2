@@ -175,6 +175,7 @@ $ sq key generate --time 20110609 --userid Noam \\
 #[clap(group(ArgGroup::new("cap-sign").args(&["can_sign", "cannot_sign"])))]
 #[clap(group(ArgGroup::new("cap-authenticate").args(&["can_authenticate", "cannot_authenticate"])))]
 #[clap(group(ArgGroup::new("cap-encrypt").args(&["can_encrypt", "cannot_encrypt"])))]
+#[clap(group(ArgGroup::new("cert-userid").args(&["userid", "no_userids"]).required(true)))]
 pub struct GenerateCommand {
     #[clap(
         short = 'u',
@@ -183,6 +184,12 @@ pub struct GenerateCommand {
         help = "Add a user ID to the key"
     )]
     pub userid: Vec<String>,
+    #[clap(
+        long = "no-userids",
+        help = "Create a key without any user IDs",
+        conflicts_with = "userid",
+    )]
+    pub no_userids: bool,
     #[clap(
         short = 'c',
         long = "cipher-suite",

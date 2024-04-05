@@ -29,6 +29,7 @@ mod integration {
         cmd.args(["--no-cert-store",
                   "--no-key-store",
                   "key", "generate",
+                  "--no-userids",
                   "--time", iso8601,
                   "--expiry", "never",
                   "--output", &*key_pgp.to_string_lossy()]);

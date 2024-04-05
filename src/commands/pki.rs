@@ -121,12 +121,35 @@ fn authenticate<'store, 'rstore>(
         Some(match kh {
             KeyHandle::Fingerprint(fpr) => {
                 // If the certificate doesn't exist, error out now.
-                let _ = q.network().lookup_synopsis_by_fpr(fpr)?;
+                let _ = q.network().lookup_synopsis_by_fpr(fpr)
+                    .map_err(|err| {
+                        if let Some(StoreError::NotFound(_)) = err.downcast_ref() {
+                            wprintln!("There are no certificates with the \
+                                       specified fingerprint.  \
+                                       Run `sq network fetch {}` to look for \
+                                       matching certificates on public \
+                                       directories.",
+                                      fpr);
+                        }
+                        err
+                    })?;
                 fpr.clone()
             },
             kh @ KeyHandle::KeyID(_) => {
-                let certs = q.network().lookup_synopses(kh)?;
+                let certs = q.network().lookup_synopses(kh)
+                    .or_else(|err| {
+                        if let Some(StoreError::NotFound(_)) = err.downcast_ref() {
+                            Ok(Vec::new())
+                        } else {
+                            Err(err)
+                        }
+                    })?;
                 if certs.is_empty() {
+                    wprintln!("There are no certificates with the \
+                               specified key ID.  \
+                               Run `sq network fetch {}` to look for \
+                               matching certificates on public directories.",
+                              kh);
                     return Err(StoreError::NotFound(kh.clone()).into());
                 }
                 if certs.len() > 1 {

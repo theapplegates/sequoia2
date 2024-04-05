@@ -244,7 +244,7 @@ fn authenticate<'store, 'rstore>(
 
         bindings = q.network().certified_userids();
 
-        if let Some(pattern) = list_pattern {
+        if let Some(ref pattern) = list_pattern {
             // Or rather, just User IDs that match the pattern.
             let pattern = pattern.to_lowercase();
 
@@ -286,7 +286,7 @@ fn authenticate<'store, 'rstore>(
     bindings.sort();
     bindings.dedup();
 
-    let mut authenticated = false;
+    let mut authenticated = 0;
     let mut lint_input = true;
 
     let mut output = match config.output_format {
@@ -325,7 +325,7 @@ fn authenticate<'store, 'rstore>(
             // This means: exit code is 0, which is what we want when
             // we've found at least one path.
             if paths.len() > 0 {
-                authenticated = true;
+                authenticated += 1;
                 lint_input = false;
             }
 
@@ -342,14 +342,13 @@ fn authenticate<'store, 'rstore>(
             }
             lint_input = false;
             if aggregated_amount >= required_amount {
-                authenticated = true;
+                authenticated += 1;
             }
 
             paths.into_iter().collect::<Vec<(wot::Path, usize)>>()
         };
 
         output.add_paths(paths, fingerprint, userid, aggregated_amount)?;
-
     }
 
     output.finalize()?;
@@ -457,16 +456,70 @@ fn authenticate<'store, 'rstore>(
         }
     }
 
-    if ! authenticated {
-        if ! lint_input {
-            wprintln!("Could not authenticate any paths.");
-        } else {
-            wprintln!("No paths found.");
+    let pattern = || {
+        certificate.map(|kh| kh.to_string())
+            .or_else(|| userid.map(|u| {
+                String::from_utf8_lossy(u.value()).to_string()
+            }))
+            .or_else(|| list_pattern.clone())
+    };
+
+    if gossip {
+        // We are in gossip mode.  Mention `sq pki link` as a way to
+        // mark bindings as authenticated.
+        if ! bindings.is_empty() {
+            wprintln!("After checking that a user ID really belongs to \
+                       a certificate, use `sq pki link add` to mark \
+                       the binding as authenticated, or use \
+                       `sq network fetch FINGERPRINT|EMAIL` to look for \
+                       new certifications.");
         }
-        std::process::exit(1);
+    } else if bindings.is_empty() {
+        // There are no matching bindings.  Tell the user about `sq
+        // network fetch`.
+        if let Some(pattern) = pattern() {
+            wprintln!("No bindings match.  Try using \
+                       `sq network fetch {:?}` to search public directories \
+                       for matching certificates.",
+                      pattern);
+        } else {
+            wprintln!("The certificate store does not contain any \
+                       certificates.");
+        }
+    } else if bindings.len() - authenticated > 0 {
+        // Some of the matching bindings are unauthenticated.  Tell
+        // the user about the `--gossip` option.
+        let bindings = bindings.len();
+        assert!(bindings > 0);
+        let unauthenticated = bindings - authenticated;
+
+        if bindings == 1 {
+            wprintln!("1 binding found.");
+        } else {
+            wprintln!("{} bindings found.", bindings);
+        }
+
+        if unauthenticated == 1 {
+            wprintln!("Skipped 1 binding, which could not be authenticated.");
+            wprintln!("Pass `--gossip` to see the unauthenticated binding.");
+        } else {
+            wprintln!("Skipped {} bindings, which could not be authenticated.",
+                      unauthenticated);
+            wprintln!("Pass `--gossip` to see the unauthenticated bindings.");
+        }
     }
 
-    Ok(())
+    if authenticated == 0 {
+        if ! lint_input {
+            Err(anyhow::anyhow!("Could not authenticate any paths."))
+        } else if bindings.is_empty() {
+            Err(anyhow::anyhow!("No bindings match the query."))
+        } else {
+            Err(anyhow::anyhow!("Could not authenticate any matching bindings."))
+        }
+    } else {
+        Ok(())
+    }
 }
 
 // For `sq-wot path`.

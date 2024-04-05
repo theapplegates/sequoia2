@@ -180,7 +180,7 @@ pub struct GenerateCommand {
         short = 'u',
         long = "userid",
         value_name = "EMAIL",
-        help = "Add a userid to the key"
+        help = "Add a user ID to the key"
     )]
     pub userid: Vec<String>,
     #[clap(

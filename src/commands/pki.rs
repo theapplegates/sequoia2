@@ -119,7 +119,11 @@ fn authenticate<'store, 'rstore>(
 
     let fingerprint: Option<Fingerprint> = if let Some(kh) = certificate {
         Some(match kh {
-            KeyHandle::Fingerprint(fpr) => fpr.clone(),
+            KeyHandle::Fingerprint(fpr) => {
+                // If the certificate doesn't exist, error out now.
+                let _ = q.network().lookup_synopsis_by_fpr(fpr)?;
+                fpr.clone()
+            },
             kh @ KeyHandle::KeyID(_) => {
                 let certs = q.network().lookup_synopses(kh)?;
                 if certs.is_empty() {

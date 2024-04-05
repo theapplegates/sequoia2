@@ -123,6 +123,8 @@ pub fn generate(
 
     let headers = cert.armor_headers();
 
+    let on_keystore = command.output.is_none();
+
     // write out key
     {
         let headers: Vec<_> = headers
@@ -174,6 +176,34 @@ pub fn generate(
         Packet::from(cert.primary_key().key().clone()).serialize(&mut w)?;
         Packet::Signature(rev).serialize(&mut w)?;
         w.finalize()?;
+    }
+
+    if on_keystore {
+        // Writing to key store.  Provide some guidance.
+        wprintln!("If this is your key, you should mark it as a fully \
+                   trusted introducer:");
+        println!();
+        println!("  $ sq pki link add --ca \\* {} --all",
+                 cert.fingerprint());
+        println!();
+
+        wprintln!("Otherwise, you should mark it as authenticated:");
+        println!();
+        println!("  $ sq pki link add {} --all",
+                 cert.fingerprint());
+        println!();
+
+        wprintln!("You can export your certificate as follows:");
+        println!();
+        println!("  $ sq cert export --cert {}",
+                 cert.fingerprint());
+        println!();
+
+        wprintln!("Once you are happy you can upload it to public directories \
+                   using:");
+        println!();
+        println!("  $ sq network keyserver publish {}",
+                 cert.fingerprint());
     }
 
     Ok(())

@@ -140,9 +140,10 @@ pub fn generate(
             .collect();
 
         match command.output {
-            Some(output_file) => {
+            Some(ref output_file) => {
                 // Write the key to a file or to stdout.
-                let w = output_file.for_secrets().create_safe(config.force)?;
+                let w = output_file.clone().for_secrets()
+                    .create_safe(config.force)?;
                 let mut w = Writer::with_headers(w, Kind::SecretKey, headers)?;
                 cert.as_tsk().serialize(&mut w)?;
                 w.finalize()?;
@@ -211,6 +212,23 @@ pub fn generate(
         eprintln!();
         eprintln!("  $ sq network keyserver publish {}",
                   cert.fingerprint());
+    } else {
+        let mut shown = false;
+        if let Some(ref output) = command.output {
+            if let Some(output_path) = output.path() {
+                wprintln!("You can extract the certificate from the \
+                           generated key by running:");
+                eprintln!();
+                eprintln!("  $ sq toolbox extract-cert {}",
+                          output_path.display());
+                shown = true;
+            }
+        }
+
+        if ! shown {
+            wprintln!("You can extract the certificate from the \
+                       generated key using `sq toolbox extract-cert`.");
+        }
     }
 
     Ok(())

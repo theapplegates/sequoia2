@@ -189,28 +189,28 @@ pub fn generate(
         // Writing to key store.  Provide some guidance.
         wprintln!("If this is your key, you should mark it as a fully \
                    trusted introducer:");
-        println!();
-        println!("  $ sq pki link add --ca \\* {} --all",
-                 cert.fingerprint());
-        println!();
+        eprintln!();
+        eprintln!("  $ sq pki link add --ca \\* {} --all",
+                  cert.fingerprint());
+        eprintln!();
 
         wprintln!("Otherwise, you should mark it as authenticated:");
-        println!();
-        println!("  $ sq pki link add {} --all",
-                 cert.fingerprint());
-        println!();
+        eprintln!();
+        eprintln!("  $ sq pki link add {} --all",
+                  cert.fingerprint());
+        eprintln!();
 
         wprintln!("You can export your certificate as follows:");
-        println!();
-        println!("  $ sq cert export --cert {}",
-                 cert.fingerprint());
-        println!();
+        eprintln!();
+        eprintln!("  $ sq cert export --cert {}",
+                  cert.fingerprint());
+        eprintln!();
 
         wprintln!("Once you are happy you can upload it to public directories \
                    using:");
-        println!();
-        println!("  $ sq network keyserver publish {}",
-                 cert.fingerprint());
+        eprintln!();
+        eprintln!("  $ sq network keyserver publish {}",
+                  cert.fingerprint());
     }
 
     Ok(())

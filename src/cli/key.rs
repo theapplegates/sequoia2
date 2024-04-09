@@ -7,6 +7,7 @@ use clap::{ValueEnum, ArgGroup, Args, Parser, Subcommand};
 use sequoia_openpgp as openpgp;
 use openpgp::cert::CipherSuite as SqCipherSuite;
 use openpgp::KeyHandle;
+use openpgp::packet::UserID;
 use openpgp::types::ReasonForRevocation as OpenPGPRevocationReason;
 
 use crate::cli::KEY_VALIDITY_DURATION;
@@ -183,7 +184,7 @@ pub struct GenerateCommand {
         value_name = "EMAIL",
         help = "Add a user ID to the key"
     )]
-    pub userid: Vec<String>,
+    pub userid: Vec<UserID>,
     #[clap(
         long = "no-userids",
         help = "Create a key without any user IDs",
@@ -599,7 +600,7 @@ pub struct UseridAddCommand {
         required = true,
         help = "User ID to add",
     )]
-    pub userid: Vec<String>,
+    pub userid: Vec<UserID>,
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",
@@ -809,7 +810,7 @@ pub struct UseridStripCommand {
         long_help = "The User IDs to strip.  Values must exactly match a \
 User ID."
     )]
-    pub userid: Vec<String>,
+    pub userid: Vec<UserID>,
     #[clap(
         short = 'B',
         long,

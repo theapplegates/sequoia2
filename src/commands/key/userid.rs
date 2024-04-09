@@ -235,7 +235,7 @@ fn userid_add(
     let exists: Vec<_> = command
         .userid
         .iter()
-        .filter(|s| key_userids.contains(&s.as_bytes()))
+        .filter(|s| key_userids.contains(&s.value()))
         .collect();
     if !exists.is_empty() {
         return Err(anyhow::anyhow!(
@@ -399,7 +399,7 @@ fn userid_strip(
 
     let missing: Vec<_> = strip
         .iter()
-        .filter(|s| !key_userids.contains(&s.as_bytes()))
+        .filter(|s| !key_userids.contains(&s.value()))
         .collect();
     if !missing.is_empty() {
         return Err(anyhow::anyhow!(
@@ -410,7 +410,7 @@ fn userid_strip(
 
     let cert = key.retain_userids(|uid| {
         // Don't keep User IDs that were selected for removal
-        !strip.iter().any(|rm| rm.as_bytes() == uid.userid().value())
+        !strip.iter().any(|rm| rm == uid.component())
     });
 
     if orig_cert_valid {

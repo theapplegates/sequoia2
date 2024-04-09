@@ -132,6 +132,21 @@ pub fn generate(
 
     let on_keystore = command.output.is_none();
 
+    // write out rev cert
+    {
+        let mut headers: Vec<_> = headers
+            .iter()
+            .map(|value| ("Comment", value.as_str()))
+            .collect();
+        headers.insert(0, ("Comment", "Revocation certificate for"));
+
+        let w = rev_path.create_safe(config.force)?;
+        let mut w = Writer::with_headers(w, Kind::PublicKey, headers)?;
+        Packet::from(cert.primary_key().key().clone()).serialize(&mut w)?;
+        Packet::Signature(rev).serialize(&mut w)?;
+        w.finalize()?;
+    }
+
     // write out key
     {
         let headers: Vec<_> = headers
@@ -169,21 +184,6 @@ pub fn generate(
                 }
             }
         }
-    }
-
-    // write out rev cert
-    {
-        let mut headers: Vec<_> = headers
-            .iter()
-            .map(|value| ("Comment", value.as_str()))
-            .collect();
-        headers.insert(0, ("Comment", "Revocation certificate for"));
-
-        let w = rev_path.create_safe(config.force)?;
-        let mut w = Writer::with_headers(w, Kind::PublicKey, headers)?;
-        Packet::from(cert.primary_key().key().clone()).serialize(&mut w)?;
-        Packet::Signature(rev).serialize(&mut w)?;
-        w.finalize()?;
     }
 
     if on_keystore {

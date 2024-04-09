@@ -21,6 +21,7 @@ pub use revoke::get_secret_signer;
 pub use revoke::RevocationOutput;
 
 pub mod password;
+pub mod userid;
 
 pub const NULL_POLICY: &NullPolicy = &NullPolicy::new();
 

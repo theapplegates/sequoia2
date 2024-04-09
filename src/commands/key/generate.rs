@@ -1,6 +1,7 @@
 use chrono::DateTime;
 use chrono::Utc;
 
+use sequoia_openpgp as openpgp;
 use openpgp::armor::Kind;
 use openpgp::armor::Writer;
 use openpgp::cert::CertBuilder;
@@ -8,9 +9,9 @@ use openpgp::serialize::Serialize;
 use openpgp::types::KeyFlags;
 use openpgp::Packet;
 use openpgp::Result;
-use sequoia_openpgp as openpgp;
 
 use crate::common::password;
+use crate::common::userid::lint_userids;
 use crate::Config;
 use crate::cli::types::FileOrStdout;
 use crate::cli;
@@ -26,6 +27,12 @@ pub fn generate(
     if command.userid.is_empty() {
         wprintln!("No user ID given, using direct key signature");
     } else {
+        // Make sure the user IDs are in canonical form.  If not, and
+        // `--allow-non-canonical-userids` is not set, error out.
+        if ! command.allow_non_canonical_userids {
+            lint_userids(&command.userid)?;
+        }
+
         for uid in command.userid {
             builder = builder.add_userid(uid);
         }

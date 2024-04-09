@@ -35,6 +35,7 @@ use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
 use crate::common::read_cert;
 use crate::common::read_secret;
+use crate::common::userid::lint_userids;
 use crate::parse_notations;
 
 /// Handle the revocation of a User ID
@@ -228,6 +229,12 @@ fn userid_add(
 ) -> Result<()> {
     let input = command.input.open()?;
     let key = Cert::from_reader(input)?;
+
+    // Make sure the user IDs are in canonical form.  If not, and
+    // `--allow-non-canonical-userids` is not set, error out.
+    if ! command.allow_non_canonical_userids {
+        lint_userids(&command.userid)?;
+    }
 
     // Fail if any of the User IDs to add already exist in the ValidCert
     let key_userids: Vec<_> =

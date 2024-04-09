@@ -186,6 +186,14 @@ pub struct GenerateCommand {
     )]
     pub userid: Vec<UserID>,
     #[clap(
+        long = "allow-non-canonical-userids",
+        help = "Don't reject user IDs that are not in canonical form",
+        long_help = "Don't reject user IDs that are not in canonical form.  \
+                Canonical user IDs are of the form \
+                `Name (Comment) <localpart@example.org>`.",
+    )]
+    pub allow_non_canonical_userids: bool,
+    #[clap(
         long = "no-userids",
         help = "Create a key without any user IDs",
         conflicts_with = "userid",
@@ -601,6 +609,14 @@ pub struct UseridAddCommand {
         help = "User ID to add",
     )]
     pub userid: Vec<UserID>,
+    #[clap(
+        long = "allow-non-canonical-userids",
+        help = "Don't reject user IDs that are not in canonical form",
+        long_help = "Don't reject user IDs that are not in canonical form.  \
+                Canonical user IDs are of the form \
+                `Name (Comment) <localpart@example.org>`.",
+    )]
+    pub allow_non_canonical_userids: bool,
     #[clap(
         long = "private-key-store",
         value_name = "KEY_STORE",

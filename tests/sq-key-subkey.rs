@@ -308,7 +308,7 @@ fn sq_key_subkey_revoke() -> Result<()> {
 fn sq_key_subkey_revoke_thirdparty() -> Result<()> {
     let (tmpdir, path, time) = sq_key_generate(None)?;
     let (thirdparty_tmpdir, thirdparty_path, thirdparty_time) =
-        sq_key_generate(Some(&["bob <bob@example.org"]))?;
+        sq_key_generate(Some(&["bob <bob@example.org>"]))?;
 
     let cert = Cert::from_file(&path)?;
     let valid_cert = cert.with_policy(STANDARD_POLICY, Some(time.into()))?;

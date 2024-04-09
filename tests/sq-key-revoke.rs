@@ -191,7 +191,7 @@ fn sq_key_revoke_thirdparty() -> Result<()> {
     let cert = Cert::from_file(&path)?;
 
     let (thirdparty_tmpdir, thirdparty_path, thirdparty_time) =
-        sq_key_generate(Some(&["bob <bob@example.org"]))?;
+        sq_key_generate(Some(&["bob <bob@example.org>"]))?;
     let thirdparty_cert = Cert::from_file(&thirdparty_path)?;
     let thirdparty_valid_cert = thirdparty_cert
         .with_policy(STANDARD_POLICY, Some(thirdparty_time.into()))?;

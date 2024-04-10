@@ -1384,3 +1384,50 @@ pub fn print_error_chain(err: &anyhow::Error) {
     wprintln!("           {}", err);
     err.chain().skip(1).for_each(|cause| wprintln!("  because: {}", cause));
 }
+
+/// Returns the error chain as a string.
+///
+/// The error and causes are separated by `error_separator`.  The
+/// causes are separated by `cause_separator`, or, if that is `None`,
+/// `error_separator`.
+pub fn display_error_chain<'a, E, C>(err: E,
+                                     error_separator: &str,
+                                     cause_separator: C)
+    -> String
+where E: Borrow<anyhow::Error>,
+      C: Into<Option<&'a str>>
+{
+    let err = err.borrow();
+    let cause_separator = cause_separator.into();
+
+    let error_chain = error_chain(err);
+    match error_chain.len() {
+        0 => unreachable!(),
+        1 => {
+            error_chain.into_iter().next().expect("have one")
+        }
+        2 => {
+            format!("{}{}{}",
+                    error_chain[0],
+                    error_separator,
+                    error_chain[1])
+        }
+        _ => {
+            if let Some(cause_separator) = cause_separator {
+                format!("{}{}{}",
+                        error_chain[0],
+                        error_separator,
+                        error_chain[1..].join(cause_separator))
+            } else {
+                error_chain.join(error_separator)
+            }
+        }
+    }
+
+}
+
+pub fn one_line_error_chain<E>(err: E) -> String
+where E: Borrow<anyhow::Error>,
+{
+    display_error_chain(err, ": ", ", because ")
+}

@@ -26,6 +26,7 @@ use cert_store::Store;
 use crate::Convert;
 
 use crate::Config;
+use crate::one_line_error_chain;
 use crate::SECONDS_IN_YEAR;
 use crate::SECONDS_IN_DAY;
 
@@ -379,12 +380,16 @@ fn inspect_key(
     let vka = match ka.with_policy(policy, time) {
         Ok(vka) => {
             if let Err(e) = vka.alive() {
-                writeln!(output, "{}                 Invalid: {}", indent, e)?;
+                writeln!(output, "{}                 Invalid: {}",
+                         indent,
+                         one_line_error_chain(&e))?;
             }
             Some(vka)
         },
         Err(e) => {
-            writeln!(output, "{}                 Invalid: {}", indent, e)?;
+            writeln!(output, "{}                 Invalid: {}",
+                     indent,
+                     one_line_error_chain(&e))?;
             None
         },
     };
@@ -662,7 +667,8 @@ fn inspect_certifications<'a, A>(output: &mut dyn io::Write,
                          "{}Certification is not valid according to \
                           the current policy:\n\
                           {}  {}",
-                         indent, indent, err)?;
+                         indent, indent,
+                         one_line_error_chain(&err))?;
             }
         }
         if emit_warning {

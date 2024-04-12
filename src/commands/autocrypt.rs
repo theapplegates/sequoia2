@@ -1,6 +1,6 @@
 use anyhow::Context;
 
-use buffered_reader::{BufferedReader, Dup};
+use buffered_reader::Dup;
 use sequoia_openpgp as openpgp;
 use openpgp::{
     Cert,
@@ -36,14 +36,14 @@ fn import<'store, 'rstore>(mut config: Config<'store, 'rstore>,
           -> Result<()>
     where 'store: 'rstore
 {
-    let input = command.input.open()?;
+    let mut input = command.input.open()?;
 
     // Accumulate certs and do one import so that we generate one
     // report.
     let mut acc = Vec::new();
 
     // First, get the Autocrypt headers from the outside.
-    let mut dup = Dup::with_cookie(input, Cookie::default());
+    let mut dup = Dup::with_cookie(&mut input, Cookie::default());
     let ac = autocrypt::AutocryptHeaders::from_reader(&mut dup)?;
     let from = UserID::from(
         ac.from.as_ref().ok_or(anyhow::anyhow!("no From: header"))?
@@ -88,8 +88,6 @@ fn import<'store, 'rstore>(mut config: Config<'store, 'rstore>,
 
     // Then, try to decrypt the message, and look for gossip headers.
     use crate::{load_keys, commands::decrypt::Helper};
-    let input =
-        dup.into_boxed().into_inner().expect("dup has an inner");
     let secrets =
         load_keys(command.secret_key_file.iter().map(|s| s.as_ref()))?;
 

@@ -28,6 +28,7 @@ use sequoia_keystore as keystore;
 
 use crate::{
     best_effort_primary_uid,
+    best_effort_primary_uid_for,
     cli,
     commands::{
         VHelper,
@@ -415,12 +416,17 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                                     let pkesk = key_status.pkesk().clone();
                                     let mut key = key_status.into_key();
                                     let keyid = key.keyid();
+                                    let userid = best_effort_primary_uid_for(
+                                        Some(&self.config),
+                                        &KeyHandle::from(&keyid),
+                                        self.config.policy,
+                                        self.config.time);
 
                                     let keypair = loop {
                                         let password = rpassword::prompt_password(
                                             format!(
-                                                "Enter password to unlock {}: ",
-                                                keyid))?
+                                                "Enter password to unlock {}, {}: ",
+                                                keyid, userid))?
                                             .into();
 
                                         if let Ok(()) = key.unlock(password) {

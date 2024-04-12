@@ -292,6 +292,47 @@ where
     }
 }
 
+/// Best-effort heuristic to compute the primary User ID of a given cert.
+///
+/// The returned string is already sanitized, and safe for displaying.
+pub fn best_effort_primary_uid_for<'u, T>(config: Option<&Config>,
+                                          key_handle: &KeyHandle,
+                                          policy: &'u dyn Policy,
+                                          time: T)
+                                          -> PreferredUserID
+where
+    T: Into<Option<SystemTime>>,
+{
+    let config = if let Some(config) = config {
+        config
+    } else {
+        return PreferredUserID::unknown()
+    };
+
+    let cert = config.lookup_one(
+        key_handle,
+        Some(KeyFlags::empty()
+             .set_storage_encryption()
+             .set_transport_encryption()),
+        false);
+
+    match cert {
+        Ok(cert) => {
+            best_effort_primary_uid(Some(config), &cert, policy, time)
+        }
+        Err(err) => {
+            if let Some(StoreError::NotFound(_))
+                = err.downcast_ref()
+            {
+                PreferredUserID::from_string("(certificate not found)", 0)
+            } else {
+                PreferredUserID::from_string(
+                    format!("(error looking up certificate: {})", err), 0)
+            }
+        }
+    }
+}
+
 // Decrypts a key, if possible.
 //
 // The passwords in `passwords` are tried first.  If the key can't be

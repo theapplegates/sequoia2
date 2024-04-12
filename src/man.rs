@@ -26,6 +26,8 @@
 use roff::{bold, italic, roman, Inline, Roff};
 use std::path::{Path, PathBuf};
 
+use clap::builder::ValueRange;
+
 /// The "manual" the manual page is meant for. The full Unix
 /// documentation is (or was) divided into separate manuals, some of
 /// which don't consist of manual pages.
@@ -507,8 +509,25 @@ struct CommandOption {
     index: Option<usize>,
     short: Option<String>,
     long: Option<String>,
-    value_names: Option<Vec<String>>,
+    value_names: Values,
     help: Option<String>,
+}
+
+/// Formal arguments for a command option.
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum Values {
+    /// This option does not take any arguments.
+    None,
+
+    /// This option takes the given arguments.
+    Some(Vec<String>),
+
+    /// This option optionally takes the given arguments.
+    ///
+    /// XXX: Currently, this is all or nothing, i.e. either all
+    /// arguments are mandatory, or all are optional.  Let's see
+    /// whether we need something more complicated.
+    Optional(Vec<String>),
 }
 
 impl CommandOption {
@@ -537,14 +556,23 @@ impl CommandOption {
     /// Create a `CommandOption` from a `clap::Arg`.
     fn from_arg(arg: &clap::Arg) -> Self {
         let value_names = if arg.get_num_args()
-            .map(|r| r == clap::builder::ValueRange::EMPTY)
+            .map(|r| r == ValueRange::EMPTY)
             .unwrap_or(true)
         {
-            None
+            Values::None
         } else if let Some(names) = arg.get_value_names() {
-            Some(names.iter().map(|name| name.to_string()).collect())
+            let names =
+                names.iter().map(|name| name.to_string()).collect();
+
+            if arg.get_num_args()
+                .map(|r| r.min_values() == 0).unwrap_or(false)
+            {
+                Values::Optional(names)
+            } else {
+                Values::Some(names)
+            }
         } else {
-            None
+            Values::None
         };
 
         Self {
@@ -667,18 +695,29 @@ impl ManualPage {
             line.push(bold(long));
         }
 
-        if let Some(values) = &opt.value_names {
-            if (opt.short.is_some() || opt.long.is_some())
-                && values.len() == 1
-            {
-                line.push(roman("="));
-                line.push(italic(&values[0]));
-            } else {
-                for value in values {
-                    line.push(roman(" "));
-                    line.push(italic(value));
+        match &opt.value_names {
+            Values::None => (),
+            Values::Some(values) | Values::Optional(values) => {
+                if matches!(opt.value_names, Values::Optional(_)) {
+                    line.push(roman("["));
                 }
-            }
+
+                if (opt.short.is_some() || opt.long.is_some())
+                    && values.len() == 1
+                {
+                    line.push(roman("="));
+                    line.push(italic(&values[0]));
+                } else {
+                    for value in values {
+                        line.push(roman(" "));
+                        line.push(italic(value));
+                    }
+                }
+
+                if matches!(opt.value_names, Values::Optional(_)) {
+                    line.push(roman("]"));
+                }
+            },
         }
 
         self.tagged_paragraph(line, &opt.help);

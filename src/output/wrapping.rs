@@ -44,6 +44,9 @@ fn options() -> textwrap::Options<'static> {
         let width =
             terminal_size::terminal_size().map(|(w, _h)| w.0)
             .unwrap_or(80)
+            // To improve readability limit the width of the text
+            // columns.
+            .min(100)
             .into();
 
         textwrap::Options::new(width)

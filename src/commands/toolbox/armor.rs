@@ -7,6 +7,7 @@ use buffered_reader::Limitor;
 use sequoia_openpgp as openpgp;
 use openpgp::Packet;
 use openpgp::armor;
+use openpgp::parse::Cookie;
 use openpgp::parse::Parse;
 use openpgp::parse::PacketParser;
 use openpgp::parse::PacketParserResult;
@@ -23,11 +24,12 @@ const ARMOR_DETECTION_LIMIT: u64 = 1 << 24;
 /// Returns the given reader unchanged.  If the detection fails,
 /// armor::Kind::File is returned as safe default.
 fn detect_armor_kind(
-    input: Box<dyn BufferedReader<()>>,
-) -> (Box<dyn BufferedReader<()>>, armor::Kind) {
-    let mut dup =
-        Limitor::new(Dup::new(input), ARMOR_DETECTION_LIMIT).into_boxed();
-    let kind = match PacketParser::from_reader(&mut dup) {
+    input: Box<dyn BufferedReader<Cookie>>,
+) -> (Box<dyn BufferedReader<Cookie>>, armor::Kind) {
+    let dup = Dup::with_cookie(input, Cookie::default());
+    let mut limitor = Limitor::with_cookie(
+        dup, ARMOR_DETECTION_LIMIT, Cookie::default()).into_boxed();
+    let kind = match PacketParser::from_reader(&mut limitor) {
         Ok(PacketParserResult::Some(pp)) => match pp.next() {
             Ok((Packet::Signature(_), _)) => armor::Kind::Signature,
             Ok((Packet::SecretKey(_), _)) => armor::Kind::SecretKey,
@@ -38,7 +40,7 @@ fn detect_armor_kind(
         },
         _ => armor::Kind::File,
     };
-    (dup.into_inner().unwrap().into_inner().unwrap(), kind)
+    (limitor.into_inner().unwrap().into_inner().unwrap(), kind)
 }
 
 pub fn dispatch(config: Config, command: cli::toolbox::armor::Command)
@@ -52,16 +54,18 @@ pub fn dispatch(config: Config, command: cli::toolbox::armor::Command)
 
     // Peek at the data.  If it looks like it is armored
     // data, avoid armoring it again.
-    let mut dup = Limitor::new(Dup::new(input), ARMOR_DETECTION_LIMIT);
+    let dup = Dup::with_cookie(input, Cookie::default());
+    let mut limitor = Limitor::with_cookie(
+        dup, ARMOR_DETECTION_LIMIT, Cookie::default());
     let (already_armored, have_kind) = {
         let mut reader =
             armor::Reader::from_reader(
-                &mut dup,
+                &mut limitor,
                 armor::ReaderMode::Tolerant(None));
         (reader.data(8).is_ok(), reader.kind())
     };
     let mut input =
-        dup.into_boxed().into_inner().unwrap().into_inner().unwrap();
+        limitor.into_boxed().into_inner().unwrap().into_inner().unwrap();
 
     if already_armored
         && (want_kind.is_none() || want_kind == have_kind)

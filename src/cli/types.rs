@@ -25,6 +25,7 @@ use clap::ValueEnum;
 use sequoia_openpgp as openpgp;
 use openpgp::armor;
 use openpgp::fmt::hex;
+use openpgp::parse::Cookie;
 use openpgp::serialize::stream::Armorer;
 use openpgp::serialize::stream::Message;
 use openpgp::types::KeyFlags;
@@ -132,13 +133,14 @@ impl FileOrStdin {
     /// Get a boxed BufferedReader for the FileOrStdin
     ///
     /// Opens a file if there is Some(PathBuf), else opens stdin.
-    pub fn open(&self) -> Result<Box<dyn BufferedReader<()>>> {
+    pub fn open<'a>(&self) -> Result<Box<dyn BufferedReader<Cookie> + 'a>> {
         if let Some(path) = self.inner() {
             Ok(Box::new(
-                File::open(path)
+                File::with_cookie(path, Default::default())
                 .with_context(|| format!("Failed to open {}", self))?))
         } else {
-            Ok(Box::new(Generic::new(stdin(), None)))
+            Ok(Box::new(
+                Generic::with_cookie(stdin(), None, Default::default())))
         }
     }
 }

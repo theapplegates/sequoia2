@@ -4,6 +4,8 @@ use std::time::{Duration, SystemTime};
 
 use anyhow::Context;
 
+use buffered_reader::BufferedReader;
+
 use sequoia_openpgp as openpgp;
 use openpgp::{KeyHandle, Packet, Result};
 use openpgp::armor::ReaderMode;
@@ -33,7 +35,7 @@ use crate::SECONDS_IN_DAY;
 use crate::cli::inspect;
 use crate::cli::types::FileOrStdout;
 
-pub fn dispatch(config: Config, c: inspect::Command)
+pub fn dispatch(mut config: Config, c: inspect::Command)
     -> Result<()>
 {
     // sq inspect does not have --output, but commands::inspect does.
@@ -41,14 +43,12 @@ pub fn dispatch(config: Config, c: inspect::Command)
     let output_type = FileOrStdout::default();
     let output = &mut output_type.create_unsafe(config.force)?;
 
-    let time = Some(config.time);
-
     let print_certifications = c.certifications;
 
     let input = c.input;
 
     let mut bytes: Vec<u8> = Vec::new();
-    let mut ppr = if c.cert.is_empty() {
+    if c.cert.is_empty() {
         if let Some(path) = input.inner() {
             if ! path.exists() &&
                 format!("{}", input).parse::<KeyHandle>().is_ok() {
@@ -58,7 +58,9 @@ pub fn dispatch(config: Config, c: inspect::Command)
             }
         }
 
-        openpgp::parse::PacketParser::from_buffered_reader(input.open()?)?
+        inspect(&mut config, input.open()?,
+                Some(&input.to_string()), output,
+                print_certifications)
     } else {
         let cert_store = config.cert_store_or_else()?;
         for cert in c.cert.into_iter() {
@@ -72,11 +74,37 @@ pub fn dispatch(config: Config, c: inspect::Command)
             }
         }
 
-        openpgp::parse::PacketParser::from_bytes(&bytes)?
-    };
+        let br = buffered_reader::Memory::with_cookie(
+            &bytes, sequoia_openpgp::parse::Cookie::default());
+        inspect(&mut config, br, None, output,
+                print_certifications)
+    }
+}
+
+/// Inspects OpenPGP data.
+///
+/// The data is read from `input`.  `input_filename` is the name of
+/// the file, if available.  This is only used for display purposes.
+/// The output is written to `output`.
+///
+/// If `print_certifications` is set, also shows information about
+/// certifications.
+pub fn inspect<'a, R>(config: &mut Config,
+                      input: R,
+                      input_filename: Option<&str>,
+                      output: &mut Box<dyn std::io::Write + Send + Sync>,
+                      print_certifications: bool)
+    -> Result<()>
+where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
+{
+    let time = Some(config.time);
+
+    let mut ppr = openpgp::parse::PacketParser::from_buffered_reader(input)?;
 
   loop {
-    write!(output, "{}: ", input)?;
+    if let Some(input_filename) = input_filename {
+        write!(output, "{}: ", input_filename)?;
+    }
 
     let mut type_called = false;  // Did we print the type yet?
     let mut encrypted = false;    // Is it an encrypted message?
@@ -200,7 +228,10 @@ pub fn dispatch(config: Config, c: inspect::Command)
             writeln!(output, "  Cert: {}", is_cert.as_ref().unwrap_err())?;
             writeln!(output, "  Keyring: {}", is_keyring.as_ref().unwrap_err())?;
             writeln!(output)?;
-            writeln!(output, "Hint: Try 'sq toolbox packet dump {}'", input)?;
+            if let Some(filename) = input_filename {
+                writeln!(output, "Hint: Try 'sq toolbox packet dump {}'",
+                         filename)?;
+            }
         }
 
         // See if there is another armor block.

@@ -6,6 +6,7 @@ use sequoia_net::pks;
 use sequoia_openpgp as openpgp;
 use openpgp::types::SymmetricAlgorithm;
 use openpgp::fmt::hex;
+use openpgp::KeyHandle;
 use openpgp::crypto::{self, SessionKey, Decryptor, Password};
 use openpgp::{Fingerprint, Cert, KeyID, Result};
 use openpgp::packet;
@@ -18,10 +19,15 @@ use openpgp::parse::{
 use openpgp::parse::stream::{
     VerificationHelper, DecryptionHelper, DecryptorBuilder, MessageStructure,
 };
+use sequoia_openpgp::types::KeyFlags;
+
+use sequoia_cert_store as cert_store;
+use cert_store::store::StoreError;
 
 use sequoia_keystore as keystore;
 
 use crate::{
+    best_effort_primary_uid,
     cli,
     commands::{
         VHelper,
@@ -445,6 +451,54 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
         }
 
         if skesks.is_empty() {
+            let recipients = pkesks.iter()
+                .filter_map(|p| {
+                    let recipient = p.recipient();
+                    if recipient.is_wildcard() {
+                        None
+                    } else {
+                        Some(recipient)
+                    }
+                });
+            wprintln!("No key to decrypt message.  The message appears \
+                       to be encrypted to:");
+            eprintln!();
+            for recipient in recipients.into_iter() {
+                let certs = self.config.lookup(
+                    std::iter::once(KeyHandle::from(recipient)),
+                    Some(KeyFlags::empty()
+                         .set_storage_encryption()
+                         .set_transport_encryption()),
+                    false,
+                    true);
+
+                match certs {
+                    Ok(certs) => {
+                        for cert in certs {
+                            eprintln!("  - {}, {}",
+                                      cert.fingerprint(),
+                                      best_effort_primary_uid(
+                                          Some(self.config),
+                                          &cert,
+                                          self.config.policy,
+                                          self.config.time));
+                        }
+                    }
+                    Err(err) => {
+                        if let Some(StoreError::NotFound(_))
+                            = err.downcast_ref()
+                        {
+                            eprintln!("  - {}, certificate not found",
+                                      recipient);
+                        } else {
+                            eprintln!("  - {}, error looking up certificate: {}",
+                                      recipient, err);
+                        }
+                    }
+                };
+            }
+            eprintln!();
+
             return
                 Err(anyhow::anyhow!("No key to decrypt message"));
         }

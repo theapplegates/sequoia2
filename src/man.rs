@@ -510,6 +510,7 @@ struct CommandOption {
     short: Option<String>,
     long: Option<String>,
     value_names: Values,
+    possible_values: Vec<String>,
     help: Option<String>,
 }
 
@@ -580,6 +581,8 @@ impl CommandOption {
             short: arg.get_short().map(|o| format!("-{}", o)),
             long: arg.get_long().map(|o| format!("--{}", o)),
             value_names,
+            possible_values: arg.get_possible_values().iter()
+                .map(|o| o.get_name().into()).collect(),
             help: arg.get_long_help().or(arg.get_help())
                 .map(|s| s.to_string()),
         }
@@ -721,6 +724,20 @@ impl ManualPage {
         }
 
         self.tagged_paragraph(line, &opt.help);
+
+        if ! opt.possible_values.is_empty() {
+            self.indented_paragraph();
+            let mut line = vec![];
+            line.push(roman("[possible values: "));
+            for (i, v) in opt.possible_values.iter().enumerate() {
+                if i > 0 {
+                    line.push(roman(", "));
+                }
+                line.push(bold(v));
+            }
+            line.push(roman("]"));
+            self.roff.text(line);
+        }
     }
 
     /// Typeset an EXIT STATUS section, if available.
@@ -850,6 +867,11 @@ impl ManualPage {
     /// Start a new paragraph with the PP troff command.
     fn paragraph(&mut self) {
         self.roff.control("PP", []);
+    }
+
+    /// Start a new indented paragraph with the IP troff command.
+    fn indented_paragraph(&mut self) {
+        self.roff.control("IP", []);
     }
 
     /// Start a tagged paragraph with th TP troff command.

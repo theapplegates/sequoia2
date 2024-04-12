@@ -16,9 +16,10 @@ use crate::Config;
 use crate::cli::types::FileOrStdout;
 use crate::cli;
 use crate::ImportStatus;
+use crate::commands::inspect::inspect;
 
 pub fn generate(
-    config: Config,
+    mut config: Config,
     command: cli::key::GenerateCommand,
 ) -> Result<()> {
     let mut builder = CertBuilder::new();
@@ -184,6 +185,24 @@ pub fn generate(
                 }
             }
         }
+    }
+
+    {
+        let mut bytes = Vec::new();
+        cert.as_tsk().serialize(&mut bytes)
+            .expect("serializing to a vector is infallible");
+
+        inspect(
+            &mut config,
+            buffered_reader::Memory::with_cookie(&bytes, Default::default()),
+            command.output
+                .as_ref()
+                .and_then(|output| {
+                    output.path().map(|p| p.display().to_string())
+                })
+                .as_deref(),
+            &mut (Box::new(std::io::stderr()) as Box<dyn std::io::Write + Send + Sync>),
+            false);
     }
 
     if on_keystore {

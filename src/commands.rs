@@ -598,8 +598,8 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
 
                     let userids = if let Some(userid) = sig.signers_user_id() {
                         let userid = UserID::from(userid);
-                        qprintln!("{}Signature was made by {}",
-                                  prefix,
+                        wprintln!(indent=prefix,
+                                  "Signature was made by {}",
                                   String::from_utf8_lossy(userid.value()));
                         vec![ userid ]
                     } else {
@@ -607,9 +607,10 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                     };
 
                     if userids.is_empty() {
-                        qprintln!("{}{} cannot be authenticated.  \
+                        wprintln!(indent=prefix,
+                                  "{} cannot be authenticated.  \
                                    It has no User IDs",
-                                  prefix, cert_fpr);
+                                  cert_fpr);
                     } else if let Ok(n) = sequoia_wot::Network::new(&cert_store) {
                         let mut q = sequoia_wot::QueryBuilder::new(&n);
                         q.roots(sequoia_wot::Roots::new(trust_roots.into_iter()));
@@ -627,27 +628,27 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
 
                                 let amount = paths.amount();
                                 let authenticated = if amount >= sequoia_wot::FULLY_TRUSTED {
-                                    qprintln!("{}Fully authenticated \
+                                    wprintln!(indent=prefix,
+                                              "Fully authenticated \
                                                ({} of {}) {}, {}",
-                                              prefix,
                                               amount,
                                               sequoia_wot::FULLY_TRUSTED,
                                               cert_fpr,
                                               userid_str);
                                     true
                                 } else if amount > 0 {
-                                    qprintln!("{}Partially authenticated \
+                                    wprintln!(indent=prefix,
+                                              "Partially authenticated \
                                                ({} of {}) {}, {:?} ",
-                                              prefix,
                                               amount,
                                               sequoia_wot::FULLY_TRUSTED,
                                               cert_fpr,
                                               userid_str);
                                     false
                                 } else {
-                                    qprintln!("{}{}: {:?} is unauthenticated \
+                                    wprintln!(indent=prefix,
+                                              "{}: {:?} is unauthenticated \
                                                and may be an impersonation!",
-                                              prefix,
                                               cert_fpr,
                                               userid_str);
                                     false
@@ -696,31 +697,41 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
             let level = sig.level();
             match (level == 0, trusted) {
                 (true,  true)  => {
-                    qprintln!("{}Good signature from {} ({:?})",
-                              prefix, label, signer_userid);
+                    wprintln!(indent=prefix,
+                              "Good signature from {} ({:?})",
+                              label, signer_userid);
                 }
                 (false, true)  => {
-                    qprintln!("{}Good level {} notarization from {} ({:?})",
-                              prefix, level, label, signer_userid);
+                    wprintln!(indent=prefix,
+                              "Good level {} notarization from {} ({:?})",
+                              level, label, signer_userid);
                 }
                 (true,  false) => {
-                    qprintln!("{}Unauthenticated checksum from {} ({:?})",
-                              prefix, label, signer_userid);
-                    qprintln!("{}  After checking that {} belongs to {:?}, \
-                               you can authenticate the binding using \
-                               'sq link add {} {:?}'.",
-                              prefix, issuer_str, signer_userid,
+                    wprintln!(indent=prefix,
+                              "Unauthenticated checksum from {} ({:?})",
+                              label, signer_userid);
+                    eprintln!();
+                    wprintln!(indent=prefix,
+                              "After checking that {} belongs to {:?}, \
+                               you can authenticate the binding using:",
                               issuer_str, signer_userid);
+                    eprintln!();
+                    eprintln!("{}  $ sq pki link add {} {:?}",
+                              prefix, issuer_str, signer_userid);
                 }
                 (false, false) => {
-                    qprintln!("{}Unauthenticated level {} notarizing \
+                    wprintln!(indent=prefix,
+                              "Unauthenticated level {} notarizing \
                                checksum from {} ({:?})",
-                              prefix, level, label, signer_userid);
-                    qprintln!("{}  After checking that {} belongs to {:?}, \
-                               you can authenticate the binding using \
-                               'sq link add {} {:?}'.",
-                              prefix, issuer_str, signer_userid,
+                              level, label, signer_userid);
+                    eprintln!();
+                    wprintln!(indent=prefix,
+                              "After checking that {} belongs to {:?}, \
+                               you can authenticate the binding using:",
                               issuer_str, signer_userid);
+                    eprintln!();
+                    eprintln!("{}  $ sq pki link add {} {:?}",
+                              prefix, issuer_str, signer_userid);
                 }
             };
 

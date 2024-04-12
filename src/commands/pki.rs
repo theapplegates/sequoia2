@@ -85,6 +85,7 @@ fn authenticate<'store, 'rstore>(
     trust_amount: Option<TrustAmount<usize>>,
     userid: Option<&UserID>,
     certificate: Option<&KeyHandle>,
+    show_paths: bool,
 ) -> Result<()>
     where 'store: 'rstore,
 {
@@ -301,9 +302,17 @@ fn authenticate<'store, 'rstore>(
             as Box<dyn output::OutputType>
         }
         _ => {
-            Box::new(
-                output::HumanReadableOutputNetwork::new(required_amount, gossip)
-            )
+            if show_paths {
+                Box::new(
+                    output::HumanReadableOutputNetwork::new(
+                        required_amount, gossip))
+                    as Box<dyn output::OutputType>
+            } else {
+                Box::new(
+                    output::ConciseHumanReadableOutputNetwork::new(
+                        &config, required_amount))
+                    as Box<dyn output::OutputType>
+            }
         }
     };
 
@@ -629,36 +638,37 @@ pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
         // Authenticate a given binding.
         Subcommands::Authenticate(AuthenticateCommand {
             email, gossip, certification_network, trust_amount,
-            cert, userid,
+            cert, userid, show_paths,
         }) => authenticate(
             config, false, None,
             *email, *gossip, *certification_network, *trust_amount,
-            Some(&userid), Some(&cert))?,
+            Some(&userid), Some(&cert), *show_paths,
+        )?,
 
         // Find all authenticated bindings for a given User ID, list
         // the certificates.
         Subcommands::Lookup(LookupCommand {
             email, gossip, certification_network, trust_amount,
-            userid,
+            userid, show_paths,
         }) => authenticate(
             config, false, None,
             *email, *gossip, *certification_network, *trust_amount,
-            Some(&userid), None)?,
+            Some(&userid), None, *show_paths)?,
 
         // Find and list all authenticated bindings for a given
         // certificate.
         Subcommands::Identify(IdentifyCommand {
             gossip, certification_network, trust_amount,
-            cert,
+            cert, show_paths,
         }) => authenticate(
             config, false, None,
             false, *gossip, *certification_network, *trust_amount,
-            None, Some(&cert))?,
+            None, Some(&cert), *show_paths)?,
 
         // List all authenticated bindings.
         Subcommands::List(ListCommand {
             email, gossip, certification_network, trust_amount,
-            pattern,
+            pattern, show_paths,
         }) => if let Some(handle) = pattern.as_ref()
             .and_then(|p| p.parse().ok())
             .iter().filter(|_| ! *email).next()
@@ -668,12 +678,12 @@ pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
             authenticate(
                 config, false, None,
                 false, *gossip, *certification_network, *trust_amount,
-                None, Some(&handle))?;
+                None, Some(&handle), *show_paths)?;
         } else {
             authenticate(
                 config, pattern.is_none(), pattern,
                 *email, *gossip, *certification_network, *trust_amount,
-                None, None)?;
+                None, None, *show_paths)?;
         },
 
         // Authenticates a given path.

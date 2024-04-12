@@ -17,6 +17,9 @@ pub use human_readable::print_path_error;
 pub use human_readable::print_path_header;
 pub use human_readable::HumanReadableOutputNetwork;
 
+mod concise_human_readable;
+pub use concise_human_readable::ConciseHumanReadableOutputNetwork;
+
 /// Trait to implement adding of Paths and outputting them in a specific format
 ///
 /// This trait is implemented to consume a vector of Path, trust amount tuples,

@@ -124,6 +124,10 @@ mod integration {
                 .arg("pki")
                 .arg(command)
                 .args(sqwot_args);
+            // We test the verbose output.  Enable it (when appropriate).
+            if ["authenticate", "lookup", "identify", "list"].contains(&command) {
+                cmd.arg("--show-paths");
+            }
             if let Some(target) = target {
                 cmd.arg(&target.to_string());
             }

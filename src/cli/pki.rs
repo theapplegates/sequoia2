@@ -114,6 +114,9 @@ test_examples!(sq_pki_authenticate, AUTHENTICATE_EXAMPLES);
 )]
 pub struct AuthenticateCommand {
     #[command(flatten)]
+    pub show_paths: ShowPathsArg,
+
+    #[command(flatten)]
     pub email: EmailArg,
 
     #[command(flatten)]
@@ -179,6 +182,9 @@ test_examples!(sq_pki_lookup, LOOKUP_EXAMPLES);
 )]
 pub struct LookupCommand {
     #[command(flatten)]
+    pub show_paths: ShowPathsArg,
+
+    #[command(flatten)]
     pub email: EmailArg,
 
     #[command(flatten)]
@@ -242,6 +248,9 @@ test_examples!(sq_pki_identify, IDENTIFY_EXAMPLES);
 )]
 pub struct IdentifyCommand {
     #[command(flatten)]
+    pub show_paths: ShowPathsArg,
+
+    #[command(flatten)]
     pub gossip: GossipArg,
 
     #[command(flatten)]
@@ -294,6 +303,9 @@ test_examples!(sq_pki_list, LIST_EXAMPLES);
     after_help = LIST_EXAMPLES,
 )]
 pub struct ListCommand {
+    #[command(flatten)]
+    pub show_paths: ShowPathsArg,
+
     #[command(flatten)]
     pub email: EmailArg,
 
@@ -567,5 +579,25 @@ impl Deref for RequiredTrustAmountArg {
 
     fn deref(&self) -> &Self::Target {
         &self.trust_amount
+    }
+}
+
+#[derive(clap::Args, Debug)]
+pub struct ShowPathsArg {
+    /// Show why a binding is authenticated.
+    ///
+    /// By default, only a user ID and certificate binding's degree of
+    /// authentication (a value between 0 and 120) is shown.  This
+    /// changes the output to also show how that value was computed by
+    /// showing the paths from the trust roots to the bindings.
+    #[arg(long)]
+    pub show_paths: bool,
+}
+
+impl Deref for ShowPathsArg {
+    type Target = bool;
+
+    fn deref(&self) -> &Self::Target {
+        &self.show_paths
     }
 }

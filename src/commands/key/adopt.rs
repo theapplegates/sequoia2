@@ -26,7 +26,7 @@ use crate::decrypt_key;
 pub fn adopt(config: Config, command: cli::key::AdoptCommand) -> Result<()>
 {
     let input = command.certificate.open()?;
-    let cert = Cert::from_reader(input)?;
+    let cert = Cert::from_buffered_reader(input)?;
     let mut wanted: Vec<(
         KeyHandle,
         Option<(

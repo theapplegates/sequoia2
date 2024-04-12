@@ -16,7 +16,7 @@ pub fn dispatch(
     let input = command.input.open()?;
     let mut output = command.output.create_safe(config.force)?;
 
-    let cert = Cert::from_reader(input)?;
+    let cert = Cert::from_buffered_reader(input)?;
     if command.binary {
         cert.serialize(&mut output)?;
     } else {

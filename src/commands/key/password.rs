@@ -15,7 +15,7 @@ pub fn password(
     command: cli::key::PasswordCommand,
 ) -> Result<()> {
     let input = command.input.open()?;
-    let key = Cert::from_reader(input)?;
+    let key = Cert::from_buffered_reader(input)?;
 
     if !key.is_tsk() {
         return Err(anyhow::anyhow!("Certificate has no secrets"));

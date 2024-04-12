@@ -228,7 +228,7 @@ fn subkey_add(
     command: SubkeyAddCommand,
 ) -> Result<()> {
     let input = command.input.open()?;
-    let cert = Cert::from_reader(input)?;
+    let cert = Cert::from_buffered_reader(input)?;
     let valid_cert = cert.with_policy(config.policy, config.time)?;
 
     let validity = command

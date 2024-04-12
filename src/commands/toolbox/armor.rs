@@ -29,7 +29,7 @@ fn detect_armor_kind(
     let dup = Dup::with_cookie(input, Cookie::default());
     let mut limitor = Limitor::with_cookie(
         dup, ARMOR_DETECTION_LIMIT, Cookie::default()).into_boxed();
-    let kind = match PacketParser::from_reader(&mut limitor) {
+    let kind = match PacketParser::from_buffered_reader(&mut limitor) {
         Ok(PacketParserResult::Some(pp)) => match pp.next() {
             Ok((Packet::Signature(_), _)) => armor::Kind::Signature,
             Ok((Packet::SecretKey(_), _)) => armor::Kind::SecretKey,
@@ -59,9 +59,9 @@ pub fn dispatch(config: Config, command: cli::toolbox::armor::Command)
         dup, ARMOR_DETECTION_LIMIT, Cookie::default());
     let (already_armored, have_kind) = {
         let mut reader =
-            armor::Reader::from_reader(
+            armor::Reader::from_buffered_reader(
                 &mut limitor,
-                armor::ReaderMode::Tolerant(None));
+                armor::ReaderMode::Tolerant(None))?;
         (reader.data(8).is_ok(), reader.kind())
     };
     let mut input =
@@ -91,9 +91,9 @@ pub fn dispatch(config: Config, command: cli::toolbox::armor::Command)
     if already_armored {
         // Dearmor and copy to change the type.
         let mut reader =
-            armor::Reader::from_reader(
+            armor::Reader::from_buffered_reader(
                 input,
-                armor::ReaderMode::Tolerant(None));
+                armor::ReaderMode::Tolerant(None))?;
         io::copy(&mut reader, &mut output)?;
     } else {
         io::copy(&mut input, &mut output)?;

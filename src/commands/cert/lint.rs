@@ -267,7 +267,7 @@ pub fn lint(config: Config, mut args: Command) -> Result<()> {
             Some(path) => path.display().to_string(),
             None => "/dev/stdin".to_string(),
         };
-        let certp = CertParser::from_reader(&mut input_reader)?;
+        let certp = CertParser::from_buffered_reader(&mut input_reader)?;
         'next_cert: for (certi, certo) in certp.enumerate() {
             match certo {
                 Err(err) => {

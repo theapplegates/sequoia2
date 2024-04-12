@@ -1,13 +1,13 @@
 use anyhow::Context;
 
-use buffered_reader::{BufferedReader, Dup, Generic};
+use buffered_reader::{BufferedReader, Dup};
 use sequoia_openpgp as openpgp;
 use openpgp::{
     Cert,
     Result,
     armor,
     packet::UserID,
-    parse::{Parse, stream::DecryptorBuilder},
+    parse::{Cookie, Parse, stream::DecryptorBuilder},
     serialize::Serialize,
 };
 use sequoia_autocrypt as autocrypt;
@@ -43,8 +43,7 @@ fn import<'store, 'rstore>(mut config: Config<'store, 'rstore>,
     let mut acc = Vec::new();
 
     // First, get the Autocrypt headers from the outside.
-    let input = Generic::new(input, None);
-    let mut dup = Dup::new(input);
+    let mut dup = Dup::with_cookie(input, Cookie::default());
     let ac = autocrypt::AutocryptHeaders::from_reader(&mut dup)?;
     let from = UserID::from(
         ac.from.as_ref().ok_or(anyhow::anyhow!("no From: header"))?
@@ -102,8 +101,7 @@ fn import<'store, 'rstore>(mut config: Config<'store, 'rstore>,
     helper.quiet(true);
 
     let policy = config.policy.clone();
-    let mut decryptor = match
-        DecryptorBuilder::from_reader(input)?
+    let mut decryptor = match DecryptorBuilder::from_buffered_reader(input)?
         .with_policy(&policy, None, helper)
         .context("Decryption failed")
     {
@@ -178,7 +176,7 @@ fn encode_sender(config: Config, command: &cli::autocrypt::EncodeSenderCommand)
 {
     let input = command.input.open()?;
     let mut output = command.output.create_safe(config.force)?;
-    let cert = Cert::from_reader(input)?;
+    let cert = Cert::from_buffered_reader(input)?;
     let addr = command.address.clone()
         .or_else(|| {
             cert.with_policy(config.policy, None)

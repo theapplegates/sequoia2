@@ -29,7 +29,7 @@ pub const NULL_POLICY: &NullPolicy = &NullPolicy::new();
 pub fn read_cert(input: Option<&Path>) -> Result<Cert> {
     let input = FileOrStdin::from(input).open()?;
 
-    let cert = CertParser::from_reader(input)?.collect::<Vec<_>>();
+    let cert = CertParser::from_buffered_reader(input)?.collect::<Vec<_>>();
     let cert = match cert.len() {
         0 => Err(anyhow!("No certificates provided."))?,
         1 => cert.into_iter().next().expect("have one")?,

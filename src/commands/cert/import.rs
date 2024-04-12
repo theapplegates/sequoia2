@@ -36,7 +36,7 @@ where 'store: 'rstore
     let inner = || -> Result<()> {
         for input in inputs.into_iter() {
             let input = FileOrStdin::from(input).open()?;
-            let raw_certs = RawCertParser::from_reader(input)?;
+            let raw_certs = RawCertParser::from_buffered_reader(input)?;
 
             let policy = config.policy.clone();
             let time = config.time;

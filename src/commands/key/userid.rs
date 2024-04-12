@@ -228,7 +228,7 @@ fn userid_add(
     command: cli::key::UseridAddCommand,
 ) -> Result<()> {
     let input = command.input.open()?;
-    let key = Cert::from_reader(input)?;
+    let key = Cert::from_buffered_reader(input)?;
 
     // Make sure the user IDs are in canonical form.  If not, and
     // `--allow-non-canonical-userids` is not set, error out.
@@ -393,7 +393,7 @@ fn userid_strip(
     command: cli::key::UseridStripCommand,
 ) -> Result<()> {
     let input = command.input.open()?;
-    let key = Cert::from_reader(input)?;
+    let key = Cert::from_buffered_reader(input)?;
 
     let orig_cert_valid = key.with_policy(config.policy, None).is_ok();
 

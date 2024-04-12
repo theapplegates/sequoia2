@@ -924,7 +924,7 @@ pub fn dispatch_keyserver(mut config: Config,
         })?,
         Publish(c) => rt.block_on(async {
             let mut input = c.input.open()?;
-            let cert = Arc::new(Cert::from_reader(&mut input).
+            let cert = Arc::new(Cert::from_buffered_reader(&mut input).
                 context("Malformed key")?);
 
             let mut requests = tokio::task::JoinSet::new();
@@ -1048,7 +1048,7 @@ pub fn dispatch_wkd(mut config: Config, c: cli::network::wkd::Command)
             } else {
                 wkd::Variant::Advanced
             };
-            let parser = CertParser::from_reader(f)?;
+            let parser = CertParser::from_buffered_reader(f)?;
             let certs: Vec<Cert> = parser.filter_map(|cert| cert.ok())
                 .collect();
             for cert in certs {
@@ -1081,7 +1081,7 @@ pub fn dispatch_dane(mut config: Config, c: cli::network::dane::Command)
     use crate::cli::network::dane::Subcommands::*;
     match c.subcommand {
         Generate(c) => {
-            for cert in CertParser::from_reader(c.input.open()?)? {
+            for cert in CertParser::from_buffered_reader(c.input.open()?)? {
                 let cert = cert?;
                 let vc = match cert.with_policy(config.policy, config.time) {
                     Ok(vc) => vc,

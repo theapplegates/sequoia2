@@ -344,9 +344,9 @@ dependencies = [
 
 [[package]]
 name = "buffered-reader"
-version = "1.3.0"
+version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b9b0a25eb06e83579bc985d836e1e3b957a7201301b48538764d2b2e78090d4"
+checksum = "cd098763fdb64579407a8c83cf0d751e6d4a7e161d0114c89cc181a2ca760ec8"
 dependencies = [
  "bzip2",
  "flate2",

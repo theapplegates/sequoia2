@@ -14,7 +14,7 @@ pub fn dispatch(config: Config, command: cli::toolbox::dearmor::Command)
 
     let mut input = command.input.open()?;
     let mut output = command.output.create_safe(config.force)?;
-    let mut filter = armor::Reader::from_reader(&mut input, None);
+    let mut filter = armor::Reader::from_buffered_reader(&mut input, None)?;
     io::copy(&mut filter, &mut output)?;
 
     Ok(())

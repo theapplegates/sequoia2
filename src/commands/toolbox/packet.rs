@@ -110,7 +110,7 @@ pub fn split(_config: Config, c: SplitCommand) -> Result<()>
     // We (ab)use the mapping feature to create byte-accurate dumps of
     // nested packets.
     let mut ppr =
-        openpgp::parse::PacketParserBuilder::from_reader(input)?
+        openpgp::parse::PacketParserBuilder::from_buffered_reader(input)?
         .map(true).build()?;
 
     fn join(pos: &[usize], delimiter: &str) -> String {

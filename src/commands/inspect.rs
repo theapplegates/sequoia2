@@ -58,7 +58,7 @@ pub fn dispatch(config: Config, c: inspect::Command)
             }
         }
 
-        openpgp::parse::PacketParser::from_reader(input.open()?)?
+        openpgp::parse::PacketParser::from_buffered_reader(input.open()?)?
     } else {
         let cert_store = config.cert_store_or_else()?;
         for cert in c.cert.into_iter() {

@@ -16,7 +16,7 @@ pub fn attest_certifications(
     let all = !command.none; // All is the default.
 
     let input = command.key.open()?;
-    let key = Cert::from_reader(input)?;
+    let key = Cert::from_buffered_reader(input)?;
 
     // Get a signer.
     let mut passwords = Vec::new();

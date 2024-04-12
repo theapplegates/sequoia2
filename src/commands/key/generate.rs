@@ -192,7 +192,7 @@ pub fn generate(
         cert.as_tsk().serialize(&mut bytes)
             .expect("serializing to a vector is infallible");
 
-        inspect(
+        if let Err(err) = inspect(
             &mut config,
             buffered_reader::Memory::with_cookie(&bytes, Default::default()),
             command.output
@@ -202,7 +202,12 @@ pub fn generate(
                 })
                 .as_deref(),
             &mut (Box::new(std::io::stderr()) as Box<dyn std::io::Write + Send + Sync>),
-            false);
+            false)
+        {
+            wprintln!("Failed to display key: {}", err);
+            wprintln!("This is probably a bug in sq, please report it to \
+                       https://gitlab.com/sequoia-pgp/sequoia-sq/-/issues/new .");
+        }
     }
 
     if on_keystore {

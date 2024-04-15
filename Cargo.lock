@@ -1384,6 +1384,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "gethostname"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0176e0459c2e4a1fe232f984bca6890e681076abb9934f6cea7c326f3fc47818"
+dependencies = [
+ "libc",
+ "windows-targets 0.48.5",
+]
+
+[[package]]
 name = "getopts"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2326,9 +2336,9 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "openpgp-cert-d"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c2c3b55a1bd2b7b15b1d969fcde543bf6b679294f9efd3c2360459d49ae62ce"
+checksum = "c94a97687feb8838a6b2b47dbad623f269788f27f3fab90b1dc4a575295def1e"
 dependencies = [
  "anyhow",
  "dirs",
@@ -3111,13 +3121,14 @@ dependencies = [
 
 [[package]]
 name = "sequoia-cert-store"
-version = "0.5.0"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e65486e541400d9d08559bfa6a57d9bb33e4678a378b9240cd7c370e2d9b4ae6"
+checksum = "83bd0304e4a7dc7af3aebb827ec3bf980b5e85d5a04c0c3bd9032e29d677e526"
 dependencies = [
  "anyhow",
  "crossbeam",
  "dirs",
+ "gethostname",
  "num_cpus",
  "openpgp-cert-d",
  "rayon",

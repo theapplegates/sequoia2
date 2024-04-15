@@ -2,6 +2,8 @@
 
 use std::collections::HashSet;
 use std::fmt;
+use std::fs::{self, DirEntry};
+use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
@@ -911,6 +913,7 @@ pub fn dispatch_keyserver(mut sq: Sq,
             Response::import_or_emit(sq, c.output, c.binary, certs)?;
             Result::Ok(())
         })?,
+
         Publish(c) => rt.block_on(async {
             let mut input = c.input.open()?;
             let cert = Arc::new(Cert::from_buffered_reader(&mut input).
@@ -1058,8 +1061,164 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                 }
             }
         },
+
+        Publish(c) => {
+            use wkd::Variant;
+            let cert_store = sq.cert_store_or_else()?;
+            let insert = c.certs.iter()
+                .map(|fp| {
+                    let fp = fp.parse().with_context(
+                        || format!("Parsing {:?} as fingerprint", fp))?;
+                    cert_store.lookup_by_cert_fpr(&fp)
+                        .with_context(
+                            || format!("Looking up {} for insertion", fp))
+                })
+                .collect::<Result<Vec<_>>>()?;
+
+            // Strategy: We transfer the WKD to a temporary directory,
+            // read all the certs, update them from the local cert
+            // store, re-create the WKD hierarchy, then transfer it
+            // back.
+            let wd = tempfile::TempDir::new()?;
+
+            // First, fetch the WKD.
+            let fetch = wd.path().join("fetch");
+            fs::create_dir(&fetch)?;
+            let r = transfer(&c.rsync,
+                  &format!("{}/.well-known/openpgpkey", c.destination),
+                  &fetch.display().to_string())
+                .context("failed to copy the remote WKD hierarchy \
+                          to the local system");
+            if r.is_err() && c.create.is_none() {
+                return r;
+            }
+
+            // Detect the variant by locating the policy file.
+            let fetch = fetch.join("openpgpkey");
+            let direct_policy = fetch.join("policy");
+            let advanced_policy = fetch.join(&c.domain).join("policy");
+            let (variant, policy) = match (direct_policy.exists(),
+                                           advanced_policy.exists())
+            {
+                (true, false) => (Variant::Direct, Some(direct_policy)),
+                (false, true) => (Variant::Advanced, Some(advanced_policy)),
+                (false, false) => if let Some(m) = c.create {
+                    (m.into(), None)
+                } else {
+                    return Err(anyhow::anyhow!("No policy file found")
+                               .context("Neither direct nor advanced \
+                                         WKD detected"))
+                },
+                (true, true) =>
+                    return Err(anyhow::anyhow!("Two policy files found")
+                               .context("Both direct and advanced \
+                                         WKD detected")),
+            };
+            let hu = match variant {
+                Variant::Direct => fetch.join("hu"),
+                Variant::Advanced => fetch.join(&c.domain).join("hu"),
+            };
+
+            // Now re-create the WKD hierarchy while updating the certs.
+            let push = wd.path().join("push");
+            let push_wk = push.join(".well-known");
+            let push_openpgpkey = push_wk.join("openpgpkey");
+            fs::create_dir(&push)?;
+            visit_dirs(&hu, &|entry: &DirEntry| -> Result<()> {
+                let p = entry.path();
+                for cert in CertParser::from_reader(fs::File::open(p)?)? {
+                    let mut cert = cert?;
+                    if let Ok(update) =
+                        cert_store.lookup_by_cert_fpr(&cert.fingerprint())
+                    {
+                        cert = cert.merge_public(update.to_cert()?.clone())?;
+                    }
+
+                    wkd::insert(&push, &c.domain, variant, &cert)?;
+                }
+                Ok(())
+            })?;
+
+            // Insert the new ones, if any.
+            for cert in insert {
+                wkd::insert(&push, &c.domain, variant, cert.to_cert()?)?;
+            }
+
+            // Preserve the original policy file, if any.
+            if let Some(policy) = policy {
+                match variant {
+                    Variant::Direct => fs::copy(
+                        policy,
+                        push_openpgpkey.join("policy"))?,
+                    Variant::Advanced => fs::copy(
+                        policy,
+                        push_openpgpkey.join(&c.domain).join("policy"))?,
+                };
+            }
+
+            // Finally, transfer the WKD hierarchy back.
+            transfer(&c.rsync, &push_wk.display().to_string(),
+                     &format!("{}", c.destination))
+                .context("failed to copy the local WKD hierarchy \
+                          to the remote system")?;
+        },
     }
 
+    Ok(())
+}
+
+fn transfer(rsync_bin: &Option<String>, source: &str, destination: &str)
+            -> Result<()>
+{
+    if let Some(r) = rsync_bin {
+        rsync(r, source, destination)
+    } else {
+        copy(source, destination)
+    }
+}
+
+fn copy(source: &str, destination: &str) -> Result<()> {
+    let options = fs_extra::dir::CopyOptions::new()
+        .overwrite(true)
+    //.content_only(true)
+    //.copy_inside(true)
+        ;
+
+    std::fs::create_dir_all(destination)?;
+    fs_extra::dir::copy(source, destination, &options)?;
+    Ok(())
+}
+
+fn rsync(rsync: &str, source: &str, destination: &str) -> Result<()> {
+    use std::process::Command;
+
+    let status = Command::new(rsync)
+        .arg("--recursive")
+        .arg(source)
+        .arg(destination)
+        .spawn()?
+        .wait()?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!("rsync failed"))
+    }
+}
+
+// one possible implementation of walking a directory only visiting files
+fn visit_dirs(dir: &Path, cb: &dyn Fn(&DirEntry) -> Result<()>) -> Result<()> {
+    if dir.is_dir() {
+        for entry in fs::read_dir(dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                visit_dirs(&path, cb)?;
+            } else {
+                cb(&entry)?;
+            }
+        }
+    }
     Ok(())
 }
 

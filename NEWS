@@ -103,6 +103,9 @@
 
    - When showing a user ID for a certificate, choose the one that is
      most authenticated.
+
+   - `sq network wkd publish` publishes and updates WKD hierarchies
+     via rsync.
 * Changes in 0.33.0
 ** Notable changes
    - The command line interface has been restructured.  Please consult

@@ -511,6 +511,7 @@ struct CommandOption {
     long: Option<String>,
     value_names: Values,
     possible_values: Vec<String>,
+    default_values: Vec<String>,
     help: Option<String>,
 }
 
@@ -583,6 +584,17 @@ impl CommandOption {
             value_names,
             possible_values: arg.get_possible_values().iter()
                 .map(|o| o.get_name().into()).collect(),
+            default_values: if arg.get_num_args()
+                .map(|r| r.max_values() > 0).unwrap_or(false) {
+                    // At least one argument.
+                    arg.get_default_values().iter()
+                        .map(|s| s.to_string_lossy().to_string())
+                        .collect()
+                } else {
+                    // No argument, i.e. a flag.  We don't want to
+                    // output `[default: false]` in that case.
+                    vec![]
+                },
             help: arg.get_long_help().or(arg.get_help())
                 .map(|s| s.to_string()),
         }
@@ -724,6 +736,20 @@ impl ManualPage {
         }
 
         self.tagged_paragraph(line, &opt.help);
+
+        if ! opt.default_values.is_empty() {
+            self.indented_paragraph();
+            let mut line = vec![];
+            line.push(roman("[default: "));
+            for (i, v) in opt.default_values.iter().enumerate() {
+                if i > 0 {
+                    line.push(roman(", "));
+                }
+                line.push(bold(v));
+            }
+            line.push(roman("]"));
+            self.roff.text(line);
+        }
 
         if ! opt.possible_values.is_empty() {
             self.indented_paragraph();

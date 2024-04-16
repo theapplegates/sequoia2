@@ -27,6 +27,7 @@ use cert_store::Store;
 
 use crate::Convert;
 
+use crate::best_effort_primary_uid_for;
 use crate::Config;
 use crate::one_line_error_chain;
 use crate::SECONDS_IN_YEAR;
@@ -129,6 +130,7 @@ where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
                         std::mem::take(&mut packets));
                     let cert = openpgp::Cert::try_from(pp)?;
                     inspect_cert(
+                        config,
                         config.policy,
                         time,
                         output,
@@ -193,7 +195,7 @@ where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
             for pkesk in pkesks.iter() {
                 writeln!(output, "      Recipient: {}", pkesk.recipient())?;
             }
-            inspect_signatures(output, &sigs)?;
+            inspect_signatures(config, output, &sigs)?;
             if ! literal_prefix.is_empty() {
                 writeln!(output, "           Data: {:?}{}",
                          String::from_utf8_lossy(&literal_prefix),
@@ -203,14 +205,15 @@ where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
         } else if is_cert.is_ok() || is_keyring.is_ok() {
             let pp = openpgp::PacketPile::from(packets);
             let cert = openpgp::Cert::try_from(pp)?;
-            inspect_cert(config.policy, time, output, &cert, print_certifications)?;
+            inspect_cert(config, config.policy, time, output, &cert,
+                         print_certifications)?;
         } else if packets.is_empty() && ! sigs.is_empty() {
             if sigs.iter().all(is_revocation_sig) {
                 writeln!(output, "Revocation Certificate{}.",
                          if sigs.len() > 1 { "s" } else { "" })?;
                 writeln!(output)?;
                 for sig in sigs {
-                    inspect_bare_revocation(output, &sig)?;
+                    inspect_bare_revocation(config, output, &sig)?;
                 }
                 writeln!(output, "           Note: \
                                   Signatures have NOT been verified!")?;
@@ -218,7 +221,7 @@ where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
                 writeln!(output, "Detached signature{}.",
                          if sigs.len() > 1 { "s" } else { "" })?;
                 writeln!(output)?;
-                inspect_signatures(output, &sigs)?;
+                inspect_signatures(config, output, &sigs)?;
             }
         } else if packets.is_empty() {
             writeln!(output, "No OpenPGP data.")?;
@@ -283,6 +286,7 @@ fn is_revocation_cert(c: &Cert) -> bool {
 }
 
 fn inspect_cert(
+    config: &mut Config,
     policy: &dyn Policy,
     time: Option<SystemTime>,
     output: &mut dyn io::Write,
@@ -300,6 +304,7 @@ fn inspect_cert(
     writeln!(output, "    Fingerprint: {}", cert.fingerprint())?;
     inspect_revocation(output, "", cert.revocation_status(policy, None))?;
     inspect_key(
+        config,
         policy,
         time,
         output,
@@ -321,6 +326,7 @@ fn inspect_cert(
             Err(e) => print_error_chain(output, &e)?,
         }
         inspect_key(
+            config,
             policy,
             time,
             output,
@@ -351,7 +357,7 @@ fn inspect_cert(
             }
             Err(e) => print_error_chain(output, &e)?,
         }
-        inspect_certifications(output, policy,
+        inspect_certifications(config, output, policy,
                                uidb.certifications(),
                                print_certifications)?;
         writeln!(output)?;
@@ -369,7 +375,7 @@ fn inspect_cert(
             }
             Err(e) => print_error_chain(output, &e)?,
         }
-        inspect_certifications(output, policy,
+        inspect_certifications(config, output, policy,
                                uab.certifications(),
                                print_certifications)?;
         writeln!(output)?;
@@ -385,7 +391,7 @@ fn inspect_cert(
             }
             Err(e) => print_error_chain(output, &e)?,
         }
-        inspect_certifications(output, policy,
+        inspect_certifications(config, output, policy,
                                ub.certifications(),
                                print_certifications)?;
         writeln!(output)?;
@@ -399,6 +405,7 @@ fn inspect_cert(
 }
 
 fn inspect_key(
+    config: &mut Config,
     policy: &dyn Policy,
     time: Option<SystemTime>,
     output: &mut dyn io::Write,
@@ -453,7 +460,7 @@ fn inspect_key(
             writeln!(output, "{}      Key flags: {}", indent, flags)?;
         }
     }
-    inspect_certifications(output, policy,
+    inspect_certifications(config, output, policy,
                            bundle.certifications().iter(),
                            print_certifications)?;
 
@@ -512,10 +519,11 @@ fn inspect_revocation(output: &mut dyn io::Write,
     Ok(())
 }
 
-fn inspect_bare_revocation(output: &mut dyn io::Write, sig: &Signature)
+fn inspect_bare_revocation(config: &mut Config,
+                           output: &mut dyn io::Write, sig: &Signature)
                            -> Result<()> {
     let indent = "";
-    inspect_issuers(output, &sig)?;
+    inspect_issuers(config, output, &sig)?;
     writeln!(output, "{}                 Possible revocation:", indent)?;
     print_reasons(output, indent, false, &[sig])?;
     writeln!(output)?;
@@ -553,7 +561,8 @@ fn inspect_key_flags(flags: openpgp::types::KeyFlags) -> Option<String> {
     }
 }
 
-fn inspect_signatures(output: &mut dyn io::Write,
+fn inspect_signatures(config: &mut Config,
+                      output: &mut dyn io::Write,
                       sigs: &[openpgp::packet::Signature]) -> Result<()> {
     use openpgp::types::SignatureType::*;
     for sig in sigs {
@@ -563,7 +572,7 @@ fn inspect_signatures(output: &mut dyn io::Write,
                 writeln!(output, "           Kind: {}", signature_type)?,
         }
 
-        inspect_issuers(output, &sig)?;
+        inspect_issuers(config, output, &sig)?;
     }
     if ! sigs.is_empty() {
         writeln!(output, "           Note: \
@@ -573,29 +582,38 @@ fn inspect_signatures(output: &mut dyn io::Write,
     Ok(())
 }
 
-fn inspect_issuers(output: &mut dyn io::Write,
+fn inspect_issuers(config: &mut Config,
+                   output: &mut dyn io::Write,
                    sig: &Signature) -> Result<()> {
     let mut fps: Vec<_> = sig.issuer_fingerprints().collect();
     fps.sort();
     fps.dedup();
-    let fps: Vec<KeyHandle> = fps.into_iter().map(|fp| fp.into()).collect();
-    for fp in fps.iter() {
-        writeln!(output, " Alleged signer: {}", fp)?;
+    let khs: Vec<KeyHandle> = fps.into_iter().map(|fp| fp.into()).collect();
+    for kh in khs.iter() {
+        writeln!(output, " Alleged signer: {}, {}",
+                 kh,
+                 best_effort_primary_uid_for(
+                     Some(config), kh, config.policy, config.time))?;
     }
 
     let mut keyids: Vec<_> = sig.issuers().collect();
     keyids.sort();
     keyids.dedup();
     for keyid in keyids {
-        if ! fps.iter().any(|fp| fp.aliases(&keyid.into())) {
-            writeln!(output, " Alleged signer: {}", keyid)?;
+        if ! khs.iter().any(|kh| kh.aliases(&keyid.into())) {
+            writeln!(output, " Alleged signer: {}, {}",
+                     keyid,
+                     best_effort_primary_uid_for(
+                         Some(config), &KeyHandle::from(keyid),
+                         config.policy, config.time))?;
         }
     }
 
     Ok(())
 }
 
-fn inspect_certifications<'a, A>(output: &mut dyn io::Write,
+fn inspect_certifications<'a, A>(config: &mut Config,
+                                 output: &mut dyn io::Write,
                                  policy: &dyn Policy,
                                  certs: A,
                                  print_certifications: bool)
@@ -675,17 +693,24 @@ fn inspect_certifications<'a, A>(output: &mut dyn io::Write,
             let mut fps: Vec<_> = sig.issuer_fingerprints().collect();
             fps.sort();
             fps.dedup();
-            let fps: Vec<KeyHandle> = fps.into_iter().map(|fp| fp.into()).collect();
-            for fp in fps.iter() {
-                writeln!(output, "{}Alleged certifier: {}", indent, fp)?;
+            let khs: Vec<KeyHandle> = fps.into_iter().map(|fp| fp.into()).collect();
+            for kh in khs.iter() {
+                writeln!(output, "{}Alleged certifier: {}, {}",
+                         indent, kh,
+                         best_effort_primary_uid_for(
+                             Some(config), kh,
+                             config.policy, config.time))?;
             }
             let mut keyids: Vec<_> = sig.issuers().collect();
             keyids.sort();
             keyids.dedup();
             for keyid in keyids {
-                if ! fps.iter().any(|fp| fp.aliases(&keyid.into())) {
-                    writeln!(output, "{}Alleged certifier: {}", indent,
-                             keyid)?;
+                if ! khs.iter().any(|kh| kh.aliases(&keyid.into())) {
+                    writeln!(output, "{}Alleged certifier: {}, {}", indent,
+                             keyid,
+                             best_effort_primary_uid_for(
+                                 Some(config), &KeyHandle::from(keyid),
+                                 config.policy, config.time))?;
                 }
             }
 

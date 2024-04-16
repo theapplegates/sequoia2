@@ -24,6 +24,7 @@ pub struct ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore> {
     config: &'a Config<'store, 'rstore>,
     required_amount: usize,
     current_cert: Option<Cert>,
+    bindings_shown: usize,
 }
 
 impl<'a, 'store, 'rstore> ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore> {
@@ -36,6 +37,7 @@ impl<'a, 'store, 'rstore> ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore>
             config,
             required_amount,
             current_cert: None,
+            bindings_shown: 0,
         }
     }
 }
@@ -128,6 +130,8 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
                   },
                   String::from_utf8_lossy(userid.value()));
 
+        self.bindings_shown += 1;
+
         Ok(())
     }
 
@@ -136,6 +140,10 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
     /// This function does in fact nothing as we are printing directly in
     /// add_paths().
     fn finalize(&mut self) -> Result<()> {
+        if self.bindings_shown == 0 {
+            return Ok(());
+        }
+
         eprintln!();
         eprintln!("To view why a user ID is considered valid, pass \
                    `--show-paths`");

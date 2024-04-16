@@ -118,44 +118,15 @@ fn authenticate<'store, 'rstore>(
     let required_amount =
         required_trust_amount(trust_amount, certification_network)?;
 
+    let mut certificate_dealiased = None;
     let fingerprint: Option<Fingerprint> = if let Some(kh) = certificate {
-        Some(match kh {
-            KeyHandle::Fingerprint(fpr) => {
-                // If the certificate doesn't exist, error out now.
-                let _ = q.network().lookup_synopsis_by_fpr(fpr)
-                    .map_err(|err| {
-                        if let Some(StoreError::NotFound(_)) = err.downcast_ref() {
-                            wprintln!("There are no certificates with the \
-                                       specified fingerprint.  \
-                                       Run `sq network fetch {}` to look for \
-                                       matching certificates on public \
-                                       directories.",
-                                      fpr);
-                        }
-                        err
-                    })?;
-                fpr.clone()
-            },
-            kh @ KeyHandle::KeyID(_) => {
-                let certs = q.network().lookup_synopses(kh)
-                    .or_else(|err| {
-                        if let Some(StoreError::NotFound(_)) = err.downcast_ref() {
-                            Ok(Vec::new())
-                        } else {
-                            Err(err)
-                        }
-                    })?;
-                if certs.is_empty() {
-                    wprintln!("There are no certificates with the \
-                               specified key ID.  \
-                               Run `sq network fetch {}` to look for \
-                               matching certificates on public directories.",
-                              kh);
-                    return Err(StoreError::NotFound(kh.clone()).into());
-                }
+        match config.lookup(std::iter::once(kh), None, true, true) {
+            Ok(certs) => {
+                assert!(certs.len() >= 1);
+
                 if certs.len() > 1 {
                     return Err(anyhow::anyhow!(
-                        "The Key ID {} is ambiguous.  \
+                        "The key ID {} is ambiguous.  \
                          It could refer to any of the following \
                          certificates: {}.",
                         kh,
@@ -165,9 +136,36 @@ fn authenticate<'store, 'rstore>(
                             .join(", ")));
                 }
 
-                certs[0].fingerprint()
+                let fpr = certs[0].fingerprint();
+                if ! KeyHandle::from(&fpr).aliases(kh) {
+                    // XXX: If the subkey does not have a backsig,
+                    // then it doesn't authenticate the primary key,
+                    // and thus the authentication confidence must be
+                    // 0, and the certificate should only be shown
+                    // when `--gossip` is passed.
+                    eprintln!("Certificate {} contains the subkey {}.",
+                              fpr, kh);
+                }
+                certificate_dealiased = Some(KeyHandle::from(&fpr));
+                Some(fpr)
             }
-        })
+            Err(err) => {
+                if let Some(StoreError::NotFound(_)) = err.downcast_ref() {
+                    wprintln!("There are no certificates with the \
+                               specified {}.  \
+                               Run `sq network fetch {}` to look for \
+                               matching certificates on public \
+                               directories.",
+                              if let KeyHandle::Fingerprint(_) = kh {
+                                  "fingerprint"
+                              } else {
+                                  "key ID"
+                              },
+                              kh);
+                }
+                return Err(err);
+            }
+        }
     } else {
         None
     };
@@ -365,8 +363,8 @@ fn authenticate<'store, 'rstore>(
     // We didn't show anything.  Try to figure out what was wrong.
     if lint_input {
         // See if the target certificate exists.
-        if let Some(kh) = certificate {
-            match q.network().lookup_synopses(kh) {
+        if let Some(kh) = certificate_dealiased {
+            match q.network().lookup_synopses(&kh) {
                 Err(err) => {
                     wprintln!("Looking up target certificate ({}): {}",
                              kh, err);

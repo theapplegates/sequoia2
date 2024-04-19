@@ -603,7 +603,7 @@ fn sq_link_update_detection() -> Result<()> {
     Ok(())
 }
 
-// Check that sq link add --temporary works.
+// Check that sq pki link add --temporary works.
 #[test]
 fn sq_link_add_temporary() -> Result<()> {
     let dir = TempDir::new()?;

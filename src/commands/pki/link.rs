@@ -339,7 +339,7 @@ pub fn add(config: Config, c: link::AddCommand)
 
     let mut userids =
         check_userids(&config, &cert, true, &c.userid, &c.email, &c.pattern)
-            .context("sq link add: Invalid User IDs")?;
+            .context("sq pki link add: Invalid User IDs")?;
     userids.extend(c.petname.iter().map(|petname| {
         // If it is a bare email, we wrap it in angle brackets.
         if UserIDQueryParams::is_email(petname).is_ok() {
@@ -513,7 +513,7 @@ pub fn add(config: Config, c: link::AddCommand)
             } else {
                 wprintln!("Note: {:?} is NOT a self signed User ID.  \
                            If this was a mistake, use \
-                           `sq link retract {} \"{}\"` to undo it.",
+                           `sq pki link retract {} \"{}\"` to undo it.",
                           userid_str(), cert.fingerprint(), userid);
             }
 
@@ -619,7 +619,7 @@ pub fn retract(config: Config, c: link::RetractCommand)
 
     let mut userids =
         check_userids(&config, &cert, false, &c.userid, &c.email, &c.pattern)
-        .context("sq link retract: Invalid User IDs")?;
+        .context("sq pki link retract: Invalid User IDs")?;
 
     // Nothing was specified.  Retract all known User IDs.
     if userids.is_empty() {

@@ -573,9 +573,9 @@ impl Method {
             wprintln!(
                 "Created the local CA {} for certifying \
                  certificates downloaded from this service.  \
-                 Use `sq link add --ca '*' --amount N {}` \
+                 Use `sq pki link add --ca '*' --amount N {}` \
                  to change how much it is trusted.  Or \
-                 `sq link retract {}` to disable it.",
+                 `sq pki link retract {}` to disable it.",
                 if let Ok(cert) = cert.to_cert() {
                     // We really want the self-signed, primary user
                     // ID.
@@ -591,8 +591,8 @@ impl Method {
             MSG.call_once(|| {
                 wprintln!("Note: Created a local CA to record \
                            provenance information.\n\
-                           Note: See `sq link list --ca` \
-                           and `sq link --help` for more \
+                           Note: See `sq pki link list --ca` \
+                           and `sq pki link --help` for more \
                            information.");
             });
         }

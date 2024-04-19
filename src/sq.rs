@@ -997,7 +997,7 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
                          required level ({} of {}).  After checking \
                          that {} really controls {}, you could certify \
                          their certificate by running \
-                         `sq link add {} {:?}`.",
+                         `sq pki link add {} {:?}`.",
                         cert.fingerprint(),
                         String::from_utf8_lossy(userid.value()),
                         paths.amount(), wot::FULLY_TRUSTED,

@@ -105,9 +105,9 @@ pub struct FileOrStdin(Option<PathBuf>);
 
 impl ClapData for FileOrStdin {
     const VALUE_NAME: &'static str = "FILE";
-    const HELP_REQUIRED: &'static str =
-        "Read from FILE or stdin if FILE is '-'";
     const HELP_OPTIONAL: &'static str =
+        "Read from FILE or stdin if FILE is '-'";
+    const HELP_REQUIRED: &'static str =
         "Read from FILE or stdin if omitted";
 }
 

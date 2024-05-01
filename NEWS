@@ -5,6 +5,11 @@
 * Changes in 0.37.0
 ** Notable changes
    - Remove PKS support.
+   - `sq key userid add` can now use the certificate store and the
+     keystore.
+   - `sq key userid add` no longer accepts positional arguments.  The
+     user ID is provided by the `--userid` argument, and the
+     certificate by `--cert` or `--cert-file`.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

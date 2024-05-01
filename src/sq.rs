@@ -36,6 +36,7 @@ use sequoia_wot as wot;
 use wot::store::Store as _;
 
 use sequoia_keystore as keystore;
+use keystore::Protection;
 
 use crate::common::password;
 use crate::ImportStatus;
@@ -1024,13 +1025,104 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         let mut keys: Vec<(Box<dyn crypto::Signer + Send + Sync>,
                            Option<Password>)>
             = vec![];
-        'next_cert: for tsk in certs {
-            let tsk = tsk.borrow();
-            let vc = match tsk.with_policy(self.policy, self.time) {
+
+        let try_tsk = |ka: &ValidKeyAmalgamation<_, _, _>,
+                       keys: &Vec<(_, Option<Password>)>|
+            -> Result<(_, _)>
+        {
+            if let Some(secret) = ka.key().optional_secret() {
+                let (unencrypted, password) = match secret {
+                    SecretKeyMaterial::Encrypted(ref e) => {
+                        // try passwords from already existing keys
+                        match keys.iter().find_map(|(_, password)| {
+                            password.as_ref().and_then(
+                                |p| e.decrypt(ka.pk_algo(), p).ok()
+                                    .map(|key| (key, p.clone())))
+                        }) {
+                            Some((unencrypted, password)) =>
+                                (unencrypted, Some(password)),
+                            None => {
+                                let password = password::prompt_to_unlock(
+                                    &format!("key {}/{}",
+                                             ka.cert().keyid(),
+                                             ka.keyid()))?;
+                                (
+                                    e.decrypt(ka.pk_algo(), &password)
+                                        .map_err(|_| anyhow!("Incorrect password."))?,
+                                    Some(password),
+                                )
+                            }
+                        }
+                    }
+                    SecretKeyMaterial::Unencrypted(ref u) => (u.clone(), None),
+                };
+
+                Ok((
+                    Box::new(
+                        crypto::KeyPair::new(ka.key().clone(), unencrypted).unwrap()
+                    ),
+                    password,
+                ))
+            } else {
+                Err(anyhow!("No secret key material."))
+            }
+        };
+        let try_keystore = |ka: &ValidKeyAmalgamation<_, _, _>|
+            -> Result<(_, _)>
+        {
+            let ks = self.key_store_or_else()?;
+
+            let mut ks = ks.lock().unwrap();
+
+            let remote_keys = ks.find_key(ka.key_handle())?;
+
+            let uid = self.best_userid(ka.cert(), true);
+
+            // XXX: Be a bit smarter.  If there are multiple
+            // keys, sort them so that we try the easiest one
+            // first (available, no password).
+
+            'key: for mut key in remote_keys.into_iter() {
+                let password = if let Protection::Password(hint) = key.locked()? {
+                    if let Some(hint) = hint {
+                        eprintln!("{}", hint);
+                    }
+
+                    loop {
+                        let p = password::prompt_to_unlock(&format!(
+                            "Please enter the password to decrypt \
+                             the key {}/{}, {}",
+                            ka.cert().keyid(), ka.keyid(), uid))?;
+
+                        if p == "".into() {
+                            eprintln!("Giving up.");
+                            continue 'key;
+                        }
+
+                        match key.unlock(p.clone()) {
+                            Ok(()) => break Some(p),
+                            Err(err) => {
+                                eprintln!("Failed to unlock key: {}", err);
+                            }
+                        }
+                    }
+                } else {
+                    None
+                };
+
+                return Ok((Box::new(key), password));
+            }
+
+            Err(anyhow!("Key not managed by keystore."))
+        };
+
+        'next_cert: for cert in certs {
+            let cert = cert.borrow();
+            let vc = match cert.with_policy(self.policy, self.time) {
                 Ok(vc) => vc,
                 Err(err) => {
                     return Err(
-                        err.context(format!("Found no suitable key on {}", tsk)));
+                        err.context(format!("Found no suitable key on {}", cert)));
                 }
             };
 
@@ -1060,51 +1152,26 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     continue;
                 }
 
-                let key = ka.key();
-
-                if let Some(secret) = key.optional_secret() {
-                    let (unencrypted, password) = match secret {
-                        SecretKeyMaterial::Encrypted(ref e) => {
-                            // try passwords from already existing keys
-                            match keys.iter().find_map(|(_, password)| {
-                                password.as_ref().and_then(
-                                    |p| e.decrypt(key.pk_algo(), p).ok()
-                                        .map(|key| (key, p.clone())))
-                            }) {
-                                Some((unencrypted, password)) =>
-                                    (unencrypted, Some(password)),
-                                None => {
-                                    let password = password::prompt_to_unlock(
-                                        &format!("key {}/{}", tsk, key))?;
-                                    (
-                                        e.decrypt(key.pk_algo(), &password)
-                                            .map_err(|_| anyhow!("Incorrect password."))?,
-                                        Some(password),
-                                    )
-                                }
-                            }
-                        }
-                        SecretKeyMaterial::Unencrypted(ref u) => (u.clone(), None),
-                    };
-
-                    keys.push((
-                        Box::new(
-                            crypto::KeyPair::new(key.clone(), unencrypted).unwrap()
-                        ),
-                        password,
-                    ));
+                if let Ok((key, password)) = try_tsk(&ka, &keys) {
+                    keys.push((key, password));
+                    continue 'next_cert;
+                }
+                if let Ok((key, password)) = try_keystore(&ka) {
+                    keys.push((key, password));
                     continue 'next_cert;
                 }
             }
+
+            // We didn't get a key.  Lint the cert.
 
             let time = chrono::DateTime::<chrono::offset::Utc>::from(self.time);
 
             let mut context = Vec::new();
             for (fpr, [not_alive, revoked, not_supported]) in bad {
-                let id: String = if fpr == tsk.fingerprint() {
+                let id: String = if fpr == cert.fingerprint() {
                     fpr.to_string()
                 } else {
-                    format!("{}/{}", tsk.fingerprint(), fpr)
+                    format!("{}/{}", cert.fingerprint(), fpr)
                 };
 
                 let preface = if ! self.time_is_now {
@@ -1132,12 +1199,12 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
             if context.is_empty() {
                 return Err(anyhow::anyhow!(
-                    format!("Found no suitable key on {}", tsk)));
+                    format!("Found no suitable key on {}", cert)));
             } else {
                 let context = context.join("\n");
                 return Err(
                     anyhow::anyhow!(
-                        format!("Found no suitable key on {}", tsk))
+                        format!("Found no suitable key on {}", cert))
                         .context(context));
             }
         }

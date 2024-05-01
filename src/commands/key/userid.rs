@@ -1,4 +1,5 @@
 use std::str::from_utf8;
+use std::sync::Arc;
 use std::time::SystemTime;
 
 use anyhow::Context;
@@ -6,6 +7,7 @@ use anyhow::Context;
 use anyhow::anyhow;
 use itertools::Itertools;
 
+use sequoia_openpgp as openpgp;
 use openpgp::armor::Kind;
 use openpgp::armor::Writer;
 use openpgp::cert::amalgamation::ValidAmalgamation;
@@ -23,7 +25,9 @@ use openpgp::types::SignatureType;
 use openpgp::Cert;
 use openpgp::Packet;
 use openpgp::Result;
-use sequoia_openpgp as openpgp;
+
+use sequoia_cert_store as cert_store;
+use cert_store::StoreUpdate;
 
 use crate::Sq;
 use crate::cli::key::UseridRevokeCommand;
@@ -214,10 +218,24 @@ pub fn dispatch(
 
 fn userid_add(
     sq: Sq,
-    command: cli::key::UseridAddCommand,
+    mut command: cli::key::UseridAddCommand,
 ) -> Result<()> {
-    let input = command.input.open()?;
-    let key = Cert::from_buffered_reader(input)?;
+    let cert = if let Some(file) = command.cert_file {
+        // If `--output` is not specified, default to writing to
+        // stdout, not to the certificate store.
+        if command.output.is_none() {
+            command.output = Some(FileOrStdout::new(None));
+        }
+
+        let input = file.open()?;
+        Cert::from_buffered_reader(input)?
+    } else if let Some(kh) = command.cert {
+        sq.lookup_one(&kh, None, false)?
+    } else {
+        panic!("--cert or --cert-file is required");
+    };
+
+    let mut signer = sq.get_primary_key(&cert, None)?.0;
 
     // Make sure the user IDs are in canonical form.  If not, and
     // `--allow-non-canonical-userids` is not set, error out.
@@ -226,12 +244,12 @@ fn userid_add(
     }
 
     // Fail if any of the User IDs to add already exist in the ValidCert
-    let key_userids: Vec<_> =
-        key.userids().map(|u| u.userid().value()).collect();
+    let cert_userids: Vec<_> =
+        cert.userids().map(|u| u.userid().value()).collect();
     let exists: Vec<_> = command
         .userid
         .iter()
-        .filter(|s| key_userids.contains(&s.value()))
+        .filter(|s| cert_userids.contains(&s.value()))
         .collect();
     if !exists.is_empty() {
         return Err(anyhow::anyhow!(
@@ -240,19 +258,10 @@ fn userid_add(
         ));
     }
 
-    let mut pk = match sq.get_primary_key(&key, None) {
-        Ok((key, _password)) => {
-            key
-        }
-        Err(error) => {
-            return Err(error)
-        }
-    };
-
-    let vcert = key
+    let vcert = cert
         .with_policy(sq.policy, sq.time)
         .with_context(|| {
-            format!("Certificate {} is not valid", key.fingerprint())
+            format!("Certificate {} is not valid", cert.fingerprint())
         })?;
 
     // Use the primary User ID or direct key signature as template for the
@@ -347,19 +356,25 @@ fn userid_add(
         // Creation time.
         sb = sb.set_signature_creation_time(sq.time)?;
 
-        let binding = uid.bind(&mut pk, &key, sb.clone())?;
+        let binding = uid.bind(&mut signer, &cert, sb.clone())?;
         add.push(binding.into());
     }
 
-    // Merge additional User IDs into key
-    let cert = key.insert_packets(add)?;
+    // Merge the new User IDs into cert.
+    let cert = cert.insert_packets(add)?;
 
-    let mut sink = command.output.for_secrets().create_safe(sq.force)?;
-    if command.binary {
-        cert.as_tsk().serialize(&mut sink)?;
+    if let Some(output) = command.output {
+        let mut sink = output.for_secrets().create_safe(sq.force)?;
+        if command.binary {
+            cert.as_tsk().serialize(&mut sink)?;
+        } else {
+            cert.as_tsk().armored().serialize(&mut sink)?;
+        }
     } else {
-        cert.as_tsk().armored().serialize(&mut sink)?;
+        let cert_store = sq.cert_store_or_else()?;
+        cert_store.update(Arc::new(cert.into()))?;
     }
+
     Ok(())
 }
 

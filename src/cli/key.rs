@@ -15,6 +15,7 @@ use crate::cli::KEY_VALIDITY_IN_YEARS;
 use crate::cli::types::ClapData;
 use crate::cli::types::EncryptPurpose;
 use crate::cli::types::Expiry;
+use crate::cli::types::FileOrCertStore;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::Time;
@@ -639,21 +640,23 @@ $ sq key userid add --userid Juliet --creation-time 20210628 \\
    juliet.key.pgp --output juliet-new.key.pgp
 ",
 )]
+#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct UseridAddCommand {
     #[clap(
-        help = FileOrStdin::HELP_REQUIRED,
-        value_name = FileOrStdin::VALUE_NAME,
-    )]
-    pub input: FileOrStdin,
-    #[clap(
-        default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP_OPTIONAL,
         long,
-        short,
-        value_name = FileOrStdout::VALUE_NAME,
+        value_name = "FINGERPRINT|KEYID",
+        help = "Add the user ID to the specified certificate",
     )]
-    pub output: FileOrStdout,
+    pub cert: Option<KeyHandle>,
     #[clap(
+        long,
+        help = FileOrStdin::HELP_OPTIONAL,
+        value_name = FileOrStdin::VALUE_NAME,
+        conflicts_with = "cert",
+    )]
+    pub cert_file: Option<FileOrStdin>,
+    #[clap(
+        long,
         value_name = "USERID",
         required = true,
         help = "User ID to add",
@@ -667,6 +670,17 @@ pub struct UseridAddCommand {
                 `Name (Comment) <localpart@example.org>`.",
     )]
     pub allow_non_canonical_userids: bool,
+    #[clap(
+        help = "Write to the specified FILE.  If not specified, and the \
+                certificate was read from the certificate store, imports the \
+                modified certificate into the cert store.  If not specified, \
+                and the certificate was read from a file, writes the modified \
+                certificate to stdout.",
+        long,
+        short,
+        value_name = FileOrCertStore::VALUE_NAME,
+    )]
+    pub output: Option<FileOrStdout>,
     #[clap(
         short = 'B',
         long,

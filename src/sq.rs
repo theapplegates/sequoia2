@@ -11,7 +11,6 @@ use anyhow::Context as _;
 use std::borrow::Borrow;
 use std::collections::btree_map::{BTreeMap, Entry};
 use std::fmt;
-use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -440,15 +439,26 @@ pub struct Config<'store, 'rstore>
 /// Whether a cert or key was freshly imported, updated, or unchanged.
 ///
 /// Returned by [`Config::import_key`].
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum ImportStatus {
+    /// The certificate or key is unchanged.
+    Unchanged,
+
     /// The certificate or key is new.
     New,
 
     /// The certificate or key has been updated.
     Updated,
+}
 
-    /// The certificate or key is unchanged.
-    Unchanged,
+impl From<keystore::ImportStatus> for ImportStatus {
+    fn from(status: keystore::ImportStatus) -> ImportStatus {
+        match status {
+            keystore::ImportStatus::Unchanged => ImportStatus::Unchanged,
+            keystore::ImportStatus::New => ImportStatus::New,
+            keystore::ImportStatus::Updated => ImportStatus::Updated,
+        }
+    }
 }
 
 impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
@@ -685,7 +695,7 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
         } else if let Some(dir) = self.key_store_path.as_ref() {
             Ok(Some(dir.clone()))
         } else if let Some(dir) = dirs::data_dir() {
-            Ok(Some(dir.join("sequoia")))
+            Ok(Some(dir.join("sequoia/keystore")))
         } else {
             Err(anyhow::anyhow!(
                 "No key store, the XDG data directory is not defined"))
@@ -1163,72 +1173,44 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     ///
     /// On success, returns whether the key was imported, updated, or
     /// unchanged.
-    fn import_key(&self, mut cert: Cert) -> Result<ImportStatus> {
+    fn import_key(&self, cert: Cert) -> Result<ImportStatus> {
         if ! cert.is_tsk() {
             return Err(anyhow::anyhow!(
                 "Certificate does not contain any secret key material"));
         }
 
-        let softkeys = self.key_store_path_or_else()?
-            .join("keystore").join("softkeys");
+        let keystore = self.key_store_or_else()?;
+        let mut keystore = keystore.lock().unwrap();
 
-        std::fs::create_dir_all(&softkeys)?;
-
-        let fpr = cert.fingerprint();
-
-        let filename = softkeys.join(format!("{}.pgp", fpr));
-
-        let mut update = false;
-        match Cert::from_file(&filename) {
-            Ok(old) => {
-                if old.fingerprint() != fpr {
-                    return Err(anyhow::anyhow!(
-                        "{} contains {}, but expected {}",
-                        filename.display(),
-                        old.fingerprint(),
-                        fpr));
-                }
-
-                update = true;
-
-                // Prefer secret key material from `cert`.
-                cert = old.clone().merge_public_and_secret(cert.clone())?;
-
-                if cert == old {
-                    return Ok(ImportStatus::Unchanged);
-                }
-            }
-            Err(err) => {
-                // If the file doesn't exist yet, it's not an
-                // error: it just means that we don't have to
-                // merge.
-                if let Some(ioerr) = err.downcast_ref::<std::io::Error>() {
-                    if ioerr.kind() == std::io::ErrorKind::NotFound {
-                        // Not found.  No problem.
-                    } else {
-                        return Err(err);
-                    }
-                } else {
-                    return Err(err);
-                }
+        let mut softkeys = None;
+        for mut backend in keystore.backends()?.into_iter() {
+            if backend.id()? == "softkeys" {
+                softkeys = Some(backend);
+                break;
             }
         }
 
-        // We write to a temporary file and then move it into
-        // place.  This doesn't eliminate races, but it does
-        // prevent a partial update from destroying the existing
-        // data.
-        let mut tmp_filename = filename.clone();
-        tmp_filename.set_extension("pgp~");
+        drop(keystore);
 
-        let mut f = File::create(&tmp_filename)?;
-        cert.as_tsk().serialize(&mut f)?;
+        let mut softkeys = if let Some(softkeys) = softkeys {
+            softkeys
+        } else {
+            return Err(anyhow::anyhow!("softkeys backend is not configured."));
+        };
 
-        std::fs::rename(&tmp_filename, &filename)?;
+        let mut import_status = ImportStatus::Unchanged;
+        for (s, key) in softkeys.import(&cert)? {
+            self.info(format_args!(
+                "Importing {} into key store: {:?}",
+                key.fingerprint(), s));
+
+            import_status = import_status.max(s.into());
+        }
 
         // Also insert the certificate into the certificate store.
         // If we can't, we don't fail.  This allows, in
         // particular, `sq --no-cert-store key import` to work.
+        let fpr = cert.fingerprint();
         match self.cert_store_or_else() {
             Ok(cert_store) => {
                 if let Err(err) = cert_store.update(
@@ -1246,11 +1228,7 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
             }
         }
 
-        if update {
-            return Ok(ImportStatus::Updated);
-        } else {
-            return Ok(ImportStatus::New);
-        }
+        Ok(import_status)
     }
 
     /// Prints additional information in verbose mode.

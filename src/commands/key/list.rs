@@ -1,6 +1,9 @@
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
+use sequoia_keystore as keystore;
+use keystore::Protection;
+
 use crate::best_effort_primary_uid;
 use crate::cli;
 use crate::Config;
@@ -55,10 +58,10 @@ pub fn list(config: Config, _command: cli::key::ListCommand) -> Result<()> {
                          } else {
                              "not available"
                          },
-                         if key.locked().unwrap_or(false) {
-                             "locked"
-                         } else {
-                             "not locked"
+                         match key.locked() {
+                             Ok(Protection::Unlocked) => "unlocked",
+                             Ok(_) => "locked",
+                             Err(_) => "unknown protection",
                          },
                          match (signing_capable, decryption_capable) {
                              (true, true) => {

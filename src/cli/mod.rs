@@ -232,8 +232,8 @@ key store."
         long_help = "\
 A key store server manages and protects secret key material.  By
 default, `sq` connects to the key store server listening on
-`$XDG_DATA_HOME/sequoia`.  If no key store server is running, one is
-started.
+`$XDG_DATA_HOME/sequoia/keystore`.  If no key store server is running,
+one is started.
 
 This option causes `sq` to use an alternate key store server.  If
 necessary, a key store server is started, and configured to look for

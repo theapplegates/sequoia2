@@ -24,6 +24,8 @@ use openpgp::serialize::stream::padding::Padder;
 use openpgp::types::CompressionAlgorithm;
 use openpgp::types::KeyFlags;
 
+use sequoia_keystore::Protection;
+
 use crate::best_effort_primary_uid;
 use crate::cli;
 use crate::cli::types::EncryptPurpose;
@@ -156,7 +158,7 @@ pub fn encrypt<'a, 'b: 'a>(
                 let mut key = keys.into_iter().next().expect("checked for one");
 
                 match key.locked() {
-                    Ok(true) => {
+                    Ok(Protection::Password(msg)) => {
                         let fpr = key.fingerprint();
                         let cert = config.lookup_one(
                             &KeyHandle::from(&fpr), None, true);
@@ -173,6 +175,9 @@ pub fn encrypt<'a, 'b: 'a>(
                         };
                         let keyid = KeyID::from(&fpr);
 
+                        if let Some(msg) = msg {
+                            eprintln!("{}", msg);
+                        }
                         loop {
                             let password = Password::from(rpassword::prompt_password(
                                 format!("Enter password to unlock {}{}: ",
@@ -185,8 +190,20 @@ pub fn encrypt<'a, 'b: 'a>(
                             }
                         }
                     }
-                    Ok(false) => {
+                    Ok(Protection::Unlocked) => {
                         // Already unlocked, nothing to do.
+                    }
+                    Ok(Protection::UnknownProtection(msg))
+                        | Ok(Protection::ExternalPassword(msg))
+                        | Ok(Protection::ExternalTouch(msg))
+                        | Ok(Protection::ExternalOther(msg)) =>
+                    {
+                        // Locked.
+                        eprint!("Key is locked");
+                        if let Some(msg) = msg {
+                            eprint!(": {}", msg);
+                        }
+                        eprintln!();
                     }
                     Err(err) => {
                         // Failed to get the key's locked status.  Just print

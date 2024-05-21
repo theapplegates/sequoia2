@@ -1,6 +1,8 @@
 use chrono::DateTime;
 use chrono::Utc;
 
+use anyhow::Context;
+
 use sequoia_openpgp as openpgp;
 use openpgp::armor::Kind;
 use openpgp::armor::Writer;
@@ -113,12 +115,37 @@ pub fn generate(
             password::prompt_for_new("key")?);
     }
 
+    let on_keystore = command.output.is_none();
+
+    // Generate the key
+    let gen = || {
+        builder.generate()
+    };
+
+    let (cert, rev);
+
     let rev_path = if let Some(rev_cert) = command.rev_cert {
+        (cert, rev) = gen()?;
+
         FileOrStdout::new(Some(rev_cert))
     } else if let Some(path) = command.output.as_ref().and_then(|o| o.path()) {
+        (cert, rev) = gen()?;
+
         let mut path = path.clone();
         path.as_mut_os_string().push(".rev");
         FileOrStdout::from(path)
+    } else if on_keystore {
+        let dir = config.home.data_dir(sequoia_directories::Component::Other(
+            "revocation-certificates".into()));
+        std::fs::create_dir_all(&dir)
+            .with_context(|| {
+                format!("While creating {}", dir.display())
+            })?;
+
+        (cert, rev) = gen()?;
+        FileOrStdout::new(
+            Some(dir.join(format!("{}-revocation.pgp",
+                                  cert.fingerprint()))))
     } else {
         return Err(anyhow::anyhow!(
             "Missing arguments: --rev-cert is mandatory if --output is '-' \
@@ -126,12 +153,7 @@ pub fn generate(
         ));
     };
 
-    // Generate the key
-    let (cert, rev) = builder.generate()?;
-
     let headers = cert.armor_headers();
-
-    let on_keystore = command.output.is_none();
 
     // write out rev cert
     {

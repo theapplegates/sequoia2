@@ -134,12 +134,12 @@ but we provide reasonable defaults for most users.
 
 When generating a key, we also generate a revocation certificate.
 This can be used in case the key is superseded, lost, or compromised.
-It is a good idea to keep a copy of this in a safe place.
 
 After generating a key, use `sq toolbox extract-cert` to get the
 certificate corresponding to the key.  The key must be kept secure,
 while the certificate should be handed out to correspondents, e.g. by
 uploading it to a key server.
+This is saved alongside the key.
 
 By default a key expires after {} years.
 Using the `--expiry=` argument specific validity periods may be defined.
@@ -280,8 +280,6 @@ pub struct GenerateCommand {
     #[clap(
         long = "rev-cert",
         value_name = "FILE or -",
-        required_if_eq_any([("output", ""),
-                            ("output", "-")]),
         help = "Write the revocation certificate to FILE",
         long_help =
             "Write the revocation certificate to FILE. \

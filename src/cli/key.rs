@@ -134,11 +134,6 @@ but we provide reasonable defaults for most users.
 
 When generating a key, we also generate a revocation certificate.
 This can be used in case the key is superseded, lost, or compromised.
-
-After generating a key, use `sq toolbox extract-cert` to get the
-certificate corresponding to the key.  The key must be kept secure,
-while the certificate should be handed out to correspondents, e.g. by
-uploading it to a key server.
 This is saved alongside the key.
 
 By default a key expires after {} years.
@@ -155,23 +150,23 @@ subkeys, and the binding signatures to the reference time.
     after_help =
 "EXAMPLES:
 
-# First, generate a key
-$ sq key generate --userid '<juliet@example.org>' \\
-     --output juliet.key.pgp
-
-# Then, extract the certificate for distribution
-$ sq toolbox extract-cert --output juliet.cert.pgp juliet.key.pgp
+# Generate a key
+$ sq key generate --userid '<juliet@example.org>'
 
 # Generate a key protecting it with a password
-$ sq key generate --userid '<juliet@example.org>' --with-password
-
-# Generate a key with multiple userids
 $ sq key generate --userid '<juliet@example.org>' \\
-     --userid 'Juliet Capulet'
+  --with-password
 
 # Generate a key whose creation time is June 9, 2011 at midnight UTC
 $ sq key generate --time 20110609 --userid Noam \\
-     --output noam.pgp
+  --output noam.pgp
+
+# Generate a key, and save it in a file instead of in the key store.
+$ sq key generate --userid '<juliet@example.org>' \\
+  --output juliet-secret.key
+
+# Then, extract the certificate for distribution
+$ sq toolbox extract-cert --output juliet-secret.pgp
 ",
 )]
 #[clap(group(ArgGroup::new("cap-sign").args(&["can_sign", "cannot_sign"])))]

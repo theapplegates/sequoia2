@@ -416,6 +416,7 @@ pub struct Config<'store, 'rstore>
     output_version: Option<OutputVersion>,
     policy: &'rstore P<'rstore>,
     time: SystemTime,
+    home: sequoia_directories::Home,
     // --no-cert-store
     no_rw_cert_store: bool,
     cert_store_path: Option<PathBuf>,
@@ -468,14 +469,10 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
             None
         } else if let Some(path) = self.cert_store_path.as_ref() {
             Some(path.clone())
+        } else if let Ok(path) = std::env::var("PGP_CERT_D") {
+            Some(PathBuf::from(path))
         } else {
-            // XXX: openpgp-cert-d doesn't yet export this:
-            // https://gitlab.com/sequoia-pgp/pgp-cert-d/-/issues/34
-            // Remove this when it does.
-            let pathbuf = dirs::data_dir()
-                .expect("Unsupported platform")
-                .join("pgp.cert.d");
-            Some(pathbuf)
+            Some(self.home.data_dir(sequoia_directories::Component::CertD))
         }
     }
 
@@ -694,11 +691,9 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
             Ok(None)
         } else if let Some(dir) = self.key_store_path.as_ref() {
             Ok(Some(dir.clone()))
-        } else if let Some(dir) = dirs::data_dir() {
-            Ok(Some(dir.join("sequoia/keystore")))
         } else {
-            Err(anyhow::anyhow!(
-                "No key store, the XDG data directory is not defined"))
+            let home = sequoia_directories::Home::new(None)?;
+            Ok(Some(home.data_dir(sequoia_directories::Component::Keystore)))
         }
     }
 
@@ -1330,6 +1325,7 @@ fn main() -> Result<()> {
         output_version,
         policy: &policy,
         time,
+        home: sequoia_directories::Home::new(c.home.clone())?,
         no_rw_cert_store: c.no_cert_store,
         cert_store_path: c.cert_store.clone(),
         pep_cert_store_path: c.pep_cert_store.clone(),

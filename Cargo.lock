@@ -3413,6 +3413,7 @@ dependencies = [
  "rpassword",
  "sequoia-autocrypt",
  "sequoia-cert-store",
+ "sequoia-directories",
  "sequoia-keystore",
  "sequoia-net",
  "sequoia-openpgp",

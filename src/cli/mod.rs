@@ -211,6 +211,35 @@ pub struct SqCommand {
     pub force: bool,
     #[clap(
         long,
+        env = "SEQUOIA_HOME",
+        global = true,
+        help_heading = GLOBAL_OPTIONS_HEADER,
+        help = "Set the home directory.",
+        long_help = format!("\
+Set the home directory.
+
+Sequoia's default home directory is `{}`.  When using the default \
+location, files are placed according to the local standard, \
+e.g., the XDG Base Directory Specification.  When an alternate \
+location is specified, the user data, configuration files, and \
+cache data are placed under a single, unified directory.  This is \
+a lightweight way to partially isolate `sq`.",
+            sequoia_directories::Home::default_location()
+                .map(|p| {
+                    let p = p.display().to_string();
+                    if let Some(home) = dirs::home_dir() {
+                        let home = home.display().to_string();
+                        if let Some(rest) = p.strip_prefix(&home) {
+                            return format!("$HOME{}", rest);
+                        }
+                    }
+                    p
+                })
+                .unwrap_or("<unknown>".to_string())),
+    )]
+    pub home: Option<PathBuf>,
+    #[clap(
+        long,
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Disable the use of the key store.",
@@ -229,15 +258,28 @@ key store."
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Override the key store server and its data",
-        long_help = "\
-A key store server manages and protects secret key material.  By
-default, `sq` connects to the key store server listening on
-`$XDG_DATA_HOME/sequoia/keystore`.  If no key store server is running,
+        long_help = format!("\
+A key store server manages and protects secret key material.  By \
+default, `sq` connects to the key store server for Sequoia's default \
+home directory (see `--home`), {}.  If no key store server is running, \
 one is started.
 
-This option causes `sq` to use an alternate key store server.  If
-necessary, a key store server is started, and configured to look for
-its data in the specified location."
+This option causes `sq` to use an alternate key store server.  If \
+necessary, a key store server is started, and configured to look for \
+its data in the specified location.",
+            sequoia_directories::Home::default()
+                .map(|home| {
+                    let p = home.data_dir(sequoia_directories::Component::Keystore);
+                    let p = p.display().to_string();
+                    if let Some(home) = dirs::home_dir() {
+                        let home = home.display().to_string();
+                        if let Some(rest) = p.strip_prefix(&home) {
+                            return format!("$HOME{}", rest);
+                        }
+                    }
+                    p
+                })
+                .unwrap_or("<unknown>".to_string())),
     )]
     pub key_store: Option<PathBuf>,
     #[clap(
@@ -258,10 +300,25 @@ standard cert-d, which is located in `$HOME/.local/share/pgp.cert.d`."
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Specify the location of the certificate store",
-        long_help = "\
-Specify the location of the certificate store.  By default, sq uses \
-the OpenPGP certificate directory at `$HOME/.local/share/pgp.cert.d`, \
-and creates it if it does not exist."
+        long_help = format!("\
+Specify the location of the certificate store.  By default, `sq` uses \
+the OpenPGP certificate directory in Sequoia's home directory (see `--home`), \
+{}.  This can be overridden by setting the `PGP_CERT_D` environment \
+variable.  That in turn can be overridden by setting the `SQ_CERT_STORE` \
+environment variable.",
+            sequoia_directories::Home::default()
+                .map(|home| {
+                    let p = home.data_dir(sequoia_directories::Component::CertD);
+                    let p = p.display().to_string();
+                    if let Some(home) = dirs::home_dir() {
+                        let home = home.display().to_string();
+                        if let Some(rest) = p.strip_prefix(&home) {
+                            return format!("$HOME{}", rest);
+                        }
+                    }
+                    p
+                })
+                .unwrap_or("<unknown>".to_string())),
     )]
     pub cert_store: Option<PathBuf>,
     #[clap(

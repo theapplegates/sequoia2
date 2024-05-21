@@ -9,6 +9,8 @@ use adopt::adopt;
 mod attest_certifications;
 use attest_certifications::attest_certifications;
 mod expire;
+mod export;
+use export::export;
 mod import;
 use import::import;
 mod list;
@@ -29,6 +31,7 @@ pub fn dispatch(config: Config, command: cli::key::Command) -> Result<()>
         List(c) => list(config, c)?,
         Generate(c) => generate(config, c)?,
         Import(c) => import(config, c)?,
+        Export(c) => export(config, c)?,
         Password(c) => password(config, c)?,
         Expire(c) => expire::dispatch(config, c)?,
         Userid(c) => userid::dispatch(config, c)?,

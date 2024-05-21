@@ -3210,9 +3210,9 @@ dependencies = [
 
 [[package]]
 name = "sequoia-keystore"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76eaefe78ca373001382f2434ca021145d9b702ba52c04cebc398b8e5956d28a"
+checksum = "aa77ac702f6be1489580eb092aa5acae36050db04fa5ae445238a84591e1ad7a"
 dependencies = [
  "anyhow",
  "capnp",
@@ -3272,9 +3272,9 @@ dependencies = [
 
 [[package]]
 name = "sequoia-keystore-softkeys"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1affc41cb24e491cd38a0a47928bc221b7db4318f0e4b17c49131c9a4a13eb1"
+checksum = "6f9707371cae085b6e1cac9e17bf94a19efcdc04da4dba5cbda1cb8f8c0a655a"
 dependencies = [
  "anyhow",
  "async-trait",

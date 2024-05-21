@@ -89,6 +89,7 @@ pub enum Subcommands {
     List(ListCommand),
     Generate(GenerateCommand),
     Import(ImportCommand),
+    Export(ExportCommand),
     Password(PasswordCommand),
     Expire(expire::Command),
     Revoke(RevokeCommand),
@@ -333,6 +334,69 @@ pub struct ImportCommand {
         help = "Import the keys in KEY_FILE",
     )]
     pub file: Vec<PathBuf>,
+}
+
+const EXPORT_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Import a certificate.",
+            command: &[
+                "sq", "key", "import", "alice-secret.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Export Alice's certificate with all available secret key material.",
+            command: &[
+                "sq", "key", "export",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Export Alice's signing-capable and encryption-capable subkeys, but not \
+her primary key or her authentication-capable subkey.",
+            command: &[
+                "sq", "key", "export",
+                "--key", "42020B87D51877E5AF8D272124F3955B0B8DECC8",
+                "--key", "74DCDEAF17D9B995679EB52BA6E65EA2C8497728",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_key_export, EXPORT_EXAMPLES);
+
+#[derive(Debug, Args)]
+#[clap(
+    about = "Export keys from the key store",
+    after_help = EXPORT_EXAMPLES,
+)]
+#[clap(group(ArgGroup::new("export").args(&["cert", "key"])))]
+pub struct ExportCommand {
+    #[clap(
+        long,
+        value_name = "FINGERPRINT|KEYID",
+        help = "Export the specified certificate",
+        long_help = "Export the specified certificate by iterating over the \
+                     specified certificate's primary key and subkeys and \
+                     exporting any keys with secret key material.  An \
+                     error is returned if the certificate does not contain \
+                     any secret key material.",
+    )]
+    pub cert: Vec<KeyHandle>,
+
+    #[clap(
+        long,
+        value_name = "FINGERPRINT|KEYID",
+        help = "Export the specified key",
+        long_help = "Export the specified key.  The entire certificate is \
+                     exported, but only the specified key's secret key \
+                     material is exported.  An error is returned if the \
+                     secret key material for the specified key is not \
+                     available.",
+    )]
+    pub key: Vec<KeyHandle>,
 }
 
 #[derive(Debug, Args)]

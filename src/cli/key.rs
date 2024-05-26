@@ -509,13 +509,6 @@ then that key is used to sign the revocation certificate.",
     pub secret_key_file: Option<PathBuf>,
 
     #[clap(
-        long = "private-key-store",
-        value_name = "KEY_STORE",
-        help = "Provide parameters for private key store",
-    )]
-    pub private_key_store: Option<String>,
-
-    #[clap(
         value_name = "REASON",
         required = true,
         help = "The reason for the revocation",
@@ -675,12 +668,6 @@ pub struct UseridAddCommand {
     )]
     pub allow_non_canonical_userids: bool,
     #[clap(
-        long = "private-key-store",
-        value_name = "KEY_STORE",
-        help = "Provide parameters for private key store",
-    )]
-    pub private_key_store: Option<String>,
-    #[clap(
         short = 'B',
         long,
         help = "Emit binary data",
@@ -735,13 +722,6 @@ this option is not provided, and the certificate includes secret key material, \
 then that key is used to sign the revocation certificate.",
     )]
     pub secret_key_file: Option<PathBuf>,
-
-    #[clap(
-        long = "private-key-store",
-        value_name = "KEY_STORE",
-        help = "Provide parameters for private key store",
-    )]
-    pub private_key_store: Option<String>,
 
     #[clap(
         value_name = "USERID",
@@ -1113,12 +1093,6 @@ pub struct SubkeyAddCommand {
     )]
     pub output: FileOrStdout,
     #[clap(
-        long = "private-key-store",
-        value_name = "KEY_STORE",
-        help = "Provide parameters for private key store",
-    )]
-    pub private_key_store: Option<String>,
-    #[clap(
         short = 'B',
         long,
         help = "Emit binary data",
@@ -1230,13 +1204,6 @@ If this option is not provided, and the certificate includes secret key \
 material, then that key is used to sign the revocation certificate.",
     )]
     pub secret_key_file: Option<PathBuf>,
-
-    #[clap(
-        long = "private-key-store",
-        value_name = "KEY_STORE",
-        help = "Provide parameters for private key store",
-    )]
-    pub private_key_store: Option<String>,
 
     #[clap(
         value_name = "SUBKEY",

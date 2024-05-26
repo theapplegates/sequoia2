@@ -57,7 +57,6 @@ impl<'a, 'store, 'rstore> UserIDRevocation<'a, 'store, 'rstore> {
         force: bool,
         cert: Cert,
         secret: Option<Cert>,
-        private_key_store: Option<&str>,
         reason: ReasonForRevocation,
         message: &str,
         notations: &[(bool, NotationData)],
@@ -66,7 +65,6 @@ impl<'a, 'store, 'rstore> UserIDRevocation<'a, 'store, 'rstore> {
             &cert,
             sq.policy,
             secret.as_ref(),
-            private_key_store,
             Some(sq.time),
         )?;
 
@@ -252,7 +250,6 @@ fn userid_add(
     let mut pk = match get_primary_keys(
         &[key.clone()],
         sq.policy,
-        command.private_key_store.as_deref(),
         creation_time,
         None,
     ) {
@@ -460,7 +457,6 @@ pub fn userid_revoke(
         sq.force,
         cert,
         secret,
-        command.private_key_store.as_deref(),
         command.reason.into(),
         &command.message,
         &notations,

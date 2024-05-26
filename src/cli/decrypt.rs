@@ -90,12 +90,6 @@ pub struct Command {
     )]
     pub secret_key_file: Vec<PathBuf>,
     #[clap(
-        long = "private-key-store",
-        value_name = "KEY_STORE",
-        help = "Provide parameters for private key store",
-    )]
-    pub private_key_store: Option<String>,
-    #[clap(
             long = "dump-session-key",
             help = "Print the session key to stderr",
     )]

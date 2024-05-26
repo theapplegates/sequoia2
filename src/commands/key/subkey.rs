@@ -52,7 +52,6 @@ impl<'a, 'store, 'rstore> SubkeyRevocation<'a, 'store, 'rstore> {
         keyhandle: &KeyHandle,
         cert: Cert,
         secret: Option<Cert>,
-        private_key_store: Option<&str>,
         reason: ReasonForRevocation,
         message: &str,
         notations: &[(bool, NotationData)],
@@ -61,7 +60,6 @@ impl<'a, 'store, 'rstore> SubkeyRevocation<'a, 'store, 'rstore> {
             &cert,
             sq.policy,
             secret.as_ref(),
-            private_key_store,
             Some(sq.time),
         )?;
 
@@ -243,7 +241,6 @@ fn subkey_add(
         match get_primary_keys(
             &[cert.clone()],
             sq.policy,
-            command.private_key_store.as_deref(),
             Some(sq.time),
             None,
         ) {
@@ -307,7 +304,6 @@ pub fn subkey_revoke(
         &command.subkey,
         cert,
         secret,
-        command.private_key_store.as_deref(),
         command.reason.into(),
         &command.message,
         &notations,

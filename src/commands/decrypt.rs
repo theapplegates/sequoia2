@@ -2,7 +2,6 @@ use anyhow::Context as _;
 use std::collections::HashMap;
 use std::io;
 
-use sequoia_net::pks;
 use sequoia_openpgp as openpgp;
 use openpgp::types::SymmetricAlgorithm;
 use openpgp::fmt::hex;
@@ -62,10 +61,8 @@ pub fn dispatch(sq: Sq, command: cli::decrypt::Command) -> Result<()> {
     });
     let secrets =
         load_keys(command.secret_key_file.iter().map(|s| s.as_ref()))?;
-    let private_key_store = command.private_key_store;
     let session_keys = command.session_key;
-    decrypt(sq, private_key_store.as_deref(),
-            &mut input, &mut output,
+    decrypt(sq, &mut input, &mut output,
             signatures, certs, secrets,
             command.dump_session_key,
             session_keys)?;
@@ -109,31 +106,6 @@ impl PrivateKey for LocalPrivateKey {
     }
 }
 
-struct RemotePrivateKey {
-    key: Key<key::PublicParts, key::UnspecifiedRole>,
-    store: String,
-}
-
-impl RemotePrivateKey {
-    fn new(key: Key<key::PublicParts, key::UnspecifiedRole>, store: String) -> Self {
-        Self {
-            key,
-            store,
-        }
-    }
-}
-
-impl PrivateKey for RemotePrivateKey {
-    fn get_unlocked(&self) -> Option<Box<dyn Decryptor>> {
-        // getting already unlocked keys is not implemented right now
-        None
-    }
-
-    fn unlock(&mut self, p: &Password) -> Result<Box<dyn Decryptor>> {
-        Ok(pks::unlock_decryptor(&self.store, self.key.clone(), p)?)
-    }
-}
-
 pub struct Helper<'c, 'store, 'rstore>
     where 'store: 'rstore
 {
@@ -164,7 +136,7 @@ impl<'c, 'store, 'rstore> std::ops::DerefMut for Helper<'c, 'store, 'rstore> {
 impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
     where 'store: 'rstore
 {
-    pub fn new(sq: &'c Sq<'store, 'rstore>, private_key_store: Option<&str>,
+    pub fn new(sq: &'c Sq<'store, 'rstore>,
                signatures: usize, certs: Vec<Cert>, secrets: Vec<Cert>,
                session_keys: Vec<cli::types::SessionKey>,
                dump_session_key: bool)
@@ -192,8 +164,6 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
                 keys.insert(id.clone(),
                     if let Ok(key) = key.parts_as_secret() {
                         Box::new(LocalPrivateKey::new(key.clone()))
-                    } else if let Some(store) = private_key_store {
-                        Box::new(RemotePrivateKey::new(key.clone(), store.to_string()))
                     } else {
                         panic!("Cert does not contain secret keys and private-key-store option has not been set.");
                     }
@@ -534,14 +504,13 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
 // Allow too many arguments now, should be reworked later
 #[allow(clippy::too_many_arguments)]
 pub fn decrypt(sq: Sq,
-               private_key_store: Option<&str>,
                input: &mut (dyn io::Read + Sync + Send),
                output: &mut dyn io::Write,
                signatures: usize, certs: Vec<Cert>, secrets: Vec<Cert>,
                dump_session_key: bool,
                sk: Vec<cli::types::SessionKey>)
                -> Result<()> {
-    let helper = Helper::new(&sq, private_key_store, signatures, certs,
+    let helper = Helper::new(&sq, signatures, certs,
                              secrets, sk, dump_session_key);
     let mut decryptor = DecryptorBuilder::from_reader(input)?
         .with_policy(sq.policy, None, helper)
@@ -562,7 +531,7 @@ pub fn decrypt_unwrap(sq: Sq,
                       dump_session_key: bool)
                       -> Result<()>
 {
-    let mut helper = Helper::new(&sq, None, 0, Vec::new(), secrets,
+    let mut helper = Helper::new(&sq, 0, Vec::new(), secrets,
                                  session_keys,
                                  dump_session_key);
 

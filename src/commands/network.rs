@@ -243,7 +243,7 @@ pub fn certify_downloads<'store, 'rstore>(sq: &mut Sq<'store, 'rstore>,
         let ca = ca.to_cert()?;
 
         let keys = get_certification_keys(
-            &[ca], sq.policy, None, Some(sq.time), None)?;
+            &[ca], sq.policy, Some(sq.time), None)?;
             assert!(
                 keys.len() == 1,
                 "Expect exactly one result from get_certification_keys()"

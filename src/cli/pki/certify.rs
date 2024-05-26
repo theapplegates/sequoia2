@@ -197,12 +197,6 @@ pub struct Command {
     )]
     pub allow_revoked_certifier: bool,
     #[clap(
-        long = "private-key-store",
-        value_name = "KEY_STORE",
-        help = "Provide parameters for private key store",
-    )]
-    pub private_key_store: Option<String>,
-    #[clap(
         value_name = "CERTIFIER-KEY",
         required = true,
         index = 1,

@@ -60,7 +60,7 @@ pub fn dump<W>(sq: &crate::Sq,
     let mut first_armor_block = true;
     let mut is_keyring = true;
     let mut helper = crate::commands::decrypt::Helper::new(
-        &sq, None, 0, Vec::new(), secrets, session_keys.clone(), false);
+        &sq, 0, Vec::new(), secrets, session_keys.clone(), false);
 
   loop {
     let mut dumper = PacketDumper::new(width, mpis);

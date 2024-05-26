@@ -159,12 +159,6 @@ pub struct DecryptCommand {
     )]
     pub secret_key_file: Vec<PathBuf>,
     #[clap(
-        long = "private-key-store",
-        value_name = "KEY_STORE",
-        help = "Provide parameters for private key store",
-    )]
-    pub private_key_store: Option<String>,
-    #[clap(
         long = "session-key",
         value_name = "SESSION-KEY",
         help = "Decrypt an encrypted message using SESSION-KEY",

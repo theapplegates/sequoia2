@@ -71,7 +71,6 @@ pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
     encrypt(
         &sq,
         sq.policy,
-        command.private_key_store.as_deref(),
         command.input,
         output,
         command.symmetric as usize,
@@ -92,7 +91,6 @@ pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
 pub fn encrypt<'a, 'b: 'a>(
     sq: &Sq,
     policy: &'b dyn Policy,
-    private_key_store: Option<&str>,
     input: FileOrStdin,
     message: Message<'a>,
     npasswords: usize,
@@ -132,8 +130,7 @@ pub fn encrypt<'a, 'b: 'a>(
 
     let mode = KeyFlags::from(mode);
 
-    let mut signers = get_signing_keys(
-        &signers, policy, private_key_store, time, None)?;
+    let mut signers = get_signing_keys(&signers, policy, time, None)?;
 
     let mut signer_keys = if signer_keys.is_empty() {
         Vec::new()

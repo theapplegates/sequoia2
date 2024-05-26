@@ -3,7 +3,6 @@ use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet, btree_map::{BTreeMap, Entry}};
 use std::time::SystemTime;
 
-use sequoia_net::pks;
 use sequoia_openpgp as openpgp;
 use openpgp::cert::prelude::*;
 use openpgp::crypto::{self, Password};
@@ -95,7 +94,6 @@ enum KeyType {
 
 /// Returns suitable signing keys from a given list of Certs.
 fn get_keys<C>(certs: &[C], p: &dyn Policy,
-               private_key_store: Option<&str>,
                timestamp: Option<SystemTime>,
                keytype: KeyType,
                options: Option<&[GetKeysOptions]>)
@@ -179,16 +177,6 @@ fn get_keys<C>(certs: &[C], p: &dyn Policy,
                     password,
                 ));
                 continue 'next_cert;
-            } else if let Some(private_key_store) = private_key_store {
-                let input_password = password::prompt_to_unlock(
-                    &format!("key {}/{}", tsk, key))?;
-                match pks::unlock_signer(private_key_store, key.clone(), &input_password) {
-                    Ok(signer) => {
-                        keys.push((signer, Some(input_password.clone())));
-                        continue 'next_cert;
-                    },
-                    Err(error) => wprintln!("Could not unlock key: {:?}", error),
-                }
             }
         }
 
@@ -247,13 +235,12 @@ fn get_keys<C>(certs: &[C], p: &dyn Policy,
 /// This returns one key for each Cert.  If a Cert doesn't have an
 /// appropriate key, then this returns an error.
 fn get_primary_keys<C>(certs: &[C], p: &dyn Policy,
-                       private_key_store: Option<&str>,
                        timestamp: Option<SystemTime>,
                        options: Option<&[GetKeysOptions]>)
     -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
     where C: std::borrow::Borrow<Cert>
 {
-    get_keys(certs, p, private_key_store, timestamp,
+    get_keys(certs, p, timestamp,
              KeyType::Primary, options)
 }
 
@@ -262,13 +249,12 @@ fn get_primary_keys<C>(certs: &[C], p: &dyn Policy,
 /// This returns one key for each Cert.  If a Cert doesn't have an
 /// appropriate key, then this returns an error.
 fn get_signing_keys<C>(certs: &[C], p: &dyn Policy,
-                       private_key_store: Option<&str>,
                        timestamp: Option<SystemTime>,
                        options: Option<&[GetKeysOptions]>)
     -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
     where C: Borrow<Cert>
 {
-    get_keys(certs, p, private_key_store, timestamp,
+    get_keys(certs, p, timestamp,
              KeyType::KeyFlags(KeyFlags::empty().set_signing()),
              options)
 }
@@ -278,13 +264,12 @@ fn get_signing_keys<C>(certs: &[C], p: &dyn Policy,
 /// This returns one key for each Cert.  If a Cert doesn't have an
 /// appropriate key, then this returns an error.
 pub fn get_certification_keys<C>(certs: &[C], p: &dyn Policy,
-                             private_key_store: Option<&str>,
-                             timestamp: Option<SystemTime>,
-                             options: Option<&[GetKeysOptions]>)
+                                 timestamp: Option<SystemTime>,
+                                 options: Option<&[GetKeysOptions]>)
     -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
     where C: std::borrow::Borrow<Cert>
 {
-    get_keys(certs, p, private_key_store, timestamp,
+    get_keys(certs, p, timestamp,
              KeyType::KeyFlags(KeyFlags::empty().set_certification()),
              options)
 }

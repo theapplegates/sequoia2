@@ -144,12 +144,6 @@ pub struct Command {
     )]
     pub signer_key: Vec<KeyHandle>,
     #[clap(
-        long = "private-key-store",
-        value_name = "KEY_STORE",
-        help = "Provide parameters for private key store",
-    )]
-    pub private_key_store: Option<String>,
-    #[clap(
         short = 's',
         long = "symmetric",
         help = "Prompt to add a password to encrypt with",

@@ -28,7 +28,6 @@ pub fn certify(sq: Sq, c: certify::Command)
     let userid = c.userid;
 
     let certifier = Cert::from_file(certifier)?;
-    let private_key_store = c.private_key_store;
     // XXX: Change this interface: it's dangerous to guess whether an
     // identifier is a file or a key handle.
     let cert = if let Ok(kh) = cert.parse::<KeyHandle>() {
@@ -123,7 +122,6 @@ pub fn certify(sq: Sq, c: certify::Command)
 
     let keys = get_certification_keys(
         &[certifier], sq.policy,
-        private_key_store.as_deref(),
         Some(time),
         Some(&options))?;
     assert_eq!(

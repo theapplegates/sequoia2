@@ -480,7 +480,7 @@ pub fn add(sq: Sq, c: link::AddCommand)
 
     // Sign it.
     let keys = get_certification_keys(
-        &[trust_root], sq.policy, None, Some(sq.time), None)
+        &[trust_root], sq.policy, Some(sq.time), None)
         .context("Looking up local trust root")?;
     assert!(
         keys.len() == 1,
@@ -648,7 +648,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
 
     // Sign it.
     let keys = get_certification_keys(
-        &[trust_root], sq.policy, None, Some(sq.time), None)
+        &[trust_root], sq.policy, Some(sq.time), None)
         .context("Looking up local trust root")?;
     assert!(
         keys.len() == 1,

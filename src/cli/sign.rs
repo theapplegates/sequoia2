@@ -66,12 +66,6 @@ pub struct Command {
     )]
     pub binary: bool,
     #[clap(
-        long = "private-key-store",
-        value_name = "KEY_STORE",
-        help = "Provide parameters for private key store",
-    )]
-    pub private_key_store: Option<String>,
-    #[clap(
         long,
         help = "Create a detached signature",
     )]

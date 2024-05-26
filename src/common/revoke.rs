@@ -39,14 +39,12 @@ pub fn get_secret_signer<'a>(
     cert: &'a Cert,
     policy: &dyn Policy,
     secret: Option<&'a Cert>,
-    private_key_store: Option<&str>,
     time: Option<SystemTime>,
 ) -> Result<(Cert, Box<dyn Signer + Send + Sync>)> {
     if let Some(secret) = secret {
         if let Ok(keys) = get_certification_keys(
             &[secret.clone()],
             policy,
-            private_key_store,
             time,
             None,
         ) {
@@ -77,7 +75,6 @@ does not contain a certification key with secret key material"
         if let Ok(keys) = get_certification_keys(
             &[cert],
             policy,
-            private_key_store,
             time,
             None,
         ) {

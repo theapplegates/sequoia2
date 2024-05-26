@@ -2,6 +2,13 @@
 #+TITLE: sequoia-sq NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 0.37.0
+** Notable changes
+   - Remove PKS support.
+* Changes in 0.36.0
+ - Missing
+* Changes in 0.35.0
+ - Missing
 * Changes in 0.34.0
 ** Notable changes
    - `sq` now uses `sequoia-keystore` for secret key operations.

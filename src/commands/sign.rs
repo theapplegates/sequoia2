@@ -48,7 +48,6 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
         return Err(anyhow::anyhow!("Notarizing messages is not supported."));
     }
 
-    let private_key_store = command.private_key_store.as_deref();
     let secrets =
         load_certs(command.secret_key_file.iter().map(|s| s.as_ref()))?;
     let signer_keys = &command.signer_key[..];
@@ -66,11 +65,9 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
         merge_signatures(&mut input, &mut input2, output)?;
     } else if command.clearsign {
         let output = output.create_safe(sq.force)?;
-        clearsign(sq, private_key_store, input, output, secrets,
-                  &notations)?;
+        clearsign(sq, input, output, secrets, &notations)?;
     } else {
         sign(sq,
-             private_key_store,
              &mut input,
              output,
              secrets,
@@ -87,7 +84,6 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
 
 pub fn sign<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
-    private_key_store: Option<&'a str>,
     input: &'a mut (dyn io::Read + Sync + Send),
     output: &'a FileOrStdout,
     secrets: Vec<openpgp::Cert>,
@@ -102,7 +98,6 @@ pub fn sign<'a, 'store, 'rstore>(
     match (detached, append|notarize) {
         (_, false) | (true, true) =>
             sign_data(sq,
-                      private_key_store,
                       input,
                       output,
                       secrets,
@@ -113,7 +108,6 @@ pub fn sign<'a, 'store, 'rstore>(
                       notations),
         (false, true) =>
             sign_message(sq,
-                         private_key_store,
                          input,
                          output,
                          secrets,
@@ -125,7 +119,6 @@ pub fn sign<'a, 'store, 'rstore>(
 
 fn sign_data<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
-    private_key_store: Option<&'a str>,
     input: &'a mut (dyn io::Read + Sync + Send),
     output_path: &'a FileOrStdout,
     secrets: Vec<openpgp::Cert>,
@@ -171,7 +164,7 @@ fn sign_data<'a, 'store, 'rstore>(
         };
 
     let mut keypairs = super::get_signing_keys(
-        &secrets, sq.policy, private_key_store, Some(sq.time), None)?;
+        &secrets, sq.policy, Some(sq.time), None)?;
 
     let mut signer_keys = if signer_keys.is_empty() {
         Vec::new()
@@ -337,7 +330,6 @@ fn sign_data<'a, 'store, 'rstore>(
 
 fn sign_message<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
-    private_key_store: Option<&'a str>,
     input: &'a mut (dyn io::Read + Sync + Send),
     output: &'a FileOrStdout,
     secrets: Vec<openpgp::Cert>,
@@ -352,7 +344,6 @@ fn sign_message<'a, 'store, 'rstore>(
         armor::Kind::Message,
     )?;
     sign_message_(sq,
-                  private_key_store,
                   input,
                   secrets,
                   notarize,
@@ -364,7 +355,6 @@ fn sign_message<'a, 'store, 'rstore>(
 
 fn sign_message_<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
-    private_key_store: Option<&'a str>,
     input: &'a mut (dyn io::Read + Sync + Send),
     secrets: Vec<openpgp::Cert>,
     notarize: bool,
@@ -373,7 +363,7 @@ fn sign_message_<'a, 'store, 'rstore>(
     -> Result<()>
 {
     let mut keypairs = super::get_signing_keys(
-        &secrets, sq.policy, private_key_store, Some(sq.time), None)?;
+        &secrets, sq.policy, Some(sq.time), None)?;
     if keypairs.is_empty() {
         return Err(anyhow::anyhow!("No signing keys found"));
     }
@@ -569,7 +559,6 @@ fn sign_message_<'a, 'store, 'rstore>(
 }
 
 pub fn clearsign(sq: Sq,
-                 private_key_store: Option<&str>,
                  mut input: impl io::Read + Sync + Send,
                  mut output: impl io::Write + Sync + Send,
                  secrets: Vec<openpgp::Cert>,
@@ -577,7 +566,7 @@ pub fn clearsign(sq: Sq,
                  -> Result<()>
 {
     let mut keypairs = super::get_signing_keys(
-        &secrets, sq.policy, private_key_store, Some(sq.time), None)?;
+        &secrets, sq.policy, Some(sq.time), None)?;
     if keypairs.is_empty() {
         return Err(anyhow::anyhow!("No signing keys found"));
     }

@@ -92,7 +92,7 @@ fn import<'store, 'rstore>(mut sq: Sq<'store, 'rstore>,
         load_keys(command.secret_key_file.iter().map(|s| s.as_ref()))?;
 
     let mut helper = Helper::new(
-        &sq, None,
+        &sq,
         1, // Require one trusted signature...
         vec![sender_cert.clone()], // ... from this cert.
         secrets, command.session_key.clone(), false);

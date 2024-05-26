@@ -35,7 +35,6 @@ impl<'a, 'store, 'rstore> CertificateRevocation<'a, 'store, 'rstore> {
         sq: &'a Sq<'store, 'rstore>,
         cert: Cert,
         secret: Option<Cert>,
-        private_key_store: Option<&str>,
         reason: ReasonForRevocation,
         message: &str,
         notations: &[(bool, NotationData)],
@@ -44,7 +43,6 @@ impl<'a, 'store, 'rstore> CertificateRevocation<'a, 'store, 'rstore> {
             &cert,
             sq.policy,
             secret.as_ref(),
-            private_key_store,
             Some(sq.time),
         )?;
 
@@ -152,7 +150,6 @@ pub fn certificate_revoke(
         &sq,
         cert,
         secret,
-        command.private_key_store.as_deref(),
         command.reason.into(),
         &command.message,
         &notations,

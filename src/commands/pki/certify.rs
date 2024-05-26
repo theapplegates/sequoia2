@@ -16,8 +16,7 @@ use openpgp::types::KeyFlags;
 
 use crate::Sq;
 use crate::parse_notations;
-use crate::commands::get_certification_keys;
-use crate::commands::GetKeysOptions;
+use crate::sq::GetKeysOptions;
 use crate::cli::pki::certify;
 
 pub fn certify(sq: Sq, c: certify::Command)
@@ -120,10 +119,7 @@ pub fn certify(sq: Sq, c: certify::Command)
         options.push(GetKeysOptions::AllowRevoked);
     }
 
-    let keys = get_certification_keys(
-        &[certifier], sq.policy,
-        Some(time),
-        Some(&options))?;
+    let keys = sq.get_certification_keys(&[certifier], Some(&options))?;
     assert_eq!(
         keys.len(), 1,
         "Expect exactly one result from get_certification_keys()"

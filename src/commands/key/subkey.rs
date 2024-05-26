@@ -26,7 +26,6 @@ use crate::cli::key::SubkeyCommand;
 use crate::cli::key::SubkeyRevokeCommand;
 use crate::cli::types::EncryptPurpose;
 use crate::cli::types::FileOrStdout;
-use crate::commands::get_primary_keys;
 use crate::common;
 use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
@@ -56,12 +55,8 @@ impl<'a, 'store, 'rstore> SubkeyRevocation<'a, 'store, 'rstore> {
         message: &str,
         notations: &[(bool, NotationData)],
     ) -> Result<Self> {
-        let (secret, mut signer) = get_secret_signer(
-            &cert,
-            sq.policy,
-            secret.as_ref(),
-            Some(sq.time),
-        )?;
+        let (secret, mut signer)
+            = get_secret_signer(sq, &cert, secret.as_ref())?;
 
         let first_party_issuer = secret.fingerprint() == cert.fingerprint();
 
@@ -238,12 +233,7 @@ fn subkey_add(
 
     // If a password is needed to use the key, the user will be prompted.
     let (primary_key, password) =
-        match get_primary_keys(
-            &[cert.clone()],
-            sq.policy,
-            Some(sq.time),
-            None,
-        ) {
+        match sq.get_primary_keys(&[cert.clone()], None) {
             Ok(keys) => {
                 assert!(
                     keys.len() == 1,

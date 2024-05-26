@@ -1,11 +1,8 @@
-use anyhow::anyhow;
-use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet, btree_map::{BTreeMap, Entry}};
 use std::time::SystemTime;
 
 use sequoia_openpgp as openpgp;
 use openpgp::cert::prelude::*;
-use openpgp::crypto::{self, Password};
 use openpgp::{Cert, Fingerprint, KeyID, Result};
 use openpgp::packet::prelude::*;
 use openpgp::parse::stream::*;
@@ -13,8 +10,6 @@ use openpgp::policy::HashAlgoSecurity;
 use openpgp::policy::Policy;
 use openpgp::types::{
     AEADAlgorithm,
-    KeyFlags,
-    RevocationStatus,
     SymmetricAlgorithm,
 };
 
@@ -23,10 +18,7 @@ use cert_store::Store;
 
 use sequoia_wot::store::Store as _;
 
-use crate::{
-    Sq,
-    common::password,
-};
+use crate::Sq;
 
 use crate::cli::encrypt::CompressionMode;
 use crate::cli::types::FileOrStdout;
@@ -79,199 +71,6 @@ pub fn dispatch(sq: Sq, command: SqCommand) -> Result<()>
         SqSubcommands::Version(command) =>
             version::dispatch(sq, command),
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum GetKeysOptions {
-    AllowNotAlive,
-    AllowRevoked,
-}
-
-enum KeyType {
-    Primary,
-    KeyFlags(KeyFlags),
-}
-
-/// Returns suitable signing keys from a given list of Certs.
-fn get_keys<C>(certs: &[C], p: &dyn Policy,
-               timestamp: Option<SystemTime>,
-               keytype: KeyType,
-               options: Option<&[GetKeysOptions]>)
-    -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
-    where C: Borrow<Cert>
-{
-    let mut bad = Vec::new();
-
-    let options = options.unwrap_or(&[][..]);
-    let allow_not_alive = options.contains(&GetKeysOptions::AllowNotAlive);
-    let allow_revoked = options.contains(&GetKeysOptions::AllowRevoked);
-
-    let mut keys: Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)> = vec![];
-    'next_cert: for tsk in certs {
-        let tsk = tsk.borrow();
-        let vc = match tsk.with_policy(p, timestamp) {
-            Ok(vc) => vc,
-            Err(err) => {
-                return Err(
-                    err.context(format!("Found no suitable key on {}", tsk)));
-            }
-        };
-
-        let keyiter = match keytype {
-            KeyType::Primary => {
-                Box::new(
-                    std::iter::once(
-                        vc.keys()
-                            .next()
-                            .expect("a valid cert has a primary key")))
-                    as Box<dyn Iterator<Item=ValidErasedKeyAmalgamation<openpgp::packet::key::PublicParts>>>
-            },
-            KeyType::KeyFlags(ref flags) => {
-                Box::new(vc.keys().key_flags(flags.clone()))
-                    as Box<dyn Iterator<Item=_>>
-            },
-        };
-        for ka in keyiter {
-            let bad_ = [
-                ! allow_not_alive && matches!(ka.alive(), Err(_)),
-                ! allow_revoked && matches!(ka.revocation_status(),
-                                            RevocationStatus::Revoked(_)),
-                ! ka.pk_algo().is_supported(),
-            ];
-            if bad_.iter().any(|x| *x) {
-                bad.push((ka.fingerprint(), bad_));
-                continue;
-            }
-
-            let key = ka.key();
-
-            if let Some(secret) = key.optional_secret() {
-                let (unencrypted, password) = match secret {
-                    SecretKeyMaterial::Encrypted(ref e) => {
-                        // try passwords from already existing keys
-                        match keys.iter().find_map(|(_, password)| {
-                            password.as_ref().and_then(
-                                |p| e.decrypt(key.pk_algo(), p).ok()
-                                    .map(|key| (key, p.clone())))
-                        }) {
-                            Some((unencrypted, password)) =>
-                                (unencrypted, Some(password)),
-                            None => {
-                                let password = password::prompt_to_unlock(
-                                    &format!("key {}/{}", tsk, key))?;
-                                (
-                                    e.decrypt(key.pk_algo(), &password)
-                                        .map_err(|_| anyhow!("Incorrect password."))?,
-                                    Some(password),
-                                )
-                            }
-                        }
-                    }
-                    SecretKeyMaterial::Unencrypted(ref u) => (u.clone(), None),
-                };
-
-                keys.push((
-                    Box::new(
-                        crypto::KeyPair::new(key.clone(), unencrypted).unwrap()
-                    ),
-                    password,
-                ));
-                continue 'next_cert;
-            }
-        }
-
-        let timestamp = timestamp.map(|t| {
-            chrono::DateTime::<chrono::offset::Utc>::from(t)
-        });
-
-        let mut context = Vec::new();
-        for (fpr, [not_alive, revoked, not_supported]) in bad {
-            let id: String = if fpr == tsk.fingerprint() {
-                fpr.to_string()
-            } else {
-                format!("{}/{}", tsk.fingerprint(), fpr)
-            };
-
-            let preface = if let Some(t) = timestamp {
-                format!("{} was not considered because\n\
-                         at the specified time ({}) it was",
-                        id, t)
-            } else {
-                format!("{} was not considered because\nit is", fpr)
-            };
-
-            let mut reasons = Vec::new();
-            if not_alive {
-                reasons.push("not alive");
-            }
-            if revoked {
-                reasons.push("revoked");
-            }
-            if not_supported {
-                reasons.push("not supported");
-            }
-
-            context.push(format!("{}: {}",
-                                 preface, reasons.join(", ")));
-        }
-
-        if context.is_empty() {
-            return Err(anyhow::anyhow!(
-                format!("Found no suitable key on {}", tsk)));
-        } else {
-            let context = context.join("\n");
-            return Err(
-                anyhow::anyhow!(
-                    format!("Found no suitable key on {}", tsk))
-                    .context(context));
-        }
-    }
-
-    Ok(keys)
-}
-
-/// Returns the primary keys from a given list of Certs.
-///
-/// This returns one key for each Cert.  If a Cert doesn't have an
-/// appropriate key, then this returns an error.
-fn get_primary_keys<C>(certs: &[C], p: &dyn Policy,
-                       timestamp: Option<SystemTime>,
-                       options: Option<&[GetKeysOptions]>)
-    -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
-    where C: std::borrow::Borrow<Cert>
-{
-    get_keys(certs, p, timestamp,
-             KeyType::Primary, options)
-}
-
-/// Returns suitable signing keys from a given list of Certs.
-///
-/// This returns one key for each Cert.  If a Cert doesn't have an
-/// appropriate key, then this returns an error.
-fn get_signing_keys<C>(certs: &[C], p: &dyn Policy,
-                       timestamp: Option<SystemTime>,
-                       options: Option<&[GetKeysOptions]>)
-    -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
-    where C: Borrow<Cert>
-{
-    get_keys(certs, p, timestamp,
-             KeyType::KeyFlags(KeyFlags::empty().set_signing()),
-             options)
-}
-
-/// Returns suitable certification keys from a given list of Certs.
-///
-/// This returns one key for each Cert.  If a Cert doesn't have an
-/// appropriate key, then this returns an error.
-pub fn get_certification_keys<C>(certs: &[C], p: &dyn Policy,
-                                 timestamp: Option<SystemTime>,
-                                 options: Option<&[GetKeysOptions]>)
-    -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
-    where C: std::borrow::Borrow<Cert>
-{
-    get_keys(certs, p, timestamp,
-             KeyType::KeyFlags(KeyFlags::empty().set_certification()),
-             options)
 }
 
 /// Returns the active certification, if any, for the specified bindings.

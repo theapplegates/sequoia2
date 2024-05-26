@@ -163,8 +163,7 @@ fn sign_data<'a, 'store, 'rstore>(
             (output_path.create_safe(sq.force)?, Vec::new(), None)
         };
 
-    let mut keypairs = super::get_signing_keys(
-        &secrets, sq.policy, Some(sq.time), None)?;
+    let mut keypairs = sq.get_signing_keys(&secrets, None)?;
 
     let mut signer_keys = if signer_keys.is_empty() {
         Vec::new()
@@ -362,8 +361,7 @@ fn sign_message_<'a, 'store, 'rstore>(
     output: &mut (dyn io::Write + Sync + Send))
     -> Result<()>
 {
-    let mut keypairs = super::get_signing_keys(
-        &secrets, sq.policy, Some(sq.time), None)?;
+    let mut keypairs = sq.get_signing_keys(&secrets, None)?;
     if keypairs.is_empty() {
         return Err(anyhow::anyhow!("No signing keys found"));
     }
@@ -565,8 +563,7 @@ pub fn clearsign(sq: Sq,
                  notations: &[(bool, NotationData)])
                  -> Result<()>
 {
-    let mut keypairs = super::get_signing_keys(
-        &secrets, sq.policy, Some(sq.time), None)?;
+    let mut keypairs = sq.get_signing_keys(&secrets, None)?;
     if keypairs.is_empty() {
         return Err(anyhow::anyhow!("No signing keys found"));
     }

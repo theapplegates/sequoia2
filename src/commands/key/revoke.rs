@@ -40,10 +40,9 @@ impl<'a, 'store, 'rstore> CertificateRevocation<'a, 'store, 'rstore> {
         notations: &[(bool, NotationData)],
     ) -> Result<Self> {
         let (secret, mut signer) = get_secret_signer(
+            sq,
             &cert,
-            sq.policy,
             secret.as_ref(),
-            Some(sq.time),
         )?;
 
         let first_party_issuer = secret.fingerprint() == cert.fingerprint();

@@ -36,7 +36,6 @@ use crate::common::password;
 use crate::load_certs;
 
 use crate::commands::CompressionMode;
-use crate::commands::get_signing_keys;
 
 pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
     tracer!(TRACE, "decrypt::dispatch");
@@ -130,7 +129,7 @@ pub fn encrypt<'a, 'b: 'a>(
 
     let mode = KeyFlags::from(mode);
 
-    let mut signers = get_signing_keys(&signers, policy, time, None)?;
+    let mut signers = sq.get_signing_keys(&signers, None)?;
 
     let mut signer_keys = if signer_keys.is_empty() {
         Vec::new()

@@ -29,7 +29,6 @@ use crate::Sq;
 use crate::cli::key::UseridRevokeCommand;
 use crate::cli::types::FileOrStdout;
 use crate::cli;
-use crate::commands::get_primary_keys;
 use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
@@ -61,12 +60,8 @@ impl<'a, 'store, 'rstore> UserIDRevocation<'a, 'store, 'rstore> {
         message: &str,
         notations: &[(bool, NotationData)],
     ) -> Result<Self> {
-        let (secret, mut signer) = get_secret_signer(
-            &cert,
-            sq.policy,
-            secret.as_ref(),
-            Some(sq.time),
-        )?;
+        let (secret, mut signer)
+            = get_secret_signer(sq, &cert, secret.as_ref())?;
 
         let first_party_issuer = secret.fingerprint() == cert.fingerprint();
         let uid = UserID::from(userid.as_str());
@@ -245,14 +240,7 @@ fn userid_add(
         ));
     }
 
-    let creation_time = Some(sq.time);
-
-    let mut pk = match get_primary_keys(
-        &[key.clone()],
-        sq.policy,
-        creation_time,
-        None,
-    ) {
+    let mut pk = match sq.get_primary_keys(&[key.clone()], None) {
         Ok(keys) => {
             assert!(
                 keys.len() == 1,
@@ -266,7 +254,7 @@ fn userid_add(
     };
 
     let vcert = key
-        .with_policy(sq.policy, creation_time)
+        .with_policy(sq.policy, sq.time)
         .with_context(|| {
             format!("Certificate {} is not valid", key.fingerprint())
         })?;
@@ -361,9 +349,7 @@ fn userid_add(
         add.push(uid.clone().into());
 
         // Creation time.
-        if let Some(t) = creation_time {
-            sb = sb.set_signature_creation_time(t)?;
-        };
+        sb = sb.set_signature_creation_time(sq.time)?;
 
         let binding = uid.bind(&mut pk, &key, sb.clone())?;
         add.push(binding.into());

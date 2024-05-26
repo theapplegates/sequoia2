@@ -45,7 +45,6 @@ use crate::{
     commands::{
         FileOrStdout,
         active_certification,
-        get_certification_keys,
     },
     output::{
         pluralize::Pluralize,
@@ -242,12 +241,11 @@ pub fn certify_downloads<'store, 'rstore>(sq: &mut Sq<'store, 'rstore>,
     let ca = || -> Result<_> {
         let ca = ca.to_cert()?;
 
-        let keys = get_certification_keys(
-            &[ca], sq.policy, Some(sq.time), None)?;
-            assert!(
-                keys.len() == 1,
-                "Expect exactly one result from get_certification_keys()"
-            );
+        let keys = sq.get_certification_keys(&[ca], None)?;
+        assert!(
+            keys.len() == 1,
+            "Expect exactly one result from get_certification_keys()"
+        );
         Ok(keys.into_iter().next().unwrap().0)
     };
     let mut ca_signer = match ca() {

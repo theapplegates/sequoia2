@@ -993,7 +993,22 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         }
     }
 
-    /// Returns suitable signing keys from a given list of Certs.
+    /// Returns a signer for each certificate.
+    ///
+    /// This returns one key for each certificate.  If a certificate
+    /// doesn't have a suitable key, then this returns an error.
+    ///
+    /// A key is considered suitable if:
+    ///
+    /// - the certificate is valid
+    /// - the key matches the key type specified in `keytype` (it's either
+    ///   the primary, or it has one of the key capabilities)
+    /// - the key is alive (unless allowed by `options`)
+    /// - the key is not revoked (unless allowed by `options`)
+    /// - the key's algorithm is supported by the underlying crypto engine.
+    ///
+    /// If a key is locked, then the user will be prompted to enter
+    /// the password.
     fn get_keys<C>(&self, certs: &[C],
                    keytype: KeyType,
                    options: Option<&[GetKeysOptions]>)
@@ -1130,10 +1145,20 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         Ok(keys)
     }
 
-    /// Returns the primary keys from a given list of Certs.
+    /// Returns a signer for each certificate's primary key.
     ///
-    /// This returns one key for each Cert.  If a Cert doesn't have an
-    /// appropriate key, then this returns an error.
+    /// This returns one key for each certificate.  If a certificate
+    /// doesn't have a suitable key, then this returns an error.
+    ///
+    /// A key is considered suitable if:
+    ///
+    /// - the certificate is valid
+    /// - the key is alive (unless allowed by `options`)
+    /// - the key is not revoked (unless allowed by `options`)
+    /// - the key's algorithm is supported by the underlying crypto engine.
+    ///
+    /// If a key is locked, then the user will be prompted to enter
+    /// the password.
     pub fn get_primary_keys<C>(&self, certs: &[C],
                                options: Option<&[GetKeysOptions]>)
         -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
@@ -1142,10 +1167,20 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         self.get_keys(certs, KeyType::Primary, options)
     }
 
-    /// Returns the primary key for the given Cert.
+    /// Returns a signer for the certificate's primary key.
     ///
-    /// If the Cert doesn't have an appropriate key, then this returns
-    /// an error.
+    /// If the certificate doesn't have a suitable key, then this
+    /// returns an error.
+    ///
+    /// A key is considered suitable if:
+    ///
+    /// - the certificate is valid
+    /// - the key is alive (unless allowed by `options`)
+    /// - the key is not revoked (unless allowed by `options`)
+    /// - the key's algorithm is supported by the underlying crypto engine.
+    ///
+    /// If a key is locked, then the user will be prompted to enter
+    /// the password.
     pub fn get_primary_key<C>(&self, certs: C,
                               options: Option<&[GetKeysOptions]>)
         -> Result<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>
@@ -1159,10 +1194,22 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         Ok(keys.into_iter().next().unwrap())
     }
 
-    /// Returns suitable signing keys from a given list of Certs.
+    /// Returns a signer for a signing-capable key for each
+    /// certificate.
     ///
-    /// This returns one key for each Cert.  If a Cert doesn't have an
-    /// appropriate key, then this returns an error.
+    /// This returns one key for each certificate.  If a certificate
+    /// doesn't have a suitable key, then this returns an error.
+    ///
+    /// A key is considered suitable if:
+    ///
+    /// - the certificate is valid
+    /// - the key is signing capable
+    /// - the key is alive (unless allowed by `options`)
+    /// - the key is not revoked (unless allowed by `options`)
+    /// - the key's algorithm is supported by the underlying crypto engine.
+    ///
+    /// If a key is locked, then the user will be prompted to enter
+    /// the password.
     pub fn get_signing_keys<C>(&self, certs: &[C],
                                options: Option<&[GetKeysOptions]>)
         -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
@@ -1173,10 +1220,22 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                       options)
     }
 
-    /// Returns a suitable signing key for a given certificate.
+    /// Returns a signer for a signing-capable key for the
+    /// certificate.
     ///
-    /// If the certificate doesn't have an appropriate key, then this
+    /// If a certificate doesn't have a suitable key, then this
     /// returns an error.
+    ///
+    /// A key is considered suitable if:
+    ///
+    /// - the certificate is valid
+    /// - the key is signing capable
+    /// - the key is alive (unless allowed by `options`)
+    /// - the key is not revoked (unless allowed by `options`)
+    /// - the key's algorithm is supported by the underlying crypto engine.
+    ///
+    /// If a key is locked, then the user will be prompted to enter
+    /// the password.
     pub fn get_signing_key<C>(&self, certs: C,
                                options: Option<&[GetKeysOptions]>)
         -> Result<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>
@@ -1190,10 +1249,22 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         Ok(keys.into_iter().next().unwrap())
     }
 
-    /// Returns suitable certification keys from a given list of Certs.
+    /// Returns a signer for a certification-capable key for each
+    /// certificate.
     ///
-    /// This returns one key for each Cert.  If a Cert doesn't have an
-    /// appropriate key, then this returns an error.
+    /// This returns one key for each certificate.  If a certificate
+    /// doesn't have a suitable key, then this returns an error.
+    ///
+    /// A key is considered suitable if:
+    ///
+    /// - the certificate is valid
+    /// - the key is certification capable
+    /// - the key is alive (unless allowed by `options`)
+    /// - the key is not revoked (unless allowed by `options`)
+    /// - the key's algorithm is supported by the underlying crypto engine.
+    ///
+    /// If a key is locked, then the user will be prompted to enter
+    /// the password.
     pub fn get_certification_keys<C>(&self, certs: &[C],
                                      options: Option<&[GetKeysOptions]>)
         -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
@@ -1204,10 +1275,22 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                       options)
     }
 
-    /// Returns suitable certification keys from a given list of Certs.
+    /// Returns a signer for a certification-capable key for the
+    /// certificate.
     ///
-    /// This returns one key for each Cert.  If a Cert doesn't have an
-    /// appropriate key, then this returns an error.
+    /// This returns one key for each certificate.  If a certificate
+    /// doesn't have a suitable key, then this returns an error.
+    ///
+    /// A key is considered suitable if:
+    ///
+    /// - the certificate is valid
+    /// - the key is certification capable
+    /// - the key is alive (unless allowed by `options`)
+    /// - the key is not revoked (unless allowed by `options`)
+    /// - the key's algorithm is supported by the underlying crypto engine.
+    ///
+    /// If a key is locked, then the user will be prompted to enter
+    /// the password.
     pub fn get_certification_key<C>(&self, cert: C,
                                     options: Option<&[GetKeysOptions]>)
         -> Result<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>

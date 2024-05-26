@@ -85,7 +85,7 @@ libc = "0.2"
 
 [[bin]]
 name = "sq"
-path = "src/sq.rs"
+path = "src/main.rs"
 bench = false
 
 [features]

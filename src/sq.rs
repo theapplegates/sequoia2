@@ -1,42 +1,24 @@
-#![doc(html_favicon_url = "https://docs.sequoia-pgp.org/favicon.png")]
-#![doc(html_logo_url = "https://docs.sequoia-pgp.org/logo.svg")]
-
-#![allow(rustdoc::invalid_rust_codeblocks)]
-#![allow(rustdoc::broken_intra_doc_links)]
-#![allow(rustdoc::bare_urls)]
-#![doc = include_str!("../README.md")]
-
-use anyhow::Context as _;
-
 use std::borrow::Borrow;
-use std::collections::btree_map::{BTreeMap, Entry};
 use std::fmt;
-use std::io;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::SystemTime;
-use std::sync::Arc;
+
+use anyhow::Context as _;
 
 use once_cell::sync::OnceCell;
 
 use sequoia_openpgp as openpgp;
-
-use openpgp::{
-    KeyHandle,
-    Result,
-};
-use openpgp::{armor, Cert};
-use openpgp::cert::raw::RawCertParser;
-use openpgp::crypto::Password;
+use openpgp::Cert;
 use openpgp::Fingerprint;
+use openpgp::KeyHandle;
+use openpgp::Result;
+use openpgp::cert::prelude::*;
+use openpgp::cert::raw::RawCertParser;
 use openpgp::packet::prelude::*;
 use openpgp::parse::Parse;
-use openpgp::packet::signature::subpacket::NotationData;
-use openpgp::packet::signature::subpacket::NotationDataFlags;
-use openpgp::serialize::Serialize;
-use openpgp::cert::prelude::*;
-use openpgp::policy::{Policy, StandardPolicy as P};
+use openpgp::policy::StandardPolicy as P;
 use openpgp::types::KeyFlags;
 use openpgp::types::RevocationStatus;
 
@@ -52,356 +34,11 @@ use wot::store::Store as _;
 
 use sequoia_keystore as keystore;
 
-use clap::FromArgMatches;
-
-#[macro_use] mod macros;
-#[macro_use] mod log;
-
-mod common;
-use common::PreferredUserID;
-pub mod utils;
-
-mod cli;
-use cli::SECONDS_IN_DAY;
-use cli::SECONDS_IN_YEAR;
-use cli::types::Time;
-use cli::output::{OutputFormat, OutputVersion};
-
-mod commands;
-pub mod output;
-pub use output::{wkd::WkdUrlVariant, Model};
-use output::hint::Hint;
-
-/// Converts sequoia_openpgp types for rendering.
-pub trait Convert<T> {
-    /// Performs the conversion.
-    fn convert(self) -> T;
-}
-
-impl Convert<humantime::FormattedDuration> for std::time::Duration {
-    fn convert(self) -> humantime::FormattedDuration {
-        humantime::format_duration(self)
-    }
-}
-
-impl Convert<humantime::FormattedDuration> for openpgp::types::Duration {
-    fn convert(self) -> humantime::FormattedDuration {
-        humantime::format_duration(self.into())
-    }
-}
-
-impl Convert<chrono::DateTime<chrono::offset::Utc>> for std::time::SystemTime {
-    fn convert(self) -> chrono::DateTime<chrono::offset::Utc> {
-        chrono::DateTime::<chrono::offset::Utc>::from(self)
-    }
-}
-
-impl Convert<chrono::DateTime<chrono::offset::Utc>> for openpgp::types::Timestamp {
-    fn convert(self) -> chrono::DateTime<chrono::offset::Utc> {
-        std::time::SystemTime::from(self).convert()
-    }
-}
-
-/// Loads one TSK from every given file.
-fn load_keys<'a, I>(files: I) -> openpgp::Result<Vec<Cert>>
-    where I: Iterator<Item=&'a Path>
-{
-    let mut certs = vec![];
-    for f in files {
-        let cert = Cert::from_file(f)
-            .context(format!("Failed to load key from file {:?}", f))?;
-        if ! cert.is_tsk() {
-            return Err(anyhow::anyhow!(
-                "Cert in file {:?} does not contain secret keys", f));
-        }
-        certs.push(cert);
-    }
-    Ok(certs)
-}
-
-/// Loads one or more certs from every given file.
-fn load_certs<'a, I>(files: I) -> openpgp::Result<Vec<Cert>>
-    where I: Iterator<Item=&'a Path>
-{
-    let mut certs = vec![];
-    for f in files {
-        for maybe_cert in CertParser::from_file(f)
-            .context(format!("Failed to load certs from file {:?}", f))?
-        {
-            certs.push(maybe_cert.context(
-                format!("A cert from file {:?} is bad", f)
-            )?);
-        }
-    }
-    Ok(certs)
-}
-
-/// Merges duplicate certs in a keyring.
-fn merge_keyring<C>(certs: C) -> Result<BTreeMap<Fingerprint, Cert>>
-where
-    C: IntoIterator<Item = Cert>,
-{
-    let mut merged = BTreeMap::new();
-    for cert in certs {
-        match merged.entry(cert.fingerprint()) {
-            Entry::Vacant(e) => {
-                e.insert(cert);
-            },
-            Entry::Occupied(mut e) => {
-                let old = e.get().clone();
-                e.insert(old.merge_public(cert)?);
-            },
-        }
-    }
-    Ok(merged)
-}
-
-/// Serializes a keyring, adding descriptive headers if armored.
-#[allow(dead_code)]
-fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
-                     binary: bool)
-                     -> openpgp::Result<()> {
-    // Handle the easy options first.  No armor no cry:
-    if binary {
-        for cert in certs {
-            cert.serialize(&mut output)?;
-        }
-        return Ok(());
-    }
-
-    // Just one Cert?  Ez:
-    if certs.len() == 1 {
-        return certs[0].armored().serialize(&mut output);
-    }
-
-    // Otherwise, merge the certs.
-    let merged = merge_keyring(certs)?;
-
-    // Then, collect the headers.
-    let mut headers = Vec::new();
-    for (i, cert) in merged.values().enumerate() {
-        headers.push(format!("Key #{}", i));
-        headers.append(&mut cert.armor_headers());
-    }
-
-    let headers: Vec<_> = headers.iter()
-        .map(|value| ("Comment", value.as_str()))
-        .collect();
-    let mut output = armor::Writer::with_headers(&mut output,
-                                                 armor::Kind::PublicKey,
-                                                 headers)?;
-    for cert in merged.values() {
-        cert.serialize(&mut output)?;
-    }
-    output.finalize()?;
-    Ok(())
-}
-
-/// Best-effort heuristic to compute the primary User ID of a given cert.
-///
-/// The returned string is already sanitized, and safe for displaying.
-pub fn best_effort_primary_uid<'u, T>(config: Option<&Config>,
-                                      cert: &'u Cert,
-                                      policy: &'u dyn Policy,
-                                      time: T)
-                                      -> PreferredUserID
-where
-    T: Into<Option<SystemTime>>,
-{
-    let time = time.into();
-
-    // Try to be more helpful by including a User ID in the
-    // listing.  We'd like it to be the primary one.  Use
-    // decreasingly strict policies.
-    let mut primary_uid = None;
-
-    // First, apply our policy.
-    if let Ok(vcert) = cert.with_policy(policy, time) {
-        if let Ok(primary) = vcert.primary_userid() {
-            primary_uid = Some(primary.userid());
-        }
-    }
-
-    // Second, apply the null policy.
-    if primary_uid.is_none() {
-        const NULL: openpgp::policy::NullPolicy =
-            openpgp::policy::NullPolicy::new();
-        if let Ok(vcert) = cert.with_policy(&NULL, time) {
-            if let Ok(primary) = vcert.primary_userid() {
-                primary_uid = Some(primary.userid());
-            }
-        }
-    }
-
-    // As a last resort, pick the first user id.
-    if primary_uid.is_none() {
-        if let Some(primary) = cert.userids().next() {
-            primary_uid = Some(primary.userid());
-        }
-    }
-
-    if let Some(primary_uid) = primary_uid {
-        let fpr = cert.fingerprint();
-
-        let mut candidate: (&UserID, usize) = (primary_uid, 0);
-
-        #[allow(clippy::never_loop)]
-        loop {
-            // Don't fail if we can't query the user's web of trust.
-            let Some(config) = config else { break; };
-            let Ok(q) = config.wot_query() else { break; };
-            let q = q.build();
-            let authenticate = move |userid: &UserID| {
-                let paths = q.authenticate(userid, &fpr, wot::FULLY_TRUSTED);
-                paths.amount()
-            };
-
-            // We're careful to *not* use a ValidCert so that we see all
-            // user IDs, even those that are not self signed.
-
-            candidate = (primary_uid, authenticate(primary_uid));
-
-            for userid in cert.userids() {
-                let userid = userid.component();
-
-                if candidate.1 >= wot::FULLY_TRUSTED {
-                    // Done.
-                    break;
-                }
-
-                if userid == primary_uid {
-                    // We already considered this one.
-                    continue;
-                }
-
-                let amount = authenticate(&userid);
-                if amount > candidate.1 {
-                    candidate = (userid, amount);
-                }
-            }
-
-            break;
-        }
-
-        let (uid, amount) = candidate;
-        PreferredUserID::from_userid(uid.clone(), amount)
-    } else {
-        // Special case, there is no user id.
-        PreferredUserID::unknown()
-    }
-}
-
-/// Best-effort heuristic to compute the primary User ID of a given cert.
-///
-/// The returned string is already sanitized, and safe for displaying.
-pub fn best_effort_primary_uid_for<'u, T>(config: Option<&Config>,
-                                          key_handle: &KeyHandle,
-                                          policy: &'u dyn Policy,
-                                          time: T)
-                                          -> PreferredUserID
-where
-    T: Into<Option<SystemTime>>,
-{
-    let config = if let Some(config) = config {
-        config
-    } else {
-        return PreferredUserID::unknown()
-    };
-
-    let cert = config.lookup_one(
-        key_handle,
-        Some(KeyFlags::empty()
-             .set_storage_encryption()
-             .set_transport_encryption()),
-        false);
-
-    match cert {
-        Ok(cert) => {
-            best_effort_primary_uid(Some(config), &cert, policy, time)
-        }
-        Err(err) => {
-            if let Some(StoreError::NotFound(_))
-                = err.downcast_ref()
-            {
-                PreferredUserID::from_string("(certificate not found)", 0)
-            } else {
-                PreferredUserID::from_string(
-                    format!("(error looking up certificate: {})", err), 0)
-            }
-        }
-    }
-}
-
-// Decrypts a key, if possible.
-//
-// The passwords in `passwords` are tried first.  If the key can't be
-// decrypted using those, the user is prompted.  If a valid password
-// is entered, it is added to `passwords`.
-fn decrypt_key<R>(key: Key<key::SecretParts, R>, passwords: &mut Vec<Password>)
-    -> Result<Key<key::SecretParts, R>>
-    where R: key::KeyRole + Clone
-{
-    let key = key.parts_as_secret()?;
-    match key.secret() {
-        SecretKeyMaterial::Unencrypted(_) => {
-            Ok(key.clone())
-        }
-        SecretKeyMaterial::Encrypted(e) => {
-            if ! e.s2k().is_supported() {
-                return Err(anyhow::anyhow!(
-                    "Unsupported key protection mechanism"));
-            }
-
-            for p in passwords.iter() {
-                if let Ok(key)
-                    = key.clone().decrypt_secret(&p)
-                {
-                    return Ok(key);
-                }
-            }
-
-            loop {
-                // Prompt the user.
-                match common::password::prompt_to_unlock_or_cancel(&format!(
-                    "key {}", key.keyid(),
-                )) {
-                    Ok(None) => break, // Give up.
-                    Ok(Some(p)) => {
-                        if let Ok(key) = key
-                            .clone()
-                            .decrypt_secret(&p)
-                        {
-                            passwords.push(p.into());
-                            return Ok(key);
-                        }
-
-                        wprintln!("Incorrect password.");
-                    }
-                    Err(err) => {
-                        wprintln!("While reading password: {}", err);
-                        break;
-                    }
-                }
-            }
-
-            Err(anyhow::anyhow!("Key {}: Unable to decrypt secret key material",
-                                key.keyid().to_hex()))
-        }
-    }
-}
-
-/// Prints a warning if the user supplied "help" or "-help" to an
-/// positional argument.
-///
-/// This should be used wherever a positional argument is followed by
-/// an optional positional argument.
-#[allow(dead_code)]
-fn help_warning(arg: &str) {
-    if arg == "help" {
-        wprintln!("Warning: \"help\" is not a subcommand here.  \
-                   Did you mean --help?");
-    }
-}
+use crate::ImportStatus;
+use crate::OutputFormat;
+use crate::OutputVersion;
+use crate::output::hint::Hint;
+use crate::print_error_chain;
 
 // A shorthand for our store type.
 type WotStore<'store, 'rstore>
@@ -410,61 +47,36 @@ type WotStore<'store, 'rstore>
 pub struct Config<'store, 'rstore>
     where 'store: 'rstore
 {
-    verbose: bool,
-    force: bool,
-    output_format: OutputFormat,
-    output_version: Option<OutputVersion>,
-    policy: &'rstore P<'rstore>,
-    time: SystemTime,
-    home: sequoia_directories::Home,
+    pub verbose: bool,
+    pub force: bool,
+    pub output_format: OutputFormat,
+    pub output_version: Option<OutputVersion>,
+    pub policy: &'rstore P<'rstore>,
+    pub time: SystemTime,
+    pub home: sequoia_directories::Home,
     // --no-cert-store
-    no_rw_cert_store: bool,
-    cert_store_path: Option<PathBuf>,
-    pep_cert_store_path: Option<PathBuf>,
-    keyrings: Vec<PathBuf>,
+    pub no_rw_cert_store: bool,
+    pub cert_store_path: Option<PathBuf>,
+    pub pep_cert_store_path: Option<PathBuf>,
+    pub keyrings: Vec<PathBuf>,
     // This will be set if --no-cert-store is not passed, OR --keyring
     // is passed.
-    cert_store: OnceCell<WotStore<'store, 'rstore>>,
+    pub cert_store: OnceCell<WotStore<'store, 'rstore>>,
 
     // The value of --trust-root.
-    trust_roots: Vec<Fingerprint>,
+    pub trust_roots: Vec<Fingerprint>,
     // The local trust root, as set in the cert store.
-    trust_root_local: OnceCell<Option<Fingerprint>>,
+    pub trust_root_local: OnceCell<Option<Fingerprint>>,
 
     // The key store.
-    no_key_store: bool,
-    key_store_path: Option<PathBuf>,
-    key_store: OnceCell<Mutex<keystore::Keystore>>,
-}
-
-/// Whether a cert or key was freshly imported, updated, or unchanged.
-///
-/// Returned by [`Config::import_key`].
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-enum ImportStatus {
-    /// The certificate or key is unchanged.
-    Unchanged,
-
-    /// The certificate or key is new.
-    New,
-
-    /// The certificate or key has been updated.
-    Updated,
-}
-
-impl From<keystore::ImportStatus> for ImportStatus {
-    fn from(status: keystore::ImportStatus) -> ImportStatus {
-        match status {
-            keystore::ImportStatus::Unchanged => ImportStatus::Unchanged,
-            keystore::ImportStatus::New => ImportStatus::New,
-            keystore::ImportStatus::Updated => ImportStatus::Updated,
-        }
-    }
+    pub no_key_store: bool,
+    pub key_store_path: Option<PathBuf>,
+    pub key_store: OnceCell<Mutex<keystore::Keystore>>,
 }
 
 impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     /// Returns the cert store's base directory, if it is enabled.
-    fn cert_store_base(&self) -> Option<PathBuf> {
+    pub fn cert_store_base(&self) -> Option<PathBuf> {
         if self.no_rw_cert_store {
             None
         } else if let Some(path) = self.cert_store_path.as_ref() {
@@ -480,7 +92,7 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     ///
     /// If the cert store is disabled, returns `Ok(None)`.  If it is not yet
     /// open, opens it.
-    fn cert_store(&self) -> Result<Option<&WotStore<'store, 'rstore>>> {
+    pub fn cert_store(&self) -> Result<Option<&WotStore<'store, 'rstore>>> {
         if self.no_rw_cert_store
             && self.keyrings.is_empty()
             && self.pep_cert_store_path.is_none()
@@ -614,7 +226,7 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     /// Returns the cert store.
     ///
     /// If the cert store is disabled, returns an error.
-    fn cert_store_or_else(&self) -> Result<&WotStore<'store, 'rstore>> {
+    pub fn cert_store_or_else(&self) -> Result<&WotStore<'store, 'rstore>> {
         self.cert_store().and_then(|cert_store| cert_store.ok_or_else(|| {
             anyhow::anyhow!("Operation requires a certificate store, \
                              but the certificate store is disabled")
@@ -625,7 +237,7 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     ///
     /// If the cert store is disabled, returns None.  If it is not yet
     /// open, opens it.
-    fn cert_store_mut(&mut self)
+    pub fn cert_store_mut(&mut self)
         -> Result<Option<&mut WotStore<'store, 'rstore>>>
     {
         if self.no_rw_cert_store {
@@ -644,7 +256,9 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     ///
     /// If the cert store is disabled, returns an error.
     #[allow(unused)]
-    fn cert_store_mut_or_else(&mut self) -> Result<&mut WotStore<'store, 'rstore>> {
+    pub fn cert_store_mut_or_else(&mut self)
+        -> Result<&mut WotStore<'store, 'rstore>>
+    {
         self.cert_store_mut().and_then(|cert_store| cert_store.ok_or_else(|| {
             anyhow::anyhow!("Operation requires a certificate store, \
                              but the certificate store is disabled")
@@ -655,7 +269,7 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     /// if it is configured.
     ///
     /// If the cert direcgory is disabled, returns an error.
-    fn certd_or_else(&self)
+    pub fn certd_or_else(&self)
         -> Result<&cert_store::store::certd::CertD<'store>>
     {
         const NO_CERTD_ERR: &str =
@@ -674,7 +288,8 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     /// Returns a web-of-trust query builder.
     ///
     /// The trust roots are already set appropriately.
-    fn wot_query(&self) -> Result<wot::QueryBuilder<&WotStore<'store, 'rstore>>>
+    pub fn wot_query(&self)
+        -> Result<wot::QueryBuilder<&WotStore<'store, 'rstore>>>
     {
         let cert_store = self.cert_store_or_else()?;
         let network = wot::Network::new(cert_store)?;
@@ -686,7 +301,7 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     /// Returns the key store's path.
     ///
     /// If the key store is disabled, returns `Ok(None)`.
-    fn key_store_path(&self) -> Result<Option<PathBuf>> {
+    pub fn key_store_path(&self) -> Result<Option<PathBuf>> {
         if self.no_key_store {
             Ok(None)
         } else if let Some(dir) = self.key_store_path.as_ref() {
@@ -700,7 +315,7 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     /// Returns the key store's path.
     ///
     /// If the key store is disabled, returns an error.
-    fn key_store_path_or_else(&self) -> Result<PathBuf> {
+    pub fn key_store_path_or_else(&self) -> Result<PathBuf> {
         const NO_KEY_STORE_ERROR: &str =
             "Operation requires a key store, \
              but the key store is disabled";
@@ -717,7 +332,7 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     ///
     /// If the key store is disabled, returns `Ok(None)`.  If it is not yet
     /// open, opens it.
-    fn key_store(&self) -> Result<Option<&Mutex<keystore::Keystore>>> {
+    pub fn key_store(&self) -> Result<Option<&Mutex<keystore::Keystore>>> {
         if self.no_key_store {
             return Ok(None);
         }
@@ -738,7 +353,7 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     /// Returns the key store.
     ///
     /// If the key store is disabled, returns an error.
-    fn key_store_or_else(&self) -> Result<&Mutex<keystore::Keystore>> {
+    pub fn key_store_or_else(&self) -> Result<&Mutex<keystore::Keystore>> {
         self.key_store().and_then(|key_store| key_store.ok_or_else(|| {
             anyhow::anyhow!("Operation requires a key store, \
                              but the key store is disabled")
@@ -761,11 +376,11 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     ///
     /// An error is also returned if any of the identifiers does not
     /// match at least one certificate.
-    fn lookup<'a, I>(&self, khs: I,
-                     keyflags: Option<KeyFlags>,
-                     or_by_primary: bool,
-                     allow_ambiguous: bool)
-              -> Result<Vec<Cert>>
+    pub fn lookup<'a, I>(&self, khs: I,
+                         keyflags: Option<KeyFlags>,
+                         or_by_primary: bool,
+                         allow_ambiguous: bool)
+        -> Result<Vec<Cert>>
     where I: IntoIterator,
           I::Item: Borrow<KeyHandle>,
     {
@@ -870,7 +485,7 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     /// returns an error.  If multiple certificates can be
     /// authenticated for a given User ID or email address, then
     /// returns them all.
-    fn lookup_by_userid(&self, userid: &[String], email: bool)
+    pub fn lookup_by_userid(&self, userid: &[String], email: bool)
         -> Result<Vec<Cert>>
     {
         if userid.is_empty() {
@@ -1091,8 +706,8 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     ///
     /// Like `lookup`, but looks up a certificate, which must be
     /// uniquely identified by `kh` and `keyflags`.
-    fn lookup_one(&self, kh: &KeyHandle,
-                  keyflags: Option<KeyFlags>, or_by_primary: bool)
+    pub fn lookup_one(&self, kh: &KeyHandle,
+                      keyflags: Option<KeyFlags>, or_by_primary: bool)
         -> Result<Cert>
     {
         self.lookup(std::iter::once(kh), keyflags, or_by_primary, false)
@@ -1103,7 +718,7 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     }
 
     /// Returns the local trust root, creating it if necessary.
-    fn local_trust_root(&self) -> Result<Arc<LazyCert<'store>>> {
+    pub fn local_trust_root(&self) -> Result<Arc<LazyCert<'store>>> {
         self.certd_or_else()?.trust_root().map(|(cert, _created)| {
             cert
         })
@@ -1111,7 +726,7 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
 
     /// Returns the trust roots, including the cert store's trust
     /// root, if any.
-    fn trust_roots(&self) -> Vec<Fingerprint> {
+    pub fn trust_roots(&self) -> Vec<Fingerprint> {
         let trust_root_local = self.trust_root_local.get_or_init(|| {
             self.cert_store_or_else()
                 .ok()
@@ -1168,7 +783,7 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     ///
     /// On success, returns whether the key was imported, updated, or
     /// unchanged.
-    fn import_key(&self, cert: Cert) -> Result<ImportStatus> {
+    pub fn import_key(&self, cert: Cert) -> Result<ImportStatus> {
         if ! cert.is_tsk() {
             return Err(anyhow::anyhow!(
                 "Certificate does not contain any secret key material"));
@@ -1227,222 +842,16 @@ impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
     }
 
     /// Prints additional information in verbose mode.
-    fn info(&self, msg: fmt::Arguments) {
+    pub fn info(&self, msg: fmt::Arguments) {
         if self.verbose {
             wprintln!("{}", msg);
         }
     }
 
     /// Prints a hint for the user.
-    fn hint(&self, msg: fmt::Arguments) -> Hint {
+    pub fn hint(&self, msg: fmt::Arguments) -> Hint {
         // XXX: If we gain a --quiet, pass it to Hint::new.
         Hint::new(false)
             .hint(msg)
     }
-}
-
-// TODO: Use `derive`d command structs. No more values_of
-// TODO: Handling (and cli position) of global arguments
-fn main() -> Result<()> {
-    let mut cli = cli::build(true);
-    let matches = cli.clone().try_get_matches();
-    let c = match matches {
-        Ok(matches) => {
-            cli::SqCommand::from_arg_matches(&matches)?
-        }
-        Err(err) => {
-            // Warning: hack ahead!
-            //
-            // If we are showing the help output, we only want to
-            // display the global options at the top-level; for
-            // subcommands we hide the global options to not overwhelm
-            // the user.
-            //
-            // Ideally, clap would provide a mechanism to only show
-            // the help output for global options at the level they
-            // are defined at.  That's not the case.
-            //
-            // We can use `err` to figure out if we are showing the
-            // help output, but it doesn't tell us what subcommand we
-            // are showing the help for.  Instead (and here's the
-            // hack!), we compare the output.  If it is the output for
-            // the top-level `--help` or `-h`, then we are showing the
-            // help for the top-level.  If not, then we are showing
-            // the help for a subcommand.  In the former case, we
-            // unhide the global options.
-            use clap::error::ErrorKind;
-            if err.kind() == ErrorKind::DisplayHelp
-                || err.kind() == ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
-            {
-                let output = err.render();
-                let output = if output == cli.render_long_help() {
-                    Some(cli::build(false).render_long_help())
-                } else if output == cli.render_help() {
-                    Some(cli::build(false).render_help())
-                } else {
-                    None
-                };
-
-                if let Some(output) = output {
-                    if err.use_stderr() {
-                        eprint!("{}", output);
-                    } else {
-                        print!("{}", output);
-                    }
-                    std::process::exit(err.exit_code());
-                }
-            }
-            err.exit();
-        }
-    };
-
-    let time: SystemTime =
-        c.time.clone().unwrap_or_else(|| Time::now()).into();
-
-    let mut policy = sequoia_policy_config::ConfiguredStandardPolicy::new();
-    policy.parse_default_config()?;
-    let mut policy = policy.build();
-
-    let known_notations_store = c.known_notation.clone();
-    let known_notations = known_notations_store
-        .iter()
-        .map(|n| n.as_str())
-        .collect::<Vec<&str>>();
-    policy.good_critical_notations(&known_notations);
-
-    let force = c.force;
-
-    let output_version = if let Some(v) = &c.output_version {
-        Some(OutputVersion::from_str(v)?)
-    } else {
-        None
-    };
-
-    let config = Config {
-        verbose: c.verbose,
-        force,
-        output_format: c.output_format,
-        output_version,
-        policy: &policy,
-        time,
-        home: sequoia_directories::Home::new(c.home.clone())?,
-        no_rw_cert_store: c.no_cert_store,
-        cert_store_path: c.cert_store.clone(),
-        pep_cert_store_path: c.pep_cert_store.clone(),
-        keyrings: c.keyring.clone(),
-        cert_store: OnceCell::new(),
-        trust_roots: c.trust_roots.clone(),
-        trust_root_local: Default::default(),
-        no_key_store: c.no_key_store,
-        key_store_path: c.key_store.clone(),
-        key_store: OnceCell::new(),
-    };
-
-    commands::dispatch(config, c)
-}
-
-fn parse_notations<N>(n: N) -> Result<Vec<(bool, NotationData)>>
-where
-    N: AsRef<[String]>,
-{
-    let n = n.as_ref();
-    assert_eq!(n.len() % 2, 0, "notations must be pairs of key and value");
-
-    // Each --notation takes two values.  Iterate over them in chunks of 2.
-    let notations: Vec<(bool, NotationData)> = n
-        .chunks(2)
-        .map(|arg_pair| {
-            let name = &arg_pair[0];
-            let value = &arg_pair[1];
-
-            let (critical, name) = match name.strip_prefix('!') {
-                Some(name) => (true, name),
-                None => (false, name.as_str()),
-            };
-
-            let notation_data = NotationData::new(
-                name,
-                value,
-                NotationDataFlags::empty().set_human_readable(),
-            );
-            (critical, notation_data)
-        })
-        .collect();
-
-    Ok(notations)
-}
-
-// Sometimes the same error cascades, e.g.:
-//
-// ```
-// $ sq-wot --time 20230110T0406   --keyring sha1.pgp path B5FA089BA76FE3E17DC11660960E53286738F94C 231BC4AB9D8CAB86D1622CE02C0CE554998EECDB FABA8485B2D4D5BF1582AA963A8115E774FA9852 "<carol@example.org>"
-// [ ] FABA8485B2D4D5BF1582AA963A8115E774FA9852 <carol@example.org>: not authenticated (0%)
-//   ◯ B5FA089BA76FE3E17DC11660960E53286738F94C ("<alice@example.org>")
-//   │   No adequate certification found.
-//   │   No binding signature at time 2023-01-10T04:06:00Z
-//   │     No binding signature at time 2023-01-10T04:06:00Z
-//   │     No binding signature at time 2023-01-10T04:06:00Z
-// ...
-// ```
-//
-// Compress these.
-fn error_chain(err: &anyhow::Error) -> Vec<String> {
-    let mut errs = std::iter::once(err.to_string())
-        .chain(err.chain().map(|source| source.to_string()))
-        .collect::<Vec<String>>();
-    errs.dedup();
-    errs
-}
-
-/// Prints the error and causes, if any.
-pub fn print_error_chain(err: &anyhow::Error) {
-    wprintln!("           {}", err);
-    err.chain().skip(1).for_each(|cause| wprintln!("  because: {}", cause));
-}
-
-/// Returns the error chain as a string.
-///
-/// The error and causes are separated by `error_separator`.  The
-/// causes are separated by `cause_separator`, or, if that is `None`,
-/// `error_separator`.
-pub fn display_error_chain<'a, E, C>(err: E,
-                                     error_separator: &str,
-                                     cause_separator: C)
-    -> String
-where E: Borrow<anyhow::Error>,
-      C: Into<Option<&'a str>>
-{
-    let err = err.borrow();
-    let cause_separator = cause_separator.into();
-
-    let error_chain = error_chain(err);
-    match error_chain.len() {
-        0 => unreachable!(),
-        1 => {
-            error_chain.into_iter().next().expect("have one")
-        }
-        2 => {
-            format!("{}{}{}",
-                    error_chain[0],
-                    error_separator,
-                    error_chain[1])
-        }
-        _ => {
-            if let Some(cause_separator) = cause_separator {
-                format!("{}{}{}",
-                        error_chain[0],
-                        error_separator,
-                        error_chain[1..].join(cause_separator))
-            } else {
-                error_chain.join(error_separator)
-            }
-        }
-    }
-
-}
-
-pub fn one_line_error_chain<E>(err: E) -> String
-where E: Borrow<anyhow::Error>,
-{
-    display_error_chain(err, ": ", ", because ")
 }

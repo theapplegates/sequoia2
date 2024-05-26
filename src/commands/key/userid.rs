@@ -39,26 +39,24 @@ use crate::common::userid::lint_userids;
 use crate::parse_notations;
 
 /// Handle the revocation of a User ID
-struct UserIDRevocation<'a> {
+struct UserIDRevocation<'a, 'store, 'rstore> {
+    sq: &'a Sq<'store, 'rstore>,
     cert: Cert,
     secret: Cert,
-    policy: &'a dyn Policy,
-    time: Option<SystemTime>,
     revocation_packet: Packet,
     first_party_issuer: bool,
     userid: String,
     uid: UserID,
 }
 
-impl<'a> UserIDRevocation<'a> {
+impl<'a, 'store, 'rstore> UserIDRevocation<'a, 'store, 'rstore> {
     /// Create a new UserIDRevocation
     pub fn new(
+        sq: &'a Sq<'store, 'rstore>,
         userid: String,
         force: bool,
         cert: Cert,
         secret: Option<Cert>,
-        policy: &'a dyn Policy,
-        time: Option<SystemTime>,
         private_key_store: Option<&str>,
         reason: ReasonForRevocation,
         message: &str,
@@ -66,10 +64,10 @@ impl<'a> UserIDRevocation<'a> {
     ) -> Result<Self> {
         let (secret, mut signer) = get_secret_signer(
             &cert,
-            policy,
+            sq.policy,
             secret.as_ref(),
             private_key_store,
-            time,
+            Some(sq.time),
         )?;
 
         let first_party_issuer = secret.fingerprint() == cert.fingerprint();
@@ -115,9 +113,7 @@ impl<'a> UserIDRevocation<'a> {
 
             let mut rev = UserIDRevocationBuilder::new()
                 .set_reason_for_revocation(reason, message.as_bytes())?;
-            if let Some(time) = time {
-                rev = rev.set_signature_creation_time(time)?;
-            }
+            rev = rev.set_signature_creation_time(sq.time)?;
             for (critical, notation) in notations {
                 rev = rev.add_notation(
                     notation.name(),
@@ -136,10 +132,9 @@ impl<'a> UserIDRevocation<'a> {
         };
 
         Ok(UserIDRevocation {
+            sq,
             cert,
             secret,
-            policy,
-            time,
             revocation_packet,
             first_party_issuer,
             userid,
@@ -148,7 +143,9 @@ impl<'a> UserIDRevocation<'a> {
     }
 }
 
-impl<'a> RevocationOutput for UserIDRevocation<'a> {
+impl<'a, 'store, 'rstore> RevocationOutput
+    for UserIDRevocation<'a, 'store, 'rstore>
+{
     /// Write the revocation certificate to output
     fn write(
         &self,
@@ -188,7 +185,7 @@ impl<'a> RevocationOutput for UserIDRevocation<'a> {
                 // self-signed user IDs to avoid leaking information
                 // about the user's web of trust.
                 let sanitized_uid = crate::best_effort_primary_uid(
-                    None, &self.secret, self.policy, self.time);
+                    None, &self.secret, self.sq.policy, Some(self.sq.time));
                 // Truncate it, if it is too long.
                 more.push(format!("{:.70}", sanitized_uid));
             }
@@ -456,17 +453,14 @@ pub fn userid_revoke(
 
     let secret = read_secret(command.secret_key_file.as_deref())?;
 
-    let time = Some(sq.time);
-
     let notations = parse_notations(command.notation)?;
 
     let revocation = UserIDRevocation::new(
+        &sq,
         command.userid,
         sq.force,
         cert,
         secret,
-        sq.policy,
-        time,
         command.private_key_store.as_deref(),
         command.reason.into(),
         &command.message,

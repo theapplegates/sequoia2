@@ -1,5 +1,3 @@
-use std::time::SystemTime;
-
 use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
@@ -7,7 +5,6 @@ use openpgp::armor::Kind;
 use openpgp::armor::Writer;
 use openpgp::cert::CertRevocationBuilder;
 use openpgp::packet::signature::subpacket::NotationData;
-use openpgp::policy::Policy;
 use openpgp::serialize::Serialize;
 use openpgp::types::ReasonForRevocation;
 use openpgp::Cert;
@@ -24,22 +21,20 @@ use crate::common::read_secret;
 use crate::parse_notations;
 
 /// Handle the revocation of a certificate
-struct CertificateRevocation<'a> {
+struct CertificateRevocation<'a, 'store, 'rstore> {
+    sq: &'a Sq<'store, 'rstore>,
     cert: Cert,
     secret: Cert,
-    policy: &'a dyn Policy,
-    time: Option<SystemTime>,
     revocation_packet: Packet,
     first_party_issuer: bool,
 }
 
-impl<'a> CertificateRevocation<'a> {
+impl<'a, 'store, 'rstore> CertificateRevocation<'a, 'store, 'rstore> {
     /// Create a new CertificateRevocation
     pub fn new(
+        sq: &'a Sq<'store, 'rstore>,
         cert: Cert,
         secret: Option<Cert>,
-        policy: &'a dyn Policy,
-        time: Option<SystemTime>,
         private_key_store: Option<&str>,
         reason: ReasonForRevocation,
         message: &str,
@@ -47,10 +42,10 @@ impl<'a> CertificateRevocation<'a> {
     ) -> Result<Self> {
         let (secret, mut signer) = get_secret_signer(
             &cert,
-            policy,
+            sq.policy,
             secret.as_ref(),
             private_key_store,
-            time,
+            Some(sq.time),
         )?;
 
         let first_party_issuer = secret.fingerprint() == cert.fingerprint();
@@ -59,9 +54,7 @@ impl<'a> CertificateRevocation<'a> {
             // Create a revocation for the certificate.
             let mut rev = CertRevocationBuilder::new()
                 .set_reason_for_revocation(reason, message.as_bytes())?;
-            if let Some(time) = time {
-                rev = rev.set_signature_creation_time(time)?;
-            }
+            rev = rev.set_signature_creation_time(sq.time)?;
             for (critical, notation) in notations {
                 rev = rev.add_notation(
                     notation.name(),
@@ -75,17 +68,18 @@ impl<'a> CertificateRevocation<'a> {
         };
 
         Ok(CertificateRevocation {
+            sq,
             cert,
             secret,
-            policy,
-            time,
             revocation_packet,
             first_party_issuer,
         })
     }
 }
 
-impl<'a> RevocationOutput for CertificateRevocation<'a> {
+impl<'a, 'store, 'rstore> RevocationOutput
+    for CertificateRevocation<'a, 'store, 'rstore>
+{
     /// Write the revocation certificate to output
     fn write(
         &self,
@@ -121,7 +115,7 @@ impl<'a> RevocationOutput for CertificateRevocation<'a> {
                 // self-signed user IDs to avoid leaking information
                 // about the user's web of trust.
                 let sanitized_uid = crate::best_effort_primary_uid(
-                    None, &self.secret, self.policy, self.time);
+                    None, &self.secret, self.sq.policy, self.sq.time);
                 // Truncate it, if it is too long.
                 more.push(format!("{:.70}", sanitized_uid));
             }
@@ -153,15 +147,12 @@ pub fn certificate_revoke(
 
     let secret = read_secret(command.secret_key_file.as_deref())?;
 
-    let time = Some(sq.time);
-
     let notations = parse_notations(command.notation)?;
 
     let revocation = CertificateRevocation::new(
+        &sq,
         cert,
         secret,
-        sq.policy,
-        time,
         command.private_key_store.as_deref(),
         command.reason.into(),
         &command.message,

@@ -233,20 +233,16 @@ fn subkey_add(
 
     // If a password is needed to use the key, the user will be prompted.
     let (primary_key, password) =
-        match sq.get_primary_keys(&[cert.clone()], None) {
-            Ok(keys) => {
-                assert!(
-                    keys.len() == 1,
-                    "Expect exactly one result from get_primary_keys()"
-                );
+        match sq.get_primary_key(&cert, None) {
+            Ok((key, password)) => {
                 // provide a password or reuse that of the primary key
                 if command.with_password {
                     (
-                        keys.into_iter().next().unwrap().0,
+                        key,
                         common::password::prompt_for_new("subkey")?,
                     )
                 } else {
-                    keys.into_iter().next().unwrap()
+                    (key, password)
                 }
             }
             Err(error) => {

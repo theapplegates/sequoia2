@@ -240,13 +240,9 @@ fn userid_add(
         ));
     }
 
-    let mut pk = match sq.get_primary_keys(&[key.clone()], None) {
-        Ok(keys) => {
-            assert!(
-                keys.len() == 1,
-                "Expect exactly one result from get_primary_keys()"
-            );
-            keys.into_iter().next().unwrap().0
+    let mut pk = match sq.get_primary_key(&key, None) {
+        Ok((key, _password)) => {
+            key
         }
         Err(error) => {
             return Err(error)

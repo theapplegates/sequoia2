@@ -1142,6 +1142,23 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         self.get_keys(certs, KeyType::Primary, options)
     }
 
+    /// Returns the primary key for the given Cert.
+    ///
+    /// If the Cert doesn't have an appropriate key, then this returns
+    /// an error.
+    pub fn get_primary_key<C>(&self, certs: C,
+                              options: Option<&[GetKeysOptions]>)
+        -> Result<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>
+    where C: std::borrow::Borrow<Cert>
+    {
+        let keys = self.get_primary_keys(&[certs], options)?;
+        assert!(
+            keys.len() == 1,
+            "Expected exactly one result from get_primary_keys()"
+        );
+        Ok(keys.into_iter().next().unwrap())
+    }
+
     /// Returns suitable signing keys from a given list of Certs.
     ///
     /// This returns one key for each Cert.  If a Cert doesn't have an

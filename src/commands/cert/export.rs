@@ -15,15 +15,15 @@ use cert_store::store::UserIDQueryParams;
 
 use crate::cli::types::FileOrStdout;
 use crate::{
-    Config,
+    Sq,
     print_error_chain,
     utils::cert_exportable,
 };
 
 use crate::cli::cert::export;
 
-pub fn dispatch(config: Config, mut cmd: export::Command) -> Result<()> {
-    let cert_store = config.cert_store_or_else()?;
+pub fn dispatch(sq: Sq, mut cmd: export::Command) -> Result<()> {
+    let cert_store = sq.cert_store_or_else()?;
 
     let mut userid_query = Vec::new();
     let mut die = false;
@@ -97,14 +97,14 @@ pub fn dispatch(config: Config, mut cmd: export::Command) -> Result<()> {
     if cmd.cert.is_empty() && cmd.key.is_empty() && userid_query.is_empty()
         && ! cmd.all
     {
-        config.hint(format_args!(
+        sq.hint(format_args!(
             "Use --all to export all certs, or give a query."));
         return Err(anyhow::anyhow!("no query given"));
     }
 
     let output = FileOrStdout::default();
     let mut sink = output.create_pgp_safe(
-        config.force,
+        sq.force,
         cmd.binary,
         armor::Kind::PublicKey,
     )?;
@@ -177,7 +177,7 @@ pub fn dispatch(config: Config, mut cmd: export::Command) -> Result<()> {
                         exported.insert(cert.fingerprint());
                     } else {
                         // But, when matching a subkey, we do.
-                        if let Ok(vc) = cert.with_policy(config.policy, None) {
+                        if let Ok(vc) = cert.with_policy(sq.policy, None) {
                             if vc.keys().subkeys().any(|ka| {
                                 ka.key_handle().aliases(kh)
                             })
@@ -203,7 +203,7 @@ pub fn dispatch(config: Config, mut cmd: export::Command) -> Result<()> {
                     }
 
                     // Matching User IDs need a valid self signature.
-                    if let Ok(vc) = cert.with_policy(config.policy, None) {
+                    if let Ok(vc) = cert.with_policy(sq.policy, None) {
                         if vc.userids().any(|ua| {
                             q.check(ua.userid(), pattern)
                         }) {

@@ -30,7 +30,7 @@ use output::print_path_error;
 #[allow(unused_imports)]
 use output::OutputType as _;
 
-use crate::Config;
+use crate::Sq;
 
 fn required_trust_amount(trust_amount: Option<TrustAmount<usize>>,
                          certification_network: bool)
@@ -76,7 +76,7 @@ fn have_self_signed_userid(cert: &wot::CertSynopsis,
 
 /// Authenticate bindings defined by a Query on a Network
 fn authenticate<'store, 'rstore>(
-    config: Config<'store, 'rstore>,
+    sq: Sq<'store, 'rstore>,
     precompute: bool,
     list_pattern: Option<String>,
     email: bool,
@@ -90,7 +90,7 @@ fn authenticate<'store, 'rstore>(
     where 'store: 'rstore,
 {
     // Build the network.
-    let cert_store = match config.cert_store() {
+    let cert_store = match sq.cert_store() {
         Ok(Some(cert_store)) => cert_store,
         Ok(None) => {
             return Err(anyhow::anyhow!("Certificate store has been disabled"));
@@ -108,7 +108,7 @@ fn authenticate<'store, 'rstore>(
 
     let mut q = wot::QueryBuilder::new(&n);
     if ! gossip {
-        q.roots(wot::Roots::new(config.trust_roots()));
+        q.roots(wot::Roots::new(sq.trust_roots()));
     }
     if certification_network {
         q.certification_network();
@@ -120,7 +120,7 @@ fn authenticate<'store, 'rstore>(
 
     let mut certificate_dealiased = None;
     let fingerprint: Option<Fingerprint> = if let Some(kh) = certificate {
-        match config.lookup(std::iter::once(kh), None, true, true) {
+        match sq.lookup(std::iter::once(kh), None, true, true) {
             Ok(certs) => {
                 assert!(certs.len() >= 1);
 
@@ -288,7 +288,7 @@ fn authenticate<'store, 'rstore>(
     let mut authenticated = 0;
     let mut lint_input = true;
 
-    let mut output = match config.output_format {
+    let mut output = match sq.output_format {
         #[cfg(feature = "dot-writer")]
         OutputFormat::DOT => {
             Box::new(output::DotOutputNetwork::new(
@@ -308,7 +308,7 @@ fn authenticate<'store, 'rstore>(
             } else {
                 Box::new(
                     output::ConciseHumanReadableOutputNetwork::new(
-                        &config, required_amount))
+                        &sq, required_amount))
                     as Box<dyn output::OutputType>
             }
         }
@@ -530,7 +530,7 @@ fn authenticate<'store, 'rstore>(
 }
 
 // For `sq-wot path`.
-fn check_path(config: &Config,
+fn check_path(sq: &Sq,
               gossip: bool,
               certification_network: bool,
               trust_amount: Option<TrustAmount<usize>>,
@@ -540,7 +540,7 @@ fn check_path(config: &Config,
     tracer!(TRACE, "check_path");
 
     // Build the network.
-    let cert_store = match config.cert_store() {
+    let cert_store = match sq.cert_store() {
         Ok(Some(cert_store)) => cert_store,
         Ok(None) => {
             return Err(anyhow::anyhow!("Certificate store has been disabled"));
@@ -554,7 +554,7 @@ fn check_path(config: &Config,
 
     let mut q = wot::QueryBuilder::new(&n);
     if ! gossip {
-        q.roots(wot::Roots::new(config.trust_roots()));
+        q.roots(wot::Roots::new(sq.trust_roots()));
     }
     if certification_network {
         q.certification_network();
@@ -567,13 +567,13 @@ fn check_path(config: &Config,
     let (khs, userid) = (path.certs()?, path.userid()?);
     assert!(khs.len() > 0, "guaranteed by clap");
 
-    let r = q.lint_path(&khs, &userid, required_amount, config.policy);
+    let r = q.lint_path(&khs, &userid, required_amount, sq.policy);
 
     let target_kh = khs.last().expect("have one");
 
     match r {
         Ok(path) => {
-            match config.output_format {
+            match sq.output_format {
                 #[cfg(feature = "dot-writer")]
                 OutputFormat::DOT => {
                     wprintln!(
@@ -596,7 +596,7 @@ fn check_path(config: &Config,
             }
         }
         Err(err) => {
-            match config.output_format {
+            match sq.output_format {
                 #[cfg(feature = "dot-writer")]
                 OutputFormat::DOT => {
                     wprintln!(
@@ -628,7 +628,7 @@ impl StatusListener for KeyServerUpdate {
     }
 }
 
-pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
+pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
     tracer!(TRACE, "pki::dispatch");
 
     use cli::pki::*;
@@ -638,7 +638,7 @@ pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
             email, gossip, certification_network, trust_amount,
             cert, userid, show_paths,
         }) => authenticate(
-            config, false, None,
+            sq, false, None,
             *email, *gossip, *certification_network, *trust_amount,
             Some(&userid), Some(&cert), *show_paths,
         )?,
@@ -649,7 +649,7 @@ pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
             email, gossip, certification_network, trust_amount,
             userid, show_paths,
         }) => authenticate(
-            config, false, None,
+            sq, false, None,
             *email, *gossip, *certification_network, *trust_amount,
             Some(&userid), None, *show_paths)?,
 
@@ -659,7 +659,7 @@ pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
             gossip, certification_network, trust_amount,
             cert, show_paths,
         }) => authenticate(
-            config, false, None,
+            sq, false, None,
             false, *gossip, *certification_network, *trust_amount,
             None, Some(&cert), *show_paths)?,
 
@@ -674,12 +674,12 @@ pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
             // A key handle was given as pattern and --email was not
             // given.  Act like `sq pki identify`.
             authenticate(
-                config, false, None,
+                sq, false, None,
                 false, *gossip, *certification_network, *trust_amount,
                 None, Some(&handle), *show_paths)?;
         } else {
             authenticate(
-                config, pattern.is_none(), pattern,
+                sq, pattern.is_none(), pattern,
                 *email, *gossip, *certification_network, *trust_amount,
                 None, None, *show_paths)?;
         },
@@ -689,14 +689,14 @@ pub fn dispatch(config: Config, cli: cli::pki::Command) -> Result<()> {
             gossip, certification_network, trust_amount,
             path,
         }) => check_path(
-            &config, *gossip, *certification_network, *trust_amount,
+            &sq, *gossip, *certification_network, *trust_amount,
             path)?,
 
         Subcommands::Certify(command) =>
-            self::certify::certify(config, command)?,
+            self::certify::certify(sq, command)?,
 
         Subcommands::Link(command) =>
-            self::link::link(config, command)?,
+            self::link::link(sq, command)?,
     }
 
     Ok(())

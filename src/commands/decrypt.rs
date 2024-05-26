@@ -34,16 +34,16 @@ use crate::{
         VHelper,
     },
     common::password,
-    Config,
+    Sq,
     load_certs,
     load_keys,
 };
 
-pub fn dispatch(config: Config, command: cli::decrypt::Command) -> Result<()> {
+pub fn dispatch(sq: Sq, command: cli::decrypt::Command) -> Result<()> {
     tracer!(TRACE, "decrypt::dispatch");
 
     let mut input = command.input.open()?;
-    let mut output = command.output.create_safe(config.force)?;
+    let mut output = command.output.create_safe(sq.force)?;
 
     let certs = load_certs(
         command.sender_cert_file.iter().map(|s| s.as_ref()),
@@ -66,7 +66,7 @@ pub fn dispatch(config: Config, command: cli::decrypt::Command) -> Result<()> {
         load_keys(command.secret_key_file.iter().map(|s| s.as_ref()))?;
     let private_key_store = command.private_key_store;
     let session_keys = command.session_key;
-    decrypt(config, private_key_store.as_deref(),
+    decrypt(sq, private_key_store.as_deref(),
             &mut input, &mut output,
             signatures, certs, secrets,
             command.dump_session_key,
@@ -166,7 +166,7 @@ impl<'c, 'store, 'rstore> std::ops::DerefMut for Helper<'c, 'store, 'rstore> {
 impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
     where 'store: 'rstore
 {
-    pub fn new(config: &'c Config<'store, 'rstore>, private_key_store: Option<&str>,
+    pub fn new(sq: &'c Sq<'store, 'rstore>, private_key_store: Option<&str>,
                signatures: usize, certs: Vec<Cert>, secrets: Vec<Cert>,
                session_keys: Vec<cli::types::SessionKey>,
                dump_session_key: bool)
@@ -176,7 +176,7 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
         let mut identities: HashMap<KeyID, Fingerprint> = HashMap::new();
         let mut hints: HashMap<KeyID, String> = HashMap::new();
         for tsk in secrets {
-            let hint = match tsk.with_policy(config.policy, None)
+            let hint = match tsk.with_policy(sq.policy, None)
                 .and_then(|valid_cert| valid_cert.primary_userid()).ok()
             {
                 Some(uid) => format!("{} ({})", uid.userid(),
@@ -186,7 +186,7 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
 
             for ka in tsk.keys()
             // XXX: Should use the message's creation time that we do not know.
-                .with_policy(config.policy, None)
+                .with_policy(sq.policy, None)
                 .for_transport_encryption().for_storage_encryption()
             {
                 let id: KeyID = ka.key().fingerprint().into();
@@ -206,7 +206,7 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
         }
 
         Helper {
-            vhelper: VHelper::new(config, signatures, certs),
+            vhelper: VHelper::new(sq, signatures, certs),
             secret_keys: keys,
             key_identities: identities,
             key_hints: hints,
@@ -395,7 +395,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
         }
 
         // Try the key store.
-        match self.vhelper.config.key_store_or_else() {
+        match self.vhelper.sq.key_store_or_else() {
             Ok(ks) => {
                 let mut ks = ks.lock().unwrap();
                 match ks.decrypt(&pkesks[..]) {
@@ -417,10 +417,10 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                                     let mut key = key_status.into_key();
                                     let keyid = key.keyid();
                                     let userid = best_effort_primary_uid_for(
-                                        Some(&self.config),
+                                        Some(&self.sq),
                                         &KeyHandle::from(&keyid),
-                                        self.config.policy,
-                                        self.config.time);
+                                        self.sq.policy,
+                                        self.sq.time);
 
                                     let keypair = loop {
                                         let password = rpassword::prompt_password(
@@ -470,7 +470,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                        to be encrypted to:");
             eprintln!();
             for recipient in recipients.into_iter() {
-                let certs = self.config.lookup(
+                let certs = self.sq.lookup(
                     std::iter::once(KeyHandle::from(recipient)),
                     Some(KeyFlags::empty()
                          .set_storage_encryption()
@@ -484,10 +484,10 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                             eprintln!("  - {}, {}",
                                       cert.fingerprint(),
                                       best_effort_primary_uid(
-                                          Some(self.config),
+                                          Some(self.sq),
                                           &cert,
-                                          self.config.policy,
-                                          self.config.time));
+                                          self.sq.policy,
+                                          self.sq.time));
                         }
                     }
                     Err(err) => {
@@ -542,7 +542,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
 
 // Allow too many arguments now, should be reworked later
 #[allow(clippy::too_many_arguments)]
-pub fn decrypt(config: Config,
+pub fn decrypt(sq: Sq,
                private_key_store: Option<&str>,
                input: &mut (dyn io::Read + Sync + Send),
                output: &mut dyn io::Write,
@@ -550,10 +550,10 @@ pub fn decrypt(config: Config,
                dump_session_key: bool,
                sk: Vec<cli::types::SessionKey>)
                -> Result<()> {
-    let helper = Helper::new(&config, private_key_store, signatures, certs,
+    let helper = Helper::new(&sq, private_key_store, signatures, certs,
                              secrets, sk, dump_session_key);
     let mut decryptor = DecryptorBuilder::from_reader(input)?
-        .with_policy(config.policy, None, helper)
+        .with_policy(sq.policy, None, helper)
         .context("Decryption failed")?;
 
     io::copy(&mut decryptor, output).context("Decryption failed")?;
@@ -563,7 +563,7 @@ pub fn decrypt(config: Config,
     Ok(())
 }
 
-pub fn decrypt_unwrap(config: Config,
+pub fn decrypt_unwrap(sq: Sq,
                       input: &mut (dyn io::Read + Sync + Send),
                       output: &mut dyn io::Write,
                       secrets: Vec<Cert>,
@@ -571,7 +571,7 @@ pub fn decrypt_unwrap(config: Config,
                       dump_session_key: bool)
                       -> Result<()>
 {
-    let mut helper = Helper::new(&config, None, 0, Vec::new(), secrets,
+    let mut helper = Helper::new(&sq, None, 0, Vec::new(), secrets,
                                  session_keys,
                                  dump_session_key);
 

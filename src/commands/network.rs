@@ -50,7 +50,7 @@ use crate::{
     output::{
         pluralize::Pluralize,
     },
-    Config,
+    Sq,
     Model,
     best_effort_primary_uid,
     merge_keyring,
@@ -71,22 +71,22 @@ pub const CONNECT_TIMEOUT: Duration = Duration::new(5, 0);
 /// How long to wait for each individual http request.
 pub const REQUEST_TIMEOUT: Duration = Duration::new(5, 0);
 
-pub fn dispatch(config: Config, c: cli::network::Command)
+pub fn dispatch(sq: Sq, c: cli::network::Command)
                 -> Result<()>
 {
     use cli::network::Subcommands;
     match c.subcommand {
         Subcommands::Fetch(command) =>
-            dispatch_fetch(config, command),
+            dispatch_fetch(sq, command),
 
         Subcommands::Keyserver(command) =>
-            dispatch_keyserver(config, command),
+            dispatch_keyserver(sq, command),
 
         Subcommands::Wkd(command) =>
-            dispatch_wkd(config, command),
+            dispatch_wkd(sq, command),
 
         Subcommands::Dane(command) =>
-            dispatch_dane(config, command),
+            dispatch_dane(sq, command),
     }
 }
 
@@ -94,13 +94,13 @@ pub fn dispatch(config: Config, c: cli::network::Command)
 /// Import the certificates into the local certificate store.
 ///
 /// This does not certify the certificates.
-pub fn import_certs(config: &Config, certs: Vec<Cert>) -> Result<()> {
+pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
     if certs.is_empty() {
         // No need to do and say anything.
         return Ok(());
     }
 
-    let cert_store = config.cert_store_or_else()
+    let cert_store = sq.cert_store_or_else()
         .context("Inserting results")?;
 
     let mut stats
@@ -114,7 +114,7 @@ pub fn import_certs(config: &Config, certs: Vec<Cert>) -> Result<()> {
         cert_store.update_by(Arc::new(cert.clone().into()), &mut stats)
             .with_context(|| {
                 let sanitized_userid = best_effort_primary_uid(
-                    Some(&config), &cert, config.policy, config.time);
+                    Some(&sq), &cert, sq.policy, sq.time);
 
                 format!("Inserting {}, {}",
                         cert.fingerprint(), sanitized_userid)
@@ -124,7 +124,7 @@ pub fn import_certs(config: &Config, certs: Vec<Cert>) -> Result<()> {
     let mut certs = certs.into_iter()
         .map(|cert| {
             let userid = best_effort_primary_uid(
-                Some(&config), &cert, config.policy, config.time);
+                Some(&sq), &cert, sq.policy, sq.time);
             (userid, cert)
         })
         .collect::<Vec<_>>();
@@ -154,7 +154,7 @@ pub fn import_certs(config: &Config, certs: Vec<Cert>) -> Result<()> {
 ///
 /// This does not import the certification or the certificate into
 /// the certificate store.
-fn certify(config: &Config,
+fn certify(sq: &Sq,
            signer: &mut dyn Signer, cert: &Cert, userids: &[UserID],
            creation_time: Option<SystemTime>, depth: u8, amount: usize)
     -> Result<Cert>
@@ -172,13 +172,13 @@ fn certify(config: &Config,
     }
 
     let certifications = active_certification(
-            config, &cert.fingerprint(),
+            sq, &cert.fingerprint(),
             userids.iter().cloned().collect(),
             signer.public())
         .into_iter()
         .map(|(userid, active_certification)| {
             if let Some(_) = active_certification {
-                config.info(format_args!(
+                sq.info(format_args!(
                           "Provenance information for {}, {:?} \
                            exists and is current, not updating it",
                           cert.fingerprint(),
@@ -197,7 +197,7 @@ fn certify(config: &Config,
                 })
             {
                 Ok(sig) => {
-                config.info(format_args!(
+                sq.info(format_args!(
                               "Recorded provenance information \
                                for {}, {:?}",
                               cert.fingerprint(),
@@ -236,7 +236,7 @@ fn certify(config: &Config,
 ///
 /// If a certificate cannot be certified for whatever reason, a
 /// diagnostic is emitted, and the certificate is returned as is.
-pub fn certify_downloads<'store, 'rstore>(config: &mut Config<'store, 'rstore>,
+pub fn certify_downloads<'store, 'rstore>(sq: &mut Sq<'store, 'rstore>,
                                           ca: Arc<LazyCert<'store>>,
                                           certs: Vec<Cert>, email: Option<&str>)
     -> Vec<Cert>
@@ -246,7 +246,7 @@ pub fn certify_downloads<'store, 'rstore>(config: &mut Config<'store, 'rstore>,
         let ca = ca.to_cert()?;
 
         let keys = get_certification_keys(
-            &[ca], config.policy, None, Some(config.time), None)?;
+            &[ca], sq.policy, None, Some(sq.time), None)?;
             assert!(
                 keys.len() == 1,
                 "Expect exactly one result from get_certification_keys()"
@@ -259,7 +259,7 @@ pub fn certify_downloads<'store, 'rstore>(config: &mut Config<'store, 'rstore>,
             let err = err.context(
                 "Warning: not recording provenance information, \
                  failed to load CA key");
-            if config.verbose {
+            if sq.verbose {
                 print_error_chain(&err);
             }
             return certs;
@@ -275,13 +275,13 @@ pub fn certify_downloads<'store, 'rstore>(config: &mut Config<'store, 'rstore>,
     });
 
     let certs: Vec<Cert> = certs.into_iter().map(|cert| {
-        let vc = match cert.with_policy(config.policy, config.time) {
+        let vc = match cert.with_policy(sq.policy, sq.time) {
             Err(err) => {
                 let err = err.context(format!(
                     "Warning: not recording provenance information \
                      for {}, not valid",
                     cert.fingerprint()));
-                if config.verbose {
+                if sq.verbose {
                     print_error_chain(&err);
                 }
                 return cert;
@@ -303,8 +303,8 @@ pub fn certify_downloads<'store, 'rstore>(config: &mut Config<'store, 'rstore>,
                 .collect::<Vec<UserID>>();
 
             if userids.is_empty() {
-                if config.verbose {
-                    config.info(format_args!(
+                if sq.verbose {
+                    sq.info(format_args!(
                         "Warning: not recording provenance information \
                          for {}, it does not contain a valid User ID with \
                          the specified email address ({:?})",
@@ -320,8 +320,8 @@ pub fn certify_downloads<'store, 'rstore>(config: &mut Config<'store, 'rstore>,
         };
 
         match certify(
-            config, &mut ca_signer, &cert, &userids[..],
-            Some(config.time), 0, sequoia_wot::FULLY_TRUSTED)
+            sq, &mut ca_signer, &cert, &userids[..],
+            Some(sq.time), 0, sequoia_wot::FULLY_TRUSTED)
         {
             Ok(cert) => cert,
             Err(err) => {
@@ -329,7 +329,7 @@ pub fn certify_downloads<'store, 'rstore>(config: &mut Config<'store, 'rstore>,
                     "Warning: not recording provenance information \
                      for {}, failed to certify it",
                     cert.fingerprint()));
-                if config.verbose {
+                if sq.verbose {
                     print_error_chain(&err);
                 }
 
@@ -398,8 +398,8 @@ impl Query {
 
     /// Returns all known addresses and fingerprints of exportable
     /// certificates as queries.
-    fn all_certs(config: &Config) -> Result<Vec<Query>> {
-        if let Some(store) = config.cert_store()? {
+    fn all_certs(sq: &Sq) -> Result<Vec<Query>> {
+        if let Some(store) = sq.cert_store()? {
             let mut fingerprints = HashSet::new();
             let mut addresses = HashSet::new();
             for cert in store.certs().filter(
@@ -424,8 +424,8 @@ impl Query {
 
     /// Returns all known addresses of exportable certificates as
     /// queries.
-    fn all_addresses(config: &Config) -> Result<Vec<Query>> {
-        if let Some(store) = config.cert_store()? {
+    fn all_addresses(sq: &Sq) -> Result<Vec<Query>> {
+        if let Some(store) = sq.cert_store()? {
             let mut addresses = store.certs()
                 .filter(
                     |c| c.to_cert().map(|c| cert_exportable(c)).unwrap_or(false))
@@ -498,12 +498,12 @@ impl Method {
     //
     // This doesn't return an error, because not all methods have
     // shadow CAs, and a missing CA is not a hard error.
-    fn ca<'store, 'rstore>(&self, config: &Config<'store, 'rstore>)
+    fn ca<'store, 'rstore>(&self, sq: &Sq<'store, 'rstore>)
         -> Option<Arc<LazyCert<'store>>>
         where 'store: 'rstore
     {
         let ca = || -> Result<_> {
-            let certd = config.certd_or_else()?;
+            let certd = sq.certd_or_else()?;
             let (cert, created) = match self {
                 Method::KeyServer(url) => {
                     let result = certd.shadow_ca_keyserver(url)?;
@@ -511,7 +511,7 @@ impl Method {
                     match result {
                         Some((cert, created)) => (cert, created),
                         None => {
-                            if config.verbose {
+                            if sq.verbose {
                                 wprintln!(
                                     "Not recording provenance information: \
                                      {} is not known to be a verifying \
@@ -550,7 +550,7 @@ impl Method {
                         err);
                 };
 
-                if config.verbose {
+                if sq.verbose {
                     print_err();
                 } else {
                     use std::sync::Once;
@@ -567,7 +567,7 @@ impl Method {
             return Some(cert);
         }
 
-        if config.verbose {
+        if sq.verbose {
             let invalid = "invalid data".to_string();
 
             wprintln!(
@@ -580,7 +580,7 @@ impl Method {
                     // We really want the self-signed, primary user
                     // ID.
                     best_effort_primary_uid(
-                        None, cert, config.policy, None).to_string()
+                        None, cert, sq.policy, None).to_string()
                 } else {
                     invalid
                 },
@@ -609,8 +609,8 @@ struct Response {
 
 impl Response {
     /// Creates a progress bar.
-    fn progress_bar(config: &Config) -> ProgressBar {
-        if config.verbose {
+    fn progress_bar(sq: &Sq) -> ProgressBar {
+        if sq.verbose {
             ProgressBar::hidden()
         } else {
             ProgressBar::new(0)
@@ -622,7 +622,7 @@ impl Response {
     /// If `silent_errors` is given, then failure messages are
     /// suppressed unless --verbose is given, or there was not a
     /// single successful result.
-    async fn collect<'store, 'rstore>(config: &mut Config<'store, 'rstore>,
+    async fn collect<'store, 'rstore>(sq: &mut Sq<'store, 'rstore>,
                                       mut responses: JoinSet<Response>,
                                       certify: bool,
                                       silent_errors: bool,
@@ -641,10 +641,10 @@ impl Response {
                         Ok(cert) => if ! certify {
                             certs.push(cert);
                         } else { pb.suspend(|| {
-                            if let Some(ca) = response.method.ca(config)
+                            if let Some(ca) = response.method.ca(sq)
                             {
                                 certs.append(&mut certify_downloads(
-                                    config, ca, vec![cert], None));
+                                    sq, ca, vec![cert], None));
                             } else {
                                 certs.push(cert);
                             }
@@ -659,7 +659,7 @@ impl Response {
             }
         }
 
-        if ! silent_errors || config.verbose || certs.is_empty() {
+        if ! silent_errors || sq.verbose || certs.is_empty() {
             for (method, query, e) in errors {
                 pb.suspend(|| wprintln!("{}: {}: {}", method, query, e));
             }
@@ -673,17 +673,17 @@ impl Response {
     }
 
     /// Either writes out a keyring or imports the certs.
-    fn import_or_emit(mut config: Config<'_, '_>,
+    fn import_or_emit(mut sq: Sq<'_, '_>,
                       output: Option<FileOrStdout>,
                       binary: bool,
                       certs: Vec<Cert>)
                       -> Result<()>
     {
         if let Some(file) = &output {
-            let mut output = file.create_safe(config.force)?;
+            let mut output = file.create_safe(sq.force)?;
             serialize_keyring(&mut output, certs, binary)?;
         } else {
-            import_certs(&mut config, certs)?;
+            import_certs(&mut sq, certs)?;
         }
 
         Ok(())
@@ -693,7 +693,7 @@ impl Response {
 /// How many times to iterate to discover related certificates.
 const FETCH_MAX_QUERY_ITERATIONS: usize = 3;
 
-pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
+pub fn dispatch_fetch(mut sq: Sq, c: cli::network::fetch::Command)
                       -> Result<()>
 {
     let default_servers = default_keyservers_p(&c.servers);
@@ -709,12 +709,12 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
     let mut seen_ids = HashSet::new();
     let mut seen_urls = HashSet::new();
     let mut queries = if c.all {
-        Query::all_certs(&config)?
+        Query::all_certs(&sq)?
     } else {
         Query::parse(&c.query)?
     };
     let mut results = Vec::new();
-    let mut pb = Response::progress_bar(&config);
+    let mut pb = Response::progress_bar(&sq);
 
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async {
@@ -809,7 +809,7 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
             // Finally, we also consult the certificate store to
             // discover more identifiers.  This is sync, but we use
             // the same mechanism to merge the result back in.
-            if let Ok(Some(store)) = config.cert_store() {
+            if let Ok(Some(store)) = sq.cert_store() {
                 pb.inc_length(1);
                 let mut email_query = UserIDQueryParams::new();
                 email_query.set_email(true);
@@ -835,7 +835,7 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
         }
 
         let mut certs = Response::collect(
-            &mut config, requests, c.output.is_none(), default_servers, &mut pb).await?;
+            &mut sq, requests, c.output.is_none(), default_servers, &mut pb).await?;
 
         // Expand certs to discover new identifiers to query.
         for cert in &certs {
@@ -855,7 +855,7 @@ pub fn dispatch_fetch(mut config: Config, c: cli::network::fetch::Command)
     })?;
     drop(pb);
 
-    Response::import_or_emit(config, c.output, c.binary, results)?;
+    Response::import_or_emit(sq, c.output, c.binary, results)?;
     Ok(())
 }
 
@@ -872,7 +872,7 @@ fn default_keyservers_p(servers: &[String]) -> bool {
         .all(|(a, b)| a == b)
 }
 
-pub fn dispatch_keyserver(mut config: Config,
+pub fn dispatch_keyserver(mut sq: Sq,
                           c: cli::network::keyserver::Command)
     -> Result<()>
 {
@@ -888,9 +888,9 @@ pub fn dispatch_keyserver(mut config: Config,
     use crate::cli::network::keyserver::Subcommands::*;
     match c.subcommand {
         Fetch(c) => rt.block_on(async {
-            let mut pb = Response::progress_bar(&config);
+            let mut pb = Response::progress_bar(&sq);
             let queries = if c.all {
-                Query::all_certs(&config)?
+                Query::all_certs(&sq)?
             } else {
                 Query::parse_keyserver_queries(&c.query)?
             };
@@ -917,9 +917,9 @@ pub fn dispatch_keyserver(mut config: Config,
             });
 
             let certs = Response::collect(
-                &mut config, requests, c.output.is_none(), default_servers, &mut pb).await?;
+                &mut sq, requests, c.output.is_none(), default_servers, &mut pb).await?;
             drop(pb);
-            Response::import_or_emit(config, c.output, c.binary, certs)?;
+            Response::import_or_emit(sq, c.output, c.binary, certs)?;
             Result::Ok(())
         })?,
         Publish(c) => rt.block_on(async {
@@ -954,7 +954,7 @@ pub fn dispatch_keyserver(mut config: Config,
                         // by default, but we will not consider this
                         // an error, and only print the message in
                         // verbose mode.
-                        if config.verbose {
+                        if sq.verbose {
                             wprintln!("{}: {}", url, e);
                         }
                     },
@@ -985,7 +985,7 @@ pub fn dispatch_keyserver(mut config: Config,
     Ok(())
 }
 
-pub fn dispatch_wkd(mut config: Config, c: cli::network::wkd::Command)
+pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                     -> Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
 
@@ -995,23 +995,23 @@ pub fn dispatch_wkd(mut config: Config, c: cli::network::wkd::Command)
             let wkd_url = wkd::Url::from(&c.email_address)?;
             let advanced = wkd_url.to_url(None)?.to_string();
             let direct = wkd_url.to_url(wkd::Variant::Direct)?.to_string();
-            let output = Model::wkd_url(config.output_version,
+            let output = Model::wkd_url(sq.output_version,
                                        WkdUrlVariant::Advanced, advanced, direct)?;
-            output.write(config.output_format, &mut std::io::stdout())?;
+            output.write(sq.output_format, &mut std::io::stdout())?;
         },
         DirectUrl(c) => {
             let wkd_url = wkd::Url::from(&c.email_address)?;
             let advanced = wkd_url.to_url(None)?.to_string();
             let direct = wkd_url.to_url(wkd::Variant::Direct)?.to_string();
-            let output = Model::wkd_url(config.output_version,
+            let output = Model::wkd_url(sq.output_version,
                                        WkdUrlVariant::Direct, advanced, direct)?;
-            output.write(config.output_format, &mut std::io::stdout())?;
+            output.write(sq.output_format, &mut std::io::stdout())?;
         },
         Fetch(c) => rt.block_on(async {
-            let mut pb = Response::progress_bar(&config);
+            let mut pb = Response::progress_bar(&sq);
             let http_client = http_client()?;
             let queries = if c.all {
-                Query::all_addresses(&config)?
+                Query::all_addresses(&sq)?
             } else {
                 Query::parse_addresses(&c.addresses)?
             };
@@ -1033,9 +1033,9 @@ pub fn dispatch_wkd(mut config: Config, c: cli::network::wkd::Command)
             });
 
             let certs = Response::collect(
-                &mut config, requests, c.output.is_none(), false, &mut pb).await?;
+                &mut sq, requests, c.output.is_none(), false, &mut pb).await?;
             drop(pb);
-            Response::import_or_emit(config, c.output, c.binary, certs)?;
+            Response::import_or_emit(sq, c.output, c.binary, certs)?;
             Result::Ok(())
         })?,
         Generate(c) => {
@@ -1052,7 +1052,7 @@ pub fn dispatch_wkd(mut config: Config, c: cli::network::wkd::Command)
             let certs: Vec<Cert> = parser.filter_map(|cert| cert.ok())
                 .collect();
             for cert in certs {
-                let vc = match cert.with_policy(config.policy, config.time) {
+                let vc = match cert.with_policy(sq.policy, sq.time) {
                     Ok(vc) => vc,
                     e @ Err(_) if !skip => e?,
                     _ => continue,
@@ -1074,7 +1074,7 @@ pub fn dispatch_wkd(mut config: Config, c: cli::network::wkd::Command)
     Ok(())
 }
 
-pub fn dispatch_dane(mut config: Config, c: cli::network::dane::Command)
+pub fn dispatch_dane(mut sq: Sq, c: cli::network::dane::Command)
                      -> Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
 
@@ -1083,7 +1083,7 @@ pub fn dispatch_dane(mut config: Config, c: cli::network::dane::Command)
         Generate(c) => {
             for cert in CertParser::from_buffered_reader(c.input.open()?)? {
                 let cert = cert?;
-                let vc = match cert.with_policy(config.policy, config.time) {
+                let vc = match cert.with_policy(sq.policy, sq.time) {
                     Ok(vc) => vc,
                     e @ Err(_) if ! c.skip => e?,
                     _ => continue,
@@ -1107,9 +1107,9 @@ pub fn dispatch_dane(mut config: Config, c: cli::network::dane::Command)
             }
         },
         Fetch(c) => rt.block_on(async {
-            let mut pb = Response::progress_bar(&config);
+            let mut pb = Response::progress_bar(&sq);
             let queries = if c.all {
-                Query::all_addresses(&config)?
+                Query::all_addresses(&sq)?
             } else {
                 Query::parse_addresses(&c.addresses)?
             };
@@ -1129,9 +1129,9 @@ pub fn dispatch_dane(mut config: Config, c: cli::network::dane::Command)
             });
 
             let certs = Response::collect(
-                &mut config, requests, c.output.is_none(), false, &mut pb).await?;
+                &mut sq, requests, c.output.is_none(), false, &mut pb).await?;
             drop(pb);
-            Response::import_or_emit(config, c.output, c.binary, certs)?;
+            Response::import_or_emit(sq, c.output, c.binary, certs)?;
             Result::Ok(())
         })?,
     }

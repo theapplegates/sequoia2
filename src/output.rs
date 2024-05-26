@@ -105,7 +105,7 @@ mod keyring {
         Result,
         cert::Cert,
     };
-    use crate::Config;
+    use crate::Sq;
     use super::{OutputVersion, Write};
     use serde::Serialize;
 
@@ -166,9 +166,9 @@ mod keyring {
     }
 
     impl ListItem {
-        pub fn from_cert_with_config(item: Result<Cert>, config: &Config) -> Self {
+        pub fn from_cert_with_sq(item: Result<Cert>, sq: &Sq) -> Self {
             match item {
-                Ok(cert) => ListItem::Cert(OutputCert::from_cert_with_config(cert, config)),
+                Ok(cert) => ListItem::Cert(OutputCert::from_cert_with_sq(cert, sq)),
                 Err(e) => ListItem::Error(format!("{}", e)),
             }
         }
@@ -182,14 +182,14 @@ mod keyring {
     }
 
     impl OutputCert {
-        fn from_cert_with_config(cert: Cert, config: &Config) -> Self {
+        fn from_cert_with_sq(cert: Cert, sq: &Sq) -> Self {
             // Try to be more helpful by including a User ID in the
             // listing.  We'd like it to be the primary one.  Use
             // decreasingly strict policies.
             let mut primary_uid: Option<Vec<u8>> = None;
 
             // First, apply our policy.
-            if let Ok(vcert) = cert.with_policy(config.policy, None) {
+            if let Ok(vcert) = cert.with_policy(sq.policy, None) {
                 if let Ok(primary) = vcert.primary_userid() {
                     primary_uid = Some(primary.value().to_vec());
                 }

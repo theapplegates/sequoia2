@@ -25,7 +25,7 @@ use openpgp::types::SymmetricAlgorithm;
 
 
 use crate::{
-    Config,
+    Sq,
     decrypt_key,
     cli::cert::lint::Command,
 };
@@ -199,7 +199,7 @@ fn update_subkey_binding<P>(ka: &ValidSubordinateKeyAmalgamation<P>,
     Ok(sig)
 }
 
-pub fn lint(config: Config, mut args: Command) -> Result<()> {
+pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
     // If there were any errors reading the input.
     let mut bad_input = false;
 
@@ -244,12 +244,12 @@ pub fn lint(config: Config, mut args: Command) -> Result<()> {
         args.quiet = true;
     }
 
-    let reference_time = config.time;
+    let reference_time = sq.time;
 
     let mut passwords = Vec::new();
 
     let mut out = args.output.create_pgp_safe(
-        config.force, args.binary,
+        sq.force, args.binary,
         if args.export_secret_keys {
             armor::Kind::SecretKey
         } else {

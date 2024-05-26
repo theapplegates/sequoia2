@@ -1,7 +1,7 @@
 //! Tools for developers, maintainers, and forensic specialists.
 
 use crate::{
-    Config,
+    Sq,
     Result,
     cli::toolbox::{Command, Subcommands},
 };
@@ -12,18 +12,18 @@ pub mod extract_cert;
 pub mod keyring;
 pub mod packet;
 
-pub fn dispatch(config: Config, command: Command) -> Result<()>
+pub fn dispatch(sq: Sq, command: Command) -> Result<()>
 {
     match command.subcommand {
         Subcommands::Keyring(command) =>
-            keyring::dispatch(config, command),
+            keyring::dispatch(sq, command),
         Subcommands::Packet(command) =>
-            packet::dispatch(config, command),
+            packet::dispatch(sq, command),
         Subcommands::ExtractCert(command) =>
-            extract_cert::dispatch(config, command),
+            extract_cert::dispatch(sq, command),
         Subcommands::Armor(command) =>
-            armor::dispatch(config, command),
+            armor::dispatch(sq, command),
         Subcommands::Dearmor(command) =>
-            dearmor::dispatch(config, command),
+            dearmor::dispatch(sq, command),
     }
 }

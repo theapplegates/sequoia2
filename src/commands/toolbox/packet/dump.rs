@@ -33,7 +33,7 @@ pub enum Kind {
 }
 
 #[allow(clippy::redundant_pattern_matching)]
-pub fn dump<W>(config: &crate::Config,
+pub fn dump<W>(sq: &crate::Sq,
                secrets: Vec<Cert>,
                input: &mut (dyn io::Read + Sync + Send),
                output: &mut dyn io::Write,
@@ -60,7 +60,7 @@ pub fn dump<W>(config: &crate::Config,
     let mut first_armor_block = true;
     let mut is_keyring = true;
     let mut helper = crate::commands::decrypt::Helper::new(
-        &config, None, 0, Vec::new(), secrets, session_keys.clone(), false);
+        &sq, None, 0, Vec::new(), secrets, session_keys.clone(), false);
 
   loop {
     let mut dumper = PacketDumper::new(width, mpis);

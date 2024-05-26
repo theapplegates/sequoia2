@@ -14,14 +14,14 @@ use openpgp::Result;
 
 use crate::common::password;
 use crate::common::userid::lint_userids;
-use crate::Config;
+use crate::Sq;
 use crate::cli::types::FileOrStdout;
 use crate::cli;
 use crate::ImportStatus;
 use crate::commands::inspect::inspect;
 
 pub fn generate(
-    mut config: Config,
+    mut sq: Sq,
     command: cli::key::GenerateCommand,
 ) -> Result<()> {
     let mut builder = CertBuilder::new();
@@ -42,13 +42,13 @@ pub fn generate(
     }
 
     // Creation time.
-    builder = builder.set_creation_time(config.time);
+    builder = builder.set_creation_time(sq.time);
 
     // Expiration.
     builder = builder.set_validity_period(
         command
         .expiry
-        .as_duration(DateTime::<Utc>::from(config.time))?
+        .as_duration(DateTime::<Utc>::from(sq.time))?
     );
 
     // Cipher Suite
@@ -135,7 +135,7 @@ pub fn generate(
         path.as_mut_os_string().push(".rev");
         FileOrStdout::from(path)
     } else if on_keystore {
-        let dir = config.home.data_dir(sequoia_directories::Component::Other(
+        let dir = sq.home.data_dir(sequoia_directories::Component::Other(
             "revocation-certificates".into()));
         std::fs::create_dir_all(&dir)
             .with_context(|| {
@@ -163,7 +163,7 @@ pub fn generate(
             .collect();
         headers.insert(0, ("Comment", "Revocation certificate for"));
 
-        let w = rev_path.create_safe(config.force)?;
+        let w = rev_path.create_safe(sq.force)?;
         let mut w = Writer::with_headers(w, Kind::PublicKey, headers)?;
         Packet::from(cert.primary_key().key().clone()).serialize(&mut w)?;
         Packet::Signature(rev).serialize(&mut w)?;
@@ -181,14 +181,14 @@ pub fn generate(
             Some(ref output_file) => {
                 // Write the key to a file or to stdout.
                 let w = output_file.clone().for_secrets()
-                    .create_safe(config.force)?;
+                    .create_safe(sq.force)?;
                 let mut w = Writer::with_headers(w, Kind::SecretKey, headers)?;
                 cert.as_tsk().serialize(&mut w)?;
                 w.finalize()?;
             }
             None => {
                 // write the key to the key store
-                match config.import_key(cert.clone()) {
+                match sq.import_key(cert.clone()) {
                     Ok(ImportStatus::New) => { /* success */ }
                     Ok(ImportStatus::Unchanged) => {
                         panic!(
@@ -215,7 +215,7 @@ pub fn generate(
             .expect("serializing to a vector is infallible");
 
         if let Err(err) = inspect(
-            &mut config,
+            &mut sq,
             buffered_reader::Memory::with_cookie(&bytes, Default::default()),
             command.output
                 .as_ref()

@@ -1,7 +1,7 @@
 //! Operations on certs.
 
 use crate::{
-    Config,
+    Sq,
     Result,
     cli::cert::{Command, Subcommands},
 };
@@ -10,16 +10,16 @@ pub mod import;
 pub mod export;
 pub mod lint;
 
-pub fn dispatch(config: Config, command: Command) -> Result<()>
+pub fn dispatch(sq: Sq, command: Command) -> Result<()>
 {
     match command.subcommand {
         Subcommands::Import(command) =>
-            import::dispatch(config, command),
+            import::dispatch(sq, command),
 
         Subcommands::Export(command) =>
-            export::dispatch(config, command),
+            export::dispatch(sq, command),
 
         Subcommands::Lint(command) =>
-            lint::lint(config, command),
+            lint::lint(sq, command),
     }
 }

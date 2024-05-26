@@ -23,7 +23,7 @@ use openpgp::KeyHandle;
 use openpgp::Packet;
 use openpgp::Result;
 
-use crate::Config;
+use crate::Sq;
 use crate::cli::key::SubkeyAddCommand;
 use crate::cli::key::SubkeyCommand;
 use crate::cli::key::SubkeyRevokeCommand;
@@ -209,10 +209,10 @@ impl<'a> RevocationOutput for SubkeyRevocation<'a> {
     }
 }
 
-pub fn dispatch(config: Config, command: SubkeyCommand) -> Result<()> {
+pub fn dispatch(sq: Sq, command: SubkeyCommand) -> Result<()> {
     match command {
-        SubkeyCommand::Add(c) => subkey_add(config, c)?,
-        SubkeyCommand::Revoke(c) => subkey_revoke(config, c)?,
+        SubkeyCommand::Add(c) => subkey_add(sq, c)?,
+        SubkeyCommand::Revoke(c) => subkey_revoke(sq, c)?,
     }
 
     Ok(())
@@ -224,16 +224,16 @@ pub fn dispatch(config: Config, command: SubkeyCommand) -> Result<()> {
 /// user input (or application-wide defaults if not specified).
 /// If no specific expiry is requested, the subkey never expires.
 fn subkey_add(
-    config: Config,
+    sq: Sq,
     command: SubkeyAddCommand,
 ) -> Result<()> {
     let input = command.input.open()?;
     let cert = Cert::from_buffered_reader(input)?;
-    let valid_cert = cert.with_policy(config.policy, config.time)?;
+    let valid_cert = cert.with_policy(sq.policy, sq.time)?;
 
     let validity = command
         .expiry
-        .as_duration(DateTime::<Utc>::from(config.time))?;
+        .as_duration(DateTime::<Utc>::from(sq.time))?;
 
     let keyflags = KeyFlags::empty()
         .set_authentication_to(command.can_authenticate)
@@ -251,9 +251,9 @@ fn subkey_add(
     let (primary_key, password) =
         match get_primary_keys(
             &[cert.clone()],
-            config.policy,
+            sq.policy,
             command.private_key_store.as_deref(),
-            Some(config.time),
+            Some(sq.time),
             None,
         ) {
             Ok(keys) => {
@@ -277,7 +277,7 @@ fn subkey_add(
         };
 
     let new_cert = KeyBuilder::new(keyflags)
-        .set_creation_time(config.time)
+        .set_creation_time(sq.time)
         .set_cipher_suite(command.cipher_suite.as_ciphersuite())
         .set_password(password)
         .subkey(valid_cert)?
@@ -285,7 +285,7 @@ fn subkey_add(
         .set_primary_key_signer(primary_key)
         .attach_cert()?;
 
-    let mut sink = command.output.for_secrets().create_safe(config.force)?;
+    let mut sink = command.output.for_secrets().create_safe(sq.force)?;
     if command.binary {
         new_cert.as_tsk().serialize(&mut sink)?;
     } else {
@@ -302,14 +302,14 @@ fn subkey_add(
 /// [`Cert`] fails, if retrieval of [`NotationData`] fails or if the eventual
 /// revocation fails.
 pub fn subkey_revoke(
-    config: Config,
+    sq: Sq,
     command: SubkeyRevokeCommand,
 ) -> Result<()> {
     let cert = read_cert(command.input.as_deref())?;
 
     let secret = read_secret(command.secret_key_file.as_deref())?;
 
-    let time = Some(config.time);
+    let time = Some(sq.time);
 
     let notations = parse_notations(command.notation)?;
 
@@ -317,14 +317,14 @@ pub fn subkey_revoke(
         &command.subkey,
         cert,
         secret,
-        config.policy,
+        sq.policy,
         time,
         command.private_key_store.as_deref(),
         command.reason.into(),
         &command.message,
         &notations,
     )?;
-    revocation.write(command.output, command.binary, config.force)?;
+    revocation.write(command.output, command.binary, sq.force)?;
 
     Ok(())
 }

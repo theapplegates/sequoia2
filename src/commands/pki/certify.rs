@@ -14,13 +14,13 @@ use openpgp::serialize::Serialize;
 use openpgp::types::SignatureType;
 use openpgp::types::KeyFlags;
 
-use crate::Config;
+use crate::Sq;
 use crate::parse_notations;
 use crate::commands::get_certification_keys;
 use crate::commands::GetKeysOptions;
 use crate::cli::pki::certify;
 
-pub fn certify(config: Config, c: certify::Command)
+pub fn certify(sq: Sq, c: certify::Command)
     -> Result<()>
 {
     let certifier = c.certifier;
@@ -32,7 +32,7 @@ pub fn certify(config: Config, c: certify::Command)
     // XXX: Change this interface: it's dangerous to guess whether an
     // identifier is a file or a key handle.
     let cert = if let Ok(kh) = cert.parse::<KeyHandle>() {
-        config.lookup_one(&kh, Some(KeyFlags::empty().set_certification()), true)?
+        sq.lookup_one(&kh, Some(KeyFlags::empty().set_certification()), true)?
     } else {
         Cert::from_file(cert)?
     };
@@ -49,9 +49,9 @@ pub fn certify(config: Config, c: certify::Command)
     let local = c.local;
     let non_revocable = c.non_revocable;
 
-    let time = config.time;
+    let time = sq.time;
 
-    let vc = cert.with_policy(config.policy, Some(time))?;
+    let vc = cert.with_policy(sq.policy, Some(time))?;
 
     let query = if c.email {
         UserIDQuery::Email(userid)
@@ -122,7 +122,7 @@ pub fn certify(config: Config, c: certify::Command)
     }
 
     let keys = get_certification_keys(
-        &[certifier], config.policy,
+        &[certifier], sq.policy,
         private_key_store.as_deref(),
         Some(time),
         Some(&options))?;
@@ -159,7 +159,7 @@ pub fn certify(config: Config, c: certify::Command)
 
         if let Some(validity) = c
             .expiry
-            .as_duration(DateTime::<Utc>::from(config.time))?
+            .as_duration(DateTime::<Utc>::from(sq.time))?
         {
             builder = builder.set_signature_validity_period(validity)?;
         }
@@ -187,7 +187,7 @@ pub fn certify(config: Config, c: certify::Command)
     // And export it.
     let cert = cert.insert_packets(new_packets)?;
     let mut message = c.output.create_pgp_safe(
-        config.force,
+        sq.force,
         c.binary,
         sequoia_openpgp::armor::Kind::PublicKey,
     )?;

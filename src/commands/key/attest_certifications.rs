@@ -4,12 +4,12 @@ use openpgp::parse::Parse;
 use openpgp::serialize::Serialize;
 use sequoia_openpgp as openpgp;
 
-use crate::Config;
+use crate::Sq;
 use crate::cli;
 use crate::decrypt_key;
 
 pub fn attest_certifications(
-    config: Config,
+    sq: Sq,
     command: cli::key::AttestCertificationsCommand,
 ) -> Result<()> {
     // Attest to all certifications?
@@ -30,13 +30,13 @@ pub fn attest_certifications(
     for uid in key.userids() {
         if all {
             attestation_signatures.append(&mut uid.attest_certifications(
-                config.policy,
+                sq.policy,
                 &mut pk_signer,
                 uid.certifications(),
             )?);
         } else {
             attestation_signatures.append(&mut uid.attest_certifications(
-                config.policy,
+                sq.policy,
                 &mut pk_signer,
                 &[],
             )?);
@@ -46,13 +46,13 @@ pub fn attest_certifications(
     for ua in key.user_attributes() {
         if all {
             attestation_signatures.append(&mut ua.attest_certifications(
-                config.policy,
+                sq.policy,
                 &mut pk_signer,
                 ua.certifications(),
             )?);
         } else {
             attestation_signatures.append(&mut ua.attest_certifications(
-                config.policy,
+                sq.policy,
                 &mut pk_signer,
                 &[],
             )?);
@@ -62,7 +62,7 @@ pub fn attest_certifications(
     // Finally, add the new signatures.
     let key = key.insert_packets(attestation_signatures)?;
 
-    let mut sink = command.output.for_secrets().create_safe(config.force)?;
+    let mut sink = command.output.for_secrets().create_safe(sq.force)?;
     if command.binary {
         key.as_tsk().serialize(&mut sink)?;
     } else {

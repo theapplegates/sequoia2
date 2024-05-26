@@ -4,11 +4,11 @@ use openpgp::parse::Parse;
 
 use crate::best_effort_primary_uid;
 use crate::cli;
-use crate::Config;
+use crate::Sq;
 use crate::ImportStatus;
 use crate::Result;
 
-pub fn import(config: Config, command: cli::key::ImportCommand) -> Result<()> {
+pub fn import(sq: Sq, command: cli::key::ImportCommand) -> Result<()> {
     // Return the first error.
     let mut ret = Ok(());
 
@@ -28,10 +28,10 @@ pub fn import(config: Config, command: cli::key::ImportCommand) -> Result<()> {
             let id = format!("{} {}",
                              cert.fingerprint(),
                              best_effort_primary_uid(
-                                 Some(&config), &cert, config.policy,
-                                 config.time));
+                                 Some(&sq), &cert, sq.policy,
+                                 sq.time));
 
-            match config.import_key(cert) {
+            match sq.import_key(cert) {
                 Ok(ImportStatus::New) => {
                     wprintln!("Imported {} from {}: new",
                               id, file.display());

@@ -6,12 +6,12 @@ use keystore::Protection;
 
 use crate::best_effort_primary_uid;
 use crate::cli;
-use crate::Config;
+use crate::Sq;
 use crate::Result;
 
-pub fn list(config: Config, _command: cli::key::ListCommand) -> Result<()> {
+pub fn list(sq: Sq, _command: cli::key::ListCommand) -> Result<()> {
     // Start and connect to the keystore.
-    let ks = if let Some(ks) = config.key_store()? {
+    let ks = if let Some(ks) = sq.key_store()? {
         ks
     } else {
         // The key store is disabled.  Don't fail, just return
@@ -41,10 +41,10 @@ pub fn list(config: Config, _command: cli::key::ListCommand) -> Result<()> {
                 let fpr = KeyHandle::from(key.fingerprint());
 
                 let sanitized_userid = if let Ok(cert)
-                    = config.lookup_one(&fpr, None, true)
+                    = sq.lookup_one(&fpr, None, true)
                 {
                     best_effort_primary_uid(
-                        Some(&config), &cert, config.policy, None)
+                        Some(&sq), &cert, sq.policy, None)
                 } else {
                     crate::PreferredUserID::unknown()
                 };

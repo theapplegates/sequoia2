@@ -25,7 +25,7 @@ use cert_store::Store;
 use sequoia_wot::store::Store as _;
 
 use crate::{
-    Config,
+    Sq,
     common::password,
 };
 
@@ -47,38 +47,38 @@ pub mod verify;
 pub mod version;
 
 /// Dispatches the top-level subcommand.
-pub fn dispatch(config: Config, command: SqCommand) -> Result<()>
+pub fn dispatch(sq: Sq, command: SqCommand) -> Result<()>
 {
     match command.subcommand {
         SqSubcommands::Encrypt(command) =>
-            encrypt::dispatch(config, command),
+            encrypt::dispatch(sq, command),
         SqSubcommands::Decrypt(command) =>
-            decrypt::dispatch(config, command),
+            decrypt::dispatch(sq, command),
         SqSubcommands::Sign(command) =>
-            sign::dispatch(config, command),
+            sign::dispatch(sq, command),
         SqSubcommands::Verify(command) =>
-            verify::dispatch(config, command),
+            verify::dispatch(sq, command),
 
         SqSubcommands::Inspect(command) =>
-            inspect::dispatch(config, command),
+            inspect::dispatch(sq, command),
 
         SqSubcommands::Cert(command) =>
-            cert::dispatch(config, command),
+            cert::dispatch(sq, command),
         SqSubcommands::Key(command) =>
-            key::dispatch(config, command),
+            key::dispatch(sq, command),
 
         SqSubcommands::Pki(command) =>
-            pki::dispatch(config, command),
+            pki::dispatch(sq, command),
 
         SqSubcommands::Autocrypt(command) =>
-            autocrypt::dispatch(config, &command),
+            autocrypt::dispatch(sq, &command),
         SqSubcommands::Network(command) =>
-            network::dispatch(config, command),
+            network::dispatch(sq, command),
         SqSubcommands::Toolbox(command) =>
-            toolbox::dispatch(config, command),
+            toolbox::dispatch(sq, command),
 
         SqSubcommands::Version(command) =>
-            version::dispatch(config, command),
+            version::dispatch(sq, command),
     }
 }
 
@@ -295,7 +295,7 @@ pub fn get_certification_keys<C>(certs: &[C], p: &dyn Policy,
 ///
 /// Note: if `n` User IDs are provided, then the returned vector has
 /// `n` elements.
-fn active_certification(config: &Config,
+fn active_certification(sq: &Sq,
                         cert: &Fingerprint, userids: Vec<UserID>,
                         issuer: &Key<openpgp::packet::key::PublicParts,
                                      openpgp::packet::key::UnspecifiedRole>)
@@ -303,7 +303,7 @@ fn active_certification(config: &Config,
 {
     // Look up the cert and find the certifications for the specified
     // User ID, if any.
-    let lc = config.cert_store_or_else()
+    let lc = sq.cert_store_or_else()
         .and_then(|cert_store| cert_store.lookup_by_cert_fpr(cert));
     let lc = match lc {
         Ok(lc) => lc,
@@ -339,14 +339,14 @@ fn active_certification(config: &Config,
             .iter()
             .filter(|sig| {
                 if let Some(ct) = sig.signature_creation_time() {
-                    ct <= config.time
+                    ct <= sq.time
                         && sig.signature_validity_period()
                         .map(|vp| {
-                            config.time < ct + vp
+                            sq.time < ct + vp
                         })
                         .unwrap_or(true)
                         && sig.get_issuers().iter().any(|i| i.aliases(&issuer_kh))
-                        && config.policy.signature(
+                        && sq.policy.signature(
                             sig, HashAlgoSecurity::CollisionResistance).is_ok()
                 } else {
                     false
@@ -363,7 +363,7 @@ fn active_certification(config: &Config,
         });
 
         // Return the first valid signature, which is the most recent one
-        // that is no younger than config.time.
+        // that is no younger than sq.time.
         let pk = ua.cert().primary_key().key();
         let certification = certifications.into_iter()
             .filter_map(|sig| {
@@ -440,7 +440,7 @@ pub struct VHelper<'c, 'store, 'rstore>
     where 'store: 'rstore
 {
     #[allow(dead_code)]
-    config: &'c Config<'store, 'rstore>,
+    sq: &'c Sq<'store, 'rstore>,
     signatures: usize,
     certs: Option<Vec<Cert>>,
     labels: HashMap<KeyID, String>,
@@ -462,11 +462,11 @@ pub struct VHelper<'c, 'store, 'rstore>
 }
 
 impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
-    fn new(config: &'c Config<'store, 'rstore>, signatures: usize,
+    fn new(sq: &'c Sq<'store, 'rstore>, signatures: usize,
            certs: Vec<Cert>)
            -> Self {
         VHelper {
-            config: config,
+            sq: sq,
             signatures,
             certs: Some(certs),
             labels: HashMap::new(),
@@ -520,7 +520,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
         use crate::commands::pki::output::print_path;
         use crate::print_error_chain;
 
-        let reference_time = self.config.time;
+        let reference_time = self.sq.time;
 
         use self::VerificationError::*;
         for result in results {
@@ -583,7 +583,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
             // Direct trust.
             let mut trusted = self.trusted.contains(&issuer);
             let mut prefix = "";
-            let trust_roots = self.config.trust_roots();
+            let trust_roots = self.sq.trust_roots();
             if ! trusted && ! trust_roots.is_empty() {
                 prefix = "  ";
 
@@ -591,10 +591,10 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                 qprintln!("Authenticating {} ({:?}) using the web of trust:",
                           cert_fpr, signer_userid);
 
-                if let Ok(Some(cert_store)) = self.config.cert_store() {
+                if let Ok(Some(cert_store)) = self.sq.cert_store() {
                     // Build the network.
                     let cert_store = sequoia_wot::store::CertStore::from_store(
-                        cert_store, self.config.policy, reference_time);
+                        cert_store, self.sq.policy, reference_time);
 
                     let userids = if let Some(userid) = sig.signers_user_id() {
                         let userid = UserID::from(userid);
@@ -623,7 +623,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
 
                                 let paths = q.authenticate(
                                     userid, cert.fingerprint(),
-                                    // XXX: Make this user configurable.
+                                    // XXX: Make this user squrable.
                                     sequoia_wot::FULLY_TRUSTED);
 
                                 let amount = paths.amount();
@@ -778,7 +778,7 @@ impl<'c, 'store, 'rstore> VerificationHelper for VHelper<'c, 'store, 'rstore>
         // Avoid initializing the certificate store if we don't actually
         // need to.
         if ! ids.is_empty() {
-            if let Ok(Some(cert_store)) = self.config.cert_store() {
+            if let Ok(Some(cert_store)) = self.sq.cert_store() {
                 for id in ids.iter() {
                     for c in cert_store.lookup_by_cert_or_subkey(id)
                         .unwrap_or_default()

@@ -2,7 +2,7 @@ use sequoia_openpgp as openpgp;
 use openpgp::Result;
 
 use crate::cli;
-use crate::Config;
+use crate::Sq;
 
 mod adopt;
 use adopt::adopt;
@@ -24,21 +24,21 @@ use revoke::certificate_revoke;
 mod subkey;
 mod userid;
 
-pub fn dispatch(config: Config, command: cli::key::Command) -> Result<()>
+pub fn dispatch(sq: Sq, command: cli::key::Command) -> Result<()>
 {
     use cli::key::Subcommands::*;
     match command.subcommand {
-        List(c) => list(config, c)?,
-        Generate(c) => generate(config, c)?,
-        Import(c) => import(config, c)?,
-        Export(c) => export(config, c)?,
-        Password(c) => password(config, c)?,
-        Expire(c) => expire::dispatch(config, c)?,
-        Userid(c) => userid::dispatch(config, c)?,
-        Revoke(c) => certificate_revoke(config, c)?,
-        Subkey(c) => subkey::dispatch(config, c)?,
-        Adopt(c) => adopt(config, c)?,
-        AttestCertifications(c) => attest_certifications(config, c)?,
+        List(c) => list(sq, c)?,
+        Generate(c) => generate(sq, c)?,
+        Import(c) => import(sq, c)?,
+        Export(c) => export(sq, c)?,
+        Password(c) => password(sq, c)?,
+        Expire(c) => expire::dispatch(sq, c)?,
+        Userid(c) => userid::dispatch(sq, c)?,
+        Revoke(c) => certificate_revoke(sq, c)?,
+        Subkey(c) => subkey::dispatch(sq, c)?,
+        Adopt(c) => adopt(sq, c)?,
+        AttestCertifications(c) => attest_certifications(sq, c)?,
     }
     Ok(())
 }

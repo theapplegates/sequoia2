@@ -12,7 +12,7 @@ use openpgp::parse::Parse;
 use openpgp::parse::PacketParser;
 use openpgp::parse::PacketParserResult;
 
-use crate::Config;
+use crate::Sq;
 use crate::Result;
 use crate::cli;
 
@@ -45,7 +45,7 @@ where B: BufferedReader<C>,
     kind
 }
 
-pub fn dispatch(config: Config, command: cli::toolbox::armor::Command)
+pub fn dispatch(sq: Sq, command: cli::toolbox::armor::Command)
     -> Result<()>
 {
     tracer!(TRACE, "armor::dispatch");
@@ -71,7 +71,7 @@ pub fn dispatch(config: Config, command: cli::toolbox::armor::Command)
         && (want_kind.is_none() || want_kind == have_kind)
     {
         // It is already armored and has the correct kind.
-        let mut output = command.output.create_safe(config.force)?;
+        let mut output = command.output.create_safe(sq.force)?;
         io::copy(&mut input, &mut output)?;
         return Ok(());
     }
@@ -85,7 +85,7 @@ pub fn dispatch(config: Config, command: cli::toolbox::armor::Command)
     let want_kind = want_kind.expect("given or detected");
 
     let mut output =
-        command.output.create_pgp_safe(config.force, false, want_kind)?;
+        command.output.create_pgp_safe(sq.force, false, want_kind)?;
 
     if already_armored {
         // Dearmor and copy to change the type.

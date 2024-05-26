@@ -19,11 +19,11 @@ use openpgp::Packet;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
-use crate::Config;
+use crate::Sq;
 use crate::cli;
 use crate::decrypt_key;
 
-pub fn adopt(config: Config, command: cli::key::AdoptCommand) -> Result<()>
+pub fn adopt(sq: Sq, command: cli::key::AdoptCommand) -> Result<()>
 {
     let input = command.certificate.open()?;
     let cert = Cert::from_buffered_reader(input)?;
@@ -42,11 +42,11 @@ pub fn adopt(config: Config, command: cli::key::AdoptCommand) -> Result<()>
     let adoptee_policy: &dyn Policy = if command.allow_broken_crypto {
         null_policy
     } else {
-        config.policy
+        sq.policy
     };
 
     // Find the corresponding keys.
-    for keyring in config.keyrings.iter() {
+    for keyring in sq.keyrings.iter() {
         for cert in CertParser::from_file(&keyring)
             .context(format!("Parsing: {}", &keyring.display()))?
         {
@@ -105,7 +105,7 @@ pub fn adopt(config: Config, command: cli::key::AdoptCommand) -> Result<()>
                                 };
 
                                 let builder = builder
-                                    .set_signature_creation_time(config.time)?;
+                                    .set_signature_creation_time(sq.time)?;
 
                                 *keyo = Some((
                                     key.key().clone().role_into_subordinate(),
@@ -176,7 +176,7 @@ pub fn adopt(config: Config, command: cli::key::AdoptCommand) -> Result<()>
                 .unwrap_or_else(|| {
                     SignatureBuilder::new(SignatureType::PrimaryKeyBinding)
                 })
-                .set_signature_creation_time(config.time)?
+                .set_signature_creation_time(sq.time)?
                 .sign_primary_key_binding(&mut subkey_signer, pk, &key)?;
 
             builder = builder.set_embedded_signature(backsig)?;
@@ -200,14 +200,14 @@ pub fn adopt(config: Config, command: cli::key::AdoptCommand) -> Result<()>
 
     let cert = cert.clone().insert_packets(packets.clone())?;
 
-    let mut sink = command.output.for_secrets().create_safe(config.force)?;
+    let mut sink = command.output.for_secrets().create_safe(sq.force)?;
     if command.binary {
         cert.as_tsk().serialize(&mut sink)?;
     } else {
         cert.as_tsk().armored().serialize(&mut sink)?;
     }
 
-    let vc = cert.with_policy(config.policy, None).expect("still valid");
+    let vc = cert.with_policy(sq.policy, None).expect("still valid");
     for pair in packets[..].chunks(2) {
         let newkey: &Key<key::PublicParts, key::UnspecifiedRole> = match pair[0]
         {

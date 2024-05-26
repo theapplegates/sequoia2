@@ -13,7 +13,7 @@ use openpgp::{
 use sequoia_autocrypt as autocrypt;
 
 use crate::{
-    Config,
+    Sq,
     cli,
     commands::network::{
         certify_downloads,
@@ -21,17 +21,17 @@ use crate::{
     },
 };
 
-pub fn dispatch(config: Config, c: &cli::autocrypt::Command) -> Result<()> {
+pub fn dispatch(sq: Sq, c: &cli::autocrypt::Command) -> Result<()> {
     use cli::autocrypt::Subcommands::*;
 
     match &c.subcommand {
-        Import(c) => import(config, c),
-        Decode(c) => decode(config, c),
-        EncodeSender(c) => encode_sender(config, c),
+        Import(c) => import(sq, c),
+        Decode(c) => decode(sq, c),
+        EncodeSender(c) => encode_sender(sq, c),
     }
 }
 
-fn import<'store, 'rstore>(mut config: Config<'store, 'rstore>,
+fn import<'store, 'rstore>(mut sq: Sq<'store, 'rstore>,
                    command: &cli::autocrypt::ImportCommand)
           -> Result<()>
     where 'store: 'rstore
@@ -62,11 +62,11 @@ fn import<'store, 'rstore>(mut config: Config<'store, 'rstore>,
             if let Some(cert) = h.key {
                 sender_cert = Some(cert.clone());
 
-                if let Ok((ca, _)) = config.certd_or_else()
+                if let Ok((ca, _)) = sq.certd_or_else()
                     .and_then(|certd| certd.shadow_ca_autocrypt())
                 {
                     acc.append(&mut certify_downloads(
-                        &mut config, ca,
+                        &mut sq, ca,
                         vec![cert], Some(&addr[..])));
                 } else {
                     acc.push(cert);
@@ -81,7 +81,7 @@ fn import<'store, 'rstore>(mut config: Config<'store, 'rstore>,
         Some(c) => c,
         None => {
             // Import what we got.
-            import_certs(&mut config, acc)?;
+            import_certs(&mut sq, acc)?;
             return Ok(());
         },
     };
@@ -92,13 +92,13 @@ fn import<'store, 'rstore>(mut config: Config<'store, 'rstore>,
         load_keys(command.secret_key_file.iter().map(|s| s.as_ref()))?;
 
     let mut helper = Helper::new(
-        &config, None,
+        &sq, None,
         1, // Require one trusted signature...
         vec![sender_cert.clone()], // ... from this cert.
         secrets, command.session_key.clone(), false);
     helper.quiet(true);
 
-    let policy = config.policy.clone();
+    let policy = sq.policy.clone();
     let mut decryptor = match DecryptorBuilder::from_buffered_reader(input)?
         .with_policy(&policy, None, helper)
         .context("Decryption failed")
@@ -108,7 +108,7 @@ fn import<'store, 'rstore>(mut config: Config<'store, 'rstore>,
             // The decryption failed, but we should still import the
             // Autocrypt header.
             wprintln!("Note: Decryption of message failed: {}", e);
-            import_certs(&mut config, acc)?;
+            import_certs(&mut sq, acc)?;
             return Ok(());
         },
     };
@@ -129,12 +129,12 @@ fn import<'store, 'rstore>(mut config: Config<'store, 'rstore>,
             .find_map(|a| (&a.key == "addr").then(|| a.value.clone()))
         {
             if let Some(cert) = h.key {
-                if let Ok((ca, _)) = config.certd_or_else()
+                if let Ok((ca, _)) = sq.certd_or_else()
                     .and_then(|certd| certd.shadow_ca_autocrypt_gossip_for(
                         &sender_cert, from_addr))
                 {
                     acc.append(&mut certify_downloads(
-                        &mut config, ca,
+                        &mut sq, ca,
                         vec![cert], Some(&addr[..])));
                 } else {
                     acc.push(cert);
@@ -144,17 +144,17 @@ fn import<'store, 'rstore>(mut config: Config<'store, 'rstore>,
     }
 
     // Finally, do one import.
-    import_certs(&mut config, acc)?;
+    import_certs(&mut sq, acc)?;
 
     Ok(())
 }
 
-fn decode(config: Config, command: &cli::autocrypt::DecodeCommand)
+fn decode(sq: Sq, command: &cli::autocrypt::DecodeCommand)
           -> Result<()>
 {
     let input = command.input.open()?;
     let mut output = command.output.create_pgp_safe(
-        config.force,
+        sq.force,
         command.binary,
         armor::Kind::PublicKey,
     )?;
@@ -169,20 +169,20 @@ fn decode(config: Config, command: &cli::autocrypt::DecodeCommand)
     Ok(())
 }
 
-fn encode_sender(config: Config, command: &cli::autocrypt::EncodeSenderCommand)
+fn encode_sender(sq: Sq, command: &cli::autocrypt::EncodeSenderCommand)
                  -> Result<()>
 {
     let input = command.input.open()?;
-    let mut output = command.output.create_safe(config.force)?;
+    let mut output = command.output.create_safe(sq.force)?;
     let cert = Cert::from_buffered_reader(input)?;
     let addr = command.address.clone()
         .or_else(|| {
-            cert.with_policy(config.policy, None)
+            cert.with_policy(sq.policy, None)
                 .and_then(|vcert| vcert.primary_userid()).ok()
                 .map(|ca| ca.userid().to_string())
         });
     let ac = autocrypt::AutocryptHeader::new_sender(
-        config.policy,
+        sq.policy,
         &cert,
         &addr.ok_or_else(|| anyhow::anyhow!(
             "No well-formed primary userid found, use \

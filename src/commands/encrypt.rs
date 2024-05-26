@@ -31,7 +31,7 @@ use crate::cli;
 use crate::cli::types::EncryptPurpose;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::MetadataTime;
-use crate::Config;
+use crate::Sq;
 use crate::Result;
 use crate::common::password;
 use crate::load_certs;
@@ -39,28 +39,28 @@ use crate::load_certs;
 use crate::commands::CompressionMode;
 use crate::commands::get_signing_keys;
 
-pub fn dispatch(config: Config, command: cli::encrypt::Command) -> Result<()> {
+pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
     tracer!(TRACE, "decrypt::dispatch");
 
     let mut recipients = load_certs(
         command.recipients_file.iter().map(|s| s.as_ref()))?;
     recipients.extend(
-        config.lookup(command.recipients_cert,
-                      Some(KeyFlags::empty()
-                           .set_storage_encryption()
-                           .set_transport_encryption()),
-                      true,
-                      false)
+        sq.lookup(command.recipients_cert,
+                  Some(KeyFlags::empty()
+                       .set_storage_encryption()
+                       .set_transport_encryption()),
+                  true,
+                  false)
             .context("--recipient-cert")?);
     recipients.extend(
-        config.lookup_by_userid(&command.recipients_email, true)
+        sq.lookup_by_userid(&command.recipients_email, true)
             .context("--recipient-email")?);
     recipients.extend(
-        config.lookup_by_userid(&command.recipients_userid, false)
+        sq.lookup_by_userid(&command.recipients_userid, false)
             .context("--recipient-userid")?);
 
     let output = command.output.create_pgp_safe(
-        config.force,
+        sq.force,
         command.binary,
         armor::Kind::Message,
     )?;
@@ -70,8 +70,8 @@ pub fn dispatch(config: Config, command: cli::encrypt::Command) -> Result<()> {
     let signer_keys = &command.signer_key[..];
 
     encrypt(
-        &config,
-        config.policy,
+        &sq,
+        sq.policy,
         command.private_key_store.as_deref(),
         command.input,
         output,
@@ -81,7 +81,7 @@ pub fn dispatch(config: Config, command: cli::encrypt::Command) -> Result<()> {
         signer_keys,
         command.mode,
         command.compression,
-        Some(config.time),
+        Some(sq.time),
         command.use_expired_subkey,
         command.set_metadata_filename,
         command.set_metadata_time
@@ -91,7 +91,7 @@ pub fn dispatch(config: Config, command: cli::encrypt::Command) -> Result<()> {
 }
 
 pub fn encrypt<'a, 'b: 'a>(
-    config: &Config,
+    sq: &Sq,
     policy: &'b dyn Policy,
     private_key_store: Option<&str>,
     input: FileOrStdin,
@@ -139,7 +139,7 @@ pub fn encrypt<'a, 'b: 'a>(
     let mut signer_keys = if signer_keys.is_empty() {
         Vec::new()
     } else {
-        let mut ks = config.key_store_or_else()?.lock().unwrap();
+        let mut ks = sq.key_store_or_else()?.lock().unwrap();
 
         signer_keys.into_iter()
             .map(|kh| {
@@ -160,14 +160,14 @@ pub fn encrypt<'a, 'b: 'a>(
                 match key.locked() {
                     Ok(Protection::Password(msg)) => {
                         let fpr = key.fingerprint();
-                        let cert = config.lookup_one(
+                        let cert = sq.lookup_one(
                             &KeyHandle::from(&fpr), None, true);
                         let display = match cert {
                             Ok(cert) => {
                                 format!(" ({})",
                                         best_effort_primary_uid(
-                                            Some(&config), &cert, config.policy,
-                                            config.time))
+                                            Some(&sq), &cert, sq.policy,
+                                            sq.time))
                             }
                             Err(_) => {
                                 "".to_string()

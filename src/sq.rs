@@ -44,7 +44,7 @@ use crate::print_error_chain;
 type WotStore<'store, 'rstore>
     = wot::store::CertStore<'store, 'rstore, cert_store::CertStore<'store>>;
 
-pub struct Config<'store, 'rstore>
+pub struct Sq<'store, 'rstore>
     where 'store: 'rstore
 {
     pub verbose: bool,
@@ -74,7 +74,7 @@ pub struct Config<'store, 'rstore>
     pub key_store: OnceCell<Mutex<keystore::Keystore>>,
 }
 
-impl<'store: 'rstore, 'rstore> Config<'store, 'rstore> {
+impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// Returns the cert store's base directory, if it is enabled.
     pub fn cert_store_base(&self) -> Option<PathBuf> {
         if self.no_rw_cert_store {

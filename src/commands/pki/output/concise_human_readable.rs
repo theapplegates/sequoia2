@@ -14,14 +14,14 @@ use cert_store::Store;
 use sequoia_wot as wot;
 use wot::Path;
 
-use crate::Config;
+use crate::Sq;
 use crate::commands::pki::output::OutputType;
 use crate::Time;
 
 /// The concise human-readable specific implementation of an
 /// OutputNetwork
 pub struct ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore> {
-    config: &'a Config<'store, 'rstore>,
+    sq: &'a Sq<'store, 'rstore>,
     required_amount: usize,
     current_cert: Option<Cert>,
     bindings_shown: usize,
@@ -29,12 +29,12 @@ pub struct ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore> {
 
 impl<'a, 'store, 'rstore> ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore> {
     /// Creates a new ConciseHumanReadableOutputNetwork
-    pub fn new(config: &'a Config<'store, 'rstore>,
+    pub fn new(sq: &'a Sq<'store, 'rstore>,
                required_amount: usize)
         -> Self
     {
         Self {
-            config,
+            sq,
             required_amount,
             current_cert: None,
             bindings_shown: 0,
@@ -55,7 +55,7 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
         let current_fingerprint =
             self.current_cert.as_ref().map(|cert| cert.fingerprint());
         let show_cert = if current_fingerprint.as_ref() != Some(fingerprint) {
-            let cert = if let Ok(store) = self.config.cert_store_or_else() {
+            let cert = if let Ok(store) = self.sq.cert_store_or_else() {
                 store.lookup_by_cert_fpr(fingerprint)
                     .and_then(|lazy_cert| {
                         Ok(lazy_cert.to_cert()?.clone())
@@ -71,7 +71,7 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
         };
 
         let vc = self.current_cert.as_ref().and_then(|cert| {
-            cert.with_policy(self.config.policy, self.config.time)
+            cert.with_policy(self.sq.policy, self.sq.time)
                 .ok()
         });
 

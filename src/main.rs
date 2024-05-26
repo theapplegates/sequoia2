@@ -48,7 +48,7 @@ use clap::FromArgMatches;
 #[macro_use] mod log;
 
 mod sq;
-use sq::Config;
+use sq::Sq;
 
 mod common;
 use common::PreferredUserID;
@@ -96,7 +96,7 @@ impl Convert<chrono::DateTime<chrono::offset::Utc>> for openpgp::types::Timestam
 
 /// Whether a cert or key was freshly imported, updated, or unchanged.
 ///
-/// Returned by [`Config::import_key`].
+/// Returned by [`Sq::import_key`].
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ImportStatus {
     /// The certificate or key is unchanged.
@@ -217,7 +217,7 @@ fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
 /// Best-effort heuristic to compute the primary User ID of a given cert.
 ///
 /// The returned string is already sanitized, and safe for displaying.
-pub fn best_effort_primary_uid<'u, T>(config: Option<&Config>,
+pub fn best_effort_primary_uid<'u, T>(config: Option<&Sq>,
                                       cert: &'u Cert,
                                       policy: &'u dyn Policy,
                                       time: T)
@@ -311,7 +311,7 @@ where
 /// Best-effort heuristic to compute the primary User ID of a given cert.
 ///
 /// The returned string is already sanitized, and safe for displaying.
-pub fn best_effort_primary_uid_for<'u, T>(config: Option<&Config>,
+pub fn best_effort_primary_uid_for<'u, T>(config: Option<&Sq>,
                                           key_handle: &KeyHandle,
                                           policy: &'u dyn Policy,
                                           time: T)
@@ -497,7 +497,7 @@ fn main() -> Result<()> {
         None
     };
 
-    let config = Config {
+    let sq = Sq {
         verbose: c.verbose,
         force,
         output_format: c.output_format,
@@ -517,7 +517,7 @@ fn main() -> Result<()> {
         key_store: OnceCell::new(),
     };
 
-    commands::dispatch(config, c)
+    commands::dispatch(sq, c)
 }
 
 fn parse_notations<N>(n: N) -> Result<Vec<(bool, NotationData)>>

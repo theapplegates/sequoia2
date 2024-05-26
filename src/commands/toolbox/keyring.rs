@@ -27,7 +27,7 @@ use openpgp::{
 };
 
 use crate::{
-    Config,
+    Sq,
     Model,
     cli::types::FileOrStdout,
     output::KeyringListItem,
@@ -35,7 +35,7 @@ use crate::{
 
 use crate::cli::toolbox::keyring;
 
-pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
+pub fn dispatch(sq: Sq, c: keyring::Command) -> Result<()> {
     use keyring::Subcommands::*;
     match c.subcommand {
         Filter(command) => {
@@ -125,14 +125,14 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
                 }
             };
 
-            filter(&config, command.input, command.output, filter_fn,
+            filter(&sq, command.input, command.output, filter_fn,
                    command.binary, command.to_certificate)
         },
         Merge(c) =>
-            merge(&config, c.input, c.output, c.binary),
+            merge(&sq, c.input, c.output, c.binary),
         List(c) => {
             let mut input = c.input.open()?;
-            list(config, &mut input, c.all_userids)
+            list(sq, &mut input, c.all_userids)
         },
         Split(c) => {
             let mut input = c.input.open()?;
@@ -156,7 +156,7 @@ pub fn dispatch(config: Config, c: keyring::Command) -> Result<()> {
 }
 
 /// Joins certificates and keyrings into a keyring, applying a filter.
-fn filter<F>(config: &Config, inputs: Vec<PathBuf>, output: FileOrStdout,
+fn filter<F>(sq: &Sq, inputs: Vec<PathBuf>, output: FileOrStdout,
              mut filter: F,
              binary: bool,
              to_certificate: bool)
@@ -185,7 +185,7 @@ fn filter<F>(config: &Config, inputs: Vec<PathBuf>, output: FileOrStdout,
     }
 
     let mut output = output.for_secrets().create_pgp_safe(
-        config.force,
+        sq.force,
         binary,
         if ! to_certificate && certs.iter().any(|c| c.is_tsk()) {
             armor::Kind::SecretKey
@@ -209,19 +209,19 @@ fn filter<F>(config: &Config, inputs: Vec<PathBuf>, output: FileOrStdout,
 }
 
 /// Lists certs in a keyring.
-fn list(config: Config,
+fn list(sq: Sq,
         input: &mut (dyn io::Read + Sync + Send),
         list_all_uids: bool)
         -> Result<()>
 {
     let mut certs = vec![];
     let iter = CertParser::from_reader(input)?
-        .map(|item| KeyringListItem::from_cert_with_config(item, &config));
+        .map(|item| KeyringListItem::from_cert_with_sq(item, &sq));
     for item in iter {
         certs.push(item);
     }
-    let list = Model::keyring_list(config.output_version, certs, list_all_uids)?;
-    list.write(config.output_format, &mut std::io::stdout())?;
+    let list = Model::keyring_list(sq.output_version, certs, list_all_uids)?;
+    list.write(sq.output_format, &mut std::io::stdout())?;
     Ok(())
 }
 
@@ -311,7 +311,7 @@ fn split(input: &mut (dyn io::Read + Sync + Send), prefix: &str, binary: bool)
 }
 
 /// Merge multiple keyrings.
-fn merge(config: &Config, inputs: Vec<PathBuf>, output: FileOrStdout,
+fn merge(sq: &Sq, inputs: Vec<PathBuf>, output: FileOrStdout,
          binary: bool)
          -> Result<()>
 {
@@ -353,7 +353,7 @@ fn merge(config: &Config, inputs: Vec<PathBuf>, output: FileOrStdout,
     }
 
     let mut output = output.for_secrets().create_pgp_safe(
-        config.force,
+        sq.force,
         binary,
         if certs.values().any(|c| c.as_ref().map(Cert::is_tsk).unwrap_or(false))
         {

@@ -19,7 +19,7 @@ use cert_store::Store;
 use cert_store::StoreUpdate;
 use cert_store::store::UserIDQueryParams;
 
-use crate::Config;
+use crate::Sq;
 use crate::commands::active_certification;
 use crate::commands::get_certification_keys;
 use crate::parse_notations;
@@ -36,7 +36,7 @@ use crate::cli::pki::link;
 /// On success, returns the matching User IDs.  This includes mapping
 /// email addresses to their matching User IDs.  If an email address
 /// matches multiple User IDs, they are all returned.
-pub fn check_userids(config: &Config, cert: &Cert, self_signed: bool,
+pub fn check_userids(sq: &Sq, cert: &Cert, self_signed: bool,
                      userids: &Vec<String>, emails: &Vec<String>,
                      patterns: &Vec<String>)
     -> Result<Vec<UserID>>
@@ -78,7 +78,7 @@ pub fn check_userids(config: &Config, cert: &Cert, self_signed: bool,
     }
 
     let self_signed_userids = || -> Result<Vec<UserID>> {
-        let vc = cert.with_policy(config.policy, config.time)
+        let vc = cert.with_policy(sq.policy, sq.time)
             .with_context(|| {
                 format!("{} is not valid according to the current policy",
                         cert.fingerprint())
@@ -319,26 +319,26 @@ fn diff_link(old: &Signature, new: &SignatureBuilder, new_ct: SystemTime)
     changed
 }
 
-pub fn link(config: Config, c: link::Command) -> Result<()> {
+pub fn link(sq: Sq, c: link::Command) -> Result<()> {
     use link::Subcommands::*;
     match c.subcommand {
-        Add(c) => add(config, c)?,
-        Retract(c) => retract(config, c)?,
-        List(c) => list(config, c)?,
+        Add(c) => add(sq, c)?,
+        Retract(c) => retract(sq, c)?,
+        List(c) => list(sq, c)?,
     }
     Ok(())
 }
 
-pub fn add(config: Config, c: link::AddCommand)
+pub fn add(sq: Sq, c: link::AddCommand)
     -> Result<()>
 {
-    let trust_root = config.local_trust_root()?;
+    let trust_root = sq.local_trust_root()?;
     let trust_root = trust_root.to_cert()?;
 
-    let cert = config.lookup_one(&c.certificate, None, true)?;
+    let cert = sq.lookup_one(&c.certificate, None, true)?;
 
     let mut userids =
-        check_userids(&config, &cert, true, &c.userid, &c.email, &c.pattern)
+        check_userids(&sq, &cert, true, &c.userid, &c.email, &c.pattern)
             .context("sq pki link add: Invalid User IDs")?;
     userids.extend(c.petname.iter().map(|petname| {
         // If it is a bare email, we wrap it in angle brackets.
@@ -349,7 +349,7 @@ pub fn add(config: Config, c: link::AddCommand)
         }
     }));
 
-    let vc = cert.with_policy(config.policy, Some(config.time))?;
+    let vc = cert.with_policy(sq.policy, Some(sq.time))?;
 
     let user_supplied_userids = if userids.is_empty() {
         if c.all {
@@ -443,7 +443,7 @@ pub fn add(config: Config, c: link::AddCommand)
     builder = builder.set_exportable_certification(false)?;
 
     // Creation time.
-    builder = builder.set_signature_creation_time(config.time)?;
+    builder = builder.set_signature_creation_time(sq.time)?;
 
     let notations = parse_notations(c.notation)?;
     for (critical, n) in notations {
@@ -462,7 +462,7 @@ pub fn add(config: Config, c: link::AddCommand)
         // exactly what we want.
         let mut partial = builder.clone();
         partial = partial.set_signature_creation_time(
-            config.time - Duration::new(1, 0))?;
+            sq.time - Duration::new(1, 0))?;
         partial = partial.set_trust_signature(trust_depth, 40)?;
 
         builder = builder.set_signature_validity_period(
@@ -472,7 +472,7 @@ pub fn add(config: Config, c: link::AddCommand)
     } else {
         if let Some(validity) = c
             .expiry
-            .as_duration(DateTime::<Utc>::from(config.time))? {
+            .as_duration(DateTime::<Utc>::from(sq.time))? {
             builder = builder.set_signature_validity_period(validity)?;
         }
         vec![ builder ]
@@ -480,7 +480,7 @@ pub fn add(config: Config, c: link::AddCommand)
 
     // Sign it.
     let keys = get_certification_keys(
-        &[trust_root], config.policy, None, Some(config.time), None)
+        &[trust_root], sq.policy, None, Some(sq.time), None)
         .context("Looking up local trust root")?;
     assert!(
         keys.len() == 1,
@@ -489,7 +489,7 @@ pub fn add(config: Config, c: link::AddCommand)
     let mut signer = keys.into_iter().next().unwrap().0;
 
     let certifications = active_certification(
-            &config, &vc.fingerprint(), userids,
+            &sq, &vc.fingerprint(), userids,
             signer.public())
         .into_iter()
         .map(|(userid, active_certification)| {
@@ -538,9 +538,9 @@ pub fn add(config: Config, c: link::AddCommand)
 
                 let changed = diff_link(
                     &active_certification,
-                    &builders[0], config.time);
+                    &builders[0], sq.time);
 
-                if ! changed && config.force {
+                if ! changed && sq.force {
                     wprintln!("  Link parameters are unchanged, but \
                                updating anyway as \"--force\" was specified.");
                 } else if c.temporary {
@@ -601,29 +601,29 @@ pub fn add(config: Config, c: link::AddCommand)
 
     let cert = cert.insert_packets(certifications.clone())?;
 
-    let cert_store = config.cert_store_or_else()?;
+    let cert_store = sq.cert_store_or_else()?;
     cert_store.update(Arc::new(cert.into()))
         .with_context(|| format!("Updating {}", c.certificate))?;
 
     Ok(())
 }
 
-pub fn retract(config: Config, c: link::RetractCommand)
+pub fn retract(sq: Sq, c: link::RetractCommand)
     -> Result<()>
 {
-    let trust_root = config.local_trust_root()?;
+    let trust_root = sq.local_trust_root()?;
     let trust_root = trust_root.to_cert()?;
     let trust_root_kh = trust_root.key_handle();
 
-    let cert = config.lookup_one(&c.certificate, None, true)?;
+    let cert = sq.lookup_one(&c.certificate, None, true)?;
 
     let mut userids =
-        check_userids(&config, &cert, false, &c.userid, &c.email, &c.pattern)
+        check_userids(&sq, &cert, false, &c.userid, &c.email, &c.pattern)
         .context("sq pki link retract: Invalid User IDs")?;
 
     // Nothing was specified.  Retract all known User IDs.
     if userids.is_empty() {
-        let vc = cert.with_policy(config.policy, Some(config.time))?;
+        let vc = cert.with_policy(sq.policy, Some(sq.time))?;
         userids = vc.userids().map(|ua| ua.userid().clone()).collect();
     }
 
@@ -635,7 +635,7 @@ pub fn retract(config: Config, c: link::RetractCommand)
     builder = builder.set_exportable_certification(false)?;
 
     // Creation time.
-    builder = builder.set_signature_creation_time(config.time)?;
+    builder = builder.set_signature_creation_time(sq.time)?;
 
     let notations = parse_notations(c.notation)?;
     for (critical, n) in notations {
@@ -648,7 +648,7 @@ pub fn retract(config: Config, c: link::RetractCommand)
 
     // Sign it.
     let keys = get_certification_keys(
-        &[trust_root], config.policy, None, Some(config.time), None)
+        &[trust_root], sq.policy, None, Some(sq.time), None)
         .context("Looking up local trust root")?;
     assert!(
         keys.len() == 1,
@@ -657,7 +657,7 @@ pub fn retract(config: Config, c: link::RetractCommand)
     let mut signer = keys.into_iter().next().unwrap().0;
 
     let certifications = active_certification(
-            &config, &cert.fingerprint(), userids, signer.public())
+            &sq, &cert.fingerprint(), userids, signer.public())
         .into_iter()
         .map(|(userid, active_certification)| {
             let userid_str = || String::from_utf8_lossy(userid.value());
@@ -696,9 +696,9 @@ pub fn retract(config: Config, c: link::RetractCommand)
 
                 let changed = diff_link(
                     &active_certification,
-                    &builder, config.time);
+                    &builder, sq.time);
 
-                if ! changed && config.force {
+                if ! changed && sq.force {
                     wprintln!("  Link parameters are unchanged, but \
                                updating anyway as \"--force\" was specified.");
                 } else if ! changed {
@@ -712,7 +712,7 @@ pub fn retract(config: Config, c: link::RetractCommand)
                 } else {
                     wprintln!("  Link parameters changed, updating link.");
                 }
-            } else if config.force {
+            } else if sq.force {
                 wprintln!("There is no link to retract between {} and {:?}, \
                            retracting anyways as \"--force\" was specified.",
                           cert.fingerprint(), userid_str());
@@ -757,27 +757,27 @@ pub fn retract(config: Config, c: link::RetractCommand)
 
     let cert = cert.insert_packets(certifications.clone())?;
 
-    let cert_store = config.cert_store_or_else()?;
+    let cert_store = sq.cert_store_or_else()?;
     cert_store.update(Arc::new(cert.into()))
         .with_context(|| format!("Updating {}", c.certificate))?;
 
     Ok(())
 }
 
-pub fn list(config: Config, c: link::ListCommand)
+pub fn list(sq: Sq, c: link::ListCommand)
     -> Result<()>
 {
-    let cert_store = config.cert_store_or_else()?;
+    let cert_store = sq.cert_store_or_else()?;
     cert_store.prefetch_all();
 
-    let trust_root = config.local_trust_root()?;
+    let trust_root = sq.local_trust_root()?;
     let trust_root = trust_root.to_cert()?;
     let trust_root_key = trust_root.primary_key().key().role_as_unspecified();
 
-    let cert_store = config.cert_store_or_else()?;
+    let cert_store = sq.cert_store_or_else()?;
     for cert in cert_store.certs() {
         for (userid, certification) in active_certification(
-                &config, &cert.fingerprint(), cert.userids().collect(),
+                &sq, &cert.fingerprint(), cert.userids().collect(),
                 trust_root_key)
             .into_iter()
             .filter_map(|(user, certification)| {

@@ -10,16 +10,16 @@ use openpgp::serialize::Serialize;
 use anyhow::Context;
 
 use crate::cli;
-use crate::Config;
+use crate::Sq;
 use crate::Result;
 
 const NULL: openpgp::policy::NullPolicy =
     openpgp::policy::NullPolicy::new();
 
-pub fn export(config: Config, command: cli::key::ExportCommand)
+pub fn export(sq: Sq, command: cli::key::ExportCommand)
     -> Result<()>
 {
-    let ks = config.key_store_or_else()?;
+    let ks = sq.key_store_or_else()?;
     let mut ks = ks.lock().unwrap();
 
     // If the user asks for multiple keys from the same certificate,
@@ -29,12 +29,12 @@ pub fn export(config: Config, command: cli::key::ExportCommand)
     for (export_cert, export) in command.cert.into_iter().map(|kh| (true, kh))
         .chain(command.key.into_iter().map(|kh| (false, kh)))
     {
-        let mut cert = config.lookup_one(&export, None, true)?;
+        let mut cert = sq.lookup_one(&export, None, true)?;
         if let Some(c) = certs.remove(&cert.fingerprint()) {
             cert = c;
         }
 
-        let vc = Cert::with_policy(&cert, config.policy, config.time)
+        let vc = Cert::with_policy(&cert, sq.policy, sq.time)
             .or_else(|err| {
                 if export_cert {
                     Err(err)
@@ -43,7 +43,7 @@ pub fn export(config: Config, command: cli::key::ExportCommand)
                     // policy.  It should be possible to export old
                     // keys, even if the certificate is not considered
                     // safe any more.
-                    Cert::with_policy(&cert, &NULL, config.time)
+                    Cert::with_policy(&cert, &NULL, sq.time)
                 }
             })
             .with_context(|| {

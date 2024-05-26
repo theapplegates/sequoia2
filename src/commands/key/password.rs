@@ -6,12 +6,12 @@ use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
 use crate::common;
-use crate::Config;
+use crate::Sq;
 use crate::cli;
 use crate::decrypt_key;
 
 pub fn password(
-    config: Config,
+    sq: Sq,
     command: cli::key::PasswordCommand,
 ) -> Result<()> {
     let input = command.input.open()?;
@@ -71,7 +71,7 @@ pub fn password(
         key = key.insert_packets(encrypted)?;
     }
 
-    let mut output = command.output.for_secrets().create_safe(config.force)?;
+    let mut output = command.output.for_secrets().create_safe(sq.force)?;
     if command.binary {
         key.as_tsk().serialize(&mut output)?;
     } else {

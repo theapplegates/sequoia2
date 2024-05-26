@@ -13,14 +13,14 @@ use cert_store::LazyCert;
 use cert_store::StoreUpdate;
 
 use crate::{
-    Config,
+    Sq,
     best_effort_primary_uid,
 };
 use crate::cli::cert::import;
 use crate::cli::types::FileOrStdin;
 
 
-pub fn dispatch<'store, 'rstore>(config: Config<'store, 'rstore>,
+pub fn dispatch<'store, 'rstore>(sq: Sq<'store, 'rstore>,
                                  cmd: import::Command)
     -> Result<()>
 where 'store: 'rstore
@@ -38,9 +38,9 @@ where 'store: 'rstore
             let input = FileOrStdin::from(input).open()?;
             let raw_certs = RawCertParser::from_buffered_reader(input)?;
 
-            let policy = config.policy.clone();
-            let time = config.time;
-            let cert_store = config.cert_store_or_else()?;
+            let policy = sq.policy.clone();
+            let time = sq.time;
+            let cert_store = sq.cert_store_or_else()?;
 
             for raw_cert in raw_certs {
                 let cert = match raw_cert {
@@ -54,7 +54,7 @@ where 'store: 'rstore
 
                 let fingerprint = cert.fingerprint();
                 let sanitized_userid = best_effort_primary_uid(
-                    Some(&config), cert.to_cert()?, &policy, time);
+                    Some(&sq), cert.to_cert()?, &policy, time);
                 if let Err(err) = cert_store.update_by(Arc::new(cert), &mut stats) {
                     wprintln!("Error importing {}, {}: {}",
                               fingerprint, sanitized_userid, err);

@@ -26,7 +26,7 @@ use openpgp::types::SignatureType;
 use sequoia_keystore::Protection;
 
 use crate::best_effort_primary_uid;
-use crate::Config;
+use crate::Sq;
 use crate::load_certs;
 use crate::parse_notations;
 
@@ -37,7 +37,7 @@ use crate::cli::types::FileOrStdout;
 mod merge_signatures;
 use merge_signatures::merge_signatures;
 
-pub fn dispatch(config: Config, command: cli::sign::Command) -> Result<()> {
+pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
     tracer!(TRACE, "sign::dispatch");
 
     let mut input = command.input.open()?;
@@ -54,13 +54,13 @@ pub fn dispatch(config: Config, command: cli::sign::Command) -> Result<()> {
     let secrets =
         load_certs(command.secret_key_file.iter().map(|s| s.as_ref()))?;
     let signer_keys = &command.signer_key[..];
-    let time = Some(config.time);
+    let time = Some(sq.time);
 
     let notations = parse_notations(command.notation)?;
 
     if let Some(merge) = command.merge {
         let output = output.create_pgp_safe(
-            config.force,
+            sq.force,
             binary,
             armor::Kind::Message,
         )?;
@@ -68,11 +68,11 @@ pub fn dispatch(config: Config, command: cli::sign::Command) -> Result<()> {
         let mut input2 = data.open()?;
         merge_signatures(&mut input, &mut input2, output)?;
     } else if command.clearsign {
-        let output = output.create_safe(config.force)?;
-        clearsign(config, private_key_store, input, output, secrets,
+        let output = output.create_safe(sq.force)?;
+        clearsign(sq, private_key_store, input, output, secrets,
                   time, &notations)?;
     } else {
-        sign(config,
+        sign(sq,
              private_key_store,
              &mut input,
              output,
@@ -90,7 +90,7 @@ pub fn dispatch(config: Config, command: cli::sign::Command) -> Result<()> {
 }
 
 pub fn sign<'a, 'store, 'rstore>(
-    config: Config<'store, 'rstore>,
+    sq: Sq<'store, 'rstore>,
     private_key_store: Option<&'a str>,
     input: &'a mut (dyn io::Read + Sync + Send),
     output: &'a FileOrStdout,
@@ -106,7 +106,7 @@ pub fn sign<'a, 'store, 'rstore>(
 {
     match (detached, append|notarize) {
         (_, false) | (true, true) =>
-            sign_data(config,
+            sign_data(sq,
                       private_key_store,
                       input,
                       output,
@@ -118,7 +118,7 @@ pub fn sign<'a, 'store, 'rstore>(
                       time,
                       notations),
         (false, true) =>
-            sign_message(config,
+            sign_message(sq,
                          private_key_store,
                          input,
                          output,
@@ -131,7 +131,7 @@ pub fn sign<'a, 'store, 'rstore>(
 }
 
 fn sign_data<'a, 'store, 'rstore>(
-    config: Config<'store, 'rstore>,
+    sq: Sq<'store, 'rstore>,
     private_key_store: Option<&'a str>,
     input: &'a mut (dyn io::Read + Sync + Send),
     output_path: &'a FileOrStdout,
@@ -175,16 +175,16 @@ fn sign_data<'a, 'store, 'rstore>(
             let tmp_path = tmp_file.path().into();
             (Box::new(tmp_file), sigs, Some(tmp_path))
         } else {
-            (output_path.create_safe(config.force)?, Vec::new(), None)
+            (output_path.create_safe(sq.force)?, Vec::new(), None)
         };
 
     let mut keypairs = super::get_signing_keys(
-        &secrets, config.policy, private_key_store, time, None)?;
+        &secrets, sq.policy, private_key_store, time, None)?;
 
     let mut signer_keys = if signer_keys.is_empty() {
         Vec::new()
     } else {
-        let mut ks = config.key_store_or_else()?.lock().unwrap();
+        let mut ks = sq.key_store_or_else()?.lock().unwrap();
 
         signer_keys.into_iter()
             .map(|kh| {
@@ -205,14 +205,14 @@ fn sign_data<'a, 'store, 'rstore>(
                 match key.locked() {
                     Ok(Protection::Password(msg)) => {
                         let fpr = key.fingerprint();
-                        let cert = config.lookup_one(
+                        let cert = sq.lookup_one(
                             &KeyHandle::from(&fpr), None, true);
                         let display = match cert {
                             Ok(cert) => {
                                 format!(" ({})",
                                         best_effort_primary_uid(
-                                            Some(&config), &cert,
-                                            config.policy, config.time))
+                                            Some(&sq), &cert,
+                                            sq.policy, sq.time))
                             }
                             Err(_) => {
                                 "".to_string()
@@ -349,7 +349,7 @@ fn sign_data<'a, 'store, 'rstore>(
 }
 
 fn sign_message<'a, 'store, 'rstore>(
-    config: Config<'store, 'rstore>,
+    sq: Sq<'store, 'rstore>,
     private_key_store: Option<&'a str>,
     input: &'a mut (dyn io::Read + Sync + Send),
     output: &'a FileOrStdout,
@@ -361,11 +361,11 @@ fn sign_message<'a, 'store, 'rstore>(
     -> Result<()>
 {
     let mut output = output.create_pgp_safe(
-        config.force,
+        sq.force,
         binary,
         armor::Kind::Message,
     )?;
-    sign_message_(config,
+    sign_message_(sq,
                   private_key_store,
                   input,
                   secrets,
@@ -378,7 +378,7 @@ fn sign_message<'a, 'store, 'rstore>(
 }
 
 fn sign_message_<'a, 'store, 'rstore>(
-    config: Config<'store, 'rstore>,
+    sq: Sq<'store, 'rstore>,
     private_key_store: Option<&'a str>,
     input: &'a mut (dyn io::Read + Sync + Send),
     secrets: Vec<openpgp::Cert>,
@@ -389,7 +389,7 @@ fn sign_message_<'a, 'store, 'rstore>(
     -> Result<()>
 {
     let mut keypairs = super::get_signing_keys(
-        &secrets, config.policy, private_key_store, time, None)?;
+        &secrets, sq.policy, private_key_store, time, None)?;
     if keypairs.is_empty() {
         return Err(anyhow::anyhow!("No signing keys found"));
     }
@@ -586,7 +586,7 @@ fn sign_message_<'a, 'store, 'rstore>(
     Ok(())
 }
 
-pub fn clearsign(config: Config,
+pub fn clearsign(sq: Sq,
                  private_key_store: Option<&str>,
                  mut input: impl io::Read + Sync + Send,
                  mut output: impl io::Write + Sync + Send,
@@ -596,7 +596,7 @@ pub fn clearsign(config: Config,
                  -> Result<()>
 {
     let mut keypairs = super::get_signing_keys(
-        &secrets, config.policy, private_key_store, time, None)?;
+        &secrets, sq.policy, private_key_store, time, None)?;
     if keypairs.is_empty() {
         return Err(anyhow::anyhow!("No signing keys found"));
     }

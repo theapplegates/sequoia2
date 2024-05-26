@@ -23,7 +23,7 @@ use openpgp::{
 };
 use openpgp::serialize::stream::Message;
 
-use crate::Config;
+use crate::Sq;
 use crate::Convert;
 use crate::Result;
 use crate::cli::toolbox::packet::{
@@ -38,7 +38,7 @@ use crate::load_keys;
 
 pub mod dump;
 
-pub fn dispatch(config: Config, command: Command)
+pub fn dispatch(sq: Sq, command: Command)
     -> Result<()>
 {
     tracer!(TRACE, "packet::dispatch");
@@ -46,7 +46,7 @@ pub fn dispatch(config: Config, command: Command)
         Subcommands::Dump(command) => {
             let mut input = command.input.open()?;
             let output_type = command.output;
-            let mut output = output_type.create_unsafe(config.force)?;
+            let mut output = output_type.create_unsafe(sq.force)?;
 
             let width = if let Some((width, _)) = terminal_size() {
                 Some(width.0.into())
@@ -55,7 +55,7 @@ pub fn dispatch(config: Config, command: Command)
             };
             let secrets =
                 load_keys(command.recipient_file.iter().map(|s| s.as_ref()))?;
-            dump::dump(&config,
+            dump::dump(&sq,
                        secrets,
                        &mut input, &mut output,
                        command.mpis, command.hex,
@@ -65,7 +65,7 @@ pub fn dispatch(config: Config, command: Command)
         Subcommands::Decrypt(command) => {
             let mut input = command.input.open()?;
             let mut output = command.output.create_pgp_safe(
-                config.force,
+                sq.force,
                 command.binary,
                 openpgp::armor::Kind::Message,
             )?;
@@ -74,7 +74,7 @@ pub fn dispatch(config: Config, command: Command)
                 load_keys(command.secret_key_file.iter().map(|s| s.as_ref()))?;
             let session_keys = command.session_key;
             commands::decrypt::decrypt_unwrap(
-                config,
+                sq,
                 &mut input, &mut output,
                 secrets,
                 session_keys,
@@ -83,9 +83,9 @@ pub fn dispatch(config: Config, command: Command)
         },
 
         Subcommands::Split(command) =>
-            split(config, command)?,
+            split(sq, command)?,
         Subcommands::Join(command) => {
-            join(config, command)?;
+            join(sq, command)?;
         }
     }
 
@@ -93,7 +93,7 @@ pub fn dispatch(config: Config, command: Command)
 }
 
 
-pub fn split(_config: Config, c: SplitCommand) -> Result<()>
+pub fn split(_sq: Sq, c: SplitCommand) -> Result<()>
 {
     let input = c.input.open()?;
 
@@ -205,7 +205,7 @@ pub fn split(_config: Config, c: SplitCommand) -> Result<()>
 }
 
 /// Joins the given files.
-pub fn join(config: Config, c: JoinCommand) -> Result<()> {
+pub fn join(sq: Sq, c: JoinCommand) -> Result<()> {
     // Either we know what kind of armor we want to produce, or we
     // need to detect it using the first packet we see.
     let kind = c.kind.into();
@@ -213,16 +213,16 @@ pub fn join(config: Config, c: JoinCommand) -> Result<()> {
     let mut sink = if c.binary {
         // No need for any auto-detection.
         Some(output.create_pgp_safe(
-            config.force, true, openpgp::armor::Kind::File)?)
+            sq.force, true, openpgp::armor::Kind::File)?)
     } else if let Some(kind) = kind {
-        Some(output.create_pgp_safe(config.force, false, kind)?)
+        Some(output.create_pgp_safe(sq.force, false, kind)?)
     } else {
         None // Defer.
     };
 
     /// Writes a bit-accurate copy of all top-level packets in PPR to
     /// OUTPUT.
-    fn copy<'a, 'b, 'pp>(config: &Config,
+    fn copy<'a, 'b, 'pp>(sq: &Sq,
             mut ppr: PacketParserResult<'pp>,
             output: &'a FileOrStdout,
             sink: &'b mut Option<Message<'a>>)
@@ -240,7 +240,7 @@ pub fn join(config: Config, c: JoinCommand) -> Result<()> {
                 };
 
                 *sink = Some(
-                    output.create_pgp_safe(config.force, false, kind)?
+                    output.create_pgp_safe(sq.force, false, kind)?
                 );
             }
 
@@ -258,14 +258,14 @@ pub fn join(config: Config, c: JoinCommand) -> Result<()> {
 
     /// Writes a bit-accurate copy of all top-level packets in all
     /// armored sections in the input to OUTPUT.
-    fn copy_all<'a, 'b>(config: &Config,
+    fn copy_all<'a, 'b>(sq: &Sq,
                         mut ppr: PacketParserResult,
                         output: &'a FileOrStdout,
                         sink: &'b mut Option<Message<'a>>)
                         -> Result<()>
     {
         // First, copy all the packets, armored or not.
-        ppr = copy(config, ppr, output, sink)?;
+        ppr = copy(sq, ppr, output, sink)?;
 
         loop {
             // Now, the parser is exhausted, but we may find another
@@ -301,7 +301,7 @@ pub fn join(config: Config, c: JoinCommand) -> Result<()> {
             }
 
             // We found another armor block, copy all the packets.
-            ppr = copy(config, ppr, output, sink)?;
+            ppr = copy(sq, ppr, output, sink)?;
         }
     }
 
@@ -310,13 +310,13 @@ pub fn join(config: Config, c: JoinCommand) -> Result<()> {
             let ppr =
                 openpgp::parse::PacketParserBuilder::from_file(name)?
                 .map(true).build()?;
-            copy_all(&config, ppr, &output, &mut sink)?;
+            copy_all(&sq, ppr, &output, &mut sink)?;
         }
     } else {
         let ppr =
             openpgp::parse::PacketParserBuilder::from_reader(io::stdin())?
             .map(true).build()?;
-        copy_all(&config, ppr, &output, &mut sink)?;
+        copy_all(&sq, ppr, &output, &mut sink)?;
     }
 
     sink.unwrap().finalize()?;

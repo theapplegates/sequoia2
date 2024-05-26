@@ -1,13 +1,13 @@
 //! Detailed version and output version information.
 
 use crate::{
-    Config,
+    Sq,
     Result,
     cli::version,
     output,
 };
 
-pub fn dispatch(_config: Config, c: version::Command)
+pub fn dispatch(_sq: Sq, c: version::Command)
     -> Result<()>
 {
     if c.default_output_version {

@@ -14,7 +14,7 @@ use openpgp::Cert;
 use openpgp::Packet;
 use openpgp::Result;
 
-use crate::Config;
+use crate::Sq;
 use crate::cli::key::RevokeCommand;
 use crate::cli::types::FileOrStdout;
 use crate::common::RevocationOutput;
@@ -146,28 +146,28 @@ impl<'a> RevocationOutput for CertificateRevocation<'a> {
 
 /// Revoke a certificate
 pub fn certificate_revoke(
-    config: Config,
+    sq: Sq,
     command: RevokeCommand,
 ) -> Result<()> {
     let cert = read_cert(command.input.as_deref())?;
 
     let secret = read_secret(command.secret_key_file.as_deref())?;
 
-    let time = Some(config.time);
+    let time = Some(sq.time);
 
     let notations = parse_notations(command.notation)?;
 
     let revocation = CertificateRevocation::new(
         cert,
         secret,
-        config.policy,
+        sq.policy,
         time,
         command.private_key_store.as_deref(),
         command.reason.into(),
         &command.message,
         &notations,
     )?;
-    revocation.write(command.output, command.binary, config.force)?;
+    revocation.write(command.output, command.binary, sq.force)?;
 
     Ok(())
 }

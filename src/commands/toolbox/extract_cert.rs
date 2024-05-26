@@ -6,15 +6,15 @@ use openpgp::Cert;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
-use crate::Config;
+use crate::Sq;
 use crate::cli;
 
 pub fn dispatch(
-    config: Config,
+    sq: Sq,
     command: cli::toolbox::extract_cert::Command,
 ) -> Result<()> {
     let input = command.input.open()?;
-    let mut output = command.output.create_safe(config.force)?;
+    let mut output = command.output.create_safe(sq.force)?;
 
     let cert = Cert::from_buffered_reader(input)?;
     if command.binary {

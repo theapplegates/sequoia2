@@ -16,16 +16,16 @@ use sequoia_openpgp::{
 use sequoia_cert_store::StoreUpdate;
 
 use crate::{
-    Config,
+    Sq,
     cli,
 };
 
-pub fn dispatch(config: Config, command: cli::key::expire::Command)
+pub fn dispatch(sq: Sq, command: cli::key::expire::Command)
                 -> Result<()>
 {
-    let policy = config.policy.clone();
+    let policy = sq.policy.clone();
     let cert_store = if command.output.is_none() {
-        Some(config.cert_store_or_else()?)
+        Some(sq.cert_store_or_else()?)
     } else {
         None
     };
@@ -137,7 +137,7 @@ pub fn dispatch(config: Config, command: cli::key::expire::Command)
 
     if let Some(sink) = command.output {
         let path = sink.path().map(Clone::clone);
-        let mut output = sink.for_secrets().create_safe(config.force)?;
+        let mut output = sink.for_secrets().create_safe(sq.force)?;
         if command.binary {
             key.as_tsk().serialize(&mut output)?;
         } else {
@@ -145,7 +145,7 @@ pub fn dispatch(config: Config, command: cli::key::expire::Command)
         }
 
         if let Some(path) = path {
-            config.hint(format_args!(
+            sq.hint(format_args!(
                 "Updated key written to {}.  \
                  To make the update effective, it has to be published \
                  so that others can find it, for example using:",
@@ -154,7 +154,7 @@ pub fn dispatch(config: Config, command: cli::key::expire::Command)
                     "sq network keyserver publish {}",
                     path.display()));
         } else {
-            config.hint(format_args!(
+            sq.hint(format_args!(
                 "To make the update effective, it has to be published \
                  so that others can find it."));
         }
@@ -166,7 +166,7 @@ pub fn dispatch(config: Config, command: cli::key::expire::Command)
             wprintln!("Error importing updated cert: {}", err);
             return Err(err);
         } else {
-            config.hint(format_args!(
+            sq.hint(format_args!(
                 "Imported updated cert into the cert store.  \
                  To make the update effective, it has to be published \
                  so that others can find it, for example using:"))

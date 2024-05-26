@@ -478,13 +478,8 @@ pub fn add(sq: Sq, c: link::AddCommand)
     };
 
     // Sign it.
-    let keys = sq.get_certification_keys(&[trust_root], None)
-        .context("Looking up local trust root")?;
-    assert!(
-        keys.len() == 1,
-        "Expect exactly one result from get_certification_keys()"
-    );
-    let mut signer = keys.into_iter().next().unwrap().0;
+    let mut signer = sq.get_certification_key(trust_root, None)
+        .context("Looking up local trust root")?.0;
 
     let certifications = active_certification(
             &sq, &vc.fingerprint(), userids,
@@ -645,13 +640,8 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
     };
 
     // Sign it.
-    let keys = sq.get_certification_keys(&[trust_root], None)
-        .context("Looking up local trust root")?;
-    assert!(
-        keys.len() == 1,
-        "Expect exactly one result from get_certification_keys()"
-    );
-    let mut signer = keys.into_iter().next().unwrap().0;
+    let mut signer = sq.get_certification_key(trust_root, None)
+        .context("Looking up local trust root")?.0;
 
     let certifications = active_certification(
             &sq, &cert.fingerprint(), userids, signer.public())

@@ -1204,6 +1204,23 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                       options)
     }
 
+    /// Returns suitable certification keys from a given list of Certs.
+    ///
+    /// This returns one key for each Cert.  If a Cert doesn't have an
+    /// appropriate key, then this returns an error.
+    pub fn get_certification_key<C>(&self, cert: C,
+                                    options: Option<&[GetKeysOptions]>)
+        -> Result<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>
+    where C: std::borrow::Borrow<Cert>
+    {
+        let keys = self.get_certification_keys(&[cert], options)?;
+        assert!(
+            keys.len() == 1,
+            "Expected exactly one result from get_certification_keys()"
+        );
+        Ok(keys.into_iter().next().unwrap())
+    }
+
     /// Prints additional information in verbose mode.
     pub fn info(&self, msg: fmt::Arguments) {
         if self.verbose {

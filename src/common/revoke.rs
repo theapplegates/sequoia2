@@ -38,12 +38,8 @@ pub fn get_secret_signer<'a>(
     secret: Option<&'a Cert>,
 ) -> Result<(Cert, Box<dyn Signer + Send + Sync>)> {
     if let Some(secret) = secret {
-        if let Ok(keys) = sq.get_certification_keys(&[secret.clone()], None) {
-            assert!(
-                keys.len() == 1,
-                "Expect exactly one result from get_certification_keys()"
-            );
-            Ok((secret.clone(), keys.into_iter().next().expect("have one").0))
+        if let Ok((key, _password)) = sq.get_certification_key(secret, None) {
+            Ok((secret.clone(), key))
         } else {
             if ! sq.time_is_now {
                 return Err(anyhow!(
@@ -63,12 +59,8 @@ does not contain a certification key with secret key material"
             }
         }
     } else {
-        if let Ok(keys) = sq.get_certification_keys(&[cert], None) {
-            assert!(
-                keys.len() == 1,
-                "Expect exactly one result from get_certification_keys()"
-            );
-            Ok((cert.clone(), keys.into_iter().next().expect("have one").0))
+        if let Ok((key, _password)) = sq.get_certification_key(cert, None) {
+            Ok((cert.clone(), key))
         } else {
             if ! sq.time_is_now {
                 return Err(anyhow!(

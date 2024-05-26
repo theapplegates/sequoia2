@@ -2,7 +2,6 @@ use anyhow::Context as _;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
-use std::time::SystemTime;
 use tempfile::NamedTempFile;
 
 use sequoia_openpgp as openpgp;
@@ -54,7 +53,6 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
     let secrets =
         load_certs(command.secret_key_file.iter().map(|s| s.as_ref()))?;
     let signer_keys = &command.signer_key[..];
-    let time = Some(sq.time);
 
     let notations = parse_notations(command.notation)?;
 
@@ -70,7 +68,7 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
     } else if command.clearsign {
         let output = output.create_safe(sq.force)?;
         clearsign(sq, private_key_store, input, output, secrets,
-                  time, &notations)?;
+                  &notations)?;
     } else {
         sign(sq,
              private_key_store,
@@ -82,7 +80,6 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
              binary,
              append,
              notarize,
-             time,
              &notations)?;
     }
 
@@ -100,7 +97,6 @@ pub fn sign<'a, 'store, 'rstore>(
     binary: bool,
     append: bool,
     notarize: bool,
-    time: Option<SystemTime>,
     notations: &'a [(bool, NotationData)])
     -> Result<()>
 {
@@ -115,7 +111,6 @@ pub fn sign<'a, 'store, 'rstore>(
                       detached,
                       binary,
                       append,
-                      time,
                       notations),
         (false, true) =>
             sign_message(sq,
@@ -125,7 +120,6 @@ pub fn sign<'a, 'store, 'rstore>(
                          secrets,
                          binary,
                          notarize,
-                         time,
                          notations),
     }
 }
@@ -140,7 +134,6 @@ fn sign_data<'a, 'store, 'rstore>(
     detached: bool,
     binary: bool,
     append: bool,
-    time: Option<SystemTime>,
     notations: &'a [(bool, NotationData)])
     -> Result<()>
 {
@@ -179,7 +172,7 @@ fn sign_data<'a, 'store, 'rstore>(
         };
 
     let mut keypairs = super::get_signing_keys(
-        &secrets, sq.policy, private_key_store, time, None)?;
+        &secrets, sq.policy, private_key_store, Some(sq.time), None)?;
 
     let mut signer_keys = if signer_keys.is_empty() {
         Vec::new()
@@ -307,9 +300,7 @@ fn sign_data<'a, 'store, 'rstore>(
             keypairs.pop().unwrap().0,
             builder)
     };
-    if let Some(time) = time {
-        signer = signer.creation_time(time);
-    }
+    signer = signer.creation_time(sq.time);
     for s in keypairs {
         signer = signer.add_signer(s.0);
     }
@@ -356,7 +347,6 @@ fn sign_message<'a, 'store, 'rstore>(
     secrets: Vec<openpgp::Cert>,
     binary: bool,
     notarize: bool,
-    time: Option<SystemTime>,
     notations: &'a [(bool, NotationData)])
     -> Result<()>
 {
@@ -370,7 +360,6 @@ fn sign_message<'a, 'store, 'rstore>(
                   input,
                   secrets,
                   notarize,
-                  time,
                   notations,
                   &mut output)?;
     output.finalize()?;
@@ -383,13 +372,12 @@ fn sign_message_<'a, 'store, 'rstore>(
     input: &'a mut (dyn io::Read + Sync + Send),
     secrets: Vec<openpgp::Cert>,
     notarize: bool,
-    time: Option<SystemTime>,
     notations: &'a [(bool, NotationData)],
     output: &mut (dyn io::Write + Sync + Send))
     -> Result<()>
 {
     let mut keypairs = super::get_signing_keys(
-        &secrets, sq.policy, private_key_store, time, None)?;
+        &secrets, sq.policy, private_key_store, Some(sq.time), None)?;
     if keypairs.is_empty() {
         return Err(anyhow::anyhow!("No signing keys found"));
     }
@@ -469,9 +457,7 @@ fn sign_message_<'a, 'store, 'rstore>(
 
                 let mut signer = Signer::with_template(
                     sink, keypairs.pop().unwrap().0, builder);
-                if let Some(time) = time {
-                    signer = signer.creation_time(time);
-                }
+                signer = signer.creation_time(sq.time);
                 for s in keypairs.drain(..) {
                     signer = signer.add_signer(s.0);
                 }
@@ -591,12 +577,11 @@ pub fn clearsign(sq: Sq,
                  mut input: impl io::Read + Sync + Send,
                  mut output: impl io::Write + Sync + Send,
                  secrets: Vec<openpgp::Cert>,
-                 time: Option<SystemTime>,
                  notations: &[(bool, NotationData)])
                  -> Result<()>
 {
     let mut keypairs = super::get_signing_keys(
-        &secrets, sq.policy, private_key_store, time, None)?;
+        &secrets, sq.policy, private_key_store, Some(sq.time), None)?;
     if keypairs.is_empty() {
         return Err(anyhow::anyhow!("No signing keys found"));
     }
@@ -615,9 +600,7 @@ pub fn clearsign(sq: Sq,
     let mut signer = Signer::with_template(
         message, keypairs.pop().unwrap().0, builder)
         .cleartext();
-    if let Some(time) = time {
-        signer = signer.creation_time(time);
-    }
+    signer = signer.creation_time(sq.time);
     for s in keypairs {
         signer = signer.add_signer(s.0);
     }

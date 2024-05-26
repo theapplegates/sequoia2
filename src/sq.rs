@@ -54,6 +54,7 @@ pub struct Sq<'store, 'rstore>
     pub output_version: Option<OutputVersion>,
     pub policy: &'rstore P<'rstore>,
     pub time: SystemTime,
+    pub time_is_now: bool,
     pub home: sequoia_directories::Home,
     // --no-cert-store
     pub no_rw_cert_store: bool,

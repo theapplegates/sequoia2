@@ -330,6 +330,7 @@ fn main() -> Result<()> {
         }
     };
 
+    let time_is_now = c.time.is_none();
     let time: SystemTime =
         c.time.clone().unwrap_or_else(|| Time::now()).into();
 
@@ -359,6 +360,7 @@ fn main() -> Result<()> {
         output_version,
         policy: &policy,
         time,
+        time_is_now,
         home: sequoia_directories::Home::new(c.home.clone())?,
         no_rw_cert_store: c.no_cert_store,
         cert_store_path: c.cert_store.clone(),

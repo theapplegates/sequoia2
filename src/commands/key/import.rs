@@ -2,7 +2,6 @@ use sequoia_openpgp as openpgp;
 use openpgp::cert::CertParser;
 use openpgp::parse::Parse;
 
-use crate::best_effort_primary_uid;
 use crate::cli;
 use crate::Sq;
 use crate::ImportStatus;
@@ -27,9 +26,7 @@ pub fn import(sq: Sq, command: cli::key::ImportCommand) -> Result<()> {
 
             let id = format!("{} {}",
                              cert.fingerprint(),
-                             best_effort_primary_uid(
-                                 Some(&sq), &cert, sq.policy,
-                                 sq.time));
+                             sq.best_userid(&cert, true));
 
             match sq.import_key(cert) {
                 Ok(ImportStatus::New) => {

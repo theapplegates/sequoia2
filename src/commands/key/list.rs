@@ -4,7 +4,6 @@ use openpgp::KeyHandle;
 use sequoia_keystore as keystore;
 use keystore::Protection;
 
-use crate::best_effort_primary_uid;
 use crate::cli;
 use crate::Sq;
 use crate::Result;
@@ -43,8 +42,7 @@ pub fn list(sq: Sq, _command: cli::key::ListCommand) -> Result<()> {
                 let sanitized_userid = if let Ok(cert)
                     = sq.lookup_one(&fpr, None, true)
                 {
-                    best_effort_primary_uid(
-                        Some(&sq), &cert, sq.policy, None)
+                    sq.best_userid(&cert, true)
                 } else {
                     crate::PreferredUserID::unknown()
                 };

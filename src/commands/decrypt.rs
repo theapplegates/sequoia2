@@ -27,8 +27,6 @@ use cert_store::store::StoreError;
 use sequoia_keystore as keystore;
 
 use crate::{
-    best_effort_primary_uid,
-    best_effort_primary_uid_for,
     cli,
     commands::{
         VHelper,
@@ -416,11 +414,8 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                                     let pkesk = key_status.pkesk().clone();
                                     let mut key = key_status.into_key();
                                     let keyid = key.keyid();
-                                    let userid = best_effort_primary_uid_for(
-                                        Some(&self.sq),
-                                        &KeyHandle::from(&keyid),
-                                        self.sq.policy,
-                                        self.sq.time);
+                                    let userid = self.sq.best_userid_for(
+                                        &KeyHandle::from(&keyid), true);
 
                                     let keypair = loop {
                                         let password = rpassword::prompt_password(
@@ -483,11 +478,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                         for cert in certs {
                             eprintln!("  - {}, {}",
                                       cert.fingerprint(),
-                                      best_effort_primary_uid(
-                                          Some(self.sq),
-                                          &cert,
-                                          self.sq.policy,
-                                          self.sq.time));
+                                      self.sq.best_userid(&cert, true));
                         }
                     }
                     Err(err) => {

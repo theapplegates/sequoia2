@@ -52,7 +52,6 @@ use crate::{
     },
     Sq,
     Model,
-    best_effort_primary_uid,
     merge_keyring,
     serialize_keyring,
     output::WkdUrlVariant,
@@ -113,8 +112,7 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
     for cert in certs.iter() {
         cert_store.update_by(Arc::new(cert.clone().into()), &mut stats)
             .with_context(|| {
-                let sanitized_userid = best_effort_primary_uid(
-                    Some(&sq), &cert, sq.policy, sq.time);
+                let sanitized_userid = sq.best_userid(&cert, true);
 
                 format!("Inserting {}, {}",
                         cert.fingerprint(), sanitized_userid)
@@ -123,8 +121,7 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
 
     let mut certs = certs.into_iter()
         .map(|cert| {
-            let userid = best_effort_primary_uid(
-                Some(&sq), &cert, sq.policy, sq.time);
+            let userid = sq.best_userid(&cert, true);
             (userid, cert)
         })
         .collect::<Vec<_>>();
@@ -579,8 +576,7 @@ impl Method {
                 if let Ok(cert) = cert.to_cert() {
                     // We really want the self-signed, primary user
                     // ID.
-                    best_effort_primary_uid(
-                        None, cert, sq.policy, None).to_string()
+                    sq.best_userid(cert, false).to_string()
                 } else {
                     invalid
                 },

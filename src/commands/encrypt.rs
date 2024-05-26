@@ -26,7 +26,6 @@ use openpgp::types::KeyFlags;
 
 use sequoia_keystore::Protection;
 
-use crate::best_effort_primary_uid;
 use crate::cli;
 use crate::cli::types::EncryptPurpose;
 use crate::cli::types::FileOrStdin;
@@ -164,10 +163,7 @@ pub fn encrypt<'a, 'b: 'a>(
                             &KeyHandle::from(&fpr), None, true);
                         let display = match cert {
                             Ok(cert) => {
-                                format!(" ({})",
-                                        best_effort_primary_uid(
-                                            Some(&sq), &cert, sq.policy,
-                                            sq.time))
+                                format!(" ({})", sq.best_userid(&cert, true))
                             }
                             Err(_) => {
                                 "".to_string()

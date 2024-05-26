@@ -12,10 +12,7 @@ use sequoia_cert_store as cert_store;
 use cert_store::LazyCert;
 use cert_store::StoreUpdate;
 
-use crate::{
-    Sq,
-    best_effort_primary_uid,
-};
+use crate::Sq;
 use crate::cli::cert::import;
 use crate::cli::types::FileOrStdin;
 
@@ -38,8 +35,6 @@ where 'store: 'rstore
             let input = FileOrStdin::from(input).open()?;
             let raw_certs = RawCertParser::from_buffered_reader(input)?;
 
-            let policy = sq.policy.clone();
-            let time = sq.time;
             let cert_store = sq.cert_store_or_else()?;
 
             for raw_cert in raw_certs {
@@ -53,8 +48,7 @@ where 'store: 'rstore
                 };
 
                 let fingerprint = cert.fingerprint();
-                let sanitized_userid = best_effort_primary_uid(
-                    Some(&sq), cert.to_cert()?, &policy, time);
+                let sanitized_userid = sq.best_userid(cert.to_cert()?, true);
                 if let Err(err) = cert_store.update_by(Arc::new(cert), &mut stats) {
                     wprintln!("Error importing {}, {}: {}",
                               fingerprint, sanitized_userid, err);

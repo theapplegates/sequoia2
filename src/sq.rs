@@ -38,6 +38,7 @@ use crate::ImportStatus;
 use crate::OutputFormat;
 use crate::OutputVersion;
 use crate::output::hint::Hint;
+use crate::PreferredUserID;
 use crate::print_error_chain;
 
 // A shorthand for our store type.
@@ -839,6 +840,134 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         }
 
         Ok(import_status)
+    }
+
+    /// Best-effort heuristic to compute the primary User ID of a given cert.
+    ///
+    /// The returned string is already sanitized, and safe for displaying.
+    ///
+    /// If `use_wot` is set, then we use the best authenticated user
+    /// ID.  If `use_wot` is not set, then we use the primary user ID.
+    pub fn best_userid<'u>(&self, cert: &'u Cert, use_wot: bool)
+        -> PreferredUserID
+    {
+        // Try to be more helpful by including a User ID in the
+        // listing.  We'd like it to be the primary one.  Use
+        // decreasingly strict policies.
+        let mut primary_uid = None;
+
+        // First, apply our policy.
+        if let Ok(vcert) = cert.with_policy(self.policy, self.time) {
+            if let Ok(primary) = vcert.primary_userid() {
+                primary_uid = Some(primary.userid());
+            }
+        }
+
+        // Second, apply the null policy.
+        if primary_uid.is_none() {
+            const NULL: openpgp::policy::NullPolicy =
+                openpgp::policy::NullPolicy::new();
+            if let Ok(vcert) = cert.with_policy(&NULL, self.time) {
+                if let Ok(primary) = vcert.primary_userid() {
+                    primary_uid = Some(primary.userid());
+                }
+            }
+        }
+
+        // As a last resort, pick the first user id.
+        if primary_uid.is_none() {
+            if let Some(primary) = cert.userids().next() {
+                primary_uid = Some(primary.userid());
+            }
+        }
+
+        if let Some(primary_uid) = primary_uid {
+            let fpr = cert.fingerprint();
+
+            let mut candidate: (&UserID, usize) = (primary_uid, 0);
+
+            #[allow(clippy::never_loop)]
+            loop {
+                // Don't fail if we can't query the user's web of trust.
+                if ! use_wot { break; };
+                let Ok(q) = self.wot_query() else { break; };
+                let q = q.build();
+                let authenticate = move |userid: &UserID| {
+                    let paths = q.authenticate(userid, &fpr, wot::FULLY_TRUSTED);
+                    paths.amount()
+                };
+
+                // We're careful to *not* use a ValidCert so that we see all
+                // user IDs, even those that are not self signed.
+
+                candidate = (primary_uid, authenticate(primary_uid));
+
+                for userid in cert.userids() {
+                    let userid = userid.component();
+
+                    if candidate.1 >= wot::FULLY_TRUSTED {
+                        // Done.
+                        break;
+                    }
+
+                    if userid == primary_uid {
+                        // We already considered this one.
+                        continue;
+                    }
+
+                    let amount = authenticate(&userid);
+                    if amount > candidate.1 {
+                        candidate = (userid, amount);
+                    }
+                }
+
+                break;
+            }
+
+            let (uid, amount) = candidate;
+            PreferredUserID::from_userid(uid.clone(), amount)
+        } else {
+            // Special case, there is no user id.
+            PreferredUserID::unknown()
+        }
+    }
+
+    /// Best-effort heuristic to compute the primary User ID of a given cert.
+    ///
+    /// The returned string is already sanitized, and safe for displaying.
+    ///
+    /// If `use_wot` is set, then we use the best authenticated user
+    /// ID.  If `use_wot` is not set, then we use the primary user ID.
+    pub fn best_userid_for<'u>(&self, key_handle: &KeyHandle,
+                               use_wot: bool)
+                              -> PreferredUserID
+    {
+        if ! use_wot {
+            return PreferredUserID::unknown()
+        };
+
+        let cert = self.lookup_one(
+            key_handle,
+            Some(KeyFlags::empty()
+                 .set_storage_encryption()
+                 .set_transport_encryption()),
+            false);
+
+        match cert {
+            Ok(cert) => {
+                self.best_userid(&cert, true)
+            }
+            Err(err) => {
+                if let Some(StoreError::NotFound(_))
+                    = err.downcast_ref()
+                {
+                    PreferredUserID::from_string("(certificate not found)", 0)
+                } else {
+                    PreferredUserID::from_string(
+                        format!("(error looking up certificate: {})", err), 0)
+                }
+            }
+        }
     }
 
     /// Prints additional information in verbose mode.

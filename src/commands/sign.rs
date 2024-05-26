@@ -24,7 +24,6 @@ use openpgp::types::SignatureType;
 
 use sequoia_keystore::Protection;
 
-use crate::best_effort_primary_uid;
 use crate::Sq;
 use crate::load_certs;
 use crate::parse_notations;
@@ -202,10 +201,7 @@ fn sign_data<'a, 'store, 'rstore>(
                             &KeyHandle::from(&fpr), None, true);
                         let display = match cert {
                             Ok(cert) => {
-                                format!(" ({})",
-                                        best_effort_primary_uid(
-                                            Some(&sq), &cert,
-                                            sq.policy, sq.time))
+                                format!(" ({})", sq.best_userid(&cert, true))
                             }
                             Err(_) => {
                                 "".to_string()

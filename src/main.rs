@@ -19,10 +19,7 @@ use once_cell::sync::OnceCell;
 
 use sequoia_openpgp as openpgp;
 
-use openpgp::{
-    KeyHandle,
-    Result,
-};
+use openpgp::Result;
 use openpgp::{armor, Cert};
 use openpgp::crypto::Password;
 use openpgp::Fingerprint;
@@ -32,13 +29,6 @@ use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::packet::signature::subpacket::NotationDataFlags;
 use openpgp::serialize::Serialize;
 use openpgp::cert::prelude::*;
-use openpgp::policy::Policy;
-use openpgp::types::KeyFlags;
-
-use sequoia_cert_store as cert_store;
-use cert_store::store::StoreError;
-
-use sequoia_wot as wot;
 
 use sequoia_keystore as keystore;
 
@@ -212,141 +202,6 @@ fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
     }
     output.finalize()?;
     Ok(())
-}
-
-/// Best-effort heuristic to compute the primary User ID of a given cert.
-///
-/// The returned string is already sanitized, and safe for displaying.
-pub fn best_effort_primary_uid<'u, T>(config: Option<&Sq>,
-                                      cert: &'u Cert,
-                                      policy: &'u dyn Policy,
-                                      time: T)
-                                      -> PreferredUserID
-where
-    T: Into<Option<SystemTime>>,
-{
-    let time = time.into();
-
-    // Try to be more helpful by including a User ID in the
-    // listing.  We'd like it to be the primary one.  Use
-    // decreasingly strict policies.
-    let mut primary_uid = None;
-
-    // First, apply our policy.
-    if let Ok(vcert) = cert.with_policy(policy, time) {
-        if let Ok(primary) = vcert.primary_userid() {
-            primary_uid = Some(primary.userid());
-        }
-    }
-
-    // Second, apply the null policy.
-    if primary_uid.is_none() {
-        const NULL: openpgp::policy::NullPolicy =
-            openpgp::policy::NullPolicy::new();
-        if let Ok(vcert) = cert.with_policy(&NULL, time) {
-            if let Ok(primary) = vcert.primary_userid() {
-                primary_uid = Some(primary.userid());
-            }
-        }
-    }
-
-    // As a last resort, pick the first user id.
-    if primary_uid.is_none() {
-        if let Some(primary) = cert.userids().next() {
-            primary_uid = Some(primary.userid());
-        }
-    }
-
-    if let Some(primary_uid) = primary_uid {
-        let fpr = cert.fingerprint();
-
-        let mut candidate: (&UserID, usize) = (primary_uid, 0);
-
-        #[allow(clippy::never_loop)]
-        loop {
-            // Don't fail if we can't query the user's web of trust.
-            let Some(config) = config else { break; };
-            let Ok(q) = config.wot_query() else { break; };
-            let q = q.build();
-            let authenticate = move |userid: &UserID| {
-                let paths = q.authenticate(userid, &fpr, wot::FULLY_TRUSTED);
-                paths.amount()
-            };
-
-            // We're careful to *not* use a ValidCert so that we see all
-            // user IDs, even those that are not self signed.
-
-            candidate = (primary_uid, authenticate(primary_uid));
-
-            for userid in cert.userids() {
-                let userid = userid.component();
-
-                if candidate.1 >= wot::FULLY_TRUSTED {
-                    // Done.
-                    break;
-                }
-
-                if userid == primary_uid {
-                    // We already considered this one.
-                    continue;
-                }
-
-                let amount = authenticate(&userid);
-                if amount > candidate.1 {
-                    candidate = (userid, amount);
-                }
-            }
-
-            break;
-        }
-
-        let (uid, amount) = candidate;
-        PreferredUserID::from_userid(uid.clone(), amount)
-    } else {
-        // Special case, there is no user id.
-        PreferredUserID::unknown()
-    }
-}
-
-/// Best-effort heuristic to compute the primary User ID of a given cert.
-///
-/// The returned string is already sanitized, and safe for displaying.
-pub fn best_effort_primary_uid_for<'u, T>(config: Option<&Sq>,
-                                          key_handle: &KeyHandle,
-                                          policy: &'u dyn Policy,
-                                          time: T)
-                                          -> PreferredUserID
-where
-    T: Into<Option<SystemTime>>,
-{
-    let config = if let Some(config) = config {
-        config
-    } else {
-        return PreferredUserID::unknown()
-    };
-
-    let cert = config.lookup_one(
-        key_handle,
-        Some(KeyFlags::empty()
-             .set_storage_encryption()
-             .set_transport_encryption()),
-        false);
-
-    match cert {
-        Ok(cert) => {
-            best_effort_primary_uid(Some(config), &cert, policy, time)
-        }
-        Err(err) => {
-            if let Some(StoreError::NotFound(_))
-                = err.downcast_ref()
-            {
-                PreferredUserID::from_string("(certificate not found)", 0)
-            } else {
-                PreferredUserID::from_string(
-                    format!("(error looking up certificate: {})", err), 0)
-            }
-        }
-    }
 }
 
 // Decrypts a key, if possible.

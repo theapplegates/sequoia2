@@ -27,7 +27,6 @@ use cert_store::Store;
 
 use crate::Convert;
 
-use crate::best_effort_primary_uid_for;
 use crate::Sq;
 use crate::one_line_error_chain;
 use crate::SECONDS_IN_YEAR;
@@ -591,9 +590,7 @@ fn inspect_issuers(sq: &mut Sq,
     let khs: Vec<KeyHandle> = fps.into_iter().map(|fp| fp.into()).collect();
     for kh in khs.iter() {
         writeln!(output, " Alleged signer: {}, {}",
-                 kh,
-                 best_effort_primary_uid_for(
-                     Some(sq), kh, sq.policy, sq.time))?;
+                 kh, sq.best_userid_for(kh, true))?;
     }
 
     let mut keyids: Vec<_> = sig.issuers().collect();
@@ -603,9 +600,7 @@ fn inspect_issuers(sq: &mut Sq,
         if ! khs.iter().any(|kh| kh.aliases(&keyid.into())) {
             writeln!(output, " Alleged signer: {}, {}",
                      keyid,
-                     best_effort_primary_uid_for(
-                         Some(sq), &KeyHandle::from(keyid),
-                         sq.policy, sq.time))?;
+                     sq.best_userid_for(&KeyHandle::from(keyid), true))?;
         }
     }
 
@@ -697,9 +692,7 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
             for kh in khs.iter() {
                 writeln!(output, "{}Alleged certifier: {}, {}",
                          indent, kh,
-                         best_effort_primary_uid_for(
-                             Some(sq), kh,
-                             sq.policy, sq.time))?;
+                         sq.best_userid_for(kh, true))?;
             }
             let mut keyids: Vec<_> = sig.issuers().collect();
             keyids.sort();
@@ -708,9 +701,8 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
                 if ! khs.iter().any(|kh| kh.aliases(&keyid.into())) {
                     writeln!(output, "{}Alleged certifier: {}, {}", indent,
                              keyid,
-                             best_effort_primary_uid_for(
-                                 Some(sq), &KeyHandle::from(keyid),
-                                 sq.policy, sq.time))?;
+                             sq.best_userid_for(
+                                 &KeyHandle::from(keyid), true))?;
                 }
             }
 

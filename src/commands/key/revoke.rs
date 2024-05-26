@@ -114,8 +114,7 @@ impl<'a, 'store, 'rstore> RevocationOutput
                 // This information may be published so only consider
                 // self-signed user IDs to avoid leaking information
                 // about the user's web of trust.
-                let sanitized_uid = crate::best_effort_primary_uid(
-                    None, &self.secret, self.sq.policy, self.sq.time);
+                let sanitized_uid = self.sq.best_userid(&self.secret, false);
                 // Truncate it, if it is too long.
                 more.push(format!("{:.70}", sanitized_uid));
             }

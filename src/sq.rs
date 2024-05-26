@@ -1173,6 +1173,23 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                       options)
     }
 
+    /// Returns a suitable signing key for a given certificate.
+    ///
+    /// If the certificate doesn't have an appropriate key, then this
+    /// returns an error.
+    pub fn get_signing_key<C>(&self, certs: C,
+                               options: Option<&[GetKeysOptions]>)
+        -> Result<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>
+    where C: Borrow<Cert>
+    {
+        let keys = self.get_signing_keys(&[certs], options)?;
+        assert!(
+            keys.len() == 1,
+            "Expected exactly one result from get_signing_keys()"
+        );
+        Ok(keys.into_iter().next().unwrap())
+    }
+
     /// Returns suitable certification keys from a given list of Certs.
     ///
     /// This returns one key for each Cert.  If a Cert doesn't have an

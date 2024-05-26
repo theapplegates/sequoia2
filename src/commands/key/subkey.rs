@@ -1,5 +1,3 @@
-use std::time::SystemTime;
-
 use anyhow::Context;
 
 use anyhow::anyhow;
@@ -14,7 +12,6 @@ use openpgp::cert::SubkeyRevocationBuilder;
 use openpgp::packet::{Key, key};
 use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::parse::Parse;
-use openpgp::policy::Policy;
 use openpgp::serialize::Serialize;
 use openpgp::types::KeyFlags;
 use openpgp::types::ReasonForRevocation;
@@ -39,24 +36,22 @@ use crate::common::read_secret;
 use crate::parse_notations;
 
 /// Handle the revocation of a subkey
-struct SubkeyRevocation<'a> {
+struct SubkeyRevocation<'a, 'store, 'rstore> {
     cert: Cert,
     secret: Cert,
-    policy: &'a dyn Policy,
-    time: Option<SystemTime>,
+    sq: &'a Sq<'store, 'rstore>,
     revocation_packet: Packet,
     first_party_issuer: bool,
     subkey: Key<key::PublicParts, key::SubordinateRole>,
 }
 
-impl<'a> SubkeyRevocation<'a> {
+impl<'a, 'store, 'rstore> SubkeyRevocation<'a, 'store, 'rstore> {
     /// Create a new SubkeyRevocation
     pub fn new(
+        sq: &'a Sq<'store, 'rstore>,
         keyhandle: &KeyHandle,
         cert: Cert,
         secret: Option<Cert>,
-        policy: &'a dyn Policy,
-        time: Option<SystemTime>,
         private_key_store: Option<&str>,
         reason: ReasonForRevocation,
         message: &str,
@@ -64,10 +59,10 @@ impl<'a> SubkeyRevocation<'a> {
     ) -> Result<Self> {
         let (secret, mut signer) = get_secret_signer(
             &cert,
-            policy,
+            sq.policy,
             secret.as_ref(),
             private_key_store,
-            time,
+            Some(sq.time),
         )?;
 
         let first_party_issuer = secret.fingerprint() == cert.fingerprint();
@@ -84,9 +79,7 @@ impl<'a> SubkeyRevocation<'a> {
                 let subkey = keys[0].clone();
                 let mut rev = SubkeyRevocationBuilder::new()
                     .set_reason_for_revocation(reason, message.as_bytes())?;
-                if let Some(time) = time {
-                    rev = rev.set_signature_creation_time(time)?;
-                }
+                rev = rev.set_signature_creation_time(sq.time)?;
                 for (critical, notation) in notations {
                     rev = rev.add_notation(
                         notation.name(),
@@ -138,8 +131,7 @@ impl<'a> SubkeyRevocation<'a> {
         Ok(SubkeyRevocation {
             cert,
             secret,
-            policy,
-            time,
+            sq,
             revocation_packet,
             first_party_issuer,
             subkey,
@@ -147,7 +139,7 @@ impl<'a> SubkeyRevocation<'a> {
     }
 }
 
-impl<'a> RevocationOutput for SubkeyRevocation<'a> {
+impl<'a, 'store, 'rstore> RevocationOutput for SubkeyRevocation<'a, 'store, 'rstore> {
     /// Write the revocation certificate to output
     fn write(
         &self,
@@ -187,7 +179,7 @@ impl<'a> RevocationOutput for SubkeyRevocation<'a> {
                 // self-signed user IDs to avoid leaking information
                 // about the user's web of trust.
                 let sanitized_uid = crate::best_effort_primary_uid(
-                    None, &self.secret, self.policy, self.time);
+                    None, &self.secret, self.sq.policy, Some(self.sq.time));
                 // Truncate it, if it is too long.
                 more.push(format!("{:.70}", sanitized_uid));
             }
@@ -309,16 +301,13 @@ pub fn subkey_revoke(
 
     let secret = read_secret(command.secret_key_file.as_deref())?;
 
-    let time = Some(sq.time);
-
     let notations = parse_notations(command.notation)?;
 
     let revocation = SubkeyRevocation::new(
+        &sq,
         &command.subkey,
         cert,
         secret,
-        sq.policy,
-        time,
         command.private_key_store.as_deref(),
         command.reason.into(),
         &command.message,

@@ -37,8 +37,8 @@ use crate::cli::types::FileOrStdin;
 use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
-use crate::common::read_secret;
 use crate::common::userid::lint_userids;
+use crate::load_certs;
 use crate::parse_notations;
 
 /// Handle the revocation of a User ID
@@ -445,7 +445,17 @@ pub fn userid_revoke(
     let br = FileOrStdin::from(command.input.as_deref()).open()?;
     let cert = Cert::from_buffered_reader(br)?;
 
-    let secret = read_secret(command.secret_key_file.as_deref())?;
+    let secret = if let Some(file) = command.secret_key_file.as_deref() {
+        let certs = load_certs(std::iter::once(file))?;
+        if certs.len() > 1 {
+            return Err(anyhow::anyhow!(
+                format!("{} contains multiple certificates.",
+                        file.display())))?;
+        }
+        certs.into_iter().next()
+    } else {
+        None
+    };
 
     let notations = parse_notations(command.notation)?;
 

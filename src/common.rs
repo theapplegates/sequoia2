@@ -1,16 +1,11 @@
-use std::path::Path;
-
-use anyhow::anyhow;
 use anyhow::Result;
 
 use openpgp::packet::UserID;
 use openpgp::policy::NullPolicy;
-use openpgp::Cert;
 use sequoia_openpgp as openpgp;
 
 use sequoia_wot as wot;
 
-use crate::load_certs;
 use crate::output::sanitize::Safe;
 
 mod revoke;
@@ -21,16 +16,6 @@ pub mod password;
 pub mod userid;
 
 pub const NULL_POLICY: &NullPolicy = &NullPolicy::new();
-
-/// Parse the secret key and ensure it is at most one.
-pub fn read_secret(skf: Option<&Path>) -> Result<Option<Cert>> {
-    let secret = load_certs(skf.into_iter())?;
-    if secret.len() > 1 {
-        Err(anyhow!("Multiple secret keys provided."))?;
-    }
-    let secret = secret.into_iter().next();
-    Ok(secret)
-}
 
 /// Something like a User ID.
 ///

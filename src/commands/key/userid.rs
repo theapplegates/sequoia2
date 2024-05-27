@@ -42,7 +42,7 @@ use crate::parse_notations;
 /// Handle the revocation of a User ID
 struct UserIDRevocation {
     cert: Cert,
-    secret: Cert,
+    revoker: Cert,
     revocation_packet: Packet,
     userid: String,
     uid: UserID,
@@ -55,13 +55,13 @@ impl UserIDRevocation {
         userid: String,
         force: bool,
         cert: Cert,
-        secret: Option<Cert>,
+        revoker: Option<Cert>,
         reason: ReasonForRevocation,
         message: &str,
         notations: &[(bool, NotationData)],
     ) -> Result<Self> {
-        let (secret, mut signer)
-            = get_secret_signer(sq, &cert, secret.as_ref())?;
+        let (revoker, mut signer)
+            = get_secret_signer(sq, &cert, revoker.as_ref())?;
 
         let uid = UserID::from(userid.as_str());
 
@@ -125,7 +125,7 @@ impl UserIDRevocation {
 
         Ok(UserIDRevocation {
             cert,
-            secret,
+            revoker,
             revocation_packet,
             userid,
             uid,
@@ -157,7 +157,7 @@ impl RevocationOutput for UserIDRevocation
     }
 
     fn revoker(&self) -> &Cert {
-        &self.secret
+        &self.revoker
     }
 }
 
@@ -400,10 +400,10 @@ pub fn userid_revoke(
     sq: Sq,
     command: UseridRevokeCommand,
 ) -> Result<()> {
-    let br = FileOrStdin::from(command.input.as_deref()).open()?;
+    let br = FileOrStdin::from(command.cert_file.as_deref()).open()?;
     let cert = Cert::from_buffered_reader(br)?;
 
-    let secret = if let Some(file) = command.secret_key_file.as_deref() {
+    let revoker = if let Some(file) = command.revoker_file.as_deref() {
         let certs = load_certs(std::iter::once(file))?;
         if certs.len() > 1 {
             return Err(anyhow::anyhow!(
@@ -422,7 +422,7 @@ pub fn userid_revoke(
         command.userid,
         sq.force,
         cert,
-        secret,
+        revoker,
         command.reason.into(),
         &command.message,
         &notations,

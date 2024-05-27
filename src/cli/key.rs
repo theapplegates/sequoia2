@@ -488,17 +488,16 @@ instead of the current time.
 pub struct RevokeCommand {
     #[clap(
         value_name = "FILE",
-        long = "certificate-file",
-        alias = "cert-file",
+        long,
         help = "The certificate to revoke",
         long_help =
 "Read the certificate to revoke from FILE or stdin, if omitted.  It is \
 an error for the file to contain more than one certificate.",
     )]
-    pub input: Option<PathBuf>,
+    pub cert_file: Option<PathBuf>,
 
     #[clap(
-        long = "revocation-file",
+        long,
         value_name = "KEY_FILE",
         help = "Sign the revocation certificate using the key in KEY_FILE",
         long_help =
@@ -507,7 +506,7 @@ different from the certificate, this creates a third-party revocation.  If \
 this option is not provided, and the certificate includes secret key material, \
 then that key is used to sign the revocation certificate.",
     )]
-    pub secret_key_file: Option<PathBuf>,
+    pub revoker_file: Option<PathBuf>,
 
     #[clap(
         value_name = "REASON",
@@ -714,19 +713,18 @@ instead of the current time.
 ",)]
 pub struct UseridRevokeCommand {
     #[clap(
+        long,
         value_name = "CERT_FILE",
-        long = "certificate-file",
-        alias = "cert-file",
         help = "The certificate containing the User ID to revoke",
         long_help =
 "Read the certificate to revoke from CERT_FILE or stdin, \
 if omitted.  It is an error for the file to contain more than one \
 certificate."
     )]
-    pub input: Option<PathBuf>,
+    pub cert_file: Option<PathBuf>,
 
     #[clap(
-        long = "revocation-file",
+        long,
         value_name = "KEY_FILE",
         help = "Sign the revocation certificate using the key in KEY_FILE",
         long_help =
@@ -735,7 +733,7 @@ different from the certificate, this creates a third-party revocation.  If \
 this option is not provided, and the certificate includes secret key material, \
 then that key is used to sign the revocation certificate.",
     )]
-    pub secret_key_file: Option<PathBuf>,
+    pub revoker_file: Option<PathBuf>,
 
     #[clap(
         value_name = "USERID",
@@ -1195,19 +1193,17 @@ instead of the current time.
 )]
 pub struct SubkeyRevokeCommand {
     #[clap(
-        value_name = "FILE",
-        long = "certificate-file",
-        alias = "cert-file",
         help = "The certificate containing the subkey to revoke",
+        long,
         long_help =
 "Read the certificate containing the subkey to revoke from FILE or stdin, \
 if omitted.  It is an error for the file to contain more than one \
 certificate."
     )]
-    pub input: Option<PathBuf>,
+    pub cert_file: Option<PathBuf>,
 
     #[clap(
-        long = "revocation-file",
+        long,
         value_name = "KEY_FILE",
         help = "Sign the revocation certificate using the key in KEY_FILE",
         long_help =
@@ -1217,7 +1213,7 @@ is different from the certificate, this creates a third-party revocation.  \
 If this option is not provided, and the certificate includes secret key \
 material, then that key is used to sign the revocation certificate.",
     )]
-    pub secret_key_file: Option<PathBuf>,
+    pub revoker_file: Option<PathBuf>,
 
     #[clap(
         value_name = "SUBKEY",

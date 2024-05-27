@@ -31,7 +31,7 @@ use crate::parse_notations;
 /// Handle the revocation of a subkey
 struct SubkeyRevocation {
     cert: Cert,
-    secret: Cert,
+    revoker: Cert,
     revocation_packet: Packet,
     subkey: Key<key::PublicParts, key::SubordinateRole>,
 }
@@ -42,13 +42,13 @@ impl SubkeyRevocation {
         sq: &Sq,
         keyhandle: &KeyHandle,
         cert: Cert,
-        secret: Option<Cert>,
+        revoker: Option<Cert>,
         reason: ReasonForRevocation,
         message: &str,
         notations: &[(bool, NotationData)],
     ) -> Result<Self> {
-        let (secret, mut signer)
-            = get_secret_signer(sq, &cert, secret.as_ref())?;
+        let (revoker, mut signer)
+            = get_secret_signer(sq, &cert, revoker.as_ref())?;
 
         let (subkey, revocation_packet) = {
             let valid_cert = cert.with_policy(NULL_POLICY, None)?;
@@ -113,7 +113,7 @@ impl SubkeyRevocation {
 
         Ok(SubkeyRevocation {
             cert,
-            secret,
+            revoker,
             revocation_packet,
             subkey,
         })
@@ -137,7 +137,7 @@ impl RevocationOutput for SubkeyRevocation {
     }
 
     fn revoker(&self) -> &Cert {
-        &self.secret
+        &self.revoker
     }
 }
 
@@ -227,10 +227,10 @@ pub fn subkey_revoke(
     sq: Sq,
     command: SubkeyRevokeCommand,
 ) -> Result<()> {
-    let br = FileOrStdin::from(command.input.as_deref()).open()?;
+    let br = FileOrStdin::from(command.cert_file.as_deref()).open()?;
     let cert = Cert::from_buffered_reader(br)?;
 
-    let secret = if let Some(file) = command.secret_key_file.as_deref() {
+    let revoker = if let Some(file) = command.revoker_file.as_deref() {
         let certs = load_certs(std::iter::once(file))?;
         if certs.len() > 1 {
             return Err(anyhow::anyhow!(
@@ -248,7 +248,7 @@ pub fn subkey_revoke(
         &sq,
         &command.subkey,
         cert,
-        secret,
+        revoker,
         command.reason.into(),
         &command.message,
         &notations,

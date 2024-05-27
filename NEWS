@@ -10,6 +10,13 @@
    - `sq key userid add` no longer accepts positional arguments.  The
      user ID is provided by the `--userid` argument, and the
      certificate by `--cert` or `--cert-file`.
+   - Drop the `--certificate-file` argument from `sq key revoke`, `sq
+     key subkey revoke`, and `sq key userid revoke` drop the
+     `--certificate-file`.  (The certificate can still be specified
+     using `--cert-file`.)
+   - Rename the `--revocation-file` argument to `--revoker-file` in
+     `sq key revoke`, `sq key subkey revoke`, and `sq key userid
+     revoke`.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

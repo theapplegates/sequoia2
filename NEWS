@@ -27,6 +27,8 @@
      or --revoker`.  When `--cert` is used, and `--output` is not
      specified, the resulting revocation certificate is saved to the
      certificate store.
+   - The user ID argument to `sq key userid revoke` is no longer a
+     positional argument, but must be specified with `--userid`.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

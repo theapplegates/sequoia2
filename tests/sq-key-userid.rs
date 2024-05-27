@@ -114,7 +114,7 @@ fn sq_key_userid_revoke() -> Result<()> {
                 "key",
                 "userid",
                 "revoke",
-                userid_revoke,
+                "--userid", userid_revoke,
                 reason_str,
                 message,
             ]);
@@ -326,7 +326,7 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
                 "key",
                 "userid",
                 "revoke",
-                userid_revoke,
+                "--userid", userid_revoke,
                 reason_str,
                 message,
             ]);

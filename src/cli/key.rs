@@ -782,6 +782,7 @@ then that key is used to sign the revocation certificate.",
     pub revoker_file: Option<FileOrStdin>,
 
     #[clap(
+        long,
         value_name = "USERID",
         help = "The User ID to revoke",
         long_help =

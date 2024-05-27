@@ -5,6 +5,7 @@ use openpgp::armor::Kind;
 use openpgp::armor::Writer;
 use openpgp::cert::CertRevocationBuilder;
 use openpgp::packet::signature::subpacket::NotationData;
+use openpgp::parse::Parse;
 use openpgp::serialize::Serialize;
 use openpgp::types::ReasonForRevocation;
 use openpgp::Cert;
@@ -14,9 +15,9 @@ use openpgp::Result;
 use crate::Sq;
 use crate::cli::key::RevokeCommand;
 use crate::cli::types::FileOrStdout;
+use crate::cli::types::FileOrStdin;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
-use crate::common::read_cert;
 use crate::common::read_secret;
 use crate::parse_notations;
 
@@ -139,7 +140,8 @@ pub fn certificate_revoke(
     sq: Sq,
     command: RevokeCommand,
 ) -> Result<()> {
-    let cert = read_cert(command.input.as_deref())?;
+    let br = FileOrStdin::from(command.input.as_deref()).open()?;
+    let cert = Cert::from_buffered_reader(br)?;
 
     let secret = read_secret(command.secret_key_file.as_deref())?;
 

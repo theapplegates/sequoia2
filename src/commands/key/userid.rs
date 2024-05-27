@@ -30,13 +30,13 @@ use sequoia_cert_store as cert_store;
 use cert_store::StoreUpdate;
 
 use crate::Sq;
+use crate::cli;
 use crate::cli::key::UseridRevokeCommand;
 use crate::cli::types::FileOrStdout;
-use crate::cli;
+use crate::cli::types::FileOrStdin;
 use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
-use crate::common::read_cert;
 use crate::common::read_secret;
 use crate::common::userid::lint_userids;
 use crate::parse_notations;
@@ -442,7 +442,8 @@ pub fn userid_revoke(
     sq: Sq,
     command: UseridRevokeCommand,
 ) -> Result<()> {
-    let cert = read_cert(command.input.as_deref())?;
+    let br = FileOrStdin::from(command.input.as_deref()).open()?;
+    let cert = Cert::from_buffered_reader(br)?;
 
     let secret = read_secret(command.secret_key_file.as_deref())?;
 

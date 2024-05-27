@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
@@ -11,6 +13,10 @@ use openpgp::armor::Writer;
 use openpgp::Cert;
 use openpgp::crypto::Signer;
 use openpgp::serialize::Serialize;
+
+use sequoia_cert_store as cert_store;
+use cert_store::StoreUpdate;
+use cert_store::LazyCert;
 
 use crate::cli::types::FileOrStdout;
 use crate::Sq;
@@ -35,54 +41,64 @@ pub trait RevocationOutput {
     fn revoker(&self) -> &Cert;
 
     /// Write out the revocation certificate.
-    fn write(&self, sq: &Sq, output: FileOrStdout, binary: bool)
+    fn write(&self, sq: &Sq, output: Option<FileOrStdout>, binary: bool)
         -> Result<()>
     {
-        let mut output = output.create_safe(sq.force)?;
+        if let Some(output) = output {
+            let mut output = output.create_safe(sq.force)?;
 
-        // First, build a minimal revocation certificate containing
-        // the primary key, the revoked component, and the revocation
-        // signature.
-        let cert = self.cert()?;
+            // First, build a minimal revocation certificate containing
+            // the primary key, the revoked component, and the revocation
+            // signature.
+            let cert = self.cert()?;
 
-        if binary {
-            cert.serialize(&mut output)
-                .context("serializing revocation certificate")?;
-        } else {
-            // Add some more helpful ASCII-armor comments.
-            let mut more: Vec<String> = vec![];
+            if binary {
+                cert.serialize(&mut output)
+                    .context("serializing revocation certificate")?;
+            } else {
+                // Add some more helpful ASCII-armor comments.
+                let mut more: Vec<String> = vec![];
 
-            // First, the thing that is being revoked.
-            more.push(self.comment());
+                // First, the thing that is being revoked.
+                more.push(self.comment());
 
-            let revoker = self.revoker();
+                let revoker = self.revoker();
 
-            let first_party_issuer = revoker.fingerprint() == cert.fingerprint();
-            if ! first_party_issuer {
-                // Then if it was issued by a third-party.
-                more.push("issued by".to_string());
-                more.push(revoker.fingerprint().to_spaced_hex());
-                // This information may be published so only consider
-                // self-signed user IDs to avoid leaking information
-                // about the user's web of trust.
-                let sanitized_uid = sq.best_userid(revoker, false);
-                // Truncate it, if it is too long.
-                more.push(format!("{:.70}", sanitized_uid));
+                let first_party_issuer = revoker.fingerprint() == cert.fingerprint();
+                if ! first_party_issuer {
+                    // Then if it was issued by a third-party.
+                    more.push("issued by".to_string());
+                    more.push(revoker.fingerprint().to_spaced_hex());
+                    // This information may be published so only consider
+                    // self-signed user IDs to avoid leaking information
+                    // about the user's web of trust.
+                    let sanitized_uid = sq.best_userid(revoker, false);
+                    // Truncate it, if it is too long.
+                    more.push(format!("{:.70}", sanitized_uid));
+                }
+
+                let headers = &cert.armor_headers();
+                let headers: Vec<(&str, &str)> = headers
+                    .iter()
+                    .map(|s| ("Comment", s.as_str()))
+                    .chain(more.iter().map(|value| ("Comment", value.as_str())))
+                    .collect();
+
+                let mut writer =
+                    Writer::with_headers(&mut output, Kind::PublicKey, headers)?;
+                cert.serialize(&mut writer)
+                    .context("serializing revocation certificate")?;
+                writer.finalize()?;
             }
-
-            let headers = &cert.armor_headers();
-            let headers: Vec<(&str, &str)> = headers
-                .iter()
-                .map(|s| ("Comment", s.as_str()))
-                .chain(more.iter().map(|value| ("Comment", value.as_str())))
-                .collect();
-
-            let mut writer =
-                Writer::with_headers(&mut output, Kind::PublicKey, headers)?;
-            cert.serialize(&mut writer)
-                .context("serializing revocation certificate")?;
-            writer.finalize()?;
+        } else {
+            let cert_store = sq.cert_store_or_else()?;
+            let cert = self.cert()?;
+            cert_store.update(Arc::new(LazyCert::from(cert)))
+                .with_context(|| {
+                    "Error importing the revocation certificate into cert store"
+                })?;
         }
+
         Ok(())
     }
 }

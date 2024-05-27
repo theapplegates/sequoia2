@@ -225,12 +225,20 @@ pub fn subkey_revoke(
     sq: Sq,
     command: SubkeyRevokeCommand,
 ) -> Result<()> {
-    let br = command.cert_file.open()?;
-    let cert = Cert::from_buffered_reader(br)?;
+    let cert = if let Some(file) = command.cert_file {
+        let br = file.open()?;
+        Cert::from_buffered_reader(br)?
+    } else if let Some(kh) = command.cert {
+        sq.lookup_one(&kh, None, true)?
+    } else {
+        panic!("clap enforces --cert or --cert-file");
+    };
 
     let revoker = if let Some(file) = command.revoker_file {
         let br = file.open()?;
         Some(Cert::from_buffered_reader(br)?)
+    } else if let Some(kh) = command.revoker {
+        Some(sq.lookup_one(&kh, None, true)?)
     } else {
         None
     };

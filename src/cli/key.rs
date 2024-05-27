@@ -485,21 +485,41 @@ the revocation certificate's creation time to the reference time \
 instead of the current time.
 ",
 )]
+#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
+#[clap(group(ArgGroup::new("revoker_input").args(&["revoker_file", "revoker"])))]
 pub struct RevokeCommand {
     #[clap(
-        value_name = "FILE",
-        default_value_t = FileOrStdin::default(),
         long,
+        value_name = "FINGERPRINT|KEYID",
+        help = "The certificate to revoke",
+    )]
+    pub cert: Option<KeyHandle>,
+    #[clap(
+        long,
+        value_name = "FILE",
+        conflicts_with = "cert",
         help = "The certificate to revoke",
         long_help =
-"Read the certificate to revoke from FILE or stdin, if omitted.  It is \
+"Read the certificate to revoke from FILE or stdin.  It is \
 an error for the file to contain more than one certificate.",
     )]
-    pub cert_file: FileOrStdin,
+    pub cert_file: Option<FileOrStdin>,
 
     #[clap(
         long,
+        value_name = "FINGERPRINT|KEYID",
+        help = "Revoke the user ID with the specified certificate",
+        long_help =
+"Sign the revocation certificate using the specified key.  If the key is \
+different from the certificate, this creates a third-party revocation.  If \
+this option is not provided, and the certificate includes secret key material, \
+then that key is used to sign the revocation certificate.",
+    )]
+    pub revoker: Option<KeyHandle>,
+    #[clap(
+        long,
         value_name = "KEY_FILE",
+        conflicts_with = "revoker",
         help = "Sign the revocation certificate using the key in KEY_FILE",
         long_help =
 "Sign the revocation certificate using the key in KEY_FILE.  If the key is \
@@ -575,13 +595,16 @@ that in the future.`",
     pub notation: Vec<String>,
 
     #[clap(
-        default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
+        help = "Write to the specified FILE.  If not specified, and the \
+                certificate was read from the certificate store, imports the \
+                modified certificate into the cert store.  If not specified, \
+                and the certificate was read from a file, writes the modified \
+                certificate to stdout.",
     )]
-    pub output: FileOrStdout,
+    pub output: Option<FileOrStdout>,
 
     #[clap(
         short = 'B',
@@ -712,22 +735,43 @@ the current time, when determining what keys are valid, and it sets \
 the revocation certificate's creation time to the reference time \
 instead of the current time.
 ",)]
+#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
+#[clap(group(ArgGroup::new("revoker_input").args(&["revoker_file", "revoker"])))]
 pub struct UseridRevokeCommand {
     #[clap(
         long,
-        value_name = "CERT_FILE",
-        default_value_t = FileOrStdin::default(),
-        help = "The certificate containing the User ID to revoke",
-        long_help =
-"Read the certificate to revoke from CERT_FILE or stdin, \
-if omitted.  It is an error for the file to contain more than one \
-certificate."
+        value_name = "FINGERPRINT|KEYID",
+        help = "Revoke the user ID on the specified certificate",
     )]
-    pub cert_file: FileOrStdin,
+    pub cert: Option<KeyHandle>,
+    #[clap(
+        long,
+        help = FileOrStdin::HELP_OPTIONAL,
+        value_name = "CERT_FILE",
+        conflicts_with = "cert",
+        help = "Revoke the user ID on the specified certificate",
+        long_help =
+"Read the certificate whose user ID should be revoked from FILE or \
+stdin.  It is an error for the file to contain more than one \
+certificate.",
+    )]
+    pub cert_file: Option<FileOrStdin>,
 
     #[clap(
         long,
+        value_name = "FINGERPRINT|KEYID",
+        help = "Revoke the user ID with the specified certificate",
+        long_help =
+"Sign the revocation certificate using the specified key.  If the key is \
+different from the certificate, this creates a third-party revocation.  If \
+this option is not provided, and the certificate includes secret key material, \
+then that key is used to sign the revocation certificate.",
+    )]
+    pub revoker: Option<KeyHandle>,
+    #[clap(
+        long,
         value_name = "KEY_FILE",
+        conflicts_with = "revoker",
         help = "Sign the revocation certificate using the key in KEY_FILE",
         long_help =
 "Sign the revocation certificate using the key in KEY_FILE.  If the key is \
@@ -800,13 +844,16 @@ that in the future.`",
     pub notation: Vec<String>,
 
     #[clap(
-        default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
-        value_name = FileOrStdout::VALUE_NAME,
+        value_name = FileOrCertStore::VALUE_NAME,
+        help = "Write to the specified FILE.  If not specified, and the \
+                certificate was read from the certificate store, imports the \
+                modified certificate into the cert store.  If not specified, \
+                and the certificate was read from a file, writes the modified \
+                certificate to stdout.",
     )]
-    pub output: FileOrStdout,
+    pub output: Option<FileOrStdout>,
 
     #[clap(
         short = 'B',
@@ -1193,29 +1240,48 @@ the revocation certificate's creation time to the reference time \
 instead of the current time.
 ",
 )]
+#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
+#[clap(group(ArgGroup::new("revoker_input").args(&["revoker_file", "revoker"])))]
 pub struct SubkeyRevokeCommand {
     #[clap(
         long,
-        value_name = "CERT_FILE",
-        default_value_t = FileOrStdin::default(),
-        help = "The certificate containing the subkey to revoke",
-        long_help =
-"Read the certificate containing the subkey to revoke from FILE or stdin, \
-if omitted.  It is an error for the file to contain more than one \
-certificate."
+        value_name = "FINGERPRINT|KEYID",
+        help = "Revoke the user ID on the specified certificate",
     )]
-    pub cert_file: FileOrStdin,
+    pub cert: Option<KeyHandle>,
+    #[clap(
+        long,
+        value_name = FileOrStdin::VALUE_NAME,
+        conflicts_with = "cert",
+        help = "Revoke the subkey on the specified certificate",
+        long_help =
+"Read the certificate whose subkey should be revoked from FILE or \
+stdin.  It is an error for the file to contain more than one \
+certificate.",
+    )]
+    pub cert_file: Option<FileOrStdin>,
 
     #[clap(
         long,
+        value_name = "FINGERPRINT|KEYID",
+        help = "Revoke the user ID with the specified certificate",
+        long_help =
+"Sign the revocation certificate using the specified key.  If the key is \
+different from the certificate, this creates a third-party revocation.  If \
+this option is not provided, and the certificate includes secret key material, \
+then that key is used to sign the revocation certificate.",
+    )]
+    pub revoker: Option<KeyHandle>,
+    #[clap(
+        long,
         value_name = "KEY_FILE",
+        conflicts_with = "revoker",
         help = "Sign the revocation certificate using the key in KEY_FILE",
         long_help =
-
-"Sign the revocation certificate using the key in KEY_FILE.  If the key \
-is different from the certificate, this creates a third-party revocation.  \
-If this option is not provided, and the certificate includes secret key \
-material, then that key is used to sign the revocation certificate.",
+"Sign the revocation certificate using the key in KEY_FILE.  If the key is \
+different from the certificate, this creates a third-party revocation.  If \
+this option is not provided, and the certificate includes secret key material, \
+then that key is used to sign the revocation certificate.",
     )]
     pub revoker_file: Option<FileOrStdin>,
 
@@ -1293,13 +1359,16 @@ the message `I've created a new subkey, please refresh the certificate.`"
     pub notation: Vec<String>,
 
     #[clap(
-        default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
+        help = "Write to the specified FILE.  If not specified, and the \
+                certificate was read from the certificate store, imports the \
+                modified certificate into the cert store.  If not specified, \
+                and the certificate was read from a file, writes the modified \
+                certificate to stdout.",
     )]
-    pub output: FileOrStdout,
+    pub output: Option<FileOrStdout>,
 
     #[clap(
         short = 'B',

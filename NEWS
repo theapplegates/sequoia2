@@ -22,6 +22,11 @@
      --revoker-file`, `sq key userid revoke --cert-file`, and `sq key
      userid revoke --revoker-file` now accept `-`, which means to read
      from stdin.
+   - `sq key revoke`, `sq key subkey revoke`, and `sq key userid
+     revoke` now reads from the certificate store when using `--cert`
+     or --revoker`.  When `--cert` is used, and `--output` is not
+     specified, the resulting revocation certificate is saved to the
+     certificate store.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

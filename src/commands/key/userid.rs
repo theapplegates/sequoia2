@@ -8,8 +8,6 @@ use anyhow::anyhow;
 use itertools::Itertools;
 
 use sequoia_openpgp as openpgp;
-use openpgp::armor::Kind;
-use openpgp::armor::Writer;
 use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::cert::UserIDRevocationBuilder;
 use openpgp::packet::signature::subpacket::NotationData;
@@ -42,20 +40,18 @@ use crate::load_certs;
 use crate::parse_notations;
 
 /// Handle the revocation of a User ID
-struct UserIDRevocation<'a, 'store, 'rstore> {
-    sq: &'a Sq<'store, 'rstore>,
+struct UserIDRevocation {
     cert: Cert,
     secret: Cert,
     revocation_packet: Packet,
-    first_party_issuer: bool,
     userid: String,
     uid: UserID,
 }
 
-impl<'a, 'store, 'rstore> UserIDRevocation<'a, 'store, 'rstore> {
+impl UserIDRevocation {
     /// Create a new UserIDRevocation
     pub fn new(
-        sq: &'a Sq<'store, 'rstore>,
+        sq: &Sq,
         userid: String,
         force: bool,
         cert: Cert,
@@ -67,7 +63,6 @@ impl<'a, 'store, 'rstore> UserIDRevocation<'a, 'store, 'rstore> {
         let (secret, mut signer)
             = get_secret_signer(sq, &cert, secret.as_ref())?;
 
-        let first_party_issuer = secret.fingerprint() == cert.fingerprint();
         let uid = UserID::from(userid.as_str());
 
         let revocation_packet = {
@@ -129,77 +124,40 @@ impl<'a, 'store, 'rstore> UserIDRevocation<'a, 'store, 'rstore> {
         };
 
         Ok(UserIDRevocation {
-            sq,
             cert,
             secret,
             revocation_packet,
-            first_party_issuer,
             userid,
             uid,
         })
     }
 }
 
-impl<'a, 'store, 'rstore> RevocationOutput
-    for UserIDRevocation<'a, 'store, 'rstore>
+impl RevocationOutput for UserIDRevocation
 {
-    /// Write the revocation certificate to output
-    fn write(
-        &self,
-        output: FileOrStdout,
-        binary: bool,
-        force: bool,
-    ) -> Result<()> {
-        let mut output = output.create_safe(force)?;
-
-        // First, build a minimal revocation certificate containing
-        // the primary key, the revoked component, and the revocation
-        // signature.
-        let rev_cert = Cert::from_packets(vec![
+    fn cert(&self) -> Result<Cert> {
+        let cert = Cert::from_packets(vec![
             self.cert.primary_key().key().clone().into(),
             self.uid.clone().into(),
             self.revocation_packet.clone(),
         ].into_iter())?;
 
-        if binary {
-            rev_cert.serialize(&mut output)
-                .context("serializing revocation certificate")?;
+        Ok(cert)
+    }
+
+    fn comment(&self) -> String {
+        let s = format!("Includes a revocation certificate for User ID {}",
+                        self.userid);
+        // Truncate it, if it is too long.
+        if s.len() > 70 {
+            format!("{:.70}", s)
         } else {
-            // Add some more helpful ASCII-armor comments.
-            let mut more: Vec<String> = vec![];
-
-            // First, the thing that is being revoked.
-            more.push(
-                "including a revocation to revoke the User ID".to_string(),
-            );
-            more.push(format!("{}", self.userid));
-
-            if !self.first_party_issuer {
-                // Then if it was issued by a third-party.
-                more.push("issued by".to_string());
-                more.push(self.secret.fingerprint().to_spaced_hex());
-                // This information may be published so only consider
-                // self-signed user IDs to avoid leaking information
-                // about the user's web of trust.
-                let sanitized_uid = self.sq.best_userid(&self.secret, false);
-                // Truncate it, if it is too long.
-                more.push(format!("{:.70}", sanitized_uid));
-            }
-
-            let headers = &self.cert.armor_headers();
-            let headers: Vec<(&str, &str)> = headers
-                .iter()
-                .map(|s| ("Comment", s.as_str()))
-                .chain(more.iter().map(|value| ("Comment", value.as_str())))
-                .collect();
-
-            let mut writer =
-                Writer::with_headers(&mut output, Kind::PublicKey, headers)?;
-            rev_cert.serialize(&mut writer)
-                .context("serializing revocation certificate")?;
-            writer.finalize()?;
+            s
         }
-        Ok(())
+    }
+
+    fn revoker(&self) -> &Cert {
+        &self.secret
     }
 }
 
@@ -470,7 +428,7 @@ pub fn userid_revoke(
         &notations,
     )?;
 
-    revocation.write(command.output, command.binary, sq.force)?;
+    revocation.write(&sq, command.output, command.binary)?;
 
     Ok(())
 }

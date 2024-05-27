@@ -9,10 +9,8 @@ use openpgp::Result;
 
 use crate::Sq;
 use crate::cli::key::RevokeCommand;
-use crate::cli::types::FileOrStdin;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
-use crate::load_certs;
 use crate::parse_notations;
 
 /// Handle the revocation of a certificate
@@ -89,17 +87,12 @@ pub fn certificate_revoke(
     sq: Sq,
     command: RevokeCommand,
 ) -> Result<()> {
-    let br = FileOrStdin::from(command.cert_file.as_deref()).open()?;
+    let br = command.cert_file.open()?;
     let cert = Cert::from_buffered_reader(br)?;
 
-    let revoker = if let Some(file) = command.revoker_file.as_deref() {
-        let certs = load_certs(std::iter::once(file))?;
-        if certs.len() > 1 {
-            return Err(anyhow::anyhow!(
-                format!("{} contains multiple certificates.",
-                        file.display())))?;
-        }
-        certs.into_iter().next()
+    let revoker = if let Some(file) = command.revoker_file {
+        let br = file.open()?;
+        Some(Cert::from_buffered_reader(br)?)
     } else {
         None
     };

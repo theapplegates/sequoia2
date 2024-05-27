@@ -488,13 +488,14 @@ instead of the current time.
 pub struct RevokeCommand {
     #[clap(
         value_name = "FILE",
+        default_value_t = FileOrStdin::default(),
         long,
         help = "The certificate to revoke",
         long_help =
 "Read the certificate to revoke from FILE or stdin, if omitted.  It is \
 an error for the file to contain more than one certificate.",
     )]
-    pub cert_file: Option<PathBuf>,
+    pub cert_file: FileOrStdin,
 
     #[clap(
         long,
@@ -506,7 +507,7 @@ different from the certificate, this creates a third-party revocation.  If \
 this option is not provided, and the certificate includes secret key material, \
 then that key is used to sign the revocation certificate.",
     )]
-    pub revoker_file: Option<PathBuf>,
+    pub revoker_file: Option<FileOrStdin>,
 
     #[clap(
         value_name = "REASON",
@@ -715,13 +716,14 @@ pub struct UseridRevokeCommand {
     #[clap(
         long,
         value_name = "CERT_FILE",
+        default_value_t = FileOrStdin::default(),
         help = "The certificate containing the User ID to revoke",
         long_help =
 "Read the certificate to revoke from CERT_FILE or stdin, \
 if omitted.  It is an error for the file to contain more than one \
 certificate."
     )]
-    pub cert_file: Option<PathBuf>,
+    pub cert_file: FileOrStdin,
 
     #[clap(
         long,
@@ -733,7 +735,7 @@ different from the certificate, this creates a third-party revocation.  If \
 this option is not provided, and the certificate includes secret key material, \
 then that key is used to sign the revocation certificate.",
     )]
-    pub revoker_file: Option<PathBuf>,
+    pub revoker_file: Option<FileOrStdin>,
 
     #[clap(
         value_name = "USERID",
@@ -1193,14 +1195,16 @@ instead of the current time.
 )]
 pub struct SubkeyRevokeCommand {
     #[clap(
-        help = "The certificate containing the subkey to revoke",
         long,
+        value_name = "CERT_FILE",
+        default_value_t = FileOrStdin::default(),
+        help = "The certificate containing the subkey to revoke",
         long_help =
 "Read the certificate containing the subkey to revoke from FILE or stdin, \
 if omitted.  It is an error for the file to contain more than one \
 certificate."
     )]
-    pub cert_file: Option<PathBuf>,
+    pub cert_file: FileOrStdin,
 
     #[clap(
         long,
@@ -1213,7 +1217,7 @@ is different from the certificate, this creates a third-party revocation.  \
 If this option is not provided, and the certificate includes secret key \
 material, then that key is used to sign the revocation certificate.",
     )]
-    pub revoker_file: Option<PathBuf>,
+    pub revoker_file: Option<FileOrStdin>,
 
     #[clap(
         value_name = "SUBKEY",

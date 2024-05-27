@@ -17,6 +17,11 @@
    - Rename the `--revocation-file` argument to `--revoker-file` in
      `sq key revoke`, `sq key subkey revoke`, and `sq key userid
      revoke`.
+   - `sq key revoke --cert-file`, `sq key revoke --revoker-file` `sq
+     key subkey revoke --cert-file`, `sq key subkey revoke
+     --revoker-file`, `sq key userid revoke --cert-file`, and `sq key
+     userid revoke --revoker-file` now accept `-`, which means to read
+     from stdin.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

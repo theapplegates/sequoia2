@@ -38,7 +38,7 @@ pub fn get_secret_signer<'a>(
     secret: Option<&'a Cert>,
 ) -> Result<(Cert, Box<dyn Signer + Send + Sync>)> {
     if let Some(secret) = secret {
-        if let Ok((key, _password)) = sq.get_certification_key(secret, None) {
+        if let Ok((key, _password)) = sq.get_primary_key(secret, None) {
             Ok((secret.clone(), key))
         } else {
             if ! sq.time_is_now {
@@ -59,7 +59,7 @@ does not contain a certification key with secret key material"
             }
         }
     } else {
-        if let Ok((key, _password)) = sq.get_certification_key(cert, None) {
+        if let Ok((key, _password)) = sq.get_primary_key(cert, None) {
             Ok((cert.clone(), key))
         } else {
             if ! sq.time_is_now {

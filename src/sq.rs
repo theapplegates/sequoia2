@@ -993,50 +993,34 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         }
     }
 
-    /// Returns a signer for each certificate.
+    /// Gets a signer for the specified key.
     ///
-    /// This returns one key for each certificate.  If a certificate
-    /// doesn't have a suitable key, then this returns an error.
+    /// If `ka` includes secret key material, that is preferred.
+    /// Otherwise, we look for the key on the key store.
     ///
-    /// A key is considered suitable if:
-    ///
-    /// - the certificate is valid
-    /// - the key matches the key type specified in `keytype` (it's either
-    ///   the primary, or it has one of the key capabilities)
-    /// - the key is alive (unless allowed by `options`)
-    /// - the key is not revoked (unless allowed by `options`)
-    /// - the key's algorithm is supported by the underlying crypto engine.
-    ///
-    /// If a key is locked, then the user will be prompted to enter
-    /// the password.
-    fn get_keys<C>(&self, certs: &[C],
-                   keytype: KeyType,
-                   options: Option<&[GetKeysOptions]>)
-        -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
-    where C: Borrow<Cert>
+    /// If the key is locked, we unlocked.  `passwords` is a list of
+    /// passwords to try.  The passwords are only tried if it is safe.
+    /// That is, the passwords are only tried if we are sure that the
+    /// key is not protected by a retry counter.  If `passwords`
+    /// doesn't contain the correct password, or the key is protected
+    /// by a retry counter, the user is prompted to unlock the key.
+    pub fn get_signer<P, R, R2>(&self, ka: &KeyAmalgamation<P, R, R2>,
+                                passwords: Option<&[Password]>)
+        -> Result<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>
+        where P: key::KeyParts + Clone, R: key::KeyRole + Clone
     {
-        let mut bad = Vec::new();
+        let passwords = passwords.unwrap_or(&[]);
 
-        let options = options.unwrap_or(&[][..]);
-        let allow_not_alive = options.contains(&GetKeysOptions::AllowNotAlive);
-        let allow_revoked = options.contains(&GetKeysOptions::AllowRevoked);
-
-        let mut keys: Vec<(Box<dyn crypto::Signer + Send + Sync>,
-                           Option<Password>)>
-            = vec![];
-
-        let try_tsk = |ka: &ValidKeyAmalgamation<_, _, _>,
-                       keys: &Vec<(_, Option<Password>)>|
+        let try_tsk = |ka: &KeyAmalgamation<_, _, R2>|
             -> Result<(_, _)>
         {
             if let Some(secret) = ka.key().optional_secret() {
                 let (unencrypted, password) = match secret {
                     SecretKeyMaterial::Encrypted(ref e) => {
                         // try passwords from already existing keys
-                        match keys.iter().find_map(|(_, password)| {
-                            password.as_ref().and_then(
-                                |p| e.decrypt(ka.pk_algo(), p).ok()
-                                    .map(|key| (key, p.clone())))
+                        match passwords.iter().find_map(|password| {
+                            e.decrypt(ka.pk_algo(), password).ok()
+                                .map(|key| (key, password.clone()))
                         }) {
                             Some((unencrypted, password)) =>
                                 (unencrypted, Some(password)),
@@ -1058,7 +1042,11 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
                 Ok((
                     Box::new(
-                        crypto::KeyPair::new(ka.key().clone(), unencrypted).unwrap()
+                        crypto::KeyPair::new(
+                            ka.key().clone()
+                                .parts_into_public()
+                                .role_into_unspecified(),
+                            unencrypted).unwrap()
                     ),
                     password,
                 ))
@@ -1066,7 +1054,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 Err(anyhow!("No secret key material."))
             }
         };
-        let try_keystore = |ka: &ValidKeyAmalgamation<_, _, _>|
+        let try_keystore = |ka: &KeyAmalgamation<_, _, R2>|
             -> Result<(_, _)>
         {
             let ks = self.key_store_or_else()?;
@@ -1115,6 +1103,47 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             Err(anyhow!("Key not managed by keystore."))
         };
 
+        if let Ok((key, password)) = try_tsk(ka) {
+            Ok((key, password))
+        } else if let Ok((key, password)) = try_keystore(ka) {
+            Ok((key, password))
+        } else {
+            Err(anyhow!("No secret key material."))
+        }
+    }
+
+    /// Returns a signer for each certificate.
+    ///
+    /// This returns one key for each certificate.  If a certificate
+    /// doesn't have a suitable key, then this returns an error.
+    ///
+    /// A key is considered suitable if:
+    ///
+    /// - the certificate is valid
+    /// - the key matches the key type specified in `keytype` (it's either
+    ///   the primary, or it has one of the key capabilities)
+    /// - the key is alive (unless allowed by `options`)
+    /// - the key is not revoked (unless allowed by `options`)
+    /// - the key's algorithm is supported by the underlying crypto engine.
+    ///
+    /// If a key is locked, then the user will be prompted to enter
+    /// the password.
+    fn get_keys<C>(&self, certs: &[C],
+                   keytype: KeyType,
+                   options: Option<&[GetKeysOptions]>)
+        -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
+    where C: Borrow<Cert>
+    {
+        let mut bad = Vec::new();
+
+        let options = options.unwrap_or(&[][..]);
+        let allow_not_alive = options.contains(&GetKeysOptions::AllowNotAlive);
+        let allow_revoked = options.contains(&GetKeysOptions::AllowRevoked);
+
+        let mut keys: Vec<(Box<dyn crypto::Signer + Send + Sync>,
+                           Option<Password>)>
+            = vec![];
+
         'next_cert: for cert in certs {
             let cert = cert.borrow();
             let vc = match cert.with_policy(self.policy, self.time) {
@@ -1151,11 +1180,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     continue;
                 }
 
-                if let Ok((key, password)) = try_tsk(&ka, &keys) {
-                    keys.push((key, password));
-                    continue 'next_cert;
-                }
-                if let Ok((key, password)) = try_keystore(&ka) {
+                if let Ok((key, password)) = self.get_signer(&ka, None) {
                     keys.push((key, password));
                     continue 'next_cert;
                 }

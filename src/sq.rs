@@ -332,8 +332,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         } else if let Some(dir) = self.key_store_path.as_ref() {
             Ok(Some(dir.clone()))
         } else {
-            let home = sequoia_directories::Home::new(None)?;
-            Ok(Some(home.data_dir(sequoia_directories::Component::Keystore)))
+            Ok(Some(self.home.data_dir(sequoia_directories::Component::Keystore)))
         }
     }
 

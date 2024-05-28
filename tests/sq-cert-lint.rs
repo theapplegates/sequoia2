@@ -5,6 +5,8 @@ mod integration {
     use assert_cmd::Command;
     use predicates::prelude::*;
 
+    use tempfile::TempDir;
+
     use sequoia_openpgp as openpgp;
 
     use openpgp::Cert;
@@ -70,130 +72,226 @@ mod integration {
         }
 
         for suffix in suffixes.iter() {
-            // Lint it.
-            let filename = &format!("{}-{}.pgp", base, suffix);
-            eprintln!("Linting {}", filename);
-            sq()
-                .current_dir(&dir)
-                .arg("--no-cert-store")
-                .arg("--no-key-store")
-                .arg("cert").arg("lint")
-                .arg("--time").arg(FROZEN_TIME)
-                .arg("--cert-file").arg(filename)
-                .assert()
-                .code(if required_fixes > 0 { 2 } else { 0 });
+            for keystore in [false, true] {
+                let home = TempDir::new().unwrap();
+                let home = home.path().display().to_string();
 
+                // Lint it.
+                let filename = &format!("{}-{}.pgp", base, suffix);
+                eprintln!("Linting {}", filename);
 
-            // Fix it.
-            let filename = &format!("{}-{}.pgp", base, suffix);
-            eprint!("Fixing {}", filename);
-            if passwords.len() > 0 {
-                eprint!(" (passwords: ");
-                for (i, p) in passwords.iter().enumerate() {
-                    if i > 0 {
-                        eprint!(", ");
-                    }
-                    eprint!("{:?}", p)
-                }
-                eprint!(")");
-            }
-            eprintln!(".");
+                let cert = Cert::from_file(dir.join(filename))
+                    .expect(&format!("Can parse {}", filename));
 
-            let expected_fixes = if suffix == &"pub" {
-                // We only have public key material: we won't be able
-                // to fix anything.
-                0
-            } else {
-                expected_fixes
-            };
+                if keystore {
+                    // When using the keystore, we need to import the key.
+                    if suffix == &"pub" {
+                        eprintln!("Import certificate from {}", filename);
 
-            let mut cmd = sq();
-            let mut cmd = cmd.current_dir(&dir)
-                .args(&[
-                    "--no-cert-store",
-                    "--no-key-store",
-                    "cert", "lint",
-                    "--time", FROZEN_TIME,
-                    "--fix",
-                    "--cert-file", &format!("{}-{}.pgp", base, suffix)
-                ]);
-            for p in passwords.iter() {
-                cmd = cmd.arg("-p").arg(p)
-            }
-            cmd.assert()
-                 // If not everything can be fixed, then --fix's exit code is 3.
-                .code(if expected_fixes == required_fixes { 0 } else { 3 })
-                .stdout(predicate::function(|output: &[u8]| -> bool {
-                    if expected_fixes == 0 {
-                        // If there are no fixes, nothing is printed.
-                        output == b""
-                    } else {
-                        // We got a certificate on stdout.  Pass it
-                        // through the linter.
-                        Command::cargo_bin("sq").unwrap()
+                        let mut cmd = sq();
+                        cmd
                             .current_dir(&dir)
-                            .arg("--no-cert-store")
-                            .arg("--no-key-store")
-                            .arg("cert").arg("lint")
-                            .arg("--time").arg(FROZEN_TIME)
-                            .arg("--cert-file").arg("-")
-                            .write_stdin(output)
-                            .assert()
-                            .code(
-                                if expected_fixes == required_fixes {
-                                    // Everything should have been fixed.
-                                    0
-                                } else {
-                                    // There are still issues.
-                                    2
-                                });
+                            .args([
+                                "--home", &home,
+                                "cert",
+                                "import",
+                                &filename,
+                            ]);
+                        let output = cmd.output().expect("can sq cert import");
+                        if !output.status.success() {
+                            panic!(
+                                "sq exited with non-zero status code: {}",
+                                String::from_utf8_lossy(&output.stderr)
+                            );
+                        }
+                    } else {
+                        eprintln!("Import key from {}", filename);
 
-                        // Check that the number of new signatures equals
-                        // the number of expected new signatures.
-                        let orig_sigs: isize =
-                            Cert::from_file(dir.clone().join(filename)).unwrap()
-                            .into_packets2()
-                            .map(|p| {
-                                if let Packet::Signature(_) = p {
-                                    1
-                                } else {
-                                    0
-                                }
-                            })
-                            .sum();
-
-                        let fixed_sigs: isize = Cert::from_bytes(output)
-                            .map(|cert| {
-                                cert.into_packets2()
-                                    .map(|p| {
-                                        match p {
-                                            Packet::Signature(_) => 1,
-                                            Packet::SecretKey(_)
-                                                | Packet::SecretSubkey(_) =>
-                                                panic!("Secret key material \
-                                                        should not be exported!"),
-                                            _ => 0,
-                                        }
-                                    })
-                                    .sum()
-                            })
-                            .map_err(|err| {
-                                eprintln!("Parsing fixed certificate: {}", err);
-                                0
-                            })
-                            .unwrap();
-
-                        let fixes = fixed_sigs - orig_sigs;
-                        if expected_fixes as isize != fixes {
-                            eprintln!("Expected {} fixes, \
-                                       found {} additional signatures",
-                                      expected_fixes, fixes);
-                            false
-                        } else {
-                            true
+                        let mut cmd = sq();
+                        cmd
+                            .current_dir(&dir)
+                            .args([
+                                "--home", &home,
+                                "key",
+                                "import",
+                                &filename,
+                            ]);
+                        let output = cmd.output().expect("can sq key import");
+                        if !output.status.success() {
+                            panic!(
+                                "sq exited with non-zero status code: {}",
+                                String::from_utf8_lossy(&output.stderr)
+                            );
                         }
                     }
-                }));
+                }
+
+                let mut cmd = sq();
+                cmd
+                    .current_dir(&dir)
+                    .arg("--home").arg(&home)
+                    .arg("cert").arg("lint")
+                    .arg("--time").arg(FROZEN_TIME);
+                if keystore {
+                    cmd.arg("--cert").arg(&cert.fingerprint().to_string());
+                } else {
+                    cmd.arg("--cert-file").arg(filename);
+                }
+
+                cmd
+                    .assert()
+                    .code(if required_fixes > 0 { 2 } else { 0 });
+
+
+                // Fix it.
+                let filename = &format!("{}-{}.pgp", base, suffix);
+                eprint!("Fixing {}", filename);
+                if passwords.len() > 0 {
+                    eprint!(" (passwords: ");
+                    for (i, p) in passwords.iter().enumerate() {
+                        if i > 0 {
+                            eprint!(", ");
+                        }
+                        eprint!("{:?}", p)
+                    }
+                    eprint!(")");
+                }
+                eprintln!(".");
+
+                let expected_fixes = if suffix == &"pub" {
+                    // We only have public key material: we won't be able
+                    // to fix anything.
+                    0
+                } else {
+                    expected_fixes
+                };
+                eprintln!("{} expected fixes, {} required fixes",
+                          expected_fixes, required_fixes);
+
+                let mut cmd = sq();
+                let mut cmd = cmd.current_dir(&dir)
+                    .args(&[
+                        "--home", &home,
+                        "cert", "lint",
+                        "--time", FROZEN_TIME,
+                        "--fix",
+                    ]);
+                if keystore {
+                    cmd.args([
+                        "--cert", &cert.fingerprint().to_string(),
+                    ]);
+                } else {
+                    cmd.args([
+                        "--cert-file", &format!("{}-{}.pgp", base, suffix),
+                    ]);
+                }
+                for p in passwords.iter() {
+                    cmd = cmd.arg("-p").arg(p)
+                }
+                cmd.assert()
+                    // If not everything can be fixed, then --fix's exit code is 3.
+                    .code(if expected_fixes == required_fixes { 0 } else { 3 })
+                    .stdout(predicate::function(|output: &[u8]| -> bool {
+                        if expected_fixes == 0 {
+                            // If there are no fixes, nothing is printed.
+                            output == b""
+                        } else {
+                            // Pass the result through the linter.
+                            let mut cmd = Command::cargo_bin("sq").unwrap();
+                            cmd
+                                .current_dir(&dir)
+                                .arg("--home").arg(&home)
+                                .arg("cert").arg("lint")
+                                .arg("--time").arg(FROZEN_TIME);
+                            if keystore {
+                                cmd.arg("--cert")
+                                    .arg(&cert.fingerprint().to_string());
+                            } else {
+                                cmd.arg("--cert-file").arg("-")
+                                    .write_stdin(output);
+                            }
+
+                            cmd.assert()
+                                .code(
+                                    if expected_fixes == required_fixes {
+                                        // Everything should have been fixed.
+                                        0
+                                    } else {
+                                        // There are still issues.
+                                        2
+                                    });
+
+                            // Check that the number of new signatures equals
+                            // the number of expected new signatures.
+                            let orig_sigs: isize = cert
+                                .clone()
+                                .into_packets2()
+                                .map(|p| {
+                                    if let Packet::Signature(_) = p {
+                                        1
+                                    } else {
+                                        0
+                                    }
+                                })
+                                .sum();
+
+                            let updated_cert = if keystore {
+                                let mut cmd = sq();
+                                let cmd = cmd.current_dir(&dir)
+                                    .args(&[
+                                        "--home", &home,
+                                        "cert", "export",
+                                        "--cert", &cert.fingerprint().to_string(),
+                                    ]);
+                                let output = cmd.output()
+                                    .expect(&format!("Can run sq cert export"));
+                                if !output.status.success() {
+                                    panic!(
+                                        "sq exited with non-zero status code: {}",
+                                        String::from_utf8_lossy(&output.stderr)
+                                    );
+                                }
+                                Cert::from_bytes(&output.stdout)
+                            } else {
+                                // When not using the keystore, `sq
+                                // cert lint --fix` emits the fixed
+                                // certificate on stdout.
+                                Cert::from_bytes(output)
+                            };
+
+                            let fixed_sigs: isize = updated_cert
+                                .map(|cert| {
+                                    cert.into_packets2()
+                                        .map(|p| {
+                                            match p {
+                                                Packet::Signature(_) => 1,
+                                                Packet::SecretKey(_)
+                                                    | Packet::SecretSubkey(_) =>
+                                                    panic!("Secret key material \
+                                                            should not be exported!"),
+                                                _ => 0,
+                                            }
+                                        })
+                                        .sum()
+                                })
+                                .map_err(|err| {
+                                    eprintln!("Parsing fixed certificate: {}", err);
+                                    0
+                                })
+                                .unwrap();
+
+                            let fixes = fixed_sigs - orig_sigs;
+                            if expected_fixes as isize != fixes {
+                                eprintln!("Expected {} fixes, \
+                                           found {} additional signatures",
+                                          expected_fixes, fixes);
+                                false
+                            } else {
+                                true
+                            }
+                        }
+                    }));
+            }
         }
     }
 

@@ -32,6 +32,8 @@
    - Change `sq cert lint` to not read from stdin by default.
    - In `sq cert lint`, change the certificate file parameter from a
      position parameter to a named parameter, `--cert-file`.
+   - `sq cert lint` can now use the certificate store and the
+     keystore.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

@@ -1,6 +1,10 @@
 //! Command-line parser for `sq cert lint`.
 
 use clap::Args;
+use clap::ArgGroup;
+
+use sequoia_openpgp as openpgp;
+use openpgp::KeyHandle;
 
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrStdin;
@@ -67,6 +71,7 @@ $ sq cert lint --list-keys keyring.pgp \\
     | while read FPR; do something; done
 "
 )]
+#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct Command {
     /// Quiet; does not output any diagnostics.
     #[arg(short, long)]
@@ -94,20 +99,29 @@ pub struct Command {
 
     #[clap(
         long,
-        help = FileOrStdin::HELP_OPTIONAL,
-        value_name = FileOrStdin::VALUE_NAME,
-        required = true,
+        value_name = "CERT_FILE",
+        help = "Lint the certificates in the specified file",
     )]
     pub cert_file: Vec<FileOrStdin>,
+    #[clap(
+        long,
+        value_name = "FINGERPRINT|KEYID",
+        help = "Lint the specified certificate",
+        conflicts_with = "cert_file",
+    )]
+    pub cert: Vec<KeyHandle>,
 
     #[clap(
-        default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
+        help = "Write to the specified FILE.  If not specified, and the \
+                certificate was read from the certificate store, imports the \
+                modified certificate into the cert store.  If not specified, \
+                and the certificate was read from a file, writes the modified \
+                certificate to stdout.",
     )]
-    pub output: FileOrStdout,
+    pub output: Option<FileOrStdout>,
     #[clap(
         short = 'B',
         long = "binary",

@@ -79,7 +79,7 @@ mod integration {
                 .arg("--no-key-store")
                 .arg("cert").arg("lint")
                 .arg("--time").arg(FROZEN_TIME)
-                .arg(filename)
+                .arg("--cert-file").arg(filename)
                 .assert()
                 .code(if required_fixes > 0 { 2 } else { 0 });
 
@@ -114,7 +114,8 @@ mod integration {
                     "--no-key-store",
                     "cert", "lint",
                     "--time", FROZEN_TIME,
-                    "--fix", &format!("{}-{}.pgp", base, suffix)
+                    "--fix",
+                    "--cert-file", &format!("{}-{}.pgp", base, suffix)
                 ]);
             for p in passwords.iter() {
                 cmd = cmd.arg("-p").arg(p)
@@ -135,7 +136,7 @@ mod integration {
                             .arg("--no-key-store")
                             .arg("cert").arg("lint")
                             .arg("--time").arg(FROZEN_TIME)
-                            .arg("-")
+                            .arg("--cert-file").arg("-")
                             .write_stdin(output)
                             .assert()
                             .code(
@@ -436,9 +437,9 @@ mod integration {
                 "--time", FROZEN_TIME,
                 "--list-keys",
                 // 94F19D3CB5656E0BC3977C09A8AC5ACC2FB87104
-                "sha1-userid-pub.pgp",
+                "--cert-file", "sha1-userid-pub.pgp",
                 // 55EF7181C288067AE189FF12F5A5CD01D8070917
-                "gnupg-rsa-normal-pub.pgp"
+                "--cert-file", "gnupg-rsa-normal-pub.pgp"
             ])
             .assert()
             // If there are issues, the exit code is 2.
@@ -455,7 +456,7 @@ mod integration {
                 "--no-key-store",
                 "cert", "lint",
                 "--time", FROZEN_TIME,
-                "msg.sig",
+                "--cert-file", "msg.sig",
             ])
             .assert()
             // If there are issues, the exit code is 1.

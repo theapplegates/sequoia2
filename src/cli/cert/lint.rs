@@ -93,11 +93,12 @@ pub struct Command {
     pub list_keys: bool,
 
     #[clap(
+        long,
         help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
         required = true,
     )]
-    pub inputs: Vec<FileOrStdin>,
+    pub cert_file: Vec<FileOrStdin>,
 
     #[clap(
         default_value_t = FileOrStdout::default(),

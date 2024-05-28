@@ -256,7 +256,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
             armor::Kind::PublicKey
         })?;
 
-    'next_input: for input in args.inputs {
+    'next_input: for input in args.cert_file {
         let mut input_reader = input.open()?;
         let filename = match input.inner() {
             Some(path) => path.display().to_string(),

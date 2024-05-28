@@ -30,6 +30,8 @@
    - The user ID argument to `sq key userid revoke` is no longer a
      positional argument, but must be specified with `--userid`.
    - Change `sq cert lint` to not read from stdin by default.
+   - In `sq cert lint`, change the certificate file parameter from a
+     position parameter to a named parameter, `--cert-file`.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

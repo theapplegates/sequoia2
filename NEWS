@@ -29,6 +29,7 @@
      certificate store.
    - The user ID argument to `sq key userid revoke` is no longer a
      positional argument, but must be specified with `--userid`.
+   - Change `sq cert lint` to not read from stdin by default.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

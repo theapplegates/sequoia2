@@ -95,6 +95,7 @@ pub struct Command {
     #[clap(
         help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
+        required = true,
     )]
     pub inputs: Vec<FileOrStdin>,
 

@@ -33,7 +33,7 @@ fn sq_key_subkey_generate_authentication_subkey() -> Result<()> {
         "--output",
         &output.to_string_lossy(),
         "--can-authenticate",
-        &path.to_string_lossy(),
+        "--cert-file", &path.to_string_lossy(),
     ]);
     cmd.assert().success();
 
@@ -63,7 +63,7 @@ fn sq_key_subkey_generate_encryption_subkey() -> Result<()> {
         "--output",
         &output.to_string_lossy(),
         "--can-encrypt=universal",
-        &path.to_string_lossy(),
+        "--cert-file", &path.to_string_lossy(),
     ]);
     cmd.assert().success();
 
@@ -103,7 +103,7 @@ fn sq_key_subkey_generate_signing_subkey() -> Result<()> {
         "--output",
         &output.to_string_lossy(),
         "--can-sign",
-        &path.to_string_lossy(),
+        "--cert-file", &path.to_string_lossy(),
     ]);
     cmd.assert().success();
 

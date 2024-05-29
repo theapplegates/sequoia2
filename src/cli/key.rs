@@ -1141,11 +1141,12 @@ $ sq key subkey add --output juliet-new.key.pgp --can-sign \\
 #[clap(group(ArgGroup::new("required-group").args(&["can_authenticate", "can_sign", "can_encrypt"]).required(true)))]
 pub struct SubkeyAddCommand {
     #[clap(
+        long,
         default_value_t = FileOrStdin::default(),
         help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
     )]
-    pub input: FileOrStdin,
+    pub cert_file: FileOrStdin,
     #[clap(
         default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,

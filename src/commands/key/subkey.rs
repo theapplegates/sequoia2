@@ -158,7 +158,7 @@ fn subkey_add(
     sq: Sq,
     command: SubkeyAddCommand,
 ) -> Result<()> {
-    let input = command.input.open()?;
+    let input = command.cert_file.open()?;
     let cert = Cert::from_buffered_reader(input)?;
     let valid_cert = cert.with_policy(sq.policy, sq.time)?;
 

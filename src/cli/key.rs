@@ -1136,25 +1136,42 @@ $ sq key subkey add --output juliet-new.key.pgp --can-sign \\
      --expiry 5d --cipher-suite rsa3k juliet.key.pgp
 ",
 )]
+#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 #[clap(group(ArgGroup::new("authentication-group").args(&["can_authenticate", "can_encrypt"])))]
 #[clap(group(ArgGroup::new("sign-group").args(&["can_sign", "can_encrypt"])))]
 #[clap(group(ArgGroup::new("required-group").args(&["can_authenticate", "can_sign", "can_encrypt"]).required(true)))]
 pub struct SubkeyAddCommand {
     #[clap(
         long,
-        default_value_t = FileOrStdin::default(),
-        help = FileOrStdin::HELP_OPTIONAL,
-        value_name = FileOrStdin::VALUE_NAME,
+        value_name = "FINGERPRINT|KEYID",
+        help = "Add a subkey to the specified certificate",
     )]
-    pub cert_file: FileOrStdin,
+    pub cert: Option<KeyHandle>,
     #[clap(
-        default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP_OPTIONAL,
+        long,
+        help = FileOrStdin::HELP_OPTIONAL,
+        value_name = "CERT_FILE",
+        conflicts_with = "cert",
+        help = "Add a subkey to the specified certificate",
+        long_help =
+"Read the certificate that should be modified from FILE or \
+stdin.  It is an error for the file to contain more than one \
+certificate.",
+    )]
+    pub cert_file: Option<FileOrStdin>,
+
+    #[clap(
         long,
         short,
-        value_name = FileOrStdout::VALUE_NAME,
+        value_name = FileOrCertStore::VALUE_NAME,
+        help = "Write to the specified FILE.  If not specified, and the \
+                certificate was read from the certificate store, imports the \
+                modified certificate into the cert store.  If not specified, \
+                and the certificate was read from a file, writes the modified \
+                certificate to stdout.",
     )]
-    pub output: FileOrStdout,
+    pub output: Option<FileOrStdout>,
+
     #[clap(
         short = 'B',
         long,

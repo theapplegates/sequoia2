@@ -7,6 +7,7 @@ use chrono::Duration;
 use sequoia_openpgp as openpgp;
 use openpgp::packet::Key;
 use openpgp::parse::Parse;
+use openpgp::types::KeyFlags;
 use openpgp::types::ReasonForRevocation;
 use openpgp::types::RevocationStatus;
 use openpgp::types::SignatureType;
@@ -19,98 +20,96 @@ use common::sq_key_generate;
 use common::STANDARD_POLICY;
 
 #[test]
-fn sq_key_subkey_generate_authentication_subkey() -> Result<()> {
-    let (tmpdir, path, _) = sq_key_generate(None).unwrap();
-    let output = path.parent().unwrap().join("new_key.pgp");
+fn sq_key_subkey() -> Result<()> {
+    let (tmpdir, cert_path, _) = sq_key_generate(None).unwrap();
+    let modified_cert_path = cert_path.parent().unwrap().join("new_key.pgp");
 
-    let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args([
-        "--no-cert-store",
-        "--no-key-store",
-        "key",
-        "subkey",
-        "add",
-        "--output",
-        &output.to_string_lossy(),
-        "--can-authenticate",
-        "--cert-file", &path.to_string_lossy(),
-    ]);
-    cmd.assert().success();
+    let cert = Cert::from_file(&cert_path)?;
 
-    let cert = Cert::from_file(&output)?;
-    let valid_cert = cert.with_policy(STANDARD_POLICY, None)?;
+    for (arg, expected_key_flags, expected_count) in [
+        ("--can-authenticate", KeyFlags::empty().set_authentication(), 2),
+        ("--can-encrypt=universal", KeyFlags::empty().set_transport_encryption(), 2),
+        ("--can-encrypt=universal", KeyFlags::empty().set_storage_encryption(), 2),
+        ("--can-sign", KeyFlags::empty().set_signing(), 2),
+    ] {
+        for keystore in [false, true] {
+            let home = TempDir::new().unwrap();
+            let home = home.path().display().to_string();
 
-    assert_eq!(
-        valid_cert.keys().filter(|x| x.for_authentication()).count(),
-        2
-    );
-    tmpdir.close()?;
-    Ok(())
-}
+            if keystore {
+                // When using the keystore, we need to import the key.
+                let mut cmd = Command::cargo_bin("sq")?;
+                cmd.args([
+                    "--home", &home,
+                    "key",
+                    "import",
+                    &cert_path.display().to_string(),
+                ]);
+                let output = cmd.output()?;
+                if !output.status.success() {
+                    panic!(
+                        "sq exited with non-zero status code: {}",
+                        String::from_utf8(output.stderr)?
+                    );
+                }
+            }
 
-#[test]
-fn sq_key_subkey_generate_encryption_subkey() -> Result<()> {
-    let (tmpdir, path, _) = sq_key_generate(None).unwrap();
-    let output = path.parent().unwrap().join("new_key.pgp");
+            // Add the subkey.
+            let mut cmd = Command::cargo_bin("sq")?;
+            cmd.args([
+                "--home", &home,
+                "key",
+                "subkey",
+                "add",
+                arg,
+            ]);
 
-    let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args([
-        "--no-cert-store",
-        "--no-key-store",
-        "key",
-        "subkey",
-        "add",
-        "--output",
-        &output.to_string_lossy(),
-        "--can-encrypt=universal",
-        "--cert-file", &path.to_string_lossy(),
-    ]);
-    cmd.assert().success();
+            if keystore {
+                cmd.args([
+                    "--cert", &cert.fingerprint().to_string(),
+                ]);
+            } else {
+                cmd.args([
+                    "--force",
+                    "--output",
+                    &modified_cert_path.to_string_lossy(),
+                    "--cert-file", &cert_path.to_string_lossy(),
+                ]);
+            }
+            cmd.assert().success();
 
-    let cert = Cert::from_file(&output)?;
-    let valid_cert = cert.with_policy(STANDARD_POLICY, None)?;
+            if keystore {
+                // When using the keystore, we need to export the
+                // modified certificate.
 
-    assert_eq!(
-        valid_cert
-            .keys()
-            .filter(|x| x.for_storage_encryption())
-            .count(),
-        2
-    );
-    assert_eq!(
-        valid_cert
-            .keys()
-            .filter(|x| x.for_transport_encryption())
-            .count(),
-        2
-    );
-    tmpdir.close()?;
-    Ok(())
-}
+                let mut cmd = Command::cargo_bin("sq")?;
+                cmd.args([
+                    "--home", &home,
+                    "cert",
+                    "export",
+                    "--cert", &cert.fingerprint().to_string(),
+                ]);
+                let output = cmd.output()?;
+                if !output.status.success() {
+                    panic!(
+                        "sq exited with non-zero status code: {}",
+                        String::from_utf8(output.stderr)?
+                    );
+                }
+                std::fs::write(&modified_cert_path, &output.stdout)
+                    .expect(&format!("Writing {}", &modified_cert_path.display()));
+            }
 
-#[test]
-fn sq_key_subkey_generate_signing_subkey() -> Result<()> {
-    let (tmpdir, path, _) = sq_key_generate(None).unwrap();
-    let output = path.parent().unwrap().join("new_key.pgp");
+            let cert = Cert::from_file(&modified_cert_path)?;
+            let valid_cert = cert.with_policy(STANDARD_POLICY, None)?;
 
-    let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args([
-        "--no-cert-store",
-        "--no-key-store",
-        "key",
-        "subkey",
-        "add",
-        "--output",
-        &output.to_string_lossy(),
-        "--can-sign",
-        "--cert-file", &path.to_string_lossy(),
-    ]);
-    cmd.assert().success();
+            assert_eq!(
+                valid_cert.keys().key_flags(&expected_key_flags).count(),
+                expected_count
+            );
+        }
+    }
 
-    let cert = Cert::from_file(&output)?;
-    let valid_cert = cert.with_policy(STANDARD_POLICY, None)?;
-
-    assert_eq!(valid_cert.keys().filter(|x| x.for_signing()).count(), 2);
     tmpdir.close()?;
     Ok(())
 }

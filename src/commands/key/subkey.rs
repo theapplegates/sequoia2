@@ -1,5 +1,9 @@
+use std::sync::Arc;
+
 use chrono::DateTime;
 use chrono::Utc;
+
+use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
 use openpgp::cert::KeyBuilder;
@@ -14,6 +18,10 @@ use openpgp::Cert;
 use openpgp::KeyHandle;
 use openpgp::Packet;
 use openpgp::Result;
+
+use sequoia_cert_store as cert_store;
+use cert_store::LazyCert;
+use cert_store::StoreUpdate;
 
 use crate::Sq;
 use crate::cli::key::SubkeyAddCommand;
@@ -156,10 +164,23 @@ pub fn dispatch(sq: Sq, command: SubkeyCommand) -> Result<()> {
 /// If no specific expiry is requested, the subkey never expires.
 fn subkey_add(
     sq: Sq,
-    command: SubkeyAddCommand,
+    mut command: SubkeyAddCommand,
 ) -> Result<()> {
-    let input = command.cert_file.open()?;
-    let cert = Cert::from_buffered_reader(input)?;
+    let cert = if let Some(file) = command.cert_file {
+        if command.output.is_none() {
+            // None means to write to the cert store.  When reading
+            // from a file, we want to write to stdout by default.
+            command.output = Some(FileOrStdout::new(None));
+        }
+
+        let br = file.open()?;
+        Cert::from_buffered_reader(br)?
+    } else if let Some(kh) = command.cert {
+        sq.lookup_one(&kh, None, true)?
+    } else {
+        panic!("clap enforces --cert or --cert-file");
+    };
+
     let valid_cert = cert.with_policy(sq.policy, sq.time)?;
 
     let validity = command
@@ -206,12 +227,21 @@ fn subkey_add(
         .set_primary_key_signer(primary_key)
         .attach_cert()?;
 
-    let mut sink = command.output.for_secrets().create_safe(sq.force)?;
-    if command.binary {
-        new_cert.as_tsk().serialize(&mut sink)?;
+    if let Some(output) = command.output {
+        let mut sink = output.for_secrets().create_safe(sq.force)?;
+        if command.binary {
+            new_cert.as_tsk().serialize(&mut sink)?;
+        } else {
+            new_cert.as_tsk().armored().serialize(&mut sink)?;
+        }
     } else {
-        new_cert.as_tsk().armored().serialize(&mut sink)?;
+        let cert_store = sq.cert_store_or_else()?;
+        cert_store.update(Arc::new(LazyCert::from(new_cert)))
+            .with_context(|| {
+                "Error importing the revocation certificate into cert store"
+            })?;
     }
+
     Ok(())
 }
 

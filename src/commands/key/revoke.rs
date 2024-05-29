@@ -9,6 +9,7 @@ use openpgp::Result;
 
 use crate::Sq;
 use crate::cli::key::RevokeCommand;
+use crate::cli::types::FileOrStdout;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
 use crate::parse_notations;
@@ -85,9 +86,15 @@ impl RevocationOutput for CertificateRevocation
 /// Revoke a certificate
 pub fn certificate_revoke(
     sq: Sq,
-    command: RevokeCommand,
+    mut command: RevokeCommand,
 ) -> Result<()> {
     let cert = if let Some(file) = command.cert_file {
+        if command.output.is_none() {
+            // None means to write to the cert store.  When reading
+            // from a file, we want to write to stdout by default.
+            command.output = Some(FileOrStdout::new(None));
+        }
+
         let br = file.open()?;
         Cert::from_buffered_reader(br)?
     } else if let Some(kh) = command.cert {

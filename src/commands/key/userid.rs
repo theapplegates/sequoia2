@@ -396,9 +396,15 @@ signatures on other User IDs to make the key valid again.",
 /// [`NotationData`] fails or if the eventual revocation fails.
 pub fn userid_revoke(
     sq: Sq,
-    command: UseridRevokeCommand,
+    mut command: UseridRevokeCommand,
 ) -> Result<()> {
     let cert = if let Some(file) = command.cert_file {
+        if command.output.is_none() {
+            // None means to write to the cert store.  When reading
+            // from a file, we want to write to stdout by default.
+            command.output = Some(FileOrStdout::new(None));
+        }
+
         let br = file.open()?;
         Cert::from_buffered_reader(br)?
     } else if let Some(kh) = command.cert {

@@ -36,6 +36,9 @@
      keystore.
    - In `sq key subkey add`, change the certificate file parameter
      from a positional parameter to a named parameter, `--cert-file`.
+   - `sq key subkey add` now reads from the certificate store when
+     using `--cert`.  When `--cert` is used, and `--output` is not
+     specified, the new subkey is saved to the key store.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

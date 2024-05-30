@@ -18,14 +18,35 @@ use openpgp::Result;
 use crate::Sq;
 use crate::cli::key::SubkeyAddCommand;
 use crate::cli::key::SubkeyCommand;
+use crate::cli::key::SubkeyExpireCommand;
 use crate::cli::key::SubkeyRevokeCommand;
 use crate::cli::types::EncryptPurpose;
 use crate::cli::types::FileOrStdout;
 use crate::common;
+use crate::common::expire;
 use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
 use crate::parse_notations;
+
+pub fn dispatch(sq: Sq, command: SubkeyCommand) -> Result<()> {
+    match command {
+        SubkeyCommand::Add(c) => subkey_add(sq, c)?,
+        SubkeyCommand::Expire(c) => subkey_expire(sq, c)?,
+        SubkeyCommand::Revoke(c) => subkey_revoke(sq, c)?,
+    }
+
+    Ok(())
+}
+
+fn subkey_expire(sq: Sq, command: SubkeyExpireCommand)
+    -> Result<()>
+{
+    assert!(! command.key.is_empty());
+
+    expire(sq, command.cert_file, &command.key[..], command.expiry,
+           command.output, command.binary)
+}
 
 /// Handle the revocation of a subkey
 struct SubkeyRevocation {
@@ -138,15 +159,6 @@ impl RevocationOutput for SubkeyRevocation {
     fn revoker(&self) -> &Cert {
         &self.revoker
     }
-}
-
-pub fn dispatch(sq: Sq, command: SubkeyCommand) -> Result<()> {
-    match command {
-        SubkeyCommand::Add(c) => subkey_add(sq, c)?,
-        SubkeyCommand::Revoke(c) => subkey_revoke(sq, c)?,
-    }
-
-    Ok(())
 }
 
 /// Add a new Subkey for an existing primary key

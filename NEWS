@@ -41,6 +41,9 @@
      specified, the new subkey is saved to the key store.
    - In `sq key expire`, change the certificate file parameter from a
      positional parameter to a named parameter, `--cert-file`.
+   - Split the functionality to update a subkey's expiration time off
+     of `sq key expire` and into `sq key subkey expire`.
+   - Rename `sq key subkey expire`'s `--subkey` argument to `--key`.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

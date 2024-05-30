@@ -2,9 +2,6 @@
 
 use clap::Args;
 
-use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
-
 use crate::cli::types::ClapData;
 use crate::cli::types::Expiry;
 use crate::cli::types::FileOrStdin;
@@ -29,15 +26,6 @@ const EXAMPLES: Actions = Actions {
                 "--cert-file", "alice-secret.pgp",
             ],
         }),
-
-        Action::Example(Example {
-            comment: "Make Bob's authentication subkey expire in six months.",
-            command: &[
-                "sq", "key", "expire", "6m",
-                "--cert-file", "bob-secret.pgp",
-                "--subkey", "6AEACDD24F896624",
-            ],
-        }),
     ],
 };
 
@@ -50,13 +38,11 @@ test_examples!(sq_key_expire, EXAMPLES);
     long_about =
 "Change expiration times
 
-Keys and their individual subkeys can expire.  This subcommand changes
-or clears the expiration times.
+Change or clear a certificate's expiration time.
 
-By default, the expiration time of the entire key is changed.  To
-change the expiration of only some of the subkeys, use the `--subkey`
-option.
-",
+This subcommand changes the certificate's expiration time.  To change
+the expiration time of an individual subkey, use the `sq key subkey
+expire` subcommand.",
     after_help = EXAMPLES,
 )]
 pub struct Command {
@@ -74,12 +60,6 @@ pub struct Command {
         help = "Emit binary data",
     )]
     pub binary: bool,
-
-    #[clap(
-        long,
-        help = "Change expiration of this subkey, not the entire key",
-    )]
-    pub subkey: Vec<KeyHandle>,
 
     #[clap(
         value_name = "EXPIRY",

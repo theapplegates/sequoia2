@@ -1077,6 +1077,7 @@ Add new subkeys to an existing key.
 #[non_exhaustive]
 pub enum SubkeyCommand {
     Add(SubkeyAddCommand),
+    Expire(SubkeyExpireCommand),
     Revoke(SubkeyRevokeCommand),
 }
 
@@ -1233,6 +1234,88 @@ certificate.",
         help = "Protect the subkey with a password",
     )]
     pub with_password: bool,
+}
+
+
+const SQ_KEY_SUBKEY_EXPIRE_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "Make Bob's authentication subkey expire in six months.",
+            command: &[
+                "sq", "key", "subkey", "expire", "6m",
+                "--cert-file", "bob-secret.pgp",
+                "--key", "6AEACDD24F896624",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_key_subkey_expire, SQ_KEY_SUBKEY_EXPIRE_EXAMPLES);
+
+#[derive(Debug, Args)]
+#[clap(
+    name = "expire",
+    about = "Change expiration times",
+    long_about =
+"Change expiration times
+
+Change or clear a key's expiration time.
+
+This subcommand changes a key's expiration time.  To change the
+expiration time of the certificate, use the `sq key expire`
+subcommand.
+
+Changing the expiration time of the primary key is equivalent to
+changing the certificate's expiration time.
+",
+    after_help = SQ_KEY_SUBKEY_EXPIRE_EXAMPLES,
+)]
+pub struct SubkeyExpireCommand {
+    #[clap(
+        help = FileOrStdout::HELP_OPTIONAL,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: Option<FileOrStdout>,
+
+    #[clap(
+        short = 'B',
+        long,
+        help = "Emit binary data",
+    )]
+    pub binary: bool,
+
+    #[clap(
+        long,
+        help = "Change expiration of this subkey",
+        required = true,
+    )]
+    pub key: Vec<KeyHandle>,
+
+    #[clap(
+        value_name = "EXPIRY",
+        help =
+            "Define EXPIRY for the key as ISO 8601 formatted string or \
+            custom duration.",
+        long_help =
+            "Define EXPIRY for the key as ISO 8601 formatted string or \
+            custom duration. \
+            If an ISO 8601 formatted string is provided, the validity period \
+            reaches from the reference time (may be set using `--time`) to \
+            the provided time. \
+            Custom durations starting from the reference time may be set using \
+            `N[ymwds]`, for N years, months, weeks, days, or seconds. \
+            The special keyword `never` sets an unlimited expiry.",
+    )]
+    pub expiry: Expiry,
+
+    #[clap(
+        long,
+        default_value_t = FileOrStdin::default(),
+        help = FileOrStdin::HELP_OPTIONAL,
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub cert_file: FileOrStdin,
 }
 
 #[derive(Debug, Args)]

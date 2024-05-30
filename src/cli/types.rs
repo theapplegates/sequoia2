@@ -714,10 +714,10 @@ impl Expiry {
     }
 
     /// Return the expiry as absolute time.
-    pub fn to_systemtime(&self) -> Option<SystemTime> {
+    pub fn to_systemtime(&self, now: SystemTime) -> Option<SystemTime> {
         match self {
             Expiry::Timestamp(t) => Some(t.clone().into()),
-            Expiry::Duration(d) => Some(SystemTime::now() + *d),
+            Expiry::Duration(d) => Some(now + *d),
             Expiry::Never => None,
         }
     }

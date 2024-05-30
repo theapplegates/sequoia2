@@ -48,7 +48,7 @@ pub fn expire(sq: Sq,
         .with_context(|| "Primary key has no secrets")?;
 
     // Fix the new expiration time.
-    let expiration_time = expiry.to_systemtime();
+    let expiration_time = expiry.to_systemtime(sq.time);
 
     // We want to check that all given key handles exist, make a list.
     let handles = key.keys().map(|k| k.key_handle()).collect::<Vec<_>>();
@@ -89,7 +89,7 @@ pub fn expire(sq: Sq,
         for skb in keys {
             // Preferably use the binding signature under our policy,
             // fall back to the most recent binding signature.
-            let template = skb.binding_signature(&policy, None)
+            let template = skb.binding_signature(&policy, sq.time)
                 .or(skb.self_signatures().next()
                     .ok_or(anyhow::anyhow!("no binding signature")))?
                 .clone();
@@ -98,6 +98,7 @@ pub fn expire(sq: Sq,
                 &mut primary_signer,
                 &key,
                 SignatureBuilder::from(template)
+                    .set_signature_creation_time(sq.time)?
                     .set_key_expiration_time(skb.key(), expiration_time)?)?
                      .into());
         }
@@ -108,13 +109,14 @@ pub fn expire(sq: Sq,
     if update_primary_key {
         // Preferably use the direct key signature under our policy,
         // fall back to the most recent direct key signature.
-        let template = key.primary_key().binding_signature(&policy, None)
+        let template = key.primary_key().binding_signature(&policy, sq.time)
             .or(key.primary_key().self_signatures().next()
                 .ok_or(anyhow::anyhow!("no primary key signature")))?
             .clone();
 
         acc.push(SignatureBuilder::from(template)
                  .set_type(SignatureType::DirectKey)
+                 .set_signature_creation_time(sq.time)?
                  .set_key_expiration_time(key.primary_key().key(),
                                           expiration_time)?
                  .sign_direct_key(&mut primary_signer, None)?
@@ -123,7 +125,7 @@ pub fn expire(sq: Sq,
         for uidb in key.userids() {
             // Preferably use the direct binding signature under our
             // policy, fall back to the most recent binding signature.
-            let template = uidb.binding_signature(&policy, None)
+            let template = uidb.binding_signature(&policy, sq.time)
                 .or(uidb.self_signatures().next()
                     .ok_or(anyhow::anyhow!("no user ID binding signature")))?
                 .clone();
@@ -132,6 +134,7 @@ pub fn expire(sq: Sq,
                 &mut primary_signer,
                 &key,
                 SignatureBuilder::from(template)
+                    .set_signature_creation_time(sq.time)?
                     .set_key_expiration_time(key.primary_key().key(),
                                              expiration_time)?)?
                      .into());

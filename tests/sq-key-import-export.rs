@@ -9,6 +9,9 @@ use openpgp::cert::prelude::*;
 use openpgp::packet::Key;
 use openpgp::parse::Parse;
 
+mod common;
+use common::power_set;
+
 mod integration {
     use super::*;
 
@@ -73,20 +76,6 @@ mod integration {
         eprintln!("Certificate:");
         for k in cert.keys() {
             eprintln!("  {}", k.fingerprint());
-        }
-
-        // Returns the power set excluding the empty set.
-        fn power_set<T: Clone>(set: &[T]) -> Vec<Vec<T>> {
-            let mut power_set: Vec<Vec<T>> = Vec::new();
-            for element in set.iter() {
-                power_set.extend(
-                    power_set.clone().into_iter().map(|mut v: Vec<T>| {
-                        v.push(element.clone());
-                        v
-                    }));
-                power_set.push(vec![ element.clone() ]);
-            }
-            power_set
         }
 
         let keys: Vec<Key<_, _>> = cert.keys()

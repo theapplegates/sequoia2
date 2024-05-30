@@ -17,14 +17,16 @@ const EXAMPLES: Actions = Actions {
         Action::Example(Example {
             comment: "Make Alice's key expire in a year.",
             command: &[
-                "sq", "key", "expire", "1y", "alice-secret.pgp",
+                "sq", "key", "expire", "1y",
+                "--cert-file", "alice-secret.pgp",
             ],
         }),
 
         Action::Example(Example {
             comment: "Make Alice's key never expire.",
             command: &[
-                "sq", "key", "expire", "never", "alice-secret.pgp",
+                "sq", "key", "expire", "never",
+                "--cert-file", "alice-secret.pgp",
             ],
         }),
 
@@ -32,7 +34,8 @@ const EXAMPLES: Actions = Actions {
             comment: "Make Bob's authentication subkey expire in six months.",
             command: &[
                 "sq", "key", "expire", "6m",
-                "--subkey", "6AEACDD24F896624", "bob-secret.pgp",
+                "--cert-file", "bob-secret.pgp",
+                "--subkey", "6AEACDD24F896624",
             ],
         }),
     ],
@@ -96,9 +99,10 @@ pub struct Command {
     pub expiry: Expiry,
 
     #[clap(
+        long,
         default_value_t = FileOrStdin::default(),
         help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
     )]
-    pub input: FileOrStdin,
+    pub cert_file: FileOrStdin,
 }

@@ -39,6 +39,8 @@
    - `sq key subkey add` now reads from the certificate store when
      using `--cert`.  When `--cert` is used, and `--output` is not
      specified, the new subkey is saved to the key store.
+   - In `sq key expire`, change the certificate file parameter from a
+     positional parameter to a named parameter, `--cert-file`.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

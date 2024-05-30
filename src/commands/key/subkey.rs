@@ -1,9 +1,5 @@
-use std::sync::Arc;
-
 use chrono::DateTime;
 use chrono::Utc;
-
-use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
 use openpgp::cert::KeyBuilder;
@@ -18,10 +14,6 @@ use openpgp::Cert;
 use openpgp::KeyHandle;
 use openpgp::Packet;
 use openpgp::Result;
-
-use sequoia_cert_store as cert_store;
-use cert_store::LazyCert;
-use cert_store::StoreUpdate;
 
 use crate::Sq;
 use crate::cli::key::SubkeyAddCommand;
@@ -235,11 +227,7 @@ fn subkey_add(
             new_cert.as_tsk().armored().serialize(&mut sink)?;
         }
     } else {
-        let cert_store = sq.cert_store_or_else()?;
-        cert_store.update(Arc::new(LazyCert::from(new_cert)))
-            .with_context(|| {
-                "Error importing the revocation certificate into cert store"
-            })?;
+        sq.import_key(new_cert)?;
     }
 
     Ok(())

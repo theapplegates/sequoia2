@@ -1,6 +1,10 @@
 //! Command-line parser for `sq key expire`.
 
 use clap::Args;
+use clap::ArgGroup;
+
+use sequoia_openpgp as openpgp;
+use openpgp::KeyHandle;
 
 use crate::cli::types::ClapData;
 use crate::cli::types::Expiry;
@@ -45,6 +49,7 @@ the expiration time of an individual subkey, use the `sq key subkey
 expire` subcommand.",
     after_help = EXAMPLES,
 )]
+#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct Command {
     #[clap(
         help = FileOrStdout::HELP_OPTIONAL,
@@ -80,9 +85,14 @@ pub struct Command {
 
     #[clap(
         long,
-        default_value_t = FileOrStdin::default(),
-        help = FileOrStdin::HELP_OPTIONAL,
-        value_name = FileOrStdin::VALUE_NAME,
+        value_name = "FINGERPRINT|KEYID",
+        help = "Change the certificate's expiration time",
     )]
-    pub cert_file: FileOrStdin,
+    pub cert: Option<KeyHandle>,
+    #[clap(
+        long,
+        value_name = "CERT_FILE",
+        help = "Change the certificate's expiration time",
+    )]
+    pub cert_file: Option<FileOrStdin>,
 }

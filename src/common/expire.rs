@@ -2,50 +2,45 @@
 
 use std::sync::Arc;
 
-use anyhow::Context;
-
 use sequoia_openpgp as openpgp;
-use openpgp::Cert;
 use openpgp::KeyHandle;
 use openpgp::Packet;
 use openpgp::Result;
 use openpgp::packet::signature::SignatureBuilder;
-use openpgp::parse::Parse;
 use openpgp::serialize::Serialize;
 use openpgp::types::SignatureType;
 
 use sequoia_cert_store::StoreUpdate;
 
 use crate::cli::types::Expiry;
-use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
+use crate::cli::types::FileStdinOrKeyHandle;
 use crate::Sq;
+use crate::sq::GetKeysOptions;
 
 pub fn expire(sq: Sq,
-              input: FileOrStdin,
+              cert: FileStdinOrKeyHandle,
               subkeys: &[KeyHandle],
               expiry: Expiry,
-              output: Option<FileOrStdout>,
+              mut output: Option<FileOrStdout>,
               binary: bool)
     -> Result<()>
 {
     let policy = sq.policy.clone();
-    let cert_store = if output.is_none() {
-        Some(sq.cert_store_or_else()?)
-    } else {
-        None
-    };
 
-    let input = input.open()?;
-    let key = Cert::from_buffered_reader(input)?;
-    if ! key.is_tsk() {
-        return Err(anyhow::anyhow!("Certificate has no secrets"));
+    if cert.is_file() {
+        if output.is_none() {
+            // None means to write to the cert store.  When reading
+            // from a file, we want to write to stdout by default.
+            output = Some(FileOrStdout::new(None));
+        }
     }
+    let key = sq.lookup_one(cert, None, true)?;
 
     let primary_handle = key.key_handle();
-    let mut primary_signer = key.primary_key().key().clone()
-        .parts_into_secret().and_then(|k| k.into_keypair())
-        .with_context(|| "Primary key has no secrets")?;
+
+    let mut primary_signer
+        = sq.get_primary_key(&key, Some(&[GetKeysOptions::AllowNotAlive]))?.0;
 
     // Fix the new expiration time.
     let expiration_time = expiry.to_systemtime(sq.time);
@@ -168,10 +163,10 @@ pub fn expire(sq: Sq,
                  so that others can find it."));
         }
     } else {
+        let cert_store = sq.cert_store_or_else()?;
+
         let keyid = key.keyid();
-        if let Err(err) = cert_store.expect("set if output is None")
-            .update_by(Arc::new(key.into()), &mut ())
-        {
+        if let Err(err) = cert_store.update(Arc::new(key.into())) {
             wprintln!("Error importing updated cert: {}", err);
             return Err(err);
         } else {

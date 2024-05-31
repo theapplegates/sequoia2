@@ -42,6 +42,59 @@ pub fn time_as_string(t: DateTime<Utc>) -> String {
     t.format("%Y-%m-%dT%H:%M:%SZ").to_string()
 }
 
+/// Designates a certificate by path, or by key handle.
+pub enum FileOrKeyHandle {
+    FileOrStdin(PathBuf),
+    KeyHandle(KeyHandle),
+}
+
+impl From<&Path> for FileOrKeyHandle {
+    fn from(path: &Path) -> Self {
+        path.to_path_buf().into()
+    }
+}
+
+impl From<&PathBuf> for FileOrKeyHandle {
+    fn from(path: &PathBuf) -> Self {
+        path.clone().into()
+    }
+}
+
+impl From<PathBuf> for FileOrKeyHandle {
+    fn from(path: PathBuf) -> Self {
+        FileOrKeyHandle::FileOrStdin(path.into())
+    }
+}
+
+impl From<&KeyHandle> for FileOrKeyHandle {
+    fn from(kh: &KeyHandle) -> Self {
+        FileOrKeyHandle::KeyHandle(kh.clone())
+    }
+}
+
+impl From<KeyHandle> for FileOrKeyHandle {
+    fn from(kh: KeyHandle) -> Self {
+        FileOrKeyHandle::KeyHandle(kh)
+    }
+}
+
+impl FileOrKeyHandle {
+    /// Returns whether this contains a `FileOrStdin`.
+    pub fn is_file(&self) -> bool {
+        match self {
+            FileOrKeyHandle::FileOrStdin(_) => true,
+            FileOrKeyHandle::KeyHandle(_) => false,
+        }
+    }
+
+    /// Returns whether this contains a `KeyHandle`.
+    pub fn is_key_handle(&self) -> bool {
+        match self {
+            FileOrKeyHandle::FileOrStdin(_) => false,
+            FileOrKeyHandle::KeyHandle(_) => true,
+        }
+    }
+}
 
 pub struct Sq {
     base: TempDir,
@@ -142,13 +195,41 @@ impl Sq {
         output
     }
 
-    pub fn inspect<P>(&self, path: P) -> String
+    pub fn inspect<H>(&self, handle: H) -> String
+    where H: Into<FileOrKeyHandle>
+    {
+        let mut cmd = self.command();
+        cmd.arg("inspect");
+        match handle.into() {
+            FileOrKeyHandle::FileOrStdin(path) => {
+                cmd.arg(path);
+            }
+            FileOrKeyHandle::KeyHandle(kh) => {
+                cmd.args(["--cert", &kh.to_string()]);
+            }
+        };
+
+        let output = self.run(cmd, Some(true));
+        String::from_utf8_lossy(&output.stdout).to_string()
+    }
+
+    /// Imports the specified key into the keystore.
+    pub fn key_import<P>(&self, path: P)
     where P: AsRef<Path>
     {
         let mut cmd = self.command();
-        cmd.arg("inspect").arg(path.as_ref());
+        cmd.arg("key").arg("import").arg(path.as_ref());
+        self.run(cmd, Some(true));
+    }
+
+    /// Exports the specified certificate.
+    pub fn cert_export(&self, kh: KeyHandle) -> Cert {
+        let mut cmd = self.command();
+        cmd.args([ "cert", "export", "--cert", &kh.to_string() ]);
         let output = self.run(cmd, Some(true));
-        String::from_utf8_lossy(&output.stdout).to_string()
+
+        Cert::from_bytes(&output.stdout)
+            .expect("can parse certificate")
     }
 }
 

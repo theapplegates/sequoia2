@@ -42,9 +42,18 @@ pub fn dispatch(sq: Sq, command: SubkeyCommand) -> Result<()> {
 fn subkey_expire(sq: Sq, command: SubkeyExpireCommand)
     -> Result<()>
 {
+    let handle = if let Some(file) = command.cert_file {
+        assert!(command.cert.is_none());
+        file.into()
+    } else if let Some(kh) = command.cert {
+        kh.into()
+    } else {
+        panic!("clap enforces --cert or --cert-file is set");
+    };
+
     assert!(! command.key.is_empty());
 
-    expire(sq, command.cert_file, &command.key[..], command.expiry,
+    expire(sq, handle, &command.key[..], command.expiry,
            command.output, command.binary)
 }
 

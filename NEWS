@@ -44,6 +44,8 @@
    - Split the functionality to update a subkey's expiration time off
      of `sq key expire` and into `sq key subkey expire`.
    - Rename `sq key subkey expire`'s `--subkey` argument to `--key`.
+   - `sq key expire` and `sq key subkey expire` can now use the
+     cert store and the key store.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

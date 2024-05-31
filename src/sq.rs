@@ -38,6 +38,7 @@ use wot::store::Store as _;
 use sequoia_keystore as keystore;
 use keystore::Protection;
 
+use crate::cli::types::FileStdinOrKeyHandle;
 use crate::common::password;
 use crate::ImportStatus;
 use crate::OutputFormat;
@@ -400,27 +401,30 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     ///
     /// An error is also returned if any of the identifiers does not
     /// match at least one certificate.
-    pub fn lookup<'a, I>(&self, khs: I,
+    pub fn lookup<'a, I>(&self, handles: I,
                          keyflags: Option<KeyFlags>,
                          or_by_primary: bool,
                          allow_ambiguous: bool)
         -> Result<Vec<Cert>>
     where I: IntoIterator,
-          I::Item: Borrow<KeyHandle>,
+          I::Item: Into<FileStdinOrKeyHandle>,
     {
         let mut results = Vec::new();
 
-        for kh in khs {
-            let kh = kh.borrow();
-            match self.cert_store_or_else()?.lookup_by_cert_or_subkey(&kh) {
-                Err(err) => {
-                    let err = anyhow::Error::from(err);
-                    return Err(err.context(
-                        format!("Failed to load {} from certificate store", kh)
-                    ));
+        for handle in handles {
+            let (kh, mut certs) = match handle.into() {
+                FileStdinOrKeyHandle::FileOrStdin(file) => {
+                    let br = file.open()?;
+                    let cert = Cert::from_buffered_reader(br)?;
+                    (cert.key_handle(), vec![ cert ])
                 }
-                Ok(certs) => {
-                    let mut certs = certs.into_iter()
+                FileStdinOrKeyHandle::KeyHandle(kh) => {
+                    let certs = self.cert_store_or_else()?
+                        .lookup_by_cert_or_subkey(&kh)
+                        .with_context(|| {
+                            format!("Failed to load {} from certificate store", kh)
+                        })?
+                        .into_iter()
                         .filter_map(|cert| {
                             match cert.to_cert() {
                                 Ok(cert) => Some(cert.clone()),
@@ -435,67 +439,69 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                         })
                         .collect::<Vec<Cert>>();
 
-                    if let Some(keyflags) = keyflags.as_ref() {
-                        certs.retain(|cert| {
-                            let vc = match cert.with_policy(
-                                self.policy, self.time)
-                            {
-                                Ok(vc) => vc,
-                                Err(err) => {
-                                    let err = err.context(
-                                        format!("{} is not valid according \
-                                                 to the current policy, ignoring",
-                                                kh));
-                                    print_error_chain(&err);
-                                    return false;
-                                }
-                            };
-
-                            let checked_id = or_by_primary
-                                && vc.key_handle().aliases(kh);
-
-                            for ka in vc.keys() {
-                                if checked_id || ka.key_handle().aliases(kh) {
-                                    if &ka.key_flags().unwrap_or(KeyFlags::empty())
-                                        & keyflags
-                                        != KeyFlags::empty()
-                                    {
-                                        return true;
-                                    }
-                                }
-                            }
-
-                            if checked_id {
-                                wprintln!("Error: {} does not have a key with \
-                                           the required capabilities ({:?})",
-                                          cert.keyid(), keyflags);
-                            } else {
-                                wprintln!("Error: The subkey {} (cert: {}) \
-                                           does not the required capabilities \
-                                           ({:?})",
-                                          kh, cert.keyid(), keyflags);
-                            }
-                            return false;
-                        })
-                    }
-
-                    if ! allow_ambiguous && certs.len() > 1 {
-                        return Err(anyhow::anyhow!(
-                            "{} is ambiguous; it matches: {}",
-                            kh,
-                            certs.into_iter()
-                                .map(|cert| cert.fingerprint().to_string())
-                                .collect::<Vec<String>>()
-                                .join(", ")));
-                    }
-
-                    if certs.len() == 0 {
-                        return Err(StoreError::NotFound(kh.clone()).into());
-                    }
-
-                    results.extend(certs);
+                    (kh.clone(), certs)
                 }
+            };
+
+            if let Some(keyflags) = keyflags.as_ref() {
+                certs.retain(|cert| {
+                    let vc = match cert.with_policy(
+                        self.policy, self.time)
+                    {
+                        Ok(vc) => vc,
+                        Err(err) => {
+                            let err = err.context(
+                                format!("{} is not valid according \
+                                         to the current policy, ignoring",
+                                        kh));
+                            print_error_chain(&err);
+                            return false;
+                        }
+                    };
+
+                    let checked_id = or_by_primary
+                        && vc.key_handle().aliases(&kh);
+
+                    for ka in vc.keys() {
+                        if checked_id || ka.key_handle().aliases(&kh) {
+                            if &ka.key_flags().unwrap_or(KeyFlags::empty())
+                                & keyflags
+                                != KeyFlags::empty()
+                            {
+                                return true;
+                            }
+                        }
+                    }
+
+                    if checked_id {
+                        wprintln!("Error: {} does not have a key with \
+                                   the required capabilities ({:?})",
+                                  cert.keyid(), keyflags);
+                    } else {
+                        wprintln!("Error: The subkey {} (cert: {}) \
+                                   does not the required capabilities \
+                                   ({:?})",
+                                  kh, cert.keyid(), keyflags);
+                    }
+                    return false;
+                })
             }
+
+            if ! allow_ambiguous && certs.len() > 1 {
+                return Err(anyhow::anyhow!(
+                    "{} is ambiguous; it matches: {}",
+                    kh,
+                    certs.into_iter()
+                        .map(|cert| cert.fingerprint().to_string())
+                        .collect::<Vec<String>>()
+                        .join(", ")));
+            }
+
+            if certs.len() == 0 {
+                return Err(StoreError::NotFound(kh.clone()).into());
+            }
+
+            results.extend(certs);
         }
 
         Ok(results)
@@ -729,12 +735,13 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// Looks up a certificate.
     ///
     /// Like `lookup`, but looks up a certificate, which must be
-    /// uniquely identified by `kh` and `keyflags`.
-    pub fn lookup_one(&self, kh: &KeyHandle,
+    /// uniquely identified by `handle` and `keyflags`.
+    pub fn lookup_one<H>(&self, handle: H,
                       keyflags: Option<KeyFlags>, or_by_primary: bool)
         -> Result<Cert>
+    where H: Into<FileStdinOrKeyHandle>
     {
-        self.lookup(std::iter::once(kh), keyflags, or_by_primary, false)
+        self.lookup(std::iter::once(handle.into()), keyflags, or_by_primary, false)
             .map(|certs| {
                 assert_eq!(certs.len(), 1);
                 certs.into_iter().next().expect("have one")

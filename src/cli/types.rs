@@ -25,6 +25,7 @@ use clap::ValueEnum;
 use sequoia_openpgp as openpgp;
 use openpgp::armor;
 use openpgp::fmt::hex;
+use openpgp::KeyHandle;
 use openpgp::parse::Cookie;
 use openpgp::serialize::stream::Armorer;
 use openpgp::serialize::stream::Message;
@@ -245,6 +246,62 @@ impl ClapData for FileOrCertStore {
     const HELP_OPTIONAL: &'static str
         = "Write to FILE (or stdout when omitted) instead of \
           importing into the certificate store";
+}
+
+/// Designates a certificate by path, by stdin, or by key handle.
+///
+/// Use [`Sq::lookup_one`] to read the certificate.
+pub enum FileStdinOrKeyHandle {
+    FileOrStdin(FileOrStdin),
+    KeyHandle(KeyHandle),
+}
+
+impl From<FileOrStdin> for FileStdinOrKeyHandle {
+    fn from(file: FileOrStdin) -> Self {
+        FileStdinOrKeyHandle::FileOrStdin(file)
+    }
+}
+
+impl From<&Path> for FileStdinOrKeyHandle {
+    fn from(path: &Path) -> Self {
+        path.to_path_buf().into()
+    }
+}
+
+impl From<PathBuf> for FileStdinOrKeyHandle {
+    fn from(path: PathBuf) -> Self {
+        FileStdinOrKeyHandle::FileOrStdin(path.into())
+    }
+}
+
+impl From<&KeyHandle> for FileStdinOrKeyHandle {
+    fn from(kh: &KeyHandle) -> Self {
+        FileStdinOrKeyHandle::KeyHandle(kh.clone())
+    }
+}
+
+impl From<KeyHandle> for FileStdinOrKeyHandle {
+    fn from(kh: KeyHandle) -> Self {
+        FileStdinOrKeyHandle::KeyHandle(kh)
+    }
+}
+
+impl FileStdinOrKeyHandle {
+    /// Returns whether this contains a `FileOrStdin`.
+    pub fn is_file(&self) -> bool {
+        match self {
+            FileStdinOrKeyHandle::FileOrStdin(_) => true,
+            FileStdinOrKeyHandle::KeyHandle(_) => false,
+        }
+    }
+
+    /// Returns whether this contains a `KeyHandle`.
+    pub fn is_key_handle(&self) -> bool {
+        match self {
+            FileStdinOrKeyHandle::FileOrStdin(_) => false,
+            FileStdinOrKeyHandle::KeyHandle(_) => true,
+        }
+    }
 }
 
 /// A type wrapping an optional PathBuf to use as stdout or file output

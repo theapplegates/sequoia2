@@ -423,11 +423,12 @@ $ sq key password --clear < juliet.encrypted_key.pgp \\
 )]
 pub struct PasswordCommand {
     #[clap(
+        long,
         default_value_t = FileOrStdin::default(),
         help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
     )]
-    pub input: FileOrStdin,
+    pub cert_file: FileOrStdin,
     #[clap(
         default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,

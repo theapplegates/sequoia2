@@ -14,7 +14,7 @@ pub fn password(
     sq: Sq,
     command: cli::key::PasswordCommand,
 ) -> Result<()> {
-    let input = command.input.open()?;
+    let input = command.cert_file.open()?;
     let key = Cert::from_buffered_reader(input)?;
 
     if !key.is_tsk() {

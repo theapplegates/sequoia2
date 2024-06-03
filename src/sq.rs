@@ -1099,28 +1099,34 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
             'key: for mut key in remote_keys.into_iter() {
                 let password = if let Protection::Password(hint) = key.locked()? {
-                    if let Some(hint) = hint {
-                        eprintln!("{}", hint);
-                    }
-
-                    loop {
-                        let p = password::prompt_to_unlock(&format!(
-                            "Please enter the password to decrypt \
-                             the key {}/{}, {}",
-                            ka.cert().keyid(), ka.keyid(), uid))?;
-
-                        if p == "".into() {
-                            eprintln!("Giving up.");
-                            continue 'key;
+                    if let Some(password) = self.cached_passwords().find(|password| {
+                        key.unlock(password.clone()).is_ok()
+                    }) {
+                        Some(password)
+                    } else {
+                        if let Some(hint) = hint {
+                            eprintln!("{}", hint);
                         }
 
-                        match key.unlock(p.clone()) {
-                            Ok(()) => {
-                                self.cache_password(p.clone());
-                                break Some(p)
+                        loop {
+                            let p = password::prompt_to_unlock(&format!(
+                                "Please enter the password to decrypt \
+                                 the key {}/{}, {}",
+                                ka.cert().keyid(), ka.keyid(), uid))?;
+
+                            if p == "".into() {
+                                eprintln!("Giving up.");
+                                continue 'key;
                             }
-                            Err(err) => {
-                                eprintln!("Failed to unlock key: {}", err);
+
+                            match key.unlock(p.clone()) {
+                                Ok(()) => {
+                                    self.cache_password(p.clone());
+                                    break Some(p)
+                                }
+                                Err(err) => {
+                                    eprintln!("Failed to unlock key: {}", err);
+                                }
                             }
                         }
                     }

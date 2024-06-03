@@ -6,9 +6,7 @@ use tempfile::NamedTempFile;
 
 use sequoia_openpgp as openpgp;
 use openpgp::armor;
-use openpgp::crypto::Password;
 use openpgp::KeyHandle;
-use openpgp::KeyID;
 use openpgp::{Packet, Result};
 use openpgp::packet::prelude::*;
 use openpgp::packet::signature::subpacket::NotationData;
@@ -20,9 +18,9 @@ use openpgp::serialize::Serialize;
 use openpgp::serialize::stream::{
     Message, Armorer, Signer, LiteralWriter,
 };
+use openpgp::types::KeyFlags;
 use openpgp::types::SignatureType;
 
-use sequoia_keystore::Protection;
 
 use crate::Sq;
 use crate::load_certs;
@@ -121,7 +119,7 @@ fn sign_data<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
     input: &'a mut (dyn io::Read + Sync + Send),
     output_path: &'a FileOrStdout,
-    secrets: Vec<openpgp::Cert>,
+    mut secrets: Vec<openpgp::Cert>,
     signer_keys: &[KeyHandle],
     detached: bool,
     binary: bool,
@@ -163,88 +161,14 @@ fn sign_data<'a, 'store, 'rstore>(
             (output_path.create_safe(sq.force)?, Vec::new(), None)
         };
 
-    let mut keypairs = sq.get_signing_keys(&secrets, None)?;
-
-    let mut signer_keys = if signer_keys.is_empty() {
-        Vec::new()
-    } else {
-        let mut ks = sq.key_store_or_else()?.lock().unwrap();
-
-        signer_keys.into_iter()
-            .map(|kh| {
-                let keys = ks.find_key(kh.clone())?;
-
-                match keys.len() {
-                    0 => return Err(anyhow::anyhow!(
-                        "{} is not present on keystore", kh)),
-                    1 => (),
-                    n => {
-                        eprintln!("Warning: {} is present on multiple \
-                                   ({}) devices",
-                                  kh, n);
-                    }
-                }
-                let mut key = keys.into_iter().next().expect("checked for one");
-
-                match key.locked() {
-                    Ok(Protection::Password(msg)) => {
-                        let fpr = key.fingerprint();
-                        let cert = sq.lookup_one(
-                            &KeyHandle::from(&fpr), None, true);
-                        let display = match cert {
-                            Ok(cert) => {
-                                format!(" ({})", sq.best_userid(&cert, true))
-                            }
-                            Err(_) => {
-                                "".to_string()
-                            }
-                        };
-                        let keyid = KeyID::from(&fpr);
-
-                        if let Some(msg) = msg {
-                            eprintln!("{}", msg);
-                        }
-                        loop {
-                            let password = Password::from(rpassword::prompt_password(
-                                format!("Enter password to unlock {}{}: ",
-                                        keyid, display))?);
-                            match key.unlock(password) {
-                                Ok(()) => break,
-                                Err(err) => {
-                                    wprintln!("Unlocking {}: {}.", keyid, err);
-                                }
-                            }
-                        }
-                    }
-                    Ok(Protection::Unlocked) => {
-                        // Already unlocked, nothing to do.
-                    }
-                    Ok(Protection::UnknownProtection(msg))
-                        | Ok(Protection::ExternalPassword(msg))
-                        | Ok(Protection::ExternalTouch(msg))
-                        | Ok(Protection::ExternalOther(msg)) =>
-                    {
-                        // Locked.
-                        eprint!("Key is locked");
-                        if let Some(msg) = msg {
-                            eprint!(": {}", msg);
-                        }
-                        eprintln!();
-                    }
-                    Err(err) => {
-                        // Failed to get the key's locked status.  Just print
-                        // a warning now.  We'll (probably) fail more later.
-                        wprintln!("Getting {}'s status: {}",
-                                  key.keyid(), err);
-                    }
-                }
-
-                Ok(key)
-            })
-        .collect::<Result<Vec<_>>>()?
+    for kh in signer_keys.into_iter() {
+        let cert = sq.lookup_one(
+            kh, Some(KeyFlags::empty().set_signing()), true)?;
+        secrets.push(cert);
     };
 
-    if keypairs.is_empty() && signer_keys.is_empty() {
+    let mut signers = sq.get_signing_keys(&secrets, None)?;
+    if signers.is_empty() {
         return Err(anyhow::anyhow!("No signing keys found"));
     }
 
@@ -277,23 +201,13 @@ fn sign_data<'a, 'store, 'rstore>(
             *critical)?;
     }
 
-    let mut signer = if keypairs.is_empty() {
-        Signer::with_template(
-            message,
-            signer_keys.pop().unwrap(),
-            builder)
-    } else {
-        Signer::with_template(
-            message,
-            keypairs.pop().unwrap().0,
-            builder)
-    };
+    let mut signer = Signer::with_template(
+        message,
+        signers.pop().unwrap().0,
+        builder);
     signer = signer.creation_time(sq.time);
-    for s in keypairs {
+    for s in signers {
         signer = signer.add_signer(s.0);
-    }
-    for k in signer_keys {
-        signer = signer.add_signer(k);
     }
     if detached {
         signer = signer.detached();

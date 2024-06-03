@@ -372,6 +372,7 @@ fn main() -> Result<()> {
         no_key_store: c.no_key_store,
         key_store_path: c.key_store.clone(),
         key_store: OnceCell::new(),
+        password_cache: Default::default(),
     };
 
     commands::dispatch(sq, c)

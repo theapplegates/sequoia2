@@ -13,7 +13,6 @@ use sequoia_openpgp as openpgp;
 use openpgp::Result;
 use openpgp::armor;
 use openpgp::cert::prelude::*;
-use openpgp::crypto::Password;
 use openpgp::crypto::Signer;
 use openpgp::parse::Parse;
 use openpgp::packet::prelude::*;
@@ -39,7 +38,6 @@ use crate::{
 
 fn update_cert_revocation(sq: &Sq,
                           cert: &Cert, rev: &Signature,
-                          passwords: &mut Vec<Password>,
                           reference_time: &SystemTime)
     -> Result<Signature>
 {
@@ -49,10 +47,7 @@ fn update_cert_revocation(sq: &Sq,
     let pk = ka.key();
 
     // Derive a signer.
-    let (mut signer, password) = sq.get_signer(&ka, Some(&passwords))?;
-    if let Some(password) = password {
-        passwords.push(password);
-    }
+    let (mut signer, _password) = sq.get_signer(&ka)?;
 
     let sig = SignatureBuilder::from(rev.clone())
         .set_signature_creation_time(reference_time.clone())?
@@ -73,7 +68,6 @@ const GOOD_HASHES: &[ HashAlgorithm ] = &[
 // ua is using a weak policy.
 fn update_user_id_binding(sq: &Sq,
                           ua: &ValidUserIDAmalgamation,
-                          passwords: &mut Vec<Password>,
                           reference_time: &SystemTime)
     -> Result<Signature>
 {
@@ -81,10 +75,7 @@ fn update_user_id_binding(sq: &Sq,
     let pk = ka.key();
 
     // Derive a signer.
-    let (mut signer, password) = sq.get_signer(&ka, Some(&passwords))?;
-    if let Some(password) = password {
-        passwords.push(password);
-    }
+    let (mut signer, _password) = sq.get_signer(&ka)?;
 
     let sym = &[
         SymmetricAlgorithm::AES128,
@@ -144,7 +135,6 @@ fn update_user_id_binding(sq: &Sq,
 // ka is using a weak policy.
 fn update_subkey_binding<P>(sq: &Sq,
                             ka: &ValidSubordinateKeyAmalgamation<P>,
-                            passwords: &mut Vec<Password>,
                             reference_time: &SystemTime)
     -> Result<Signature>
     where P: key::KeyParts + Clone
@@ -153,10 +143,7 @@ fn update_subkey_binding<P>(sq: &Sq,
     let pk = primary.key();
 
     // Derive a signer.
-    let (mut signer, password) = sq.get_signer(&primary, Some(&passwords))?;
-    if let Some(password) = password {
-        passwords.push(password);
-    }
+    let (mut signer, _password) = sq.get_signer(&primary)?;
 
     // Update the signature.
     let sig = ka.binding_signature();
@@ -174,10 +161,7 @@ fn update_subkey_binding<P>(sq: &Sq,
         .nth(0)
     {
         // Derive a signer.
-        let (mut subkey_signer, password) = sq.get_signer(&ka, Some(&passwords))?;
-        if let Some(password) = password {
-            passwords.push(password);
-        }
+        let (mut subkey_signer, _password) = sq.get_signer(&ka)?;
 
         let backsig = SignatureBuilder::from(backsig.clone())
             .set_signature_creation_time(reference_time.clone())?
@@ -253,8 +237,6 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
     }
 
     let reference_time = sq.time;
-
-    let mut passwords = Vec::new();
 
     let mut out = if args.output.is_some() || ! args.cert_file.is_empty() {
         let output = if let Some(output) = args.output {
@@ -464,8 +446,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                               rev.digest_prefix()[1]);
                         if args.fix {
                             match update_cert_revocation(
-                                &sq, &cert, rev, &mut passwords,
-                                &reference_time)
+                                &sq, &cert, rev, &reference_time)
                             {
                                 Ok(sig) => {
                                     updates.push(sig);
@@ -588,7 +569,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                     }
                     if args.fix {
                         match update_user_id_binding(
-                            &sq, &ua, &mut passwords, &reference_time)
+                            &sq, &ua, &reference_time)
                         {
                             Ok(sig) => {
                                 updates.push(sig);
@@ -641,8 +622,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                         }
                         if args.fix {
                             match update_subkey_binding(
-                                &sq, &ka, &mut passwords,
-                                &reference_time)
+                                &sq, &ka, &reference_time)
                             {
                                 Ok(sig) => updates.push(sig),
                                 Err(err) => {
@@ -730,7 +710,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                         }
                         if args.fix {
                             match update_subkey_binding(
-                                &sq, &ka, &mut passwords, &reference_time)
+                                &sq, &ka, &reference_time)
                             {
                                 Ok(sig) => updates.push(sig),
                                 Err(err) => {

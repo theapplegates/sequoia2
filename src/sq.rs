@@ -98,6 +98,15 @@ pub struct Sq<'store, 'rstore>
     pub no_key_store: bool,
     pub key_store_path: Option<PathBuf>,
     pub key_store: OnceCell<Mutex<keystore::Keystore>>,
+
+    /// A password cache.  When encountering a locked key, we first
+    /// consult the password cache.  The passwords are only tried if
+    /// it is safe.  That is, the passwords are only tried if we are
+    /// sure that the key is not protected by a retry counter.  If the
+    /// password cache doesn't contain the correct password, or the
+    /// key is protected by a retry counter, the user is prompted to
+    /// unlock the key.  The correct password is added to the cache.
+    pub password_cache: Mutex<Vec<Password>>,
 }
 
 impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
@@ -1000,24 +1009,34 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         }
     }
 
+    /// Caches a password.
+    pub fn cache_password(&self, password: Password) {
+        let mut cache = self.password_cache.lock().unwrap();
+
+        if ! cache.contains(&password) {
+            cache.push(password);
+        }
+    }
+
+    /// Returns the cached passwords.
+    pub fn cached_passwords(&self) -> impl Iterator<Item=Password> {
+        self.password_cache.lock().unwrap().clone().into_iter()
+    }
+
     /// Gets a signer for the specified key.
     ///
     /// If `ka` includes secret key material, that is preferred.
     /// Otherwise, we look for the key on the key store.
     ///
-    /// If the key is locked, we unlocked.  `passwords` is a list of
-    /// passwords to try.  The passwords are only tried if it is safe.
-    /// That is, the passwords are only tried if we are sure that the
-    /// key is not protected by a retry counter.  If `passwords`
-    /// doesn't contain the correct password, or the key is protected
-    /// by a retry counter, the user is prompted to unlock the key.
-    pub fn get_signer<P, R, R2>(&self, ka: &KeyAmalgamation<P, R, R2>,
-                                passwords: Option<&[Password]>)
+    /// If the key is locked, we try to unlock it.  If the key isn't
+    /// protected by a retry counter, then the password cache is
+    /// tried.  Otherwise, or if that fails, the user is prompted to
+    /// unlock the key.  The correct password is added to the password
+    /// cache.
+    pub fn get_signer<P, R, R2>(&self, ka: &KeyAmalgamation<P, R, R2>)
         -> Result<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>
         where P: key::KeyParts + Clone, R: key::KeyRole + Clone
     {
-        let passwords = passwords.unwrap_or(&[]);
-
         let try_tsk = |ka: &KeyAmalgamation<_, _, R2>|
             -> Result<(_, _)>
         {
@@ -1025,8 +1044,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 let (unencrypted, password) = match secret {
                     SecretKeyMaterial::Encrypted(ref e) => {
                         // try passwords from already existing keys
-                        match passwords.iter().find_map(|password| {
-                            e.decrypt(ka.pk_algo(), password).ok()
+                        match self.cached_passwords().find_map(|password| {
+                            e.decrypt(ka.pk_algo(), &password).ok()
                                 .map(|key| (key, password.clone()))
                         }) {
                             Some((unencrypted, password)) =>
@@ -1036,11 +1055,13 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                     &format!("key {}/{}",
                                              ka.cert().keyid(),
                                              ka.keyid()))?;
-                                (
-                                    e.decrypt(ka.pk_algo(), &password)
-                                        .map_err(|_| anyhow!("Incorrect password."))?,
-                                    Some(password),
-                                )
+
+                                let key = e.decrypt(ka.pk_algo(), &password)
+                                    .map_err(|_| anyhow!("Incorrect password."))?;
+
+                                self.cache_password(password.clone());
+
+                                (key, Some(password))
                             }
                         }
                     }
@@ -1094,7 +1115,10 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                         }
 
                         match key.unlock(p.clone()) {
-                            Ok(()) => break Some(p),
+                            Ok(()) => {
+                                self.cache_password(p.clone());
+                                break Some(p)
+                            }
                             Err(err) => {
                                 eprintln!("Failed to unlock key: {}", err);
                             }
@@ -1187,7 +1211,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     continue;
                 }
 
-                if let Ok((key, password)) = self.get_signer(&ka, None) {
+                if let Ok((key, password)) = self.get_signer(&ka) {
                     keys.push((key, password));
                     continue 'next_cert;
                 }

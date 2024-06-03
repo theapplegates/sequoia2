@@ -123,6 +123,18 @@ pub struct Command {
     pub signer_key: Vec<KeyHandle>,
     #[clap(
         long,
+        value_name = "FILE",
+        help = "File containing password to decrypt key",
+        long_help = "\
+File containing password to decrypt the signing key.  Note that the \
+entire key file will be used as the password, including surrounding \
+whitespace like for example a trailing newline.
+
+If multiple passwords are provided, then they are tried in turn.",
+    )]
+    pub password_file: Vec<PathBuf>,
+    #[clap(
+        long,
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
         help = "Add a notation to the certification.",

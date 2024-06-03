@@ -50,6 +50,14 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
         load_certs(command.secret_key_file.iter().map(|s| s.as_ref()))?;
     let signer_keys = &command.signer_key[..];
 
+    for file in command.password_file {
+        let password = std::fs::read(&file)
+            .with_context(|| {
+                format!("Reading password from {}", file.display())
+            })?;
+        sq.cache_password(password.into());
+    }
+
     let notations = parse_notations(command.notation)?;
 
     if let Some(merge) = command.merge {

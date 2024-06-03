@@ -421,22 +421,30 @@ $ sq key password --clear < juliet.encrypted_key.pgp \\
      > juliet.decrypted_key.pgp
 ",
 )]
+#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct PasswordCommand {
     #[clap(
         long,
-        default_value_t = FileOrStdin::default(),
-        help = FileOrStdin::HELP_OPTIONAL,
+        help = "Change the password of the specified certificate",
         value_name = FileOrStdin::VALUE_NAME,
     )]
-    pub cert_file: FileOrStdin,
+    pub cert: Option<KeyHandle>,
     #[clap(
-        default_value_t = FileOrStdout::default(),
+        long,
+        value_name = "CERT_FILE",
+        help = "Change the password of the specified certificate",
+    )]
+    pub cert_file: Option<FileOrStdin>,
+
+    #[clap(
         help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
+        conflicts_with = "cert",
     )]
-    pub output: FileOrStdout,
+    pub output: Option<FileOrStdout>,
+
     /// File containing password to decrypt key
     ///
     /// Note that the entire key file will be used as the password, including

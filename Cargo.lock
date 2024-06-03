@@ -3178,9 +3178,9 @@ dependencies = [
 
 [[package]]
 name = "sequoia-gpg-agent"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c929d572dee98c48d286cef43e2ade4201962f3454c015f52bf43b5a8e40d42"
+checksum = "9b1df6f0a2de8dfdef7a4ea49d096237eb1a3081b3e235eb61255d654257a6de"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3225,9 +3225,9 @@ dependencies = [
 
 [[package]]
 name = "sequoia-keystore"
-version = "0.4.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa77ac702f6be1489580eb092aa5acae36050db04fa5ae445238a84591e1ad7a"
+checksum = "8556f1dd77d72fbe9c2dfcd2985eb9eaf87b7e6c8e0181a27be23e6c8778886f"
 dependencies = [
  "anyhow",
  "capnp",
@@ -3250,9 +3250,9 @@ dependencies = [
 
 [[package]]
 name = "sequoia-keystore-backend"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ab69a90e3455e15aa0ff47d676e84bf1a085716691b72156badc50d0a01dab1"
+checksum = "5e7a7a4b148f8ea2083f0fec111208ea43a1c1529fe29a2add58251aa0554ee0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3268,9 +3268,9 @@ dependencies = [
 
 [[package]]
 name = "sequoia-keystore-gpg-agent"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "454e8d580617e07d595b8df718d7fa3e26cdc58f35d1ad89f9fecc78ef0d55a7"
+checksum = "0bc3da475399420b544a2749f75318503d12ef1a355ab6d63bdd48d5c242192f"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3287,9 +3287,9 @@ dependencies = [
 
 [[package]]
 name = "sequoia-keystore-softkeys"
-version = "0.4.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f9707371cae085b6e1cac9e17bf94a19efcdc04da4dba5cbda1cb8f8c0a655a"
+checksum = "5bb53ee667b0e10a44bff1b2dbb7ee76ba5c765bf5f3456b1916ce47d44511f3"
 dependencies = [
  "anyhow",
  "async-trait",

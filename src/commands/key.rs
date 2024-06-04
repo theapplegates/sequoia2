@@ -8,6 +8,7 @@ mod adopt;
 use adopt::adopt;
 mod attest_certifications;
 use attest_certifications::attest_certifications;
+mod delete;
 mod expire;
 mod export;
 use export::export;
@@ -32,6 +33,7 @@ pub fn dispatch(sq: Sq, command: cli::key::Command) -> Result<()>
         Generate(c) => generate(sq, c)?,
         Import(c) => import(sq, c)?,
         Export(c) => export(sq, c)?,
+        Delete(c) => delete::dispatch(sq, c)?,
         Password(c) => password(sq, c)?,
         Expire(c) => expire::dispatch(sq, c)?,
         Userid(c) => userid::dispatch(sq, c)?,

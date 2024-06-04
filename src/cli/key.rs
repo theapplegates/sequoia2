@@ -91,6 +91,7 @@ pub enum Subcommands {
     Generate(GenerateCommand),
     Import(ImportCommand),
     Export(ExportCommand),
+    Delete(DeleteCommand),
     Password(PasswordCommand),
     Expire(expire::Command),
     Revoke(RevokeCommand),
@@ -391,6 +392,43 @@ pub struct ExportCommand {
                      available.",
     )]
     pub key: Vec<KeyHandle>,
+}
+
+#[derive(Debug, Args)]
+#[clap(
+    name = "delete",
+    about = "Delete a certificate's secret key material",
+)]
+#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
+pub struct DeleteCommand {
+    #[clap(
+        long,
+        help = "Delete the secret key material from the specified certificate",
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub cert: Option<KeyHandle>,
+    #[clap(
+        long,
+        value_name = "CERT_FILE",
+        help = "Delete the secret key material from the specified certificate",
+    )]
+    pub cert_file: Option<FileOrStdin>,
+
+    #[clap(
+        help = FileOrStdout::HELP_OPTIONAL,
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+        conflicts_with = "cert",
+    )]
+    pub output: Option<FileOrStdout>,
+
+    #[clap(
+        short = 'B',
+        long,
+        help = "Emit binary data",
+    )]
+    pub binary: bool,
 }
 
 #[derive(Debug, Args)]

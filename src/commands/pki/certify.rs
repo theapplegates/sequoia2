@@ -1,4 +1,5 @@
 use std::fmt;
+use std::sync::Arc;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -6,34 +7,57 @@ use chrono::Utc;
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 use openpgp::Result;
-use openpgp::cert::prelude::*;
 use openpgp::packet::prelude::*;
 use openpgp::packet::signature::subpacket::NotationDataFlags;
-use openpgp::parse::Parse;
 use openpgp::serialize::Serialize;
 use openpgp::types::SignatureType;
 use openpgp::types::KeyFlags;
+
+use sequoia_cert_store as cert_store;
+use cert_store::StoreUpdate;
 
 use crate::Sq;
 use crate::parse_notations;
 use crate::sq::GetKeysOptions;
 use crate::cli::pki::certify;
+use crate::cli::types::FileOrStdin;
+use crate::cli::types::FileStdinOrKeyHandle;
+use crate::commands::FileOrStdout;
 
-pub fn certify(sq: Sq, c: certify::Command)
+pub fn certify(sq: Sq, mut c: certify::Command)
     -> Result<()>
 {
-    let cert = c.certificate;
+    let certifier: FileStdinOrKeyHandle = if let Some(file) = c.certifier_file {
+        assert!(c.certifier.is_none());
+        file.into()
+    } else if let Some(kh) = c.certifier {
+        kh.into()
+    } else {
+        panic!("clap enforces --certifier or --certifier-file is set");
+    };
+
+    // XXX: Change this interface: it's dangerous to guess whether an
+    // identifier is a file or a key handle.
+    let cert = if let Ok(kh) = c.certificate.parse::<KeyHandle>() {
+        FileStdinOrKeyHandle::KeyHandle(kh)
+    } else {
+        FileStdinOrKeyHandle::FileOrStdin(
+            FileOrStdin::new(Some(c.certificate.into())))
+    };
+    if cert.is_file() {
+        // If the cert is read from a file, we default to stdout.
+        // (None means write to the cert store.)
+        if c.output.is_none() {
+            c.output = Some(FileOrStdout::new(None));
+        }
+    }
+
     let userid = c.userid;
 
     let certifier = sq.lookup_one(
-        c.certifier_file, Some(KeyFlags::empty().set_certification()), true)?;
-    // XXX: Change this interface: it's dangerous to guess whether an
-    // identifier is a file or a key handle.
-    let cert = if let Ok(kh) = cert.parse::<KeyHandle>() {
-        sq.lookup_one(&kh, None, true)?
-    } else {
-        Cert::from_file(cert)?
-    };
+        certifier, Some(KeyFlags::empty().set_certification()), true)?;
+
+    let cert = sq.lookup_one(cert, None, true)?;
 
     let trust_depth: u8 = c.depth;
     let trust_amount: u8 = c.amount.amount();
@@ -173,15 +197,35 @@ pub fn certify(sq: Sq, c: certify::Command)
         new_packets.push(certification.into());
     }
 
-    // And export it.
     let cert = cert.insert_packets(new_packets)?;
-    let mut message = c.output.create_pgp_safe(
-        sq.force,
-        c.binary,
-        sequoia_openpgp::armor::Kind::PublicKey,
-    )?;
-    cert.serialize(&mut message)?;
-    message.finalize()?;
+
+    if let Some(output) = c.output {
+        // And export it.
+        let mut message = output.create_pgp_safe(
+            sq.force,
+            c.binary,
+            sequoia_openpgp::armor::Kind::PublicKey,
+        )?;
+        cert.serialize(&mut message)?;
+        message.finalize()?;
+    } else {
+        // Import it.
+        let cert_store = sq.cert_store_or_else()?;
+
+        let keyid = cert.keyid();
+        if let Err(err) = cert_store.update(Arc::new(cert.into())) {
+            wprintln!("Error importing updated cert: {}", err);
+            return Err(err);
+        } else {
+            sq.hint(format_args!(
+                "Imported updated cert into the cert store.  \
+                 To make the update effective, it has to be published \
+                 so that others can find it, for example using:"))
+                .command(format_args!(
+                    "sq cert export --cert {} | sq network keyserver publish",
+                    keyid));
+        }
+    }
 
     Ok(())
 }

@@ -1,6 +1,10 @@
 //! Command-line parser for `sq pki certify`.
 
+use clap::ArgGroup;
 use clap::Parser;
+
+use sequoia_openpgp as openpgp;
+use openpgp::KeyHandle;
 
 use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION;
 use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS;
@@ -53,15 +57,15 @@ $ sq pki certify --time 20130721 --certifier-file neal.pgp
   ada.pgp Ada
 ",
 )]
+#[clap(group(ArgGroup::new("certifier_input").args(&["certifier_file", "certifier"]).required(true)))]
 pub struct Command {
     #[clap(
-        default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
     )]
-    pub output: FileOrStdout,
+    pub output: Option<FileOrStdout>,
     #[clap(
         short = 'B',
         long,
@@ -199,11 +203,17 @@ pub struct Command {
     pub allow_revoked_certifier: bool,
     #[clap(
         long,
+        help = "Create the certification using CERTIFIER-KEY.",
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub certifier: Option<KeyHandle>,
+    #[clap(
+        long,
         value_name = "CERTIFIER-FILE",
         required = true,
         help = "Create the certification using CERTIFIER-KEY.",
     )]
-    pub certifier_file: FileOrStdin,
+    pub certifier_file: Option<FileOrStdin>,
     #[clap(
         value_name = "KEY_ID|FINGERPRINT|FILE",
         required = true,

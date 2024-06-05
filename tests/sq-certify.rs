@@ -15,197 +15,243 @@ use openpgp::policy::StandardPolicy;
 use openpgp::serialize::{Serialize, SerializeInto};
 
 mod common;
+use common::FileOrKeyHandle;
 use common::Sq;
 
 const P: &StandardPolicy = &StandardPolicy::new();
 
 #[test]
 fn sq_certify() -> Result<()> {
-    let sq = Sq::new();
+    let mut sq = Sq::new();
 
-    let (_alice, alice_pgp, _alice_rev)
+    let (alice, alice_pgp, _alice_rev)
         = sq.key_generate(&[], &["<alice@example.org>"]);
     let (_bob, bob_pgp, _bob_rev)
         = sq.key_generate(&[], &["<bob@example.org>"]);
 
-    // A simple certification.
-    let cert = sq.pki_certify(&[], &alice_pgp, &bob_pgp, "<bob@example.org>");
-    assert_eq!(cert.bad_signatures().count(), 0,
-               "Bad signatures in cert\n\n{}",
-               String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
-
-    let vc = cert.with_policy(P, None).unwrap();
-
-    let mut ok = false;
-    for ua in vc.userids() {
-        if ua.userid().value() == b"<bob@example.org>" {
-            let certifications: Vec<_>
-                = ua.certifications().collect();
-            assert_eq!(certifications.len(), 1);
-            let c = certifications[0];
-
-            assert_eq!(c.trust_signature(), None);
-            assert_eq!(c.regular_expressions().count(), 0);
-            assert_eq!(c.revocable().unwrap_or(true), true);
-            assert_eq!(c.exportable_certification().unwrap_or(true), true);
-            // By default, we set a duration.
-            assert!(c.signature_validity_period().is_some());
-
-            ok = true;
-            break;
+    for keystore in [false, true] {
+        if keystore {
+            sq.key_import(&alice_pgp);
         }
-    }
-    assert!(ok, "Didn't find user id");
 
-    // No expiry.
-    let cert = sq.pki_certify(&["--expiry", "never"],
-                              &alice_pgp, &bob_pgp, "<bob@example.org>");
-    assert_eq!(cert.bad_signatures().count(), 0,
-               "Bad signatures in cert\n\n{}",
-               String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
+        let alice_handle: FileOrKeyHandle = if keystore {
+            alice.key_handle().into()
+        } else {
+            alice_pgp.clone().into()
+        };
 
-    let vc = cert.with_policy(P, None).unwrap();
+        let mut bob_pgp = vec![ bob_pgp.clone() ];
 
-    let mut ok = false;
-    for ua in vc.userids() {
-        if ua.userid().value() == b"<bob@example.org>" {
-            let certifications: Vec<_>
-                = ua.certifications().collect();
-            assert_eq!(certifications.len(), 1);
-            let c = certifications[0];
+        let mut certification_count = 0;
 
-            assert_eq!(c.trust_signature(), None);
-            assert_eq!(c.regular_expressions().count(), 0);
-            assert_eq!(c.revocable().unwrap_or(true), true);
-            assert_eq!(c.exportable_certification().unwrap_or(true), true);
-            assert!(c.signature_validity_period().is_none());
+        // A simple certification.
+        sq.tick(1);
+        let bob_pgp_new = sq.scratch_file("bob");
+        let cert = sq.pki_certify(
+            &[], &alice_handle, bob_pgp.last().unwrap(), "<bob@example.org>",
+            Some(&*bob_pgp_new));
+        bob_pgp.push(bob_pgp_new);
+        certification_count += 1;
+        assert_eq!(cert.bad_signatures().count(), 0,
+                   "Bad signatures in cert\n\n{}",
+                   String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
 
-            ok = true;
-            break;
+        let vc = cert.with_policy(P, None).unwrap();
+
+        let mut ok = false;
+        for ua in vc.userids() {
+            if ua.userid().value() == b"<bob@example.org>" {
+                let certifications: Vec<_>
+                    = ua.certifications().collect();
+                assert_eq!(certifications.len(), 1);
+                let c = certifications[0];
+
+                assert_eq!(c.trust_signature(), None);
+                assert_eq!(c.regular_expressions().count(), 0);
+                assert_eq!(c.revocable().unwrap_or(true), true);
+                assert_eq!(c.exportable_certification().unwrap_or(true), true);
+                // By default, we set a duration.
+                assert!(c.signature_validity_period().is_some());
+
+                ok = true;
+                break;
+            }
         }
-    }
-    assert!(ok, "Didn't find user id");
+        assert!(ok, "Didn't find user id");
 
-    // Have alice certify <bob@example.org> for 0xB0B.
-    let cert = sq.pki_certify(
-        &["--depth", "10",
-          "--amount", "5",
-          "--regex", "a",
-          "--regex", "b",
-          "--local",
-          "--non-revocable",
-          "--expiry", "1d",
-        ],
-        &alice_pgp, &bob_pgp, "<bob@example.org>");
-    assert_eq!(cert.bad_signatures().count(), 0,
-               "Bad signatures in cert\n\n{}",
-               String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
+        // No expiry.
+        sq.tick(1);
+        let bob_pgp_new = sq.scratch_file(None);
+        let cert = sq.pki_certify(
+            &["--expiry", "never"],
+            &alice_handle, bob_pgp.last().unwrap(), "<bob@example.org>",
+            Some(&*bob_pgp_new));
+        bob_pgp.push(bob_pgp_new);
+        certification_count += 1;
+        assert_eq!(cert.bad_signatures().count(), 0,
+                   "Bad signatures in cert\n\n{}",
+                   String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
 
-    let vc = cert.with_policy(P, None).unwrap();
+        let vc = cert.with_policy(P, None).unwrap();
 
-    let mut ok = false;
-    for ua in vc.userids() {
-        if ua.userid().value() == b"<bob@example.org>" {
-            let certifications: Vec<_>
-                = ua.certifications().collect();
-            assert_eq!(certifications.len(), 1);
-            let c = certifications[0];
+        let mut ok = false;
+        for ua in vc.userids() {
+            if ua.userid().value() == b"<bob@example.org>" {
+                let certifications: Vec<_>
+                    = ua.certifications().collect();
+                assert_eq!(certifications.len(), certification_count,
+                           "Expected exactly one certification");
+                let c = certifications[0];
 
-            assert_eq!(c.trust_signature(), Some((10, 5)));
-            assert_eq!(&c.regular_expressions().collect::<Vec<_>>()[..],
-                       &[ b"a", b"b" ]);
-            assert_eq!(c.revocable(), Some(false));
-            assert_eq!(c.exportable_certification(), Some(false));
-            assert_eq!(c.signature_validity_period(),
-                       Some(Duration::new(24 * 60 * 60, 0)));
+                assert_eq!(c.trust_signature(), None);
+                assert_eq!(c.regular_expressions().count(), 0);
+                assert_eq!(c.revocable().unwrap_or(true), true);
+                assert_eq!(c.exportable_certification().unwrap_or(true), true);
+                assert!(c.signature_validity_period().is_none());
 
-            ok = true;
-            break;
+                ok = true;
+                break;
+            }
         }
-    }
-    assert!(ok, "Didn't find user id");
+        assert!(ok, "Didn't find user id");
 
-    // It should fail if the User ID doesn't exist.
-    assert!(sq.pki_certify_p(&[], &alice_pgp, &bob_pgp, "bob", false).is_err());
+        // Have alice certify <bob@example.org> for 0xB0B.
+        sq.tick(1);
+        let bob_pgp_new = sq.scratch_file(None);
+        let cert = sq.pki_certify(
+            &["--depth", "10",
+              "--amount", "5",
+              "--regex", "a",
+              "--regex", "b",
+              "--local",
+              "--non-revocable",
+              "--expiry", "1d",
+            ],
+            &alice_handle, bob_pgp.last().unwrap(), "<bob@example.org>",
+            Some(&*bob_pgp_new));
+        bob_pgp.push(bob_pgp_new);
+        certification_count += 1;
+        assert_eq!(cert.bad_signatures().count(), 0,
+                   "Bad signatures in cert\n\n{}",
+                   String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
 
-    // With a notation.
-    let cert = sq.pki_certify(
-        &[
-            "--notation", "foo", "bar",
-            "--notation", "!foo", "xyzzy",
-            "--notation", "hello@example.org", "1234567890",
-        ],
-        &alice_pgp, &bob_pgp, "<bob@example.org>");
-    assert_eq!(cert.bad_signatures().count(), 0,
-               "Bad signatures in cert\n\n{}",
-               String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
+        let vc = cert.with_policy(P, None).unwrap();
 
-    // The standard policy will reject the
-    // certification, because it has an unknown
-    // critical notation.
-    let vc = cert.with_policy(P, None).unwrap();
-    for ua in vc.userids() {
-        if ua.userid().value() == b"<bob@example.org>" {
-            assert_eq!(ua.bundle().certifications().len(), 1);
-            let certifications: Vec<_>
-                = ua.certifications().collect();
-            assert_eq!(certifications.len(), 0);
+        let mut ok = false;
+        for ua in vc.userids() {
+            if ua.userid().value() == b"<bob@example.org>" {
+                let certifications: Vec<_>
+                    = ua.certifications().collect();
+                assert_eq!(certifications.len(), certification_count);
+                let c = certifications[0];
+
+                assert_eq!(c.trust_signature(), Some((10, 5)));
+                assert_eq!(&c.regular_expressions().collect::<Vec<_>>()[..],
+                           &[ b"a", b"b" ]);
+                assert_eq!(c.revocable(), Some(false));
+                assert_eq!(c.exportable_certification(), Some(false));
+                assert_eq!(c.signature_validity_period(),
+                           Some(Duration::new(24 * 60 * 60, 0)));
+
+                ok = true;
+                break;
+            }
         }
-    }
+        assert!(ok, "Didn't find user id");
 
-    // Accept the critical notation.
-    let p = &mut StandardPolicy::new();
-    p.good_critical_notations(&["foo"]);
-    let vc = cert.with_policy(p, None).unwrap();
+        // It should fail if the User ID doesn't exist.
+        assert!(sq.pki_certify_p(
+            &[], &alice_handle, bob_pgp.last().unwrap(), "bob",
+            None, false).is_err());
 
-    let mut ok = false;
-    for ua in vc.userids() {
-        if ua.userid().value() == b"<bob@example.org>" {
-            // There should be a single signature.
-            assert_eq!(ua.bundle().certifications().len(), 1);
+        // With a notation.
+        sq.tick(1);
+        let bob_pgp_new = sq.scratch_file(None);
+        let cert = sq.pki_certify(
+            &[
+                "--notation", "foo", "bar",
+                "--notation", "!foo", "xyzzy",
+                "--notation", "hello@example.org", "1234567890",
+            ],
+            &alice_handle, bob_pgp.last().unwrap(), "<bob@example.org>",
+            Some(&*bob_pgp_new));
+        bob_pgp.push(bob_pgp_new);
+        certification_count += 1;
+        assert_eq!(cert.bad_signatures().count(), 0,
+                   "Bad signatures in cert\n\n{}",
+                   String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
 
-            let certifications: Vec<_>
-                = ua.certifications().collect();
-            assert_eq!(certifications.len(), 1);
+        // The standard policy will reject the
+        // certification, because it has an unknown
+        // critical notation.
+        let vc = cert.with_policy(P, None).unwrap();
+        for ua in vc.userids() {
+            if ua.userid().value() == b"<bob@example.org>" {
+                assert_eq!(
+                    ua.bundle().certifications().len(),
+                    certification_count);
+                let certifications: Vec<_>
+                    = ua.certifications().collect();
+                assert_eq!(
+                    certifications.len(),
+                    // Subtract the bad one.
+                    certification_count - 1);
+            }
+        }
 
-            let c = certifications[0];
+        // Accept the critical notation.
+        let p = &mut StandardPolicy::new();
+        p.good_critical_notations(&["foo"]);
+        let vc = cert.with_policy(p, None).unwrap();
 
-            assert_eq!(c.trust_signature(), None);
-            assert_eq!(c.regular_expressions().count(), 0);
-            assert_eq!(c.revocable().unwrap_or(true), true);
-            assert_eq!(c.exportable_certification().unwrap_or(true), true);
-            // By default, we set a duration.
-            assert!(c.signature_validity_period().is_some());
+        let mut ok = false;
+        for ua in vc.userids() {
+            if ua.userid().value() == b"<bob@example.org>" {
+                assert_eq!(ua.bundle().certifications().len(),
+                           certification_count);
 
-            let hr = NotationDataFlags::empty().set_human_readable();
-            let notations = &mut [
-                (NotationData::new("foo", "bar", hr.clone()), false),
-                (NotationData::new("foo", "xyzzy", hr.clone()), false),
-                (NotationData::new("hello@example.org", "1234567890", hr), false)
-            ];
+                let certifications: Vec<_>
+                    = ua.certifications().collect();
+                assert_eq!(certifications.len(), certification_count);
 
-            for n in c.notation_data() {
-                if n.name() == "salt@notations.sequoia-pgp.org" {
-                    continue;
-                }
+                let c = certifications[0];
 
-                for (m, found) in notations.iter_mut() {
-                    if n == m {
-                        assert!(!*found);
-                        *found = true;
+                assert_eq!(c.trust_signature(), None);
+                assert_eq!(c.regular_expressions().count(), 0);
+                assert_eq!(c.revocable().unwrap_or(true), true);
+                assert_eq!(c.exportable_certification().unwrap_or(true), true);
+                // By default, we set a duration.
+                assert!(c.signature_validity_period().is_some());
+
+                let hr = NotationDataFlags::empty().set_human_readable();
+                let notations = &mut [
+                    (NotationData::new("foo", "bar", hr.clone()), false),
+                    (NotationData::new("foo", "xyzzy", hr.clone()), false),
+                    (NotationData::new("hello@example.org", "1234567890", hr), false)
+                ];
+
+                for n in c.notation_data() {
+                    if n.name() == "salt@notations.sequoia-pgp.org" {
+                        continue;
+                    }
+
+                    for (m, found) in notations.iter_mut() {
+                        if n == m {
+                            assert!(!*found);
+                            *found = true;
+                        }
                     }
                 }
-            }
-            for (n, found) in notations.iter() {
-                assert!(found, "Missing: {:?}", n);
-            }
+                for (n, found) in notations.iter() {
+                    assert!(found, "Missing: {:?}", n);
+                }
 
-            ok = true;
-            break;
+                ok = true;
+                break;
+            }
         }
+        assert!(ok, "Didn't find user id");
     }
-    assert!(ok, "Didn't find user id");
-
     Ok(())
 }
 
@@ -227,37 +273,48 @@ fn sq_certify_creation_time() -> Result<()>
         = sq.key_generate(&[], &[ bob ]);
 
 
-    // Alice certifies bob's key.
-
-    let cert = sq.pki_certify(&[], &alice_pgp, &bob_pgp, bob);
-
-    assert_eq!(cert.bad_signatures().count(), 0,
-               "Bad signatures in cert\n\n{}",
-               String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
-
-    let vc = cert.with_policy(P, t)?;
-
-    assert_eq!(vc.primary_key().creation_time(), t);
-
-    let mut userid = None;
-    for u in vc.userids() {
-        if u.userid().value() == bob.as_bytes() {
-            userid = Some(u);
-            break;
+    for keystore in [false, true] {
+        if keystore {
+            sq.key_import(&alice_pgp);
         }
-    }
 
-    if let Some(userid) = userid {
-        let certifications: Vec<_> = userid.certifications().collect();
-        assert_eq!(certifications.len(), 1);
-        let certification = certifications.into_iter().next().unwrap();
+        let alice_handle: FileOrKeyHandle = if keystore {
+            alice_key.key_handle().into()
+        } else {
+            alice_pgp.clone().into()
+        };
 
-        assert_eq!(certification.get_issuers().into_iter().next(),
-                   Some(KeyHandle::from(alice_key.fingerprint())));
+        // Alice certifies bob's key.
+        let cert = sq.pki_certify(&[], &alice_handle, &bob_pgp, bob, None);
 
-        assert_eq!(certification.signature_creation_time(), Some(t));
-    } else {
-        panic!("missing user id");
+        assert_eq!(cert.bad_signatures().count(), 0,
+                   "Bad signatures in cert\n\n{}",
+                   String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
+
+        let vc = cert.with_policy(P, t)?;
+
+        assert_eq!(vc.primary_key().creation_time(), t);
+
+        let mut userid = None;
+        for u in vc.userids() {
+            if u.userid().value() == bob.as_bytes() {
+                userid = Some(u);
+                break;
+            }
+        }
+
+        if let Some(userid) = userid {
+            let certifications: Vec<_> = userid.certifications().collect();
+            assert_eq!(certifications.len(), 1);
+            let certification = certifications.into_iter().next().unwrap();
+
+            assert_eq!(certification.get_issuers().into_iter().next(),
+                       Some(KeyHandle::from(alice_key.fingerprint())));
+
+            assert_eq!(certification.signature_creation_time(), Some(t));
+        } else {
+            panic!("missing user id");
+        }
     }
 
     Ok(())
@@ -285,45 +342,57 @@ fn sq_certify_with_expired_key() -> Result<()>
     let bob = "<bob@other.org>";
     let (_bob_key, bob_pgp, _) = sq.key_generate(&[], &[ bob ]);
 
-    // Alice's expired key certifies bob's not expired key.
-    sq.tick(validity_seconds + 1);
-
-    // Make sure using an expired key fails by default.
-    assert!(sq.pki_certify_p(
-        &[], &alice_pgp, &bob_pgp, bob, false).is_err());
-
-    // Try again.
-    let cert = sq.pki_certify(
-        &["--allow-not-alive-certifier"],
-        &alice_pgp, &bob_pgp, bob);
-
-    assert_eq!(cert.bad_signatures().count(), 0,
-               "Bad signatures in cert\n\n{}",
-               String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
-
-    let vc = cert.with_policy(P, None)?;
-
-    assert!(
-        creation_time.duration_since(vc.primary_key().creation_time()).unwrap()
-            < time::Duration::new(1, 0));
-
-    let mut userid = None;
-    for u in vc.userids() {
-        if u.userid().value() == bob.as_bytes() {
-            userid = Some(u);
-            break;
+    for keystore in [false, true] {
+        if keystore {
+            sq.key_import(&alice_pgp);
         }
-    }
 
-    if let Some(userid) = userid {
-        let certifications: Vec<_> = userid.certifications().collect();
-        assert_eq!(certifications.len(), 1);
-        let certification = certifications.into_iter().next().unwrap();
+        let alice_handle: FileOrKeyHandle = if keystore {
+            alice_key.key_handle().into()
+        } else {
+            alice_pgp.clone().into()
+        };
 
-        assert_eq!(certification.get_issuers().into_iter().next(),
-                   Some(KeyHandle::from(alice_key.fingerprint())));
-    } else {
-        panic!("missing user id");
+        // Alice's expired key certifies bob's not expired key.
+        sq.tick(validity_seconds + 1);
+
+        // Make sure using an expired key fails by default.
+        assert!(sq.pki_certify_p(
+            &[], &alice_handle, &bob_pgp, bob, Some(&*bob_pgp), false).is_err());
+
+        // Try again.
+        let cert = sq.pki_certify(
+            &["--allow-not-alive-certifier"],
+            &alice_handle, &bob_pgp, bob, None);
+
+        assert_eq!(cert.bad_signatures().count(), 0,
+                   "Bad signatures in cert\n\n{}",
+                   String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
+
+        let vc = cert.with_policy(P, None)?;
+
+        assert!(
+            creation_time.duration_since(vc.primary_key().creation_time()).unwrap()
+                < time::Duration::new(1, 0));
+
+        let mut userid = None;
+        for u in vc.userids() {
+            if u.userid().value() == bob.as_bytes() {
+                userid = Some(u);
+                break;
+            }
+        }
+
+        if let Some(userid) = userid {
+            let certifications: Vec<_> = userid.certifications().collect();
+            assert_eq!(certifications.len(), 1);
+            let certification = certifications.into_iter().next().unwrap();
+
+            assert_eq!(certification.get_issuers().into_iter().next(),
+                       Some(KeyHandle::from(alice_key.fingerprint())));
+        } else {
+            panic!("missing user id");
+        }
     }
 
     Ok(())
@@ -369,44 +438,56 @@ fn sq_certify_with_revoked_key() -> Result<()>
     let (_bob_key, bob_pgp, _) = sq.key_generate(&[], &[ bob ]);
     eprintln!("Bob:\n{}", sq.inspect(&bob_pgp));
 
-    sq.tick(delta);
-
-    // Make sure using an expired key fails by default.
-    assert!(sq.pki_certify_p(
-        &[], &alice_pgp, &bob_pgp, bob, false).is_err());
-
-    // Try again.
-    let cert = sq.pki_certify(
-        &["--allow-revoked-certifier"],
-        &alice_pgp, &bob_pgp, bob);
-
-    assert_eq!(cert.bad_signatures().count(), 0,
-               "Bad signatures in cert\n\n{}",
-               String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
-
-    let vc = cert.with_policy(P, None)?;
-
-    assert!(
-        creation_time.duration_since(vc.primary_key().creation_time()).unwrap()
-            < time::Duration::new(1, 0));
-
-    let mut userid = None;
-    for u in vc.userids() {
-        if u.userid().value() == bob.as_bytes() {
-            userid = Some(u);
-            break;
+    for keystore in [false, true] {
+        if keystore {
+            sq.key_import(&alice_pgp);
         }
-    }
 
-    if let Some(userid) = userid {
-        let certifications: Vec<_> = userid.certifications().collect();
-        assert_eq!(certifications.len(), 1);
-        let certification = certifications.into_iter().next().unwrap();
+        let alice_handle: FileOrKeyHandle = if keystore {
+            alice_key.key_handle().into()
+        } else {
+            alice_pgp.clone().into()
+        };
 
-        assert_eq!(certification.get_issuers().into_iter().next(),
-                   Some(KeyHandle::from(alice_key.fingerprint())));
-    } else {
-        panic!("missing user id");
+        sq.tick(delta);
+
+        // Make sure using an expired key fails by default.
+        assert!(sq.pki_certify_p(
+            &[], &alice_handle, &bob_pgp, bob, None, false).is_err());
+
+        // Try again.
+        let cert = sq.pki_certify(
+            &["--allow-revoked-certifier"],
+            &alice_handle, &bob_pgp, bob, None);
+
+        assert_eq!(cert.bad_signatures().count(), 0,
+                   "Bad signatures in cert\n\n{}",
+                   String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
+
+        let vc = cert.with_policy(P, None)?;
+
+        assert!(
+            creation_time.duration_since(vc.primary_key().creation_time()).unwrap()
+                < time::Duration::new(1, 0));
+
+        let mut userid = None;
+        for u in vc.userids() {
+            if u.userid().value() == bob.as_bytes() {
+                userid = Some(u);
+                break;
+            }
+        }
+
+        if let Some(userid) = userid {
+            let certifications: Vec<_> = userid.certifications().collect();
+            assert_eq!(certifications.len(), 1);
+            let certification = certifications.into_iter().next().unwrap();
+
+            assert_eq!(certification.get_issuers().into_iter().next(),
+                       Some(KeyHandle::from(alice_key.fingerprint())));
+        } else {
+            panic!("missing user id");
+        }
     }
 
     Ok(())
@@ -416,38 +497,55 @@ fn sq_certify_with_revoked_key() -> Result<()>
 #[test]
 fn sq_certify_using_cert_store() -> Result<()>
 {
-    let sq = Sq::new();
+    let mut sq = Sq::new();
 
-    let (alice, alice_pgp, _alice_rev)
+    let (alice_key, alice_pgp, _alice_rev)
         = sq.key_generate(&[], &["<alice@example.org>"]);
-    let (bob, bob_pgp, _bob_rev)
+    let (bob_key, bob_pgp, _bob_rev)
         = sq.key_generate(&[], &["<bob@example.org>"]);
 
-    // Import bob's (but not alice's!).
+    // Import bob's (but not yet alice's!).
     sq.cert_import(&bob_pgp);
 
-    // Have alice certify bob.
-    let found = sq.pki_certify(
-        &[], &alice_pgp,
-        &bob.fingerprint().to_string(), "<bob@example.org>");
+    let mut certification_count = 0;
+    for keystore in [false, true] {
+        if keystore {
+            sq.key_import(&alice_pgp);
+        }
 
-    // Make sure the certificate on stdout is bob and that alice
-    // signed it.
-    assert_eq!(found.fingerprint(), bob.fingerprint());
-    assert_eq!(found.userids().count(), 1);
+        let alice_handle: FileOrKeyHandle = if keystore {
+            alice_key.key_handle().into()
+        } else {
+            alice_pgp.clone().into()
+        };
 
-    let ua = found.userids().next().expect("have one");
-    let certifications: Vec<_> = ua.certifications().collect();
-    assert_eq!(certifications.len(), 1);
-    let certification = certifications.into_iter().next().unwrap();
+        sq.tick(1);
 
-    assert_eq!(certification.get_issuers().into_iter().next(),
-               Some(KeyHandle::from(alice.fingerprint())));
-    certification.clone().verify_userid_binding(
-        alice.primary_key().key(),
-        bob.primary_key().key(),
-        &UserID::from("<bob@example.org>"))
-        .expect("valid certification");
+        // Have alice certify bob.
+        let found = sq.pki_certify(
+            &[], &alice_handle,
+            bob_key.key_handle(), "<bob@example.org>",
+            None);
+        certification_count += 1;
+
+        // Make sure the certificate on stdout is bob and that alice
+        // signed it.
+        assert_eq!(found.fingerprint(), bob_key.fingerprint());
+        assert_eq!(found.userids().count(), 1);
+
+        let ua = found.userids().next().expect("have one");
+        let certifications: Vec<_> = ua.certifications().collect();
+        assert_eq!(certifications.len(), certification_count);
+        let certification = certifications.into_iter().next().unwrap();
+
+        assert_eq!(certification.get_issuers().into_iter().next(),
+                   Some(KeyHandle::from(alice_key.fingerprint())));
+        certification.clone().verify_userid_binding(
+            alice_key.primary_key().key(),
+            bob_key.primary_key().key(),
+            &UserID::from("<bob@example.org>"))
+            .expect("valid certification");
+    }
 
     Ok(())
 }

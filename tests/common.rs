@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+use std::ffi::OsStr;
+use std::ffi::OsString;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Output;
@@ -7,6 +9,8 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 
 use anyhow::anyhow;
+use anyhow::Context;
+
 use assert_cmd::Command;
 
 use chrono::DateTime;
@@ -45,9 +49,22 @@ pub fn time_as_string(t: DateTime<Utc>) -> String {
 }
 
 /// Designates a certificate by path, or by key handle.
+#[derive(Clone, Debug)]
 pub enum FileOrKeyHandle {
     FileOrStdin(PathBuf),
-    KeyHandle(KeyHandle),
+    KeyHandle((KeyHandle, OsString)),
+}
+
+impl From<&str> for FileOrKeyHandle {
+    fn from(path: &str) -> Self {
+        PathBuf::from(path).into()
+    }
+}
+
+impl From<String> for FileOrKeyHandle {
+    fn from(path: String) -> Self {
+        PathBuf::from(path).into()
+    }
 }
 
 impl From<&Path> for FileOrKeyHandle {
@@ -70,13 +87,29 @@ impl From<PathBuf> for FileOrKeyHandle {
 
 impl From<&KeyHandle> for FileOrKeyHandle {
     fn from(kh: &KeyHandle) -> Self {
-        FileOrKeyHandle::KeyHandle(kh.clone())
+        FileOrKeyHandle::KeyHandle((kh.clone(), kh.to_string().into()))
     }
 }
 
 impl From<KeyHandle> for FileOrKeyHandle {
     fn from(kh: KeyHandle) -> Self {
-        FileOrKeyHandle::KeyHandle(kh)
+        let s = kh.to_string().into();
+        FileOrKeyHandle::KeyHandle((kh, s))
+    }
+}
+
+impl From<&FileOrKeyHandle> for FileOrKeyHandle {
+    fn from(h: &FileOrKeyHandle) -> Self {
+        h.clone()
+    }
+}
+
+impl AsRef<OsStr> for FileOrKeyHandle {
+    fn as_ref(&self) -> &OsStr {
+        match self {
+            FileOrKeyHandle::FileOrStdin(file) => file.as_os_str(),
+            FileOrKeyHandle::KeyHandle((kh, s)) => s.as_os_str(),
+        }
     }
 }
 
@@ -224,8 +257,34 @@ impl Sq {
         let output = cmd.output().expect("can run command");
         if let Some(expect) = expect.into() {
             match (output.status.success(), expect) {
-                (true, true) => (),
-                (false, false) => (),
+                (true, true) | (false, false) => {
+                    eprintln!("Exit status:");
+
+                    let dump = |id, stream| {
+                        let limit = 70;
+
+                        let data = String::from_utf8_lossy(stream)
+                            .chars()
+                            .collect::<Vec<_>>();
+
+                        if data.is_empty() {
+                            eprintln!("{}: empty", id);
+                        } else {
+                            eprintln!("{}: {}{}",
+                                      id,
+                                      data.iter().take(limit).collect::<String>(),
+                                      if data.len() > limit {
+                                          format!("... {} more bytes",
+                                                  data.len() - limit)
+                                      } else {
+                                          "".to_string()
+                                      });
+                        }
+                    };
+
+                    dump("stdout", &output.stdout);
+                    dump("stderr", &output.stderr);
+                }
                 (got, expected) => {
                     panic!(
                         "Running {:?}: {}, but should have {}:\n\
@@ -294,8 +353,8 @@ impl Sq {
             FileOrKeyHandle::FileOrStdin(path) => {
                 cmd.arg(path);
             }
-            FileOrKeyHandle::KeyHandle(kh) => {
-                cmd.args(["--cert", &kh.to_string()]);
+            FileOrKeyHandle::KeyHandle((_kh, s)) => {
+                cmd.arg("--cert").arg(&s);
             }
         };
 
@@ -332,30 +391,74 @@ impl Sq {
     }
 
     /// Try to certify the user ID binding.
-    pub fn pki_certify_p<P, Q>(&self, extra_args: &[&str],
-                               certifier: P,
-                               cert: Q,
-                               userid: &str,
-                               success: bool)
+    ///
+    /// If `output_file` is `Some`, then the output is written to that
+    /// file.  Otherwise, the default behavior is followed.
+    pub fn pki_certify_p<'a, H, C, Q>(&self, extra_args: &[&str],
+                                      certifier: H,
+                                      cert: C,
+                                      userid: &str,
+                                      output_file: Q,
+                                      success: bool)
         -> Result<Cert>
-        where P: AsRef<Path>, Q: AsRef<Path>
+    where H: Into<FileOrKeyHandle>,
+          C: Into<FileOrKeyHandle>,
+          Q: Into<Option<&'a Path>>,
     {
-        let certifier = certifier.as_ref();
-        let cert = cert.as_ref();
+        let certifier = certifier.into();
+        let cert = cert.into();
+        let output_file = output_file.into();
 
         let mut cmd = self.command();
         cmd.args([ "pki", "certify" ]);
         for arg in extra_args {
             cmd.arg(arg);
         }
-        cmd.arg("--certifier-file").arg(certifier)
-            .arg(cert).arg(userid)
-            .arg("--output").arg("-");
+        match &certifier {
+            FileOrKeyHandle::FileOrStdin(file) => {
+                cmd.arg("--certifier-file").arg(file);
+            }
+            FileOrKeyHandle::KeyHandle((_kh, s)) => {
+                cmd.arg("--certifier").arg(s);
+            }
+        }
+        cmd.arg(&cert).arg(userid);
+
+        if let Some(output_file) = output_file {
+            cmd.arg("--force").arg("--output").arg(output_file);
+        }
 
         let output = self.run(cmd, Some(success));
         if output.status.success() {
-            Ok(Cert::from_bytes(&output.stdout)
-                .expect("can parse certificate"))
+            if let Some(output_file) = output_file {
+                // The output was explicitly written to a file.
+                if output_file == &PathBuf::from("-") {
+                    Ok(Cert::from_bytes(&output.stdout)
+                       .expect("can parse certificate"))
+                } else {
+                    Ok(Cert::from_file(&output_file)
+                       .expect("can parse certificate"))
+                }
+            } else {
+                match cert {
+                    FileOrKeyHandle::FileOrStdin(_) => {
+                        // When the cert is from a file, the output is
+                        // written to stdout by default.
+                        Ok(Cert::from_bytes(&output.stdout)
+                           .with_context(|| {
+                               format!("Importing result from the file {:?}",
+                                       cert)
+                           })
+                           .expect("can parse certificate"))
+                    }
+                    FileOrKeyHandle::KeyHandle((kh, _s)) => {
+                        // When the cert is from the cert store, the
+                        // output is written to the cert store by
+                        // default.
+                        Ok(self.cert_export(kh.clone()))
+                    }
+                }
+            }
         } else {
             Err(anyhow::anyhow!(format!(
                 "Failed (expected):\n{}",
@@ -364,14 +467,18 @@ impl Sq {
     }
 
     /// Certify the user ID binding.
-    pub fn pki_certify<P, Q>(&self, extra_args: &[&str],
-                             certifier: P,
-                             cert: Q,
-                             userid: &str)
+    pub fn pki_certify<'a, H, C, Q>(&self, extra_args: &[&str],
+                                    certifier: H,
+                                    cert: C,
+                                    userid: &str,
+                                    output_file: Q)
         -> Cert
-        where P: AsRef<Path>, Q: AsRef<Path>
+    where H: Into<FileOrKeyHandle>,
+          C: Into<FileOrKeyHandle>,
+          Q: Into<Option<&'a Path>>,
     {
-        self.pki_certify_p(extra_args, certifier, cert, userid, true)
+        self.pki_certify_p(
+            extra_args, certifier, cert, userid, output_file, true)
             .expect("success")
     }
 }

@@ -1,7 +1,5 @@
 //! Command-line parser for `sq pki certify`.
 
-use std::path::PathBuf;
-
 use clap::Parser;
 
 use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION;
@@ -9,6 +7,7 @@ use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS;
 
 use crate::cli::types::ClapData;
 use crate::cli::types::Expiry;
+use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::TrustAmount;
 
@@ -202,7 +201,7 @@ pub struct Command {
         index = 1,
         help = "Create the certification using CERTIFIER-KEY.",
     )]
-    pub certifier: PathBuf,
+    pub certifier: FileOrStdin,
     #[clap(
         value_name = "KEY_ID|FINGERPRINT|FILE",
         required = true,

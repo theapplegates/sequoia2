@@ -51,6 +51,8 @@
      a file.
    - In `sq key password`, change the certificate file parameter from a
      positional parameter to a named parameter, `--cert-file`.
+   - `sq pki certify`'s certifier parameter interprets `-` as meaning
+     it should read the certificate from stdin.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

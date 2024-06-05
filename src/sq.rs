@@ -1206,11 +1206,12 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 },
             };
             for ka in keyiter {
-                let bad_ = [
+                let mut bad_ = [
                     ! allow_not_alive && matches!(ka.alive(), Err(_)),
                     ! allow_revoked && matches!(ka.revocation_status(),
                                                 RevocationStatus::Revoked(_)),
                     ! ka.pk_algo().is_supported(),
+                    false,
                 ];
                 if bad_.iter().any(|x| *x) {
                     bad.push((ka.fingerprint(), bad_));
@@ -1220,6 +1221,10 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 if let Ok((key, password)) = self.get_signer(&ka) {
                     keys.push((key, password));
                     continue 'next_cert;
+                } else {
+                    bad_[3] = true;
+                    bad.push((ka.fingerprint(), bad_));
+                    continue;
                 }
             }
 
@@ -1228,7 +1233,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             let time = chrono::DateTime::<chrono::offset::Utc>::from(self.time);
 
             let mut context = Vec::new();
-            for (fpr, [not_alive, revoked, not_supported]) in bad {
+            for (fpr, [not_alive, revoked, not_supported, no_secret_key]) in bad {
                 let id: String = if fpr == cert.fingerprint() {
                     fpr.to_string()
                 } else {
@@ -1252,6 +1257,9 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 }
                 if not_supported {
                     reasons.push("not supported");
+                }
+                if no_secret_key {
+                    reasons.push("missing the secret key");
                 }
 
                 context.push(format!("{}: {}",

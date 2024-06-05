@@ -25,8 +25,8 @@ pub fn certify(sq: Sq, c: certify::Command)
     let cert = c.certificate;
     let userid = c.userid;
 
-    let br = c.certifier.open()?;
-    let certifier = Cert::from_buffered_reader(br)?;
+    let certifier = sq.lookup_one(
+        c.certifier, Some(KeyFlags::empty().set_certification()), true)?;
     // XXX: Change this interface: it's dangerous to guess whether an
     // identifier is a file or a key handle.
     let cert = if let Ok(kh) = cert.parse::<KeyHandle>() {

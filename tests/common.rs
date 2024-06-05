@@ -3,6 +3,8 @@
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Output;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering;
 
 use anyhow::anyhow;
 use assert_cmd::Command;
@@ -100,6 +102,7 @@ pub struct Sq {
     base: TempDir,
     home: PathBuf,
     now: std::time::SystemTime,
+    scratch: AtomicUsize,
 }
 
 impl Sq {
@@ -114,6 +117,7 @@ impl Sq {
             base,
             home,
             now,
+            scratch: 0.into(),
         }
     }
 
@@ -139,6 +143,49 @@ impl Sq {
     /// Returns the home directory.
     pub fn home(&self) -> &Path {
         &self.home
+    }
+
+    /// Returns the scratch directory.
+    pub fn scratch_dir(&self) -> PathBuf {
+        let dir = self.home.join("scratch");
+        std::fs::create_dir_all(&dir)
+            .expect("can create scratch directory");
+        dir
+    }
+
+    /// Returns a new scratch file.
+    ///
+    /// The file is guaranteed to not exist, but it isn't actually
+    /// created.
+    pub fn scratch_file<'a, S>(&self, name: S) -> PathBuf
+        where S: Into<Option<&'a str>>
+    {
+        let name = name.into();
+
+        let name_;
+        let name = if let Some(name) = name {
+            name_ = name.chars()
+                .map(|c| {
+                    if c.is_ascii_alphanumeric() {
+                        c
+                    } else {
+                        '-'
+                    }
+                })
+                .collect::<String>();
+            &name_
+        } else {
+            name.unwrap_or("scratch-file")
+        };
+
+        let dir = self.scratch_dir();
+        loop {
+            let i = self.scratch.fetch_add(1, Ordering::Relaxed);
+            let file = dir.join(format!("{}-{}", i, name));
+            if ! file.exists() {
+                return file;
+            }
+        }
     }
 
     /// Returns the current time.
@@ -195,6 +242,49 @@ impl Sq {
         output
     }
 
+    /// Generates a new key.
+    ///
+    /// The certificate is not imported into the cert store or key
+    /// store, but saved in a file.
+    ///
+    /// Returns the certificate, the certificate's filename, and the
+    /// revocation certificate's filename.
+    pub fn key_generate(&self,
+                        extra_args: &[&str],
+                        userids: &[&str])
+        -> (Cert, PathBuf, PathBuf)
+    {
+        let mut cmd = self.command();
+        cmd.args([ "key", "generate" ]);
+        for arg in extra_args {
+            cmd.arg(arg);
+        }
+        if userids.is_empty() {
+            cmd.arg("--no-userids");
+        } else {
+            for userid in userids {
+                cmd.arg("--userid").arg(userid);
+            }
+        }
+
+        let cert_filename = self.scratch_file(
+            userids.get(0).map(|u| format!("{}-cert", u)).as_deref());
+        cmd.arg("--output").arg(&cert_filename);
+
+        let rev_filename = self.scratch_file(
+            userids.get(0).map(|u| format!("{}-rev", u)).as_deref());
+        cmd.arg("--rev-cert").arg(&rev_filename);
+
+        let output = self.run(cmd, Some(true));
+
+        let cert = Cert::from_file(&cert_filename)
+            .expect("can parse certificate");
+        assert!(cert.is_tsk());
+
+        (cert, cert_filename, rev_filename)
+    }
+
+    /// Run `sq inspect` and return stdout.
     pub fn inspect<H>(&self, handle: H) -> String
     where H: Into<FileOrKeyHandle>
     {
@@ -222,6 +312,15 @@ impl Sq {
         self.run(cmd, Some(true));
     }
 
+    /// Imports the specified certificate into the keystore.
+    pub fn cert_import<P>(&self, path: P)
+    where P: AsRef<Path>
+    {
+        let mut cmd = self.command();
+        cmd.arg("cert").arg("import").arg(path.as_ref());
+        self.run(cmd, Some(true));
+    }
+
     /// Exports the specified certificate.
     pub fn cert_export(&self, kh: KeyHandle) -> Cert {
         let mut cmd = self.command();
@@ -230,6 +329,50 @@ impl Sq {
 
         Cert::from_bytes(&output.stdout)
             .expect("can parse certificate")
+    }
+
+    /// Try to certify the user ID binding.
+    pub fn pki_certify_p<P, Q>(&self, extra_args: &[&str],
+                               certifier: P,
+                               cert: Q,
+                               userid: &str,
+                               success: bool)
+        -> Result<Cert>
+        where P: AsRef<Path>, Q: AsRef<Path>
+    {
+        let certifier = certifier.as_ref();
+        let cert = cert.as_ref();
+
+        let mut cmd = self.command();
+        cmd.args([ "pki", "certify" ]);
+        for arg in extra_args {
+            cmd.arg(arg);
+        }
+        cmd.arg("--certifier-file").arg(certifier)
+            .arg(cert).arg(userid)
+            .arg("--output").arg("-");
+
+        let output = self.run(cmd, Some(success));
+        if output.status.success() {
+            Ok(Cert::from_bytes(&output.stdout)
+                .expect("can parse certificate"))
+        } else {
+            Err(anyhow::anyhow!(format!(
+                "Failed (expected):\n{}",
+                String::from_utf8_lossy(&output.stderr))))
+        }
+    }
+
+    /// Certify the user ID binding.
+    pub fn pki_certify<P, Q>(&self, extra_args: &[&str],
+                             certifier: P,
+                             cert: Q,
+                             userid: &str)
+        -> Cert
+        where P: AsRef<Path>, Q: AsRef<Path>
+    {
+        self.pki_certify_p(extra_args, certifier, cert, userid, true)
+            .expect("success")
     }
 }
 

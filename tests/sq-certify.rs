@@ -44,7 +44,7 @@ fn sq_certify() -> Result<()> {
         .arg("--no-cert-store")
         .arg("--no-key-store")
         .arg("pki").arg("certify")
-        .arg(alice_pgp.to_str().unwrap())
+        .arg("--certifier-file").arg(alice_pgp.to_str().unwrap())
         .arg(bob_pgp.to_str().unwrap())
         .arg("bob@example.org")
         .assert()
@@ -84,7 +84,7 @@ fn sq_certify() -> Result<()> {
         .arg("--no-cert-store")
         .arg("--no-key-store")
         .arg("pki").arg("certify")
-        .arg(alice_pgp.to_str().unwrap())
+        .arg("--certifier-file").arg(alice_pgp.to_str().unwrap())
         .arg(bob_pgp.to_str().unwrap())
         .arg("bob@example.org")
         .args(["--expiry", "never"])
@@ -124,7 +124,7 @@ fn sq_certify() -> Result<()> {
         .arg("--no-cert-store")
         .arg("--no-key-store")
         .arg("pki").arg("certify")
-        .arg(alice_pgp.to_str().unwrap())
+        .arg("--certifier-file").arg(alice_pgp.to_str().unwrap())
         .arg(bob_pgp.to_str().unwrap())
         .arg("bob@example.org")
         .args(["--depth", "10"])
@@ -172,7 +172,7 @@ fn sq_certify() -> Result<()> {
         .arg("--no-cert-store")
         .arg("--no-key-store")
         .arg("pki").arg("certify")
-        .arg(alice_pgp.to_str().unwrap())
+        .arg("--certifier-file").arg(alice_pgp.to_str().unwrap())
         .arg(bob_pgp.to_str().unwrap())
         .arg("bob")
         .assert()
@@ -187,7 +187,7 @@ fn sq_certify() -> Result<()> {
         .args(["--notation", "foo", "bar"])
         .args(["--notation", "!foo", "xyzzy"])
         .args(["--notation", "hello@example.org", "1234567890"])
-        .arg(alice_pgp.to_str().unwrap())
+        .arg("--certifier-file").arg(alice_pgp.to_str().unwrap())
         .arg(bob_pgp.to_str().unwrap())
         .arg("bob@example.org")
         .assert()
@@ -310,7 +310,7 @@ fn sq_certify_creation_time() -> Result<()>
     cmd.args(["--no-cert-store",
               "--no-key-store",
               "pki", "certify",
-              &alice_pgp.to_string_lossy(),
+              "--certifier-file", &alice_pgp.to_string_lossy(),
               &bob_pgp.to_string_lossy(), bob,
               "--time", iso8601 ]);
 
@@ -397,7 +397,7 @@ fn sq_certify_with_expired_key() -> Result<()>
     cmd.args(["--no-cert-store",
               "--no-key-store",
               "pki", "certify",
-              &alice_pgp.to_string_lossy(),
+              "--certifier-file", &alice_pgp.to_string_lossy(),
               &bob_pgp.to_string_lossy(), bob ]);
     cmd.assert().failure();
 
@@ -408,7 +408,7 @@ fn sq_certify_with_expired_key() -> Result<()>
               "--no-key-store",
               "pki", "certify",
               "--allow-not-alive-certifier",
-              &alice_pgp.to_string_lossy(),
+              "--certifier-file", &alice_pgp.to_string_lossy(),
               &bob_pgp.to_string_lossy(), bob ]);
 
     let assertion = cmd.assert().try_success()?;
@@ -493,7 +493,7 @@ fn sq_certify_with_revoked_key() -> Result<()>
     cmd.args(["--no-cert-store",
               "--no-key-store",
               "pki", "certify",
-              &alice_pgp.to_string_lossy(),
+              "--certifier-file", &alice_pgp.to_string_lossy(),
               &bob_pgp.to_string_lossy(), bob ]);
     cmd.assert().failure();
 
@@ -504,7 +504,7 @@ fn sq_certify_with_revoked_key() -> Result<()>
               "--no-key-store",
               "pki", "certify",
               "--allow-revoked-certifier",
-              &alice_pgp.to_string_lossy(),
+              "--certifier-file", &alice_pgp.to_string_lossy(),
               &bob_pgp.to_string_lossy(), bob ]);
 
     let assertion = cmd.assert().try_success()?;
@@ -587,7 +587,7 @@ fn sq_certify_using_cert_store() -> Result<()>
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--cert-store", &certd,
               "pki", "certify",
-              &alice_pgp,
+              "--certifier-file", &alice_pgp,
               &bob.fingerprint().to_string(),
               "<bob@example.org>"]);
 

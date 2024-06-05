@@ -44,11 +44,13 @@ reference time.
 "EXAMPLES:
 
 # Juliet certifies that Romeo controls romeo.pgp and romeo@example.org
-$ sq pki certify juliet.pgp romeo.pgp '<romeo@example.org>'
+$ sq pki certify --certifier-file juliet.pgp
+  romeo.pgp '<romeo@example.org>'
 
 # Certify the User ID Ada, and set the certification time to July
 # 21, 2013 at midnight UTC:
-$ sq pki certify --time 20130721 neal.pgp ada.pgp Ada
+$ sq pki certify --time 20130721 --certifier-file neal.pgp
+  ada.pgp Ada
 ",
 )]
 pub struct Command {
@@ -196,23 +198,23 @@ pub struct Command {
     )]
     pub allow_revoked_certifier: bool,
     #[clap(
-        value_name = "CERTIFIER-KEY",
+        long,
+        value_name = "CERTIFIER-FILE",
         required = true,
-        index = 1,
         help = "Create the certification using CERTIFIER-KEY.",
     )]
-    pub certifier: FileOrStdin,
+    pub certifier_file: FileOrStdin,
     #[clap(
         value_name = "KEY_ID|FINGERPRINT|FILE",
         required = true,
-        index = 2,
+        index = 1,
         help = "Certify CERTIFICATE.",
     )]
     pub certificate: String,
     #[clap(
         value_name = "USERID",
         required = true,
-        index = 3,
+        index = 2,
         help = "Certify USERID for CERTIFICATE.",
     )]
     pub userid: String,

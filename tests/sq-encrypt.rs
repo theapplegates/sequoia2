@@ -227,7 +227,9 @@ mod integration {
         for userid in bob_certified_userids {
             let mut cmd = Command::cargo_bin("sq")?;
             cmd.args(["--cert-store", &certd,
-                      "pki", "certify", &alice_pgp, &bob_pgp, userid]);
+                      "pki", "certify",
+                      "--certifier-file", &alice_pgp,
+                      &bob_pgp, userid]);
 
             let output = cmd.output().expect("success");
             let stdout = String::from_utf8_lossy(&output.stdout);

@@ -195,7 +195,8 @@ fn sq_certify(cert_store: &str,
 {
     let mut cmd = Command::cargo_bin("sq").expect("have sq");
     cmd.args(&["--cert-store", cert_store]);
-    cmd.args(&["pki", "certify", "--time", &tick(), key, cert, userid]);
+    cmd.args(&["pki", "certify", "--time", &tick(),
+               "--certifier-file", key, cert, userid]);
     if let Some(trust_amount) = trust_amount {
         cmd.args(&["--amount", &trust_amount.to_string()[..]]);
     }

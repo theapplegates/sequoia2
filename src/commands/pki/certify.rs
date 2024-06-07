@@ -30,7 +30,7 @@ pub fn certify(sq: Sq, c: certify::Command)
     // XXX: Change this interface: it's dangerous to guess whether an
     // identifier is a file or a key handle.
     let cert = if let Ok(kh) = cert.parse::<KeyHandle>() {
-        sq.lookup_one(&kh, Some(KeyFlags::empty().set_certification()), true)?
+        sq.lookup_one(&kh, None, true)?
     } else {
         Cert::from_file(cert)?
     };

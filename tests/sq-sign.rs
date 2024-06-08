@@ -20,6 +20,9 @@ use openpgp::policy::StandardPolicy;
 use openpgp::serialize::stream::{Message, Signer, Compressor, LiteralWriter};
 use openpgp::serialize::Serialize;
 
+mod common;
+use common::Sq;
+
 const P: &StandardPolicy = &StandardPolicy::new();
 
 fn artifact(filename: &str) -> String {
@@ -1342,4 +1345,36 @@ fn sq_verify_wot() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[test]
+fn sq_sign_keyring() {
+    // Check that we can provide the secret key material via
+    // --keyring.
+
+    let sq = Sq::new();
+
+    let (_alice, alice_pgp, _alice_rev)
+        = sq.key_generate(&[], &["alice"]);
+
+    let mut alice_pub = alice_pgp.clone();
+    alice_pub.set_extension("pub");
+
+    sq.toolbox_extract_cert(&alice_pgp, Some(&*alice_pub));
+
+    // We pass the secret key material via --keyring.  This should
+    // work.
+    let mut cmd = sq.command();
+    cmd.arg("--keyring").arg(&alice_pgp)
+        .arg("sign")
+        .arg("--signer-file").arg(&alice_pub);
+
+    sq.run(cmd, Some(true));
+
+    // If we don't pass the secret key material, this should fail.
+    let mut cmd = sq.command();
+    cmd.arg("sign")
+        .arg("--signer-file").arg(&alice_pub);
+
+    sq.run(cmd, Some(false));
 }

@@ -366,6 +366,7 @@ fn main() -> Result<()> {
         cert_store_path: c.cert_store.clone(),
         pep_cert_store_path: c.pep_cert_store.clone(),
         keyrings: c.keyring.clone(),
+        keyring_tsks: Default::default(),
         cert_store: OnceCell::new(),
         trust_roots: c.trust_roots.clone(),
         trust_root_local: Default::default(),

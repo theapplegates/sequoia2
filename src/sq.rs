@@ -1,4 +1,5 @@
 use std::borrow::Borrow;
+use std::collections::BTreeMap;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -85,6 +86,10 @@ pub struct Sq<'store, 'rstore>
     pub cert_store_path: Option<PathBuf>,
     pub pep_cert_store_path: Option<PathBuf>,
     pub keyrings: Vec<PathBuf>,
+    // Map from key fingerprint to cert fingerprint and the key.
+    pub keyring_tsks: OnceCell<BTreeMap<
+            Fingerprint,
+        (Fingerprint, Key<key::PublicParts, key::UnspecifiedRole>)>>,
     // This will be set if --no-cert-store is not passed, OR --keyring
     // is passed.
     pub cert_store: OnceCell<WotStore<'store, 'rstore>>,
@@ -194,6 +199,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         };
 
         let keyring = cert_store::store::Certs::empty();
+        let mut tsks = BTreeMap::new();
         let mut error = None;
         for filename in self.keyrings.iter() {
             let f = std::fs::File::open(filename)
@@ -204,6 +210,14 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             for cert in parser {
                 match cert {
                     Ok(cert) => {
+                        for key in cert.keys() {
+                            if key.has_secret() {
+                                tsks.insert(
+                                    key.fingerprint(),
+                                    (cert.fingerprint(), key.clone()));
+                            }
+                        }
+
                         keyring.update(Arc::new(cert.into()))
                             .expect("implementation doesn't fail");
                     }
@@ -215,6 +229,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 }
             }
         }
+
+        self.keyring_tsks.set(tsks).expect("uninitialized");
 
         if let Some(err) = error {
             return Err(err).context("Parsing keyrings");
@@ -392,6 +408,23 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             anyhow::anyhow!("Operation requires a key store, \
                              but the key store is disabled")
         }))
+    }
+
+    /// Returns the secret keys found in any specified keyrings.
+    pub fn keyring_tsks(&self)
+        -> &BTreeMap<Fingerprint,
+                     (Fingerprint, Key<key::PublicParts, key::UnspecifiedRole>)>
+    {
+        if let Some(keyring_tsks) = self.keyring_tsks.get() {
+            keyring_tsks
+        } else {
+            // This also initializes keyring_tsks.
+            let _ = self.cert_store();
+
+            // If something went wrong, we just set it to an empty
+            // map.
+            self.keyring_tsks.get_or_init(|| BTreeMap::new())
+        }
     }
 
     /// Looks up an identifier.
@@ -1037,15 +1070,15 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         -> Result<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>
         where P: key::KeyParts + Clone, R: key::KeyRole + Clone
     {
-        let try_tsk = |ka: &KeyAmalgamation<_, _, R2>|
+        let try_tsk = |cert: &Cert, key: &Key<_, _>|
             -> Result<(_, _)>
         {
-            if let Some(secret) = ka.key().optional_secret() {
+            if let Some(secret) = key.optional_secret() {
                 let (unencrypted, password) = match secret {
                     SecretKeyMaterial::Encrypted(ref e) => {
                         // try passwords from already existing keys
                         match self.cached_passwords().find_map(|password| {
-                            e.decrypt(ka.pk_algo(), &password).ok()
+                            e.decrypt(key.pk_algo(), &password).ok()
                                 .map(|key| (key, password.clone()))
                         }) {
                             Some((unencrypted, password)) =>
@@ -1053,10 +1086,10 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                             None => {
                                 let password = password::prompt_to_unlock(
                                     &format!("key {}/{}",
-                                             ka.cert().keyid(),
-                                             ka.keyid()))?;
+                                             cert.keyid(),
+                                             key.keyid()))?;
 
-                                let key = e.decrypt(ka.pk_algo(), &password)
+                                let key = e.decrypt(key.pk_algo(), &password)
                                     .map_err(|_| anyhow!("Incorrect password."))?;
 
                                 self.cache_password(password.clone());
@@ -1071,7 +1104,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 Ok((
                     Box::new(
                         crypto::KeyPair::new(
-                            ka.key().clone()
+                            key.clone()
                                 .parts_into_public()
                                 .role_into_unspecified(),
                             unencrypted).unwrap()
@@ -1081,6 +1114,20 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             } else {
                 Err(anyhow!("No secret key material."))
             }
+        };
+        let try_keyrings = |cert: &Cert, key: &Key<_, _>|
+            -> Result<(_, _)>
+        {
+            let keyring_tsks = self.keyring_tsks();
+            if let Some((cert_fpr, key))
+                = keyring_tsks.get(&key.fingerprint())
+            {
+                if cert_fpr == &cert.fingerprint() {
+                    return try_tsk(cert, key);
+                }
+            }
+
+            Err(anyhow!("No secret key material."))
         };
         let try_keystore = |ka: &KeyAmalgamation<_, _, R2>|
             -> Result<(_, _)>
@@ -1140,7 +1187,11 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             Err(anyhow!("Key not managed by keystore."))
         };
 
-        if let Ok((key, password)) = try_tsk(ka) {
+        let key = ka.key().parts_as_public().role_as_unspecified();
+
+        if let Ok((key, password)) = try_tsk(ka.cert(), key) {
+            Ok((key, password))
+        } else if let Ok((key, password)) = try_keyrings(ka.cert(), key) {
             Ok((key, password))
         } else if let Ok((key, password)) = try_keystore(ka) {
             Ok((key, password))

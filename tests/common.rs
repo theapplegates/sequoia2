@@ -371,6 +371,70 @@ impl Sq {
         self.run(cmd, Some(true));
     }
 
+    /// Target is a certificate.
+    ///
+    /// `keys` is the set of keys to adopt.
+    pub fn key_adopt<P, T, K, Q>(&self,
+                                 keyrings: Vec<P>,
+                                 target: T,
+                                 keys: Vec<K>,
+                                 expire: Option<DateTime<Utc>>,
+                                 allow_broken_crypto: bool,
+                                 output_file: Q,
+                                 success: bool)
+        -> Result<Cert>
+    where
+        P: AsRef<Path>,
+        T: Into<FileOrKeyHandle>,
+        K: Into<KeyHandle>,
+        Q: AsRef<Path>,
+    {
+        let target = target.into();
+        let output_file = output_file.as_ref();
+
+        let mut cmd = self.command();
+        cmd.arg("key").arg("adopt");
+
+        for k in keyrings.into_iter() {
+            cmd.arg("--keyring").arg(k.as_ref());
+        }
+
+        cmd.arg(target);
+
+        assert!(! keys.is_empty());
+        for k in keys.into_iter() {
+            let k: KeyHandle = k.into();
+            cmd.arg("--key").arg(k.to_string());
+        }
+
+        if let Some(expire) = expire {
+            cmd.arg("--expire").arg(time_as_string(expire.into()));
+        }
+
+        if allow_broken_crypto {
+            cmd.arg("--allow-broken-crypto");
+        }
+
+        cmd.arg("--output").arg(&output_file);
+
+        let output = self.run(cmd, Some(success));
+        if output.status.success() {
+            let cert = if output_file == PathBuf::from("-") {
+                Cert::from_bytes(&output.stdout)
+                    .expect("can parse certificate")
+            } else {
+                Cert::from_file(output_file)
+                    .expect("can parse certificate")
+            };
+
+            Ok(cert)
+        } else {
+            Err(anyhow::anyhow!(format!(
+                "Failed (expected):\n{}",
+                String::from_utf8_lossy(&output.stderr))))
+        }
+    }
+
     /// Imports the specified certificate into the keystore.
     pub fn cert_import<P>(&self, path: P)
     where P: AsRef<Path>

@@ -1,17 +1,19 @@
+mod common;
+use common::Sq;
+
 #[cfg(test)]
 mod integration {
-    use std::path;
+    use super::*;
 
-    use assert_cmd::Command;
-    use predicates::prelude::*;
+    use std::path;
 
     use sequoia_openpgp as openpgp;
 
     use openpgp::Fingerprint;
+    use openpgp::KeyHandle;
     use openpgp::Result;
     use openpgp::cert::prelude::*;
     use openpgp::policy::StandardPolicy;
-    use openpgp::parse::Parse;
     use openpgp::types::KeyFlags;
 
     fn dir() -> path::PathBuf {
@@ -108,14 +110,13 @@ mod integration {
          KeyFlags::empty().set_transport_encryption().set_storage_encryption())
     }
 
-    fn check(output: &[u8],
+    fn check(cert: &Cert,
              key_count: usize,
              keys: ((Fingerprint, KeyFlags), &[(Fingerprint, KeyFlags)]))
         -> Result<()>
     {
         let p = &StandardPolicy::new();
 
-        let cert = Cert::from_bytes(output).unwrap();
         let vc = cert.with_policy(p, None).unwrap();
 
         assert_eq!(key_count, vc.keys().count());
@@ -140,203 +141,238 @@ mod integration {
 
     #[test]
     fn adopt_encryption() -> Result<()> {
-        // Adopt an encryption subkey.
-        Command::cargo_bin("sq").unwrap()
-            .arg("--no-cert-store")
-            .arg("--no-key-store")
-            .arg("key").arg("adopt")
-            .arg(bob())
-            .arg("--keyring").arg(alice())
-            .arg("--key").arg(alice_encryption().0.to_hex())
-            .assert()
-            .code(0)
-            .stdout(predicate::function(|output: &[u8]| -> bool {
-                check(output, 2, (bob_primary(), &[alice_encryption()])).is_ok()
-            }));
+        let sq = Sq::new();
+
+        // Have Bob adopt alice's encryption subkey.
+        let cert = sq.key_adopt(
+            [ alice() ].to_vec(),
+            bob(),
+            [ alice_encryption().0.clone() ].to_vec(),
+            None,
+            false,
+            "-",
+            true)
+            .unwrap();
+
+        assert!(
+            check(&cert, 2, (bob_primary(), &[alice_encryption()])).is_ok());
 
         Ok(())
     }
 
     #[test]
     fn adopt_signing() -> Result<()> {
+        let sq = Sq::new();
+
         // Adopt a signing subkey (subkey has secret key material).
-        Command::cargo_bin("sq").unwrap()
-            .arg("--no-cert-store")
-            .arg("--no-key-store")
-            .arg("key").arg("adopt")
-            .arg(bob())
-            .arg("--keyring").arg(alice())
-            .arg("--key").arg(alice_signing().0.to_hex())
-            .assert()
-            .code(0)
-            .stdout(predicate::function(|output: &[u8]| -> bool {
-                check(output, 2, (bob_primary(), &[alice_signing()])).is_ok()
-            }));
+        let cert = sq.key_adopt(
+            [ alice() ].to_vec(),
+            bob(),
+            [ alice_signing().0.clone() ].to_vec(),
+            None,
+            false,
+            "-",
+            true)
+            .unwrap();
+
+        assert!(
+            check(&cert, 2, (bob_primary(), &[alice_signing()])).is_ok());
 
         Ok(())
     }
 
     #[test]
     fn adopt_certification() -> Result<()> {
-        // Adopt a certification subkey (subkey has secret key material).
-        Command::cargo_bin("sq").unwrap()
-            .arg("--no-cert-store")
-            .arg("--no-key-store")
-            .arg("key").arg("adopt")
-            .arg(carol())
-            .arg("--keyring").arg(alice())
-            .arg("--key").arg(alice_primary().0.to_hex())
-            .assert()
-            .code(0)
-            .stdout(predicate::function(|output: &[u8]| -> bool {
-                check(output, 4, (carol_primary(), &[alice_primary()])).is_ok()
-            }));
+        let sq = Sq::new();
+
+        // Adopt a certification subkey (subkey has secret key
+        // material).
+        let cert = sq.key_adopt(
+            [ alice() ].to_vec(),
+            carol(),
+            [ alice_primary().0.clone() ].to_vec(),
+            None,
+            false,
+            "-",
+            true)
+            .unwrap();
+
+        assert!(check(&cert, 4, (carol_primary(), &[alice_primary()])).is_ok());
 
         Ok(())
     }
 
     #[test]
     fn adopt_encryption_and_signing() -> Result<()> {
+        let sq = Sq::new();
+
         // Adopt an encryption subkey and a signing subkey.
-        Command::cargo_bin("sq").unwrap()
-            .arg("--no-cert-store")
-            .arg("--no-key-store")
-            .arg("key").arg("adopt")
-            .arg(bob())
-            .arg("--keyring").arg(alice())
-            .arg("--key").arg(alice_signing().0.to_hex())
-            .arg("--key").arg(alice_encryption().0.to_hex())
-            .assert()
-            .code(0)
-            .stdout(predicate::function(|output: &[u8]| -> bool {
-                check(output, 3,
-                      (bob_primary(),
-                       &[alice_signing(), alice_encryption()]))
-                    .is_ok()
-            }));
+        let cert = sq.key_adopt(
+            [ alice() ].to_vec(),
+            bob(),
+            [
+                alice_signing().0.clone(),
+                alice_encryption().0.clone(),
+            ].to_vec(),
+            None,
+            false,
+            "-",
+            true)
+            .unwrap();
+
+        assert!(
+            check(&cert, 3,
+                  (bob_primary(),
+                   &[alice_signing(), alice_encryption()]))
+                .is_ok());
 
         Ok(())
     }
 
     #[test]
     fn adopt_twice() -> Result<()> {
+        let sq = Sq::new();
+
         // Adopt the same an encryption subkey twice.
-        Command::cargo_bin("sq").unwrap()
-            .arg("--no-cert-store")
-            .arg("--no-key-store")
-            .arg("key").arg("adopt")
-            .arg(bob())
-            .arg("--keyring").arg(alice())
-            .arg("--key").arg(alice_encryption().0.to_hex())
-            .arg("--key").arg(alice_encryption().0.to_hex())
-            .assert()
-            .code(0)
-            .stdout(predicate::function(|output: &[u8]| -> bool {
-                check(output, 2, (bob_primary(), &[alice_encryption()])).is_ok()
-            }));
+        let cert = sq.key_adopt(
+            [ alice() ].to_vec(),
+            bob(),
+            [
+                alice_encryption().0.clone(),
+                alice_encryption().0.clone(),
+            ].to_vec(),
+            None,
+            false,
+            "-",
+            true)
+            .unwrap();
+
+        assert!(
+            check(&cert, 2, (bob_primary(), &[alice_encryption()])).is_ok());
 
         Ok(())
     }
 
     #[test]
     fn adopt_key_appears_twice() -> Result<()> {
+        let sq = Sq::new();
+
         // Adopt the an encryption subkey that appears twice.
-        Command::cargo_bin("sq").unwrap()
-            .arg("--no-cert-store")
-            .arg("--no-key-store")
-            .arg("key").arg("adopt")
-            .arg(bob())
-            .arg("--keyring").arg(alice())
-            .arg("--keyring").arg(alice())
-            .arg("--key").arg(alice_encryption().0.to_hex())
-            .assert()
-            .code(0)
-            .stdout(predicate::function(|output: &[u8]| -> bool {
-                check(output, 2, (bob_primary(), &[alice_encryption()])).is_ok()
-            }));
+        let cert = sq.key_adopt(
+            [ alice(), alice(), ].to_vec(),
+            bob(),
+            [
+                alice_encryption().0.clone(),
+            ].to_vec(),
+            None,
+            false,
+            "-",
+            true)
+            .unwrap();
+
+        assert!(
+            check(&cert, 2, (bob_primary(), &[alice_encryption()])).is_ok());
 
         Ok(())
     }
 
     #[test]
     fn adopt_own_encryption() -> Result<()> {
+        let sq = Sq::new();
+
         // Adopt its own encryption subkey.  This should be a noop.
-        Command::cargo_bin("sq").unwrap()
-            .arg("--no-cert-store")
-            .arg("--no-key-store")
-            .arg("key").arg("adopt")
-            .arg(alice())
-            .arg("--keyring").arg(alice())
-            .arg("--key").arg(alice_encryption().0.to_hex())
-            .assert()
-            .code(0)
-            .stdout(predicate::function(|output: &[u8]| -> bool {
-                check(output, 3, (alice_primary(), &[alice_encryption()])).is_ok()
-            }));
+        let cert = sq.key_adopt(
+            [ alice(), ].to_vec(),
+            alice(),
+            [
+                alice_encryption().0.clone(),
+            ].to_vec(),
+            None,
+            false,
+            "-",
+            true)
+            .unwrap();
+
+        assert!(
+            check(&cert, 3, (alice_primary(), &[alice_encryption()])).is_ok());
 
         Ok(())
     }
 
     #[test]
     fn adopt_own_primary() -> Result<()> {
+        let sq = Sq::new();
+
         // Adopt own primary key.
-        Command::cargo_bin("sq").unwrap()
-            .arg("--no-cert-store")
-            .arg("--no-key-store")
-            .arg("key").arg("adopt")
-            .arg(bob())
-            .arg("--keyring").arg(bob())
-            .arg("--key").arg(bob_primary().0.to_hex())
-            .assert()
-            .code(0)
-            .stdout(predicate::function(|output: &[u8]| -> bool {
-                check(output, 2, (bob_primary(), &[bob_primary()])).is_ok()
-            }));
+        let cert = sq.key_adopt(
+            [ bob(), ].to_vec(),
+            bob(),
+            [
+                bob_primary().0.clone(),
+            ].to_vec(),
+            None,
+            false,
+            "-",
+            true)
+            .unwrap();
+
+        assert!(
+            check(&cert, 2, (bob_primary(), &[bob_primary()])).is_ok());
 
         Ok(())
     }
 
     #[test]
     fn adopt_missing() -> Result<()> {
+        let sq = Sq::new();
+
         // Adopt a key that is not present.
-        Command::cargo_bin("sq").unwrap()
-            .arg("--no-cert-store")
-            .arg("--no-key-store")
-            .arg("key").arg("adopt")
-            .arg(bob())
-            .arg("--keyring").arg(bob())
-            .arg("--key").arg("1234 5678 90AB CDEF  1234 5678 90AB CDEF")
-            .assert()
-            .code(1);
+        let r = sq.key_adopt(
+            [ bob(), ].to_vec(),
+            bob(),
+            [
+                "1234 5678 90AB CDEF  1234 5678 90AB CDEF"
+                    .parse::<KeyHandle>()
+                    .expect("valid fingerprint")
+            ].to_vec(),
+            None,
+            false,
+            "-",
+            false);
+
+        assert!(r.is_err());
 
         Ok(())
     }
 
     #[test]
     fn adopt_from_multiple() -> Result<()> {
-        // Adopt from multiple certificates simultaneously.
-        Command::cargo_bin("sq").unwrap()
-            .arg("--no-cert-store")
-            .arg("--no-key-store")
-            .arg("key").arg("adopt")
-            .arg(bob())
-            .arg("--keyring").arg(alice())
-            .arg("--key").arg(alice_signing().0.to_hex())
-            .arg("--key").arg(alice_encryption().0.to_hex())
-            .arg("--keyring").arg(carol())
-            .arg("--key").arg(carol_signing().0.to_hex())
-            .arg("--key").arg(carol_encryption().0.to_hex())
-            .assert()
-            .code(0)
-            .stdout(predicate::function(|output: &[u8]| -> bool {
-                check(output, 5,
-                      (bob_primary(),
-                       &[
-                           alice_signing(), alice_encryption(),
-                           carol_signing(), carol_encryption()
-                       ]))
-                    .is_ok()
-            }));
+        let sq = Sq::new();
+
+        // Adopt own primary key.
+        let cert = sq.key_adopt(
+            [ alice(), carol(), ].to_vec(),
+            bob(),
+            [
+                alice_signing().0.clone(),
+                alice_encryption().0.clone(),
+                carol_signing().0.clone(),
+                carol_encryption().0.clone(),
+            ].to_vec(),
+            None,
+            false,
+            "-",
+            true)
+            .unwrap();
+
+        assert!(
+            check(&cert, 5,
+                  (bob_primary(),
+                   &[
+                       alice_signing(), alice_encryption(),
+                       carol_signing(), carol_encryption()
+                   ]))
+                .is_ok());
 
         Ok(())
     }

@@ -399,7 +399,7 @@ impl Sq {
             cmd.arg("--keyring").arg(k.as_ref());
         }
 
-        cmd.arg(target);
+        cmd.arg("--cert-file").arg(target);
 
         assert!(! keys.is_empty());
         for k in keys.into_iter() {

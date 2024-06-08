@@ -56,6 +56,8 @@
    - In `sq pki certify`, change the certifier file parameter from a
      positional parameter to a named parameter, `--certifier-file`.
    - `sq pki certify` can now use the cert store and the key store.
+   - In `sq key adopt`, change the certificate file parameter from a
+     positional parameter to a named parameter, `--cert-file`.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

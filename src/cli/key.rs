@@ -1025,11 +1025,12 @@ pub struct AdoptCommand {
     )]
     pub allow_broken_crypto: bool,
     #[clap(
+        long,
         default_value_t = FileOrStdin::default(),
         value_name = "TARGET-KEY",
         help = "Add keys to TARGET-KEY or reads keys from stdin if omitted",
     )]
-    pub certificate: FileOrStdin,
+    pub cert_file: FileOrStdin,
     #[clap(
         default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,

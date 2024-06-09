@@ -22,6 +22,7 @@ use openpgp::cert::prelude::*;
 use openpgp::cert::raw::RawCertParser;
 use openpgp::packet::prelude::*;
 use openpgp::parse::Parse;
+use openpgp::policy::Policy;
 use openpgp::policy::StandardPolicy as P;
 use openpgp::types::KeyFlags;
 use openpgp::types::RevocationStatus;
@@ -451,6 +452,25 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     where I: IntoIterator,
           I::Item: Into<FileStdinOrKeyHandle>,
     {
+        self.lookup_with_policy(
+            handles, keyflags, or_by_primary, allow_ambiguous,
+            self.policy, self.time)
+    }
+
+    /// Looks up an identifier.
+    ///
+    /// Like [`Sq::lookup`], but uses an alternate policy and an
+    /// alternate reference time.
+    pub fn lookup_with_policy<'a, I>(&self, handles: I,
+                                     keyflags: Option<KeyFlags>,
+                                     or_by_primary: bool,
+                                     allow_ambiguous: bool,
+                                     policy: &dyn Policy,
+                                     time: SystemTime)
+        -> Result<Vec<Cert>>
+    where I: IntoIterator,
+          I::Item: Into<FileStdinOrKeyHandle>,
+    {
         let mut results = Vec::new();
 
         for handle in handles {
@@ -487,8 +507,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
             if let Some(keyflags) = keyflags.as_ref() {
                 certs.retain(|cert| {
-                    let vc = match cert.with_policy(
-                        self.policy, self.time)
+                    let vc = match cert.with_policy(policy, time)
                     {
                         Ok(vc) => vc,
                         Err(err) => {
@@ -548,6 +567,41 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
         Ok(results)
     }
+
+    /// Looks up a certificate.
+    ///
+    /// Like [`Sq::lookup`], but looks up a certificate, which must be
+    /// uniquely identified by `handle` and `keyflags`.
+    pub fn lookup_one<H>(&self, handle: H,
+                      keyflags: Option<KeyFlags>, or_by_primary: bool)
+        -> Result<Cert>
+    where H: Into<FileStdinOrKeyHandle>
+    {
+        self.lookup_one_with_policy(handle, keyflags, or_by_primary,
+                                    self.policy, self.time)
+    }
+
+    /// Looks up a certificate.
+    ///
+    /// Like [`Sq::lookup_one_with_policy`], but uses an alternate
+    /// policy and an alternate reference time.
+    pub fn lookup_one_with_policy<H>(&self, handle: H,
+                                     keyflags: Option<KeyFlags>,
+                                     or_by_primary: bool,
+                                     policy: &dyn Policy,
+                                     time: SystemTime)
+        -> Result<Cert>
+    where H: Into<FileStdinOrKeyHandle>
+    {
+        self.lookup_with_policy(std::iter::once(handle.into()),
+                                keyflags, or_by_primary, false,
+                                policy, time)
+            .map(|certs| {
+                assert_eq!(certs.len(), 1);
+                certs.into_iter().next().expect("have one")
+            })
+    }
+
 
     /// Looks up certificates by User ID or email address.
     ///
@@ -771,23 +825,6 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         } else {
             Ok(results)
         }
-    }
-
-
-    /// Looks up a certificate.
-    ///
-    /// Like `lookup`, but looks up a certificate, which must be
-    /// uniquely identified by `handle` and `keyflags`.
-    pub fn lookup_one<H>(&self, handle: H,
-                      keyflags: Option<KeyFlags>, or_by_primary: bool)
-        -> Result<Cert>
-    where H: Into<FileStdinOrKeyHandle>
-    {
-        self.lookup(std::iter::once(handle.into()), keyflags, or_by_primary, false)
-            .map(|certs| {
-                assert_eq!(certs.len(), 1);
-                certs.into_iter().next().expect("have one")
-            })
     }
 
     /// Returns the local trust root, creating it if necessary.

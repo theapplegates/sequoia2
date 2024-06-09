@@ -1,9 +1,6 @@
 use anyhow::Context;
 
-use itertools::Itertools;
-
 use openpgp::cert::amalgamation::ValidAmalgamation;
-use openpgp::cert::CertParser;
 use openpgp::packet::key;
 use openpgp::packet::signature::subpacket::SubpacketTag;
 use openpgp::packet::signature::SignatureBuilder;
@@ -21,132 +18,118 @@ use sequoia_openpgp as openpgp;
 
 use crate::Sq;
 use crate::cli;
-use crate::decrypt_key;
 
 pub fn adopt(sq: Sq, command: cli::key::AdoptCommand) -> Result<()>
 {
     let input = command.cert_file.open()?;
     let cert = Cert::from_buffered_reader(input)?;
-    let mut wanted: Vec<(
-        KeyHandle,
-        Option<(
-            Key<key::PublicParts, key::SubordinateRole>,
-            SignatureBuilder,
-        )>,
-    )> = command.key
-        .into_iter()
-        .map(|kh| (kh, None))
-        .collect::<Vec<_>>();
 
-    let null_policy = &openpgp::policy::NullPolicy::new();
+    let null_policy_;
     let adoptee_policy: &dyn Policy = if command.allow_broken_crypto {
-        null_policy
+        null_policy_ = openpgp::policy::NullPolicy::new();
+        &null_policy_
     } else {
         sq.policy
     };
 
     // Find the corresponding keys.
-    for keyring in sq.keyrings.iter() {
-        for cert in CertParser::from_file(&keyring)
-            .context(format!("Parsing: {}", &keyring.display()))?
-        {
-            let cert = cert.context(format!("Parsing {}", keyring.display()))?;
-
-            let vc = match cert.with_policy(adoptee_policy, None) {
-                Ok(vc) => vc,
-                Err(err) => {
-                    wprintln!(
-                        "Ignoring {} from '{}': {}",
-                        cert.keyid().to_hex(),
-                        keyring.display(),
-                        err
-                    );
-                    continue;
-                }
+    let wanted: Vec<(
+        KeyHandle,
+        Result<(
+            Cert,
+            Key<key::PublicParts, key::SubordinateRole>,
+            SignatureBuilder,
+        )>,
+    )> = command.key
+        .into_iter()
+        .map(|kh| {
+            let cert = match sq.lookup_one_with_policy(
+                kh.clone(), None, false, adoptee_policy, sq.time)
+            {
+                Ok(cert) => cert,
+                Err(err) => return (kh, Err(err)),
             };
 
-            for key in vc.keys() {
-                for (id, ref mut keyo) in wanted.iter_mut() {
-                    if id.aliases(key.key_handle()) {
-                        match keyo {
-                            Some((_, _)) =>
-                            // We already saw this key.
-                            {
-                                ()
-                            }
-                            None => {
-                                let sig = key.binding_signature();
-                                let builder: SignatureBuilder = match sig.typ()
-                                {
-                                    SignatureType::SubkeyBinding => {
-                                        sig.clone().into()
-                                    }
-                                    SignatureType::DirectKey
-                                    | SignatureType::PositiveCertification
-                                    | SignatureType::CasualCertification
-                                    | SignatureType::PersonaCertification
-                                    | SignatureType::GenericCertification => {
-                                        // Convert to a binding
-                                        // signature.
-                                        let kf = sig.key_flags().context(
-                                            "Missing required \
-                                                      subpacket, KeyFlags",
-                                        )?;
-                                        SignatureBuilder::new(
-                                            SignatureType::SubkeyBinding,
-                                        )
-                                        .set_key_flags(kf)?
-                                    }
-                                    _ => panic!(
-                                        "Unsupported binding \
-                                                 signature: {:?}",
-                                        sig
-                                    ),
-                                };
+            let vc = match cert.with_policy(adoptee_policy, sq.time) {
+                Ok(vc) => vc,
+                Err(err) => return (kh, Err(err)),
+            };
 
-                                let builder = builder
-                                    .set_signature_creation_time(sq.time)?;
+            let key = vc.keys().key_handle(kh.clone())
+                .next().expect("have key");
 
-                                *keyo = Some((
-                                    key.key().clone().role_into_subordinate(),
-                                    builder,
-                                ));
-                            }
+            let sig = key.binding_signature();
+            let builder: SignatureBuilder = match sig.typ() {
+                SignatureType::SubkeyBinding => {
+                    sig.clone().into()
+                }
+                SignatureType::DirectKey
+                    | SignatureType::PositiveCertification
+                    | SignatureType::CasualCertification
+                    | SignatureType::PersonaCertification
+                    | SignatureType::GenericCertification => {
+                        // Convert to a binding signature.
+                        let kf = match sig.key_flags().context(
+                            "Missing required subpacket, KeyFlags")
+                        {
+                            Ok(kh) => kh,
+                            Err(err) => return (kh, Err(err)),
+                        };
+                        match SignatureBuilder::new(SignatureType::SubkeyBinding)
+                            .set_key_flags(kf)
+                        {
+                            Ok(b) => b,
+                            Err(err) => return (kh, Err(err)),
                         }
                     }
-                }
-            }
-        }
-    }
+                _ => panic!("Unsupported binding signature: {:?}", sig),
+            };
 
-    // If we are missing any keys, stop now.
-    let missing: Vec<&KeyHandle> = wanted
-        .iter()
-        .filter_map(|(id, keyo)| match keyo {
-            Some(_) => None,
-            None => Some(id),
+            let builder = match builder.set_signature_creation_time(sq.time) {
+                Ok(b) => b,
+                Err(err) => return (kh, Err(err)),
+            };
+
+            let key = key.key().clone().role_into_subordinate();
+
+            (kh, Ok((cert, key, builder)))
         })
         .collect();
-    if !missing.is_empty() {
-        return Err(anyhow::anyhow!(
-            "Keys not found: {}",
-            missing.iter().map(|&h| h.to_hex()).join(", ")
-        ));
-    }
 
-    let passwords = &mut Vec::new();
+    // If we are missing any keys, stop now.
+    let mut missing = false;
+    let wanted = wanted.into_iter()
+        .filter_map(|(id, keyo)| {
+            match keyo {
+                Ok((cert, key, builder)) => Some((cert, key, builder)),
+                Err(err) => {
+                    if ! missing {
+                        eprintln!("Missing keys:");
+                    }
+
+                    eprintln!("  - {}: {}", id, err);
+
+                    missing = true;
+                    None
+                }
+            }
+        })
+        .collect::<Vec<_>>();
+    if missing {
+        return Err(anyhow::anyhow!("Missing some keys"));
+    }
 
     // Get a signer.
     let pk = cert.primary_key().key();
-    let mut pk_signer =
-        decrypt_key(pk.clone().parts_into_secret()?, passwords)?
-            .into_keypair()?;
+    let mut pk_signer = sq.get_primary_key(&cert, None)
+        .with_context(|| {
+            format!("Getting signer for {}'s primary key",
+                    cert.fingerprint())
+        })?.0;
 
     // Add the keys and signatures to cert.
     let mut packets: Vec<Packet> = vec![];
-    for (_, ka) in wanted.into_iter() {
-        let (key, mut builder) = ka.expect("Checked for missing keys above.");
-
+    for (cert, key, mut builder) in wanted.into_iter() {
         // Set key expiration.
         if let Some(e) = &command.expire {
             builder = builder.set_key_expiration_time(&key, e.timestamp())?;
@@ -160,9 +143,14 @@ pub fn adopt(sq: Sq, command: cli::key::AdoptCommand) -> Result<()>
 
         if need_backsig {
             // Derive a signer.
-            let mut subkey_signer =
-                decrypt_key(key.clone().parts_into_secret()?, passwords)?
-                    .into_keypair()?;
+            let ka = cert.keys().key_handle(key.fingerprint())
+                .next()
+                .expect("have key");
+
+            let mut subkey_signer = sq.get_signer(&ka)
+                .with_context(|| {
+                    format!("Getting signer for {}", ka.fingerprint())
+                })?.0;
 
             let backsig = builder
                 .embedded_signatures()

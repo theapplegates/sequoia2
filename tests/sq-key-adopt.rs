@@ -143,19 +143,28 @@ mod integration {
     fn adopt_encryption() -> Result<()> {
         let sq = Sq::new();
 
-        // Have Bob adopt alice's encryption subkey.
-        let cert = sq.key_adopt(
-            [ alice() ].to_vec(),
-            bob(),
-            [ alice_encryption().0.clone() ].to_vec(),
-            None,
-            false,
-            "-",
-            true)
-            .unwrap();
+        for keystore in [false, true] {
+            let keyrings = if keystore {
+                sq.key_import(alice());
+                Vec::new()
+            } else {
+                vec![ alice() ]
+            };
 
-        assert!(
-            check(&cert, 2, (bob_primary(), &[alice_encryption()])).is_ok());
+            // Have Bob adopt alice's encryption subkey.
+            let cert = sq.key_adopt(
+                keyrings,
+                bob(),
+                [ alice_encryption().0.clone() ].to_vec(),
+                None,
+                false,
+                "-",
+                true)
+                .unwrap();
+
+            assert!(
+                check(&cert, 2, (bob_primary(), &[alice_encryption()])).is_ok());
+        }
 
         Ok(())
     }
@@ -164,19 +173,28 @@ mod integration {
     fn adopt_signing() -> Result<()> {
         let sq = Sq::new();
 
-        // Adopt a signing subkey (subkey has secret key material).
-        let cert = sq.key_adopt(
-            [ alice() ].to_vec(),
-            bob(),
-            [ alice_signing().0.clone() ].to_vec(),
-            None,
-            false,
-            "-",
-            true)
-            .unwrap();
+        for keystore in [false, true] {
+            let keyrings = if keystore {
+                sq.key_import(alice());
+                Vec::new()
+            } else {
+                vec![ alice() ]
+            };
 
-        assert!(
-            check(&cert, 2, (bob_primary(), &[alice_signing()])).is_ok());
+            // Adopt a signing subkey (subkey has secret key material).
+            let cert = sq.key_adopt(
+                keyrings,
+                bob(),
+                [ alice_signing().0.clone() ].to_vec(),
+                None,
+                false,
+                "-",
+                true)
+                .unwrap();
+
+            assert!(
+                check(&cert, 2, (bob_primary(), &[alice_signing()])).is_ok());
+        }
 
         Ok(())
     }
@@ -185,19 +203,28 @@ mod integration {
     fn adopt_certification() -> Result<()> {
         let sq = Sq::new();
 
-        // Adopt a certification subkey (subkey has secret key
-        // material).
-        let cert = sq.key_adopt(
-            [ alice() ].to_vec(),
-            carol(),
-            [ alice_primary().0.clone() ].to_vec(),
-            None,
-            false,
-            "-",
-            true)
-            .unwrap();
+        for keystore in [false, true] {
+            let keyrings = if keystore {
+                sq.key_import(alice());
+                Vec::new()
+            } else {
+                vec![ alice() ]
+            };
 
-        assert!(check(&cert, 4, (carol_primary(), &[alice_primary()])).is_ok());
+            // Adopt a certification subkey (subkey has secret key
+            // material).
+            let cert = sq.key_adopt(
+                keyrings,
+                carol(),
+                [ alice_primary().0.clone() ].to_vec(),
+                None,
+                false,
+                "-",
+                true)
+                .unwrap();
+
+            assert!(check(&cert, 4, (carol_primary(), &[alice_primary()])).is_ok());
+        }
 
         Ok(())
     }
@@ -207,24 +234,33 @@ mod integration {
         let sq = Sq::new();
 
         // Adopt an encryption subkey and a signing subkey.
-        let cert = sq.key_adopt(
-            [ alice() ].to_vec(),
-            bob(),
-            [
-                alice_signing().0.clone(),
-                alice_encryption().0.clone(),
-            ].to_vec(),
-            None,
-            false,
-            "-",
-            true)
-            .unwrap();
+        for keystore in [false, true] {
+            let keyrings = if keystore {
+                sq.key_import(alice());
+                Vec::new()
+            } else {
+                vec![ alice() ]
+            };
 
-        assert!(
-            check(&cert, 3,
-                  (bob_primary(),
-                   &[alice_signing(), alice_encryption()]))
-                .is_ok());
+            let cert = sq.key_adopt(
+                keyrings,
+                bob(),
+                [
+                    alice_signing().0.clone(),
+                    alice_encryption().0.clone(),
+                ].to_vec(),
+                None,
+                false,
+                "-",
+                true)
+                .unwrap();
+
+            assert!(
+                check(&cert, 3,
+                      (bob_primary(),
+                       &[alice_signing(), alice_encryption()]))
+                    .is_ok());
+        }
 
         Ok(())
     }
@@ -233,22 +269,31 @@ mod integration {
     fn adopt_twice() -> Result<()> {
         let sq = Sq::new();
 
-        // Adopt the same an encryption subkey twice.
-        let cert = sq.key_adopt(
-            [ alice() ].to_vec(),
-            bob(),
-            [
-                alice_encryption().0.clone(),
-                alice_encryption().0.clone(),
-            ].to_vec(),
-            None,
-            false,
-            "-",
-            true)
-            .unwrap();
+        for keystore in [false, true] {
+            let keyrings = if keystore {
+                sq.key_import(alice());
+                Vec::new()
+            } else {
+                vec![ alice() ]
+            };
 
-        assert!(
-            check(&cert, 2, (bob_primary(), &[alice_encryption()])).is_ok());
+            // Adopt the same an encryption subkey twice.
+            let cert = sq.key_adopt(
+                keyrings,
+                bob(),
+                [
+                    alice_encryption().0.clone(),
+                    alice_encryption().0.clone(),
+                ].to_vec(),
+                None,
+                false,
+                "-",
+                true)
+                .unwrap();
+
+            assert!(
+                check(&cert, 2, (bob_primary(), &[alice_encryption()])).is_ok());
+        }
 
         Ok(())
     }
@@ -280,21 +325,30 @@ mod integration {
     fn adopt_own_encryption() -> Result<()> {
         let sq = Sq::new();
 
-        // Adopt its own encryption subkey.  This should be a noop.
-        let cert = sq.key_adopt(
-            [ alice(), ].to_vec(),
-            alice(),
-            [
-                alice_encryption().0.clone(),
-            ].to_vec(),
-            None,
-            false,
-            "-",
-            true)
-            .unwrap();
+        for keystore in [false, true] {
+            let keyrings = if keystore {
+                sq.key_import(alice());
+                Vec::new()
+            } else {
+                vec![ alice() ]
+            };
 
-        assert!(
-            check(&cert, 3, (alice_primary(), &[alice_encryption()])).is_ok());
+            // Adopt its own encryption subkey.  This should be a noop.
+            let cert = sq.key_adopt(
+                keyrings,
+                alice(),
+                [
+                    alice_encryption().0.clone(),
+                ].to_vec(),
+                None,
+                false,
+                "-",
+                true)
+                .unwrap();
+
+            assert!(
+                check(&cert, 3, (alice_primary(), &[alice_encryption()])).is_ok());
+        }
 
         Ok(())
     }
@@ -303,21 +357,30 @@ mod integration {
     fn adopt_own_primary() -> Result<()> {
         let sq = Sq::new();
 
-        // Adopt own primary key.
-        let cert = sq.key_adopt(
-            [ bob(), ].to_vec(),
-            bob(),
-            [
-                bob_primary().0.clone(),
-            ].to_vec(),
-            None,
-            false,
-            "-",
-            true)
-            .unwrap();
+        for keystore in [false, true] {
+            let keyrings = if keystore {
+                sq.key_import(bob());
+                Vec::new()
+            } else {
+                vec![ bob() ]
+            };
 
-        assert!(
-            check(&cert, 2, (bob_primary(), &[bob_primary()])).is_ok());
+            // Adopt own primary key.
+            let cert = sq.key_adopt(
+                keyrings,
+                bob(),
+                [
+                    bob_primary().0.clone(),
+                ].to_vec(),
+                None,
+                false,
+                "-",
+                true)
+                .unwrap();
+
+            assert!(
+                check(&cert, 2, (bob_primary(), &[bob_primary()])).is_ok());
+        }
 
         Ok(())
     }
@@ -326,21 +389,30 @@ mod integration {
     fn adopt_missing() -> Result<()> {
         let sq = Sq::new();
 
-        // Adopt a key that is not present.
-        let r = sq.key_adopt(
-            [ bob(), ].to_vec(),
-            bob(),
-            [
-                "1234 5678 90AB CDEF  1234 5678 90AB CDEF"
-                    .parse::<KeyHandle>()
-                    .expect("valid fingerprint")
-            ].to_vec(),
-            None,
-            false,
-            "-",
-            false);
+        for keystore in [false, true] {
+            let keyrings = if keystore {
+                sq.key_import(bob());
+                Vec::new()
+            } else {
+                vec![ bob() ]
+            };
 
-        assert!(r.is_err());
+            // Adopt a key that is not present.
+            let r = sq.key_adopt(
+                keyrings,
+                bob(),
+                [
+                    "1234 5678 90AB CDEF  1234 5678 90AB CDEF"
+                        .parse::<KeyHandle>()
+                        .expect("valid fingerprint")
+                ].to_vec(),
+                None,
+                false,
+                "-",
+                false);
+
+            assert!(r.is_err());
+        }
 
         Ok(())
     }
@@ -349,30 +421,40 @@ mod integration {
     fn adopt_from_multiple() -> Result<()> {
         let sq = Sq::new();
 
-        // Adopt own primary key.
-        let cert = sq.key_adopt(
-            [ alice(), carol(), ].to_vec(),
-            bob(),
-            [
-                alice_signing().0.clone(),
-                alice_encryption().0.clone(),
-                carol_signing().0.clone(),
-                carol_encryption().0.clone(),
-            ].to_vec(),
-            None,
-            false,
-            "-",
-            true)
-            .unwrap();
+        for keystore in [false, true] {
+            let keyrings = if keystore {
+                sq.key_import(alice());
+                sq.key_import(carol());
+                Vec::new()
+            } else {
+                vec![ alice(), carol() ]
+            };
 
-        assert!(
-            check(&cert, 5,
-                  (bob_primary(),
-                   &[
-                       alice_signing(), alice_encryption(),
-                       carol_signing(), carol_encryption()
-                   ]))
-                .is_ok());
+            // Adopt own primary key.
+            let cert = sq.key_adopt(
+                keyrings,
+                bob(),
+                [
+                    alice_signing().0.clone(),
+                    alice_encryption().0.clone(),
+                    carol_signing().0.clone(),
+                    carol_encryption().0.clone(),
+                ].to_vec(),
+                None,
+                false,
+                "-",
+                true)
+                .unwrap();
+
+            assert!(
+                check(&cert, 5,
+                      (bob_primary(),
+                       &[
+                           alice_signing(), alice_encryption(),
+                           carol_signing(), carol_encryption()
+                       ]))
+                    .is_ok());
+        }
 
         Ok(())
     }

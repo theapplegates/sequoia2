@@ -1,4 +1,5 @@
 mod common;
+use common::FileOrKeyHandle;
 use common::Sq;
 
 #[cfg(test)]
@@ -141,20 +142,42 @@ mod integration {
 
     #[test]
     fn adopt_encryption() -> Result<()> {
-        let sq = Sq::new();
+        for (keyrings, key_imports, handle) in [
+            (
+                // Keyrings
+                &[ alice() ][..],
+                // Key store imports.
+                &[][..],
+                // Handle
+                FileOrKeyHandle::from(bob()),
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ alice() ],
+                // Handle
+                bob().into()
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ alice(), bob() ],
+                // Handle
+                bob_primary().0.into()
+            ),
+        ] {
+            let sq = Sq::new();
 
-        for keystore in [false, true] {
-            let keyrings = if keystore {
-                sq.key_import(alice());
-                Vec::new()
-            } else {
-                vec![ alice() ]
-            };
+            for file in key_imports {
+                sq.key_import(file);
+            }
 
             // Have Bob adopt alice's encryption subkey.
             let cert = sq.key_adopt(
-                keyrings,
-                bob(),
+                keyrings.to_vec(),
+                handle,
                 [ alice_encryption().0.clone() ].to_vec(),
                 None,
                 false,
@@ -171,20 +194,42 @@ mod integration {
 
     #[test]
     fn adopt_signing() -> Result<()> {
-        let sq = Sq::new();
+        for (keyrings, key_imports, handle) in [
+            (
+                // Keyrings
+                &[ alice() ][..],
+                // Key store imports.
+                &[][..],
+                // Handle
+                FileOrKeyHandle::from(bob()),
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ alice() ],
+                // Handle
+                bob().into()
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ alice(), bob() ],
+                // Handle
+                bob_primary().0.into()
+            ),
+        ] {
+            let sq = Sq::new();
 
-        for keystore in [false, true] {
-            let keyrings = if keystore {
-                sq.key_import(alice());
-                Vec::new()
-            } else {
-                vec![ alice() ]
-            };
+            for file in key_imports {
+                sq.key_import(file);
+            }
 
             // Adopt a signing subkey (subkey has secret key material).
             let cert = sq.key_adopt(
-                keyrings,
-                bob(),
+                keyrings.to_vec(),
+                handle,
                 [ alice_signing().0.clone() ].to_vec(),
                 None,
                 false,
@@ -201,21 +246,43 @@ mod integration {
 
     #[test]
     fn adopt_certification() -> Result<()> {
-        let sq = Sq::new();
+        for (keyrings, key_imports, handle) in [
+            (
+                // Keyrings
+                &[ alice() ][..],
+                // Key store imports.
+                &[][..],
+                // Handle
+                FileOrKeyHandle::from(carol()),
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ alice() ],
+                // Handle
+                carol().into()
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ alice(), carol() ],
+                // Handle
+                carol_primary().0.into()
+            ),
+        ] {
+            let sq = Sq::new();
 
-        for keystore in [false, true] {
-            let keyrings = if keystore {
-                sq.key_import(alice());
-                Vec::new()
-            } else {
-                vec![ alice() ]
-            };
+            for file in key_imports {
+                sq.key_import(file);
+            }
 
             // Adopt a certification subkey (subkey has secret key
             // material).
             let cert = sq.key_adopt(
-                keyrings,
-                carol(),
+                keyrings.to_vec(),
+                handle,
                 [ alice_primary().0.clone() ].to_vec(),
                 None,
                 false,
@@ -231,20 +298,41 @@ mod integration {
 
     #[test]
     fn adopt_encryption_and_signing() -> Result<()> {
-        let sq = Sq::new();
+        for (keyrings, key_imports, handle) in [
+            (
+                // Keyrings
+                &[ alice() ][..],
+                // Key store imports.
+                &[][..],
+                // Handle
+                FileOrKeyHandle::from(bob()),
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ alice() ],
+                // Handle
+                bob().into()
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ alice(), bob() ],
+                // Handle
+                bob_primary().0.into()
+            ),
+        ] {
+            let sq = Sq::new();
 
-        // Adopt an encryption subkey and a signing subkey.
-        for keystore in [false, true] {
-            let keyrings = if keystore {
-                sq.key_import(alice());
-                Vec::new()
-            } else {
-                vec![ alice() ]
-            };
+            for file in key_imports {
+                sq.key_import(file);
+            }
 
             let cert = sq.key_adopt(
-                keyrings,
-                bob(),
+                keyrings.to_vec(),
+                handle,
                 [
                     alice_signing().0.clone(),
                     alice_encryption().0.clone(),
@@ -267,20 +355,42 @@ mod integration {
 
     #[test]
     fn adopt_twice() -> Result<()> {
-        let sq = Sq::new();
+        for (keyrings, key_imports, handle) in [
+            (
+                // Keyrings
+                &[ alice() ][..],
+                // Key store imports.
+                &[][..],
+                // Handle
+                FileOrKeyHandle::from(bob()),
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ alice() ],
+                // Handle
+                bob().into()
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ alice(), bob() ],
+                // Handle
+                bob_primary().0.into()
+            ),
+        ] {
+            let sq = Sq::new();
 
-        for keystore in [false, true] {
-            let keyrings = if keystore {
-                sq.key_import(alice());
-                Vec::new()
-            } else {
-                vec![ alice() ]
-            };
+            for file in key_imports {
+                sq.key_import(file);
+            }
 
             // Adopt the same an encryption subkey twice.
             let cert = sq.key_adopt(
-                keyrings,
-                bob(),
+                keyrings.to_vec(),
+                handle,
                 [
                     alice_encryption().0.clone(),
                     alice_encryption().0.clone(),
@@ -302,7 +412,7 @@ mod integration {
     fn adopt_key_appears_twice() -> Result<()> {
         let sq = Sq::new();
 
-        // Adopt the an encryption subkey that appears twice.
+        // Adopt an encryption subkey that appears twice.
         let cert = sq.key_adopt(
             [ alice(), alice(), ].to_vec(),
             bob(),
@@ -323,20 +433,42 @@ mod integration {
 
     #[test]
     fn adopt_own_encryption() -> Result<()> {
-        let sq = Sq::new();
+        for (keyrings, key_imports, handle) in [
+            (
+                // Keyrings
+                &[ alice() ][..],
+                // Key store imports.
+                &[][..],
+                // Handle
+                FileOrKeyHandle::from(alice()),
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ alice() ],
+                // Handle
+                alice().into()
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ alice(), bob() ],
+                // Handle
+                alice_primary().0.into()
+            ),
+        ] {
+            let sq = Sq::new();
 
-        for keystore in [false, true] {
-            let keyrings = if keystore {
-                sq.key_import(alice());
-                Vec::new()
-            } else {
-                vec![ alice() ]
-            };
+            for file in key_imports {
+                sq.key_import(file);
+            }
 
             // Adopt its own encryption subkey.  This should be a noop.
             let cert = sq.key_adopt(
-                keyrings,
-                alice(),
+                keyrings.to_vec(),
+                handle,
                 [
                     alice_encryption().0.clone(),
                 ].to_vec(),
@@ -355,20 +487,42 @@ mod integration {
 
     #[test]
     fn adopt_own_primary() -> Result<()> {
-        let sq = Sq::new();
+        for (keyrings, key_imports, handle) in [
+            (
+                // Keyrings
+                &[ bob() ][..],
+                // Key store imports.
+                &[][..],
+                // Handle
+                FileOrKeyHandle::from(bob()),
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ bob() ],
+                // Handle
+                bob().into()
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ bob() ],
+                // Handle
+                bob_primary().0.into()
+            ),
+        ] {
+            let sq = Sq::new();
 
-        for keystore in [false, true] {
-            let keyrings = if keystore {
-                sq.key_import(bob());
-                Vec::new()
-            } else {
-                vec![ bob() ]
-            };
+            for file in key_imports {
+                sq.key_import(file);
+            }
 
             // Adopt own primary key.
             let cert = sq.key_adopt(
-                keyrings,
-                bob(),
+                keyrings.to_vec(),
+                handle,
                 [
                     bob_primary().0.clone(),
                 ].to_vec(),
@@ -387,20 +541,50 @@ mod integration {
 
     #[test]
     fn adopt_missing() -> Result<()> {
-        let sq = Sq::new();
+        for (keyrings, key_imports, handle) in [
+            (
+                // Keyrings
+                &[ alice(), bob() ][..],
+                // Key store imports.
+                &[][..],
+                // Handle
+                FileOrKeyHandle::from(bob()),
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[][..],
+                // Handle
+                FileOrKeyHandle::from(bob()),
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ bob() ],
+                // Handle
+                bob().into()
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ bob() ],
+                // Handle
+                bob_primary().0.into()
+            ),
+        ] {
+            let sq = Sq::new();
 
-        for keystore in [false, true] {
-            let keyrings = if keystore {
-                sq.key_import(bob());
-                Vec::new()
-            } else {
-                vec![ bob() ]
-            };
+            for file in key_imports {
+                sq.key_import(file);
+            }
 
             // Adopt a key that is not present.
             let r = sq.key_adopt(
-                keyrings,
-                bob(),
+                keyrings.to_vec(),
+                handle,
                 [
                     "1234 5678 90AB CDEF  1234 5678 90AB CDEF"
                         .parse::<KeyHandle>()
@@ -419,21 +603,42 @@ mod integration {
 
     #[test]
     fn adopt_from_multiple() -> Result<()> {
-        let sq = Sq::new();
+        for (keyrings, key_imports, handle) in [
+            (
+                // Keyrings
+                &[ alice(), carol() ][..],
+                // Key store imports.
+                &[][..],
+                // Handle
+                FileOrKeyHandle::from(bob()),
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ alice(), carol() ],
+                // Handle
+                bob().into()
+            ),
+            (
+                // Keyrings
+                &[][..],
+                // Key store imports.
+                &[ alice(), bob(), carol(), ],
+                // Handle
+                bob_primary().0.into()
+            ),
+        ] {
+            let sq = Sq::new();
 
-        for keystore in [false, true] {
-            let keyrings = if keystore {
-                sq.key_import(alice());
-                sq.key_import(carol());
-                Vec::new()
-            } else {
-                vec![ alice(), carol() ]
-            };
+            for file in key_imports {
+                sq.key_import(file);
+            }
 
             // Adopt own primary key.
             let cert = sq.key_adopt(
-                keyrings,
-                bob(),
+                keyrings.to_vec(),
+                handle,
                 [
                     alice_signing().0.clone(),
                     alice_encryption().0.clone(),

@@ -21,6 +21,7 @@ use openpgp::packet::Signature;
 use openpgp::parse::Parse;
 use openpgp::policy::StandardPolicy;
 use openpgp::Cert;
+use openpgp::Fingerprint;
 use openpgp::KeyHandle;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
@@ -95,6 +96,18 @@ impl From<KeyHandle> for FileOrKeyHandle {
     fn from(kh: KeyHandle) -> Self {
         let s = kh.to_string().into();
         FileOrKeyHandle::KeyHandle((kh, s))
+    }
+}
+
+impl From<&Fingerprint> for FileOrKeyHandle {
+    fn from(fpr: &Fingerprint) -> Self {
+        KeyHandle::from(fpr).into()
+    }
+}
+
+impl From<Fingerprint> for FileOrKeyHandle {
+    fn from(fpr: Fingerprint) -> Self {
+        KeyHandle::from(fpr).into()
     }
 }
 
@@ -399,7 +412,11 @@ impl Sq {
             cmd.arg("--keyring").arg(k.as_ref());
         }
 
-        cmd.arg("--cert-file").arg(target);
+        if target.is_file() {
+            cmd.arg("--cert-file").arg(target);
+        } else {
+            cmd.arg("--cert").arg(target);
+        };
 
         assert!(! keys.is_empty());
         for k in keys.into_iter() {

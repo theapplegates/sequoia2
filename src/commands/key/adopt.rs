@@ -6,7 +6,6 @@ use openpgp::packet::signature::subpacket::SubpacketTag;
 use openpgp::packet::signature::SignatureBuilder;
 use openpgp::packet::Key;
 use openpgp::packet::Signature;
-use openpgp::parse::Parse;
 use openpgp::policy::Policy;
 use openpgp::serialize::Serialize;
 use openpgp::types::SignatureType;
@@ -18,11 +17,29 @@ use sequoia_openpgp as openpgp;
 
 use crate::Sq;
 use crate::cli;
+use crate::cli::types::FileOrStdout;
+use crate::cli::types::FileStdinOrKeyHandle;
 
-pub fn adopt(sq: Sq, command: cli::key::AdoptCommand) -> Result<()>
+pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
 {
-    let input = command.cert_file.open()?;
-    let cert = Cert::from_buffered_reader(input)?;
+    let handle: FileStdinOrKeyHandle = if let Some(file) = command.cert_file {
+        assert!(command.cert.is_none());
+        file.into()
+    } else if let Some(kh) = command.cert {
+        kh.into()
+    } else {
+        panic!("clap enforces --cert or --cert-file is set");
+    };
+
+    if handle.is_file() {
+        if command.output.is_none() {
+            // None means to write to the cert store.  When reading
+            // from a file, we want to write to stdout by default.
+            command.output = Some(FileOrStdout::new(None));
+        }
+    }
+
+    let cert = sq.lookup_one(handle, None, true)?;
 
     let null_policy_;
     let adoptee_policy: &dyn Policy = if command.allow_broken_crypto {
@@ -188,13 +205,6 @@ pub fn adopt(sq: Sq, command: cli::key::AdoptCommand) -> Result<()>
 
     let cert = cert.clone().insert_packets(packets.clone())?;
 
-    let mut sink = command.output.for_secrets().create_safe(sq.force)?;
-    if command.binary {
-        cert.as_tsk().serialize(&mut sink)?;
-    } else {
-        cert.as_tsk().armored().serialize(&mut sink)?;
-    }
-
     let vc = cert.with_policy(sq.policy, None).expect("still valid");
     for pair in packets[..].chunks(2) {
         let newkey: &Key<key::PublicParts, key::UnspecifiedRole> = match pair[0]
@@ -222,6 +232,35 @@ pub fn adopt(sq: Sq, command: cli::key::AdoptCommand) -> Result<()>
             }
         }
         assert!(found, "Subkey: {:?}\nSignature: {:?}", newkey, newsig);
+    }
+
+    if let Some(output) = command.output {
+        let mut sink = output.for_secrets().create_safe(sq.force)?;
+        if command.binary {
+            cert.as_tsk().serialize(&mut sink)?;
+        } else {
+            cert.as_tsk().armored().serialize(&mut sink)?;
+        }
+    } else {
+        // Import it into the key store.
+        let keyid = cert.keyid();
+        let result = if cert.is_tsk() {
+            sq.import_key(cert)
+        } else {
+            sq.import_cert(cert)
+        };
+        if let Err(err) = result {
+            wprintln!("Error importing updated cert: {}", err);
+            return Err(err);
+        } else {
+            sq.hint(format_args!(
+                "Imported updated cert into the cert store.  \
+                 To make the update effective, it has to be published \
+                 so that others can find it, for example using:"))
+                .command(format_args!(
+                    "sq cert export --cert {} | sq network keyserver publish",
+                    keyid));
+        }
     }
 
     Ok(())

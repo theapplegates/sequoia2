@@ -1003,6 +1003,7 @@ $ sq key adopt --keyring juliet-old.pgp --key 0123456789ABCDEF \\
      juliet-new.pgp
 ",
 )]
+#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct AdoptCommand {
     #[clap(
         short = 'k',
@@ -1026,19 +1027,23 @@ pub struct AdoptCommand {
     pub allow_broken_crypto: bool,
     #[clap(
         long,
-        default_value_t = FileOrStdin::default(),
-        value_name = "TARGET-KEY",
-        help = "Add keys to TARGET-KEY or reads keys from stdin if omitted",
+        help = "Add keys to TARGET-KEY",
+        value_name = FileOrStdin::VALUE_NAME,
     )]
-    pub cert_file: FileOrStdin,
+    pub cert: Option<KeyHandle>,
     #[clap(
-        default_value_t = FileOrStdout::default(),
+        long,
+        value_name = "TARGET-KEY",
+        help = "Add keys to TARGET-KEY",
+    )]
+    pub cert_file: Option<FileOrStdin>,
+    #[clap(
         help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
     )]
-    pub output: FileOrStdout,
+    pub output: Option<FileOrStdout>,
     #[clap(
         short = 'B',
         long,

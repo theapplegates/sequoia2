@@ -30,6 +30,7 @@ use openpgp::types::RevocationStatus;
 use sequoia_cert_store as cert_store;
 use cert_store::LazyCert;
 use cert_store::Store;
+use cert_store::store::MergePublicCollectStats;
 use cert_store::store::StoreError;
 use cert_store::store::StoreUpdate;
 use cert_store::store::UserIDQueryParams;
@@ -947,6 +948,35 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     fpr, err));
             }
         }
+
+        Ok(import_status)
+    }
+
+    /// Imports the certificate into the certificate store.
+    ///
+    /// On success, returns whether the key was imported, updated, or
+    /// unchanged.
+    pub fn import_cert(&self, cert: Cert) -> Result<ImportStatus> {
+        // Also insert the certificate into the certificate store.
+        // If we can't, we don't fail.  This allows, in
+        // particular, `sq --no-cert-store key import` to work.
+        let fpr = cert.fingerprint();
+        let cert_store = self.cert_store_or_else()?;
+
+        let stats = MergePublicCollectStats::new();
+        cert_store.update_by(Arc::new(LazyCert::from(cert)), &stats)
+            .with_context(|| {
+                format!("Failed to import {} into the certificate store",
+                        fpr)
+            })?;
+
+        let import_status = if stats.new_certs() > 0 {
+            ImportStatus::New
+        } else if stats.updated_certs() > 0 {
+            ImportStatus::Updated
+        } else {
+            ImportStatus::Unchanged
+        };
 
         Ok(import_status)
     }

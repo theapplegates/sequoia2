@@ -453,20 +453,29 @@ impl Sq {
         }
     }
 
-    pub fn key_attest_certifications<'a, P, Q>(&self,
-                                               cert: P,
+    pub fn key_attest_certifications<'a, H, Q>(&self,
+                                               cert: H,
                                                attest_all: bool,
                                                output_file: Q)
         -> Cert
-    where P: AsRef<Path>,
+    where H: Into<FileOrKeyHandle>,
           Q: Into<Option<&'a Path>>,
     {
-        let cert = cert.as_ref();
+        let cert = cert.into();
         let output_file = output_file.into();
 
         let mut cmd = self.command();
-        cmd.arg("key").arg("attest-certifications")
-            .arg("--cert-file").arg(cert);
+        cmd.arg("key").arg("attest-certifications");
+
+        match &cert {
+            FileOrKeyHandle::FileOrStdin(file) => {
+                cmd.arg("--cert-file").arg(file);
+            }
+            FileOrKeyHandle::KeyHandle((_kh, s)) => {
+                cmd.arg("--cert").arg(s);
+            }
+        }
+
         if attest_all {
             cmd.arg("--all");
         } else {
@@ -482,6 +491,10 @@ impl Sq {
             if output_file != &PathBuf::from("-") {
                 return Cert::from_file(output_file)
                     .expect("can parse certificate");
+            }
+        } else if output_file.is_none() {
+            if let FileOrKeyHandle::KeyHandle((kh, _s)) = cert {
+                return self.cert_export(kh);
             }
         }
         Cert::from_bytes(&output.stdout)

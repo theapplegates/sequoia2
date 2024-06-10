@@ -1080,6 +1080,7 @@ $ sq key attest-certifications --none --cert-file juliet.pgp
 ",
 )]
 #[clap(group(ArgGroup::new("certifications_input").args(&["all", "none"]).required(true)))]
+#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct AttestCertificationsCommand {
     #[clap(
         long = "none",
@@ -1096,17 +1097,26 @@ pub struct AttestCertificationsCommand {
     #[clap(
         long,
         value_name = "CERT",
-        help = "Change attestations on KEY or reads from stdin if omitted",
+        help = "Change attestations on the specified key",
     )]
-    pub cert_file: FileOrStdin,
+    pub cert: Option<KeyHandle>,
     #[clap(
-        default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP_OPTIONAL,
+        long,
+        value_name = "CERT_FILE",
+        help = "Change attestations on the specified key",
+    )]
+    pub cert_file: Option<FileOrStdin>,
+    #[clap(
         long,
         short,
-        value_name = FileOrStdout::VALUE_NAME,
+        value_name = FileOrCertStore::VALUE_NAME,
+        help = "Write to the specified FILE.  If not specified, and the \
+                certificate was read from the certificate store, imports the \
+                modified certificate into the cert store.  If not specified, \
+                and the certificate was read from a file, writes the modified \
+                certificate to stdout.",
     )]
-    pub output: FileOrStdout,
+    pub output: Option<FileOrStdout>,
     #[clap(
         short = 'B',
         long,

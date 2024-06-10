@@ -65,6 +65,8 @@
    - In `sq key attest-certifications`, don't make `--all` the
      default, but require the user to specify it (or `--none`)
      explicitly.
+   - `sq key attest-certifications` can now use the cert store and the
+     key store.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

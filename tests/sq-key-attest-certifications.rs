@@ -1,0 +1,69 @@
+use std::ffi::OsStr;
+use std::path::Path;
+
+mod common;
+use common::Sq;
+
+use sequoia_openpgp as openpgp;
+use openpgp::Result;
+
+#[test]
+fn attest_certifications() -> Result<()> {
+    // See https://gitlab.com/sequoia-pgp/sequoia/-/issues/1111
+    let now = std::time::SystemTime::now()
+        - std::time::Duration::new(60 * 60, 0);
+
+    let sq = Sq::at(now);
+
+    let alice_userid = "<alice@example.org>";
+    let (alice, alice_pgp, _alice_rev)
+        = sq.key_generate(&[], &["<alice@example.org>"]);
+    let (_bob, bob_pgp, _bob_rev)
+        = sq.key_generate(&[], &["<bob@example.org>"]);
+
+    // Attest the certifications.
+    //
+    // public is first merged into private.
+    let attest = |sq: &Sq, public: &Path| {
+        let priv_file = sq.scratch_file(
+            &*format!("{}-priv",
+                      public.file_name()
+                      .unwrap_or(OsStr::new(""))
+                      .to_str().unwrap_or("")));
+
+        sq.toolbox_keyring_merge(
+            vec![ public, &alice_pgp ], None,
+            &*priv_file);
+
+        let attestation_file = sq.scratch_file(
+            &*format!("{}-attestation", public.display()));
+
+        let attestation = sq.key_attest_certifications(
+            &priv_file, true, &*attestation_file);
+
+        eprintln!("{}", sq.inspect(&attestation_file));
+
+        assert_eq!(attestation.bad_signatures().count(), 0);
+
+        let attestation_ua = attestation.userids().next().unwrap();
+        assert_eq!(attestation_ua.attestations().count(), 1);
+
+    };
+
+    // Attest nothing.
+    attest(&sq, &alice_pgp);
+
+    // Have Bob certify Alice.
+    let alice2_pub_pgp = sq.scratch_file("alice2_pub");
+    let alice2 = sq.pki_certify(&[],
+                                &bob_pgp,
+                                &alice_pgp,
+                                alice_userid,
+                                &*alice2_pub_pgp);
+    assert_eq!(alice2.fingerprint(), alice.fingerprint());
+
+    // Attest Bob's certification.
+    attest(&sq, &alice2_pub_pgp);
+
+    Ok(())
+}

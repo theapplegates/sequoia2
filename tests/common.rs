@@ -21,6 +21,7 @@ use openpgp::packet::Signature;
 use openpgp::parse::Parse;
 use openpgp::policy::StandardPolicy;
 use openpgp::Cert;
+use openpgp::cert::CertParser;
 use openpgp::Fingerprint;
 use openpgp::KeyHandle;
 use openpgp::Result;
@@ -452,6 +453,40 @@ impl Sq {
         }
     }
 
+    pub fn key_attest_certifications<'a, P, Q>(&self,
+                                               cert: P,
+                                               attest_all: bool,
+                                               output_file: Q)
+        -> Cert
+    where P: AsRef<Path>,
+          Q: Into<Option<&'a Path>>,
+    {
+        let cert = cert.as_ref();
+        let output_file = output_file.into();
+
+        let mut cmd = self.command();
+        cmd.arg("key").arg("attest-certifications").arg(cert);
+        if attest_all {
+            cmd.arg("--all");
+        } else {
+            cmd.arg("--none");
+        }
+        if let Some(output_file) = output_file {
+            cmd.arg("--output").arg(output_file);
+        }
+
+        let output = self.run(cmd, Some(true));
+
+        if let Some(output_file) = output_file {
+            if output_file != &PathBuf::from("-") {
+                return Cert::from_file(output_file)
+                    .expect("can parse certificate");
+            }
+        }
+        Cert::from_bytes(&output.stdout)
+            .expect("can parse certificate")
+    }
+
     /// Imports the specified certificate into the keystore.
     pub fn cert_import<P>(&self, path: P)
     where P: AsRef<Path>
@@ -591,6 +626,53 @@ impl Sq {
         // Read from stdout.
         Cert::from_bytes(&output.stdout)
            .expect("can parse certificate")
+    }
+
+    // Merges the certificates.
+    pub fn toolbox_keyring_merge<'a, P, Q>(&self,
+                                           input_files: Vec<P>,
+                                           input_bytes: Option<&[u8]>,
+                                           output_file: Q)
+        -> Vec<Cert>
+    where P: AsRef<Path>,
+          Q: Into<Option<&'a Path>>,
+    {
+        let output_file = output_file.into();
+
+        let mut cmd = self.command();
+        cmd.args([ "toolbox", "keyring", "merge" ]);
+
+        for input_file in input_files.into_iter() {
+            cmd.arg(input_file.as_ref());
+        }
+        if let Some(input_bytes) = input_bytes {
+            cmd.arg("-");
+            cmd.write_stdin(input_bytes);
+        }
+
+        if let Some(output_file) = output_file {
+            cmd.arg("--output").arg(output_file);
+        }
+
+        let output = self.run(cmd, Some(true));
+
+        let parser = None;
+        if let Some(output_file) = output_file {
+            if PathBuf::from("-").as_path() != output_file {
+                CertParser::from_file(&output_file)
+                    .expect("can parse certificate");
+            }
+        };
+        let parser = if let Some(parser) = parser {
+            parser
+        } else {
+            // Read from stdout.
+            CertParser::from_bytes(&output.stdout)
+                .expect("can parse certificate")
+        };
+
+        parser.collect::<Result<Vec<_>>>()
+            .expect("valid certificates")
     }
 }
 

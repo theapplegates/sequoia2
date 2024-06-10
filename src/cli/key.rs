@@ -1073,12 +1073,13 @@ distributed, e.g. by uploading it to a key server.
 "EXAMPLES:
 
 # Attest to all certifications present on the key
-$ sq key attest-certifications --cert-file juliet.pgp
+$ sq key attest-certifications --all --cert-file juliet.pgp
 
 # Retract prior attestations on the key
 $ sq key attest-certifications --none --cert-file juliet.pgp
 ",
 )]
+#[clap(group(ArgGroup::new("certifications_input").args(&["all", "none"]).required(true)))]
 pub struct AttestCertificationsCommand {
     #[clap(
         long = "none",
@@ -1089,7 +1090,7 @@ pub struct AttestCertificationsCommand {
     #[clap(
         long = "all",
         conflicts_with = "none",
-        help = "Attest to all certifications [default]",
+        help = "Attest to all certifications",
     )]
     pub all: bool,
     #[clap(

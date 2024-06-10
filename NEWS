@@ -62,6 +62,9 @@
    - In `sq key attest-certifications`, change the certificate file
      parameter from a positional parameter to a named parameter,
      `--cert-file`.
+   - In `sq key attest-certifications`, don't make `--all` the
+     default, but require the user to specify it (or `--none`)
+     explicitly.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

@@ -15,7 +15,7 @@ pub fn attest_certifications(
     // Attest to all certifications?
     let all = !command.none; // All is the default.
 
-    let input = command.key.open()?;
+    let input = command.cert_file.open()?;
     let key = Cert::from_buffered_reader(input)?;
 
     // Get a signer.

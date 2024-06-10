@@ -465,7 +465,8 @@ impl Sq {
         let output_file = output_file.into();
 
         let mut cmd = self.command();
-        cmd.arg("key").arg("attest-certifications").arg(cert);
+        cmd.arg("key").arg("attest-certifications")
+            .arg("--cert-file").arg(cert);
         if attest_all {
             cmd.arg("--all");
         } else {

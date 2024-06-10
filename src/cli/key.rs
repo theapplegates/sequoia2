@@ -1073,10 +1073,10 @@ distributed, e.g. by uploading it to a key server.
 "EXAMPLES:
 
 # Attest to all certifications present on the key
-$ sq key attest-certifications juliet.pgp
+$ sq key attest-certifications --cert-file juliet.pgp
 
 # Retract prior attestations on the key
-$ sq key attest-certifications --none juliet.pgp
+$ sq key attest-certifications --none --cert-file juliet.pgp
 ",
 )]
 pub struct AttestCertificationsCommand {
@@ -1093,11 +1093,11 @@ pub struct AttestCertificationsCommand {
     )]
     pub all: bool,
     #[clap(
-        default_value_t = FileOrStdin::default(),
-        value_name = "KEY",
+        long,
+        value_name = "CERT",
         help = "Change attestations on KEY or reads from stdin if omitted",
     )]
-    pub key: FileOrStdin,
+    pub cert_file: FileOrStdin,
     #[clap(
         default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,
@@ -1112,7 +1112,6 @@ pub struct AttestCertificationsCommand {
         help = "Emit binary data",
     )]
     pub binary: bool,
-
 }
 
 #[derive(Debug, Subcommand)]

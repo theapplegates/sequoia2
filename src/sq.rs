@@ -897,7 +897,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     pub fn import_key(&self, cert: Cert) -> Result<ImportStatus> {
         if ! cert.is_tsk() {
             return Err(anyhow::anyhow!(
-                "Certificate does not contain any secret key material"));
+                "Nothing to import: certificate does not contain \
+                 any secret key material"));
         }
 
         let keystore = self.key_store_or_else()?;

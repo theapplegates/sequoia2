@@ -162,21 +162,20 @@ test_examples!(sq_key_generate, GENERATE_EXAMPLES);
     long_about = format!(
 "Generate a new key
 
-Generating a key is the prerequisite to receiving encrypted messages
-and creating signatures.  There are a few parameters to this process,
+Generating a key is the prerequisite to receiving encrypted messages \
+and creating signatures.  There are a few parameters to this process, \
 but we provide reasonable defaults for most users.
 
-When generating a key, we also generate a revocation certificate.
-This can be used in case the key is superseded, lost, or compromised.
-This is saved alongside the key.
+When generating a key, we also generate an emergency revocation \
+certificate. This can be used in case the key is lost or compromised.  \
+It is saved alongside the key.  This can be changed using the \
+`--rev-cert` argument.
 
-By default a key expires after {} years.
-Using the `--expiry=` argument specific validity periods may be defined.
-It allows for providing a point in time for validity to end or a validity
-duration.
+By default a key expires after {} years.  This can be changed using \
+the `--expiry` argument.
 
-`sq key generate` respects the reference time set by the top-level
-`--time` argument.  It sets the creation time of the key, any
+`sq key generate` respects the reference time set by the top-level \
+`--time` argument.  It sets the creation time of the primary key, any \
 subkeys, and the binding signatures to the reference time.
 ",
         KEY_VALIDITY_IN_YEARS,
@@ -191,16 +190,19 @@ pub struct GenerateCommand {
     #[clap(
         short = 'u',
         long = "userid",
-        value_name = "EMAIL",
+        value_name = "USERID",
         help = "Add a user ID to the key"
     )]
     pub userid: Vec<UserID>,
     #[clap(
         long = "allow-non-canonical-userids",
         help = "Don't reject user IDs that are not in canonical form",
-        long_help = "Don't reject user IDs that are not in canonical form.  \
-                Canonical user IDs are of the form \
-                `Name (Comment) <localpart@example.org>`.",
+        long_help = "\
+Don't reject user IDs that are not in canonical form.
+
+Canonical user IDs are of the form `Name (Comment) \
+<localpart@example.org>`.",
+
     )]
     pub allow_non_canonical_userids: bool,
     #[clap(
@@ -220,7 +222,7 @@ pub struct GenerateCommand {
     pub cipher_suite: CipherSuite,
     #[clap(
         long = "with-password",
-        help = "Protect the key with a password",
+        help = "Protect the secret key material with a password",
     )]
     pub with_password: bool,
     #[clap(
@@ -228,17 +230,19 @@ pub struct GenerateCommand {
         value_name = "EXPIRY",
         default_value_t = Expiry::Duration(KEY_VALIDITY_DURATION),
         help =
-            "Define EXPIRY for the key as ISO 8601 formatted string or \
-            custom duration.",
-        long_help =
-            "Define EXPIRY for the key as ISO 8601 formatted string or \
-            custom duration. \
-            If an ISO 8601 formatted string is provided, the validity period \
-            reaches from the reference time (may be set using `--time`) to \
-            the provided time. \
-            Custom durations starting from the reference time may be set using \
-            `N[ymwds]`, for N years, months, weeks, days, or seconds. \
-            The special keyword `never` sets an unlimited expiry.",
+            "Sets the certificate's expiration time",
+        long_help = "\
+Sets the certificate's expiration time.
+
+EXPIRY is either an ISO 8601 formatted string or a custom duration, \
+which takes the form `N[ymwds]`, where the letters stand for years, \
+months, weeks, days, and seconds, respectively.  Alternatively, the \
+keyword `never` does not set an expiration time.
+
+When using an ISO 8601 formatted string, the validity period is from \
+the certificate's creation time to the specified time.  When using a \
+duration, the validity period is from the certificate's creation time \
+for the specified duration.",
     )]
     pub expiry: Expiry,
     #[clap(
@@ -248,7 +252,7 @@ pub struct GenerateCommand {
     pub can_sign: bool,
     #[clap(
         long = "cannot-sign",
-        help = "Add no signing-capable subkey",
+        help = "Don't add a signing-capable subkey",
     )]
     pub cannot_sign: bool,
     #[clap(
@@ -258,42 +262,66 @@ pub struct GenerateCommand {
     pub can_authenticate: bool,
     #[clap(
         long = "cannot-authenticate",
-        help = "Add no authentication-capable subkey",
+        help = "Don't add an authentication-capable subkey",
     )]
     pub cannot_authenticate: bool,
     #[clap(
         long = "can-encrypt",
         value_name = "PURPOSE",
         help = "Add an encryption-capable subkey [default: universal]",
-        long_help =
-            "Add an encryption-capable subkey. \
-            Encryption-capable subkeys can be marked as \
-            suitable for transport encryption, storage \
-            encryption, or both, i.e., universal. \
-            [default: universal]",
+        long_help = "\
+Add an encryption-capable subkey.
+
+Encryption-capable subkeys can be marked as suitable for transport \
+encryption, storage encryption, or both, i.e., universal.  [default: \
+universal]",
         value_enum,
     )]
     pub can_encrypt: Option<EncryptPurpose>,
     #[clap(
         long = "cannot-encrypt",
-        help = "Add no encryption-capable subkey",
+        help = "Don't add an encryption-capable subkey",
     )]
     pub cannot_encrypt: bool,
     #[clap(
-        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
+        help = "Write the key to the specified file",
+        long_help = "\
+Write the key to the specified file.
+
+When not specified, the key is saved on the key store.",
     )]
     pub output: Option<FileOrStdout>,
     #[clap(
         long = "rev-cert",
-        value_name = "FILE or -",
-        help = "Write the revocation certificate to FILE",
-        long_help =
-            "Write the revocation certificate to FILE. \
-            mandatory if OUTFILE is `-` or not specified. \
-            [default: <OUTFILE>.rev]",
+        value_name = "FILE",
+        help = "Write the emergency revocation certificate to FILE",
+        long_help = format!("\
+Write the emergency revocation certificate to FILE.
+
+When the key is stored on the key store, the revocation certificate is \
+stored in {} by default.
+
+When `--output` is specified, the revocation certificate is written to \
+`FILE.rev` by default.
+
+If `--output` is `-`, then this option must be provided.",
+            sequoia_directories::Home::default()
+            .map(|home| {
+                let p = home.data_dir(sequoia_directories::Component::Other(
+                    "revocation-certificates".into()));
+                let p = p.display().to_string();
+                if let Some(home) = dirs::home_dir() {
+                    let home = home.display().to_string();
+                    if let Some(rest) = p.strip_prefix(&home) {
+                        return format!("$HOME{}", rest);
+                    }
+                }
+                p
+            })
+            .unwrap_or("<unknown>".to_string()))
     )]
     pub rev_cert: Option<PathBuf>
 }

@@ -799,7 +799,21 @@ impl Display for Expiry {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
             Expiry::Timestamp(time) => write!(f, "{}", time),
-            Expiry::Duration(duration) => write!(f, "{:?}", duration),
+            Expiry::Duration(duration) => {
+                let seconds = duration.as_secs();
+
+                if seconds % SECONDS_IN_YEAR == 0 {
+                    write!(f, "{}y", seconds / SECONDS_IN_YEAR)
+                } else if seconds % (SECONDS_IN_YEAR / 12) == 0 {
+                    write!(f, "{}m", seconds / (SECONDS_IN_YEAR / 12))
+                } else if seconds % (SECONDS_IN_DAY * 7) == 0 {
+                    write!(f, "{}w", seconds / (SECONDS_IN_DAY * 7))
+                } else if seconds % SECONDS_IN_DAY == 0 {
+                    write!(f, "{}d", seconds / SECONDS_IN_DAY)
+                } else {
+                    write!(f, "{}s", seconds)
+                }
+            },
             Expiry::Never => write!(f, "never"),
         }
     }

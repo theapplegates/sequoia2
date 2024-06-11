@@ -124,6 +124,38 @@ test_examples!(sq_key_list, LIST_EXAMPLES);
 pub struct ListCommand {
 }
 
+const GENERATE_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Generate a key, and save it on the key store.",
+            command: &[
+                "sq", "key", "generate",
+                "--userid", "Alice <alice@example.org>",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Generate a key, and save it in a file instead of in the key store.",
+            command: &[
+                "sq", "key", "generate",
+                "--userid", "Alice <alice@example.org>",
+                "--output", "alice-priv.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Strip the secret key material from the new key.",
+            command: &[
+                "sq", "toolbox", "extract-cert",
+                "alice-priv.pgp",
+                "--output", "alice.pgp",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_key_generate, GENERATE_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     about = "Generate a new key",
@@ -149,27 +181,7 @@ subkeys, and the binding signatures to the reference time.
 ",
         KEY_VALIDITY_IN_YEARS,
     ),
-    after_help =
-"EXAMPLES:
-
-# Generate a key
-$ sq key generate --userid '<juliet@example.org>'
-
-# Generate a key protecting it with a password
-$ sq key generate --userid '<juliet@example.org>' \\
-  --with-password
-
-# Generate a key whose creation time is June 9, 2011 at midnight UTC
-$ sq key generate --time 20110609 --userid Noam \\
-  --output noam.pgp
-
-# Generate a key, and save it in a file instead of in the key store.
-$ sq key generate --userid '<juliet@example.org>' \\
-  --output juliet-secret.key
-
-# Then, extract the certificate for distribution
-$ sq toolbox extract-cert --output juliet-secret.pgp
-",
+    after_help = GENERATE_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cap-sign").args(&["can_sign", "cannot_sign"])))]
 #[clap(group(ArgGroup::new("cap-authenticate").args(&["can_authenticate", "cannot_authenticate"])))]

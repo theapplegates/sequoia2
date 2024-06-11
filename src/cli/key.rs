@@ -8,7 +8,7 @@ use sequoia_openpgp as openpgp;
 use openpgp::cert::CipherSuite as SqCipherSuite;
 use openpgp::KeyHandle;
 use openpgp::packet::UserID;
-use openpgp::types::ReasonForRevocation as OpenPGPRevocationReason;
+use openpgp::types::ReasonForRevocation;
 
 use crate::cli::KEY_VALIDITY_DURATION;
 use crate::cli::KEY_VALIDITY_IN_YEARS;
@@ -29,20 +29,20 @@ pub mod expire;
 
 /// The revocation reason for a certificate or subkey
 #[derive(ValueEnum, Clone, Debug)]
-pub enum RevocationReason {
+pub enum KeyReasonForRevocation {
     Compromised,
     Superseded,
     Retired,
     Unspecified
 }
 
-impl From<RevocationReason> for OpenPGPRevocationReason {
-    fn from(rr: RevocationReason) -> Self {
+impl From<KeyReasonForRevocation> for ReasonForRevocation {
+    fn from(rr: KeyReasonForRevocation) -> Self {
         match rr {
-            RevocationReason::Compromised => OpenPGPRevocationReason::KeyCompromised,
-            RevocationReason::Superseded => OpenPGPRevocationReason::KeySuperseded,
-            RevocationReason::Retired => OpenPGPRevocationReason::KeyRetired,
-            RevocationReason::Unspecified => OpenPGPRevocationReason::Unspecified,
+            KeyReasonForRevocation::Compromised => ReasonForRevocation::KeyCompromised,
+            KeyReasonForRevocation::Superseded => ReasonForRevocation::KeySuperseded,
+            KeyReasonForRevocation::Retired => ReasonForRevocation::KeyRetired,
+            KeyReasonForRevocation::Unspecified => ReasonForRevocation::Unspecified,
         }
     }
 }
@@ -54,11 +54,11 @@ pub enum UseridRevocationReason {
     Unspecified
 }
 
-impl From<UseridRevocationReason> for OpenPGPRevocationReason {
+impl From<UseridRevocationReason> for ReasonForRevocation {
     fn from(rr: UseridRevocationReason) -> Self {
         match rr {
-            UseridRevocationReason::Retired => OpenPGPRevocationReason::UIDRetired,
-            UseridRevocationReason::Unspecified => OpenPGPRevocationReason::Unspecified,
+            UseridRevocationReason::Retired => ReasonForRevocation::UIDRetired,
+            UseridRevocationReason::Unspecified => ReasonForRevocation::Unspecified,
         }
     }
 }
@@ -651,7 +651,7 @@ accurately reason about objects whose validity depends on the validity
 of the certificate.",
     value_enum,
     )]
-    pub reason: RevocationReason,
+    pub reason: KeyReasonForRevocation,
 
     #[clap(
         value_name = "MESSAGE",
@@ -1542,7 +1542,7 @@ accurately reason about objects whose validity depends on the validity
 of the certificate.",
     value_enum,
     )]
-    pub reason: RevocationReason,
+    pub reason: KeyReasonForRevocation,
 
     #[clap(
         value_name = "MESSAGE",

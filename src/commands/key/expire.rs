@@ -17,6 +17,6 @@ pub fn dispatch(sq: Sq, command: cli::key::expire::Command)
         panic!("clap enforces --cert or --cert-file is set");
     };
 
-    expire(sq, handle, &[], command.expiry,
+    expire(sq, handle, &[], command.expiration,
            command.output, command.binary)
 }

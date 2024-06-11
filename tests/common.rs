@@ -715,7 +715,7 @@ pub fn sq_key_generate(
         "generate",
         "--time",
         &time.format("%Y-%m-%dT%H:%M:%SZ").to_string(),
-        "--expiry",
+        "--expiration",
         "never",
         "--output",
         &*path.to_string_lossy(),

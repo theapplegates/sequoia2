@@ -7,7 +7,7 @@ use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
 use crate::cli::types::ClapData;
-use crate::cli::types::Expiry;
+use crate::cli::types::Expiration;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 
@@ -67,12 +67,12 @@ pub struct Command {
     pub binary: bool,
 
     #[clap(
-        value_name = "EXPIRY",
+        value_name = "EXPIRATION",
         help =
-            "Define EXPIRY for the key as ISO 8601 formatted string or \
+            "Define EXPIRATION for the key as ISO 8601 formatted string or \
             custom duration.",
         long_help =
-            "Define EXPIRY for the key as ISO 8601 formatted string or \
+            "Define EXPIRATION for the key as ISO 8601 formatted string or \
             custom duration. \
             If an ISO 8601 formatted string is provided, the validity period \
             reaches from the reference time (may be set using `--time`) to \
@@ -81,7 +81,7 @@ pub struct Command {
             `N[ymwds]`, for N years, months, weeks, days, or seconds. \
             The special keyword `never` sets an unlimited expiry.",
     )]
-    pub expiry: Expiry,
+    pub expiration: Expiration,
 
     #[clap(
         long,

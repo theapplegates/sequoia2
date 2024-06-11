@@ -47,7 +47,7 @@ pub fn generate(
     // Expiration.
     builder = builder.set_validity_period(
         command
-        .expiry
+        .expiration
         .as_duration(DateTime::<Utc>::from(sq.time))?
     );
 

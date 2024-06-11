@@ -652,13 +652,13 @@ impl Default for MetadataTime {
     }
 }
 
-/// Expiry information
+/// Expiration information
 ///
 /// This enum tracks expiry information either in the form of a timestamp or
 /// a duration.
 #[derive(Debug, Clone, Eq, PartialEq)]
 #[non_exhaustive]
-pub enum Expiry {
+pub enum Expiration {
     /// An expiry timestamp
     Timestamp(Time),
     /// A validity duration
@@ -667,28 +667,28 @@ pub enum Expiry {
     Never,
 }
 
-impl Expiry {
-    /// Create a new Expiry in a Result
+impl Expiration {
+    /// Create a new Expiration in a Result
     ///
     /// If `expiry` ends with `"y"`, `"m"`, `"w"`, `"w"`, `"d"` or `"s"` it
     /// is treated as a duration, which is parsed using `parse_duration()` and
-    /// returned in an `Expiry::Duration`.
+    /// returned in an `Expiration::Duration`.
     /// If the special keyword `"never"` is provided as `expiry`,
-    /// `Expiry::Never` is returned.
+    /// `Expiration::Never` is returned.
     /// If `expiry` is an ISO 8601 compatible string it is returned as
-    /// `cli::types::Time` in an `Expiry::Timestamp`.
+    /// `cli::types::Time` in an `Expiration::Timestamp`.
     pub fn new(expiry: &str) -> Result<Self> {
         match expiry {
-            "never" => Ok(Expiry::Never),
+            "never" => Ok(Expiration::Never),
             _ if expiry.ends_with("y")
                 || expiry.ends_with("m")
                 || expiry.ends_with("w")
                 || expiry.ends_with("d")
                 || expiry.ends_with("s") =>
             {
-                Ok(Expiry::Duration(Expiry::parse_duration(expiry)?))
+                Ok(Expiration::Duration(Expiration::parse_duration(expiry)?))
             }
-            _ => Ok(Expiry::Timestamp(Time::from_str(expiry)?)),
+            _ => Ok(Expiration::Timestamp(Time::from_str(expiry)?)),
         }
     }
 
@@ -700,7 +700,7 @@ impl Expiry {
     fn parse_duration(expiry: &str) -> Result<Duration> {
         if expiry.len() < 2 {
             return Err(anyhow::anyhow!(
-                "Expiry must contain at least one digit and one factor."
+                "Expiration must contain at least one digit and one factor."
             ));
         }
 
@@ -717,7 +717,7 @@ impl Expiry {
                     }
                     Ok(count) => count as u64,
                     Err(err) => return Err(err).context(
-                        format!("Expiry '{}' is out of range", digits)
+                        format!("Expiration '{}' is out of range", digits)
                     ),
                 } * match expiry.chars().last() {
                     Some('y') => SECONDS_IN_YEAR,
@@ -726,7 +726,7 @@ impl Expiry {
                     Some('d') => SECONDS_IN_DAY,
                     Some('s') => 1,
                     _ => unreachable!(
-                        "Expiry without 'y', 'm', 'w', 'd' or 's' \
+                        "Expiration without 'y', 'm', 'w', 'd' or 's' \
                                 suffix impossible since checked for it."
                     ),
                 },
@@ -756,50 +756,50 @@ impl Expiry {
     /// Return the expiry as an optional Duration in a Result
     ///
     /// This method returns an Error if the reference time is later than the
-    /// time provided in an `Expiry::Timestamp(Time)`.
+    /// time provided in an `Expiration::Timestamp(Time)`.
     ///
-    /// If self is `Expiry::Timestamp(Time)`, `reference` is used as the start
+    /// If self is `Expiration::Timestamp(Time)`, `reference` is used as the start
     /// of a period, `Some(Time - reference)` is returned.
-    /// If self is `Expiry::Duration(duration)`, `Some(duration)` is returned.
-    /// If self is `Expiry::Never`, `None` is returned.
+    /// If self is `Expiration::Duration(duration)`, `Some(duration)` is returned.
+    /// If self is `Expiration::Never`, `None` is returned.
     pub fn as_duration(
         &self,
         reference: DateTime<Utc>,
     ) -> Result<Option<Duration>> {
         match self {
-            Expiry::Timestamp(time) => Ok(
+            Expiration::Timestamp(time) => Ok(
                 Some(
                     SystemTime::from(time.time).duration_since(reference.into())?
                 )
             ),
-            Expiry::Duration(duration) => Ok(Some(duration.clone())),
-            Expiry::Never => Ok(None),
+            Expiration::Duration(duration) => Ok(Some(duration.clone())),
+            Expiration::Never => Ok(None),
         }
     }
 
     /// Return the expiry as absolute time.
     pub fn to_systemtime(&self, now: SystemTime) -> Option<SystemTime> {
         match self {
-            Expiry::Timestamp(t) => Some(t.clone().into()),
-            Expiry::Duration(d) => Some(now + *d),
-            Expiry::Never => None,
+            Expiration::Timestamp(t) => Some(t.clone().into()),
+            Expiration::Duration(d) => Some(now + *d),
+            Expiration::Never => None,
         }
     }
 }
 
-impl FromStr for Expiry {
+impl FromStr for Expiration {
     type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> Result<Expiry> {
-        Expiry::new(s)
+    fn from_str(s: &str) -> Result<Expiration> {
+        Expiration::new(s)
     }
 }
 
-impl Display for Expiry {
+impl Display for Expiration {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
-            Expiry::Timestamp(time) => write!(f, "{}", time),
-            Expiry::Duration(duration) => {
+            Expiration::Timestamp(time) => write!(f, "{}", time),
+            Expiration::Duration(duration) => {
                 let seconds = duration.as_secs();
 
                 if seconds % SECONDS_IN_YEAR == 0 {
@@ -814,7 +814,7 @@ impl Display for Expiry {
                     write!(f, "{}s", seconds)
                 }
             },
-            Expiry::Never => write!(f, "never"),
+            Expiration::Never => write!(f, "never"),
         }
     }
 }
@@ -1114,29 +1114,29 @@ mod test {
     #[test]
     fn test_expiry() {
         assert_eq!(
-            Expiry::new("1y").unwrap(),
-            Expiry::Duration(Duration::new(SECONDS_IN_YEAR, 0)),
+            Expiration::new("1y").unwrap(),
+            Expiration::Duration(Duration::new(SECONDS_IN_YEAR, 0)),
         );
         assert_eq!(
-            Expiry::new("2023-05-15T20:00:00Z").unwrap(),
-            Expiry::Timestamp(Time::from_str("2023-05-15T20:00:00Z").unwrap()),
+            Expiration::new("2023-05-15T20:00:00Z").unwrap(),
+            Expiration::Timestamp(Time::from_str("2023-05-15T20:00:00Z").unwrap()),
         );
         assert_eq!(
-            Expiry::new("never").unwrap(),
-            Expiry::Never,
+            Expiration::new("never").unwrap(),
+            Expiration::Never,
         );
     }
 
     #[test]
     fn test_expiry_parse_duration() {
         assert_eq!(
-            Expiry::parse_duration("1y").unwrap(),
+            Expiration::parse_duration("1y").unwrap(),
             Duration::new(SECONDS_IN_YEAR, 0),
         );
-        assert!(Expiry::parse_duration("f").is_err());
-        assert!(Expiry::parse_duration("-1y").is_err());
-        assert!(Expiry::parse_duration("foo").is_err());
-        assert!(Expiry::parse_duration("1o").is_err());
+        assert!(Expiration::parse_duration("f").is_err());
+        assert!(Expiration::parse_duration("-1y").is_err());
+        assert!(Expiration::parse_duration("foo").is_err());
+        assert!(Expiration::parse_duration("1o").is_err());
     }
 
     #[test]
@@ -1146,7 +1146,7 @@ mod test {
             Utc,
         );
 
-        let expiry = Expiry::Timestamp(
+        let expiry = Expiration::Timestamp(
             Time::try_from(DateTime::from_utc(
                 NaiveDateTime::from_timestamp_opt(2, 0).unwrap(),
                 Utc
@@ -1156,13 +1156,13 @@ mod test {
             Some(Duration::new(1, 0)),
         );
 
-        let expiry = Expiry::Duration(Duration::new(2,0));
+        let expiry = Expiration::Duration(Duration::new(2,0));
         assert_eq!(
             expiry.as_duration(reference).unwrap(),
             Some(Duration::new(2, 0)),
         );
 
-        let expiry = Expiry::Never;
+        let expiry = Expiration::Never;
         assert_eq!(expiry.as_duration(reference).unwrap(), None);
     }
 
@@ -1172,7 +1172,7 @@ mod test {
             NaiveDateTime::from_timestamp_opt(2, 0).unwrap(),
             Utc,
         );
-        let expiry = Expiry::Timestamp(
+        let expiry = Expiration::Timestamp(
             Time::try_from(DateTime::from_utc(
                 NaiveDateTime::from_timestamp_opt(1, 0).unwrap(),
                 Utc

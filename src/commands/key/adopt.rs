@@ -148,7 +148,7 @@ pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
     let mut packets: Vec<Packet> = vec![];
     for (cert, key, mut builder) in wanted.into_iter() {
         // Set key expiration.
-        if let Some(e) = &command.expire {
+        if let Some(e) = &command.expiration {
             builder = builder.set_key_expiration_time(&key, e.timestamp())?;
         }
 

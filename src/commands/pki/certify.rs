@@ -171,7 +171,7 @@ pub fn certify(sq: Sq, mut c: certify::Command)
         builder = builder.set_signature_creation_time(time)?;
 
         if let Some(validity) = c
-            .expiry
+            .expiration
             .as_duration(DateTime::<Utc>::from(sq.time))?
         {
             builder = builder.set_signature_validity_period(validity)?;

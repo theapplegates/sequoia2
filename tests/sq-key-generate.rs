@@ -31,7 +31,7 @@ mod integration {
                   "key", "generate",
                   "--no-userids",
                   "--time", iso8601,
-                  "--expiry", "never",
+                  "--expiration", "never",
                   "--output", &*key_pgp.to_string_lossy()]);
 
         cmd.assert().success();

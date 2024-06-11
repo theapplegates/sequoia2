@@ -53,7 +53,7 @@ fn subkey_expire(sq: Sq, command: SubkeyExpireCommand)
 
     assert!(! command.key.is_empty());
 
-    expire(sq, handle, &command.key[..], command.expiry,
+    expire(sq, handle, &command.key[..], command.expiration,
            command.output, command.binary)
 }
 
@@ -197,7 +197,7 @@ fn subkey_add(
     let valid_cert = cert.with_policy(sq.policy, sq.time)?;
 
     let validity = command
-        .expiry
+        .expiration
         .as_duration(DateTime::<Utc>::from(sq.time))?;
 
     let keyflags = KeyFlags::empty()

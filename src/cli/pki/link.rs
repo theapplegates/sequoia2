@@ -5,7 +5,7 @@ use clap::{ArgGroup, Parser, Subcommand};
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
-use crate::cli::types::Expiry;
+use crate::cli::types::Expiration;
 use crate::cli::types::TrustAmount;
 
 #[derive(Parser, Debug)]
@@ -108,7 +108,7 @@ latter improves the user's privacy, by reducing the chance that parts
 of the user's social graph is leaked when a certificate is shared.
 
 By default a link never expires.
-Using the `--expiry` argument specific validity periods may be defined.
+Using the `--expiration` argument specific validity periods may be defined.
 It allows for providing a point in time for validity to end or a validity
 duration.
 
@@ -147,7 +147,7 @@ $ sq pki link retract 0123456789ABCDEF
 ",
 )]
 #[clap(group(ArgGroup::new("expiration-group")
-             .args(&["expiry", "temporary"])))]
+             .args(&["expiration", "temporary"])))]
 pub struct AddCommand {
     #[clap(
         short = 'd',
@@ -233,15 +233,15 @@ pub struct AddCommand {
     )]
     pub temporary: bool,
     #[clap(
-        long = "expiry",
-        value_name = "EXPIRY",
+        long = "expiration",
+        value_name = "EXPIRATION",
         default_value_t =
-            Expiry::Never,
+            Expiration::Never,
         help =
-            "Define EXPIRY for the acceptance as ISO 8601 formatted string or \
+            "Define EXPIRATION for the acceptance as ISO 8601 formatted string or \
             custom duration.",
         long_help =
-            "Define EXPIRY for the acceptance as ISO 8601 formatted string or \
+            "Define EXPIRATION for the acceptance as ISO 8601 formatted string or \
             custom duration. \
             If an ISO 8601 formatted string is provided, the validity period \
             reaches from the reference time (may be set using `--time`) to \
@@ -250,7 +250,7 @@ pub struct AddCommand {
             `N[ymwds]`, for N years, months, weeks, days, or seconds. \
             The special keyword `never` sets an unlimited expiry.",
     )]
-    pub expiry: Expiry,
+    pub expiration: Expiration,
     #[clap(
         value_name = "FINGERPRINT|KEYID",
         required = true,

@@ -12,7 +12,7 @@ use openpgp::types::SignatureType;
 
 use sequoia_cert_store::StoreUpdate;
 
-use crate::cli::types::Expiry;
+use crate::cli::types::Expiration;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::Sq;
@@ -21,7 +21,7 @@ use crate::sq::GetKeysOptions;
 pub fn expire(sq: Sq,
               cert: FileStdinOrKeyHandle,
               subkeys: &[KeyHandle],
-              expiry: Expiry,
+              expiration: Expiration,
               mut output: Option<FileOrStdout>,
               binary: bool)
     -> Result<()>
@@ -43,7 +43,7 @@ pub fn expire(sq: Sq,
         = sq.get_primary_key(&key, Some(&[GetKeysOptions::AllowNotAlive]))?.0;
 
     // Fix the new expiration time.
-    let expiration_time = expiry.to_systemtime(sq.time);
+    let expiration_time = expiration.to_systemtime(sq.time);
 
     // We want to check that all given key handles exist, make a list.
     let handles = key.keys().map(|k| k.key_handle()).collect::<Vec<_>>();

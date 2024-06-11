@@ -14,7 +14,7 @@ use crate::cli::KEY_VALIDITY_DURATION;
 use crate::cli::KEY_VALIDITY_IN_YEARS;
 use crate::cli::types::ClapData;
 use crate::cli::types::EncryptPurpose;
-use crate::cli::types::Expiry;
+use crate::cli::types::Expiration;
 use crate::cli::types::FileOrCertStore;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
@@ -172,7 +172,7 @@ It is saved alongside the key.  This can be changed using the \
 `--rev-cert` argument.
 
 By default a key expires after {} years.  This can be changed using \
-the `--expiry` argument.
+the `--expiration` argument.
 
 `sq key generate` respects the reference time set by the top-level \
 `--time` argument.  It sets the creation time of the primary key, any \
@@ -226,15 +226,15 @@ Canonical user IDs are of the form `Name (Comment) \
     )]
     pub with_password: bool,
     #[clap(
-        long = "expiry",
-        value_name = "EXPIRY",
-        default_value_t = Expiry::Duration(KEY_VALIDITY_DURATION),
+        long = "expiration",
+        value_name = "EXPIRATION",
+        default_value_t = Expiration::Duration(KEY_VALIDITY_DURATION),
         help =
             "Sets the certificate's expiration time",
         long_help = "\
 Sets the certificate's expiration time.
 
-EXPIRY is either an ISO 8601 formatted string or a custom duration, \
+EXPIRATION is either an ISO 8601 formatted string or a custom duration, \
 which takes the form `N[ymwds]`, where the letters stand for years, \
 months, weeks, days, and seconds, respectively.  Alternatively, the \
 keyword `never` does not set an expiration time.
@@ -244,7 +244,7 @@ the certificate's creation time to the specified time.  When using a \
 duration, the validity period is from the certificate's creation time \
 for the specified duration.",
     )]
-    pub expiry: Expiry,
+    pub expiration: Expiration,
     #[clap(
         long = "can-sign",
         help ="Add a signing-capable subkey (default)",
@@ -1054,11 +1054,11 @@ pub struct AdoptCommand {
     )]
     pub key: Vec<KeyHandle>,
     #[clap(
-        long = "expire",
-        value_name = "KEY-EXPIRATION-TIME",
+        long,
+        value_name = "EXPIRATION",
         help = "Make adopted subkeys expire at the given time",
     )]
-    pub expire: Option<Time>,
+    pub expiration: Option<Time>,
     #[clap(
         long = "allow-broken-crypto",
         help = "Allow adopting keys from certificates \
@@ -1214,7 +1214,7 @@ be selected using `--cipher-suite`.
 
 By default a new subkey never expires. However, its validity period is limited
 by that of the primary key it is added for.
-Using the `--expiry` argument specific validity periods may be defined.
+Using the `--expiration` argument specific validity periods may be defined.
 It allows for providing a point in time for validity to end or a validity
 duration.
 
@@ -1237,7 +1237,7 @@ $ sq key subkey add --output juliet-new.key.pgp \\
 # Add a new Subkey for signing using the rsa3k cipher suite which
 # expires in five days
 $ sq key subkey add --output juliet-new.key.pgp --can-sign \\
-     --expiry 5d --cipher-suite rsa3k juliet.key.pgp
+     --expiration 5d --cipher-suite rsa3k juliet.key.pgp
 ",
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
@@ -1292,23 +1292,23 @@ certificate.",
     )]
     pub cipher_suite: CipherSuite,
     #[clap(
-        long = "expiry",
-        value_name = "EXPIRY",
-        default_value_t = Expiry::Never,
+        long = "expiration",
+        value_name = "EXPIRATION",
+        default_value_t = Expiration::Never,
         help =
-            "Define EXPIRY for the subkey as ISO 8601 formatted string or \
+            "Define EXPIRATION for the subkey as ISO 8601 formatted string or \
             custom duration.",
         long_help =
-            "Define EXPIRY for the subkey as ISO 8601 formatted string or \
+            "Define EXPIRATION for the subkey as ISO 8601 formatted string or \
             custom duration. \
             If an ISO 8601 formatted string is provided, the validity period \
             reaches from the reference time (may be set using `--time`) to \
             the provided time. \
             Custom durations starting from the reference time may be set using \
             `N[ymwds]`, for N years, months, weeks, days, or seconds. \
-            The special keyword `never` sets an unlimited expiry.",
+            The special keyword `never` sets an unlimited expiration.",
     )]
-    pub expiry: Expiry,
+    pub expiration: Expiration,
     #[clap(
         long = "can-sign",
         help = "Add signing capability to subkey",
@@ -1397,12 +1397,12 @@ pub struct SubkeyExpireCommand {
     pub key: Vec<KeyHandle>,
 
     #[clap(
-        value_name = "EXPIRY",
+        value_name = "EXPIRATION",
         help =
-            "Define EXPIRY for the key as ISO 8601 formatted string or \
+            "Define EXPIRATION for the key as ISO 8601 formatted string or \
             custom duration.",
         long_help =
-            "Define EXPIRY for the key as ISO 8601 formatted string or \
+            "Define EXPIRATION for the key as ISO 8601 formatted string or \
             custom duration. \
             If an ISO 8601 formatted string is provided, the validity period \
             reaches from the reference time (may be set using `--time`) to \
@@ -1411,7 +1411,7 @@ pub struct SubkeyExpireCommand {
             `N[ymwds]`, for N years, months, weeks, days, or seconds. \
             The special keyword `never` sets an unlimited expiry.",
     )]
-    pub expiry: Expiry,
+    pub expiration: Expiration,
 
     #[clap(
         long,

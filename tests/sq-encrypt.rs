@@ -23,7 +23,7 @@ mod integration {
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args(["--cert-store", &certd,
                   "key", "generate",
-                  "--expiry", "never",
+                  "--expiration", "never",
                   "--userid", "<alice@example.org>",
                   "--output", &key_pgp]);
         cmd.assert().success();
@@ -103,7 +103,7 @@ mod integration {
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args(["--cert-store", &certd,
                   "key", "generate",
-                  "--expiry", "never",
+                  "--expiration", "never",
                   "--userid", "<alice@example.org>",
                   "--output", &alice_pgp]);
         cmd.assert().success();
@@ -129,7 +129,7 @@ mod integration {
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args(["--cert-store", &certd,
                   "key", "generate",
-                  "--expiry", "never",
+                  "--expiration", "never",
                   "--output", &bob_pgp]);
         for userid in bob_userids.iter() {
             cmd.args(["--userid", userid]);
@@ -316,7 +316,7 @@ mod integration {
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args(["--cert-store", &certd,
                   "key", "generate",
-                  "--expiry", "never",
+                  "--expiration", "never",
                   "--userid", "<alice@example.org>",
                   "--output", &alice_pgp]);
         cmd.assert().success();
@@ -326,7 +326,7 @@ mod integration {
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args(["--cert-store", &certd,
                   "key", "generate",
-                  "--expiry", "never",
+                  "--expiration", "never",
                   "--userid", "<bob@example.org>",
                   "--output", &bob_pgp]);
         cmd.assert().success();

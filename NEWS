@@ -67,6 +67,7 @@
      explicitly.
    - `sq key attest-certifications` can now use the cert store and the
      key store.
+   - Rename the `--expiry` argument to `--expiration`.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

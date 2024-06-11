@@ -470,7 +470,7 @@ pub fn add(sq: Sq, c: link::AddCommand)
         vec![ builder, partial ]
     } else {
         if let Some(validity) = c
-            .expiry
+            .expiration
             .as_duration(DateTime::<Utc>::from(sq.time))? {
             builder = builder.set_signature_validity_period(validity)?;
         }
@@ -791,7 +791,7 @@ pub fn list(sq: Sq, c: link::ListCommand)
 
                 if let Some(e) = certification.signature_expiration_time() {
                     params.push(format!(
-                        "expiry: {}",
+                        "expiration: {}",
                         chrono::DateTime::<chrono::Utc>::from(e)
                             .format("%Y-%m-%d")));
                 }

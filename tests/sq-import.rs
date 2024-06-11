@@ -25,7 +25,7 @@ fn sq_import() -> Result<()>
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--cert-store", &certd,
               "key", "generate",
-              "--expiry", "never",
+              "--expiration", "never",
               "--userid", "<alice@example.org>",
               "--output", &alice_pgp]);
     cmd.assert().success();
@@ -35,7 +35,7 @@ fn sq_import() -> Result<()>
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--cert-store", &certd,
               "key", "generate",
-              "--expiry", "never",
+              "--expiration", "never",
               "--userid", "<bob@example.org>",
               "--output", bob_pgp]);
     cmd.assert().success();
@@ -43,7 +43,7 @@ fn sq_import() -> Result<()>
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--cert-store", &certd,
               "key", "generate",
-              "--expiry", "never",
+              "--expiration", "never",
               "--userid", "<carol@example.org>",
               "--output", carol_pgp]);
     cmd.assert().success();

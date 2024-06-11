@@ -79,11 +79,11 @@ fn sq_certify() -> Result<()> {
         }
         assert!(ok, "Didn't find user id");
 
-        // No expiry.
+        // No expiration.
         sq.tick(1);
         let bob_pgp_new = sq.scratch_file(None);
         let cert = sq.pki_certify(
-            &["--expiry", "never"],
+            &["--expiration", "never"],
             &alice_handle, bob_pgp.last().unwrap(), "<bob@example.org>",
             Some(&*bob_pgp_new));
         bob_pgp.push(bob_pgp_new);
@@ -125,7 +125,7 @@ fn sq_certify() -> Result<()> {
               "--regex", "b",
               "--local",
               "--non-revocable",
-              "--expiry", "1d",
+              "--expiration", "1d",
             ],
             &alice_handle, bob_pgp.last().unwrap(), "<bob@example.org>",
             Some(&*bob_pgp_new));
@@ -334,7 +334,7 @@ fn sq_certify_with_expired_key() -> Result<()>
 
     let alice = "<alice@example.org>";
     let (alice_key, alice_pgp, _) = sq.key_generate(
-        &["--expiry", &format!("{}s", validity_seconds) ],
+        &["--expiration", &format!("{}s", validity_seconds) ],
         &[ alice ]);
 
     // Bob's certificate has the same creation time, but it does not

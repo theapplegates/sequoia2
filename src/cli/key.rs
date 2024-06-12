@@ -536,16 +536,6 @@ test_examples!(sq_key_password, PASSWORD_EXAMPLES);
 #[derive(Debug, Args)]
 #[clap(
     name = "password",
-    about = "Change password protecting secrets",
-    long_about = 
-"Change password protecting secrets
-
-Secret key material in keys can be protected by a password.  This
-subcommand changes or clears this encryption password.
-
-To emit the key with unencrypted secrets, either use `--clear` or
-supply a zero-length password when prompted for the new password.
-",
     about = "Change the password protecting secret key material",
     long_about = "
 Change the password protecting secret key material.
@@ -555,23 +545,62 @@ changes or clears the password.
 
 To strip the password either use `--clear` or supply a zero-length \
 password when prompted for the new password.
-",
+
+If a key is password protected, and the correct password was not \
+supplied using the `--old-password-file` argument, the user is \
+prompted for the password.  Likewise, if the new password isn't \
+provided, the user is prompted.",
     after_help = PASSWORD_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct PasswordCommand {
     #[clap(
         long,
-        help = "Change the password of the specified certificate",
+        help = "Change the password of the specified certificate's keys",
         value_name = FileOrStdin::VALUE_NAME,
     )]
     pub cert: Option<KeyHandle>,
     #[clap(
         long,
         value_name = "CERT_FILE",
-        help = "Change the password of the specified certificate",
+        help = "Change the password of the specified certificate's keys",
+        long_help = "\
+Change the password of the specified certificate's keys.
+
+Read the certificate from FILE or stdin, if `-`.  It is an error \
+for the file to contain more than one certificate.",
     )]
     pub cert_file: Option<FileOrStdin>,
+
+    #[clap(
+        long,
+        value_name = "PASSWORD_FILE",
+        help = "\
+File containing password to decrypt the secret key material",
+        long_help = "\
+File containing password to decrypt the secret key material.
+
+Note that the entire key file will be used as the password, including \
+any surrounding whitespace like a trailing newline."
+    )]
+    pub old_password_file: Vec<PathBuf>,
+    #[clap(
+        long,
+        value_name = "PASSWORD_FILE",
+        help = "\
+File containing password to encrypt the secret key material",
+        long_help = "\
+File containing password to encrypt the secret key material.
+
+Note that the entire key file will be used as the password including \
+any surrounding whitespace like a trailing newline."
+    )]
+    pub new_password_file: Option<PathBuf>,
+    #[clap(
+        long,
+        help = "Clear the password protecting the secret key material",
+    )]
+    pub clear: bool,
 
     #[clap(
         help = FileOrStdout::HELP_OPTIONAL,
@@ -581,24 +610,6 @@ pub struct PasswordCommand {
         conflicts_with = "cert",
     )]
     pub output: Option<FileOrStdout>,
-
-    /// File containing password to decrypt key
-    ///
-    /// Note that the entire key file will be used as the password, including
-    /// surrounding whitespace like for example a trailing newline
-    #[clap(long)]
-    pub old_password_file: Vec<PathBuf>,
-    /// File containing password to encrypt key
-    ///
-    /// Note that the entire key file will be used as the password, including
-    /// surrounding whitespace like for example a trailing newline
-    #[clap(long)]
-    pub new_password_file: Option<PathBuf>,
-    #[clap(
-        long = "clear",
-        help = "Emit a key with unencrypted secrets",
-    )]
-    pub clear: bool,
     #[clap(
         short = 'B',
         long,

@@ -1174,6 +1174,25 @@ User ID."
     pub binary: bool,
 }
 
+#[derive(Debug, Subcommand)]
+#[clap(
+    name = "subkey",
+    about = "Manage subkeys",
+    long_about = "\
+Manage subkeys.
+
+Add new subkeys to an existing certificate, change their expiration, \
+and revoke them.",
+    subcommand_required = true,
+    arg_required_else_help = true,
+)]
+#[non_exhaustive]
+pub enum SubkeyCommand {
+    Add(SubkeyAddCommand),
+    Expire(SubkeyExpireCommand),
+    Revoke(SubkeyRevokeCommand),
+}
+
 const ADOPT_EXAMPLES: Actions = Actions {
     actions: &[
         Action::Example(Example {
@@ -1359,24 +1378,6 @@ modified certificate to stdout.",
     pub binary: bool,
 }
 
-#[derive(Debug, Subcommand)]
-#[clap(
-    name = "subkey",
-    about = "Manage Subkeys",
-    long_about =
-"Manage Subkeys
-
-Add new subkeys to an existing key.
-",
-    subcommand_required = true,
-    arg_required_else_help = true,
-)]
-#[non_exhaustive]
-pub enum SubkeyCommand {
-    Add(SubkeyAddCommand),
-    Expire(SubkeyExpireCommand),
-    Revoke(SubkeyRevokeCommand),
-}
 
 #[derive(Debug, Args)]
 #[clap(

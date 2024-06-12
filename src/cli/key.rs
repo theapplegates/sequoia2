@@ -1174,6 +1174,29 @@ User ID."
     pub binary: bool,
 }
 
+const ADOPT_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Import Alice's old key and new key.",
+            command: &[
+                "sq", "key", "import",
+                "alice-secret.pgp", "alice-new-secret.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Have the new certificate adopt Alice's old authentication subkey.",
+            command: &[
+                "sq", "key", "adopt",
+                "--cert", "C5999E8191BF7B503653BE958B1F7910D01F86E5",
+                "--key", "0D45C6A756A038670FDFD85CB1C82E8D27DB23A1",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_key_adopt, ADOPT_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     name = "adopt",
@@ -1195,6 +1218,7 @@ feasible.
 $ sq key adopt --keyring juliet-old.pgp --key 0123456789ABCDEF \\
      juliet-new.pgp
 ",
+    after_help = ADOPT_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct AdoptCommand {

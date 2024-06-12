@@ -349,7 +349,7 @@ const IMPORT_EXAMPLES: Actions = Actions {
     actions: &[
         Action::Example(Example {
             comment: "\
-Import the keys into the keystore server.",
+Import the keys into the key store.",
             command: &[
                 "sq", "key", "import", "alice-secret.pgp",
             ],

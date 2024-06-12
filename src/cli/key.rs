@@ -618,6 +618,40 @@ any surrounding whitespace like a trailing newline."
     pub binary: bool,
 }
 
+const REVOKE_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Import a key.",
+            command: &[
+                "sq", "key", "import", "alice-secret.pgp"
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Revoke the key, indicating that there is a new certificate.",
+            command: &[
+                "sq", "key", "revoke",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "superseded",
+                "My new cert is 31EC6A9453BC59F1239C785E4CA79EF01933A2ED",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Revoke the key, indicating that the secret key material was \
+compromised.",
+            command: &[
+                "sq", "key", "revoke",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "compromised",
+                "Computer attacked, secret key material compromised",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_key_revoke, REVOKE_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     about = "Revoke a certificate",
@@ -641,6 +675,7 @@ the current time, when determining what keys are valid, and it sets \
 the revocation certificate's creation time to the reference time \
 instead of the current time.
 ",
+    after_help = REVOKE_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 #[clap(group(ArgGroup::new("revoker_input").args(&["revoker_file", "revoker"])))]

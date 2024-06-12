@@ -1378,6 +1378,28 @@ modified certificate to stdout.",
     pub binary: bool,
 }
 
+const SUBKEY_ADD_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Import Alice's key.",
+            command: &[
+                "sq", "key", "import",
+                "alice-secret.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Add a new signing-capable subkey.",
+            command: &[
+                "sq", "key", "subkey", "add",
+                "--can-sign",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_key_subkey_add, SUBKEY_ADD_EXAMPLES);
 
 #[derive(Debug, Args)]
 #[clap(
@@ -1417,23 +1439,7 @@ duration.
 `--time` argument. It sets the creation time of the subkey to the specified
 time.
 ",
-    after_help =
-"EXAMPLES:
-
-# First, generate a key
-$ sq key generate --userid '<juliet@example.org>' \\
-     --output juliet.key.pgp
-
-# Add a new Subkey for universal encryption which expires at the same
-# time as the primary key
-$ sq key subkey add --output juliet-new.key.pgp \\
-     --can-encrypt universal juliet.key.pgp
-
-# Add a new Subkey for signing using the rsa3k cipher suite which
-# expires in five days
-$ sq key subkey add --output juliet-new.key.pgp --can-sign \\
-     --expiration 5d --cipher-suite rsa3k juliet.key.pgp
-",
+    after_help = SUBKEY_ADD_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 #[clap(group(ArgGroup::new("authentication-group").args(&["can_authenticate", "can_encrypt"])))]

@@ -829,7 +829,7 @@ impl ManualPage {
                             if line.len() > EXAMPLE_COMMAND_MAX_WIDTH {
                                 warn!("Command in example exceeds {} chars:",
                                       EXAMPLE_COMMAND_MAX_WIDTH);
-                                fail!("{}", line);
+                                fail!("{} ({} chars)", line, line.len());
                             }
                             self.code(true);
                             self.roff.control("RS", []);
@@ -840,7 +840,7 @@ impl ManualPage {
                             if line.len() > EXAMPLE_CONTINUATION_MAX_WIDTH {
                                 warn!("Continuation in example exceeds {} chars:",
                                       EXAMPLE_CONTINUATION_MAX_WIDTH);
-                                fail!("{}", line);
+                                fail!("{} ({} chars)", line, line.len());
                             }
                             self.code(true);
                             self.roff.control("RS", []);

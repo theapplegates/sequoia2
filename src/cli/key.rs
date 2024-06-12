@@ -412,24 +412,27 @@ pub struct ExportCommand {
     #[clap(
         long,
         value_name = "FINGERPRINT|KEYID",
-        help = "Export the specified certificate",
-        long_help = "Export the specified certificate by iterating over the \
-                     specified certificate's primary key and subkeys and \
-                     exporting any keys with secret key material.  An \
-                     error is returned if the certificate does not contain \
-                     any secret key material.",
+        help = "Export the specified certificate with its secret key material",
+        long_help = "\
+Export the specified certificate with its secret key material.
+
+Iterate over the specified certificate's primary key and subkeys and \
+export any keys with secret key material.  An error is returned if \
+the certificate does not contain any secret key material.",
     )]
     pub cert: Vec<KeyHandle>,
 
     #[clap(
         long,
         value_name = "FINGERPRINT|KEYID",
-        help = "Export the specified key",
-        long_help = "Export the specified key.  The entire certificate is \
-                     exported, but only the specified key's secret key \
-                     material is exported.  An error is returned if the \
-                     secret key material for the specified key is not \
-                     available.",
+        help = "\
+Export the secret key material for the specified key, and its certificate",
+        long_help = "\
+Export the specified key.
+
+The entire certificate is exported, but only the specified key's \
+secret key material is exported.  An error is returned if the secret \
+key material for the specified key is not available.",
     )]
     pub key: Vec<KeyHandle>,
 }

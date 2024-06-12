@@ -1542,11 +1542,20 @@ modified certificate to stdout.",
 const SQ_KEY_SUBKEY_EXPIRE_EXAMPLES: Actions = Actions {
     actions: &[
         Action::Example(Example {
-            comment: "Make Bob's authentication subkey expire in six months.",
+            comment: "\
+Import Alice's key.",
+            command: &[
+                "sq", "key", "import",
+                "alice-secret.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Make Alice's authentication subkey expire in 6 months.",
             command: &[
                 "sq", "key", "subkey", "expire", "6m",
-                "--cert-file", "bob-secret.pgp",
-                "--key", "6AEACDD24F896624",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--key", "0D45C6A756A038670FDFD85CB1C82E8D27DB23A1",
             ],
         }),
     ],

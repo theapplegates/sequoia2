@@ -919,6 +919,29 @@ modified certificate to stdout.",
     pub binary: bool,
 }
 
+const USERID_REVOKE_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Import a key.",
+            command: &[
+                "sq", "key", "import", "alice-secret.pgp"
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Retire a user ID.",
+            command: &[
+                "sq", "key", "userid", "revoke",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--userid", "Alice <alice@example.org>",
+                "retired", "No longer at example.org.",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_key_userid_revoke, USERID_REVOKE_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     about = "Revoke a User ID",
@@ -940,8 +963,9 @@ include a certification-capable key.
 `--time` argument.  When set, it uses the specified time instead of \
 the current time, when determining what keys are valid, and it sets \
 the revocation certificate's creation time to the reference time \
-instead of the current time.
-",)]
+instead of the current time.",
+    after_help = USERID_REVOKE_EXAMPLES,
+)]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 #[clap(group(ArgGroup::new("revoker_input").args(&["revoker_file", "revoker"])))]
 pub struct UseridRevokeCommand {

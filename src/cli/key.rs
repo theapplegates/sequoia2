@@ -501,6 +501,38 @@ for the file to contain more than one certificate.",
     pub binary: bool,
 }
 
+const PASSWORD_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Import a key that has no password protection.",
+            command: &[
+                "sq", "key", "import", "alice-secret.pgp"
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Change the password for all keys to password in the specified file.",
+            command: &[
+                "sq", "key", "password",
+                "--new-password-file", "password-file.txt",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0"
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Clear the password protection.",
+            command: &[
+                "sq", "key", "password",
+                "--old-password-file", "password-file.txt",
+                "--clear",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0"
+            ],
+        }),
+    ]
+};
+test_examples!(sq_key_password, PASSWORD_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     name = "password",
@@ -514,20 +546,17 @@ subcommand changes or clears this encryption password.
 To emit the key with unencrypted secrets, either use `--clear` or
 supply a zero-length password when prompted for the new password.
 ",
-    after_help =
-"EXAMPLES:
+    about = "Change the password protecting secret key material",
+    long_about = "
+Change the password protecting secret key material.
 
-# First, generate a key
-$ sq key generate --userid '<juliet@example.org>' \\
-     --output juliet.key.pgp
+Secret key material can be protected by a password.  This subcommand \
+changes or clears the password.
 
-# Then, encrypt the secrets in the key with a password.
-$ sq key password < juliet.key.pgp > juliet.encrypted_key.pgp
-
-# And remove the password again.
-$ sq key password --clear < juliet.encrypted_key.pgp \\
-     > juliet.decrypted_key.pgp
+To strip the password either use `--clear` or supply a zero-length \
+password when prompted for the new password.
 ",
+    after_help = PASSWORD_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct PasswordCommand {

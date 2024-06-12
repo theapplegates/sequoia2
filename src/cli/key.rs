@@ -476,15 +476,20 @@ pub struct DeleteCommand {
         long,
         value_name = "CERT_FILE",
         help = "Delete the secret key material from the specified certificate",
+        long_help = "\
+Delete the secret key material from the specified certificate.
+
+Read the certificate from FILE or stdin, if `-`.  It is an error \
+for the file to contain more than one certificate.",
     )]
     pub cert_file: Option<FileOrStdin>,
 
     #[clap(
-        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
         conflicts_with = "cert",
+        help = "Write the stripped certificate to the specified file",
     )]
     pub output: Option<FileOrStdout>,
 

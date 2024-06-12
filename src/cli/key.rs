@@ -1201,33 +1201,25 @@ test_examples!(sq_key_adopt, ADOPT_EXAMPLES);
 #[clap(
     name = "adopt",
     about = "Bind keys from one certificate to another",
-    long_about =
-"Bind keys from one certificate to another
+    long_about = "\
+Bind keys from one certificate to another.
 
-This command allows one to transfer primary keys and subkeys into an
-existing certificate.  Say you want to transition to a new
-certificate, but have an authentication subkey on your current
-certificate.  You want to keep the authentication subkey because it
-allows access to SSH servers and updating their configuration is not
-feasible.
-",
-    after_help =
-"EXAMPLES:
-
-# Adopt an subkey into the new cert
-$ sq key adopt --keyring juliet-old.pgp --key 0123456789ABCDEF \\
-     juliet-new.pgp
-",
+This command allows the user to attach a primary key or a subkey \
+attached to one certificate to another certificate.  Say you want to \
+transition to a new certificate, but have an authentication subkey on \
+your current certificate that you want to keep because it allows access \
+a server and updating its configuration is not feasible.  This command \
+makes it easy to attach the subkey to the new certificate.",
     after_help = ADOPT_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct AdoptCommand {
     #[clap(
         short = 'k',
-        long = "key",
+        long,
         value_name = "KEY",
         required(true),
-        help = "Add the key or subkey KEY to the TARGET-KEY",
+        help = "Add the key or subkey KEY to the certificate",
     )]
     pub key: Vec<KeyHandle>,
     #[clap(
@@ -1237,28 +1229,35 @@ pub struct AdoptCommand {
     )]
     pub expiration: Option<Time>,
     #[clap(
-        long = "allow-broken-crypto",
+        long,
         help = "Allow adopting keys from certificates \
             using broken cryptography",
     )]
     pub allow_broken_crypto: bool,
     #[clap(
         long,
-        help = "Add keys to TARGET-KEY",
-        value_name = FileOrStdin::VALUE_NAME,
+        help = "Add keys to the specified certificate",
+        value_name = "CERT_FILE",
     )]
     pub cert: Option<KeyHandle>,
     #[clap(
         long,
-        value_name = "TARGET-KEY",
-        help = "Add keys to TARGET-KEY",
+        value_name = "CERT_FILE",
+        help = "Add keys to the specified certificate",
     )]
     pub cert_file: Option<FileOrStdin>,
     #[clap(
-        help = FileOrStdout::HELP_OPTIONAL,
         long,
         short,
         value_name = FileOrStdout::VALUE_NAME,
+        help = "Write to the specified FILE",
+        long_help = "\
+Write to the specified FILE.
+
+If not specified, and the certificate was read from the certificate \
+store, imports the modified certificate into the cert store.  If not \
+specified, and the certificate was read from a file, writes the \
+modified certificate to stdout.",
     )]
     pub output: Option<FileOrStdout>,
     #[clap(

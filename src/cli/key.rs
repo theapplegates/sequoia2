@@ -437,10 +437,32 @@ key material for the specified key is not available.",
     pub key: Vec<KeyHandle>,
 }
 
+const DELETE_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Import Alice's key.",
+            command: &[
+                "sq", "key", "import", "alice-secret.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Delete any secret key associated with the certificate.",
+            command: &[
+                "sq", "key", "delete",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_key_delete, DELETE_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     name = "delete",
     about = "Delete a certificate's secret key material",
+    after_help = DELETE_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct DeleteCommand {

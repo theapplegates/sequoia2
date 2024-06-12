@@ -1403,40 +1403,39 @@ test_examples!(sq_key_subkey_add, SUBKEY_ADD_EXAMPLES);
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Add a newly generated Subkey",
-    long_about =
-"Add a newly generated Subkey
+    about = "Add a new subkey to a certificate",
+    long_about = "\
+Add a new subkey to a certificate.
 
-A subkey has one or more flags. `--can-sign` sets the signing flag,
-and means that the key may be used for signing. `--can-authenticate`
-sets the authentication flags, and means that the key may be used for
-authentication (e.g., as an SSH key). These two flags may be combined.
+A subkey has one or more capabilities.
 
-`--can-encrypt=storage` sets the storage encryption flag, and means that the key
-may be used for storage encryption. `--can-encrypt=transport` sets the transport
-encryption flag, and means that the key may be used for transport encryption.
-`--can-encrypt=universal` sets both the storage and the transport encryption
-flag, and means that the key may be used for both storage and transport
-encryption. Only one of the encryption flags may be used and it can not be
-combined with the signing or authentication flag.
+`--can-sign` sets the signing capability, and means that the key may \
+be used for signing. `--can-authenticate` sets the authentication \
+capability, and means that the key may be used for authentication \
+(e.g., as an SSH key).  `--can-certify` sets the certificate \
+capability, and means that the key may be used to make third-party \
+certifications.  These capabilities may be combined.
 
-At least one flag must be chosen.
+`--can-encrypt=storage` sets the storage encryption capability, and \
+means that the key may be used for storage \
+encryption. `--can-encrypt=transport` sets the transport encryption \
+capability, and means that the key may be used for transport \
+encryption.  `--can-encrypt=universal` sets both the storage and the \
+transport encryption capability, and means that the key may be used \
+for both storage and transport encryption.  The encryption \
+capabilities must not be combined with the signing or authentication \
+capability.
 
-When using `--with-password`, `sq` prompts the user for a password, that is
-used to encrypt the subkey.
-The password for the subkey may be different from that of the primary key.
+When using `--with-password`, `sq` prompts the user for a password \
+that is used to encrypt the subkey.  The password for the new subkey \
+may be different from the other keys.
 
-Furthermore the subkey may use one of several available cipher suites, that can
-be selected using `--cipher-suite`.
+By default a new subkey doesn't expire on its own.  However, its \
+validity period is limited by that of the certificate.  Using the \
+`--expiration` argument allows setting a different expiration time.
 
-By default a new subkey never expires. However, its validity period is limited
-by that of the primary key it is added for.
-Using the `--expiration` argument specific validity periods may be defined.
-It allows for providing a point in time for validity to end or a validity
-duration.
-
-`sq key subkey add` respects the reference time set by the top-level
-`--time` argument. It sets the creation time of the subkey to the specified
+`sq key subkey add` respects the reference time set by the top-level \
+`--time` argument.  It sets the creation time of the subkey to the specified \
 time.
 ",
     after_help = SUBKEY_ADD_EXAMPLES,
@@ -1454,38 +1453,15 @@ pub struct SubkeyAddCommand {
     pub cert: Option<KeyHandle>,
     #[clap(
         long,
-        help = FileOrStdin::HELP_OPTIONAL,
         value_name = "CERT_FILE",
         conflicts_with = "cert",
         help = "Add a subkey to the specified certificate",
-        long_help =
-"Read the certificate that should be modified from FILE or \
-stdin.  It is an error for the file to contain more than one \
-certificate.",
     )]
     pub cert_file: Option<FileOrStdin>,
 
     #[clap(
-        long,
-        short,
-        value_name = FileOrCertStore::VALUE_NAME,
-        help = "Write to the specified FILE.  If not specified, and the \
-                certificate was read from the certificate store, imports the \
-                modified certificate into the cert store.  If not specified, \
-                and the certificate was read from a file, writes the modified \
-                certificate to stdout.",
-    )]
-    pub output: Option<FileOrStdout>,
-
-    #[clap(
-        short = 'B',
-        long,
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
-    #[clap(
         short = 'c',
-        long = "cipher-suite",
+        long,
         value_name = "CIPHER-SUITE",
         default_value_t = CipherSuite::Cv25519,
         help = "Select the cryptographic algorithms for the subkey",
@@ -1493,51 +1469,73 @@ certificate.",
     )]
     pub cipher_suite: CipherSuite,
     #[clap(
-        long = "expiration",
+        long,
         value_name = "EXPIRATION",
         default_value_t = Expiration::Never,
-        help =
-            "Define EXPIRATION for the subkey as ISO 8601 formatted string or \
-            custom duration.",
-        long_help =
-            "Define EXPIRATION for the subkey as ISO 8601 formatted string or \
-            custom duration. \
-            If an ISO 8601 formatted string is provided, the validity period \
-            reaches from the reference time (may be set using `--time`) to \
-            the provided time. \
-            Custom durations starting from the reference time may be set using \
-            `N[ymwds]`, for N years, months, weeks, days, or seconds. \
-            The special keyword `never` sets an unlimited expiration.",
+        help = "Sets the key's expiration time",
+        long_help = "\
+Sets the key's expiration time.
+
+EXPIRATION is either an ISO 8601 formatted string or a custom duration, \
+which takes the form `N[ymwds]`, where the letters stand for years, \
+months, weeks, days, and seconds, respectively.  Alternatively, the \
+keyword `never` does not set an expiration time.
+
+When using an ISO 8601 formatted string, the validity period is from \
+the key's creation time to the specified time.  When using a \
+duration, the validity period is from the key's creation time \
+for the specified duration.",
     )]
     pub expiration: Expiration,
     #[clap(
-        long = "can-sign",
-        help = "Add signing capability to subkey",
+        long,
+        help = "Add a signing-capable subkey",
     )]
     pub can_sign: bool,
     #[clap(
-        long = "can-authenticate",
-        help = "Add authentication capability to subkey",
+        long,
+        help = "Add an authentication-capable subkey",
     )]
     pub can_authenticate: bool,
     #[clap(
-        long = "can-encrypt",
+        long,
         value_name = "PURPOSE",
-        help = "Add an encryption capability to subkey [default: universal]",
-        long_help =
-            "Add an encryption capability to subkey. \
-            Encryption-capable subkeys can be marked as \
-            suitable for transport encryption, storage \
-            encryption, or both, i.e., universal. \
-            [default: universal]",
+        help = "Add an encryption-capable subkey [default: universal]",
+        long_help = "\
+Add an encryption-capable subkey.
+
+Encryption-capable subkeys can be marked as suitable for transport \
+encryption, storage encryption, or both, i.e., universal.  [default: \
+universal]",
         value_enum,
     )]
     pub can_encrypt: Option<EncryptPurpose>,
     #[clap(
-        long = "with-password",
-        help = "Protect the subkey with a password",
+        long,
+        help = "Protect the subkey's secret key material with a password",
     )]
     pub with_password: bool,
+
+    #[clap(
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+        help = "Write to the specified FILE",
+        long_help = "\
+Write to the specified FILE.
+
+If not specified, and the certificate was read from the certificate \
+store, imports the modified certificate into the key store.  If not \
+specified, and the certificate was read from a file, writes the \
+modified certificate to stdout.",
+    )]
+    pub output: Option<FileOrStdout>,
+    #[clap(
+        short = 'B',
+        long,
+        help = "Emit binary data",
+    )]
+    pub binary: bool,
 }
 
 

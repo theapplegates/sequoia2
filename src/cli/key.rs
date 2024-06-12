@@ -1565,62 +1565,21 @@ test_examples!(sq_key_subkey_expire, SQ_KEY_SUBKEY_EXPIRE_EXAMPLES);
 #[derive(Debug, Args)]
 #[clap(
     name = "expire",
-    about = "Change expiration times",
-    long_about =
-"Change expiration times
+    about = "Change a subkey's expiration time",
+    long_about = "\
+Change a subkey's expiration time.
 
-Change or clear a key's expiration time.
-
-This subcommand changes a key's expiration time.  To change the
-expiration time of the certificate, use the `sq key expire`
+This subcommand changes a key's expiration time.  To change the \
+expiration time of the certificate, use the `sq key expire` \
 subcommand.
 
-Changing the expiration time of the primary key is equivalent to
+Changing the expiration time of the primary key is equivalent to \
 changing the certificate's expiration time.
 ",
     after_help = SQ_KEY_SUBKEY_EXPIRE_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct SubkeyExpireCommand {
-    #[clap(
-        help = FileOrStdout::HELP_OPTIONAL,
-        long,
-        short,
-        value_name = FileOrStdout::VALUE_NAME,
-    )]
-    pub output: Option<FileOrStdout>,
-
-    #[clap(
-        short = 'B',
-        long,
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
-
-    #[clap(
-        long,
-        help = "Change expiration of this subkey",
-        required = true,
-    )]
-    pub key: Vec<KeyHandle>,
-
-    #[clap(
-        value_name = "EXPIRATION",
-        help =
-            "Define EXPIRATION for the key as ISO 8601 formatted string or \
-            custom duration.",
-        long_help =
-            "Define EXPIRATION for the key as ISO 8601 formatted string or \
-            custom duration. \
-            If an ISO 8601 formatted string is provided, the validity period \
-            reaches from the reference time (may be set using `--time`) to \
-            the provided time. \
-            Custom durations starting from the reference time may be set using \
-            `N[ymwds]`, for N years, months, weeks, days, or seconds. \
-            The special keyword `never` sets an unlimited expiry.",
-    )]
-    pub expiration: Expiration,
-
     #[clap(
         long,
         value_name = "FINGERPRINT|KEYID",
@@ -1635,6 +1594,52 @@ pub struct SubkeyExpireCommand {
                 certificate",
     )]
     pub cert_file: Option<FileOrStdin>,
+
+    #[clap(
+        long,
+        help = "Change the expiration of this subkey",
+        required = true,
+    )]
+    pub key: Vec<KeyHandle>,
+
+    #[clap(
+        value_name = "EXPIRATION",
+        help = "Sets the key's expiration time",
+        long_help = "\
+Sets the key's expiration time.
+
+EXPIRATION is either an ISO 8601 formatted string or a custom duration, \
+which takes the form `N[ymwds]`, where the letters stand for years, \
+months, weeks, days, and seconds, respectively.  Alternatively, the \
+keyword `never` does not set an expiration time.
+
+When using an ISO 8601 formatted string, the validity period is from \
+the key's creation time to the specified time.  When using a \
+duration, the validity period is from the key's creation time \
+for the specified duration.",
+    )]
+    pub expiration: Expiration,
+
+    #[clap(
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+        help = "Write to the specified FILE",
+        long_help = "\
+Write to the specified FILE.
+
+If not specified, and the certificate was read from the certificate \
+store, imports the modified certificate into the cert store.  If not \
+specified, and the certificate was read from a file, writes the \
+modified certificate to stdout.",
+    )]
+    pub output: Option<FileOrStdout>,
+    #[clap(
+        short = 'B',
+        long,
+        help = "Emit binary data",
+    )]
+    pub binary: bool,
 }
 
 #[derive(Debug, Args)]

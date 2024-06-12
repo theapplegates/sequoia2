@@ -19,6 +19,7 @@ use chrono::Utc;
 
 use openpgp::packet::Signature;
 use openpgp::parse::Parse;
+use openpgp::policy::NullPolicy;
 use openpgp::policy::StandardPolicy;
 use openpgp::Cert;
 use openpgp::cert::CertParser;
@@ -30,6 +31,11 @@ use sequoia_openpgp as openpgp;
 use tempfile::TempDir;
 
 pub const STANDARD_POLICY: &StandardPolicy = &StandardPolicy::new();
+pub const NULL_POLICY: &NullPolicy = &NullPolicy::new();
+
+pub fn artifact(filename: &str) -> PathBuf {
+    PathBuf::from("tests/data").join(filename)
+}
 
 // Returns the power set excluding the empty set.
 pub fn power_set<T: Clone>(set: &[T]) -> Vec<Vec<T>> {

@@ -10,8 +10,9 @@ use openpgp::Result;
 use crate::Sq;
 use crate::cli::key::RevokeCommand;
 use crate::cli::types::FileOrStdout;
-use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
+use crate::common::NULL_POLICY;
+use crate::common::RevocationOutput;
 use crate::parse_notations;
 
 /// Handle the revocation of a certificate
@@ -98,7 +99,8 @@ pub fn certificate_revoke(
         let br = file.open()?;
         Cert::from_buffered_reader(br)?
     } else if let Some(kh) = command.cert {
-        sq.lookup_one(&kh, None, true)?
+        sq.lookup_one_with_policy(&kh, None, true,
+                                  NULL_POLICY, sq.time)?
     } else {
         panic!("clap enforces --cert or --cert-file");
     };
@@ -107,7 +109,8 @@ pub fn certificate_revoke(
         let br = file.open()?;
         Some(Cert::from_buffered_reader(br)?)
     } else if let Some(kh) = command.revoker {
-        Some(sq.lookup_one(&kh, None, true)?)
+        Some(sq.lookup_one_with_policy(&kh, None, true,
+                                       NULL_POLICY, sq.time)?)
     } else {
         None
     };

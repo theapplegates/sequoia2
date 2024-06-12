@@ -123,6 +123,7 @@ pub fn get_secret_signer<'a>(
     let flags = Some(&[
         GetKeysOptions::AllowRevoked,
         GetKeysOptions::AllowNotAlive,
+        GetKeysOptions::NullPolicy,
     ][..]);
 
     if let Some(secret) = secret {

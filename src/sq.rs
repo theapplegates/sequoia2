@@ -24,6 +24,7 @@ use openpgp::packet::prelude::*;
 use openpgp::parse::Parse;
 use openpgp::policy::Policy;
 use openpgp::policy::StandardPolicy as P;
+use openpgp::policy::NullPolicy;
 use openpgp::types::KeyFlags;
 use openpgp::types::RevocationStatus;
 
@@ -50,6 +51,8 @@ use crate::output::hint::Hint;
 use crate::PreferredUserID;
 use crate::print_error_chain;
 
+static NULL_POLICY: NullPolicy = NullPolicy::new();
+
 /// Flags for Sq::get_keys and related functions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GetKeysOptions {
@@ -57,6 +60,8 @@ pub enum GetKeysOptions {
     AllowNotAlive,
     /// Don't ignore keys that are not revoke.
     AllowRevoked,
+    /// Use the NULL Policy.
+    NullPolicy,
 }
 
 /// Flag for Sq::get_keys and related function.
@@ -1005,9 +1010,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
         // Second, apply the null policy.
         if primary_uid.is_none() {
-            const NULL: openpgp::policy::NullPolicy =
-                openpgp::policy::NullPolicy::new();
-            if let Ok(vcert) = cert.with_policy(&NULL, self.time) {
+            if let Ok(vcert) = cert.with_policy(&NULL_POLICY, self.time) {
                 if let Ok(primary) = vcert.primary_userid() {
                     primary_uid = Some(primary.userid());
                 }
@@ -1295,6 +1298,13 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         let options = options.unwrap_or(&[][..]);
         let allow_not_alive = options.contains(&GetKeysOptions::AllowNotAlive);
         let allow_revoked = options.contains(&GetKeysOptions::AllowRevoked);
+        let null_policy = options.contains(&GetKeysOptions::NullPolicy);
+
+        let policy = if null_policy {
+            &NULL_POLICY as &dyn Policy
+        } else {
+            self.policy as &dyn Policy
+        };
 
         let mut keys: Vec<(Box<dyn crypto::Signer + Send + Sync>,
                            Option<Password>)>
@@ -1302,7 +1312,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
         'next_cert: for cert in certs {
             let cert = cert.borrow();
-            let vc = match cert.with_policy(self.policy, self.time) {
+            let vc = match cert.with_policy(policy, self.time) {
                 Ok(vc) => vc,
                 Err(err) => {
                     return Err(

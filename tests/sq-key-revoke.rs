@@ -9,9 +9,11 @@ use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
 mod common;
+use common::artifact;
 use common::compare_notations;
 use common::FileOrKeyHandle;
 use common::Sq;
+use common::NULL_POLICY;
 use common::STANDARD_POLICY;
 
 #[test]
@@ -20,7 +22,7 @@ fn sq_key_revoke() -> Result<()> {
 
     let time = sq.now();
 
-    let (cert, cert_path, _cert_rev)
+    let (_cert, cert_path, _cert_rev)
         = sq.key_generate(&[], &["alice"]);
 
     let message = "message";
@@ -28,7 +30,7 @@ fn sq_key_revoke() -> Result<()> {
     // revoke for various reasons, with or without notations added, or
     // with a revocation whose reference time is one hour after the
     // creation of the certificate
-    for (reason, reason_str, notations, revocation_time) in [
+    for ((reason, reason_str, notations, revocation_time), cert_path) in [
         (
             ReasonForRevocation::KeyCompromised,
             "compromised",
@@ -74,10 +76,20 @@ fn sq_key_revoke() -> Result<()> {
             &[("foo", "bar"), ("hallo@sequoia-pgp.org", "VALUE")][..],
             None,
         ),
-    ] {
+    ].into_iter().flat_map(|test| {
+        [
+            // A normal key.
+            (test, cert_path.clone()),
+            // A key that uses SHA-1.
+            (test, artifact("keys/only-sha1-priv.pgp")),
+        ]
+    })
+    {
         eprintln!("==========================");
         eprintln!("reason: {}, message: {}, notations: {:?}, time: {:?}",
                   reason, reason_str, notations, revocation_time);
+
+        let cert = Cert::from_file(&cert_path).expect("valid cert");
 
         for keystore in [false, true].into_iter() {
             eprintln!("--------------------------");
@@ -166,22 +178,18 @@ fn sq_key_revoke_thirdparty() -> Result<()> {
 
     let time = sq.now();
 
-    let (cert, cert_path, _cert_rev)
+    let (_cert, cert_path, _cert_rev)
         = sq.key_generate(&[], &["alice"]);
 
-    let (thirdparty_cert, thirdparty_path, _cert_rev)
+    let (_thirdparty_cert, thirdparty_path, _cert_rev)
         = sq.key_generate(&[], &["bob <bob@example.org>"]);
-
-    let thirdparty_valid_cert = thirdparty_cert
-        .with_policy(STANDARD_POLICY, Some(time.into()))?;
-    let thirdparty_fingerprint = &thirdparty_valid_cert.clone().fingerprint();
 
     let message = "message";
 
     // revoke for various reasons, with or without notations added, or with
     // a revocation whose reference time is one hour after the creation of the
     // certificate
-    for (reason, reason_str, notations, revocation_time) in [
+    for ((reason, reason_str, notations, revocation_time), cert_path, thirdparty_path) in [
         (
             ReasonForRevocation::KeyCompromised,
             "compromised",
@@ -239,7 +247,31 @@ fn sq_key_revoke_thirdparty() -> Result<()> {
             &[("foo", "bar"), ("hallo@sequoia-pgp.org", "VALUE")][..],
             None,
         ),
-    ] {
+    ].into_iter().flat_map(|test| {
+        [
+            // Two valid keys.
+            (test,
+             cert_path.clone(),
+             thirdparty_path.clone()),
+            // The revokee is invalid (SHA-1).
+            (test,
+             artifact("keys/only-sha1-priv.pgp"),
+             thirdparty_path.clone()),
+            // The revoker is invalid (SHA-1).
+            (test,
+             cert_path.clone(),
+             artifact("keys/only-sha1-priv.pgp")),
+        ]
+    }) {
+        let cert = Cert::from_file(&cert_path).expect("valid cert");
+        let thirdparty_cert
+            = Cert::from_file(&thirdparty_path).expect("valid cert");
+
+        let thirdparty_valid_cert = thirdparty_cert
+            .with_policy(NULL_POLICY, Some(time.into()))?;
+        let thirdparty_fingerprint
+            = &thirdparty_valid_cert.clone().fingerprint();
+
         for keystore in [false, true].into_iter() {
             let revocation = sq.scratch_file(Some(&format!(
                 "revocation_{}_{}_{}.rev",
@@ -280,7 +312,6 @@ fn sq_key_revoke_thirdparty() -> Result<()> {
                 notations,
                 Some(revocation.as_path()));
 
-            let revocation_cert = Cert::from_file(&revocation)?;
             assert!(! revocation_cert.is_tsk());
 
             // evaluate revocation status

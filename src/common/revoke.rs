@@ -20,6 +20,7 @@ use cert_store::LazyCert;
 
 use crate::cli::types::FileOrStdout;
 use crate::Sq;
+use crate::sq::GetKeysOptions;
 
 /// A trait for unifying the approach of writing a revocation to an output
 pub trait RevocationOutput {
@@ -119,8 +120,13 @@ pub fn get_secret_signer<'a>(
     cert: &'a Cert,
     secret: Option<&'a Cert>,
 ) -> Result<(Cert, Box<dyn Signer + Send + Sync>)> {
+    let flags = Some(&[
+        GetKeysOptions::AllowRevoked,
+        GetKeysOptions::AllowNotAlive,
+    ][..]);
+
     if let Some(secret) = secret {
-        if let Ok((key, _password)) = sq.get_primary_key(secret, None) {
+        if let Ok((key, _password)) = sq.get_primary_key(secret, flags) {
             Ok((secret.clone(), key))
         } else {
             if ! sq.time_is_now {
@@ -141,7 +147,7 @@ does not contain a certification key with secret key material"
             }
         }
     } else {
-        if let Ok((key, _password)) = sq.get_primary_key(cert, None) {
+        if let Ok((key, _password)) = sq.get_primary_key(cert, flags) {
             Ok((cert.clone(), key))
         } else {
             if ! sq.time_is_now {

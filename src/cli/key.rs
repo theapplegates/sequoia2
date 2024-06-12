@@ -1295,17 +1295,17 @@ test_examples!(sq_key_attest_certifications, ATTEST_CERTIFICATIONS_EXAMPLES);
 #[clap(
     name = "attest-certifications",
     about = "Attest to third-party certifications",
-    long_about =
-"Attest to third-party certifications allowing for their distribution
+    long_about = "\
+Attest to third-party certifications allowing for their distribution.
 
-To prevent certificate flooding attacks, modern key servers prevent
-uncontrolled distribution of third-party certifications on
-certificates.  To make the key holder the sovereign over the
-information over what information is distributed with the certificate,
-the key holder needs to explicitly attest to third-party
-certifications.
+To prevent certificate flooding attacks, modern key servers prevent \
+uncontrolled distribution of third-party certifications on \
+certificates.  To allow the key holder to control what information \
+is distributed with their certificate, these key servers only \
+distribute third-party certifications that the key holder has \
+explicitly approved.
 
-After the attestation has been created, the certificate has to be
+After the attestation has been created, the certificate has to be \
 distributed, e.g. by uploading it to a key server.
 ",
     after_help = ATTEST_CERTIFICATIONS_EXAMPLES,
@@ -1314,13 +1314,13 @@ distributed, e.g. by uploading it to a key server.
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct AttestCertificationsCommand {
     #[clap(
-        long = "none",
+        long,
         conflicts_with = "all",
         help = "Remove all prior attestations",
     )]
     pub none: bool,
     #[clap(
-        long = "all",
+        long,
         conflicts_with = "none",
         help = "Attest to all certifications",
     )]
@@ -1328,24 +1328,27 @@ pub struct AttestCertificationsCommand {
     #[clap(
         long,
         value_name = "CERT",
-        help = "Change attestations on the specified key",
+        help = "Change attestations on the specified certificate",
     )]
     pub cert: Option<KeyHandle>,
     #[clap(
         long,
         value_name = "CERT_FILE",
-        help = "Change attestations on the specified key",
+        help = "Change attestations on the specified certificate",
     )]
     pub cert_file: Option<FileOrStdin>,
     #[clap(
         long,
         short,
-        value_name = FileOrCertStore::VALUE_NAME,
-        help = "Write to the specified FILE.  If not specified, and the \
-                certificate was read from the certificate store, imports the \
-                modified certificate into the cert store.  If not specified, \
-                and the certificate was read from a file, writes the modified \
-                certificate to stdout.",
+        value_name = FileOrStdout::VALUE_NAME,
+        help = "Write to the specified FILE",
+        long_help = "\
+Write to the specified FILE.
+
+If not specified, and the certificate was read from the certificate \
+store, imports the modified certificate into the cert store.  If not \
+specified, and the certificate was read from a file, writes the \
+modified certificate to stdout.",
     )]
     pub output: Option<FileOrStdout>,
     #[clap(

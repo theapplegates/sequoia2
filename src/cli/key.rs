@@ -1268,6 +1268,29 @@ modified certificate to stdout.",
     pub binary: bool,
 }
 
+const ATTEST_CERTIFICATIONS_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Import Alice's key.",
+            command: &[
+                "sq", "key", "import",
+                "alice-secret.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Attest to all of the certifications on all the user IDs.",
+            command: &[
+                "sq", "key", "attest-certifications",
+                "--all",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_key_attest_certifications, ATTEST_CERTIFICATIONS_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     name = "attest-certifications",
@@ -1285,15 +1308,7 @@ certifications.
 After the attestation has been created, the certificate has to be
 distributed, e.g. by uploading it to a key server.
 ",
-    after_help =
-"EXAMPLES:
-
-# Attest to all certifications present on the key
-$ sq key attest-certifications --all --cert-file juliet.pgp
-
-# Retract prior attestations on the key
-$ sq key attest-certifications --none --cert-file juliet.pgp
-",
+    after_help = ATTEST_CERTIFICATIONS_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("certifications_input").args(&["all", "none"]).required(true)))]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]

@@ -62,10 +62,19 @@ impl From<KeyReasonForRevocation> for ReasonForRevocation {
     }
 }
 
-/// The revocation reason for a UserID
+/// The revocation reason for a user ID
 #[derive(ValueEnum, Clone, Debug)]
 pub enum UserIDReasonForRevocation {
+    /// The user ID is no longer valid.  This is appropriate when
+    /// someone leaves an organisation, and the organisation does not
+    /// have their secret key material.  For instance, if someone was
+    /// part of Debian and retires, they would use this to indicate
+    /// that a Debian-specific User ID is no longer valid.
     Retired,
+
+    /// None of the other reasons apply.  OpenPGP implementations
+    /// conservatively treat this type of revocation similar to a
+    /// compromised key.
     Unspecified
 }
 
@@ -944,24 +953,21 @@ test_examples!(sq_key_userid_revoke, USERID_REVOKE_EXAMPLES);
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Revoke a User ID",
-    long_about =
-"Revoke a User ID
+    about = "Revoke a user ID",
+    long_about = "\
+Revoke a user ID.
 
-Creates a revocation certificate for a User ID.
+Creates a revocation certificate for a user ID.
 
-If `--revocation-key` is provided, then that key is used to create \
-the signature.  If that key is different from the certificate being \
-revoked, this creates a third-party revocation.  This is normally only \
-useful if the owner of the certificate designated the key to be a \
-designated revoker.
-
-If `--revocation-key` is not provided, then the certificate must \
-include a certification-capable key.
+If `--revoker` or `--revoker-file` is provided, then that key is used \
+to create the revocation certificate.  If that key is different from \
+the certificate that is being revoked, this results in a third-party \
+revocation.  This is normally only useful if the owner of the \
+certificate designated the key to be a designated revoker.
 
 `sq key userid revoke` respects the reference time set by the top-level \
 `--time` argument.  When set, it uses the specified time instead of \
-the current time, when determining what keys are valid, and it sets \
+the current time when determining what keys are valid, and it sets \
 the revocation certificate's creation time to the reference time \
 instead of the current time.",
     after_help = USERID_REVOKE_EXAMPLES,
@@ -981,9 +987,11 @@ pub struct UseridRevokeCommand {
         value_name = "CERT_FILE",
         conflicts_with = "cert",
         help = "Revoke the user ID on the specified certificate",
-        long_help =
-"Read the certificate whose user ID should be revoked from FILE or \
-stdin.  It is an error for the file to contain more than one \
+        long_help = "\
+Revoke the user ID on the specified certificate.
+
+Read the certificate whose user ID should be revoked from FILE or \
+stdin, if `-`.  It is an error for the file to contain more than one \
 certificate.",
     )]
     pub cert_file: Option<FileOrStdin>,
@@ -991,35 +999,42 @@ certificate.",
     #[clap(
         long,
         value_name = "FINGERPRINT|KEYID",
-        help = "Revoke the user ID with the specified certificate",
-        long_help =
-"Sign the revocation certificate using the specified key.  If the key is \
-different from the certificate, this creates a third-party revocation.  If \
-this option is not provided, and the certificate includes secret key material, \
-then that key is used to sign the revocation certificate.",
+        help = "The certificate that issues the revocation",
+        long_help = "\
+The certificate that issues the revocation.
+
+Sign the revocation certificate using the specified key.  By default, \
+the certificate being revoked is used.  Using this option, it is \
+possible to create a third-party revocation.",
     )]
     pub revoker: Option<KeyHandle>,
     #[clap(
         long,
         value_name = "KEY_FILE",
         conflicts_with = "revoker",
-        help = "Sign the revocation certificate using the key in KEY_FILE",
-        long_help =
-"Sign the revocation certificate using the key in KEY_FILE.  If the key is \
-different from the certificate, this creates a third-party revocation.  If \
-this option is not provided, and the certificate includes secret key material, \
-then that key is used to sign the revocation certificate.",
+        help = "The certificate that issues the revocation",
+        long_help = "\
+The certificate that issues the revocation.
+
+Sign the revocation certificate using the specified key.  By default, \
+the certificate being revoked is used.  Using this option, it is \
+possible to create a third-party revocation.
+
+Read the certificate from KEY_FILE or stdin, if `-`.  It is an error \
+for the file to contain more than one certificate.",
     )]
     pub revoker_file: Option<FileOrStdin>,
 
     #[clap(
         long,
         value_name = "USERID",
-        help = "The User ID to revoke",
-        long_help =
-"The User ID to revoke.  By default, this must exactly match a \
-self-signed User ID.  Use `--force` to generate a revocation certificate \
-for a User ID, which is not self signed."
+        help = "The user ID to revoke",
+        long_help = "\
+The user ID to revoke.
+
+By default, this must exactly match a self-signed User ID.  Use \
+`--force` to generate a revocation certificate for a User ID that is \
+not self signed."
     )]
     pub userid: String,
 
@@ -1027,36 +1042,25 @@ for a User ID, which is not self signed."
         value_enum,
         value_name = "REASON",
         help = "The reason for the revocation",
-        long_help =
-"The reason for the revocation.  This must be either: `retired`, or
-`unspecified`:
-
-  - `retired` means that this User ID is no longer valid.  This is
-    appropriate when someone leaves an organisation, and the
-    organisation does not have their secret key material.  For
-    instance, if someone was part of Debian and retires, they would
-    use this to indicate that a Debian-specific User ID is no longer
-    valid.
-
-  - `unspecified` means that a different reason applies.
+        long_help = "\
+The reason for the revocation.
 
 If the reason happened in the past, you should specify that using the \
-`--time` argument.  This allows OpenPGP implementations to more
-accurately reason about objects whose validity depends on the validity \
-of a User ID."
+`--time` argument.  This allows OpenPGP implementations to more \
+accurately reason about artifacts whose validity depends on the validity \
+of the user ID."
     )]
     pub reason: UserIDReasonForRevocation,
 
     #[clap(
         value_name = "MESSAGE",
         help = "A short, explanatory text",
-        long_help =
-"A short, explanatory text that is shown to a viewer of the revocation \
-certificate.  It explains why the certificate has been revoked.  For \
-instance, if Alice has created a new key, she would generate a \
-`superseded` revocation certificate for her old key, and might include \
-the message `I've created a new certificate, FINGERPRINT, please use
-that in the future.`",
+        long_help = "\
+A short, explanatory text.
+
+The text is shown to a viewer of the revocation certificate, and \
+explains why the certificate has been revoked.  For instance, if Alice \
+has left the organization, it might say who to contact instead.",
     )]
     pub message: String,
 
@@ -1065,13 +1069,15 @@ that in the future.`",
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
         help = "Add a notation to the certification.",
-        long_help = "Add a notation to the certification.  \
-            A user-defined notation's name must be of the form \
-            `name@a.domain.you.control.org`. If the notation's name starts \
-            with a `!`, then the notation is marked as being critical.  If a \
-            consumer of a signature doesn't understand a critical notation, \
-            then it will ignore the signature.  The notation is marked as \
-            being human readable."
+        long_help = "\
+Add a notation to the certification.
+
+A user-defined notation's name must be of the form \
+`name@a.domain.you.control.org`.  If the notation's name starts with a \
+`!`, then the notation is marked as being critical.  If a consumer of \
+a signature doesn't understand a critical notation, then it will \
+ignore the signature.  The notation is marked as being human \
+readable."
     )]
     pub notation: Vec<String>,
 
@@ -1079,11 +1085,14 @@ that in the future.`",
         long,
         short,
         value_name = FileOrCertStore::VALUE_NAME,
-        help = "Write to the specified FILE.  If not specified, and the \
-                certificate was read from the certificate store, imports the \
-                modified certificate into the cert store.  If not specified, \
-                and the certificate was read from a file, writes the modified \
-                certificate to stdout.",
+        help = "Write to the specified FILE",
+        long_help = "\
+Write to the specified FILE.
+
+If not specified, and the certificate was read from the certificate \
+store, imports the modified certificate into the cert store.  If not \
+specified, and the certificate was read from a file, writes the \
+modified certificate to stdout.",
     )]
     pub output: Option<FileOrStdout>,
 

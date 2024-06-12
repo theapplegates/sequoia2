@@ -774,9 +774,9 @@ pub fn sq_key_generate(
 /// Returns an error if a notation can not be found in the Signature
 pub fn compare_notations(
     signature: &Signature,
-    notations: Option<&[(&str, &str); 2]>,
+    notations: &[(&str, &str)],
 ) -> Result<()> {
-    if let Some(notations) = notations {
+    if ! notations.is_empty() {
         let found_notations: Vec<(&str, String)> = signature
             .notation_data()
             .map(|n| (n.name(), String::from_utf8_lossy(n.value()).into()))

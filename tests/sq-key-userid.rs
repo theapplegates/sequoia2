@@ -36,30 +36,30 @@ fn sq_key_userid_revoke() -> Result<()> {
     // a revocation whose reference time is one hour after the creation of the
     // certificate
     for (reason, reason_str, notations, revocation_time) in [
-        (ReasonForRevocation::UIDRetired, "retired", None, None),
+        (ReasonForRevocation::UIDRetired, "retired", &[][..], None),
         (
             ReasonForRevocation::UIDRetired,
             "retired",
-            None,
+            &[][..],
             Some(time + Duration::hours(1)),
         ),
         (
             ReasonForRevocation::UIDRetired,
             "retired",
-            Some(&[("foo", "bar"), ("hallo@sequoia-pgp.org", "VALUE")]),
+            &[("foo", "bar"), ("hallo@sequoia-pgp.org", "VALUE")][..],
             None,
         ),
-        (ReasonForRevocation::Unspecified, "unspecified", None, None),
+        (ReasonForRevocation::Unspecified, "unspecified", &[][..], None),
         (
             ReasonForRevocation::Unspecified,
             "unspecified",
-            None,
+            &[][..],
             Some(time + Duration::hours(1)),
         ),
         (
             ReasonForRevocation::Unspecified,
             "unspecified",
-            Some(&[("foo", "bar"), ("hallo@sequoia-pgp.org", "VALUE")]),
+            &[("foo", "bar"), ("hallo@sequoia-pgp.org", "VALUE")][..],
             None,
         ),
     ] {
@@ -77,10 +77,10 @@ fn sq_key_userid_revoke() -> Result<()> {
             let revocation = &tmpdir.path().join(format!(
                 "revocation_{}_{}_{}.rev",
                 reason_str,
-                if notations.is_some() {
-                    "notations"
-                } else {
+                if notations.is_empty() {
                     "no_notations"
+                } else {
+                    "notations"
                 },
                 if revocation_time.is_some() {
                     "time"
@@ -130,10 +130,8 @@ fn sq_key_userid_revoke() -> Result<()> {
                 ]);
             }
 
-            if let Some(notations) = notations {
-                for (k, v) in notations {
-                    cmd.args(["--notation", k, v]);
-                }
+            for (k, v) in notations {
+                cmd.args(["--notation", k, v]);
             }
             if let Some(time) = revocation_time {
                 cmd.args([
@@ -253,30 +251,30 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
     // a revocation whose reference time is one hour after the creation of the
     // certificate
     for (reason, reason_str, notations, revocation_time) in [
-        (ReasonForRevocation::UIDRetired, "retired", None, None),
+        (ReasonForRevocation::UIDRetired, "retired", &[][..], None),
         (
             ReasonForRevocation::UIDRetired,
             "retired",
-            None,
+            &[][..],
             Some(thirdparty_time + Duration::hours(1)),
         ),
         (
             ReasonForRevocation::UIDRetired,
             "retired",
-            Some(&[("foo", "bar"), ("hallo@sequoia-pgp.org", "VALUE")]),
+            &[("foo", "bar"), ("hallo@sequoia-pgp.org", "VALUE")][..],
             None,
         ),
-        (ReasonForRevocation::Unspecified, "unspecified", None, None),
+        (ReasonForRevocation::Unspecified, "unspecified", &[][..], None),
         (
             ReasonForRevocation::Unspecified,
             "unspecified",
-            None,
+            &[][..],
             Some(thirdparty_time + Duration::hours(1)),
         ),
         (
             ReasonForRevocation::Unspecified,
             "unspecified",
-            Some(&[("foo", "bar"), ("hallo@sequoia-pgp.org", "VALUE")]),
+            &[("foo", "bar"), ("hallo@sequoia-pgp.org", "VALUE")][..],
             None,
         ),
     ] {
@@ -287,10 +285,10 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
             let revocation = &tmpdir.path().join(format!(
                 "revocation_{}_{}_{}.rev",
                 reason_str,
-                if notations.is_some() {
-                    "notations"
-                } else {
+                if notations.is_empty() {
                     "no_notations"
+                } else {
+                    "notations"
                 },
                 if revocation_time.is_some() {
                     "time"
@@ -347,10 +345,8 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
                 ]);
             }
 
-            if let Some(notations) = notations {
-                for (k, v) in notations {
-                    cmd.args(["--notation", k, v]);
-                }
+            for (k, v) in notations {
+                cmd.args(["--notation", k, v]);
             }
             if let Some(time) = revocation_time {
                 cmd.args([

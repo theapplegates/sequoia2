@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 
@@ -127,46 +126,40 @@ pub fn get_secret_signer<'a>(
     ][..]);
 
     if let Some(secret) = secret {
-        if let Ok((key, _password)) = sq.get_primary_key(secret, flags) {
-            Ok((secret.clone(), key))
-        } else {
-            if ! sq.time_is_now {
-                return Err(anyhow!(
-                    "\
+        match sq.get_primary_key(secret, flags) {
+            Ok((key, _password)) => Ok((secret.clone(), key)),
+            Err(err) => {
+                if ! sq.time_is_now {
+                    return Err(err.context(format!("\
 No certification key found: the key specified with --revocation-file \
 does not contain a certification key with secret key material.  \
 Perhaps this is because no certification keys are valid at the time \
 you specified ({})",
-                    DateTime::<Utc>::from(sq.time)
-                ));
-            } else {
-                return Err(anyhow!(
-                    "\
+                        DateTime::<Utc>::from(sq.time))));
+                } else {
+                    return Err(err.context(format!("\
 No certification key found: the key specified with --revocation-file \
-does not contain a certification key with secret key material"
-                ));
+does not contain a certification key with secret key material")));
+                }
             }
         }
     } else {
-        if let Ok((key, _password)) = sq.get_primary_key(cert, flags) {
-            Ok((cert.clone(), key))
-        } else {
-            if ! sq.time_is_now {
-                return Err(anyhow!(
-                    "\
+        match sq.get_primary_key(cert, flags) {
+            Ok((key, _password)) => Ok((cert.clone(), key)),
+            Err(err) => {
+                if ! sq.time_is_now {
+                    return Err(err.context(format!("\
 No certification key found: --revocation-file not provided and the
 certificate to revoke does not contain a certification key with secret
 key material.  Perhaps this is because no certification keys are valid at
 the time you specified ({})",
-                    DateTime::<Utc>::from(sq.time)
-                ));
-            } else {
-                return Err(anyhow!(
-                    "\
+                        DateTime::<Utc>::from(sq.time))));
+                } else {
+                    return Err(err.context(format!("\
 No certification key found: --revocation-file not provided and the
 certificate to revoke does not contain a certification key with secret
-key material"
-                ));
+key material")));
+                }
             }
         }
     }

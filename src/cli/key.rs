@@ -851,16 +851,16 @@ test_examples!(sq_key_userid_add, USERID_ADD_EXAMPLES);
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Add a User ID",
+    about = "Add a user ID",
     long_about =
-"Add a User ID
+"Add a user ID.
 
-A User ID can contain a name, like `Juliet` or an email address, like
-`<juliet@example.org>`.  Historically, a name and email address were often
-combined as a single User ID, like `Juliet <juliet@example.org>`.
+A user ID can contain a name, like `Juliet`, or an email address, like \
+`<juliet@example.org>`.  Historically, a name and an email address were \
+usually combined as a single user ID, like `Juliet <juliet@example.org>`.
 
-`sq userid add` respects the reference time set by the top-level
-`--time` argument.  It sets the creation time of the User ID's
+`sq userid add` respects the reference time set by the top-level \
+`--time` argument.  It sets the creation time of the user ID's \
 binding signature to the specified time.
 ",
     after_help = USERID_ADD_EXAMPLES,
@@ -875,9 +875,9 @@ pub struct UseridAddCommand {
     pub cert: Option<KeyHandle>,
     #[clap(
         long,
-        help = FileOrStdin::HELP_OPTIONAL,
-        value_name = FileOrStdin::VALUE_NAME,
+        value_name = "CERT_FILE",
         conflicts_with = "cert",
+        help = "Add the user ID to the specified certificate",
     )]
     pub cert_file: Option<FileOrStdin>,
     #[clap(
@@ -888,22 +888,27 @@ pub struct UseridAddCommand {
     )]
     pub userid: Vec<UserID>,
     #[clap(
-        long = "allow-non-canonical-userids",
+        long,
         help = "Don't reject user IDs that are not in canonical form",
-        long_help = "Don't reject user IDs that are not in canonical form.  \
-                Canonical user IDs are of the form \
-                `Name (Comment) <localpart@example.org>`.",
+        long_help = "\
+Don't reject user IDs that are not in canonical form.
+
+Canonical user IDs are of the form `Name (Comment) \
+<localpart@example.org>`.",
     )]
     pub allow_non_canonical_userids: bool,
     #[clap(
-        help = "Write to the specified FILE.  If not specified, and the \
-                certificate was read from the certificate store, imports the \
-                modified certificate into the cert store.  If not specified, \
-                and the certificate was read from a file, writes the modified \
-                certificate to stdout.",
         long,
         short,
         value_name = FileOrCertStore::VALUE_NAME,
+        help = "Write to the specified FILE",
+        long_help = "\
+Write to the specified FILE.
+
+If not specified, and the certificate was read from the certificate \
+store, imports the modified certificate into the cert store.  If not \
+specified, and the certificate was read from a file, writes the \
+modified certificate to stdout.",
     )]
     pub output: Option<FileOrStdout>,
     #[clap(

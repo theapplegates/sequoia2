@@ -816,7 +816,7 @@ modified certificate to stdout.",
     long_about =
 "Manage User IDs
 
-Add User IDs to, or strip User IDs from a key.
+Add User IDs to a key, or revoke them.
 ",
     subcommand_required = true,
     arg_required_else_help = true,

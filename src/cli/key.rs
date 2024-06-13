@@ -1106,28 +1106,28 @@ modified certificate to stdout.",
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Strip a User ID",
+    about = "Strip a user ID",
     long_about =
-"Strip a User ID
+"Strip a user ID.
 
-Note that this operation does not reliably remove User IDs from a
-certificate that has already been disseminated! (OpenPGP software
-typically appends new information it receives about a certificate
-to its local copy of that certificate.  Systems that have obtained
-a copy of your certificate with the User ID that you are trying to
-strip will not drop that User ID from their copy.)
+Note that this operation does not reliably remove User IDs from a \
+certificate that has already been disseminated! (OpenPGP software \
+typically appends new information it receives about a certificate to \
+its local copy of that certificate.  Systems that have obtained a copy \
+of your certificate with the User ID that you are trying to strip will \
+not drop that User ID from their copy.)
 
-In most cases, you will want to use the 'sq key userid revoke' operation
-instead.  That issues a revocation for a User ID, which can be used to mark
+In most cases, you will want to use the 'sq key userid revoke' operation \
+instead.  That issues a revocation for a User ID, which can be used to mark \
 the User ID as invalidated.
 
-However, this operation can be useful in very specific cases, in particular:
-to remove a mistakenly added User ID before it has been uploaded to key
+However, this operation can be useful in very specific cases, in particular: \
+to remove a mistakenly added User ID before it has been uploaded to key \
 servers or otherwise shared.
 
-Stripping a User ID may change how a certificate is interpreted.  This
-is because information about the certificate like algorithm preferences,
-the primary key's key flags, etc. is stored in the User ID's binding
+Stripping a User ID may change how a certificate is interpreted.  This \
+is because information about the certificate like algorithm preferences, \
+the primary key's key flags, etc. is stored in the User ID's binding \
 signature.
 ",
     after_help =

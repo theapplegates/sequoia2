@@ -29,8 +29,8 @@ pub struct Command {
 
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
-    Generate(GenerateCommand),
     Fetch(FetchCommand),
+    Generate(GenerateCommand),
 }
 
 #[derive(Debug, Args)]

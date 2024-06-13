@@ -69,6 +69,10 @@
      key store.
    - Rename the `--expiry` argument to `--expiration`.
    - Rename `sq key password`'s `--clear` argument to `--clear-password`.
+   - Add a top-level `--password-file` argument to seed the password
+     cache.  Remove `sq key password`'s `--old-password-file`, and `sq
+     sign`'s `--password-file` local arguments in favor of this
+     argument.
 * Changes in 0.36.0
  - Missing
 * Changes in 0.35.0

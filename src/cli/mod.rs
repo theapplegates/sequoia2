@@ -426,6 +426,24 @@ $ sq --time 20130721T0550+0200 verify msg.pgp
     )]
     pub trust_roots: Vec<Fingerprint>,
     #[clap(
+        long,
+        value_name = "FILE",
+        global = true,
+        help_heading = GLOBAL_OPTIONS_HEADER,
+        help = "Seed the password cache with the specified password",
+        long_help = "\
+Seed the password cache with the specified password.
+
+The password is added to the password cache.  When decrypting secret \
+key material, the password cache is only used if the key is not \
+protected by a retry counter, which automatically locks the key if \
+a wrong password is entered too many times.
+
+Note that the entire key file will be used as the password, including \
+any surrounding whitespace like a trailing newline.",
+    )]
+    pub password_file: Vec<PathBuf>,
+    #[clap(
         short,
         long,
         global = true,

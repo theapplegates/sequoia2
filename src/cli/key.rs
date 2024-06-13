@@ -547,7 +547,7 @@ Change the password for all keys to password in the specified file.",
 Clear the password protection.",
             command: &[
                 "sq", "key", "password",
-                "--old-password-file", "password-file.txt",
+                "--password-file", "password-file.txt",
                 "--clear-password",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0"
             ],
@@ -570,7 +570,7 @@ To strip the password either use `--clear` or supply a zero-length \
 password when prompted for the new password.
 
 If a key is password protected, and the correct password was not \
-supplied using the `--old-password-file` argument, the user is \
+supplied using the `--password-file` argument, the user is \
 prompted for the password.  Likewise, if the new password isn't \
 provided, the user is prompted.",
     after_help = PASSWORD_EXAMPLES,
@@ -595,18 +595,6 @@ for the file to contain more than one certificate.",
     )]
     pub cert_file: Option<FileOrStdin>,
 
-    #[clap(
-        long,
-        value_name = "PASSWORD_FILE",
-        help = "\
-File containing password to decrypt the secret key material",
-        long_help = "\
-File containing password to decrypt the secret key material.
-
-Note that the entire key file will be used as the password, including \
-any surrounding whitespace like a trailing newline."
-    )]
-    pub old_password_file: Vec<PathBuf>,
     #[clap(
         long,
         value_name = "PASSWORD_FILE",

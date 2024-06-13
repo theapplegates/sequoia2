@@ -21,9 +21,7 @@ use sequoia_openpgp as openpgp;
 
 use openpgp::Result;
 use openpgp::{armor, Cert};
-use openpgp::crypto::Password;
 use openpgp::Fingerprint;
-use openpgp::packet::prelude::*;
 use openpgp::parse::Parse;
 use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::packet::signature::subpacket::NotationDataFlags;
@@ -204,64 +202,6 @@ fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
     Ok(())
 }
 
-// Decrypts a key, if possible.
-//
-// The passwords in `passwords` are tried first.  If the key can't be
-// decrypted using those, the user is prompted.  If a valid password
-// is entered, it is added to `passwords`.
-fn decrypt_key<R>(key: Key<key::SecretParts, R>, passwords: &mut Vec<Password>)
-    -> Result<Key<key::SecretParts, R>>
-    where R: key::KeyRole + Clone
-{
-    let key = key.parts_as_secret()?;
-    match key.secret() {
-        SecretKeyMaterial::Unencrypted(_) => {
-            Ok(key.clone())
-        }
-        SecretKeyMaterial::Encrypted(e) => {
-            if ! e.s2k().is_supported() {
-                return Err(anyhow::anyhow!(
-                    "Unsupported key protection mechanism"));
-            }
-
-            for p in passwords.iter() {
-                if let Ok(key)
-                    = key.clone().decrypt_secret(&p)
-                {
-                    return Ok(key);
-                }
-            }
-
-            loop {
-                // Prompt the user.
-                match common::password::prompt_to_unlock_or_cancel(&format!(
-                    "key {}", key.keyid(),
-                )) {
-                    Ok(None) => break, // Give up.
-                    Ok(Some(p)) => {
-                        if let Ok(key) = key
-                            .clone()
-                            .decrypt_secret(&p)
-                        {
-                            passwords.push(p.into());
-                            return Ok(key);
-                        }
-
-                        wprintln!("Incorrect password.");
-                    }
-                    Err(err) => {
-                        wprintln!("While reading password: {}", err);
-                        break;
-                    }
-                }
-            }
-
-            Err(anyhow::anyhow!("Key {}: Unable to decrypt secret key material",
-                                key.keyid().to_hex()))
-        }
-    }
-}
-
 /// Prints a warning if the user supplied "help" or "-help" to an
 /// positional argument.
 ///
@@ -353,6 +293,15 @@ fn main() -> Result<()> {
         None
     };
 
+    let mut password_cache = Vec::new();
+    for password_file in &c.password_file {
+        let password = std::fs::read(&password_file)
+            .with_context(|| {
+                format!("Reading {}", password_file.display())
+            })?;
+        password_cache.push(password.into());
+    };
+
     let sq = Sq {
         verbose: c.verbose,
         force,
@@ -373,7 +322,7 @@ fn main() -> Result<()> {
         no_key_store: c.no_key_store,
         key_store_path: c.key_store.clone(),
         key_store: OnceCell::new(),
-        password_cache: Default::default(),
+        password_cache: password_cache.into(),
     };
 
     commands::dispatch(sq, c)

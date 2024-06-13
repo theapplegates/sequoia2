@@ -99,7 +99,7 @@ fn sq_key_password() -> Result<()> {
         let mut cmd = sq.command();
         cmd.args([
             "key", "password",
-            "--old-password-file", &new_password.to_string_lossy(),
+            "--password-file", &new_password.to_string_lossy(),
             "--clear-password",
         ]);
         if keystore {

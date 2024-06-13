@@ -2,6 +2,9 @@ use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
 use openpgp::crypto::Password;
+use openpgp::packet::key;
+use openpgp::packet::Key;
+use openpgp::packet::key::SecretKeyMaterial;
 use openpgp::serialize::Serialize;
 use openpgp::Packet;
 use openpgp::Result;
@@ -12,7 +15,6 @@ use keystore::Protection;
 use crate::common;
 use crate::Sq;
 use crate::cli;
-use crate::decrypt_key;
 use crate::cli::types::FileOrStdout;
 use crate::common::password;
 
@@ -43,19 +45,15 @@ pub fn password(
         let key = sq.lookup_one(file, None, true)?;
 
         // First, decrypt all secrets.
-        let passwords = &mut Vec::new();
-        for password in command.old_password_file {
-            passwords.push(std::fs::read(password)?.into());
-        };
         let mut decrypted: Vec<Packet> = vec![
             decrypt_key(
+                &sq,
                 key.primary_key().key().clone().parts_into_secret()?,
-                passwords,
             )?.into(),
         ];
         for ka in key.keys().subkeys().secret() {
             decrypted.push(
-                decrypt_key(ka.key().clone().parts_into_secret()?, passwords)?
+                decrypt_key(&sq, ka.key().clone().parts_into_secret()?)?
                     .into(),
             );
         }
@@ -96,10 +94,6 @@ pub fn password(
         }
     } else if let Some(kh) = command.cert {
         assert!(command.output.is_none());
-
-        for password in command.old_password_file {
-            sq.cache_password(std::fs::read(password)?.into());
-        }
 
         let cert = sq.lookup_one(kh, None, true)?;
         let vc = cert.with_policy(sq.policy, sq.time)?;
@@ -179,4 +173,62 @@ pub fn password(
     }
 
     Ok(())
+}
+
+// Decrypts a key, if possible.
+//
+// The passwords in `passwords` are tried first.  If the key can't be
+// decrypted using those, the user is prompted.  If a valid password
+// is entered, it is added to `passwords`.
+fn decrypt_key<R>(sq: &Sq, key: Key<key::SecretParts, R>)
+    -> Result<Key<key::SecretParts, R>>
+    where R: key::KeyRole + Clone
+{
+    let key = key.parts_as_secret()?;
+    match key.secret() {
+        SecretKeyMaterial::Unencrypted(_) => {
+            Ok(key.clone())
+        }
+        SecretKeyMaterial::Encrypted(e) => {
+            if ! e.s2k().is_supported() {
+                return Err(anyhow::anyhow!(
+                    "Unsupported key protection mechanism"));
+            }
+
+            for p in sq.password_cache.lock().unwrap().iter() {
+                if let Ok(key)
+                    = key.clone().decrypt_secret(&p)
+                {
+                    return Ok(key);
+                }
+            }
+
+            loop {
+                // Prompt the user.
+                match common::password::prompt_to_unlock_or_cancel(&format!(
+                    "key {}", key.keyid(),
+                )) {
+                    Ok(None) => break, // Give up.
+                    Ok(Some(p)) => {
+                        if let Ok(key) = key
+                            .clone()
+                            .decrypt_secret(&p)
+                        {
+                            sq.password_cache.lock().unwrap().push(p.into());
+                            return Ok(key);
+                        }
+
+                        wprintln!("Incorrect password.");
+                    }
+                    Err(err) => {
+                        wprintln!("While reading password: {}", err);
+                        break;
+                    }
+                }
+            }
+
+            Err(anyhow::anyhow!("Key {}: Unable to decrypt secret key material",
+                                key.keyid().to_hex()))
+        }
+    }
 }

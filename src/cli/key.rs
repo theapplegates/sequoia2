@@ -93,14 +93,13 @@ impl From<UserIDReasonForRevocation> for ReasonForRevocation {
     long_about =
 "Manage keys
 
-We use the term \"key\" to refer to OpenPGP keys that do contain
-secrets.  This subcommand provides primitives to generate and
+We use the term \"key\" to refer to OpenPGP keys that do contain \
+secrets.  This subcommand provides primitives to generate and \
 otherwise manipulate keys.
 
-Conversely, we use the term \"certificate\", or \"cert\" for short, to refer
-to OpenPGP keys that do not contain secrets.  See `sq toolbox keyring` for
-operations on certificates.
-",
+Conversely, we use the term \"certificate\", or \"cert\" for short, to refer \
+to OpenPGP keys that do not contain secrets.  See `sq cert` for operations on \
+certificates.",
     subcommand_required = true,
     arg_required_else_help = true,
 )]

@@ -1642,6 +1642,31 @@ modified certificate to stdout.",
     pub binary: bool,
 }
 
+const SUBKEY_REVOKE_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Import Alice's key.",
+            command: &[
+                "sq", "key", "import",
+                "alice-secret.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Alice revokes her signing subkey.",
+            command: &[
+                "sq", "key", "subkey", "revoke",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "42020B87D51877E5AF8D272124F3955B0B8DECC8",
+                "retired",
+                "Subkey rotation.",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_key_subkey_revoke, SUBKEY_REVOKE_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     about = "Revoke a subkey",
@@ -1665,6 +1690,7 @@ the current time, when determining what keys are valid, and it sets \
 the revocation certificate's creation time to the reference time \
 instead of the current time.
 ",
+    after_help = SUBKEY_REVOKE_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 #[clap(group(ArgGroup::new("revoker_input").args(&["revoker_file", "revoker"])))]

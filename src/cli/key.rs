@@ -548,7 +548,7 @@ Clear the password protection.",
             command: &[
                 "sq", "key", "password",
                 "--old-password-file", "password-file.txt",
-                "--clear",
+                "--clear-password",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0"
             ],
         }),
@@ -623,7 +623,7 @@ any surrounding whitespace like a trailing newline."
         long,
         help = "Clear the password protecting the secret key material",
     )]
-    pub clear: bool,
+    pub clear_password: bool,
 
     #[clap(
         help = FileOrStdout::HELP_OPTIONAL,

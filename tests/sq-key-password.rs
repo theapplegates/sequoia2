@@ -100,7 +100,7 @@ fn sq_key_password() -> Result<()> {
         cmd.args([
             "key", "password",
             "--old-password-file", &new_password.to_string_lossy(),
-            "--clear",
+            "--clear-password",
         ]);
         if keystore {
             cmd.args([

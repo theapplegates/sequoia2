@@ -25,7 +25,7 @@ pub fn password(
     // None => clear password
     let mut get_new_password = || -> Result<Option<Password>> {
         if new_password_.is_none() {
-            new_password_ = if command.clear {
+            new_password_ = if command.clear_password {
                 Some(None)
             } else if let Some(path) = command.new_password_file.as_ref() {
                 Some(Some(std::fs::read(path)?.into()))

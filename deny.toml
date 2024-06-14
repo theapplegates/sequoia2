@@ -1,5 +1,7 @@
 [advisories]
 ignore = [
+  "RUSTSEC-2020-0159",
+  "RUSTSEC-2020-0071", # chrono not affected by time 0.1 issue
   # fehler is unmaintained.
   #
   # fehler is used by subplot and thus an indirect dependency.  Remove
@@ -30,6 +32,7 @@ deny = [
 allow = [
   "Apache-2.0",
   "BSD-3-Clause",
+  "BSD-2-Clause",
   "BSL-1.0",
   "CC0-1.0",
   "GPL-2.0",
@@ -38,6 +41,8 @@ allow = [
   "LGPL-2.0",
   "LGPL-3.0",
   "MIT",
+  "MIT-0",
   "MPL-2.0",
   "Unicode-DFS-2016",
+  "Unicode-3.0",
 ]

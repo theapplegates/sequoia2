@@ -395,17 +395,16 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                                   "{} cannot be authenticated.  \
                                    It has no User IDs",
                                   cert_fpr);
-                    } else if let Ok(n) = sequoia_wot::Network::new(&cert_store) {
-                        let mut q = sequoia_wot::QueryBuilder::new(&n);
-                        q.roots(sequoia_wot::Roots::new(trust_roots.into_iter()));
-                        let q = q.build();
+                    } else {
+                        let n = sequoia_wot::NetworkBuilder::rooted(
+                            &cert_store, &*trust_roots).build();
 
                         let authenticated_userids
                             = userids.into_iter().filter(|userid| {
                                 let userid_str =
                                     String::from_utf8_lossy(userid.value());
 
-                                let paths = q.authenticate(
+                                let paths = n.authenticate(
                                     userid, cert.fingerprint(),
                                     // XXX: Make this user squrable.
                                     sequoia_wot::FULLY_TRUSTED);
@@ -467,8 +466,6 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                             signer_userid = String::from_utf8_lossy(
                                 authenticated_userids[0].value()).to_string();
                         }
-                    } else {
-                        qprintln!("Failed to build web of trust network.");
                     }
                 } else {
                     qprintln!("Skipping, certificate store has been disabled");

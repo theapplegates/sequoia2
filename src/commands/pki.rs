@@ -104,16 +104,16 @@ fn authenticate<'store, 'rstore>(
         cert_store.precompute();
     }
 
-    let n = wot::Network::new(cert_store)?;
-
-    let mut q = wot::QueryBuilder::new(&n);
-    if ! gossip {
-        q.roots(wot::Roots::new(sq.trust_roots()));
-    }
+    let mut n = if gossip {
+        wot::NetworkBuilder::rootless(cert_store)
+    } else {
+        wot::NetworkBuilder::rooted(cert_store,
+                                    &*sq.trust_roots())
+    };
     if certification_network {
-        q.certification_network();
+        n = n.certification_network();
     }
-    let q = q.build();
+    let n = n.build();
 
     let required_amount =
         required_trust_amount(trust_amount, certification_network)?;
@@ -196,12 +196,12 @@ fn authenticate<'store, 'rstore>(
         // and select the bindings where the User ID matches the email
         // address.
         bindings = if let Some(fingerprint) = fingerprint.as_ref() {
-            q.network().certified_userids_of(fingerprint)
+            n.certified_userids_of(fingerprint)
                 .into_iter()
                 .map(|userid| (fingerprint.clone(), userid))
                 .collect::<Vec<_>>()
         } else {
-            q.network().lookup_synopses_by_email(&email)
+            n.lookup_synopses_by_email(&email)
         };
 
         let email_normalized = userid_check.email_normalized()
@@ -225,7 +225,7 @@ fn authenticate<'store, 'rstore>(
             bindings.push((fingerprint, userid.clone()));
         } else {
             // Fingerprint, no User ID.
-            bindings = q.network().certified_userids_of(&fingerprint)
+            bindings = n.certified_userids_of(&fingerprint)
                 .into_iter()
                 .map(|userid| (fingerprint.clone(), userid))
                 .collect();
@@ -233,7 +233,7 @@ fn authenticate<'store, 'rstore>(
     } else if let Some(userid) = userid {
         // The caller did not specify a certificate.  Find all
         // bindings with the User ID.
-        bindings = q.network().lookup_synopses_by_userid(userid.clone())
+        bindings = n.lookup_synopses_by_userid(userid.clone())
             .into_iter()
             .map(|fpr| (fpr, userid.clone()))
             .collect();
@@ -241,7 +241,7 @@ fn authenticate<'store, 'rstore>(
         // No User ID, no Fingerprint.
         // List everything.
 
-        bindings = q.network().certified_userids();
+        bindings = n.certified_userids();
 
         if let Some(ref pattern) = list_pattern {
             // Or rather, just User IDs that match the pattern.
@@ -293,7 +293,7 @@ fn authenticate<'store, 'rstore>(
         OutputFormat::DOT => {
             Box::new(output::DotOutputNetwork::new(
                 required_amount,
-                q.roots(),
+                n.roots(),
                 gossip,
                 certification_network,
             ))
@@ -319,7 +319,7 @@ fn authenticate<'store, 'rstore>(
 
         let paths = if gossip {
             // Gossip.
-            let paths = q.gossip(
+            let paths = n.gossip(
                 fingerprint.clone(), userid.clone());
 
             // Sort so the shortest paths come first.
@@ -340,7 +340,7 @@ fn authenticate<'store, 'rstore>(
                 .map(|p| (p, 0))
                 .collect::<Vec<(wot::Path, usize)>>()
         } else {
-            let paths = q.authenticate(
+            let paths = n.authenticate(
                 userid.clone(), fingerprint.clone(), required_amount);
 
             aggregated_amount = paths.amount();
@@ -364,7 +364,7 @@ fn authenticate<'store, 'rstore>(
     if lint_input {
         // See if the target certificate exists.
         if let Some(kh) = certificate_dealiased {
-            match q.network().lookup_synopses(&kh) {
+            match n.lookup_synopses(&kh) {
                 Err(err) => {
                     wprintln!("Looking up target certificate ({}): {}",
                              kh, err);
@@ -390,7 +390,7 @@ fn authenticate<'store, 'rstore>(
 
                         // Check if the certificate has expired.
                         if let Some(e) = cert.expiration_time() {
-                            if e <= q.network().reference_time() {
+                            if e <= n.reference_time() {
                                 wprintln!("Warning: {} is expired.", kh);
                             }
                         }
@@ -406,9 +406,7 @@ fn authenticate<'store, 'rstore>(
 
                         // See if there are any certifications made on
                         // this certificate.
-                        if let Ok(cs) = q.network()
-                            .certifications_of(&fpr, 0.into())
-                        {
+                        if let Ok(cs) = n.certifications_of(&fpr, 0.into()) {
                             if cs.iter().all(|cs| {
                                 cs.certifications()
                                     .all(|(_userid, certifications)| {
@@ -447,9 +445,9 @@ fn authenticate<'store, 'rstore>(
 
         // See if the trust roots exist.
         if ! gossip {
-            if q.roots().iter().all(|r| {
+            if n.roots().iter().all(|r| {
                 let fpr = r.fingerprint();
-                if let Err(err) = q.network().lookup_synopsis_by_fpr(&fpr) {
+                if let Err(err) = n.lookup_synopsis_by_fpr(&fpr) {
                     wprintln!("Looking up trust root ({}): {}.",
                              fpr, err);
                     true
@@ -550,16 +548,16 @@ fn check_path(sq: &Sq,
         }
     };
 
-    let n = wot::Network::new(cert_store)?;
-
-    let mut q = wot::QueryBuilder::new(&n);
-    if ! gossip {
-        q.roots(wot::Roots::new(sq.trust_roots()));
-    }
+    let mut n = if gossip {
+        wot::NetworkBuilder::rootless(cert_store)
+    } else {
+        wot::NetworkBuilder::rooted(cert_store,
+                                    &*sq.trust_roots())
+    };
     if certification_network {
-        q.certification_network();
+        n = n.certification_network();
     }
-    let q = q.build();
+    let q = n.build();
 
     let required_amount =
         required_trust_amount(trust_amount, certification_network)?;

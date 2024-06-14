@@ -346,14 +346,12 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// Returns a web-of-trust query builder.
     ///
     /// The trust roots are already set appropriately.
-    pub fn wot_query(&self)
-        -> Result<wot::QueryBuilder<&WotStore<'store, 'rstore>>>
+    fn wot_query(&self) -> Result<wot::NetworkBuilder<&WotStore<'store, 'rstore>>>
     {
         let cert_store = self.cert_store_or_else()?;
-        let network = wot::Network::new(cert_store)?;
-        let mut query = wot::QueryBuilder::new_owned(network.into());
-        query.roots(wot::Roots::new(self.trust_roots()));
-        Ok(query)
+        let network = wot::NetworkBuilder::rooted(cert_store,
+                                                  &*self.trust_roots());
+        Ok(network)
     }
 
     /// Returns the key store's path.
@@ -630,10 +628,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
         let cert_store = wot::store::CertStore::from_store(
             cert_store, self.policy, self.time);
-        let n = wot::Network::new(&cert_store)?;
-        let mut q = wot::QueryBuilder::new(&n);
-        q.roots(wot::Roots::new(self.trust_roots().iter().cloned()));
-        let q = q.build();
+        let n = wot::NetworkBuilder::rooted(&cert_store, &*self.trust_roots())
+            .build();
 
         let mut results: Vec<Cert> = Vec::new();
         // We try hard to not just stop at the first error, but lint
@@ -739,7 +735,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 }
 
                 // Authenticate the bindings.
-                let paths = q.authenticate(
+                let paths = n.authenticate(
                     &userid, cert.fingerprint(),
                     // XXX: Make this user configurable.
                     wot::FULLY_TRUSTED);

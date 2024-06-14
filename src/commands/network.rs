@@ -52,10 +52,8 @@ use crate::{
         pluralize::Pluralize,
     },
     Sq,
-    Model,
     merge_keyring,
     serialize_keyring,
-    output::WkdUrlVariant,
     print_error_chain,
     utils::cert_exportable,
 };
@@ -983,22 +981,6 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
 
     use crate::cli::network::wkd::Subcommands::*;
     match c.subcommand {
-        Url(c) => {
-            let wkd_url = wkd::Url::from(&c.email_address)?;
-            let advanced = wkd_url.to_url(None)?.to_string();
-            let direct = wkd_url.to_url(wkd::Variant::Direct)?.to_string();
-            let output = Model::wkd_url(sq.output_version,
-                                       WkdUrlVariant::Advanced, advanced, direct)?;
-            output.write(sq.output_format, &mut std::io::stdout())?;
-        },
-        DirectUrl(c) => {
-            let wkd_url = wkd::Url::from(&c.email_address)?;
-            let advanced = wkd_url.to_url(None)?.to_string();
-            let direct = wkd_url.to_url(wkd::Variant::Direct)?.to_string();
-            let output = Model::wkd_url(sq.output_version,
-                                       WkdUrlVariant::Direct, advanced, direct)?;
-            output.write(sq.output_format, &mut std::io::stdout())?;
-        },
         Fetch(c) => rt.block_on(async {
             let mut pb = Response::progress_bar(&sq);
             let http_client = http_client()?;

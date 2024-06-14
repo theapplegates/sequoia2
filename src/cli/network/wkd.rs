@@ -33,32 +33,6 @@ pub struct Command {
 pub enum Subcommands {
     Fetch(FetchCommand),
     Publish(PublishCommand),
-    DirectUrl(DirectUrlCommand),
-    Url(UrlCommand),
-}
-
-#[derive(Debug, Args)]
-#[clap(
-    about = "Print the advanced Web Key Directory URL of an email address",
-)]
-pub struct UrlCommand {
-    #[clap(
-        value_name = "ADDRESS",
-        help = "Query for ADDRESS",
-    )]
-    pub email_address: String,
-}
-
-#[derive(Debug, Args)]
-#[clap(
-    about = "Print the direct Web Key Directory URL of an email address",
-)]
-pub struct DirectUrlCommand {
-    #[clap(
-        value_name = "ADDRESS",
-        help = "Query for ADDRESS",
-    )]
-    pub email_address: String,
 }
 
 #[derive(Debug, Args)]

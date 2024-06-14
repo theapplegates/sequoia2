@@ -13,7 +13,6 @@ pub mod sanitize;
 pub mod wrapping;
 
 pub use keyring::ListItem as KeyringListItem;
-pub use wkd::WkdUrlVariant;
 
 use crate::cli::output::{OutputFormat, OutputVersion};
 
@@ -30,27 +29,12 @@ pub const OUTPUT_VERSIONS: &[OutputVersion] = &[OutputVersion::new(0, 0, 0)];
 /// Each variant is created by a dedicated function.
 pub enum Model {
     KeyringListV0(keyring::ListV0),
-    WkdUrlV0(wkd::UrlV0),
 }
 
 impl Model {
 
     fn version(v: Option<OutputVersion>) -> OutputVersion {
         v.unwrap_or(DEFAULT_OUTPUT_VERSION)
-    }
-
-    /// Create a model for the output of `sq wkd url` and `sq wkd
-    /// direct-url` subcommands.
-    pub fn wkd_url(version: Option<OutputVersion>,
-                   variant: wkd::WkdUrlVariant,
-                   advanced_url: String,
-                   direct_url: String) -> Result<Self> {
-        let version = Self::version(version);
-        let result = match version {
-            wkd::UrlV0::V => Self::WkdUrlV0(wkd::UrlV0::new(variant, advanced_url, direct_url)),
-            _ => return Err(anyhow!("unknown output version {:?}", version)),
-        };
-        Ok(result)
     }
 
     /// Create a model for the output of the `sq toolbox keyring list`
@@ -69,12 +53,6 @@ impl Model {
     pub fn write(&self, format: OutputFormat, w: &mut dyn Write) -> Result<()> {
         match self {
             Self::KeyringListV0(x) => {
-                match format {
-                    OutputFormat::Json => x.json(w)?,
-                    _ => x.human_readable(w)?,
-                }
-            }
-            Self::WkdUrlV0(x) => {
                 match format {
                     OutputFormat::Json => x.json(w)?,
                     _ => x.human_readable(w)?,
@@ -234,52 +212,6 @@ mod keyring {
 
         fn userid(bytes: &[u8]) -> String {
             String::from_utf8_lossy(bytes).into()
-        }
-    }
-}
-
-// Model output as a data type that can be serialized.
-pub mod wkd {
-    use super::{OutputVersion, Result, Write};
-    use serde::Serialize;
-
-    #[derive(Debug)]
-    pub enum WkdUrlVariant {
-        Advanced,
-        Direct,
-    }
-
-    #[derive(Debug, Serialize)]
-    pub struct UrlV0 {
-        #[serde(skip)]
-        variant: WkdUrlVariant,
-        sq_output_version: OutputVersion,
-        advanced_url: String,
-        direct_url: String,
-    }
-
-    impl UrlV0 {
-        pub const V: OutputVersion = OutputVersion::new(0, 0, 0);
-
-        pub fn new(variant: WkdUrlVariant, advanced_url: String, direct_url: String) -> Self {
-            Self {
-                sq_output_version: Self::V,
-                variant,
-                advanced_url,
-                direct_url,
-            }
-        }
-
-        pub fn human_readable(&self, w: &mut dyn Write) -> Result<()> {
-            match self.variant {
-                WkdUrlVariant::Advanced => writeln!(w, "{}", self.advanced_url)?,
-                WkdUrlVariant::Direct => writeln!(w, "{}", self.direct_url)?,
-            }
-            Ok(())
-        }
-
-        pub fn json(&self, w: &mut dyn Write) -> Result<()> {
-            super::to_json(w, self)
         }
     }
 }

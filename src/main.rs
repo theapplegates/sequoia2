@@ -50,7 +50,7 @@ use cli::output::{OutputFormat, OutputVersion};
 
 mod commands;
 pub mod output;
-pub use output::{wkd::WkdUrlVariant, Model};
+pub use output::Model;
 
 /// Converts sequoia_openpgp types for rendering.
 pub trait Convert<T> {

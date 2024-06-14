@@ -155,8 +155,8 @@ pub fn build(globals_hidden: bool) -> Command {
             let mut after_long_help
                 = if let Some(s) = command.get_after_long_help() {
                     let mut s = s.clone();
-                    s.write_char('\n');
-                    s.write_char('\n');
+                    s.write_char('\n').expect("Can write to string");
+                    s.write_char('\n').expect("Can write to string");
                     s
                 } else if let Some(s) = command.get_after_help() {
                     // If after_long_help is not explicitly set, it
@@ -164,8 +164,8 @@ pub fn build(globals_hidden: bool) -> Command {
                     // after_long_help, the fallback no longer happens
                     // so we need to do it manually.
                     let mut s = s.clone();
-                    s.write_char('\n');
-                    s.write_char('\n');
+                    s.write_char('\n').expect("Can write to string");
+                    s.write_char('\n').expect("Can write to string");
                     s
                 } else {
                     StyledStr::new()

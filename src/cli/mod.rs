@@ -78,11 +78,13 @@
 #[allow(dead_code)]
 pub const USER_INTERFACE_GUIDELINES: () = ();
 
+use std::fmt::Write;
 use std::path::PathBuf;
 use std::time::Duration;
 
 /// Command-line parser for sq.
 use clap::{Command, CommandFactory, Parser, Subcommand};
+use clap::builder::StyledStr;
 
 pub mod autocrypt;
 
@@ -149,10 +151,33 @@ pub fn build(globals_hidden: bool) -> Command {
     // Change the globals to be hidden.
     if globals_hidden {
         fn add_after_help(command: &mut Command) {
+            // We want to append to after_long_help.
+            let mut after_long_help
+                = if let Some(s) = command.get_after_long_help() {
+                    let mut s = s.clone();
+                    s.write_char('\n');
+                    s.write_char('\n');
+                    s
+                } else if let Some(s) = command.get_after_help() {
+                    // If after_long_help is not explicitly set, it
+                    // falls back to after_help.  If we set
+                    // after_long_help, the fallback no longer happens
+                    // so we need to do it manually.
+                    let mut s = s.clone();
+                    s.write_char('\n');
+                    s.write_char('\n');
+                    s
+                } else {
+                    StyledStr::new()
+                };
+
+            after_long_help.write_str(&format!("\
+{}:\nSee 'sq --help' for a description of the global options.",
+                                               GLOBAL_OPTIONS_HEADER))
+                .expect("Can write to string");
+
             *command = command.clone()
-                .after_long_help(format!("\
-{}:\n  See 'sq --help' for a description of the global options.",
-                                         GLOBAL_OPTIONS_HEADER));
+                .after_long_help(after_long_help);
 
             for sc in command.get_subcommands_mut() {
                 add_after_help(sc);

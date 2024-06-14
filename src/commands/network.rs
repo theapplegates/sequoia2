@@ -1030,37 +1030,6 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             Response::import_or_emit(sq, c.output, c.binary, certs)?;
             Result::Ok(())
         })?,
-        Generate(c) => {
-            let domain = c.domain;
-            let skip = c.skip;
-            let f = c.input.open()?;
-            let base_path = c.base_directory;
-            let variant = if c.direct_method {
-                wkd::Variant::Direct
-            } else {
-                wkd::Variant::Advanced
-            };
-            let parser = CertParser::from_buffered_reader(f)?;
-            let certs: Vec<Cert> = parser.filter_map(|cert| cert.ok())
-                .collect();
-            for cert in certs {
-                let vc = match cert.with_policy(sq.policy, sq.time) {
-                    Ok(vc) => vc,
-                    e @ Err(_) if !skip => e?,
-                    _ => continue,
-                };
-                if wkd::cert_contains_domain_userid(&domain, &vc) {
-                    wkd::insert(&base_path, &domain, variant, &vc)
-                        .context(format!("Failed to generate the WKD in \
-                        {}.", base_path.display()))?;
-                } else if !skip {
-                    return Err(openpgp::Error::InvalidArgument(
-                        format!("Certificate {} does not contain User IDs in domain {}.",
-                        vc.fingerprint(), domain)
-                    ).into());
-                }
-            }
-        },
 
         Publish(c) => {
             use wkd::Variant;

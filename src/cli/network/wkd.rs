@@ -1,12 +1,9 @@
-use std::path::PathBuf;
-
 use clap::{Args, Parser, Subcommand};
 
 use sequoia_net::wkd;
 
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
-use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 
 use crate::cli::examples;
@@ -35,7 +32,6 @@ pub struct Command {
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
     Fetch(FetchCommand),
-    Generate(GenerateCommand),
     Publish(PublishCommand),
     DirectUrl(DirectUrlCommand),
     Url(UrlCommand),
@@ -111,66 +107,6 @@ pub struct FetchCommand {
         value_name = FileOrCertStore::VALUE_NAME,
     )]
     pub output: Option<FileOrStdout>,
-}
-
-#[derive(Debug, Args)]
-#[clap(
-    about = "Generate a Web Key Directory for the given domain and certs",
-    long_about =
-"Generate a Web Key Directory for the given domain and certs
-
-If the WKD exists, the new certificates will be inserted and existing
-ones will be updated.
-
-A WKD is per domain, and can be queried using the advanced or the \
-direct method. The advanced method uses a URL with a subdomain \
-'openpgpkey'. As per the specification, the advanced method is to be \
-preferred. The direct method may only be used if the subdomain \
-doesn't exist. The advanced method allows Web Key Directories for \
-several domains on one web server.
-
-The contents of the generated WKD must be copied to a web server so that \
-they are accessible under https://openpgpkey.example.com/.well-known/openpgp/... \
-for the advanced version, and https://example.com/.well-known/openpgp/... \
-for the direct version. sq does not copy files to the web server.",
-    after_help =
-"EXAMPLES:
-
-# Generate a WKD in /tmp/wkdroot from certs.pgp for example.com.
-$ sq wkd generate /tmp/wkdroot example.com certs.pgp
-",
-)]
-pub struct GenerateCommand {
-    #[clap(
-        value_name = "WEB-ROOT",
-        help = "Write the WKD to WEB-ROOT",
-        long_help = "Write the WKD to WEB-ROOT. Transfer this directory to \
-            the webserver.",
-    )]
-    pub base_directory: PathBuf,
-    #[clap(
-        value_name = "FQDN",
-        help = "Generate a WKD for a fully qualified domain name for email",
-    )]
-    pub domain: String,
-    #[clap(
-        default_value_t = FileOrStdin::default(),
-        value_name = "CERT-RING",
-        help = "Add certificates from CERT-RING (or stdin if omitted) to the WKD",
-    )]
-    pub input: FileOrStdin,
-    #[clap(
-        short = 'd',
-        long = "direct-method",
-        help = "Use the direct method [default: advanced method]",
-    )]
-    pub direct_method: bool,
-    #[clap(
-        short = 's',
-        long = "skip",
-        help = "Skip certificates that do not have User IDs for given domain.",
-    )]
-    pub skip: bool,
 }
 
 const PUBLISH_EXAMPLES: Actions = Actions {

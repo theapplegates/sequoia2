@@ -1068,7 +1068,8 @@ impl Time {
                 return Ok(DateTime::from_utc(d.and_time(pad_date_with), Utc));
             }
         }
-        Err(anyhow::anyhow!("Malformed ISO8601 timestamp: {}", s))
+        Err(anyhow::anyhow!("Malformed ISO8601 timestamp: {}.\n\
+                             Try: YYYY-MM-DD[Thh:mm[:ss][[+|-]hh[:mm]]]", s))
     }
 }
 

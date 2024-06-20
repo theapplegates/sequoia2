@@ -99,8 +99,6 @@ pub struct Command {
         value_name = "CERT_FILE",
         help = "Verify signatures using the certificate in CERT_FILE",
     )]
-    // TODO: Should at least one sender_file be required? Verification does not make sense
-    // without one, does it?
     pub sender_file: Vec<PathBuf>,
     #[clap(
         long = "signer-cert",

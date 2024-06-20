@@ -14,6 +14,46 @@ use super::types::MetadataTime;
 use super::types::FileOrStdin;
 use super::types::FileOrStdout;
 
+use crate::cli::examples;
+use examples::*;
+
+const ENCRYPT_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Setup(Setup {
+            command: &[
+                "sq", "pki", "link", "add",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--email", "alice@example.org",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Encrypt a file for a recipient given by email.",
+            command: &[
+                "sq", "encrypt", "--recipient-email", "alice@example.org",
+                "document.txt",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Encrypt a file using a certificate.",
+            command: &[
+                "sq", "encrypt", "--recipient-file", "romeo.pgp", "document.txt",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Encrypt a file creating a signature in the process.",
+            command: &[
+                "sq", "encrypt", "--recipient-file", "romeo.pgp",
+                "--signer-file", "juliet-secret.pgp", "document.txt",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_encrypt, ENCRYPT_EXAMPLES);
+
 #[derive(Parser, Debug)]
 #[clap(
     name = "encrypt",
@@ -31,19 +71,7 @@ The converse operation is `sq decrypt`.
 encryption keys, and it sets the signature's creation time to the
 reference time.
 ",
-    after_help =
-"EXAMPLES:
-
-# Encrypt a file using a certificate
-$ sq encrypt --recipient-file romeo.pgp message.txt
-
-# Encrypt a file creating a signature in the process
-$ sq encrypt --recipient-file romeo.pgp --signer-file juliet.pgp \\
-     message.txt
-
-# Encrypt a file using a password
-$ sq encrypt --symmetric message.txt
-",
+    after_help = ENCRYPT_EXAMPLES,
 )]
 pub struct Command {
     #[clap(

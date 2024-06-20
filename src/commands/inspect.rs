@@ -97,8 +97,6 @@ pub fn inspect<'a, R>(sq: &mut Sq,
     -> Result<()>
 where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
 {
-    let time = Some(sq.time);
-
     let mut ppr = openpgp::parse::PacketParser::from_buffered_reader(input)?;
 
   loop {
@@ -130,8 +128,6 @@ where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
                     let cert = openpgp::Cert::try_from(pp)?;
                     inspect_cert(
                         sq,
-                        sq.policy,
-                        time,
                         output,
                         &cert,
                         print_certifications,
@@ -204,8 +200,7 @@ where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
         } else if is_cert.is_ok() || is_keyring.is_ok() {
             let pp = openpgp::PacketPile::from(packets);
             let cert = openpgp::Cert::try_from(pp)?;
-            inspect_cert(sq, sq.policy, time, output, &cert,
-                         print_certifications)?;
+            inspect_cert(sq, output, &cert, print_certifications)?;
         } else if packets.is_empty() && ! sigs.is_empty() {
             if sigs.iter().all(is_revocation_sig) {
                 writeln!(output, "Revocation Certificate{}.",
@@ -286,8 +281,6 @@ fn is_revocation_cert(c: &Cert) -> bool {
 
 fn inspect_cert(
     sq: &mut Sq,
-    policy: &dyn Policy,
-    time: Option<SystemTime>,
     output: &mut dyn io::Write,
     cert: &openpgp::Cert,
     print_certifications: bool,
@@ -301,11 +294,9 @@ fn inspect_cert(
     }
     writeln!(output)?;
     writeln!(output, "    Fingerprint: {}", cert.fingerprint())?;
-    inspect_revocation(output, "", cert.revocation_status(policy, None))?;
+    inspect_revocation(output, "", cert.revocation_status(sq.policy, sq.time))?;
     inspect_key(
         sq,
-        policy,
-        time,
         output,
         "",
         cert.keys().next().unwrap(),
@@ -315,10 +306,10 @@ fn inspect_cert(
 
     for skb in cert.keys().subkeys() {
         writeln!(output, "         Subkey: {}", skb.key().fingerprint())?;
-        inspect_revocation(output, "", skb.revocation_status(policy, None))?;
-        match skb.binding_signature(policy, None) {
+        inspect_revocation(output, "", skb.revocation_status(sq.policy, sq.time))?;
+        match skb.binding_signature(sq.policy, sq.time) {
             Ok(sig) => {
-                if let Err(e) = sig.signature_alive(None, Duration::new(0, 0)) {
+                if let Err(e) = sig.signature_alive(sq.time, Duration::new(0, 0)) {
                     print_error_chain(output, &e)?;
                 }
             }
@@ -326,8 +317,6 @@ fn inspect_cert(
         }
         inspect_key(
             sq,
-            policy,
-            time,
             output,
             "",
             skb.into(),
@@ -347,16 +336,16 @@ fn inspect_cert(
 
     for uidb in cert.userids() {
         writeln!(output, "         UserID: {}", uidb.userid())?;
-        inspect_revocation(output, "", uidb.revocation_status(policy, None))?;
-        match uidb.binding_signature(policy, None) {
+        inspect_revocation(output, "", uidb.revocation_status(sq.policy, sq.time))?;
+        match uidb.binding_signature(sq.policy, sq.time) {
             Ok(sig) => {
-                if let Err(e) = sig.signature_alive(None, Duration::new(0, 0)) {
+                if let Err(e) = sig.signature_alive(sq.time, Duration::new(0, 0)) {
                     print_error_chain(output, &e)?;
                 }
             }
             Err(e) => print_error_chain(output, &e)?,
         }
-        inspect_certifications(sq, output, policy,
+        inspect_certifications(sq, output,
                                uidb.certifications(),
                                print_certifications)?;
         writeln!(output)?;
@@ -365,16 +354,16 @@ fn inspect_cert(
     for uab in cert.user_attributes() {
         writeln!(output, "         User attribute: {:?}",
                  uab.user_attribute())?;
-        inspect_revocation(output, "", uab.revocation_status(policy, None))?;
-        match uab.binding_signature(policy, None) {
+        inspect_revocation(output, "", uab.revocation_status(sq.policy, sq.time))?;
+        match uab.binding_signature(sq.policy, sq.time) {
             Ok(sig) => {
-                if let Err(e) = sig.signature_alive(None, Duration::new(0, 0)) {
+                if let Err(e) = sig.signature_alive(sq.time, Duration::new(0, 0)) {
                     print_error_chain(output, &e)?;
                 }
             }
             Err(e) => print_error_chain(output, &e)?,
         }
-        inspect_certifications(sq, output, policy,
+        inspect_certifications(sq, output,
                                uab.certifications(),
                                print_certifications)?;
         writeln!(output)?;
@@ -382,15 +371,15 @@ fn inspect_cert(
 
     for ub in cert.unknowns() {
         writeln!(output, "         Unknown component: {:?}", ub.unknown())?;
-        match ub.binding_signature(policy, None) {
+        match ub.binding_signature(sq.policy, sq.time) {
             Ok(sig) => {
-                if let Err(e) = sig.signature_alive(None, Duration::new(0, 0)) {
+                if let Err(e) = sig.signature_alive(sq.time, Duration::new(0, 0)) {
                     print_error_chain(output, &e)?;
                 }
             }
             Err(e) => print_error_chain(output, &e)?,
         }
-        inspect_certifications(sq, output, policy,
+        inspect_certifications(sq, output,
                                ub.certifications(),
                                print_certifications)?;
         writeln!(output)?;
@@ -405,8 +394,6 @@ fn inspect_cert(
 
 fn inspect_key(
     sq: &mut Sq,
-    policy: &dyn Policy,
-    time: Option<SystemTime>,
     output: &mut dyn io::Write,
     indent: &str,
     ka: ErasedKeyAmalgamation<PublicParts>,
@@ -414,7 +401,7 @@ fn inspect_key(
 ) -> Result<()> {
     let key = ka.key();
     let bundle = ka.bundle();
-    let vka = match ka.with_policy(policy, time) {
+    let vka = match ka.with_policy(sq.policy, sq.time) {
         Ok(vka) => {
             if let Err(e) = vka.alive() {
                 writeln!(output, "{}                 Invalid: {}",
@@ -459,7 +446,7 @@ fn inspect_key(
             writeln!(output, "{}      Key flags: {}", indent, flags)?;
         }
     }
-    inspect_certifications(sq, output, policy,
+    inspect_certifications(sq, output,
                            bundle.certifications().iter(),
                            print_certifications)?;
 
@@ -609,7 +596,6 @@ fn inspect_issuers(sq: &mut Sq,
 
 fn inspect_certifications<'a, A>(sq: &mut Sq,
                                  output: &mut dyn io::Write,
-                                 policy: &dyn Policy,
                                  certs: A,
                                  print_certifications: bool)
     -> Result<()>
@@ -708,7 +694,7 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
 
             writeln!(output, "{}Hash algorithm: {}",
                      indent, sig.hash_algo())?;
-            if let Err(err) = policy.signature(
+            if let Err(err) = sq.policy.signature(
                 sig, HashAlgoSecurity::CollisionResistance)
             {
                 writeln!(output,

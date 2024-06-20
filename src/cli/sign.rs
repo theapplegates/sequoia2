@@ -11,6 +11,40 @@ use super::types::ClapData;
 use super::types::FileOrStdin;
 use super::types::FileOrStdout;
 
+use crate::cli::examples;
+use examples::*;
+
+const SIGN_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Create a signed message.",
+            command: &[
+                "sq", "sign", "--signer-file", "juliet-secret.pgp",
+                "document.txt",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Create a detached signature.",
+            command: &[
+                "sq", "sign", "--signer-file", "juliet-secret.pgp",
+                "--detached", "document.txt",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Create a signature with the specified creation time.",
+            command: &[
+                "sq", "sign", "--signer-file", "juliet-secret.pgp",
+                "--time", "2024-02-29",
+                "--detached", "document.txt",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_sign, SIGN_EXAMPLES);
+
 #[derive(Parser, Debug)]
 #[clap(
     name = "sign",
@@ -29,20 +63,8 @@ the current time, when determining what keys are valid, and it sets \
 the signature's creation time to the reference time instead of the \
 current time.
 ",
-    after_help =
-"EXAMPLES:
-
-# Create a signed message
-$ sq sign --signer-file juliet.pgp message.txt
-
-# Create a detached signature
-$ sq sign --detached --signer-file juliet.pgp message.txt
-
-# Create a signature with the specified creation time
-$ sq sign --time 20020304 --detached --signer-file juliet.pgp \\
-     message.txt
-",
-    )]
+    after_help = SIGN_EXAMPLES,
+)]
 pub struct Command {
     #[clap(
         default_value_t = FileOrStdin::default(),

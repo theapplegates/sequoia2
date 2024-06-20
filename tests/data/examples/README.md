@@ -38,6 +38,8 @@ By using static data, we can use known fingerprints in the examples.
     - `sq sign --detached --signer-file juliet-secret.pgp document.txt > document.sig`
     - `sq verify --signer-file juliet-secret.pgp --detached document.sig document.txt`
 
+- document.pgp: An inline-signed document, equivalent to the above.
+
 - message.pgp: A document encrypted for Bob, and signed by Alice.
 
     - `echo 'Golf this afternoon?' | sq encrypt --recipient-file bob-secret.pgp --signer-file alice-secret.pgp > message.pgp`

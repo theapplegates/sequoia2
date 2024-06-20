@@ -11,6 +11,49 @@ use super::types::ClapData;
 use super::types::FileOrStdin;
 use super::types::FileOrStdout;
 
+use crate::cli::examples;
+use examples::*;
+
+const VERIFY_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Setup(Setup {
+            command: &[
+                "sq", "cert", "import", "juliet.pgp",
+            ],
+        }),
+        Action::Setup(Setup {
+            command: &[
+                "sq", "--time", "2024-06-19",
+                "pki", "link", "add",
+                "7A58B15E3B9459483D9FFA8D40E299AC5F2B0872",
+                "--email", "juliet@example.org",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Verify a signed message.",
+            command: &[
+                "sq", "verify", "document.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Verify a detached message.",
+            command: &[
+                "sq", "verify", "--detached", "document.sig", "document.txt",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Verify a message as of June 19, 2024 at midnight UTC.",
+            command: &[
+                "sq", "verify", "--time", "2024-06-19", "document.pgp",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_verify, VERIFY_EXAMPLES);
+
 #[derive(Parser, Debug)]
 #[clap(
     name = "verify",
@@ -49,19 +92,8 @@ signatures, consider using sequoia-sqv.
 `--time` argument.  When set, it verifies the message as of the
 reference time instead of the current time.
 ",
-    after_help =
-"EXAMPLES:
-
-# Verify a signed message
-$ sq verify signed-message.pgp
-
-# Verify a detached message
-$ sq verify --detached message.sig message.txt
-
-# Verify a message as of June 9, 2011 at midnight UTC:
-$ sq verify --time 20130721 msg.pgp
-",
-    )]
+    after_help = VERIFY_EXAMPLES,
+)]
 pub struct Command {
     #[clap(
         default_value_t = FileOrStdin::default(),

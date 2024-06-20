@@ -7,6 +7,11 @@ use super::types::FileOrStdin;
 use super::types::FileOrStdout;
 use super::types::SessionKey;
 
+use crate::cli::examples;
+use examples::Action;
+use examples::Actions;
+use examples::Example;
+
 #[derive(Parser, Debug)]
 #[clap(
     name = "autocrypt",
@@ -36,6 +41,19 @@ pub enum Subcommands {
     EncodeSender(EncodeSenderCommand),
 }
 
+const IMPORT_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Imports all certificates from a mail.",
+            command: &[
+                "sq", "autocrypt", "import", "autocrypt.eml",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_autocrypt_import, IMPORT_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     about = "Import Autocrypt-encoded certificates",
@@ -44,11 +62,7 @@ pub enum Subcommands {
 Given a mail containing autocrypt headers (or an key-gossip headers),
 this command extracts and imports the certificates encoded within it.
 ",
-    after_help = "EXAMPLES:
-
-# Imports all certificates from a mail
-$ sq autocrypt import autocrypt.eml
-"
+    after_help = IMPORT_EXAMPLES,
 )]
 pub struct ImportCommand {
     #[clap(
@@ -73,6 +87,19 @@ pub struct ImportCommand {
     pub input: FileOrStdin,
 }
 
+const DECODE_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Extract all certificates from a mail.",
+            command: &[
+                "sq", "autocrypt", "decode", "autocrypt.eml",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_autocrypt_decode, DECODE_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     about = "Read Autocrypt-encoded certificates",
@@ -83,11 +110,7 @@ extracts the certificate encoded within it.
 
 The converse operation is `sq autocrypt encode-sender`.
 ",
-    after_help = "EXAMPLES:
-
-# Extract all certificates from a mail
-$ sq autocrypt decode autocrypt.eml
-"
+    after_help = DECODE_EXAMPLES,
 )]
 pub struct DecodeCommand {
     #[clap(
@@ -108,7 +131,35 @@ pub struct DecodeCommand {
     pub binary: bool,
 }
 
-//#[derive(Subcommand)]
+const ENCODE_SENDER_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Encodes a certificate.",
+            command: &[
+                "sq", "autocrypt", "encode-sender", "juliet.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Encodes a certificate with an explicit sender address.",
+            command: &[
+                "sq", "autocrypt", "encode-sender",
+                "--email", "juliet@example.org", "juliet.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Encodes a certificate while indicating the willingness to encrypt.",
+            command: &[
+                "sq", "autocrypt", "encode-sender",
+                "--prefer-encrypt", "mutual", "juliet.pgp",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_autocrypt_encode_sender, ENCODE_SENDER_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     name = "encode-sender",
@@ -123,17 +174,7 @@ information).
 
 The converse operation is `sq autocrypt decode`.
 ",
-    after_help = "EXAMPLES:
-
-# Encodes a certificate
-$ sq autocrypt encode-sender juliet.pgp
-
-# Encodes a certificate with an explicit sender address
-$ sq autocrypt encode-sender --email juliet@example.org juliet.pgp
-
-# Encodes a certificate while indicating the willingness to encrypt
-$ sq autocrypt encode-sender --prefer-encrypt mutual juliet.pgp
-"
+    after_help = ENCODE_SENDER_EXAMPLES,
 )]
 pub struct EncodeSenderCommand {
     #[clap(

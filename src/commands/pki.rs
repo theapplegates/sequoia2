@@ -21,6 +21,7 @@ pub mod link;
 pub mod output;
 
 use crate::cli;
+#[cfg(feature = "dot-writer")]
 use cli::output::OutputFormat;
 use cli::types::TrustAmount;
 

@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 use std::io::{self, Read};
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 use anyhow::Context;
 

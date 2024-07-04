@@ -62,7 +62,7 @@ anyhow = "1.0.18"
 buffered-reader = { version = "1.0.0", default-features = false, features = ["compression"] }
 clap = { version = "4", features = ["derive", "env", "string", "wrap_help"] }
 clap_complete = "4"
-chrono = "0.4.10"
+chrono = "0.4.38"
 dirs = "5"
 roff = "0.2.1"
 serde = { version = "1.0.137", features = ["derive"] }

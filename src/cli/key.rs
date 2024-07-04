@@ -1161,25 +1161,6 @@ User ID."
     pub binary: bool,
 }
 
-#[derive(Debug, Subcommand)]
-#[clap(
-    name = "subkey",
-    about = "Manage subkeys",
-    long_about = "\
-Manage subkeys.
-
-Add new subkeys to an existing certificate, change their expiration, \
-and revoke them.",
-    subcommand_required = true,
-    arg_required_else_help = true,
-)]
-#[non_exhaustive]
-pub enum SubkeyCommand {
-    Add(SubkeyAddCommand),
-    Expire(SubkeyExpireCommand),
-    Revoke(SubkeyRevokeCommand),
-}
-
 const ADOPT_EXAMPLES: Actions = Actions {
     actions: &[
         Action::Example(Example {
@@ -1365,6 +1346,26 @@ modified certificate to stdout.",
     pub binary: bool,
 }
 
+#[derive(Debug, Subcommand)]
+#[clap(
+    name = "subkey",
+    about = "Manage subkeys",
+    long_about = "\
+Manage subkeys.
+
+Add new subkeys to an existing certificate, change their expiration, \
+and revoke them.",
+    subcommand_required = true,
+    arg_required_else_help = true,
+)]
+#[non_exhaustive]
+pub enum SubkeyCommand {
+    Add(SubkeyAddCommand),
+    Delete(SubkeyDeleteCommand),
+    Expire(SubkeyExpireCommand),
+    Revoke(SubkeyRevokeCommand),
+}
+
 const SUBKEY_ADD_EXAMPLES: Actions = Actions {
     actions: &[
         Action::Example(Example {
@@ -1525,6 +1526,100 @@ modified certificate to stdout.",
     pub binary: bool,
 }
 
+
+const SQ_KEY_SUBKEY_DELETE_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Import Alice's key.",
+            command: &[
+                "sq", "key", "import", "alice-secret.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Delete Alice's signing subkey.",
+            command: &[
+                "sq", "key", "subkey", "delete",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--key", "42020B87D51877E5AF8D272124F3955B0B8DECC8",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_key_subkey_delete, SQ_KEY_SUBKEY_DELETE_EXAMPLES);
+
+#[derive(Debug, Args)]
+#[clap(
+    name = "delete",
+    about = "Delete a certificate's secret key material",
+    long_about = "\
+Delete a certificate's secret key material.
+
+Unlike `sq key delete`, which deletes all the secret key material, this \
+command only deletes the specified secret key material.
+
+Although the secret key material is deleted, the public keys are \
+retained.  If you don't want the keys to be used anymore you should \
+revoke the keys using `sq key subkey revoke`.",
+    after_help = SQ_KEY_SUBKEY_DELETE_EXAMPLES,
+)]
+#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
+pub struct SubkeyDeleteCommand {
+    #[clap(
+        long,
+        help = "Delete secret key material from the specified certificate",
+        value_name = FileOrStdin::VALUE_NAME,
+    )]
+    pub cert: Option<KeyHandle>,
+    #[clap(
+        long,
+        value_name = "CERT_FILE",
+        help = "Delete secret key material from the specified certificate",
+        long_help = "\
+Delete secret key material from the specified certificate.
+
+Read the certificate from FILE or stdin, if `-`.  It is an error \
+for the file to contain more than one certificate.",
+    )]
+    pub cert_file: Option<FileOrStdin>,
+    #[clap(
+        long,
+        value_name = "FINGERPRINT|KEYID",
+        required = true,
+        help = "The keys to delete",
+        long_help = "\
+The keys to delete.
+
+The specified keys may be either the primary key or subkeys.
+
+If the secret key material is managed by multiple devices, it is \
+deleted from all of them.",
+    )]
+    pub key: Vec<KeyHandle>,
+
+    #[clap(
+        long,
+        short,
+        value_name = FileOrStdout::VALUE_NAME,
+        conflicts_with = "cert",
+        help = "Write the stripped certificate to the specified file",
+        long_help = "\
+Write the stripped certificate to the specified file.
+
+This option only makes sense when deleting the secret key material from a \
+file.  When deleting secret key material managed by the key store using \
+`--cert`, you can get the stripped certificate using `sq key export`.",
+    )]
+    pub output: Option<FileOrStdout>,
+
+    #[clap(
+        short = 'B',
+        long,
+        help = "Emit binary data",
+    )]
+    pub binary: bool,
+}
 
 const SQ_KEY_SUBKEY_EXPIRE_EXAMPLES: Actions = Actions {
     actions: &[

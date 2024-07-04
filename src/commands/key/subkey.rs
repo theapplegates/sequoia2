@@ -18,12 +18,14 @@ use openpgp::Result;
 use crate::Sq;
 use crate::cli::key::SubkeyAddCommand;
 use crate::cli::key::SubkeyCommand;
+use crate::cli::key::SubkeyDeleteCommand;
 use crate::cli::key::SubkeyExpireCommand;
 use crate::cli::key::SubkeyRevokeCommand;
 use crate::cli::types::EncryptPurpose;
 use crate::cli::types::FileOrStdout;
 use crate::common;
 use crate::common::expire;
+use crate::common::delete;
 use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
@@ -32,11 +34,29 @@ use crate::parse_notations;
 pub fn dispatch(sq: Sq, command: SubkeyCommand) -> Result<()> {
     match command {
         SubkeyCommand::Add(c) => subkey_add(sq, c)?,
+        SubkeyCommand::Delete(c) => subkey_delete(sq, c)?,
         SubkeyCommand::Expire(c) => subkey_expire(sq, c)?,
         SubkeyCommand::Revoke(c) => subkey_revoke(sq, c)?,
     }
 
     Ok(())
+}
+
+fn subkey_delete(sq: Sq, command: SubkeyDeleteCommand)
+    -> Result<()>
+{
+    let handle = if let Some(file) = command.cert_file {
+        assert!(command.cert.is_none());
+        file.into()
+    } else if let Some(kh) = command.cert {
+        kh.into()
+    } else {
+        panic!("clap enforces --cert or --cert-file is set");
+    };
+
+    assert!(! command.key.is_empty());
+
+    delete(sq, handle, command.key, command.output, command.binary)
 }
 
 fn subkey_expire(sq: Sq, command: SubkeyExpireCommand)

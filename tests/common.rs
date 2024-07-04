@@ -647,6 +647,62 @@ impl Sq {
             .expect("can parse certificate")
     }
 
+    /// Delete the specified key.
+    pub fn key_subkey_delete<'a, H, Q>(&self,
+                                       cert_handle: H,
+                                       key_handles: &[KeyHandle],
+                                       output_file: Q)
+        -> Cert
+    where H: Into<FileOrKeyHandle>,
+          Q: Into<Option<&'a Path>>,
+    {
+        let cert_handle = cert_handle.into();
+        let output_file = output_file.into();
+
+        let mut cmd = self.command();
+        cmd.arg("key").arg("subkey").arg("delete");
+
+        match &cert_handle {
+            FileOrKeyHandle::FileOrStdin(path) => {
+                cmd.arg("--cert-file").arg(path);
+            }
+            FileOrKeyHandle::KeyHandle((_kh, s)) => {
+                cmd.arg("--cert").arg(&s);
+            }
+        };
+
+        for kh in key_handles {
+            cmd.arg("--key").arg(kh.to_string());
+        }
+
+        if let Some(output_file) = output_file {
+            cmd.arg("--output").arg(output_file);
+        }
+
+        let output = self.run(cmd, Some(true));
+        assert!(output.status.success());
+
+        if let Some(output_file) = output_file {
+            if output_file != &PathBuf::from("-") {
+                return Cert::from_file(output_file)
+                    .expect("can parse certificate");
+            }
+        } else if output_file.is_none() {
+            if let FileOrKeyHandle::KeyHandle((kh, _s)) = cert_handle {
+                // This will fail if the key no longer has any secret
+                // key material.  If it fails, fall back to `sq cert
+                // export`.
+                if let Ok(cert) = self.key_export_maybe(kh.clone()) {
+                    return cert;
+                } else {
+                    return self.cert_export(kh.clone());
+                }
+            }
+        }
+        Cert::from_bytes(&output.stdout)
+            .expect("can parse certificate")
+    }
+
     /// Imports the specified certificate into the keystore.
     pub fn cert_import<P>(&self, path: P)
     where P: AsRef<Path>

@@ -17,5 +17,5 @@ pub fn dispatch(sq: Sq, command: cli::key::DeleteCommand)
         panic!("clap enforces --cert or --cert-file is set");
     };
 
-    delete::delete(sq, handle, command.output, command.binary)
+    delete::delete(sq, handle, Vec::new(), command.output, command.binary)
 }

@@ -67,7 +67,7 @@ dirs = "5"
 roff = "0.2.1"
 serde = { version = "1.0.137", features = ["derive"] }
 sequoia-directories = "0.1"
-sequoia-openpgp = { version = "1.17", default-features = false }
+sequoia-openpgp = { version = "1.21.1", default-features = false }
 sequoia-net = { version = "0.28", default-features = false }
 subplot-build = { version = ">=0.7, <0.10", optional = true }
 textwrap = ">=0.15, <0.17"

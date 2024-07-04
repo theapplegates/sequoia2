@@ -1921,16 +1921,6 @@ dependencies = [
 
 [[package]]
 name = "idna"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "634d9b1461af396cad843f47fdba5597a4f9e6ddd4bfb6ff5d85028c25cb12f6"
-dependencies = [
- "unicode-bidi",
- "unicode-normalization",
-]
-
-[[package]]
-name = "idna"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4716a3a0933a1d01c2f72450e89596eb51dd34ef3c211ccd875acdf1f8fe47ed"
@@ -2136,7 +2126,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.5",
 ]
 
 [[package]]
@@ -2260,12 +2250,6 @@ name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
-
-[[package]]
-name = "memsec"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fa0916b001582d253822171bd23f4a0229d32b9507fae236f5da8cad515ba7c"
 
 [[package]]
 name = "memsec"
@@ -2581,6 +2565,32 @@ dependencies = [
  "ecdsa",
  "elliptic-curve",
  "primeorder",
+ "sha2",
+]
+
+[[package]]
+name = "p384"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70786f51bcc69f6a4c0360e063a4cac5419ef7c5cd5b3c99ad70f3be5ba79209"
+dependencies = [
+ "ecdsa",
+ "elliptic-curve",
+ "primeorder",
+ "sha2",
+]
+
+[[package]]
+name = "p521"
+version = "0.13.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0fc9e2161f1f215afdfce23677034ae137bbd45016a880c2eb3ba8eb95f085b2"
+dependencies = [
+ "base16ct",
+ "ecdsa",
+ "elliptic-curve",
+ "primeorder",
+ "rand_core",
  "sha2",
 ]
 
@@ -3365,7 +3375,7 @@ dependencies = [
  "lalrpop-util",
  "lazy_static",
  "libc",
- "memsec 0.7.0",
+ "memsec",
  "rand",
  "sequoia-openpgp",
  "socket2",
@@ -3481,9 +3491,9 @@ dependencies = [
 
 [[package]]
 name = "sequoia-openpgp"
-version = "1.20.0"
+version = "1.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06f82708c8568218b8544b4abbba1f6483067dca0a946a54991c1d3f424dcade"
+checksum = "b870b0275eeae174058fcf0ce5affccaaafeb7eceeabce8d6c7f51fbe6a41e2a"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -3511,19 +3521,21 @@ dependencies = [
  "flate2",
  "getrandom",
  "idea",
- "idna 0.5.0",
+ "idna 1.0.0",
  "lalrpop",
  "lalrpop-util",
  "lazy_static",
  "libc",
  "md-5",
- "memsec 0.6.3",
+ "memsec",
  "nettle",
  "num-bigint-dig",
  "once_cell",
  "openssl",
  "openssl-sys",
  "p256",
+ "p384",
+ "p521",
  "rand",
  "rand_core",
  "regex",

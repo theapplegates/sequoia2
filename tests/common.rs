@@ -382,6 +382,50 @@ impl Sq {
         String::from_utf8_lossy(&output.stdout).to_string()
     }
 
+    /// Delete the specified key.
+    pub fn key_delete<'a, H, Q>(&self,
+                                cert_handle: H,
+                                output_file: Q)
+        -> Cert
+    where H: Into<FileOrKeyHandle>,
+          Q: Into<Option<&'a Path>>,
+    {
+        let cert_handle = cert_handle.into();
+        let output_file = output_file.into();
+
+        let mut cmd = self.command();
+        cmd.arg("key").arg("delete");
+
+        match &cert_handle {
+            FileOrKeyHandle::FileOrStdin(path) => {
+                cmd.arg("--cert-file").arg(path);
+            }
+            FileOrKeyHandle::KeyHandle((_kh, s)) => {
+                cmd.arg("--cert").arg(&s);
+            }
+        };
+
+        if let Some(output_file) = output_file {
+            cmd.arg("--output").arg(output_file);
+        }
+
+        let output = self.run(cmd, Some(true));
+        assert!(output.status.success());
+
+        if let Some(output_file) = output_file {
+            if output_file != &PathBuf::from("-") {
+                return Cert::from_file(output_file)
+                    .expect("can parse certificate");
+            }
+        } else if output_file.is_none() {
+            if let FileOrKeyHandle::KeyHandle((kh, _s)) = cert_handle {
+                return self.cert_export(kh);
+            }
+        }
+        Cert::from_bytes(&output.stdout)
+            .expect("can parse certificate")
+    }
+
     /// Run `sq key revoked` and return the revocation certificate.
     pub fn key_revoke<'a, H, I, Q>(&self,
                                 cert_handle: H,
@@ -462,6 +506,29 @@ impl Sq {
         let mut cmd = self.command();
         cmd.arg("key").arg("import").arg(path.as_ref());
         self.run(cmd, Some(true));
+    }
+
+    /// Exports the specified key.
+    pub fn key_export(&self, kh: KeyHandle) -> Cert {
+        self.key_export_maybe(kh)
+            .expect("can export key")
+    }
+
+    /// Exports the specified key from the key store.
+    ///
+    /// Returns an error if `sq key export` fails.  This happens if
+    /// the certificate is known, but the key store doesn't manage any
+    /// of its secret key material.
+    pub fn key_export_maybe(&self, kh: KeyHandle) -> Result<Cert> {
+        let mut cmd = self.command();
+        cmd.args([ "key", "export", "--cert", &kh.to_string() ]);
+        let output = self.run(cmd, None);
+
+        if output.status.success() {
+            Ok(Cert::from_bytes(&output.stdout).expect("can parse certificate"))
+        } else {
+            Err(anyhow::anyhow!("sq key export returned an error"))
+        }
     }
 
     /// Target is a certificate.

@@ -89,7 +89,7 @@ fn update_user_id_binding(sq: &Sq,
 
     // Update the signature.
     let sig = ua.binding_signature();
-    let mut sig = SignatureBuilder::from(sig.clone())
+    let sig = SignatureBuilder::from(sig.clone())
         .set_signature_creation_time(reference_time.clone())?
         .set_hash_algo(GOOD_HASHES[0])
         .set_preferred_hash_algorithms(
@@ -170,7 +170,7 @@ fn update_subkey_binding<P>(sq: &Sq,
         builder = builder.set_embedded_signature(backsig)?;
     }
 
-    let mut sig = builder.sign_subkey_binding(&mut signer, pk, ka.key())?;
+    let sig = builder.sign_subkey_binding(&mut signer, pk, ka.key())?;
 
     // Verify it.
     assert!(sig.verify_subkey_binding(signer.public(), pk, ka.key())

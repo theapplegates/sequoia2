@@ -188,7 +188,7 @@ fn sq_certify() -> Result<()> {
         for ua in vc.userids() {
             if ua.userid().value() == b"<bob@example.org>" {
                 assert_eq!(
-                    ua.bundle().certifications().len(),
+                    ua.bundle().certifications2().count(),
                     certification_count);
                 let certifications: Vec<_>
                     = ua.certifications().collect();
@@ -207,7 +207,7 @@ fn sq_certify() -> Result<()> {
         let mut ok = false;
         for ua in vc.userids() {
             if ua.userid().value() == b"<bob@example.org>" {
-                assert_eq!(ua.bundle().certifications().len(),
+                assert_eq!(ua.bundle().certifications2().count(),
                            certification_count);
 
                 let certifications: Vec<_>

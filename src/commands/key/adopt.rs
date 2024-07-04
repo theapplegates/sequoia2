@@ -192,7 +192,7 @@ pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
             })?;
         }
 
-        let mut sig = builder.sign_subkey_binding(&mut pk_signer, pk, &key)?;
+        let sig = builder.sign_subkey_binding(&mut pk_signer, pk, &key)?;
 
         // Verify it.
         assert!(sig

@@ -447,7 +447,7 @@ fn inspect_key(
         }
     }
     inspect_certifications(sq, output,
-                           bundle.certifications().iter(),
+                           bundle.certifications2(),
                            print_certifications)?;
 
     Ok(())

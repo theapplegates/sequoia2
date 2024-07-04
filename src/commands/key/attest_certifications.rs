@@ -38,14 +38,16 @@ pub fn attest_certifications(
     let mut attestation_signatures = Vec::new();
     for uid in key.userids() {
         if all {
-            attestation_signatures.append(&mut uid.attest_certifications(
+            attestation_signatures.append(&mut uid.attest_certifications2(
                 sq.policy,
+                sq.time,
                 &mut pk_signer,
                 uid.certifications(),
             )?);
         } else {
-            attestation_signatures.append(&mut uid.attest_certifications(
+            attestation_signatures.append(&mut uid.attest_certifications2(
                 sq.policy,
+                sq.time,
                 &mut pk_signer,
                 &[],
             )?);
@@ -54,14 +56,16 @@ pub fn attest_certifications(
 
     for ua in key.user_attributes() {
         if all {
-            attestation_signatures.append(&mut ua.attest_certifications(
+            attestation_signatures.append(&mut ua.attest_certifications2(
                 sq.policy,
+                sq.time,
                 &mut pk_signer,
                 ua.certifications(),
             )?);
         } else {
-            attestation_signatures.append(&mut ua.attest_certifications(
+            attestation_signatures.append(&mut ua.attest_certifications2(
                 sq.policy,
+                sq.time,
                 &mut pk_signer,
                 &[],
             )?);

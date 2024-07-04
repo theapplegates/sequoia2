@@ -119,8 +119,7 @@ fn active_certification(sq: &Sq,
         //  - Are not expired,
         //  - Alias the issuer, and
         //  - Satisfy the policy.
-        let mut certifications = ua.bundle().certifications()
-            .iter()
+        let mut certifications = ua.bundle().certifications2()
             .filter(|sig| {
                 if let Some(ct) = sig.signature_creation_time() {
                     ct <= sq.time
@@ -151,7 +150,7 @@ fn active_certification(sq: &Sq,
         let pk = ua.cert().primary_key().key();
         let certification = certifications.into_iter()
             .filter_map(|sig| {
-                let mut sig = sig.clone();
+                let sig = sig.clone();
                 if sig.verify_userid_binding(issuer, pk, &userid).is_ok() {
                     Some(sig)
                 } else {

@@ -18,7 +18,11 @@ use anyhow::Result;
 use buffered_reader::BufferedReader;
 use buffered_reader::File;
 use buffered_reader::Generic;
-use chrono::{offset::Utc, DateTime};
+
+use chrono::offset::Utc;
+use chrono::DateTime;
+use chrono::TimeZone;
+
 /// Common types for arguments of sq.
 use clap::ValueEnum;
 
@@ -1059,13 +1063,13 @@ impl Time {
                     return Ok(d.into());
                 }
             } else if let Ok(d) = chrono::NaiveDateTime::parse_from_str(s, *f) {
-                return Ok(DateTime::from_utc(d, Utc));
+                return Ok(Utc.from_utc_datetime(&d));
             }
         }
         for f in &["%Y-%m-%d", "%Y-%m", "%Y-%j", "%Y%m%d", "%Y%m", "%Y%j", "%Y"]
         {
             if let Ok(d) = chrono::NaiveDate::parse_from_str(s, *f) {
-                return Ok(DateTime::from_utc(d.and_time(pad_date_with), Utc));
+                return Ok(Utc.from_utc_datetime(&d.and_time(pad_date_with)));
             }
         }
         Err(anyhow::anyhow!("Malformed ISO8601 timestamp: {}.\n\
@@ -1081,8 +1085,6 @@ impl Display for Time {
 
 #[cfg(test)]
 mod test {
-    use chrono::NaiveDateTime;
-
     use super::*;
 
     #[test]
@@ -1142,16 +1144,11 @@ mod test {
 
     #[test]
     fn test_expiry_as_duration() {
-        let reference = DateTime::from_utc(
-            NaiveDateTime::from_timestamp_opt(1, 0).unwrap(),
-            Utc,
-        );
+        let reference = DateTime::from_timestamp(1, 0).unwrap();
 
         let expiry = Expiration::Timestamp(
-            Time::try_from(DateTime::from_utc(
-                NaiveDateTime::from_timestamp_opt(2, 0).unwrap(),
-                Utc
-            )).expect("valid"));
+            Time::try_from(DateTime::from_timestamp(2, 0).unwrap())
+                .expect("valid"));
         assert_eq!(
             expiry.as_duration(reference).unwrap(),
             Some(Duration::new(1, 0)),
@@ -1169,15 +1166,10 @@ mod test {
 
     #[test]
     fn test_expiry_as_duration_errors() {
-        let reference = DateTime::from_utc(
-            NaiveDateTime::from_timestamp_opt(2, 0).unwrap(),
-            Utc,
-        );
+        let reference = DateTime::from_timestamp(2, 0).unwrap();
         let expiry = Expiration::Timestamp(
-            Time::try_from(DateTime::from_utc(
-                NaiveDateTime::from_timestamp_opt(1, 0).unwrap(),
-                Utc
-            )).expect("valid"));
+            Time::try_from(DateTime::from_timestamp(1, 0).unwrap())
+                .expect("valid"));
         assert!(expiry.as_duration(reference).is_err());
     }
 }

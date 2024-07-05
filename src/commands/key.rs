@@ -19,7 +19,6 @@ use list::list;
 mod generate;
 use generate::generate;
 mod password;
-use password::password;
 mod revoke;
 use revoke::certificate_revoke;
 mod subkey;
@@ -34,7 +33,7 @@ pub fn dispatch(sq: Sq, command: cli::key::Command) -> Result<()>
         Import(c) => import(sq, c)?,
         Export(c) => export(sq, c)?,
         Delete(c) => delete::dispatch(sq, c)?,
-        Password(c) => password(sq, c)?,
+        Password(c) => password::dispatch(sq, c)?,
         Expire(c) => expire::dispatch(sq, c)?,
         Userid(c) => userid::dispatch(sq, c)?,
         Revoke(c) => certificate_revoke(sq, c)?,

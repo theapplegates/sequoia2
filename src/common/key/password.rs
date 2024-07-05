@@ -4,9 +4,6 @@ use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
 use openpgp::crypto::Password;
-use openpgp::packet::key;
-use openpgp::packet::Key;
-use openpgp::packet::key::SecretKeyMaterial;
 use openpgp::serialize::Serialize;
 use openpgp::Packet;
 use openpgp::Result;
@@ -59,14 +56,13 @@ pub fn password(sq: Sq,
     if from_file {
         // First, decrypt all secrets.
         let mut decrypted: Vec<Packet> = vec![
-            decrypt_key(
-                &sq,
+            sq.decrypt_key(
                 cert.primary_key().key().clone().parts_into_secret()?,
             )?.into(),
         ];
         for ka in cert.keys().subkeys().secret() {
             decrypted.push(
-                decrypt_key(&sq, ka.key().clone().parts_into_secret()?)?
+                sq.decrypt_key(ka.key().clone().parts_into_secret()?)?
                     .into(),
             );
         }
@@ -181,62 +177,4 @@ pub fn password(sq: Sq,
     }
 
     Ok(())
-}
-
-// Decrypts a key, if possible.
-//
-// The passwords in `passwords` are tried first.  If the key can't be
-// decrypted using those, the user is prompted.  If a valid password
-// is entered, it is added to `passwords`.
-fn decrypt_key<R>(sq: &Sq, key: Key<key::SecretParts, R>)
-    -> Result<Key<key::SecretParts, R>>
-    where R: key::KeyRole + Clone
-{
-    let key = key.parts_as_secret()?;
-    match key.secret() {
-        SecretKeyMaterial::Unencrypted(_) => {
-            Ok(key.clone())
-        }
-        SecretKeyMaterial::Encrypted(e) => {
-            if ! e.s2k().is_supported() {
-                return Err(anyhow::anyhow!(
-                    "Unsupported key protection mechanism"));
-            }
-
-            for p in sq.password_cache.lock().unwrap().iter() {
-                if let Ok(key)
-                    = key.clone().decrypt_secret(&p)
-                {
-                    return Ok(key);
-                }
-            }
-
-            loop {
-                // Prompt the user.
-                match common::password::prompt_to_unlock_or_cancel(&format!(
-                    "key {}", key.keyid(),
-                )) {
-                    Ok(None) => break, // Give up.
-                    Ok(Some(p)) => {
-                        if let Ok(key) = key
-                            .clone()
-                            .decrypt_secret(&p)
-                        {
-                            sq.password_cache.lock().unwrap().push(p.into());
-                            return Ok(key);
-                        }
-
-                        wprintln!("Incorrect password.");
-                    }
-                    Err(err) => {
-                        wprintln!("While reading password: {}", err);
-                        break;
-                    }
-                }
-            }
-
-            Err(anyhow::anyhow!("Key {}: Unable to decrypt secret key material",
-                                key.keyid().to_hex()))
-        }
-    }
 }

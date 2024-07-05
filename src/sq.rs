@@ -1123,6 +1123,64 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         self.password_cache.lock().unwrap().clone().into_iter()
     }
 
+    // Decrypts a key, if possible.
+    //
+    // The password cache is tried first.  If the key can't be
+    // decrypted using those, the user is prompted.  If a valid
+    // password is entered, it is added to `passwords`.
+    pub fn decrypt_key<R>(&self, key: Key<key::SecretParts, R>)
+        -> Result<Key<key::SecretParts, R>>
+    where R: key::KeyRole + Clone
+    {
+        let key = key.parts_as_secret()?;
+        match key.secret() {
+            SecretKeyMaterial::Unencrypted(_) => {
+                Ok(key.clone())
+            }
+            SecretKeyMaterial::Encrypted(e) => {
+                if ! e.s2k().is_supported() {
+                    return Err(anyhow::anyhow!(
+                        "Unsupported key protection mechanism"));
+                }
+
+                for p in self.password_cache.lock().unwrap().iter() {
+                    if let Ok(key)
+                        = key.clone().decrypt_secret(&p)
+                    {
+                        return Ok(key);
+                    }
+                }
+
+                loop {
+                    // Prompt the user.
+                    match password::prompt_to_unlock_or_cancel(&format!(
+                        "key {}", key.keyid(),
+                    )) {
+                        Ok(None) => break, // Give up.
+                        Ok(Some(p)) => {
+                            if let Ok(key) = key
+                                .clone()
+                                .decrypt_secret(&p)
+                            {
+                                self.password_cache.lock().unwrap().push(p.into());
+                                return Ok(key);
+                            }
+
+                            wprintln!("Incorrect password.");
+                        }
+                        Err(err) => {
+                            wprintln!("While reading password: {}", err);
+                            break;
+                        }
+                    }
+                }
+
+                Err(anyhow::anyhow!("Key {}: Unable to decrypt secret key material",
+                                    key.keyid().to_hex()))
+            }
+        }
+    }
+
     /// Gets a signer for the specified key.
     ///
     /// If `ka` includes secret key material, that is preferred.

@@ -23,7 +23,7 @@ const REPEAT_PROMPT: &str = "Please repeat the password";
 pub fn prompt_for_new(
     reason: &str,
 ) -> Result<Option<Password>> {
-    let prompt = format!("Please enter the password to protect the {}", reason);
+    let prompt = format!("Please enter the password to protect {}", reason);
     let width = prompt.len().max(REPEAT_PROMPT.len());
     let p0 = format!("{:>1$}: ", prompt, width);
     let p1 = format!("{:>1$}: ", REPEAT_PROMPT, width);
@@ -53,7 +53,7 @@ pub fn prompt_for_new(
 /// should be decrypted using a password.
 pub fn prompt_to_unlock(reason: &str) -> Result<Password> {
     let prompt =
-        format!("Please enter the password to decrypt the {}: ", reason);
+        format!("Please enter the password to decrypt {}: ", reason);
     let password = prompt_password(&prompt)?;
     Ok(password.into())
 }

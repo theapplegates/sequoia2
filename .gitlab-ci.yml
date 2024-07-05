@@ -47,7 +47,7 @@ docker-build-push:
 
 pages:
   stage: deploy
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-pandoc:latest
+  image: jampot.sequoia-pgp.org/sequoia-pgp/build-docker-image/trixie-pandoc:latest
   script:
     - ASSET_OUT_DIR=/tmp/assets cargo doc --no-deps -p sequoia-sq
     - mkdir public

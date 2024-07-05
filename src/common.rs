@@ -12,11 +12,7 @@ mod revoke;
 pub use revoke::get_secret_signer;
 pub use revoke::RevocationOutput;
 
-mod expire;
-pub use expire::expire;
-
-pub mod delete;
-pub use delete::delete;
+pub mod key;
 
 pub mod password;
 pub mod userid;

@@ -2,7 +2,7 @@
 
 use crate::Sq;
 use crate::cli;
-use crate::common::delete;
+use crate::common::key::delete;
 use crate::Result;
 
 pub fn dispatch(sq: Sq, command: cli::key::DeleteCommand)

@@ -6,7 +6,7 @@ use sequoia_openpgp as openpgp;
 use openpgp::types::SymmetricAlgorithm;
 use openpgp::fmt::hex;
 use openpgp::KeyHandle;
-use openpgp::crypto::{self, SessionKey, Decryptor, Password};
+use openpgp::crypto::{self, SessionKey, Decryptor};
 use openpgp::{Fingerprint, Cert, KeyID, Result};
 use openpgp::packet;
 use openpgp::packet::prelude::*;
@@ -70,49 +70,12 @@ pub fn dispatch(sq: Sq, command: cli::decrypt::Command) -> Result<()> {
     Ok(())
 }
 
-trait PrivateKey {
-    fn get_unlocked(&self) -> Option<Box<dyn Decryptor>>;
-
-    fn unlock(&mut self, p: &Password) -> Result<Box<dyn Decryptor>>;
-}
-
-struct LocalPrivateKey {
-    key: Key<key::SecretParts, key::UnspecifiedRole>,
-}
-
-impl LocalPrivateKey {
-    fn new(key: Key<key::SecretParts, key::UnspecifiedRole>) -> Self {
-        Self { key }
-    }
-}
-
-impl PrivateKey for LocalPrivateKey {
-    fn get_unlocked(&self) -> Option<Box<dyn Decryptor>> {
-        if self.key.secret().is_encrypted() {
-            None
-        } else {
-            // `into_keypair` fails if the key is encrypted but we
-            // have already checked for that
-            let keypair = self.key.clone().into_keypair().unwrap();
-            Some(Box::new(keypair))
-        }
-    }
-
-    fn unlock(&mut self, p: &Password) -> Result<Box<dyn Decryptor>> {
-        let algo = self.key.pk_algo();
-        self.key.secret_mut().decrypt_in_place(algo, p)?;
-        let keypair = self.key.clone().into_keypair()?;
-        Ok(Box::new(keypair))
-    }
-}
-
 pub struct Helper<'c, 'store, 'rstore>
     where 'store: 'rstore
 {
     vhelper: VHelper<'c, 'store, 'rstore>,
-    secret_keys: HashMap<KeyID, Box<dyn PrivateKey>>,
+    secret_keys: HashMap<KeyID, (Cert, Key<key::SecretParts, key::UnspecifiedRole>)>,
     key_identities: HashMap<KeyID, Fingerprint>,
-    key_hints: HashMap<KeyID, String>,
     session_keys: Vec<cli::types::SessionKey>,
     dump_session_key: bool,
 }
@@ -142,34 +105,29 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
                dump_session_key: bool)
                -> Self
     {
-        let mut keys: HashMap<KeyID, Box<dyn PrivateKey>> = HashMap::new();
+        let mut keys: HashMap<KeyID, (Cert, Key<key::SecretParts, key::UnspecifiedRole>)>
+            = HashMap::new();
         let mut identities: HashMap<KeyID, Fingerprint> = HashMap::new();
-        let mut hints: HashMap<KeyID, String> = HashMap::new();
         for tsk in secrets {
-            let hint = match tsk.with_policy(sq.policy, None)
-                .and_then(|valid_cert| valid_cert.primary_userid()).ok()
-            {
-                Some(uid) => format!("{} ({})", uid.userid(),
-                                     KeyID::from(tsk.fingerprint())),
-                None => format!("{}", KeyID::from(tsk.fingerprint())),
-            };
-
             for ka in tsk.keys()
-            // XXX: Should use the message's creation time that we do not know.
+                // XXX: Should use the message's creation time that we do not know.
                 .with_policy(sq.policy, None)
                 .for_transport_encryption().for_storage_encryption()
             {
                 let id: KeyID = ka.key().fingerprint().into();
                 let key = ka.key();
-                keys.insert(id.clone(),
-                    if let Ok(key) = key.parts_as_secret() {
-                        Box::new(LocalPrivateKey::new(key.clone()))
-                    } else {
-                        panic!("Cert does not contain secret keys and private-key-store option has not been set.");
-                    }
+                keys.insert(
+                    id.clone(),
+                    (
+                        tsk.clone(),
+                        if let Ok(key) = key.parts_as_secret() {
+                            key.clone()
+                        } else {
+                            panic!("Cert does not contain secret keys and private-key-store option has not been set.");
+                        }
+                    )
                 );
                 identities.insert(id.clone(), tsk.fingerprint());
-                hints.insert(id, hint.clone());
             }
         }
 
@@ -177,7 +135,6 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
             vhelper: VHelper::new(sq, signatures, certs),
             secret_keys: keys,
             key_identities: identities,
-            key_hints: hints,
             session_keys,
             dump_session_key,
         }
@@ -258,15 +215,23 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
         // Now, we try the secret keys that the user supplied on the
         // command line.
 
+        let mut decrypt_key = |slf: &Self, pkesk, cert, key: &Key<_, _>, prompt: bool| {
+            slf.vhelper.sq.decrypt_key(Some(cert), key.clone(), prompt, true)
+                .ok()
+                .and_then(|(key, _)| {
+                    let keypair = Box::new(key.into_keypair()
+                        .expect("decrypted secret key material"));
+
+                    slf.try_decrypt(pkesk, sym_algo, keypair, &mut decrypt)
+                })
+        };
+
         // First, we try those keys that we can use without prompting
         // for a password.
         for pkesk in pkesks {
             let keyid = pkesk.recipient();
-            if let Some(key) = self.secret_keys.get_mut(keyid) {
-                if let Some(fp) = key.get_unlocked()
-                    .and_then(|k|
-                              self.try_decrypt(pkesk, sym_algo, k, &mut decrypt))
-                {
+            if let Some((cert, key)) = self.secret_keys.get(keyid) {
+                if let Some(fp) = decrypt_key(self, pkesk, cert, key, false) {
                     return Ok(fp);
                 }
             }
@@ -281,27 +246,8 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
             }
 
             let keyid = pkesk.recipient();
-            if let Some(key) = self.secret_keys.get_mut(keyid) {
-                let keypair = loop {
-                    if let Some(keypair) = key.get_unlocked() {
-                        break keypair;
-                    }
-
-                    let p = password::prompt_to_unlock(&format!(
-                        "key {}",
-                        self.key_hints.get(keyid).unwrap()
-                    ))?;
-
-                    match key.unlock(&p) {
-                        Ok(decryptor) => break decryptor,
-                        Err(error) => wprintln!("Could not unlock key: {:?}", error),
-                    }
-                };
-
-                if let Some(fp) =
-                    self.try_decrypt(pkesk, sym_algo, keypair,
-                                     &mut decrypt)
-                {
+            if let Some((cert, key)) = self.secret_keys.get(keyid) {
+                if let Some(fp) = decrypt_key(self, pkesk, cert, key, true) {
                     return Ok(fp);
                 }
             }
@@ -311,11 +257,8 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
         // recipients using those keys that we can use without
         // prompting for a password.
         for pkesk in pkesks.iter().filter(|p| p.recipient().is_wildcard()) {
-            for key in self.secret_keys.values() {
-                if let Some(fp) = key.get_unlocked()
-                    .and_then(|k|
-                              self.try_decrypt(pkesk, sym_algo, k, &mut decrypt))
-                {
+            for (cert, key) in self.secret_keys.values() {
+                if let Some(fp) = decrypt_key(self, pkesk, cert, key, false) {
                     return Ok(fp);
                 }
             }
@@ -330,33 +273,8 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                 continue;
             }
 
-            // To appease the borrow checker, iterate over the
-            // hashmap, awkwardly.
-            for keyid in self.secret_keys.keys().cloned().collect::<Vec<_>>()
-            {
-                let keypair = loop {
-                    let key = self.secret_keys.get_mut(&keyid).unwrap(); // Yuck
-
-                    if let Some(keypair) = key.get_unlocked() {
-                        break keypair;
-                    }
-
-                    let p = password::prompt_to_unlock(&format!(
-                        "key {}",
-                        self.key_hints.get(&keyid).unwrap()
-                    ))?;
-
-                    if let Ok(decryptor) = key.unlock(&p) {
-                        break decryptor;
-                    } else {
-                        wprintln!("Bad password.");
-                    }
-                };
-
-                if let Some(fp) =
-                    self.try_decrypt(pkesk, sym_algo, keypair,
-                                     &mut decrypt)
-                {
+            for (cert, key) in self.secret_keys.values() {
+                if let Some(fp) = decrypt_key(self, pkesk, cert, key, true) {
                     return Ok(fp);
                 }
             }

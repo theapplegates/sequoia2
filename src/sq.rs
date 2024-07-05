@@ -1271,8 +1271,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
                         loop {
                             let p = password::prompt_to_unlock(&format!(
-                                "Please enter the password to decrypt \
-                                 the key {}/{}, {}",
+                                "{}/{}, {}",
                                 ka.cert().keyid(), ka.keyid(), uid))?;
 
                             if p == "".into() {

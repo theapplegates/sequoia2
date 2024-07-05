@@ -144,8 +144,7 @@ pub fn password(sq: Sq,
 
                     loop {
                         let p = password::prompt_to_unlock(&format!(
-                            "Please enter the password to decrypt \
-                             the key {}/{}, {}",
+                            "{}/{}, {}",
                             cert.keyid(), ka.keyid(), uid))?;
 
                         match key.unlock(p.clone()) {

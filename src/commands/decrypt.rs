@@ -109,24 +109,14 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
             = HashMap::new();
         let mut identities: HashMap<KeyID, Fingerprint> = HashMap::new();
         for tsk in secrets {
-            for ka in tsk.keys()
+            for ka in tsk.keys().secret()
                 // XXX: Should use the message's creation time that we do not know.
                 .with_policy(sq.policy, None)
                 .for_transport_encryption().for_storage_encryption()
             {
                 let id: KeyID = ka.key().fingerprint().into();
                 let key = ka.key();
-                keys.insert(
-                    id.clone(),
-                    (
-                        tsk.clone(),
-                        if let Ok(key) = key.parts_as_secret() {
-                            key.clone()
-                        } else {
-                            panic!("Cert does not contain secret keys and private-key-store option has not been set.");
-                        }
-                    )
-                );
+                keys.insert(id.clone(), (tsk.clone(), key.clone()));
                 identities.insert(id.clone(), tsk.fingerprint());
             }
         }

@@ -57,13 +57,18 @@ pub fn password(sq: Sq,
         // First, decrypt all secrets.
         let mut decrypted: Vec<Packet> = vec![
             sq.decrypt_key(
+                Some(&cert),
                 cert.primary_key().key().clone().parts_into_secret()?,
-            )?.into(),
+                false,
+            )?.0.into(),
         ];
         for ka in cert.keys().subkeys().secret() {
             decrypted.push(
-                sq.decrypt_key(ka.key().clone().parts_into_secret()?)?
-                    .into(),
+                sq.decrypt_key(
+                    Some(&cert),
+                    ka.key().clone().parts_into_secret()?,
+                    false
+                )?.0.into(),
             );
         }
         let mut cert = cert.insert_packets(decrypted)?;

@@ -1123,19 +1123,25 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         self.password_cache.lock().unwrap().clone().into_iter()
     }
 
-    // Decrypts a key, if possible.
-    //
-    // The password cache is tried first.  If the key can't be
-    // decrypted using those, the user is prompted.  If a valid
-    // password is entered, it is added to `passwords`.
-    pub fn decrypt_key<R>(&self, key: Key<key::SecretParts, R>)
-        -> Result<Key<key::SecretParts, R>>
+    /// Decrypts a key, if possible.
+    ///
+    /// If the key is not decrypted, this just returns the key as is.
+    /// Otherwise, the password cache is tried.  If the key can't be
+    /// decrypted using those passwords, the user is prompted.  If a
+    /// valid password is entered, it is added to the password cache.
+    ///
+    /// If `allow_skipping` is true, then the user is given the option
+    /// to skip decrypting the key.  If the user skips decrypting the
+    /// key, then an error is returned.
+    pub fn decrypt_key<R>(&self, cert: Option<&Cert>,
+                          key: Key<key::SecretParts, R>,
+                          allow_skipping: bool)
+        -> Result<(Key<key::SecretParts, R>, Option<Password>)>
     where R: key::KeyRole + Clone
     {
-        let key = key.parts_as_secret()?;
         match key.secret() {
             SecretKeyMaterial::Unencrypted(_) => {
-                Ok(key.clone())
+                Ok((key, None))
             }
             SecretKeyMaterial::Encrypted(e) => {
                 if ! e.s2k().is_supported() {
@@ -1144,26 +1150,34 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 }
 
                 for p in self.password_cache.lock().unwrap().iter() {
-                    if let Ok(key)
-                        = key.clone().decrypt_secret(&p)
-                    {
-                        return Ok(key);
+                    if let Ok(unencrypted) = e.decrypt(key.pk_algo(), &p) {
+                        let (key, _) = key.add_secret(unencrypted.into());
+                        return Ok((key, Some(p.clone())));
                     }
                 }
 
+                let prompt = if let Some(cert) = cert {
+                    format!("{}/{} {}",
+                            cert.keyid(), key.keyid(),
+                            self.best_userid(cert, true))
+                } else {
+                    format!("{}", key.keyid())
+                };
+
                 loop {
                     // Prompt the user.
-                    match password::prompt_to_unlock_or_cancel(&format!(
-                        "key {}", key.keyid(),
-                    )) {
+                    let result = if allow_skipping {
+                        password::prompt_to_unlock_or_cancel(&prompt)
+                    } else {
+                        password::prompt_to_unlock(&prompt).map(Some)
+                    };
+                    match result {
                         Ok(None) => break, // Give up.
                         Ok(Some(p)) => {
-                            if let Ok(key) = key
-                                .clone()
-                                .decrypt_secret(&p)
-                            {
-                                self.password_cache.lock().unwrap().push(p.into());
-                                return Ok(key);
+                            if let Ok(unencrypted) = e.decrypt(key.pk_algo(), &p) {
+                                let (key, _) = key.add_secret(unencrypted.into());
+                                self.password_cache.lock().unwrap().push(p.clone());
+                                return Ok((key, Some(p)));
                             }
 
                             wprintln!("Incorrect password.");
@@ -1198,44 +1212,12 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         let try_tsk = |cert: &Cert, key: &Key<_, _>|
             -> Result<(_, _)>
         {
-            if let Some(secret) = key.optional_secret() {
-                let (unencrypted, password) = match secret {
-                    SecretKeyMaterial::Encrypted(ref e) => {
-                        // try passwords from already existing keys
-                        match self.cached_passwords().find_map(|password| {
-                            e.decrypt(key.pk_algo(), &password).ok()
-                                .map(|key| (key, password.clone()))
-                        }) {
-                            Some((unencrypted, password)) =>
-                                (unencrypted, Some(password)),
-                            None => {
-                                let password = password::prompt_to_unlock(
-                                    &format!("key {}/{}",
-                                             cert.keyid(),
-                                             key.keyid()))?;
-
-                                let key = e.decrypt(key.pk_algo(), &password)
-                                    .map_err(|_| anyhow!("Incorrect password."))?;
-
-                                self.cache_password(password.clone());
-
-                                (key, Some(password))
-                            }
-                        }
-                    }
-                    SecretKeyMaterial::Unencrypted(ref u) => (u.clone(), None),
-                };
-
-                Ok((
-                    Box::new(
-                        crypto::KeyPair::new(
-                            key.clone()
-                                .parts_into_public()
-                                .role_into_unspecified(),
-                            unencrypted).unwrap()
-                    ),
-                    password,
-                ))
+            if let Ok(key) = key.parts_as_secret() {
+                let (key, password) = self.decrypt_key(
+                    Some(cert), key.clone(), false)?;
+                let keypair = Box::new(key.into_keypair()
+                    .expect("decrypted secret key material"));
+                Ok((keypair, password))
             } else {
                 Err(anyhow!("No secret key material."))
             }

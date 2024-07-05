@@ -4,6 +4,7 @@ use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
 use openpgp::crypto::Password;
+use openpgp::KeyHandle;
 use openpgp::serialize::Serialize;
 use openpgp::Packet;
 use openpgp::Result;
@@ -19,6 +20,7 @@ use crate::common::password;
 
 pub fn password(sq: Sq,
                 cert_handle: FileStdinOrKeyHandle,
+                keys: Vec<KeyHandle>,
                 clear_password: bool,
                 new_password_file: Option<&Path>,
                 output: Option<FileOrStdout>,
@@ -44,7 +46,7 @@ pub fn password(sq: Sq,
 
     let ks = matches!(cert_handle, FileStdinOrKeyHandle::KeyHandle(_));
 
-    let (cert, mut list) = super::get_keys(&sq, cert_handle, vec![])?;
+    let (cert, mut list) = super::get_keys(&sq, cert_handle, keys)?;
     let uid = sq.best_userid(&cert, true);
 
     if ks {

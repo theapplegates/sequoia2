@@ -17,7 +17,7 @@ pub fn dispatch(sq: Sq, command: cli::key::PasswordCommand)
         panic!("clap enforces --cert or --cert-file is set");
     };
 
-    password::password(sq, handle,
+    password::password(sq, handle, vec![],
                        command.clear_password,
                        command.new_password_file.as_deref(),
                        command.output, command.binary)

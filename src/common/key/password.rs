@@ -59,7 +59,8 @@ pub fn password(sq: Sq,
             sq.decrypt_key(
                 Some(&cert),
                 cert.primary_key().key().clone().parts_into_secret()?,
-                false,
+                true, // May prompt.
+                false, // Don't allow skipping.
             )?.0.into(),
         ];
         for ka in cert.keys().subkeys().secret() {
@@ -67,7 +68,8 @@ pub fn password(sq: Sq,
                 sq.decrypt_key(
                     Some(&cert),
                     ka.key().clone().parts_into_secret()?,
-                    false
+                    true, // May prompt.
+                    false, // Don't allow skipping.
                 )?.0.into(),
             );
         }

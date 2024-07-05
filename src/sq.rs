@@ -1127,14 +1127,16 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     ///
     /// If the key is not decrypted, this just returns the key as is.
     /// Otherwise, the password cache is tried.  If the key can't be
-    /// decrypted using those passwords, the user is prompted.  If a
-    /// valid password is entered, it is added to the password cache.
+    /// decrypted using those passwords and `may_prompt` is true, the
+    /// user is prompted.  If a valid password is entered, it is added
+    /// to the password cache.
     ///
     /// If `allow_skipping` is true, then the user is given the option
     /// to skip decrypting the key.  If the user skips decrypting the
     /// key, then an error is returned.
     pub fn decrypt_key<R>(&self, cert: Option<&Cert>,
                           key: Key<key::SecretParts, R>,
+                          may_prompt: bool,
                           allow_skipping: bool)
         -> Result<(Key<key::SecretParts, R>, Option<Password>)>
     where R: key::KeyRole + Clone
@@ -1163,6 +1165,11 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 } else {
                     format!("{}", key.keyid())
                 };
+
+                if ! may_prompt {
+                    return Err(anyhow::anyhow!(
+                        "Unable to decrypt secret key material for {}", prompt))
+                }
 
                 loop {
                     // Prompt the user.
@@ -1214,7 +1221,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         {
             if let Ok(key) = key.parts_as_secret() {
                 let (key, password) = self.decrypt_key(
-                    Some(cert), key.clone(), false)?;
+                    Some(cert), key.clone(), true, false)?;
                 let keypair = Box::new(key.into_keypair()
                     .expect("decrypted secret key material"));
                 Ok((keypair, password))

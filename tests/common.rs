@@ -531,6 +531,65 @@ impl Sq {
         }
     }
 
+    /// Change the key's password.
+    pub fn key_password<'a, H, Q>(&self,
+                                  cert_handle: H,
+                                  old_password_file: Option<&'a Path>,
+                                  new_password_file: Option<&'a Path>,
+                                  output_file: Q,
+                                  success: bool)
+                                  -> Result<Cert>
+    where
+        H: Into<FileOrKeyHandle>,
+        Q: Into<Option<&'a Path>>,
+    {
+        let cert_handle = cert_handle.into();
+        let output_file = output_file.into();
+
+        let mut cmd = self.command();
+        cmd.arg("key").arg("password");
+
+        if cert_handle.is_file() {
+            cmd.arg("--cert-file").arg(&cert_handle);
+        } else {
+            cmd.arg("--cert").arg(&cert_handle);
+        };
+
+        if let Some(p) = old_password_file {
+            cmd.arg("--password-file").arg(p);
+        }
+
+        if let Some(p) = new_password_file {
+            cmd.arg("--new-password-file").arg(p);
+        } else {
+            cmd.arg("--clear-password");
+        }
+
+        if let Some(output_file) = output_file {
+            cmd.arg("--output").arg(output_file);
+        }
+
+        let output = self.run(cmd, Some(success));
+        if output.status.success() {
+            if let Some(output_file) = output_file {
+                if output_file != &PathBuf::from("-") {
+                    return Ok(Cert::from_file(output_file)
+                        .expect("can parse certificate"));
+                }
+            } else if output_file.is_none() {
+                if let FileOrKeyHandle::KeyHandle((kh, _s)) = cert_handle {
+                    return Ok(self.key_export(kh));
+                }
+            }
+            Ok(Cert::from_bytes(&output.stdout)
+                .expect("can parse certificate"))
+        } else {
+            Err(anyhow::anyhow!(format!(
+                "Failed (expected):\n{}",
+                String::from_utf8_lossy(&output.stderr))))
+        }
+    }
+
     /// Target is a certificate.
     ///
     /// `keys` is the set of keys to adopt.
@@ -812,6 +871,50 @@ impl Sq {
         self.pki_certify_p(
             extra_args, certifier, cert, userid, output_file, true)
             .expect("success")
+    }
+
+    pub fn sign<'a, H, Q>(&self,
+                          signer: H,
+                          password_file: Option<&Path>,
+                          input_file: &Path,
+                          output_file: Q)
+        -> Vec<u8>
+    where H: Into<FileOrKeyHandle>,
+          Q: Into<Option<&'a Path>>,
+    {
+        let signer = signer.into();
+        let output_file = output_file.into();
+
+        let mut cmd = self.command();
+        cmd.arg("sign");
+
+        match &signer {
+            FileOrKeyHandle::FileOrStdin(path) => {
+                cmd.arg("--signer-file").arg(path);
+            }
+            FileOrKeyHandle::KeyHandle((_kh, s)) => {
+                cmd.arg("--signer-key").arg(&s);
+            }
+        };
+
+        if let Some(password_file) = password_file {
+            cmd.arg("--password-file").arg(password_file);
+        }
+
+        cmd.arg(input_file);
+
+        if let Some(output_file) = output_file {
+            cmd.arg("--output").arg(output_file);
+        };
+
+        let output = self.run(cmd, Some(true));
+        assert!(output.status.success());
+
+        if let Some(output_file) = output_file {
+            std::fs::read(output_file).expect("can read file")
+        } else {
+            output.stdout
+        }
     }
 
     // Strips the secret key material from input.  Writes it to

@@ -1,33 +1,28 @@
-use openpgp::parse::Parse;
-use openpgp::Cert;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
 mod common;
-use common::sq_key_generate;
+use common::FileOrKeyHandle;
 use common::Sq;
 
 #[test]
 fn sq_key_password() -> Result<()> {
-    let (tmpdir, cert_path, time) = sq_key_generate(None)?;
-    let cert_path = cert_path.display().to_string();
-    let cert = Cert::from_file(&cert_path)?;
-    let cert_fpr = cert.fingerprint().to_string();
+    let mut sq = Sq::new();
+
+    let (cert, cert_path, _rev_path) = sq.key_generate(&[], &["alice"]);
+
+    let orig_password = sq.scratch_file("orig-password.txt");
+    std::fs::write(&orig_password, "t00 ez").unwrap();
+
+    let new_password = sq.scratch_file("new-password.txt");
+    std::fs::write(&new_password, "crazy passw0rd").unwrap();
+
+    let msg_txt = sq.scratch_file("msg.txt");
+    std::fs::write(&msg_txt, "hello world").unwrap();
+
 
     for keystore in [false, true] {
         eprintln!("Keystore: {}", keystore);
-
-        let mut sq = Sq::at(time.into());
-
-        let orig_password = sq.base().join("orig_password.txt");
-        std::fs::write(&orig_password, "t00 ez").unwrap();
-        let new_password = sq.base().join("new_password.txt");
-        std::fs::write(&new_password, "crazy passw0rd").unwrap();
-
-        let msg_txt = sq.base().join("msg.txt");
-        std::fs::write(&msg_txt, "hello world").unwrap();
-
-        let msg_sig = sq.base().join("msg.sig");
 
         // Two days go by.
         sq.tick(2 * 24 * 60 * 60);
@@ -36,104 +31,61 @@ fn sq_key_password() -> Result<()> {
             sq.key_import(&cert_path);
         }
 
-        // Sign a message.
-        let mut cmd = sq.command();
-        cmd.args([
-            "sign", &msg_txt.to_string_lossy(),
-            "--password-file", &orig_password.to_string_lossy(),
-            "--output", &msg_sig.to_string_lossy(),
-        ]);
-        if keystore {
-            cmd.args([
-                "--signer-key", &cert_fpr,
-            ]);
+        let cert_handle = if keystore {
+            FileOrKeyHandle::from(cert.fingerprint())
         } else {
-            cmd.args([
-                "--signer-file", &cert_path,
-            ]);
-        }
-        sq.run(cmd, true);
+            cert_path.as_path().into()
+        };
+
+        // Sign a message.  No password should be required.
+        sq.sign(&cert_handle, None, msg_txt.as_path(), None);
 
         // Change the key's password.
         eprintln!("Change the key's password.");
-        let updated_path = &tmpdir.path().join("updated.pgp");
-        let mut cmd = sq.command();
-        cmd.args([
-            "key", "password",
-            "--new-password-file", &new_password.to_string_lossy(),
-        ]);
-        if keystore {
-            cmd.args([
-                "--cert", &cert_fpr,
-            ]);
+        let cert_updated = sq.scratch_file("cert-updated");
+        let cert = sq.key_password(
+            &cert_handle,
+            None, Some(&new_password),
+            if keystore { None } else { Some(cert_updated.as_path()) },
+            true)
+            .expect("can set password");
+        assert!(cert.keys().all(|ka| {
+            ka.has_secret()
+                && ! ka.has_unencrypted_secret()
+        }));
+
+        let cert_handle = if keystore {
+            FileOrKeyHandle::from(cert.fingerprint())
         } else {
-            cmd.args([
-                "--cert-file", &cert_path,
-                "--output", &updated_path.to_string_lossy(),
-            ]);
-        }
-        sq.run(cmd, true);
+            cert_updated.as_path().into()
+        };
 
         // Sign a message.
-        let mut cmd = sq.command();
-        cmd.args([
-            "--force",
-            "sign", &msg_txt.to_string_lossy(),
-            "--password-file", &new_password.to_string_lossy(),
-            "--output", &msg_sig.to_string_lossy(),
-        ]);
-        if keystore {
-            cmd.args([
-                "--signer-key", &cert_fpr,
-            ]);
-        } else {
-            cmd.args([
-                "--signer-file", &updated_path.to_string_lossy(),
-            ]);
-        }
-        sq.run(cmd, true);
+        sq.sign(&cert_handle,
+                Some(new_password.as_path()),
+                msg_txt.as_path(), None);
 
         // Clear the key's password.
         eprintln!("Clear the key's password.");
-        let updated2_path = &tmpdir.path().join("updated2.pgp");
-        let mut cmd = sq.command();
-        cmd.args([
-            "key", "password",
-            "--password-file", &new_password.to_string_lossy(),
-            "--clear-password",
-        ]);
-        if keystore {
-            cmd.args([
-                "--cert", &cert_fpr,
-            ]);
+        let cert_updated2 = sq.scratch_file("cert-updated2");
+
+        let cert = sq.key_password(
+            &cert_handle,
+            Some(&new_password), None,
+            if keystore { None } else { Some(cert_updated2.as_path()) },
+            true)
+            .expect("can set password");
+        assert!(cert.keys().all(|ka| ka.has_unencrypted_secret()));
+
+        let cert_handle = if keystore {
+            FileOrKeyHandle::from(cert.fingerprint())
         } else {
-            cmd.args([
-                "--cert-file", &updated_path.to_string_lossy(),
-                "--output", &updated2_path.to_string_lossy(),
-            ]);
-        }
-        sq.run(cmd, true);
+            cert_updated2.as_path().into()
+        };
 
         // Sign a message.
-        let mut cmd = sq.command();
-        cmd.args([
-            "--force",
-            "sign", &msg_txt.to_string_lossy(),
-            "--output", &msg_sig.to_string_lossy(),
-        ]);
-        if keystore {
-            cmd.args([
-                "--signer-key", &cert_fpr,
-            ]);
-        } else {
-            cmd.args([
-                "--signer-file", &updated2_path.to_string_lossy(),
-            ]);
-        }
-        sq.run(cmd, true);
+        sq.sign(&cert_handle, None, msg_txt.as_path(), None);
     }
-
-    tmpdir.close()?;
 
     Ok(())
 }

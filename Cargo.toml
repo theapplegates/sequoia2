@@ -76,7 +76,6 @@ cfg-if = "1"
 terminal_size = ">=0.2.6, <0.4"
 
 [dev-dependencies]
-dircpy = "0.3"
 subplotlib = ">=0.7, <0.10"
 fehler = "1.0.0"
 assert_cmd = "2"

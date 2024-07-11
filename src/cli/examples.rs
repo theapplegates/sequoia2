@@ -149,7 +149,9 @@ macro_rules! test_examples {
 
             let tmp_dir = TempDir::new().unwrap();
 
-            dircpy::copy_dir(&fixtures, &tmp_dir)
+            let options = fs_extra::dir::CopyOptions::new()
+                .content_only(true);
+            fs_extra::dir::copy(&fixtures, &tmp_dir, &options)
                 .expect(&format!("Copying {:?} to {:?}",
                                  fixtures, &tmp_dir));
 

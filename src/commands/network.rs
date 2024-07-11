@@ -1130,10 +1130,7 @@ fn transfer(rsync_bin: &Option<String>, source: &str, destination: &str)
 
 fn copy(source: &str, destination: &str) -> Result<()> {
     let options = fs_extra::dir::CopyOptions::new()
-        .overwrite(true)
-    //.content_only(true)
-    //.copy_inside(true)
-        ;
+        .overwrite(true);
 
     std::fs::create_dir_all(destination)?;
     fs_extra::dir::copy(source, destination, &options)?;

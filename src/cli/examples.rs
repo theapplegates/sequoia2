@@ -67,7 +67,7 @@ impl<'a> IntoResettable<clap::builder::StyledStr> for Actions<'a> {
                 std::cmp::max(40, width)
             }
         } else {
-            72
+            default_width
         };
 
         let mut lines = vec![ "EXAMPLES:".to_string() ];
@@ -87,6 +87,8 @@ impl<'a> IntoResettable<clap::builder::StyledStr> for Actions<'a> {
 
                 let command = example.command.iter()
                     .fold(vec!["$".to_string()], |mut s, arg| {
+                        let first = s.len() == 1;
+
                         // Quote the argument, if necessary.
                         let arg = if arg.contains(&[
                             '\"',
@@ -112,8 +114,13 @@ impl<'a> IntoResettable<clap::builder::StyledStr> for Actions<'a> {
                         // Our manpage generate complains if an
                         // example is too long:
                         //
-                        // warning: Command in example exceeds 64 chars:
-                        if last_chars + 1 + arg_chars <= width.min(64) {
+                        //   warning: Command in example exceeds 64 chars:
+                        //
+                        // or
+                        //
+                        //   warning: Continuation in example exceeds 57 chars:
+                        let max_width = if first { 64 } else { 57 };
+                        if last_chars + 1 + arg_chars <= width.min(max_width) {
                             *last = format!("{} {}", last, arg);
                         } else {
                             *last = format!("{} \\", last);

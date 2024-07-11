@@ -90,8 +90,8 @@ const PUBLISH_EXAMPLES: Actions = Actions {
                       `public_html`, and insert Alice's cert.",
             command: &[
                 "sq", "network", "wkd", "publish", "--create",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "example.org", "public_html",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--domain=example.org", "public_html",
             ],
         }),
 
@@ -100,8 +100,8 @@ const PUBLISH_EXAMPLES: Actions = Actions {
                       in the local directory `public_html`.",
             command: &[
                 "sq", "network", "wkd", "publish",
-                "--cert", "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "example.org", "public_html",
+                "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+                "--domain=example.org", "public_html",
             ],
         }),
 
@@ -111,7 +111,7 @@ const PUBLISH_EXAMPLES: Actions = Actions {
                       cert store.",
             command: &[
                 "sq", "network", "wkd", "publish",
-                "example.org", "public_html",
+                "--domain=example.org", "public_html",
             ],
         }),
     ],
@@ -164,6 +164,7 @@ pub struct PublishCommand {
     )]
     pub rsync: Option<String>,
     #[clap(
+        long = "domain",
         value_name = "FQDN",
         help = "Generate a WKD for a fully qualified domain name for email",
     )]

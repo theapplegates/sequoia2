@@ -17,7 +17,9 @@ pub fn time_as_string(t: DateTime<Utc>) -> String {
 #[test]
 fn sq_autocrypt_import() -> Result<()>
 {
-    let sq = Sq::new();
+    let t = chrono::DateTime::parse_from_str("20240304T0100z", "%Y%m%dT%H%M%#z")
+        .expect("valid date");
+    let sq = Sq::at(t.into());
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let eml = manifest_dir.join("tests").join("data").join("autocrypt")

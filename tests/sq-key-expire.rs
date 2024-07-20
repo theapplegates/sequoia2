@@ -6,26 +6,24 @@ use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
 mod common;
-use common::sq_key_generate;
 use common::STANDARD_POLICY;
 use common::Sq;
 use common::time_as_string;
 
 #[test]
 fn sq_key_expire() -> Result<()> {
-    let (tmpdir, cert_path, time) = sq_key_generate(None)?;
-    let cert_path = cert_path.display().to_string();
-    let cert = Cert::from_file(&cert_path)?;
-    let fpr = cert.fingerprint().to_string();
-
     for keystore in [false, true] {
-        let mut sq = Sq::at(time.into());
+        let mut sq = Sq::new();
+
+        let (cert, cert_path, _rev_path)
+            = sq.key_generate(&[], &["alice <alice@example.org>"]);
+        let fpr = cert.fingerprint().to_string();
 
         // Two days go by.
         sq.tick(2 * 24 * 60 * 60);
 
-        let updated_path = &tmpdir.path().join("updated.pgp");
-        let updated2_path = &tmpdir.path().join("updated2.pgp");
+        let updated_path = sq.scratch_file("updated.pgp");
+        let updated2_path = sq.scratch_file("updated2.pgp");
 
         if keystore {
             sq.key_import(&cert_path);
@@ -37,11 +35,10 @@ fn sq_key_expire() -> Result<()> {
         if keystore {
             cmd.args(["--cert", &fpr ]);
         } else {
-            cmd.args([
-                "--force",
-                "--cert-file", &cert_path,
-                "--output", &updated_path.to_string_lossy(),
-            ]);
+            cmd
+                .arg("--force")
+                .arg("--cert-file").arg(&cert_path)
+                .arg("--output").arg(&updated_path);
         }
         sq.run(cmd, true);
 
@@ -52,7 +49,7 @@ fn sq_key_expire() -> Result<()> {
             sq.cert_export(cert.key_handle())
         } else {
             eprintln!("Updated certificate to expire in one day:\n{}",
-                      sq.inspect(updated_path));
+                      sq.inspect(&updated_path));
 
             Cert::from_file(&updated_path).expect("valid cert")
         };
@@ -95,7 +92,7 @@ fn sq_key_expire() -> Result<()> {
             sq.cert_export(cert.key_handle())
         } else {
             eprintln!("Updated certificate to expire in one day:\n{}",
-                      sq.inspect(updated2_path));
+                      sq.inspect(&updated2_path));
 
             Cert::from_file(&updated2_path).expect("valid cert")
         };
@@ -119,8 +116,6 @@ fn sq_key_expire() -> Result<()> {
             .expect("valid");
         assert!(matches!(vc.alive(), Ok(())));
     }
-
-    tmpdir.close()?;
 
     Ok(())
 }

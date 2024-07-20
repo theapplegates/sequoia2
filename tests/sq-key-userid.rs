@@ -1,8 +1,6 @@
+use std::time::Duration;
+
 use assert_cmd::Command;
-
-use tempfile::TempDir;
-
-use chrono::Duration;
 
 use openpgp::packet::UserID;
 use openpgp::parse::Parse;
@@ -15,22 +13,19 @@ use sequoia_openpgp as openpgp;
 
 mod common;
 use common::compare_notations;
-use common::sq_key_generate;
+use common::Sq;
 use common::STANDARD_POLICY;
+use common::time_as_string;
 
 #[test]
 fn sq_key_userid_revoke() -> Result<()> {
+    let sq = Sq::new();
+    let time = sq.now();
+    let home = sq.home().to_string_lossy();
+
     let userids = &["alice <alice@example.org>", "alice <alice@other.org>"];
     // revoke the last userid
     let userid_revoke = userids.last().unwrap();
-    let (tmpdir, cert_path, time) = sq_key_generate(Some(userids))?;
-    let cert_path = cert_path.display().to_string();
-
-    let cert = Cert::from_file(&cert_path)?;
-    let valid_cert = cert.with_policy(STANDARD_POLICY, Some(time.into()))?;
-    let fingerprint = valid_cert.clone().fingerprint();
-
-    let message = "message";
 
     // revoke for various reasons, with or without notations added, or with
     // a revocation whose reference time is one hour after the creation of the
@@ -41,7 +36,7 @@ fn sq_key_userid_revoke() -> Result<()> {
             ReasonForRevocation::UIDRetired,
             "retired",
             &[][..],
-            Some(time + Duration::hours(1)),
+            Some(time + Duration::new(60 * 60, 0)),
         ),
         (
             ReasonForRevocation::UIDRetired,
@@ -54,7 +49,7 @@ fn sq_key_userid_revoke() -> Result<()> {
             ReasonForRevocation::Unspecified,
             "unspecified",
             &[][..],
-            Some(time + Duration::hours(1)),
+            Some(time + Duration::new(60 * 60, 0)),
         ),
         (
             ReasonForRevocation::Unspecified,
@@ -71,10 +66,14 @@ fn sq_key_userid_revoke() -> Result<()> {
             eprintln!("--------------------------");
             eprintln!("keystore: {}", keystore);
 
-            let home = TempDir::new().unwrap();
-            let home = home.path().display().to_string();
+            let (cert, cert_path, _rev_path) = sq.key_generate(&[], userids);
 
-            let revocation = &tmpdir.path().join(format!(
+            let valid_cert = cert.with_policy(STANDARD_POLICY, Some(time.into()))?;
+            let fingerprint = valid_cert.fingerprint();
+
+            let message = "message";
+
+            let revocation = sq.scratch_file(Some(&*format!(
                 "revocation_{}_{}_{}.rev",
                 reason_str,
                 if notations.is_empty() {
@@ -87,18 +86,16 @@ fn sq_key_userid_revoke() -> Result<()> {
                 } else {
                     "no_time"
                 }
-            ));
+            )));
 
             if keystore {
                 // When using the keystore, we need to import the key.
 
                 let mut cmd = Command::cargo_bin("sq")?;
-                cmd.args([
-                    "--home", &home,
-                    "key",
-                    "import",
-                    &cert_path,
-                ]);
+                cmd.arg("--home").arg(&*home)
+                    .arg("key")
+                    .arg("import")
+                    .arg(&cert_path);
                 let output = cmd.output()?;
                 if !output.status.success() {
                     panic!(
@@ -124,10 +121,8 @@ fn sq_key_userid_revoke() -> Result<()> {
                     "--cert", &cert.fingerprint().to_string(),
                 ]);
             } else {
-                cmd.args([
-                    "--cert-file", &cert_path,
-                    "--output", &revocation.display().to_string(),
-                ]);
+                cmd.arg("--cert-file").arg(&cert_path)
+                    .arg("--output").arg(&revocation);
             }
 
             for (k, v) in notations {
@@ -136,7 +131,7 @@ fn sq_key_userid_revoke() -> Result<()> {
             if let Some(time) = revocation_time {
                 cmd.args([
                     "--time",
-                    &time.format("%Y-%m-%dT%H:%M:%SZ").to_string(),
+                    &time_as_string(time.into()),
                 ]);
             }
             let output = cmd.output()?;
@@ -222,30 +217,18 @@ fn sq_key_userid_revoke() -> Result<()> {
         }
     }
 
-    tmpdir.close()?;
-
     Ok(())
 }
 
 #[test]
 fn sq_key_userid_revoke_thirdparty() -> Result<()> {
+    let sq = Sq::new();
+    let time = sq.now();
+    let home = sq.home().to_string_lossy();
+
     let userids = &["alice <alice@example.org>", "alice <alice@other.org>"];
     // revoke the last userid
     let userid_revoke = userids.last().unwrap();
-
-    let (tmpdir, cert_path, _) = sq_key_generate(Some(userids))?;
-    let cert_path = cert_path.display().to_string();
-    let cert = Cert::from_file(&cert_path)?;
-
-    let (thirdparty_tmpdir, thirdparty_path, thirdparty_time) =
-        sq_key_generate(Some(&["bob <bob@example.org>"]))?;
-    let thirdparty_path = thirdparty_path.display().to_string();
-    let thirdparty_cert = Cert::from_file(&thirdparty_path)?;
-    let thirdparty_valid_cert = thirdparty_cert
-        .with_policy(STANDARD_POLICY, Some(thirdparty_time.into()))?;
-    let thirdparty_fingerprint = thirdparty_valid_cert.clone().fingerprint();
-
-    let message = "message";
 
     // revoke for various reasons, with or without notations added, or with
     // a revocation whose reference time is one hour after the creation of the
@@ -256,7 +239,7 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
             ReasonForRevocation::UIDRetired,
             "retired",
             &[][..],
-            Some(thirdparty_time + Duration::hours(1)),
+            Some(time + Duration::new(60 * 60, 0)),
         ),
         (
             ReasonForRevocation::UIDRetired,
@@ -269,7 +252,7 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
             ReasonForRevocation::Unspecified,
             "unspecified",
             &[][..],
-            Some(thirdparty_time + Duration::hours(1)),
+            Some(time + Duration::new(60 * 60, 0)),
         ),
         (
             ReasonForRevocation::Unspecified,
@@ -279,10 +262,16 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
         ),
     ] {
         for keystore in [false, true].into_iter() {
-            let home = TempDir::new().unwrap();
-            let home = home.path().display().to_string();
+            let (cert, cert_path, _rev_path) = sq.key_generate(&[], userids);
+            let (thirdparty_cert, thirdparty_path, _rev_path)
+                = sq.key_generate(&[], &["bob <bob@example.org>"]);
+            let thirdparty_valid_cert = thirdparty_cert
+                .with_policy(STANDARD_POLICY, Some(time.into()))?;
+            let thirdparty_fingerprint = thirdparty_valid_cert.fingerprint();
 
-            let revocation = &tmpdir.path().join(format!(
+            let message = "message";
+
+            let revocation = sq.scratch_file(Some(&*format!(
                 "revocation_{}_{}_{}.rev",
                 reason_str,
                 if notations.is_empty() {
@@ -295,19 +284,17 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
                 } else {
                     "no_time"
                 }
-            ));
+            )));
 
             if keystore {
                 // When using the keystore, we need to import the key.
 
                 for path in &[ &cert_path, &thirdparty_path ] {
                     let mut cmd = Command::cargo_bin("sq")?;
-                    cmd.args([
-                        "--home", &home,
-                        "key",
-                        "import",
-                        &path,
-                    ]);
+                    cmd.arg("--home").arg(&*home)
+                        .arg("key")
+                        .arg("import")
+                        .arg(&path);
                     let output = cmd.output()?;
                     if !output.status.success() {
                         panic!(
@@ -335,14 +322,9 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
                     "--revoker", &thirdparty_cert.fingerprint().to_string(),
                 ]);
             } else {
-                cmd.args([
-                    "--output",
-                    &revocation.to_string_lossy(),
-                    "--cert-file",
-                    &cert_path,
-                    "--revoker-file",
-                    &thirdparty_path,
-                ]);
+                cmd.arg("--output").arg(&revocation)
+                    .arg("--cert-file").arg(&cert_path)
+                    .arg("--revoker-file").arg(&thirdparty_path);
             }
 
             for (k, v) in notations {
@@ -351,7 +333,7 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
             if let Some(time) = revocation_time {
                 cmd.args([
                     "--time",
-                    &time.format("%Y-%m-%dT%H:%M:%SZ").to_string(),
+                    &time_as_string(time.into()),
                 ]);
             }
             let output = cmd.output()?;
@@ -449,9 +431,6 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
             }
         }
     }
-
-    tmpdir.close()?;
-    thirdparty_tmpdir.close()?;
 
     Ok(())
 }

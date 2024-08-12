@@ -658,10 +658,10 @@ impl Sq {
         }
     }
 
-    pub fn key_attest_certifications<'a, H, Q>(&self,
-                                               cert: H,
-                                               attest_all: bool,
-                                               output_file: Q)
+    pub fn key_approvals_update<'a, H, Q>(&self,
+                                          cert: H,
+                                          attest_all: bool,
+                                          output_file: Q)
         -> Cert
     where H: Into<FileOrKeyHandle>,
           Q: Into<Option<&'a Path>>,
@@ -670,7 +670,7 @@ impl Sq {
         let output_file = output_file.into();
 
         let mut cmd = self.command();
-        cmd.arg("key").arg("attest-certifications");
+        cmd.arg("key").arg("approvals").arg("update");
 
         match &cert {
             FileOrKeyHandle::FileOrStdin(file) => {

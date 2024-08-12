@@ -6,8 +6,7 @@ use crate::Sq;
 
 mod adopt;
 use adopt::adopt;
-mod attest_certifications;
-use attest_certifications::attest_certifications;
+mod approvals;
 mod delete;
 mod expire;
 mod export;
@@ -39,7 +38,7 @@ pub fn dispatch(sq: Sq, command: cli::key::Command) -> Result<()>
         Revoke(c) => certificate_revoke(sq, c)?,
         Subkey(c) => subkey::dispatch(sq, c)?,
         Adopt(c) => adopt(sq, c)?,
-        AttestCertifications(c) => attest_certifications(sq, c)?,
+        Approvals(c) => approvals::dispatch(sq, c)?,
     }
     Ok(())
 }

@@ -38,7 +38,7 @@ fn attest_certifications() -> Result<()> {
         let attestation_file = sq.scratch_file(
             &*format!("{}-attestation", public.display()));
 
-        let attestation = sq.key_attest_certifications(
+        let attestation = sq.key_approvals_update(
             &priv_file, true, &*attestation_file);
 
         eprintln!("{}", sq.inspect(&attestation_file));
@@ -86,7 +86,7 @@ fn attest_certifications_cert_store() -> Result<()> {
     sq.key_import(bob_pgp);
 
     // Attest the zero certifications.
-    let attestation = sq.key_attest_certifications(
+    let attestation = sq.key_approvals_update(
         alice.key_handle(), true, None);
 
     assert_eq!(attestation.bad_signatures().count(), 0);
@@ -102,7 +102,7 @@ fn attest_certifications_cert_store() -> Result<()> {
     assert_eq!(alice2.fingerprint(), alice.fingerprint());
 
     // Attest Bob's certification.
-    let attestation = sq.key_attest_certifications(
+    let attestation = sq.key_approvals_update(
         &alice.key_handle(), true, None);
 
     assert_eq!(attestation.bad_signatures().count(), 0);

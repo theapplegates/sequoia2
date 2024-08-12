@@ -4,12 +4,21 @@ use sequoia_openpgp as openpgp;
 
 use crate::Sq;
 use crate::cli;
+use crate::cli::key::approvals;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::cli::types::FileOrStdout;
 
-pub fn attest_certifications(
+pub fn dispatch(sq: Sq, command: approvals::Command)
+                -> Result<()>
+{
+    match command {
+        approvals::Command::Update(c) => update(sq, c),
+    }
+}
+
+fn update(
     sq: Sq,
-    mut command: cli::key::AttestCertificationsCommand,
+    mut command: cli::key::approvals::UpdateCommand,
 ) -> Result<()> {
     // Attest to all certifications?
     let all = !command.none; // All is the default.

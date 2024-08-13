@@ -161,7 +161,7 @@ fn certify(sq: &Sq,
         builder = builder.set_trust_signature(depth, amount.min(255) as u8)?;
     }
 
-    builder = builder.set_exportable_certification(true)?;
+    builder = builder.set_exportable_certification(false)?;
 
     if let Some(creation_time) = creation_time {
         builder = builder.set_signature_creation_time(creation_time)?;

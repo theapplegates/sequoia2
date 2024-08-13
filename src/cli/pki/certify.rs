@@ -217,15 +217,16 @@ pub struct Command {
     pub allow_revoked_certifier: bool,
     #[clap(
         long,
-        help = "Create the certification using CERTIFIER-KEY.",
+        value_name = "KEY",
+        help = "Create the certification using KEY.",
         value_name = FileOrStdin::VALUE_NAME,
     )]
     pub certifier: Option<KeyHandle>,
     #[clap(
         long,
-        value_name = "CERTIFIER-FILE",
+        value_name = "KEY-FILE",
         required = true,
-        help = "Create the certification using CERTIFIER-KEY.",
+        help = "Create the certification using KEY-FILE.",
     )]
     pub certifier_file: Option<FileOrStdin>,
     #[clap(

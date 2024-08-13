@@ -234,46 +234,39 @@ pub fn generate(
 
     if on_keystore {
         // Writing to key store.  Provide some guidance.
-        wprintln!("If this is your key, you should mark it as a fully \
-                   trusted introducer:");
-        eprintln!();
-        eprintln!("  $ sq pki link add --ca \\* {} --all",
-                  cert.fingerprint());
-        eprintln!();
+        sq.hint(format_args!("If this is your key, you should mark it as a \
+                              fully trusted introducer:"))
+            .command(format_args!("sq pki link add --ca \\* {} --all",
+                                  cert.fingerprint()));
 
-        wprintln!("Otherwise, you should mark it as authenticated:");
-        eprintln!();
-        eprintln!("  $ sq pki link add {} --all",
-                  cert.fingerprint());
-        eprintln!();
+        sq.hint(format_args!("Otherwise, you should mark it as authenticated:"))
+            .command(format_args!("sq pki link add {} --all",
+                                  cert.fingerprint()));
 
-        wprintln!("You can export your certificate as follows:");
-        eprintln!();
-        eprintln!("  $ sq cert export --cert {}",
-                  cert.fingerprint());
-        eprintln!();
+        sq.hint(format_args!("You can export your certificate as follows:"))
+            .command(format_args!("sq cert export --cert {}",
+                                  cert.fingerprint()));
 
-        wprintln!("Once you are happy you can upload it to public directories \
-                   using:");
-        eprintln!();
-        eprintln!("  $ sq network keyserver publish --cert {}",
-                  cert.fingerprint());
+        sq.hint(format_args!("Once you are happy you can upload it to public \
+                              directories using:"))
+            .command(format_args!("sq network keyserver publish --cert {}",
+                                  cert.fingerprint()));
     } else {
         let mut shown = false;
         if let Some(ref output) = command.output {
             if let Some(output_path) = output.path() {
-                wprintln!("You can extract the certificate from the \
-                           generated key by running:");
-                eprintln!();
-                eprintln!("  $ sq toolbox extract-cert {}",
-                          output_path.display());
+                sq.hint(format_args!("You can extract the certificate from the \
+                                      generated key by running:"))
+                    .command(format_args!("sq toolbox extract-cert {}",
+                                          output_path.display()));
                 shown = true;
             }
         }
 
         if ! shown {
-            wprintln!("You can extract the certificate from the \
-                       generated key using `sq toolbox extract-cert`.");
+            sq.hint(format_args!("You can extract the certificate from the \
+                                  generated key using:"))
+                .command(format_args!("sq toolbox extract-cert"));
         }
     }
 

@@ -256,7 +256,7 @@ pub fn generate(
         wprintln!("Once you are happy you can upload it to public directories \
                    using:");
         eprintln!();
-        eprintln!("  $ sq network keyserver publish {}",
+        eprintln!("  $ sq network keyserver publish --cert {}",
                   cert.fingerprint());
     } else {
         let mut shown = false;

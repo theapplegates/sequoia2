@@ -913,9 +913,15 @@ pub fn dispatch_keyserver(mut sq: Sq,
         })?,
 
         Publish(c) => rt.block_on(async {
-            let mut input = c.input.open()?;
-            let cert = Arc::new(Cert::from_buffered_reader(&mut input).
-                context("Malformed key")?);
+            let cert = if let Some(input) = c.input {
+                let mut input = input.open()?;
+                Arc::new(Cert::from_buffered_reader(&mut input).
+                         context("Malformed key")?)
+            } else if let Some(h) = c.cert {
+                Arc::new(sq.lookup_one(h, None, false)?)
+            } else {
+                unreachable!("one must be given")
+            };
 
             let mut requests = tokio::task::JoinSet::new();
             for ks in servers.iter().cloned() {

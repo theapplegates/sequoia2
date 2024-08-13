@@ -118,7 +118,7 @@ fn update(
                  To make the update effective, it has to be published \
                  so that others can find it, for example using:"))
                 .command(format_args!(
-                    "sq cert export --cert {} | sq network keyserver publish",
+                    "sq network keyserver publish --cert {}",
                     keyid));
         }
     }

@@ -608,18 +608,26 @@ impl Response {
 
     /// Collects the responses, and displays failures.
     ///
+    /// Certs are collected into `certs`, and references to all newly
+    /// discovered certs are returned.
+    ///
     /// If `silent_errors` is given, then failure messages are
     /// suppressed unless --verbose is given, or there was not a
     /// single successful result.
-    async fn collect<'store, 'rstore>(sq: &mut Sq<'store, 'rstore>,
-                                      mut responses: JoinSet<Response>,
-                                      certify: bool,
-                                      silent_errors: bool,
-                                      pb: &mut ProgressBar)
-                                      -> Result<Vec<Cert>>
-        where 'store: 'rstore
+    async fn collect<'store, 'rstore, 'acc>(
+        sq: &mut Sq<'store, 'rstore>,
+        mut responses: JoinSet<Response>,
+        certs: &'acc mut Vec<Cert>,
+        certify: bool,
+        silent_errors: bool,
+        pb: &mut ProgressBar,
+    )
+        -> Result<&'acc [Cert]>
+    where
+        'store: 'rstore
     {
-        let mut certs = Vec::new();
+        let certs_len_before = certs.len();
+
         let mut errors = Vec::new();
         while let Some(response) = responses.join_next().await {
             pb.inc(1);
@@ -657,7 +665,7 @@ impl Response {
         if certs.is_empty() {
             Err(anyhow::anyhow!("No cert found."))
         } else {
-            Ok(certs)
+            Ok(&certs[certs_len_before..])
         }
     }
 
@@ -824,11 +832,12 @@ pub fn dispatch_fetch(mut sq: Sq, c: cli::network::fetch::Command)
             return Result::Ok(());
         }
 
-        let mut certs = Response::collect(
-            &mut sq, requests, c.output.is_none(), default_servers, &mut pb).await?;
+        let certs = Response::collect(
+            &mut sq, requests, &mut results, c.output.is_none(),
+            default_servers, &mut pb).await?;
 
         // Expand certs to discover new identifiers to query.
-        for cert in &certs {
+        for cert in certs {
             queries.push(Query::Handle(cert.key_handle()));
 
             for uid in cert.userids() {
@@ -837,8 +846,6 @@ pub fn dispatch_fetch(mut sq: Sq, c: cli::network::fetch::Command)
                 }
             }
         }
-
-        results.append(&mut certs);
       }
 
       Result::Ok(())
@@ -906,8 +913,9 @@ pub fn dispatch_keyserver(mut sq: Sq,
                 }
             });
 
-            let certs = Response::collect(
-                &mut sq, requests, c.output.is_none(), default_servers, &mut pb).await?;
+            let mut certs = Vec::new();
+            Response::collect(&mut sq, requests, &mut certs, c.output.is_none(),
+                              default_servers, &mut pb).await?;
             drop(pb);
             Response::import_or_emit(sq, c.output, c.binary, certs)?;
             Result::Ok(())
@@ -1013,8 +1021,9 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                 });
             });
 
-            let certs = Response::collect(
-                &mut sq, requests, c.output.is_none(), false, &mut pb).await?;
+            let mut certs = Vec::new();
+            Response::collect(&mut sq, requests, &mut certs, c.output.is_none(),
+                              false, &mut pb).await?;
             drop(pb);
             Response::import_or_emit(sq, c.output, c.binary, certs)?;
             Result::Ok(())
@@ -1231,8 +1240,9 @@ pub fn dispatch_dane(mut sq: Sq, c: cli::network::dane::Command)
                 });
             });
 
-            let certs = Response::collect(
-                &mut sq, requests, c.output.is_none(), false, &mut pb).await?;
+            let mut certs = Vec::new();
+            Response::collect(&mut sq, requests, &mut certs, c.output.is_none(),
+                              false, &mut pb).await?;
             drop(pb);
             Response::import_or_emit(sq, c.output, c.binary, certs)?;
             Result::Ok(())

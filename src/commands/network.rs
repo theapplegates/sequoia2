@@ -778,6 +778,7 @@ pub fn dispatch_fetch(mut sq: Sq, c: cli::network::fetch::Command)
                 let query = query.clone();
                 let http_client = http_client.clone();
                 let url = url.clone();
+                pb.inc_length(1);
                 requests.spawn(async move {
                     Response {
                         query,

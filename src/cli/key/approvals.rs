@@ -23,15 +23,107 @@ use crate::cli::examples::*;
 Manages certification approvals.
 
 Key holders may approve of third-party certifications associated with
-their certificate.  This subcommand manages the approvals.",
+their certificate.  This subcommand manages the approvals.
+
+To prevent certificate flooding attacks, modern key servers prevent
+uncontrolled distribution of third-party certifications on
+certificates.  To allow the key holder to control what information is
+distributed with their certificate, these key servers only distribute
+third-party certifications that the key holder has explicitly
+approved.
+",
     subcommand_required = true,
     arg_required_else_help = true,
 )]
 #[non_exhaustive]
 pub enum Command {
+    List(ListCommand),
     Update(UpdateCommand),
 }
 
+const LIST_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Lists the approved certifications on all the user IDs.",
+            command: &[
+                "sq", "key", "approvals", "list",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Lists the unapproved certifications on all the user IDs.",
+            command: &[
+                "sq", "key", "approvals", "list",
+                "--pending",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Lists all unapproved certifications on a given user ID.",
+            command: &[
+                "sq", "key", "approvals", "list",
+                "--pending",
+                "--email", "alice@example.org",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_key_approvals_list, LIST_EXAMPLES);
+
+#[derive(Debug, Args)]
+#[clap(
+    name = "list",
+    about = "Lists third-party certifications",
+    long_about = "\
+Lists third-party certifications and their approval status.
+
+To prevent certificate flooding attacks, modern key servers prevent
+uncontrolled distribution of third-party certifications on
+certificates.  To allow the key holder to control what information is
+distributed with their certificate, these key servers only distribute
+third-party certifications that the key holder has explicitly
+approved.
+",
+    after_help = LIST_EXAMPLES,
+)]
+pub struct ListCommand {
+    #[clap(
+        long = "pending",
+        help = "List unapproved certifications",
+    )]
+    pub pending: bool,
+
+    #[clap(
+        long = "email",
+        help = "List certifications on user IDs with this email address",
+    )]
+    pub emails: Vec<String>,
+
+    #[clap(
+        long = "name",
+        help = "List certifications on user IDs with this name",
+    )]
+    pub names: Vec<String>,
+
+    #[clap(
+        long = "userid",
+        help = "List certifications on this user ID",
+    )]
+    pub userids: Vec<String>,
+
+    #[clap(
+        long,
+        value_name = "CERT",
+        help = "Lists attestations on the specified certificate",
+    )]
+    pub cert: KeyHandle,
+}
 
 const UPDATE_EXAMPLES: Actions = Actions {
     actions: &[

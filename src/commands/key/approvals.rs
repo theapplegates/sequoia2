@@ -1,6 +1,14 @@
-use openpgp::Result;
-use openpgp::serialize::Serialize;
-use sequoia_openpgp as openpgp;
+use std::{
+    collections::BTreeSet,
+};
+
+use sequoia_openpgp::{
+    Result,
+    cert::amalgamation::ValidUserIDAmalgamation,
+    serialize::Serialize,
+};
+
+use sequoia_cert_store::Store;
 
 use crate::Sq;
 use crate::cli;
@@ -12,8 +20,87 @@ pub fn dispatch(sq: Sq, command: approvals::Command)
                 -> Result<()>
 {
     match command {
+        approvals::Command::List(c) => list(sq, c),
         approvals::Command::Update(c) => update(sq, c),
     }
+}
+
+fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
+    let cert = sq.lookup_one(&cmd.cert, None, true)?;
+    let vcert = cert.with_policy(sq.policy, sq.time)?;
+    let store = sq.cert_store_or_else()?;
+
+    let uid_filter = |uid: &ValidUserIDAmalgamation| {
+        if cmd.emails.is_empty() && cmd.names.is_empty() && cmd.userids.is_empty() {
+            // No filter, list all user IDs.
+            true
+        } else {
+            uid.email_normalized().ok().flatten()
+                .map(|e| cmd.emails.contains(&e)).unwrap_or(false)
+                || uid.name2().ok().flatten()
+                .map(|n| cmd.names.iter().any(|i| i == n)).unwrap_or(false)
+                || std::str::from_utf8(uid.value())
+                .map(|u| cmd.userids.iter().any(|i| i == u)).unwrap_or(false)
+        }
+    };
+
+    for uid in vcert.userids().filter(uid_filter) {
+        eprintln!("- {}", String::from_utf8_lossy(uid.value()));
+
+        let approved =
+            uid.attested_certifications().collect::<BTreeSet<_>>();
+
+        let mut any = false;
+        for (approved, c) in uid.certifications()
+            .map(|c| (approved.contains(c), c))
+            .filter(|(a, _)| ! *a == cmd.pending)
+        {
+            // Verify certifications by looking up the issuing cert.
+            let mut issuer = None;
+            let mut err = None;
+            for i in c.get_issuers().into_iter()
+                .filter_map(|i| store.lookup_by_cert(&i).ok()
+                            .map(IntoIterator::into_iter))
+                .flatten()
+            {
+                match c.verify_signature(&i.primary_key()) {
+                    Ok(_) => issuer = Some(i),
+                    Err(e) => err = Some(e),
+                }
+            }
+
+            eprintln!("  - {}: {}",
+                      issuer.as_ref()
+                      .and_then(|i| Some(sq.best_userid(i.to_cert().ok()?, true)
+                                         .to_string()))
+                      .or(c.get_issuers().into_iter().next()
+                          .map(|h| h.to_string()))
+                      .unwrap_or_else(|| "no issuer information".into()),
+                      if issuer.is_none() {
+                          if let Some(e) = err {
+                              e.to_string()
+                          } else {
+                              "issuer cert not found".into()
+                          }
+                      } else if approved {
+                          "approved".into()
+                      } else {
+                          "unapproved".into()
+                      });
+            any = true;
+        }
+
+        if ! any {
+            eprintln!("  - no {} certifications",
+                      if cmd.pending {
+                          "unapproved"
+                      } else {
+                          "approved"
+                      });
+        }
+    }
+
+    Ok(())
 }
 
 fn update(

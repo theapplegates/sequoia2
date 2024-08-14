@@ -434,3 +434,24 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn sq_key_userid_add() -> Result<()> {
+    let sq = Sq::new();
+    let (key, _, _) = sq.key_generate(&[], &[]);
+    assert_eq!(key.userids().count(), 0);
+
+    let key = sq.key_userid_add(key, &[
+        "--name", "Joan Clarke",
+        "--name", "Joan Clarke Murray",
+        "--email", "joan@hut8.bletchley.park",
+    ])?;
+
+    assert_eq!(key.userids().count(), 3);
+    assert!(key.userids().any(|u| u.value() == b"Joan Clarke"));
+    assert!(key.userids().any(|u| u.value() == b"Joan Clarke Murray"));
+    assert!(
+        key.userids().any(|u| u.value() == b"<joan@hut8.bletchley.park>"));
+
+    Ok(())
+}

@@ -34,7 +34,7 @@ use crate::cli::types::FileOrStdout;
 use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
-use crate::common::userid::lint_userids;
+use crate::common::userid::{lint_userids, lint_names, lint_emails};
 use crate::parse_notations;
 
 /// Handle the revocation of a User ID
@@ -192,6 +192,17 @@ fn userid_add(
     };
 
     let mut signer = sq.get_primary_key(&cert, None)?.0;
+
+    // Names, email addresses, and user IDs.
+    lint_names(&command.names)?;
+    for n in &command.names {
+        command.userid.push(UserID::from(n.as_str()));
+    }
+
+    lint_emails(&command.emails)?;
+    for n in &command.emails {
+        command.userid.push(UserID::from_address(None, None, n)?);
+    }
 
     // Make sure the user IDs are in canonical form.  If not, and
     // `--allow-non-canonical-userids` is not set, error out.

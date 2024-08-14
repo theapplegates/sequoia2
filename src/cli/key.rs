@@ -869,7 +869,8 @@ Add a new user ID.",
             command: &[
                 "sq", "key", "userid", "add",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--userid", "Alice <alice@work.example.com>",
+                "--name", "Alice",
+                "--email", "alice@work.example.com",
             ],
         }),
     ]
@@ -885,6 +886,9 @@ test_examples!(sq_key_userid_add, USERID_ADD_EXAMPLES);
 A user ID can contain a name, like `Juliet`, or an email address, like \
 `<juliet@example.org>`.  Historically, a name and an email address were \
 usually combined as a single user ID, like `Juliet <juliet@example.org>`.
+However, user IDs that include different information such as name and
+email address are more difficult to reason about, so using distinct
+user IDs for name and email address is preferred nowadays.
 
 `sq userid add` respects the reference time set by the top-level \
 `--time` argument.  It sets the creation time of the user ID's \
@@ -893,6 +897,7 @@ binding signature to the specified time.
     after_help = USERID_ADD_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
+#[clap(group(ArgGroup::new("cert-userid").args(&["names", "emails", "userid"]).required(true).multiple(true)))]
 pub struct UseridAddCommand {
     #[clap(
         long,
@@ -907,13 +912,40 @@ pub struct UseridAddCommand {
         help = "Add the user ID to the specified certificate",
     )]
     pub cert_file: Option<FileOrStdin>,
+
+    #[clap(
+        long = "name",
+        value_name = "NAME",
+        help = "Add a name as user ID to the key"
+    )]
+    pub names: Vec<String>,
+
+    #[clap(
+        long = "email",
+        value_name = "ADDRESS",
+        help = "Add an email address as user ID to the key"
+    )]
+    pub emails: Vec<String>,
+
     #[clap(
         long,
         value_name = "USERID",
-        required = true,
-        help = "User ID to add",
+        help = "Add a user ID to the key",
+        long_help = "
+Add a user ID to the key.
+
+This user ID can combine name and email address, can optionally
+contain a comment, or even be free-form if
+`--allow-non-canonical-userids` is given.  However, user IDs that
+include different information such as name and email address are more
+difficult to reason about, so using distinct user IDs for name and
+email address is preferred nowadays.
+
+In doubt, prefer `--name` and `--email`.
+",
     )]
     pub userid: Vec<UserID>,
+
     #[clap(
         long,
         help = "Don't reject user IDs that are not in canonical form",

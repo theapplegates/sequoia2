@@ -2,6 +2,7 @@
 
 use std::ffi::OsStr;
 use std::ffi::OsString;
+use std::fs::File;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Output;
@@ -26,6 +27,7 @@ use openpgp::cert::CertParser;
 use openpgp::Fingerprint;
 use openpgp::KeyHandle;
 use openpgp::Result;
+use openpgp::serialize::Serialize;
 use sequoia_openpgp as openpgp;
 
 use tempfile::TempDir;
@@ -828,6 +830,27 @@ impl Sq {
                 "Failed (expected):\n{}",
                 String::from_utf8_lossy(&output.stderr))))
         }
+    }
+
+    /// Adds user IDs to the given key.
+    pub fn key_userid_add(&self, key: Cert, args: &[&str]) -> Result<Cert> {
+        let mut cmd = self.command();
+        cmd.args(["key", "userid", "add"]);
+        for arg in args {
+            cmd.arg(arg);
+        }
+
+        let in_filename = self.scratch_file(None);
+        key.as_tsk().serialize(&mut File::create(&in_filename)?)?;
+        cmd.arg("--cert-file").arg(&in_filename);
+        let out_filename = self.scratch_file(None);
+        cmd.arg("--output").arg(&out_filename);
+
+        let output = self.run(cmd, Some(true));
+
+        let out_key = Cert::from_file(&out_filename)?;
+        assert!(out_key.is_tsk());
+        Ok(out_key)
     }
 
     /// Imports the specified certificate into the keystore.

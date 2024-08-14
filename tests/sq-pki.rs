@@ -16,14 +16,6 @@ mod integration {
     use openpgp::Result;
     use openpgp::packet::UserID;
 
-    /// Dot node fill colors
-    ///
-    /// These need to be synced with the ones in src/output/dot.rs
-    const DOT_ROOT_FILL_COLOR: &'static str = "mediumpurple2";
-    const DOT_TARGET_OK_FILL_COLOR: &'static str = "lightgreen";
-    const DOT_TARGET_FAIL_FILL_COLOR: &'static str = "indianred2";
-    const DOT_NODE_FILL_COLOR: &'static str = "grey";
-
     const HR_OK: &'static str = "[✓]";
     const HR_NOT_OK: &'static str = "[ ]";
     const HR_PATH: &'static str = "◯ ";
@@ -40,18 +32,15 @@ mod integration {
     /// These need to be synced with the ones in src/cli.rs
     #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
     enum OutputFormat {
-        /// output in graphviz's DOT format
-        Dot,
         /// output in human readable format
         HumanReadable,
     }
 
     impl OutputFormat {
         pub fn iterator() -> impl Iterator<Item = &'static OutputFormat> {
-            static FORMATS: [OutputFormat; 2] =
-                [OutputFormat::Dot, OutputFormat::HumanReadable];
+            static FORMATS: [OutputFormat; 1] =
+                [OutputFormat::HumanReadable];
             FORMATS.iter()
-                .filter(|f| **f != OutputFormat::Dot || cfg!(feature = "dot-writer"))
         }
     }
 
@@ -61,7 +50,6 @@ mod integration {
                 f,
                 "{}",
                 match self {
-                    OutputFormat::Dot => "dot",
                     OutputFormat::HumanReadable => "human-readable",
                 }
             )
@@ -81,15 +69,12 @@ mod integration {
     /// of strings
     fn output_map<S>(
         human: &[(usize, S)],
-        dot: &[(usize, S)],
     ) -> HashMap<OutputFormat, Vec<(usize, Regex)>>
         where S: AsRef<str>,
     {
         let mut output = HashMap::<OutputFormat, Vec<(usize, Regex)>>::new();
         output.insert(OutputFormat::HumanReadable,
                       human.iter().map(|(c, n)| (*c, regexify(n.as_ref()))).collect());
-        output.insert(OutputFormat::Dot,
-                      dot.iter().map(|(c, n)| (*c, regexify(n.as_ref()))).collect());
         output
     }
 
@@ -228,29 +213,6 @@ mod integration {
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &dave_fpr, &dave_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
-                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -261,7 +223,7 @@ mod integration {
             Some(&dave_uid),
             Some(&dave_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
         test(
             keyring,
@@ -381,29 +343,6 @@ mod integration {
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &dave_fpr, &dave_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
-                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -414,7 +353,7 @@ mod integration {
             Some(&dave_email),
             Some(&dave_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
         test(
             keyring,
@@ -552,7 +491,7 @@ mod integration {
             Some(&dave_email_uc1),
             Some(&dave_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
         test(
             keyring,
@@ -564,7 +503,7 @@ mod integration {
             Some(&dave_email_uc2),
             Some(&dave_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         // Puny code and case normalization.
@@ -611,22 +550,6 @@ mod integration {
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -637,34 +560,11 @@ mod integration {
             Some(&alice_email),
             Some(&alice_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &hans_fpr, &hans_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
-                    hans_fpr, hans_uid, hans_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -675,7 +575,7 @@ mod integration {
             Some(&hans_email),
             Some(&hans_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         test(
@@ -688,7 +588,7 @@ mod integration {
             Some(&hans_email_lowercase),
             Some(&hans_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         test(
@@ -701,7 +601,7 @@ mod integration {
             Some(&hans_email_punycode),
             Some(&hans_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
         test(
             keyring,
@@ -713,34 +613,11 @@ mod integration {
             Some(&hans_email_punycode_lowercase),
             Some(&hans_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &carol_fpr, &carol_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
-                    carol_fpr, carol_uid, carol_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -751,7 +628,7 @@ mod integration {
             Some(&carol_email),
             Some(&carol_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())
@@ -791,22 +668,6 @@ mod integration {
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -817,7 +678,7 @@ mod integration {
             Some(&alice_uid),
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
         test(
             keyring,
@@ -829,35 +690,12 @@ mod integration {
             Some(&alice_uid),
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output = [
             (1, format!("{} {} {}: ", HR_OK, &dave_fpr, &dave_uid)),
             (1, format!("{}{} (\"{}\")", HR_PATH, &alice_fpr, &alice_uid)),
-        ];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
-                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
         ];
         test(
             keyring,
@@ -869,7 +707,7 @@ mod integration {
             Some(&dave_uid),
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
         test(
             keyring,
@@ -1011,22 +849,6 @@ mod integration {
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, alice_fpr, alice_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -1037,7 +859,7 @@ mod integration {
             Some(&alice_email),
             target,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
         test(
             keyring,
@@ -1049,34 +871,11 @@ mod integration {
             Some(&alice_email),
             target,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, dave_fpr, dave_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
-                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -1087,7 +886,7 @@ mod integration {
             Some(&dave_email),
             target,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
         test(
             keyring,
@@ -1199,22 +998,6 @@ mod integration {
             })
             .chain(vec![(userids.len(), HR_OK.to_string())].into_iter())
             .collect::<Vec<_>>();
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -1225,7 +1008,7 @@ mod integration {
             userid,
             Some(&alice_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
         test(
             keyring,
@@ -1237,7 +1020,7 @@ mod integration {
             userid,
             Some(&alice_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let userids = &[&dave_uid];
@@ -1251,29 +1034,6 @@ mod integration {
             })
             .chain(vec![(userids.len(), HR_OK.to_string())].into_iter())
             .collect::<Vec<_>>();
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(41%)\", fillcolor={}];",
-                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -1284,7 +1044,7 @@ mod integration {
             userid,
             Some(&dave_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         test(
@@ -1311,29 +1071,6 @@ mod integration {
             })
             .chain(vec![(userids.len(), HR_OK.to_string())].into_iter())
             .collect::<Vec<_>>();
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(58%)\", fillcolor={}];",
-                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -1344,7 +1081,7 @@ mod integration {
             userid,
             Some(&bob_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
         test(
             keyring,
@@ -1423,43 +1160,6 @@ mod integration {
             })
             .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
             .collect::<Vec<_>>();
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
-                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_FAIL_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
-                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_FAIL_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
-                    carol_fpr, carol_uid, carol_uid, DOT_TARGET_FAIL_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -1470,7 +1170,7 @@ mod integration {
             userid,
             target,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let bindings = &[
@@ -1486,43 +1186,6 @@ mod integration {
             })
             .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
             .collect::<Vec<_>>();
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
-                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
-                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
-                    carol_fpr, carol_uid, carol_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -1533,7 +1196,7 @@ mod integration {
             userid,
             target,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())
@@ -1587,39 +1250,6 @@ mod integration {
             })
             .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
             .collect::<Vec<_>>();
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(58%)\", fillcolor={}];",
-                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(58%)\", fillcolor={}];",
-                    bob_fpr,
-                    bob_some_org_uid,
-                    bob_some_org_uid,
-                    DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-        ];
 
         test(
             keyring,
@@ -1631,7 +1261,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         test(
@@ -1644,7 +1274,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let bindings = &[(&alice_uid, &alice_fpr), (&carol_uid, &carol_fpr)];
@@ -1655,29 +1285,6 @@ mod integration {
             })
             .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
             .collect::<Vec<_>>();
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(41%)\", fillcolor={}];",
-                    carol_fpr, carol_uid, carol_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-        ];
 
         test(
             keyring,
@@ -1689,7 +1296,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         test(
@@ -1702,7 +1309,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let bindings = &[(&bob_uid, &bob_fpr), (&dave_uid, &dave_fpr)];
@@ -1713,36 +1320,6 @@ mod integration {
             })
             .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
             .collect::<Vec<_>>();
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(58%)\", fillcolor={}];",
-                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(41%)\", fillcolor={}];",
-                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-        ];
 
         test(
             keyring,
@@ -1754,7 +1331,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let bindings = &[
@@ -1771,53 +1348,6 @@ mod integration {
             })
             .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
             .collect::<Vec<_>>();
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(58%)\", fillcolor={}];",
-                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(58%)\", fillcolor={}];",
-                    bob_fpr,
-                    bob_some_org_uid,
-                    bob_some_org_uid,
-                    DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(41%)\", fillcolor={}];",
-                    carol_fpr, carol_uid, carol_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(41%)\", fillcolor={}];",
-                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-        ];
 
         test(
             keyring,
@@ -1829,7 +1359,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         // Puny code.
@@ -1872,29 +1402,6 @@ mod integration {
             })
             .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
             .collect::<Vec<_>>();
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
-                    hans_fpr, hans_uid, hans_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-        ];
 
         // If we don't provide --email, then we only case
         // insensitively match on the raw User ID; we don't perform
@@ -1909,7 +1416,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         test(
@@ -1922,7 +1429,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         test(
@@ -1935,7 +1442,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         test(
@@ -1948,7 +1455,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         test(
@@ -2029,29 +1536,6 @@ mod integration {
             })
             .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
             .collect::<Vec<_>>();
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
-                    hans_fpr, hans_uid, hans_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-        ];
 
         test(
             keyring,
@@ -2063,7 +1547,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         test(
@@ -2076,7 +1560,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         test(
@@ -2089,7 +1573,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         test(
@@ -2115,7 +1599,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         test(
@@ -2128,7 +1612,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())
@@ -2187,7 +1671,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -2202,12 +1685,11 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output = [(1, format!("{} {} {}", HR_OK, bob_fpr, bob_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         // As above, but we only require 100.
         test(
             keyring,
@@ -2223,7 +1705,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         // Alice makes Bob a level 2 trusted introducer.
@@ -2231,7 +1713,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &bob_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -2247,13 +1728,12 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}", HR_OK, carol_fpr, carol_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         // Alice makes Bob a level 2 trusted introducer.
         // Bob certificates Carol.
         test(
@@ -2271,13 +1751,12 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}", HR_OK, dave_fpr, dave_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         // Alice makes Bob a level 2 trusted introducer.
         // Bob makes Carol a level 1 trust introducer.
         // Carol certifies Dave.
@@ -2297,7 +1776,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         // Alice makes Bob a level 2 trusted introducer (require level 3).
@@ -2307,7 +1786,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &ellen_fpr, &ellen_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -2325,7 +1803,7 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         // Alice makes Bob a level 2 trusted introducer.
@@ -2334,7 +1812,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &ellen_fpr, &ellen_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -2351,7 +1828,7 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())
@@ -2413,7 +1890,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}", HR_OK, carol_fpr, carol_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         // Alice tsigns Bob at depth = 2, trust amount = 100.
         // Bob certifies Carol, trust amount = 100.
         test(
@@ -2431,13 +1907,12 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -2453,13 +1928,12 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -2475,13 +1949,12 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &missing_fpr, &carol_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -2497,7 +1970,7 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())
@@ -2559,7 +2032,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         // A self signed User ID.
         test(
             keyring,
@@ -2574,14 +2046,13 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         // A User ID that is not self signed.
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &alice_fpr, &bob_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -2595,7 +2066,7 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())
@@ -2648,7 +2119,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &dave_fpr, &dave_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -2665,13 +2135,12 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}", HR_OK, dave_fpr, dave_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         // As above, but
         test(
             keyring,
@@ -2689,7 +2158,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())
@@ -2752,7 +2221,6 @@ mod integration {
 
         let human_output = [(1, format!("{} {}", HR_OK, frank_fpr))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         // Alice certifies Bob as:
         //   a level 255 trusted introducer, amount = 70 for other.org
         //   a level 1 trusted introducer, amount = 50
@@ -2772,7 +2240,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         // Alice certifies Bob as:
@@ -2782,7 +2250,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -2798,13 +2265,12 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}", HR_OK, carol_fpr, carol_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         // As above, but reduce the required trust amount to 50.
         test(
             keyring,
@@ -2821,13 +2287,12 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}", HR_OK, dave_fpr, dave_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         // Alice certifies Bob as:
         //   a level 255 trusted introducer, amount = 70 for other.org
         //   a level 1 trusted introducer, amount = 50
@@ -2849,7 +2314,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         // Alice certifies Bob as:
@@ -2860,7 +2325,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &ed_fpr, &ed_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -2877,7 +2341,7 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())
@@ -2926,7 +2390,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -2942,14 +2405,13 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         // Again, but this time only require a trust amount of 60.
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -2965,7 +2427,7 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         // set sq-wot args again
@@ -2976,7 +2438,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -2992,13 +2453,12 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}", HR_OK, carol_fpr, carol_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -3014,7 +2474,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())
@@ -3086,29 +2546,6 @@ mod integration {
         let sqwot_args = &["--certification-network"];
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &ellen_fpr, &ellen_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(83%)\", fillcolor={}];",
-                    ellen_fpr, ellen_uid, ellen_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -3119,7 +2556,7 @@ mod integration {
             Some(&ellen_uid),
             Some(&ellen_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())
@@ -3165,29 +2602,6 @@ mod integration {
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(100%)\", fillcolor={}];",
-                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         // Alice does not make Bob a trusted introducer.  So without
         // --certificate-network, she can only authenticate Bob, but
         // not Carol or Dave.
@@ -3201,7 +2615,7 @@ mod integration {
             Some(&bob_uid),
             Some(&bob_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         test(
@@ -3234,29 +2648,6 @@ mod integration {
         let sqwot_args = &["--certification-network"];
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(100%)\", fillcolor={}];",
-                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -3267,34 +2658,11 @@ mod integration {
             Some(&bob_uid),
             Some(&bob_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &carol_fpr, &carol_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(100%)\", fillcolor={}];",
-                    carol_fpr, carol_uid, carol_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -3305,34 +2673,11 @@ mod integration {
             Some(&carol_uid),
             Some(&carol_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &dave_fpr, &dave_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(100%)\", fillcolor={}];",
-                    dave_fpr, dave_uid, dave_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -3343,7 +2688,7 @@ mod integration {
             Some(&dave_uid),
             Some(&dave_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let sqwot_args = &[];
@@ -3364,29 +2709,6 @@ mod integration {
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(50%)\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    dave_fpr, dave_uid, dave_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    dave_fpr, dave_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -3397,7 +2719,7 @@ mod integration {
             Some(&alice_uid),
             Some(&alice_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         // use --certification-network
@@ -3417,29 +2739,6 @@ mod integration {
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(50%)\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    dave_fpr, dave_uid, dave_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    dave_fpr, dave_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -3450,7 +2749,7 @@ mod integration {
             Some(&alice_uid),
             Some(&alice_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let sqwot_args = &[];
@@ -3473,29 +2772,6 @@ mod integration {
         let sqwot_args = &["--certification-network"];
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(50%)\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    carol_fpr, carol_uid, carol_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    carol_fpr, carol_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -3506,34 +2782,11 @@ mod integration {
             Some(&alice_uid),
             Some(&alice_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(50%)\", fillcolor={}];",
-                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    carol_fpr, carol_uid, carol_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    carol_fpr, carol_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         test(
             keyring,
             trust_root,
@@ -3544,7 +2797,7 @@ mod integration {
             Some(&bob_uid),
             Some(&bob_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())
@@ -3590,7 +2843,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         // Alice does not make Bob a trusted introducer.  So without
         // --certificate-network, she can only authenticate Bob, but
         // not Carol or Dave.
@@ -3608,13 +2860,12 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -3630,13 +2881,12 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &dave_fpr, &dave_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -3653,7 +2903,7 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         // change sq-wot args
@@ -3662,7 +2912,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         // With --certification-network, she can authenticate them all.
         test(
             keyring,
@@ -3678,13 +2927,12 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &carol_fpr, &carol_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -3700,13 +2948,12 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &dave_fpr, &dave_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -3723,13 +2970,12 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         // But invalid paths should stay invalid.
         test(
             keyring,
@@ -3745,7 +2991,7 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         // set dave as trust root
@@ -3755,7 +3001,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &alice_fpr, &alice_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         // dave authenticates alice for 60 of 120.
         test(
             keyring,
@@ -3771,13 +3016,12 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -3792,7 +3036,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         // set sq-wot args to use certification network
@@ -3800,7 +3044,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &alice_fpr, &alice_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -3815,13 +3058,12 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -3836,7 +3078,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         // set carol as trust root
@@ -3846,7 +3088,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &alice_fpr, &alice_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -3862,7 +3103,7 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         // set sq-wot args to use certification network
@@ -3871,7 +3112,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -3887,13 +3127,12 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -3910,7 +3149,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())
@@ -3956,22 +3195,6 @@ mod integration {
 
         let human_output =
             [(2, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(0%)\", fillcolor={}];",
-                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_FAIL_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-        ];
         // Alice certified Bob.  We should print the path, but it
         // should be unauthenticated (this is gossip).
         test(
@@ -3984,28 +3207,12 @@ mod integration {
             Some(&bob_uid),
             Some(&bob_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let trust_root = &alice_fpr;
         let human_output =
             [(2, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(0%)\", fillcolor={}];",
-                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_FAIL_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-        ];
         // Make sure we don't authenticate when we specify a root
         // (which is ignored when --gossip is provided).
         test(
@@ -4018,7 +3225,7 @@ mod integration {
             Some(&bob_uid),
             Some(&bob_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())
@@ -4068,29 +3275,6 @@ mod integration {
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(50%)\", fillcolor={}];",
-                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         // Bob's certificate is not yet expired.
         test(
             keyring,
@@ -4102,7 +3286,7 @@ mod integration {
             Some(&bob_uid),
             Some(&bob_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let trust_root = None; // no trust root for path
@@ -4110,7 +3294,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -4127,7 +3310,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let trust_root = Some(&alice_fpr);
@@ -4151,7 +3334,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -4168,7 +3350,7 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())
@@ -4232,7 +3414,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -4247,7 +3428,7 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())
@@ -4294,29 +3475,6 @@ mod integration {
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(75%)\", fillcolor={}];",
-                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         // Bob's certificate is soft revoked on 20200301.  If the
         // reference time is before that, we should be able to
         // authenticate Bob.  After that and we should fail to do so.
@@ -4330,7 +3488,7 @@ mod integration {
             Some(&bob_uid),
             Some(&bob_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let trust_root: Option<&Fingerprint> = None; // no trust root for binding
@@ -4338,7 +3496,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -4353,7 +3510,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let trust_root: Option<&Fingerprint> = Some(&alice_fpr);
@@ -4377,7 +3534,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -4392,7 +3548,7 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())
@@ -4431,29 +3587,6 @@ mod integration {
 
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
-        let dot_output = [
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\n(50%)\", fillcolor={}];",
-                    bob_fpr, bob_uid, bob_uid, DOT_TARGET_OK_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}_{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_uid, alice_uid, DOT_NODE_FILL_COLOR,
-                ),
-            ),
-            (
-                1,
-                format!(
-                    "\"{}\" [label=\"{}\", fillcolor={}];",
-                    alice_fpr, alice_fpr, DOT_ROOT_FILL_COLOR,
-                ),
-            ),
-        ];
         // Bob's User ID is soft revoked on 20200301.  If the
         // reference time is before that, we should be able to
         // authenticate Bob.  After that and we should fail to do so.
@@ -4467,7 +3600,7 @@ mod integration {
             Some(&bob_uid),
             Some(&bob_fpr),
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let trust_root = None;
@@ -4475,7 +3608,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
         test(
             keyring,
             trust_root,
@@ -4490,7 +3622,7 @@ mod integration {
             None,
             None,
             true,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         let trust_root = Some(&alice_fpr);
@@ -4514,7 +3646,6 @@ mod integration {
         let human_output =
             [(1, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
         // TODO: add output to check against once sq-wot graph is supported
-        let dot_output = [];
          test(
             keyring,
             trust_root,
@@ -4529,7 +3660,7 @@ mod integration {
             None,
             None,
             false,
-            &output_map(&human_output, &dot_output),
+            &output_map(&human_output),
         );
 
         Ok(())

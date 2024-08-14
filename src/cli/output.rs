@@ -16,14 +16,6 @@ pub enum OutputFormat {
 
     /// Output as JSON.
     Json,
-
-    /// Output as DOT.
-    ///
-    /// This format is supported by a few commands that emit a
-    /// graphical network.  In particular, the `sq wot` subcommands
-    /// can emit this format.
-    #[cfg(feature = "dot-writer")]
-    DOT,
 }
 
 /// What version of the output format is used or requested?

@@ -22,6 +22,8 @@
      specify user IDs.
    - All short options with the exception of `-v` have been removed.
      We will judiciously add some back before releasing 1.0.
+   - The dot output has been removed.  Those relying on it can use the
+     standalone sq-wot tool.
 * Changes in 0.37.0
 ** Notable changes
    - Remove PKS support.

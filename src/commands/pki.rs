@@ -8,8 +8,6 @@ use openpgp::Result;
 use openpgp::packet::UserID;
 
 use sequoia_cert_store as cert_store;
-use cert_store::store::StatusListener;
-use cert_store::store::StatusUpdate;
 use cert_store::store::StoreError;
 
 use sequoia_wot as wot;
@@ -21,8 +19,6 @@ pub mod link;
 pub mod output;
 
 use crate::cli;
-#[cfg(feature = "dot-writer")]
-use cli::output::OutputFormat;
 use cli::types::TrustAmount;
 
 use output::print_path;
@@ -290,16 +286,6 @@ fn authenticate<'store, 'rstore>(
     let mut lint_input = true;
 
     let mut output = match sq.output_format {
-        #[cfg(feature = "dot-writer")]
-        OutputFormat::DOT => {
-            Box::new(output::DotOutputNetwork::new(
-                required_amount,
-                n.roots(),
-                gossip,
-                certification_network,
-            ))
-            as Box<dyn output::OutputType>
-        }
         _ => {
             if show_paths {
                 Box::new(
@@ -573,12 +559,6 @@ fn check_path(sq: &Sq,
     match r {
         Ok(path) => {
             match sq.output_format {
-                #[cfg(feature = "dot-writer")]
-                OutputFormat::DOT => {
-                    wprintln!(
-                        "DOT output for \"sq pki path\" is not yet \
-                         implemented!");
-                }
                 _ => {
                     print_path_header(
                         target_kh,
@@ -596,12 +576,6 @@ fn check_path(sq: &Sq,
         }
         Err(err) => {
             match sq.output_format {
-                #[cfg(feature = "dot-writer")]
-                OutputFormat::DOT => {
-                    wprintln!(
-                        "DOT output for \"sq pki path\" is not yet \
-                         implemented!");
-                }
                 _ => {
                     print_path_header(
                         target_kh,
@@ -616,15 +590,6 @@ fn check_path(sq: &Sq,
     }
 
     std::process::exit(1);
-}
-
-struct KeyServerUpdate {
-}
-
-impl StatusListener for KeyServerUpdate {
-    fn update(&self, update: &StatusUpdate) {
-        wprintln!("{}", update);
-    }
 }
 
 pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {

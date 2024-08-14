@@ -61,7 +61,7 @@ fn sq_gen_key(cert_store: Option<&str>, userids: &[&str], file: &str) -> Cert
     let mut cmd = Command::cargo_bin("sq").expect("have sq");
     cmd.args(["--no-cert-store",
               "--no-key-store",
-              "key", "generate",
+              "key", "generate", "--without-password",
               "--allow-non-canonical-userids",
               "--time", &tick(),
               "--expiration", "never",

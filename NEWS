@@ -26,6 +26,9 @@
      standalone sq-wot tool.
    - New subcommand `sq key subkey export` to export individual keys.
      This functionality was split off from `sq key export`.
+   - `sq key generate` and `sq key subkey add` now prompt for a
+     password by default.  This can be disabled by passing
+     `--without-password`.
 * Changes in 0.37.0
 ** Notable changes
    - Remove PKS support.

@@ -60,6 +60,7 @@ fn sq_key_subkey() -> Result<()> {
                 "key",
                 "subkey",
                 "add",
+                "--without-password",
                 arg,
             ]);
 

@@ -22,7 +22,7 @@ mod integration {
         // Generate a key.
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args(["--cert-store", &certd,
-                  "key", "generate",
+                  "key", "generate", "--without-password",
                   "--expiration", "never",
                   "--userid", "<alice@example.org>",
                   "--output", &key_pgp]);
@@ -102,7 +102,7 @@ mod integration {
         // Generate the keys.
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args(["--cert-store", &certd,
-                  "key", "generate",
+                  "key", "generate", "--without-password",
                   "--expiration", "never",
                   "--userid", "<alice@example.org>",
                   "--output", &alice_pgp]);
@@ -128,7 +128,7 @@ mod integration {
 
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args(["--cert-store", &certd,
-                  "key", "generate",
+                  "key", "generate", "--without-password",
                   "--expiration", "never",
                   "--output", &bob_pgp]);
         for userid in bob_userids.iter() {
@@ -315,7 +315,7 @@ mod integration {
         // Generate the keys.
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args(["--cert-store", &certd,
-                  "key", "generate",
+                  "key", "generate", "--without-password",
                   "--expiration", "never",
                   "--userid", "<alice@example.org>",
                   "--output", &alice_pgp]);
@@ -325,7 +325,7 @@ mod integration {
 
         let mut cmd = Command::cargo_bin("sq")?;
         cmd.args(["--cert-store", &certd,
-                  "key", "generate",
+                  "key", "generate", "--without-password",
                   "--expiration", "never",
                   "--userid", "<bob@example.org>",
                   "--output", &bob_pgp]);

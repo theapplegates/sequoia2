@@ -60,7 +60,7 @@ mod integration {
                       data.userids.join(", "));
             let mut cmd = Command::cargo_bin("sq")?;
             cmd.args(["--cert-store", &certd,
-                      "key", "generate",
+                      "key", "generate", "--without-password",
                       "--expiration", "never",
                       "--output", &data.filename]);
             for userid in data.userids.iter() {

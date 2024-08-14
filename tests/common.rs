@@ -337,7 +337,7 @@ impl Sq {
         -> (Cert, PathBuf, PathBuf)
     {
         let mut cmd = self.command();
-        cmd.args([ "key", "generate" ]);
+        cmd.args([ "key", "generate", "--without-password" ]);
         for arg in extra_args {
             cmd.arg(arg);
         }

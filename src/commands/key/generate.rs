@@ -121,7 +121,7 @@ pub fn generate(
         }
     }
 
-    if command.with_password {
+    if ! command.without_password {
         builder = builder.set_password(
             password::prompt_for_new("key")?);
     }

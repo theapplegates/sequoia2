@@ -24,7 +24,7 @@ fn sq_import() -> Result<()>
     // Generate keys.
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--cert-store", &certd,
-              "key", "generate",
+              "key", "generate", "--without-password",
               "--expiration", "never",
               "--userid", "<alice@example.org>",
               "--output", &alice_pgp]);
@@ -34,7 +34,7 @@ fn sq_import() -> Result<()>
 
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--cert-store", &certd,
-              "key", "generate",
+              "key", "generate", "--without-password",
               "--expiration", "never",
               "--userid", "<bob@example.org>",
               "--output", bob_pgp]);
@@ -42,7 +42,7 @@ fn sq_import() -> Result<()>
 
     let mut cmd = Command::cargo_bin("sq")?;
     cmd.args(["--cert-store", &certd,
-              "key", "generate",
+              "key", "generate", "--without-password",
               "--expiration", "never",
               "--userid", "<carol@example.org>",
               "--output", carol_pgp]);

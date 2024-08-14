@@ -269,14 +269,11 @@ fn subkey_add(
     let (primary_key, password) =
         match sq.get_primary_key(&cert, None) {
             Ok(key) => {
-                // Prompt for a password or use none.
-                if command.with_password {
-                    (
-                        key,
-                        common::password::prompt_for_new("subkey")?,
-                    )
-                } else {
+                // Don't use a password, or prompt for one.
+                if command.without_password {
                     (key, None)
+                } else {
+                    (key, common::password::prompt_for_new("subkey")?)
                 }
             }
             Err(error) => {

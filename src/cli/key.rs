@@ -156,6 +156,7 @@ const GENERATE_EXAMPLES: Actions = Actions {
 Generate a key, and save it on the key store.",
             command: &[
                 "sq", "key", "generate",
+                "--without-password",
                 "--name", "Alice",
                 "--email", "alice@example.org",
             ],
@@ -165,6 +166,7 @@ Generate a key, and save it on the key store.",
 Generate a key, and save it in a file instead of in the key store.",
             command: &[
                 "sq", "key", "generate",
+                "--without-password",
                 "--name", "Alice",
                 "--email", "alice@example.org",
                 "--output", "alice-priv.pgp",
@@ -273,10 +275,10 @@ Canonical user IDs are of the form `Name (Comment) \
     )]
     pub cipher_suite: CipherSuite,
     #[clap(
-        long = "with-password",
-        help = "Protect the secret key material with a password",
+        long = "without-password",
+        help = "Don't protect the secret key material with a password",
     )]
-    pub with_password: bool,
+    pub without_password: bool,
     #[clap(
         long = "expiration",
         value_name = "EXPIRATION",
@@ -1322,6 +1324,7 @@ Import Alice's key.",
 Add a new signing-capable subkey.",
             command: &[
                 "sq", "key", "subkey", "add",
+                "--without-password",
                 "--can-sign",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
@@ -1355,9 +1358,10 @@ for both storage and transport encryption.  The encryption \
 capabilities must not be combined with the signing or authentication \
 capability.
 
-When using `--with-password`, `sq` prompts the user for a password \
-that is used to encrypt the subkey.  The password for the new subkey \
-may be different from the other keys.
+Normally, `sq` prompts the user for a password to use to encrypt the \
+secret key material.  The password for the new subkey may be different \
+from the other keys.  When using `--without-password`, `sq` doesn't \
+prompt for a password, and doesn't password-protect the subkey.
 
 By default a new subkey doesn't expire on its own.  However, its \
 validity period is limited by that of the certificate.  Using the \
@@ -1440,9 +1444,9 @@ universal]",
     pub can_encrypt: Option<EncryptPurpose>,
     #[clap(
         long,
-        help = "Protect the subkey's secret key material with a password",
+        help = "Don't protect the subkey's secret key material with a password",
     )]
-    pub with_password: bool,
+    pub without_password: bool,
 
     #[clap(
         long,

@@ -37,11 +37,6 @@ pub enum UserIDLint {
 }
 
 /// Returns an error if the user ID is not in canonical form.
-///
-/// If the user ID is in canonical form, but is a bare email address,
-/// returns `Ok(true)`.
-///
-/// If the user ID is in canonical form, returns `Ok(false)`.
 pub(crate) fn lint_userid(uid: &UserID)
     -> std::result::Result<(), UserIDLint>
 {

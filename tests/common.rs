@@ -277,47 +277,48 @@ impl Sq {
     {
         eprintln!("Running: {:?}", cmd);
         let output = cmd.output().expect("can run command");
-        if let Some(expect) = expect.into() {
-            match (output.status.success(), expect) {
-                (true, true) | (false, false) => {
-                    eprintln!("Exit status:");
+        let expect = expect.into();
+        match (output.status.success(), expect) {
+            (true, Some(true)) | (false, Some(false)) | (_, None) => {
+                eprintln!("Exit status:");
 
-                    let dump = |id, stream| {
-                        let limit = 70;
+                let dump = |id, stream| {
+                    let limit = 70;
 
-                        let data = String::from_utf8_lossy(stream)
-                            .chars()
-                            .collect::<Vec<_>>();
+                    let data = String::from_utf8_lossy(stream)
+                        .chars()
+                        .collect::<Vec<_>>();
 
-                        if data.is_empty() {
-                            eprintln!("{}: empty", id);
-                        } else {
-                            eprintln!("{}: {}{}",
-                                      id,
-                                      data.iter().take(limit).collect::<String>(),
-                                      if data.len() > limit {
-                                          format!("... {} more bytes",
-                                                  data.len() - limit)
-                                      } else {
-                                          "".to_string()
-                                      });
-                        }
-                    };
+                    if data.is_empty() {
+                        eprintln!("{}: empty", id);
+                    } else {
+                        eprintln!("{}: {}{}",
+                                  id,
+                                  data.iter().take(limit).collect::<String>(),
+                                  if data.len() > limit {
+                                      format!("... {} more bytes",
+                                              data.len() - limit)
+                                  } else {
+                                      "".to_string()
+                                  });
+                    }
+                };
 
-                    dump("stdout", &output.stdout);
-                    dump("stderr", &output.stderr);
-                }
-                (got, expected) => {
-                    panic!(
-                        "Running {:?}: {}, but should have {}:\n\
-                         stdout: {}\n\
-                         stderr: {}",
-                        cmd,
-                        if got { "succeeded" } else { "failed" },
-                        if expected { "succeeded" } else { "failed" },
-                        &String::from_utf8_lossy(&output.stdout),
-                        &String::from_utf8_lossy(&output.stderr));
-                }
+                dump("stdout", &output.stdout);
+                dump("stderr", &output.stderr);
+            }
+            (got, expected) => {
+                let expected = expect.unwrap();
+
+                panic!(
+                    "Running {:?}: {}, but should have {}:\n\
+                     stdout: {}\n\
+                     stderr: {}",
+                    cmd,
+                    if got { "succeeded" } else { "failed" },
+                    if expected { "succeeded" } else { "failed" },
+                    &String::from_utf8_lossy(&output.stdout),
+                    &String::from_utf8_lossy(&output.stderr));
             }
         }
         output

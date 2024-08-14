@@ -142,7 +142,12 @@ local function rewrite_inline_code (inlines)
       return string.gsub(s, " ", "-") .. ".1.html"
    end
 
-   for i = 1, #inlines do
+   -- Note: as we mutate `inlines` here, we use a while loop to
+   -- iterate over it.  Using a for loop doesn't cut it as `#inlines`
+   -- is then evaluated only once when entering the loop for the first
+   -- time.
+   local i = 1
+   while i <= #inlines do
       local len = inline_quoted(table.pack(table.unpack(inlines, i)))
       if len then
          -- First, flatten the matched tokens to a text.
@@ -173,6 +178,8 @@ local function rewrite_inline_code (inlines)
          inlines:insert(i+1, replacement)
          inlines:insert(i+2, pandoc.Str(string.sub(text, e+1)))
       end
+
+      i = i + 1
    end
 end
 

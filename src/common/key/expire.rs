@@ -40,7 +40,7 @@ pub fn expire(sq: Sq,
     let primary_handle = key.key_handle();
 
     let mut primary_signer
-        = sq.get_primary_key(&key, Some(&[GetKeysOptions::AllowNotAlive]))?.0;
+        = sq.get_primary_key(&key, Some(&[GetKeysOptions::AllowNotAlive]))?;
 
     // Fix the new expiration time.
     let expiration_time = expiration.to_systemtime(sq.time);

@@ -479,7 +479,7 @@ pub fn add(sq: Sq, c: link::AddCommand)
 
     // Sign it.
     let mut signer = sq.get_certification_key(trust_root, None)
-        .context("Looking up local trust root")?.0;
+        .context("Looking up local trust root")?;
 
     let certifications = active_certification(
             &sq, &vc.fingerprint(), userids,
@@ -641,7 +641,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
 
     // Sign it.
     let mut signer = sq.get_certification_key(trust_root, None)
-        .context("Looking up local trust root")?.0;
+        .context("Looking up local trust root")?;
 
     let certifications = active_certification(
             &sq, &cert.fingerprint(), userids, signer.public())

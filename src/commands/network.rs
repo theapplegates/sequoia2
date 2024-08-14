@@ -241,7 +241,7 @@ pub fn certify_downloads<'store, 'rstore>(sq: &mut Sq<'store, 'rstore>,
     let ca = || -> Result<_> {
         let ca = ca.to_cert()?;
 
-        Ok(sq.get_certification_key(ca, None)?.0)
+        Ok(sq.get_certification_key(ca, None)?)
     };
     let mut ca_signer = match ca() {
         Ok(signer) => signer,

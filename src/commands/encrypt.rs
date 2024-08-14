@@ -275,7 +275,7 @@ pub fn encrypt<'a, 'b: 'a>(
     // Optionally sign message.
     if ! signers.is_empty() || ! signer_keys.is_empty() {
         let mut signer = if ! signers.is_empty() {
-            Signer::new(sink, signers.pop().unwrap().0)
+            Signer::new(sink, signers.pop().unwrap())
         } else {
             Signer::new(sink, signer_keys.pop().unwrap())
         };
@@ -283,7 +283,7 @@ pub fn encrypt<'a, 'b: 'a>(
             signer = signer.creation_time(time);
         }
         for s in signers {
-            signer = signer.add_signer(s.0);
+            signer = signer.add_signer(s);
         }
         for s in signer_keys {
             signer = signer.add_signer(s);

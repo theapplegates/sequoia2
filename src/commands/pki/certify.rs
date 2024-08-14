@@ -143,7 +143,7 @@ pub fn certify(sq: Sq, mut c: certify::Command)
         options.push(GetKeysOptions::AllowRevoked);
     }
 
-    let mut signer = sq.get_certification_key(certifier, Some(&options))?.0;
+    let mut signer = sq.get_certification_key(certifier, Some(&options))?;
 
     // Create the certifications.
     let mut new_packets: Vec<Packet> = Vec::new();

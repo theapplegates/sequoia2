@@ -41,7 +41,7 @@ fn update(
     let key = sq.lookup_one(handle, None, true)?;
 
     // Get a signer.
-    let mut pk_signer = sq.get_primary_key(&key, None)?.0;
+    let mut pk_signer = sq.get_primary_key(&key, None)?;
 
     // Now, create new attestation signatures.
     let mut attestation_signatures = Vec::new();

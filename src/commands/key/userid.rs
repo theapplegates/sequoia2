@@ -191,7 +191,7 @@ fn userid_add(
         panic!("--cert or --cert-file is required");
     };
 
-    let mut signer = sq.get_primary_key(&cert, None)?.0;
+    let mut signer = sq.get_primary_key(&cert, None)?;
 
     // Names, email addresses, and user IDs.
     lint_names(&command.names)?;

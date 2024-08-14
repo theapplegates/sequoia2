@@ -208,7 +208,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
         let mut decrypt_key = |slf: &Self, pkesk, cert, key: &Key<_, _>, prompt: bool| {
             slf.vhelper.sq.decrypt_key(Some(cert), key.clone(), prompt, true)
                 .ok()
-                .and_then(|(key, _)| {
+                .and_then(|key| {
                     let keypair = Box::new(key.into_keypair()
                         .expect("decrypted secret key material"));
 

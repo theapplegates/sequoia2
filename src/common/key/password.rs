@@ -119,7 +119,7 @@ pub fn password(sq: Sq,
                 key.clone().parts_into_secret()?,
                 true, // May prompt.
                 false, // Don't allow skipping.
-            )?.0.parts_into_public();
+            )?.parts_into_public();
         }
 
         let mut packets: Vec<Packet> = Vec::new();

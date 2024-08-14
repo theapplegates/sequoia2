@@ -142,7 +142,7 @@ pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
         .with_context(|| {
             format!("Getting signer for {}'s primary key",
                     cert.fingerprint())
-        })?.0;
+        })?;
 
     // Add the keys and signatures to cert.
     let mut packets: Vec<Packet> = vec![];
@@ -167,7 +167,7 @@ pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
             let mut subkey_signer = sq.get_signer(&ka)
                 .with_context(|| {
                     format!("Getting signer for {}", ka.fingerprint())
-                })?.0;
+                })?;
 
             let backsig = builder
                 .embedded_signatures()

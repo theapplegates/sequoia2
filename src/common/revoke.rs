@@ -127,7 +127,7 @@ pub fn get_secret_signer<'a>(
 
     if let Some(secret) = secret {
         match sq.get_primary_key(secret, flags) {
-            Ok((key, _password)) => Ok((secret.clone(), key)),
+            Ok(key) => Ok((secret.clone(), key)),
             Err(err) => {
                 if ! sq.time_is_now {
                     return Err(err.context(format!("\
@@ -145,7 +145,7 @@ does not contain a certification key with secret key material")));
         }
     } else {
         match sq.get_primary_key(cert, flags) {
-            Ok((key, _password)) => Ok((cert.clone(), key)),
+            Ok(key) => Ok((cert.clone(), key)),
             Err(err) => {
                 if ! sq.time_is_now {
                     return Err(err.context(format!("\

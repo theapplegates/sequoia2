@@ -47,7 +47,7 @@ fn update_cert_revocation(sq: &Sq,
     let pk = ka.key();
 
     // Derive a signer.
-    let (mut signer, _password) = sq.get_signer(&ka)?;
+    let mut signer = sq.get_signer(&ka)?;
 
     let sig = SignatureBuilder::from(rev.clone())
         .set_signature_creation_time(reference_time.clone())?
@@ -75,7 +75,7 @@ fn update_user_id_binding(sq: &Sq,
     let pk = ka.key();
 
     // Derive a signer.
-    let (mut signer, _password) = sq.get_signer(&ka)?;
+    let mut signer = sq.get_signer(&ka)?;
 
     let sym = &[
         SymmetricAlgorithm::AES128,
@@ -143,7 +143,7 @@ fn update_subkey_binding<P>(sq: &Sq,
     let pk = primary.key();
 
     // Derive a signer.
-    let (mut signer, _password) = sq.get_signer(&primary)?;
+    let mut signer = sq.get_signer(&primary)?;
 
     // Update the signature.
     let sig = ka.binding_signature();
@@ -161,7 +161,7 @@ fn update_subkey_binding<P>(sq: &Sq,
         .nth(0)
     {
         // Derive a signer.
-        let (mut subkey_signer, _password) = sq.get_signer(&ka)?;
+        let mut subkey_signer = sq.get_signer(&ka)?;
 
         let backsig = SignatureBuilder::from(backsig.clone())
             .set_signature_creation_time(reference_time.clone())?

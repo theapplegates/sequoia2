@@ -1138,12 +1138,12 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                           key: Key<key::SecretParts, R>,
                           may_prompt: bool,
                           allow_skipping: bool)
-        -> Result<(Key<key::SecretParts, R>, Option<Password>)>
+        -> Result<Key<key::SecretParts, R>>
     where R: key::KeyRole + Clone
     {
         match key.secret() {
             SecretKeyMaterial::Unencrypted(_) => {
-                Ok((key, None))
+                Ok(key)
             }
             SecretKeyMaterial::Encrypted(e) => {
                 if ! e.s2k().is_supported() {
@@ -1154,7 +1154,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 for p in self.password_cache.lock().unwrap().iter() {
                     if let Ok(unencrypted) = e.decrypt(key.pk_algo(), &p) {
                         let (key, _) = key.add_secret(unencrypted.into());
-                        return Ok((key, Some(p.clone())));
+                        return Ok(key);
                     }
                 }
 
@@ -1183,8 +1183,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                         Ok(Some(p)) => {
                             if let Ok(unencrypted) = e.decrypt(key.pk_algo(), &p) {
                                 let (key, _) = key.add_secret(unencrypted.into());
-                                self.password_cache.lock().unwrap().push(p.clone());
-                                return Ok((key, Some(p)));
+                                self.password_cache.lock().unwrap().push(p);
+                                return Ok(key);
                             }
 
                             wprintln!("Incorrect password.");
@@ -1213,24 +1213,24 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// unlock the key.  The correct password is added to the password
     /// cache.
     pub fn get_signer<P, R, R2>(&self, ka: &KeyAmalgamation<P, R, R2>)
-        -> Result<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>
+        -> Result<Box<dyn crypto::Signer + Send + Sync>>
         where P: key::KeyParts + Clone, R: key::KeyRole + Clone
     {
         let try_tsk = |cert: &Cert, key: &Key<_, _>|
-            -> Result<(_, _)>
+            -> Result<_>
         {
             if let Ok(key) = key.parts_as_secret() {
-                let (key, password) = self.decrypt_key(
+                let key = self.decrypt_key(
                     Some(cert), key.clone(), true, false)?;
                 let keypair = Box::new(key.into_keypair()
                     .expect("decrypted secret key material"));
-                Ok((keypair, password))
+                Ok(keypair)
             } else {
                 Err(anyhow!("No secret key material."))
             }
         };
         let try_keyrings = |cert: &Cert, key: &Key<_, _>|
-            -> Result<(_, _)>
+            -> Result<_>
         {
             let keyring_tsks = self.keyring_tsks();
             if let Some((cert_fpr, key))
@@ -1244,7 +1244,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             Err(anyhow!("No secret key material."))
         };
         let try_keystore = |ka: &KeyAmalgamation<_, _, R2>|
-            -> Result<(_, _)>
+            -> Result<_>
         {
             let ks = self.key_store_or_else()?;
 
@@ -1259,12 +1259,13 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             // first (available, no password).
 
             'key: for mut key in remote_keys.into_iter() {
-                let password = if let Protection::Password(hint) = key.locked()? {
-                    if let Some(password) = self.cached_passwords().find(|password| {
-                        key.unlock(password.clone()).is_ok()
-                    }) {
-                        Some(password)
-                    } else {
+                if let Protection::Password(hint) = key.locked()? {
+                    if self.cached_passwords()
+                        .find(|password| {
+                            key.unlock(password.clone()).is_ok()
+                        })
+                        .is_none()
+                    {
                         if let Some(hint) = hint {
                             eprintln!("{}", hint);
                         }
@@ -1282,7 +1283,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                             match key.unlock(p.clone()) {
                                 Ok(()) => {
                                     self.cache_password(p.clone());
-                                    break Some(p)
+                                    break;
                                 }
                                 Err(err) => {
                                     eprintln!("Failed to unlock key: {}", err);
@@ -1290,11 +1291,9 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                             }
                         }
                     }
-                } else {
-                    None
-                };
+                }
 
-                return Ok((Box::new(key), password));
+                return Ok(Box::new(key));
             }
 
             Err(anyhow!("Key not managed by keystore."))
@@ -1302,12 +1301,12 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
         let key = ka.key().parts_as_public().role_as_unspecified();
 
-        if let Ok((key, password)) = try_tsk(ka.cert(), key) {
-            Ok((key, password))
-        } else if let Ok((key, password)) = try_keyrings(ka.cert(), key) {
-            Ok((key, password))
-        } else if let Ok((key, password)) = try_keystore(ka) {
-            Ok((key, password))
+        if let Ok(key) = try_tsk(ka.cert(), key) {
+            Ok(key)
+        } else if let Ok(key) = try_keyrings(ka.cert(), key) {
+            Ok(key)
+        } else if let Ok(key) = try_keystore(ka) {
+            Ok(key)
         } else {
             Err(anyhow!("No secret key material."))
         }
@@ -1332,7 +1331,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     fn get_keys<C>(&self, certs: &[C],
                    keytype: KeyType,
                    options: Option<&[GetKeysOptions]>)
-        -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
+        -> Result<Vec<Box<dyn crypto::Signer + Send + Sync>>>
     where C: Borrow<Cert>
     {
         let mut bad = Vec::new();
@@ -1348,9 +1347,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             self.policy as &dyn Policy
         };
 
-        let mut keys: Vec<(Box<dyn crypto::Signer + Send + Sync>,
-                           Option<Password>)>
-            = vec![];
+        let mut keys: Vec<Box<dyn crypto::Signer + Send + Sync>> = vec![];
 
         'next_cert: for cert in certs {
             let cert = cert.borrow();
@@ -1389,8 +1386,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     continue;
                 }
 
-                if let Ok((key, password)) = self.get_signer(&ka) {
-                    keys.push((key, password));
+                if let Ok(key) = self.get_signer(&ka) {
+                    keys.push(key);
                     continue 'next_cert;
                 } else {
                     bad_[3] = true;
@@ -1468,7 +1465,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// the password.
     pub fn get_primary_keys<C>(&self, certs: &[C],
                                options: Option<&[GetKeysOptions]>)
-        -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
+        -> Result<Vec<Box<dyn crypto::Signer + Send + Sync>>>
     where C: std::borrow::Borrow<Cert>
     {
         self.get_keys(certs, KeyType::Primary, options)
@@ -1490,7 +1487,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// the password.
     pub fn get_primary_key<C>(&self, certs: C,
                               options: Option<&[GetKeysOptions]>)
-        -> Result<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>
+        -> Result<Box<dyn crypto::Signer + Send + Sync>>
     where C: std::borrow::Borrow<Cert>
     {
         let keys = self.get_primary_keys(&[certs], options)?;
@@ -1519,7 +1516,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// the password.
     pub fn get_signing_keys<C>(&self, certs: &[C],
                                options: Option<&[GetKeysOptions]>)
-        -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
+        -> Result<Vec<Box<dyn crypto::Signer + Send + Sync>>>
     where C: Borrow<Cert>
     {
         self.get_keys(certs,
@@ -1545,7 +1542,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// the password.
     pub fn get_signing_key<C>(&self, certs: C,
                                options: Option<&[GetKeysOptions]>)
-        -> Result<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>
+        -> Result<Box<dyn crypto::Signer + Send + Sync>>
     where C: Borrow<Cert>
     {
         let keys = self.get_signing_keys(&[certs], options)?;
@@ -1574,7 +1571,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// the password.
     pub fn get_certification_keys<C>(&self, certs: &[C],
                                      options: Option<&[GetKeysOptions]>)
-        -> Result<Vec<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>>
+        -> Result<Vec<Box<dyn crypto::Signer + Send + Sync>>>
     where C: std::borrow::Borrow<Cert>
     {
         self.get_keys(certs,
@@ -1600,7 +1597,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// the password.
     pub fn get_certification_key<C>(&self, cert: C,
                                     options: Option<&[GetKeysOptions]>)
-        -> Result<(Box<dyn crypto::Signer + Send + Sync>, Option<Password>)>
+        -> Result<Box<dyn crypto::Signer + Send + Sync>>
     where C: std::borrow::Borrow<Cert>
     {
         let keys = self.get_certification_keys(&[cert], options)?;

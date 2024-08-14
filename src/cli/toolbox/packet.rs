@@ -83,7 +83,6 @@ pub struct DumpCommand {
         default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,
@@ -107,7 +106,6 @@ pub struct DumpCommand {
     )]
     pub mpis: bool,
     #[clap(
-        short = 'x',
         long = "hex",
         help = "Print a hexdump",
     )]
@@ -142,12 +140,10 @@ pub struct DecryptCommand {
         default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]
@@ -197,14 +193,12 @@ pub struct SplitCommand {
     )]
     pub input: FileOrStdin,
     #[clap(
-        short = 'B',
         long,
         requires = "prefix",
         help = "Emit binary data",
     )]
     pub binary: bool,
     #[clap(
-        short = 'p',
         long = "prefix",
         value_name = "PREFIX",
         help = "Write to files with PREFIX \
@@ -241,7 +235,6 @@ pub struct JoinCommand {
         default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,
@@ -255,7 +248,6 @@ pub struct JoinCommand {
     )]
     pub kind: ArmorKind,
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]

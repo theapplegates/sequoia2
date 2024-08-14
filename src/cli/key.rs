@@ -229,7 +229,6 @@ pub struct GenerateCommand {
     pub emails: Vec<String>,
 
     #[clap(
-        short = 'u',
         long = "userid",
         value_name = "USERID",
         help = "Add a user ID to the key",
@@ -266,7 +265,6 @@ Canonical user IDs are of the form `Name (Comment) \
     )]
     pub no_userids: bool,
     #[clap(
-        short = 'c',
         long = "cipher-suite",
         value_name = "CIPHER-SUITE",
         default_value_t = CipherSuite::Cv25519,
@@ -339,7 +337,6 @@ universal]",
     pub cannot_encrypt: bool,
     #[clap(
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
         help = "Write the key to the specified file",
         long_help = "\
@@ -540,7 +537,6 @@ for the file to contain more than one certificate.",
 
     #[clap(
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
         conflicts_with = "cert",
         help = "Write the stripped certificate to the specified file",
@@ -548,7 +544,6 @@ for the file to contain more than one certificate.",
     pub output: Option<FileOrStdout>,
 
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]
@@ -647,13 +642,11 @@ any surrounding whitespace like a trailing newline."
     #[clap(
         help = FileOrStdout::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
         conflicts_with = "cert",
     )]
     pub output: Option<FileOrStdout>,
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]
@@ -815,7 +808,6 @@ readable."
 
     #[clap(
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
         help = "Write to the specified FILE",
         long_help = "\
@@ -829,7 +821,6 @@ modified certificate to stdout.",
     pub output: Option<FileOrStdout>,
 
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]
@@ -958,7 +949,6 @@ Canonical user IDs are of the form `Name (Comment) \
     pub allow_non_canonical_userids: bool,
     #[clap(
         long,
-        short,
         value_name = FileOrCertStore::VALUE_NAME,
         help = "Write to the specified FILE",
         long_help = "\
@@ -971,7 +961,6 @@ modified certificate to stdout.",
     )]
     pub output: Option<FileOrStdout>,
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]
@@ -1133,7 +1122,6 @@ readable."
 
     #[clap(
         long,
-        short,
         value_name = FileOrCertStore::VALUE_NAME,
         help = "Write to the specified FILE",
         long_help = "\
@@ -1147,7 +1135,6 @@ modified certificate to stdout.",
     pub output: Option<FileOrStdout>,
 
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]
@@ -1203,13 +1190,11 @@ pub struct UseridStripCommand {
         default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,
     #[clap(
         value_name = "USERID",
-        short,
         long,
         help = "User IDs to strip",
         long_help = "The User IDs to strip.  Values must exactly match a \
@@ -1217,7 +1202,6 @@ User ID."
     )]
     pub userid: Vec<UserID>,
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]
@@ -1265,7 +1249,6 @@ makes it easy to attach the subkey to the new certificate.",
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct AdoptCommand {
     #[clap(
-        short = 'k',
         long,
         value_name = "KEY",
         required(true),
@@ -1298,7 +1281,6 @@ pub struct AdoptCommand {
     pub cert_file: Option<FileOrStdin>,
     #[clap(
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
         help = "Write to the specified FILE",
         long_help = "\
@@ -1311,7 +1293,6 @@ modified certificate to stdout.",
     )]
     pub output: Option<FileOrStdout>,
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]
@@ -1421,7 +1402,6 @@ pub struct SubkeyAddCommand {
     pub cert_file: Option<FileOrStdin>,
 
     #[clap(
-        short = 'c',
         long,
         value_name = "CIPHER-SUITE",
         default_value_t = CipherSuite::Cv25519,
@@ -1479,7 +1459,6 @@ universal]",
 
     #[clap(
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
         help = "Write to the specified FILE",
         long_help = "\
@@ -1492,7 +1471,6 @@ modified certificate to stdout.",
     )]
     pub output: Option<FileOrStdout>,
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]
@@ -1573,7 +1551,6 @@ deleted from all of them.",
 
     #[clap(
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
         conflicts_with = "cert",
         help = "Write the stripped certificate to the specified file",
@@ -1587,7 +1564,6 @@ file.  When deleting secret key material managed by the key store using \
     pub output: Option<FileOrStdout>,
 
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]
@@ -1699,13 +1675,11 @@ any surrounding whitespace like a trailing newline."
     #[clap(
         help = FileOrStdout::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
         conflicts_with = "cert",
     )]
     pub output: Option<FileOrStdout>,
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]
@@ -1795,7 +1769,6 @@ for the specified duration.",
 
     #[clap(
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
         help = "Write to the specified FILE",
         long_help = "\
@@ -1808,7 +1781,6 @@ modified certificate to stdout.",
     )]
     pub output: Option<FileOrStdout>,
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]
@@ -1967,7 +1939,6 @@ readable."
 
     #[clap(
         long,
-        short,
         value_name = FileOrCertStore::VALUE_NAME,
         help = "Write to the specified FILE",
         long_help = "\
@@ -1981,7 +1952,6 @@ modified certificate to stdout.",
     pub output: Option<FileOrStdout>,
 
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]

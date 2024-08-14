@@ -62,18 +62,15 @@ pub struct Command {
     #[clap(
         help = FileOrStdout::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: Option<FileOrStdout>,
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]
     pub binary: bool,
     #[clap(
-        short = 'd',
         long = "depth",
         value_name = "TRUST_DEPTH",
         default_value = "0",
@@ -86,7 +83,6 @@ pub struct Command {
     )]
     pub depth: u8,
     #[clap(
-        short = 'a',
         long = "amount",
         value_name = "AMOUNT",
         default_value = "full",
@@ -98,7 +94,6 @@ pub struct Command {
     )]
     pub amount: TrustAmount<u8>,
     #[clap(
-        short = 'r',
         long = "regex",
         value_name = "REGEX",
         requires = "depth",
@@ -116,7 +111,6 @@ pub struct Command {
     )]
     pub regex: Vec<String>,
     #[clap(
-        short = 'l',
         long = "local",
         help = "Make the certification a local certification",
         long_help =

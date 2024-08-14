@@ -104,7 +104,6 @@ pub struct UpdateCommand {
     pub cert_file: Option<FileOrStdin>,
     #[clap(
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
         help = "Write to the specified FILE",
         long_help = "\
@@ -117,7 +116,6 @@ modified certificate to stdout.",
     )]
     pub output: Option<FileOrStdout>,
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]

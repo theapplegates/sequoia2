@@ -233,7 +233,6 @@ impl Display for FileOrStdin {
 ///     #[clap(
 ///         help = FileOrCertStore::HELP_OPTIONAL,
 ///         long,
-///         short,
 ///         value_name = FileOrCertStore::VALUE_NAME,
 ///     )]
 ///     pub output: Option<FileOrStdout>,
@@ -334,7 +333,6 @@ impl FileStdinOrKeyHandle {
 ///         default_value_t = FileOrStdout::default(),
 ///         help = FileOrStdout::HELP_OPTIONAL,
 ///         long,
-///         short,
 ///         value_name = FileOrStdout::VALUE_NAME,
 ///     )]
 ///     pub output: FileOrStdout,

@@ -570,7 +570,7 @@ pub struct RequiredTrustAmountArg {
     /// indicate partial authentication.  When
     /// `--certification-network` is passed, this defaults to 1200,
     /// i.e., `sq pki` tries to find 10 paths.
-    #[arg(short='a', long="amount", value_name = "AMOUNT")]
+    #[arg(long="amount", value_name = "AMOUNT")]
     pub trust_amount: Option<TrustAmount<usize>>,
 }
 

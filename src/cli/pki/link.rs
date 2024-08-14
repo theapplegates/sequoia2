@@ -150,7 +150,6 @@ $ sq pki link retract 0123456789ABCDEF
              .args(&["expiration", "temporary"])))]
 pub struct AddCommand {
     #[clap(
-        short = 'd',
         long = "depth",
         value_name = "TRUST_DEPTH",
         help = "Set the trust depth",
@@ -177,7 +176,6 @@ pub struct AddCommand {
     )]
     pub ca: Vec<String>,
     #[clap(
-        short = 'a',
         long = "amount",
         value_name = "AMOUNT",
         default_value = "full",
@@ -189,7 +187,6 @@ pub struct AddCommand {
     )]
     pub amount: TrustAmount<u8>,
     #[clap(
-        short = 'r',
         long = "regex",
         value_name = "REGEX",
         help = "Add a regular expression to constrain \

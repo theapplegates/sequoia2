@@ -33,7 +33,6 @@ and retrieving certificates from key servers.
 )]
 pub struct Command {
     #[clap(
-        short,
         long = "server",
         default_values_t = DEFAULT_KEYSERVERS.iter().map(ToString::to_string),
         global = true,
@@ -79,12 +78,10 @@ pub struct FetchCommand {
     #[clap(
         help = FileOrCertStore::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrCertStore::VALUE_NAME,
     )]
     pub output: Option<FileOrStdout>,
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]

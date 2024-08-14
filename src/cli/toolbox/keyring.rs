@@ -93,7 +93,6 @@ pub struct FilterCommand {
         default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,
@@ -145,13 +144,11 @@ pub struct FilterCommand {
     )]
     pub handle: Vec<KeyHandle>,
     #[clap(
-        short = 'P',
         long = "prune-certs",
         help = "Remove certificate components not matching the filter",
     )]
     pub prune_certs: bool,
     #[clap(
-        short = 'B',
         long = "binary",
         help = "Emit binary data",
     )]
@@ -192,12 +189,10 @@ pub struct MergeCommand {
         default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,
     #[clap(
-        short = 'B',
         long = "binary",
         help = "Emit binary data",
     )]
@@ -270,7 +265,6 @@ pub struct SplitCommand {
     )]
     pub input: FileOrStdin,
     #[clap(
-        short = 'p',
         long = "prefix",
         value_name = "PREFIX",
         help = "Write to files with PREFIX \
@@ -278,7 +272,6 @@ pub struct SplitCommand {
     )]
     pub prefix: Option<String>,
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]

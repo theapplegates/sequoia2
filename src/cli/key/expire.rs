@@ -54,13 +54,11 @@ pub struct Command {
     #[clap(
         help = FileOrStdout::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: Option<FileOrStdout>,
 
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]

@@ -105,7 +105,6 @@ pub struct Command {
         default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,
@@ -116,7 +115,6 @@ pub struct Command {
     )]
     pub detached: Option<PathBuf>,
     #[clap(
-        short = 'n',
         long = "signatures",
         value_name = "N",
         default_value_t = 1,

@@ -93,7 +93,6 @@ no search criteria are specified, then this will return success.",
 )]
 pub struct Command {
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]

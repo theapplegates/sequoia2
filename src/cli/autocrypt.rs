@@ -123,11 +123,10 @@ pub struct DecodeCommand {
         default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,
-    #[clap(short = 'B', long, help = "Emit binary data")]
+    #[clap(long, help = "Emit binary data")]
     pub binary: bool,
 }
 
@@ -187,7 +186,6 @@ pub struct EncodeSenderCommand {
         default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,

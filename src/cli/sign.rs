@@ -76,13 +76,11 @@ pub struct Command {
         default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,
     // TODO: Why capital B?
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]
@@ -104,7 +102,6 @@ pub struct Command {
     )]
     pub clearsign: bool,
     #[clap(
-        short,
         long,
         conflicts_with = "notarize",
         help = "Append a signature to existing signature",
@@ -112,7 +109,6 @@ pub struct Command {
     pub append: bool,
     #[clap(
         hide = true,
-        short,
         long,
         conflicts_with = "append",
         help = "Sign a message and all existing signatures",

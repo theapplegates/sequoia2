@@ -88,7 +88,6 @@ pub struct GenerateCommand {
     )]
     pub generic: bool,
     #[clap(
-        short = 's',
         long = "skip",
         help = "Skip expired certificates and those that do not have \
                 User IDs for given domain.",
@@ -130,7 +129,6 @@ pub struct FetchCommand {
     )]
     pub addresses: Vec<String>,
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]
@@ -138,7 +136,6 @@ pub struct FetchCommand {
     #[clap(
         help = FileOrCertStore::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrCertStore::VALUE_NAME,
     )]
     pub output: Option<FileOrStdout>,

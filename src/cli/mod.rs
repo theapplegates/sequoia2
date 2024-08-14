@@ -226,7 +226,6 @@ to refer to OpenPGP keys that do contain secrets.
 )]
 pub struct SqCommand {
     #[clap(
-        short = 'f',
         long = "force",
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
@@ -468,7 +467,7 @@ any surrounding whitespace like a trailing newline.",
     )]
     pub password_file: Vec<PathBuf>,
     #[clap(
-        short,
+        short = 'v',
         long,
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,

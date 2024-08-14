@@ -84,12 +84,10 @@ pub struct Command {
         default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,
     #[clap(
-        short = 'B',
         long,
         help = "Emit binary data",
     )]
@@ -172,7 +170,6 @@ pub struct Command {
     )]
     pub signer_key: Vec<KeyHandle>,
     #[clap(
-        short = 's',
         long = "symmetric",
         help = "Prompt to add a password to encrypt with",
         long_help =

@@ -74,17 +74,17 @@ $ sq cert lint --list-keys keyring.pgp \\
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct Command {
     /// Quiet; does not output any diagnostics.
-    #[arg(short, long)]
+    #[arg(long)]
     pub quiet: bool,
 
     /// Attempts to fix certificates, when possible.
-    #[arg(short = 'F', long)]
+    #[arg(long)]
     pub fix: bool,
 
     /// When fixing a certificate, the fixed certificate is exported
     /// without any secret key material.  Using this switch causes any
     /// secret key material to also be exported.
-    #[arg(short, long)]
+    #[arg(long)]
     pub export_secret_keys: bool,
 
     /// If set, outputs a list of fingerprints, one per line, of
@@ -94,7 +94,7 @@ pub struct Command {
     /// This option implies `--quiet`. If you also specify `--fix`,
     /// errors will still be printed to stderr, and fixed certificates
     /// will still be emitted to stdout.
-    #[arg(short='k', long)]
+    #[arg(long)]
     pub list_keys: bool,
 
     #[clap(
@@ -113,7 +113,6 @@ pub struct Command {
 
     #[clap(
         long,
-        short,
         value_name = FileOrStdout::VALUE_NAME,
         help = "Write to the specified FILE.  If not specified, and the \
                 certificate was read from the certificate store, imports the \
@@ -123,7 +122,6 @@ pub struct Command {
     )]
     pub output: Option<FileOrStdout>,
     #[clap(
-        short = 'B',
         long = "binary",
         help = "Emit binary data",
     )]

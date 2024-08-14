@@ -456,6 +456,13 @@ test_examples!(sq_key_export, EXPORT_EXAMPLES);
 #[derive(Debug, Args)]
 #[clap(
     about = "Export keys from the key store",
+    long_about = "
+Export keys from the key store.
+
+Exports the secret key material associated with a certificate.  Note \
+that even if secret key material is available, it may not be \
+exportable.  For instance, secret key material stored on a hardware \
+security module usually cannot be exported from the device.",
     after_help = EXPORT_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("export").args(&["cert", "key"])))]

@@ -6,8 +6,22 @@
 ** Notable changes
    - New subcommand `sq key subkey delete` to delete secret key
      material.
+   - New subcommand `sq network wkd publish` that publishes
+     certificates in a WKD over rsync.
+   - Removed now obsolete `sq network wkd generate`.
+   - Removed `sq network wkd url` and `sq network wkd direct-url`.
+   - Renamed subcommand `sq key attest-certifications` to `sq key
+     approvals update` to reflect the new name in the draft, and to
+     make room for introspection commands.
    - New subcommand `sq key subkey password` to change the password
      protecting secret key material.
+   - The subcommand `sq network keyserver publish` can now publish
+     certs from the certificate store using the `--cert` parameter.
+   - The subcommands `sq key generate` and `sq key userid add` gained
+     the options `--name` and `--email` as a more user-friendly way to
+     specify user IDs.
+   - All short options with the exception of `-v` have been removed.
+     We will judiciously add some back before releasing 1.0.
 * Changes in 0.37.0
 ** Notable changes
    - Remove PKS support.

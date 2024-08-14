@@ -34,6 +34,45 @@ pub enum UserIDLint {
             String::from_utf8_lossy(.0.value()),
             String::from_utf8_lossy(.0.value()))]
     BareEmail(UserID),
+
+    /// The name has excessive space characters at the beginning or
+    /// end.
+    #[error("{:?} has spaces at beginning or end, try {:?}",
+            .0, .0.trim())]
+    NameHasExcessSpaces(String),
+
+    /// The name contains a comment.
+    #[error("{:?} contains a comment {:?}, remove it", .0, .1)]
+    NameContainsComment(String, String),
+
+    /// The name contains an email address.
+    #[error("{:?} contains an email address {:?}, remove it or use --userid",
+            .0, .1)]
+    NameContainsEmail(String, String),
+
+    /// The name is a bare email address.
+    #[error("{:?} is a bare email address, use --email", .0)]
+    NameIsBareEmail(String),
+
+    /// The email has excessive space characters at the beginning or
+    /// end.
+    #[error("{:?} has spaces at beginning or end, try {:?}",
+            .0, .0.trim())]
+    EmailHasExcessSpaces(String),
+
+    /// The email contains a comment.
+    #[error("{:?} contains a comment {:?}, remove it", .0, .1)]
+    EmailContainsComment(String, String),
+
+    /// The email contains a name.
+    #[error("{:?} contains a name {:?}, remove it or use --userid",
+            .0, .1)]
+    EmailContainsName(String, String),
+
+    /// The email is not a bare email address.
+    #[error("{:?} is not a bare email address, try {:?}",
+            .0, &.0[1..(.0.len()-1)])]
+    EmailIsNotBare(String),
 }
 
 /// Returns an error if the user ID is not in canonical form.
@@ -136,6 +175,123 @@ pub(crate) fn lint_userids(uids: &[UserID]) -> Result<(), anyhow::Error> {
     }
 }
 
+/// Returns an error if the given name is anything but a name.
+pub fn lint_name(n: &str) -> Result<(), UserIDLint> {
+    let u = UserID::from(n);
+
+    // Check for various problems for which we can give concrete
+    // advice.
+    let e = UserID::from(format!("x <{}>", n));
+    if e.email2().ok().flatten() == Some(n) {
+        return Err(UserIDLint::NameIsBareEmail(n.into()));
+    }
+
+    if u.name2().ok().flatten() == Some(n.trim()) && n != n.trim() {
+        return Err(UserIDLint::NameHasExcessSpaces(n.into()));
+    }
+
+    let c = UserID::from(format!("x {}", n));
+    if let Some(comment) = c.comment2().ok().flatten() {
+        return Err(UserIDLint::NameContainsComment(n.into(), comment.into()));
+    }
+
+    if let Some(email) = u.email2().ok().flatten() {
+        return Err(UserIDLint::NameContainsEmail(n.into(), email.into()));
+    }
+
+    // This is the only acceptable path, really.
+    if u.name2().ok().flatten() == Some(n) {
+        return Ok(());
+    }
+
+    // For a final sanity check, defer to lint_userid.
+    lint_userid(&u)
+}
+
+/// Lints names and displays the lints.
+///
+/// Returns an error if any of the names have lints.
+pub fn lint_names(names: &[String]) -> Result<(), anyhow::Error> {
+    let non_canonical =
+        names.iter().filter_map(|n| lint_name(&n).err()).collect::<Vec<_>>();
+
+    if non_canonical.is_empty() {
+        Ok(())
+    } else {
+        if non_canonical.len() == 1 {
+            wprintln!("{}.", non_canonical[0]);
+            eprintln!();
+        } else {
+            wprintln!("The following names have issues:");
+            eprintln!();
+            for err in non_canonical.iter() {
+                eprintln!("  - {}", err);
+            }
+            eprintln!();
+        }
+
+        Err(anyhow::anyhow!("Some names had issues"))
+    }
+}
+
+/// Returns an error if the given email is anything but a email.
+pub fn lint_email(n: &str) -> Result<(), UserIDLint> {
+    let u = UserID::from(format!("<{}>", n));
+
+    // Check for various problems for which we can give concrete
+    // advice.
+    if n.starts_with('<') && n.ends_with('>') {
+        return Err(UserIDLint::EmailIsNotBare(n.into()));
+    }
+
+    if n != n.trim() {
+        return Err(UserIDLint::EmailHasExcessSpaces(n.into()));
+    }
+
+    let c = UserID::from(format!("x {}", n));
+    if let Some(comment) = c.comment2().ok().flatten() {
+        return Err(UserIDLint::EmailContainsComment(n.into(), comment.into()));
+    }
+
+    let un = UserID::from(n);
+    if let Some(name) = un.name2().ok().flatten() {
+        return Err(UserIDLint::EmailContainsName(n.into(), name.into()));
+    }
+
+    // This is the only acceptable path, really.
+    if u.email2().ok().flatten() == Some(n) {
+        return Ok(());
+    }
+
+    // For a final sanity check, defer to lint_userid.
+    lint_userid(&u)
+}
+
+/// Lints email addresses and displays the lints.
+///
+/// Returns an error if any of the emails have lints.
+pub fn lint_emails(emails: &[String]) -> Result<(), anyhow::Error> {
+    let non_canonical =
+        emails.iter().filter_map(|n| lint_email(&n).err()).collect::<Vec<_>>();
+
+    if non_canonical.is_empty() {
+        Ok(())
+    } else {
+        if non_canonical.len() == 1 {
+            wprintln!("{}.", non_canonical[0]);
+            eprintln!();
+        } else {
+            wprintln!("The following email addresses have issues:");
+            eprintln!();
+            for err in non_canonical.iter() {
+                eprintln!("  - {}", err);
+            }
+            eprintln!();
+        }
+
+        Err(anyhow::anyhow!("Some email addresses had issues"))
+    }
+}
 
 #[cfg(test)]
 mod test {
@@ -185,5 +341,51 @@ mod test {
                 }
             }
         }
+    }
+
+    #[test]
+    fn name_lint() {
+        use UserIDLint::*;
+        // XXX: Use assert_matches! once available.
+        assert!(matches!(dbg!(lint_name("Foo Bar")), Ok(())));
+        assert!(matches!(dbg!(lint_name("Foo Bar ")),
+                         Err(NameHasExcessSpaces(..))));
+        assert!(matches!(dbg!(lint_name(" Foo Bar")),
+                         Err(NameHasExcessSpaces(..))));
+        assert!(matches!(dbg!(lint_name("Foo Bar (comment)")),
+                         Err(NameContainsComment(..))));
+        assert!(matches!(dbg!(lint_name("Foo Bar <foo@bar.example.org>")),
+                         Err(NameContainsEmail(..))));
+        assert!(matches!(dbg!(lint_name("<foo@bar.example.org>")),
+                         Err(NameContainsEmail(..))));
+        assert!(matches!(dbg!(lint_name("foo@bar.example.org")),
+                         Err(NameIsBareEmail(..))));
+        assert!(matches!(dbg!(lint_name("(comment)")),
+                         Err(NameContainsComment(..))));
+        assert!(matches!(dbg!(lint_name("(comment) <foo@bar.example.org>")),
+                         Err(NameContainsComment(..))));
+    }
+
+    #[test]
+    fn email_lint() {
+        use UserIDLint::*;
+        // XXX: Use assert_matches! once available.
+        assert!(matches!(dbg!(lint_email("foo@bar.example.org")), Ok(())));
+        assert!(matches!(dbg!(lint_email("foo@bar.example.org ")),
+                         Err(EmailHasExcessSpaces(..))));
+        assert!(matches!(dbg!(lint_email(" foo@bar.example.org")),
+                         Err(EmailHasExcessSpaces(..))));
+        assert!(matches!(dbg!(lint_email("foo@bar.example.org (comment)")),
+                         Err(EmailContainsComment(..))));
+        assert!(matches!(dbg!(lint_email("Foo Bar <foo@bar.example.org>")),
+                         Err(EmailContainsName(..))));
+        assert!(matches!(dbg!(lint_email("foo@bar.example.org <foo@bar.example.org>")),
+                         Err(EmailContainsName(..))));
+        assert!(matches!(dbg!(lint_email("<foo@bar.example.org>")),
+                         Err(EmailIsNotBare(..))));
+        assert!(matches!(dbg!(lint_email("(comment)")),
+                         Err(EmailContainsComment(..))));
+        assert!(matches!(dbg!(lint_email("(comment) <foo@bar.example.org>")),
+                         Err(EmailContainsComment(..))));
     }
 }

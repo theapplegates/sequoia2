@@ -338,7 +338,11 @@ impl Sq {
         for arg in extra_args {
             cmd.arg(arg);
         }
-        if userids.is_empty() {
+
+        let any_userids = ! userids.is_empty()
+            || extra_args.iter().any(|a| a.starts_with("--name")
+                                     || a.starts_with("--email"));
+        if ! any_userids {
             cmd.arg("--no-userids");
         } else {
             for userid in userids {

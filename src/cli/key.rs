@@ -156,7 +156,8 @@ const GENERATE_EXAMPLES: Actions = Actions {
 Generate a key, and save it on the key store.",
             command: &[
                 "sq", "key", "generate",
-                "--userid", "Alice <alice@example.org>",
+                "--name", "Alice",
+                "--email", "alice@example.org",
             ],
         }),
         Action::Example(Example {
@@ -164,7 +165,8 @@ Generate a key, and save it on the key store.",
 Generate a key, and save it in a file instead of in the key store.",
             command: &[
                 "sq", "key", "generate",
-                "--userid", "Alice <alice@example.org>",
+                "--name", "Alice",
+                "--email", "alice@example.org",
                 "--output", "alice-priv.pgp",
             ],
         }),
@@ -210,15 +212,42 @@ subkeys, and the binding signatures to the reference time.
 #[clap(group(ArgGroup::new("cap-sign").args(&["can_sign", "cannot_sign"])))]
 #[clap(group(ArgGroup::new("cap-authenticate").args(&["can_authenticate", "cannot_authenticate"])))]
 #[clap(group(ArgGroup::new("cap-encrypt").args(&["can_encrypt", "cannot_encrypt"])))]
-#[clap(group(ArgGroup::new("cert-userid").args(&["userid", "no_userids"]).required(true)))]
+#[clap(group(ArgGroup::new("cert-userid").args(&["names", "emails", "userid", "no_userids"]).required(true).multiple(true)))]
 pub struct GenerateCommand {
+    #[clap(
+        long = "name",
+        value_name = "NAME",
+        help = "Add a name as user ID to the key"
+    )]
+    pub names: Vec<String>,
+
+    #[clap(
+        long = "email",
+        value_name = "ADDRESS",
+        help = "Add an email address as user ID to the key"
+    )]
+    pub emails: Vec<String>,
+
     #[clap(
         short = 'u',
         long = "userid",
         value_name = "USERID",
-        help = "Add a user ID to the key"
+        help = "Add a user ID to the key",
+        long_help = "
+Add a user ID to the key.
+
+This user ID can combine name and email address, can optionally
+contain a comment, or even be free-form if
+`--allow-non-canonical-userids` is given.  However, user IDs that
+include different information such as name and email address are more
+difficult to reason about, so using distinct user IDs for name and
+email address is preferred nowadays.
+
+In doubt, prefer `--name` and `--email`.
+",
     )]
     pub userid: Vec<UserID>,
+
     #[clap(
         long = "allow-non-canonical-userids",
         help = "Don't reject user IDs that are not in canonical form",
@@ -233,7 +262,7 @@ Canonical user IDs are of the form `Name (Comment) \
     #[clap(
         long = "no-userids",
         help = "Create a key without any user IDs",
-        conflicts_with = "userid",
+        conflicts_with_all = ["names", "emails", "userid"],
     )]
     pub no_userids: bool,
     #[clap(

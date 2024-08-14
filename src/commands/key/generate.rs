@@ -10,10 +10,11 @@ use openpgp::cert::CertBuilder;
 use openpgp::serialize::Serialize;
 use openpgp::types::KeyFlags;
 use openpgp::Packet;
+use openpgp::packet::UserID;
 use openpgp::Result;
 
 use crate::common::password;
-use crate::common::userid::lint_userids;
+use crate::common::userid::{lint_userids, lint_names, lint_emails};
 use crate::Sq;
 use crate::cli::types::FileOrStdout;
 use crate::cli;
@@ -22,11 +23,21 @@ use crate::commands::inspect::inspect;
 
 pub fn generate(
     mut sq: Sq,
-    command: cli::key::GenerateCommand,
+    mut command: cli::key::GenerateCommand,
 ) -> Result<()> {
     let mut builder = CertBuilder::new();
 
-    // User ID
+    // Names, email addresses, and user IDs.
+    lint_names(&command.names)?;
+    for n in &command.names {
+        command.userid.push(UserID::from(n.as_str()));
+    }
+
+    lint_emails(&command.emails)?;
+    for n in &command.emails {
+        command.userid.push(UserID::from_address(None, None, n)?);
+    }
+
     if command.userid.is_empty() {
         wprintln!("No user ID given, using direct key signature");
     } else {

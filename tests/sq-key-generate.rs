@@ -29,4 +29,22 @@ mod integration {
 
         Ok(())
     }
+
+    #[test]
+    fn sq_key_generate_name_email() -> Result<()> {
+        let sq = common::Sq::new();
+        let (cert, _, _) = sq.key_generate(&[
+            "--name", "Joan Clarke",
+            "--name", "Joan Clarke Murray",
+            "--email", "joan@hut8.bletchley.park",
+        ], &[]);
+
+        assert_eq!(cert.userids().count(), 3);
+        assert!(cert.userids().any(|u| u.value() == b"Joan Clarke"));
+        assert!(cert.userids().any(|u| u.value() == b"Joan Clarke Murray"));
+        assert!(
+            cert.userids().any(|u| u.value() == b"<joan@hut8.bletchley.park>"));
+
+        Ok(())
+    }
 }

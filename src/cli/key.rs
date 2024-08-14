@@ -439,16 +439,6 @@ Export Alice's certificate with all available secret key material.",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
-        Action::Example(Example {
-            comment: "\
-Export Alice's signing-capable and encryption-capable subkeys, but not \
-her primary key or her authentication-capable subkey.",
-            command: &[
-                "sq", "key", "export",
-                "--key", "42020B87D51877E5AF8D272124F3955B0B8DECC8",
-                "--key", "74DCDEAF17D9B995679EB52BA6E65EA2C8497728",
-            ],
-        }),
     ]
 };
 test_examples!(sq_key_export, EXPORT_EXAMPLES);
@@ -462,14 +452,17 @@ Export keys from the key store.
 Exports the secret key material associated with a certificate.  Note \
 that even if secret key material is available, it may not be \
 exportable.  For instance, secret key material stored on a hardware \
-security module usually cannot be exported from the device.",
+security module usually cannot be exported from the device.
+
+If you only want to export a particular key and not all keys associate \
+with a certificate, use `sq key subkey export`.",
     after_help = EXPORT_EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("export").args(&["cert", "key"])))]
 pub struct ExportCommand {
     #[clap(
         long,
         value_name = "FINGERPRINT|KEYID",
+        required = true,
         help = "Export the specified certificate with its secret key material",
         long_help = "\
 Export the specified certificate with its secret key material.
@@ -479,20 +472,6 @@ export any keys with secret key material.  An error is returned if \
 the certificate does not contain any secret key material.",
     )]
     pub cert: Vec<KeyHandle>,
-
-    #[clap(
-        long,
-        value_name = "FINGERPRINT|KEYID",
-        help = "\
-Export the secret key material for the specified key, and its certificate",
-        long_help = "\
-Export the specified key.
-
-The entire certificate is exported, but only the specified key's \
-secret key material is exported.  An error is returned if the secret \
-key material for the specified key is not available.",
-    )]
-    pub key: Vec<KeyHandle>,
 }
 
 const DELETE_EXAMPLES: Actions = Actions {
@@ -1321,6 +1300,7 @@ and revoke them.",
 #[non_exhaustive]
 pub enum SubkeyCommand {
     Add(SubkeyAddCommand),
+    Export(SubkeyExportCommand),
     Delete(SubkeyDeleteCommand),
     Password(SubkeyPasswordCommand),
     Expire(SubkeyExpireCommand),
@@ -1484,6 +1464,61 @@ modified certificate to stdout.",
     pub binary: bool,
 }
 
+
+const SUBKEY_EXPORT_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Import a certificate.",
+            command: &[
+                "sq", "key", "import", "alice-secret.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Export Alice's signing-capable and encryption-capable subkeys, but not \
+her primary key or her authentication-capable subkey.",
+            command: &[
+                "sq", "key", "subkey", "export",
+                "--key", "42020B87D51877E5AF8D272124F3955B0B8DECC8",
+                "--key", "74DCDEAF17D9B995679EB52BA6E65EA2C8497728",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_subkey_key_export, SUBKEY_EXPORT_EXAMPLES);
+
+#[derive(Debug, Args)]
+#[clap(
+    about = "Export keys from the key store",
+    long_about = "
+Export secret key material from the secret key store.
+
+Exports the secret key material.  Note that even if secret key \
+material is available, it may not be exportable.  For instance, secret \
+key material stored on a hardware security module usually cannot be \
+exported from the device.
+
+If you want to export all secret key material associated with a \
+certificate, use `sq key export`.",
+    after_help = SUBKEY_EXPORT_EXAMPLES,
+)]
+pub struct SubkeyExportCommand {
+    #[clap(
+        long,
+        value_name = "FINGERPRINT|KEYID",
+        required = true,
+        help = "\
+Export the secret key material for the specified key, and its certificate",
+        long_help = "\
+Export the specified key.
+
+The entire certificate is exported, but only the specified key's \
+secret key material is exported.  An error is returned if the secret \
+key material for the specified key is not available.",
+    )]
+    pub key: Vec<KeyHandle>,
+}
 
 const SQ_KEY_SUBKEY_DELETE_EXAMPLES: Actions = Actions {
     actions: &[

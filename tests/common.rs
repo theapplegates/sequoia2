@@ -730,7 +730,7 @@ impl Sq {
     where H: Into<KeyHandle>
     {
         let mut cmd = self.command();
-        cmd.args([ "key", "export" ]);
+        cmd.args([ "key", "subkey", "export" ]);
         for kh in khs.into_iter() {
             let kh: KeyHandle = kh.into();
             cmd.arg("--key").arg(kh.to_string());

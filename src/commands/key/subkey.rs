@@ -20,12 +20,14 @@ use crate::cli::key::SubkeyAddCommand;
 use crate::cli::key::SubkeyCommand;
 use crate::cli::key::SubkeyDeleteCommand;
 use crate::cli::key::SubkeyExpireCommand;
+use crate::cli::key::SubkeyExportCommand;
 use crate::cli::key::SubkeyPasswordCommand;
 use crate::cli::key::SubkeyRevokeCommand;
 use crate::cli::types::EncryptPurpose;
 use crate::cli::types::FileOrStdout;
 use crate::common;
 use crate::common::key::expire;
+use crate::common::key::export;
 use crate::common::key::delete;
 use crate::common::key::password;
 use crate::common::NULL_POLICY;
@@ -36,6 +38,7 @@ use crate::parse_notations;
 pub fn dispatch(sq: Sq, command: SubkeyCommand) -> Result<()> {
     match command {
         SubkeyCommand::Add(c) => subkey_add(sq, c)?,
+        SubkeyCommand::Export(c) => subkey_export(sq, c)?,
         SubkeyCommand::Delete(c) => subkey_delete(sq, c)?,
         SubkeyCommand::Password(c) => subkey_password(sq, c)?,
         SubkeyCommand::Expire(c) => subkey_expire(sq, c)?,
@@ -43,6 +46,14 @@ pub fn dispatch(sq: Sq, command: SubkeyCommand) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn subkey_export(sq: Sq, command: SubkeyExportCommand)
+    -> Result<()>
+{
+    assert!(! command.key.is_empty());
+
+    export(sq, vec![], command.key)
 }
 
 fn subkey_delete(sq: Sq, command: SubkeyDeleteCommand)

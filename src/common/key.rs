@@ -19,6 +19,9 @@ pub use expire::expire;
 pub mod delete;
 pub use delete::delete;
 
+pub mod export;
+pub use export::export;
+
 pub mod password;
 pub use password::password;
 

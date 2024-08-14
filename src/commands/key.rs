@@ -10,7 +10,6 @@ mod approvals;
 mod delete;
 mod expire;
 mod export;
-use export::export;
 mod import;
 use import::import;
 mod list;
@@ -30,7 +29,7 @@ pub fn dispatch(sq: Sq, command: cli::key::Command) -> Result<()>
         List(c) => list(sq, c)?,
         Generate(c) => generate(sq, c)?,
         Import(c) => import(sq, c)?,
-        Export(c) => export(sq, c)?,
+        Export(c) => export::dispatch(sq, c)?,
         Delete(c) => delete::dispatch(sq, c)?,
         Password(c) => password::dispatch(sq, c)?,
         Expire(c) => expire::dispatch(sq, c)?,

@@ -24,6 +24,8 @@
      We will judiciously add some back before releasing 1.0.
    - The dot output has been removed.  Those relying on it can use the
      standalone sq-wot tool.
+   - New subcommand `sq key subkey export` to export individual keys.
+     This functionality was split off from `sq key export`.
 * Changes in 0.37.0
 ** Notable changes
    - Remove PKS support.

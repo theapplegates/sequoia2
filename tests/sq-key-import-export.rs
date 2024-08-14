@@ -1,16 +1,11 @@
-use assert_cmd::Command;
-
-use tempfile::TempDir;
-
 use sequoia_openpgp as openpgp;
-use openpgp::KeyID;
+use openpgp::KeyHandle;
 use openpgp::Result;
-use openpgp::cert::prelude::*;
 use openpgp::packet::Key;
-use openpgp::parse::Parse;
 
 mod common;
 use common::power_set;
+use common::Sq;
 
 mod integration {
     use super::*;
@@ -18,56 +13,27 @@ mod integration {
     #[test]
     fn sq_key_import_export() -> Result<()>
     {
-        let dir = TempDir::new()?;
-
-        let rev_pgp = dir.path().join("rev.pgp");
-        let rev_pgp_str = &*rev_pgp.to_string_lossy();
-
-        let key_pgp = dir.path().join("key.pgp");
-        let key_pgp_str = &*key_pgp.to_string_lossy();
+        let sq = Sq::new();
 
         // Generate a few keys as red herrings.
-        for _ in 0..10 {
-            let mut cmd = Command::cargo_bin("sq")?;
-            cmd.env("SEQUOIA_HOME", dir.path());
-            cmd.args(["--force", "key", "generate",
-                      "--no-userids",
-                      "--rev-cert", &rev_pgp_str]);
-            cmd.assert().success();
+        for i in 0..10 {
+            let (_, key_pgp, _) = sq.key_generate(&[], &[&format!("Key {}", i)]);
+            sq.key_import(key_pgp);
         }
 
-        // Generate a key in a file.
-        let mut cmd = Command::cargo_bin("sq")?;
-        cmd.env("SEQUOIA_HOME", dir.path());
-        cmd.args(["key", "generate",
-                  "--no-userids",
-                  "--output", &key_pgp_str]);
-        cmd.assert().success();
-
-        let cert = Cert::from_file(&key_pgp)?;
-        assert!(cert.is_tsk());
-
-        // Import it into the key store.
-        let mut cmd = Command::cargo_bin("sq")?;
-        cmd.env("SEQUOIA_HOME", dir.path());
-        cmd.args(["key", "import",
-                  &*key_pgp.to_string_lossy()]);
-        cmd.assert().success();
+        // Generate and import a key.
+        let (cert, key_pgp, _) = sq.key_generate(&[], &["Alice"]);
+        sq.key_import(key_pgp);
 
         // Export the whole certificate.
         for by_fpr in [true, false] {
-            let mut cmd = Command::cargo_bin("sq")?;
-            cmd.env("SEQUOIA_HOME", dir.path());
-            cmd.args(["key", "export", "--cert",
-                      &if by_fpr {
-                          cert.fingerprint().to_string()
-                      } else {
-                          cert.keyid().to_string()
-                      }]);
-            let result = cmd.assert().success();
-            let stdout = &result.get_output().stdout;
+            let kh: KeyHandle = if by_fpr {
+                cert.fingerprint().into()
+            } else {
+                cert.keyid().into()
+            };
 
-            let got = Cert::from_bytes(stdout).expect("cert");
+            let got = sq.key_export(kh);
             assert_eq!(cert, got);
         }
 
@@ -97,21 +63,9 @@ mod integration {
                 }
 
                 // Export the selection.
-                let mut cmd = Command::cargo_bin("sq")?;
-                cmd.env("SEQUOIA_HOME", dir.path());
-                cmd.args(["key", "export"]);
-                for id in selection.iter() {
-                    if by_fpr {
-                        cmd.args(["--key", &id.to_string()]);
-                    } else {
-                        cmd.args(["--key", &KeyID::from(id).to_string()]);
-                    }
-                }
-                eprintln!("  Running: {:?}", cmd);
-                let result = cmd.assert().success();
-                let stdout = &result.get_output().stdout;
-
-                let got = Cert::from_bytes(stdout).expect("cert");
+                let got = sq.key_subkey_export(selection.clone());
+                assert_eq!(got.len(), 1);
+                let got = got.into_iter().next().unwrap();
 
                 // Make sure we got exactly what we asked for; no
                 // more, no less.

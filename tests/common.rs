@@ -713,6 +713,39 @@ impl Sq {
             .expect("can parse certificate")
     }
 
+    /// Exports the specified keys.
+    pub fn key_subkey_export<H>(&self, khs: Vec<H>) -> Vec<Cert>
+    where H: Into<KeyHandle>
+    {
+        self.key_subkey_export_maybe(khs)
+            .expect("can export key")
+    }
+
+    /// Exports the specified keys from the key store.
+    ///
+    /// Returns an error if `sq key subkey export` fails.  This
+    /// happens if the key is known, but the key store doesn't manage
+    /// any of its secret key material.
+    pub fn key_subkey_export_maybe<H>(&self, khs: Vec<H>) -> Result<Vec<Cert>>
+    where H: Into<KeyHandle>
+    {
+        let mut cmd = self.command();
+        cmd.args([ "key", "export" ]);
+        for kh in khs.into_iter() {
+            let kh: KeyHandle = kh.into();
+            cmd.arg("--key").arg(kh.to_string());
+        }
+        let output = self.run(cmd, None);
+
+        if output.status.success() {
+            let parser = CertParser::from_bytes(&output.stdout)
+                .expect("can parse certificate");
+            Ok(parser.collect::<Result<Vec<Cert>>>()?)
+        } else {
+            Err(anyhow::anyhow!("sq key export returned an error"))
+        }
+    }
+
     /// Delete the specified key.
     pub fn key_subkey_delete<'a, H, Q>(&self,
                                        cert_handle: H,

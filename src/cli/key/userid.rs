@@ -354,6 +354,31 @@ impl From<UserIDReasonForRevocation> for ReasonForRevocation {
     }
 }
 
+const USERID_STRIP_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "First, generate a key.",
+            command: &[
+                "sq", "key", "generate",
+                "--without-password",
+                "--name", "Juliet Capulet",
+                "--email", "juliet@example.org",
+                "--output", "juliet.key.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "Then, strip a User ID.",
+            command: &[
+                "sq", "key", "userid", "strip",
+                "--userid", "Juliet Capulet",
+                "--output", "juliet-new.key.pgp",
+                "juliet.key.pgp",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_key_userid_strip, USERID_STRIP_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     about = "Strip a user ID",
@@ -380,17 +405,7 @@ is because information about the certificate like algorithm preferences, \
 the primary key's key flags, etc. is stored in the User ID's binding \
 signature.
 ",
-    after_help =
-"EXAMPLES:
-
-# First, generate a key:
-$ sq key generate --userid '<juliet@example.org>' \\
-     --output juliet.key.pgp
-
-# Then, strip a User ID:
-$ sq key userid strip --userid '<juliet@example.org>' \\
-     --output juliet-new.key.pgp juliet.key.pgp
-",
+    after_help = USERID_STRIP_EXAMPLES,
 )]
 pub struct StripCommand {
     #[clap(

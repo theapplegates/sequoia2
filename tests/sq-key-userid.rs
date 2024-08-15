@@ -455,3 +455,25 @@ fn sq_key_userid_add() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn sq_key_userid_strip() -> Result<()> {
+    let sq = Sq::new();
+    let (key, _, _) = sq.key_generate(&[
+        "--name", "Joan Clarke",
+        "--name", "Joan Clarke Murray",
+        "--email", "joan@hut8.bletchley.park",
+    ], &[]);
+    assert_eq!(key.userids().count(), 3);
+
+    // Whoops, that's a secret.
+    let key = sq.key_userid_strip(key, &[
+        "--userid", "<joan@hut8.bletchley.park>",
+    ])?;
+
+    assert_eq!(key.userids().count(), 2);
+    assert!(key.userids().any(|u| u.value() == b"Joan Clarke"));
+    assert!(key.userids().any(|u| u.value() == b"Joan Clarke Murray"));
+
+    Ok(())
+}

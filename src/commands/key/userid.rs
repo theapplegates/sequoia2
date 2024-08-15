@@ -29,7 +29,7 @@ use cert_store::StoreUpdate;
 
 use crate::Sq;
 use crate::cli;
-use crate::cli::key::UseridRevokeCommand;
+use crate::cli::key::userid::RevokeCommand;
 use crate::cli::types::FileOrStdout;
 use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
@@ -161,12 +161,12 @@ impl RevocationOutput for UserIDRevocation
 
 pub fn dispatch(
     sq: Sq,
-    command: cli::key::UseridCommand,
+    command: cli::key::userid::Command,
 ) -> Result<()> {
     match command {
-        cli::key::UseridCommand::Add(c) => userid_add(sq, c)?,
-        cli::key::UseridCommand::Revoke(c) => userid_revoke(sq, c)?,
-        cli::key::UseridCommand::Strip(c) => userid_strip(sq, c)?,
+        cli::key::userid::Command::Add(c) => userid_add(sq, c)?,
+        cli::key::userid::Command::Revoke(c) => userid_revoke(sq, c)?,
+        cli::key::userid::Command::Strip(c) => userid_strip(sq, c)?,
     }
 
     Ok(())
@@ -174,7 +174,7 @@ pub fn dispatch(
 
 fn userid_add(
     sq: Sq,
-    mut command: cli::key::UseridAddCommand,
+    mut command: cli::key::userid::AddCommand,
 ) -> Result<()> {
     let cert = if let Some(file) = command.cert_file {
         // If `--output` is not specified, default to writing to
@@ -347,7 +347,7 @@ fn userid_add(
 
 fn userid_strip(
     sq: Sq,
-    command: cli::key::UseridStripCommand,
+    command: cli::key::userid::StripCommand,
 ) -> Result<()> {
     let input = command.input.open()?;
     let key = Cert::from_buffered_reader(input)?;
@@ -407,7 +407,7 @@ signatures on other User IDs to make the key valid again.",
 /// [`NotationData`] fails or if the eventual revocation fails.
 pub fn userid_revoke(
     sq: Sq,
-    mut command: UseridRevokeCommand,
+    mut command: RevokeCommand,
 ) -> Result<()> {
     let cert = if let Some(file) = command.cert_file {
         if command.output.is_none() {

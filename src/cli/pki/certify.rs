@@ -15,6 +15,37 @@ use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::TrustAmount;
 
+use crate::cli::examples::*;
+
+const CERTIFY_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Alice certifies that Bob controls 3F68CB84CE537C9A and bob@example.org.",
+            command: &[
+                "sq", "pki", "certify",
+                "--certifier-file", "alice-secret.pgp",
+                "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+                "--email", "bob@example.org",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Alice certifies that Bob controls 3F68CB84CE537C9A and bob@bobs.lair.net, \
+which is not a self-signed user ID.",
+            command: &[
+                "sq", "pki", "certify",
+                "--certifier-file", "alice-secret.pgp",
+                "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+                "--add-userid",
+                "--email", "bob@example.org",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_pki_certify, CERTIFY_EXAMPLES);
+
 #[derive(Parser, Debug)]
 #[clap(
     name = "certify",
@@ -44,18 +75,7 @@ reference time.
 ",
         THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS,
     ),
-    after_help =
-"EXAMPLES:
-
-# Juliet certifies that Romeo controls romeo.pgp and romeo@example.org
-$ sq pki certify --certifier-file juliet.pgp
-  romeo.pgp '<romeo@example.org>'
-
-# Certify the User ID Ada, and set the certification time to July
-# 21, 2013 at midnight UTC:
-$ sq pki certify --time 20130721 --certifier-file neal.pgp
-  ada.pgp Ada
-",
+    after_help = CERTIFY_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("certifier_input").args(&["certifier_file", "certifier"]).required(true)))]
 pub struct Command {

@@ -7,6 +7,8 @@ use crate::cli::types::FileOrCertStore;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 
+use crate::cli::examples::*;
+
 #[derive(Parser, Debug)]
 #[clap(
     name = "dane",
@@ -33,6 +35,21 @@ pub enum Subcommands {
     Generate(GenerateCommand),
 }
 
+const GENERATE_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Generate DANE records from juliet.pgp for example.org.",
+            command: &[
+                "sq", "network", "dane", "generate",
+                "example.org",
+                "juliet.pgp",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_network_dane_generate, GENERATE_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     about = "Generate DANE records for the given domain and certs",
@@ -46,12 +63,7 @@ matching user IDs are included in the emitted certificates.
 By default, OPENPGPKEY resource records are emitted.  If your DNS
 server doesn't understand those, use `--generic` to emit generic
 records instead.",
-    after_help =
-"EXAMPLES:
-
-# Generate DANE records from certs.pgp for example.com.
-$ sq dane generate example.com certs.pgp
-",
+    after_help = GENERATE_EXAMPLES,
 )]
 pub struct GenerateCommand {
     #[clap(

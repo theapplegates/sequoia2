@@ -1339,7 +1339,7 @@ given file sed-in-place
 when I run sq --no-cert-store --no-key-store key generate --without-password --no-userids --output key.pgp
 when I run sq --no-cert-store --no-key-store toolbox extract-cert key.pgp --output cert.pgp
 when I run sq --no-cert-store --no-key-store sign --signer-file key.pgp hello.txt --output signed.txt
-when I run bash sed-in-place 3d signed.txt
+when I run sh sed-in-place 3d signed.txt
 when I try to run sq verify --signer-file cert.pgp signed.txt
 then command fails
 ~~~
@@ -1387,7 +1387,7 @@ when I run sq --no-cert-store --no-key-store key generate --without-password --n
 when I run sq --no-cert-store --no-key-store toolbox extract-cert key.pgp --output cert.pgp
 
 when I run sq --no-cert-store --no-key-store sign --cleartext-signature --signer-file key.pgp hello.txt --output signed.txt
-when I run bash sed-in-place s/hello/HELLO/ signed.txt
+when I run sh sed-in-place s/hello/HELLO/ signed.txt
 when I try to run sq verify --signer-file cert.pgp signed.txt
 then exit code is 1
 ~~~
@@ -1425,7 +1425,7 @@ when I run sq --no-cert-store --no-key-store key generate --without-password --n
 when I run sq --no-cert-store --no-key-store toolbox extract-cert key.pgp --output cert.pgp
 
 when I run sq --no-cert-store --no-key-store sign --detached --signer-file key.pgp hello.txt --output sig.txt
-when I run bash sed-in-place s/hello/HELLO/ hello.txt
+when I run sh sed-in-place s/hello/HELLO/ hello.txt
 when I try to run sq verify --detached=sig.txt --signer-file=cert.pgp hello.txt
 then exit code is 1
 ~~~

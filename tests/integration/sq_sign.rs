@@ -20,8 +20,7 @@ use openpgp::policy::StandardPolicy;
 use openpgp::serialize::stream::{Message, Signer, Compressor, LiteralWriter};
 use openpgp::serialize::Serialize;
 
-mod common;
-use common::Sq;
+use super::common::Sq;
 
 const P: &StandardPolicy = &StandardPolicy::new();
 

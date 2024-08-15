@@ -5,10 +5,9 @@ use openpgp::Cert;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
-mod common;
-use common::STANDARD_POLICY;
-use common::Sq;
-use common::time_as_string;
+use super::common::STANDARD_POLICY;
+use super::common::Sq;
+use super::common::time_as_string;
 
 #[test]
 fn sq_key_expire() -> Result<()> {

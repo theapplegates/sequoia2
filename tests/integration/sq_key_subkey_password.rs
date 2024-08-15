@@ -4,9 +4,8 @@ use openpgp::KeyID;
 use openpgp::Result;
 use openpgp::packet::Key;
 
-mod common;
-use common::power_set;
-use common::Sq;
+use super::common::power_set;
+use super::common::Sq;
 
 mod integration {
     use super::*;

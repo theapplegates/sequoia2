@@ -1,9 +1,8 @@
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
-mod common;
-use common::FileOrKeyHandle;
-use common::Sq;
+use super::common::FileOrKeyHandle;
+use super::common::Sq;
 
 #[test]
 fn sq_key_password() -> Result<()> {

@@ -3,7 +3,7 @@ use std::time;
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
 
-mod common;
+use super::common;
 
 mod integration {
     use super::*;

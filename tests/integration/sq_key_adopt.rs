@@ -1,6 +1,5 @@
-mod common;
-use common::FileOrKeyHandle;
-use common::Sq;
+use super::common::FileOrKeyHandle;
+use super::common::Sq;
 
 #[cfg(test)]
 mod integration {

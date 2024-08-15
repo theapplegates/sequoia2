@@ -11,11 +11,10 @@ use openpgp::Cert;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
-mod common;
-use common::compare_notations;
-use common::Sq;
-use common::STANDARD_POLICY;
-use common::time_as_string;
+use super::common::compare_notations;
+use super::common::Sq;
+use super::common::STANDARD_POLICY;
+use super::common::time_as_string;
 
 #[test]
 fn sq_key_userid_revoke() -> Result<()> {

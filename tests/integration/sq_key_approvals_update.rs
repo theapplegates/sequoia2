@@ -1,8 +1,7 @@
 use std::ffi::OsStr;
 use std::path::Path;
 
-mod common;
-use common::Sq;
+use super::common::Sq;
 
 use sequoia_openpgp as openpgp;
 use openpgp::Result;

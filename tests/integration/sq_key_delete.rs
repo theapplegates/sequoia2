@@ -1,8 +1,7 @@
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
 
-mod common;
-use common::Sq;
+use super::common::Sq;
 
 #[test]
 fn sq_key_delete() -> Result<()> {

@@ -14,9 +14,8 @@ use openpgp::parse::Parse;
 use openpgp::policy::StandardPolicy;
 use openpgp::serialize::{Serialize, SerializeInto};
 
-mod common;
-use common::FileOrKeyHandle;
-use common::Sq;
+use super::common::FileOrKeyHandle;
+use super::common::Sq;
 
 const P: &StandardPolicy = &StandardPolicy::new();
 

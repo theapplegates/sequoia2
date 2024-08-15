@@ -6,8 +6,7 @@ use openpgp::Result;
 use chrono::Utc;
 use chrono::DateTime;
 
-mod common;
-use common::Sq;
+use super::common::Sq;
 
 /// Returns the time formatted as an ISO 8106 string.
 pub fn time_as_string(t: DateTime<Utc>) -> String {

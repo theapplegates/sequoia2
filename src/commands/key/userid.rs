@@ -18,6 +18,7 @@ use openpgp::parse::Parse;
 use openpgp::policy::HashAlgoSecurity;
 use openpgp::policy::Policy;
 use openpgp::serialize::Serialize;
+use openpgp::types::HashAlgorithm;
 use openpgp::types::ReasonForRevocation;
 use openpgp::types::SignatureType;
 use openpgp::Cert;
@@ -25,7 +26,7 @@ use openpgp::Packet;
 use openpgp::Result;
 
 use sequoia_cert_store as cert_store;
-use cert_store::StoreUpdate;
+use cert_store::{LazyCert, StoreUpdate, store::MergeCerts};
 
 use crate::Sq;
 use crate::cli;
@@ -345,16 +346,46 @@ fn userid_add(
     Ok(())
 }
 
+/// Computes a checksum of the cert.
+fn cert_checksum(cert: &Cert) -> Result<Vec<u8>> {
+    use openpgp::crypto::hash::Digest;
+    let mut sum = HashAlgorithm::default().context()?;
+    cert.as_tsk().serialize(&mut sum)?;
+    sum.into_digest()
+}
+
 fn userid_strip(
     sq: Sq,
-    command: cli::key::userid::StripCommand,
+    mut command: cli::key::userid::StripCommand,
 ) -> Result<()> {
-    let input = command.input.open()?;
-    let key = Cert::from_buffered_reader(input)?;
+    let cert = if let Some(file) = &command.cert_file {
+        if command.output.is_none() {
+            // None means to write to the cert store.  When reading
+            // from a file, we want to write to stdout by default.
+            command.output = Some(FileOrStdout::new(None));
+        }
 
+        let br = file.open()?;
+        Cert::from_buffered_reader(br)?
+    } else if let Some(kh) = &command.cert {
+        sq.lookup_one(kh, None, true)?
+    } else {
+        panic!("clap enforces --cert or --cert-file");
+    };
+
+    userid_strip_internal(sq, command, cert, 3)
+}
+
+fn userid_strip_internal(
+    sq: Sq,
+    command: cli::key::userid::StripCommand,
+    key: Cert,
+    tries: usize,
+) -> Result<()> {
+    let orig_cert_checksum = cert_checksum(&key)?;
     let orig_cert_valid = key.with_policy(sq.policy, None).is_ok();
 
-    let strip: Vec<_> = command.userid;
+    let strip: &Vec<_> = &command.userid;
 
     // Make sure that each User ID that the user requested to remove exists in
     // `key`, and *can* be removed.
@@ -390,12 +421,73 @@ signatures on other User IDs to make the key valid again.",
         }
     }
 
-    let mut sink = command.output.for_secrets().create_safe(sq.force)?;
-    if command.binary {
-        cert.as_tsk().serialize(&mut sink)?;
+    if let Some(output) = command.output {
+        let mut sink = output.for_secrets().create_safe(sq.force)?;
+        if command.binary {
+            cert.as_tsk().serialize(&mut sink)?;
+        } else {
+            cert.as_tsk().armored().serialize(&mut sink)?;
+        }
     } else {
-        cert.as_tsk().armored().serialize(&mut sink)?;
+        // Update the cert in the cert store.  Be careful not to stomp
+        // on concurrent edits.
+        struct CarefulUpdate {
+            orig_checksum: Vec<u8>,
+        }
+
+        #[derive(thiserror::Error, Debug)]
+        #[error("the cert changed in the store")]
+        struct RetryWith {
+            cert: Cert,
+        }
+
+        let updater = CarefulUpdate {
+            orig_checksum: orig_cert_checksum,
+        };
+
+        impl<'a> MergeCerts<'a> for CarefulUpdate {
+            fn merge_public<'b>(
+                &self,
+                new: Arc<LazyCert<'a>>,
+                disk: Option<Arc<LazyCert<'b>>>,
+            ) -> Result<Arc<LazyCert<'a>>> {
+                // While we're holding the lock, make sure that the
+                // cert didn't change.
+                let disk = disk.ok_or_else(|| anyhow::anyhow!(
+                    "cert was deleted in the cert store"))?;
+                let checksum = cert_checksum(disk.to_cert()?)?;
+                if self.orig_checksum == checksum {
+                    // It didn't change, replace it.
+                    Ok(new)
+                } else {
+                    // It changed, keep the disk version and retry.
+                    Err(RetryWith {
+                        cert: disk.to_cert()?.clone(),
+                    }.into())
+                }
+            }
+        }
+
+        let cert_store = sq.cert_store_or_else()?;
+        if let Err(e) = cert_store.update_by(Arc::new(cert.into()), &updater) {
+            return match e.downcast::<RetryWith>() {
+                Ok(retry_with) => {
+                    if tries > 0 {
+                        // The cert changed in the store, and there
+                        // are tries left..  Retry the operation with
+                        // the changed cert.
+                        userid_strip_internal(
+                            sq, command, retry_with.cert,
+                            tries.checked_sub(1).expect("tries left"))
+                    } else {
+                        Err(retry_with.into())
+                    }
+                },
+                Err(e) => Err(e),
+            }
+        }
     }
+
     Ok(())
 }
 

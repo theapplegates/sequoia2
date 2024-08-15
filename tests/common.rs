@@ -897,7 +897,7 @@ impl Sq {
 
         let in_filename = self.scratch_file(None);
         key.as_tsk().serialize(&mut File::create(&in_filename)?)?;
-        cmd.arg(&in_filename);
+        cmd.arg("--cert-file").arg(&in_filename);
         let out_filename = self.scratch_file(None);
         cmd.arg("--output").arg(&out_filename);
 

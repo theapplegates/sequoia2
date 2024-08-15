@@ -357,22 +357,11 @@ impl From<UserIDReasonForRevocation> for ReasonForRevocation {
 const USERID_STRIP_EXAMPLES: Actions = Actions {
     actions: &[
         Action::Example(Example {
-            comment: "First, generate a key.",
-            command: &[
-                "sq", "key", "generate",
-                "--without-password",
-                "--name", "Juliet Capulet",
-                "--email", "juliet@example.org",
-                "--output", "juliet.key.pgp",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "Then, strip a User ID.",
+            comment: "Strip a User ID from a cert in the cert store.",
             command: &[
                 "sq", "key", "userid", "strip",
-                "--userid", "Juliet Capulet",
-                "--output", "juliet-new.key.pgp",
-                "juliet.key.pgp",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--userid", "Alice <alice@example.org>",
             ],
         }),
     ]
@@ -407,20 +396,43 @@ signature.
 ",
     after_help = USERID_STRIP_EXAMPLES,
 )]
+#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct StripCommand {
     #[clap(
-        default_value_t = FileOrStdin::default(),
-        help = FileOrStdin::HELP_OPTIONAL,
-        value_name = FileOrStdin::VALUE_NAME,
-    )]
-    pub input: FileOrStdin,
-    #[clap(
-        default_value_t = FileOrStdout::default(),
-        help = FileOrStdout::HELP_OPTIONAL,
         long,
-        value_name = FileOrStdout::VALUE_NAME,
+        value_name = "FINGERPRINT|KEYID",
+        help = "Strip the user ID on the specified certificate",
     )]
-    pub output: FileOrStdout,
+    pub cert: Option<KeyHandle>,
+    #[clap(
+        long,
+        help = FileOrStdin::HELP_OPTIONAL,
+        value_name = "CERT_FILE",
+        conflicts_with = "cert",
+        help = "Strip the user ID on the specified certificate",
+        long_help = "\
+Strip the user ID on the specified certificate.
+
+Read the certificate whose user ID should be stripped from FILE or \
+stdin, if `-`.  It is an error for the file to contain more than one \
+certificate.",
+    )]
+    pub cert_file: Option<FileOrStdin>,
+
+    #[clap(
+        long,
+        value_name = FileOrCertStore::VALUE_NAME,
+        help = "Write to the specified FILE",
+        long_help = "\
+Write to the specified FILE.
+
+If not specified, and the certificate was read from the certificate
+store, imports the modified certificate into the cert store.  If not
+specified, and the certificate was read from a file, writes the
+modified certificate to stdout.",
+    )]
+    pub output: Option<FileOrStdout>,
+
     #[clap(
         value_name = "USERID",
         long,

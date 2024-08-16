@@ -70,6 +70,7 @@ pub struct FetchCommand {
     pub addresses: Vec<String>,
     #[clap(
         long,
+        requires = "output",
         help = "Emit binary data",
     )]
     pub binary: bool,

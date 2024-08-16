@@ -83,6 +83,7 @@ pub struct FetchCommand {
     pub output: Option<FileOrStdout>,
     #[clap(
         long,
+        requires = "output",
         help = "Emit binary data",
     )]
     pub binary: bool,

@@ -510,6 +510,7 @@ for the file to contain more than one certificate.",
 
     #[clap(
         long,
+        requires = "output",
         help = "Emit binary data",
     )]
     pub binary: bool,
@@ -613,6 +614,7 @@ any surrounding whitespace like a trailing newline."
     pub output: Option<FileOrStdout>,
     #[clap(
         long,
+        requires = "output",
         help = "Emit binary data",
     )]
     pub binary: bool,
@@ -1207,6 +1209,7 @@ file.  When deleting secret key material managed by the key store using \
 
     #[clap(
         long,
+        requires = "output",
         help = "Emit binary data",
     )]
     pub binary: bool,
@@ -1323,6 +1326,7 @@ any surrounding whitespace like a trailing newline."
     pub output: Option<FileOrStdout>,
     #[clap(
         long,
+        requires = "output",
         help = "Emit binary data",
     )]
     pub binary: bool,

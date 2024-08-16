@@ -29,6 +29,8 @@
    - `sq key generate` and `sq key subkey add` now prompt for a
      password by default.  This can be disabled by passing
      `--without-password`.
+   - New subcommand `sq key approvals list` that lists approved
+     third-party certifications and those pending approval.
 * Changes in 0.37.0
 ** Notable changes
    - Remove PKS support.

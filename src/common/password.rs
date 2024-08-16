@@ -8,7 +8,39 @@ use sequoia_openpgp as openpgp;
 /// Prompt to repeat a password.
 const REPEAT_PROMPT: &str = "Please repeat the password";
 
-/// Prompts twice for a new password and returns an optional [`Password`].
+/// Prompts the user to enter a new password.
+///
+/// This function is intended for creating artifacts.  For example, if
+/// a new key or subkey is generated, or a message should be encrypted
+/// using a password.  The cost of mistyping is high, so we prompt
+/// twice.
+///
+/// If the two entered passwords match, the result is returned.
+///
+/// If the passwords differ or no password was entered, an error
+/// message is printed and the process is repeated.
+pub fn prompt_for_new(reason: &str) -> Result<Password> {
+    prompt_for_new_internal(reason, false)
+        .map(|p| p.expect("is not None"))
+}
+
+/// Prompts the user to enter an optional new password.
+///
+/// This function is intended for creating artifacts.  For example, if
+/// a new key or subkey is generated, or a message should be encrypted
+/// using a password.  The cost of mistyping is high, so we prompt
+/// twice.
+///
+/// If the two entered passwords match, the result is returned.  If no
+/// password was entered, `Ok(None)` is returned.
+///
+/// If the passwords differ, an error message is printed and the
+/// process is repeated.
+pub fn prompt_for_new_or_none(reason: &str) -> Result<Option<Password>> {
+    prompt_for_new_internal(reason, true)
+}
+
+/// Prompts the user to enter a new password.
 ///
 /// This function is intended for creating artifacts.  For example, if
 /// a new key or subkey is generated, or a message should be encrypted
@@ -16,21 +48,34 @@ const REPEAT_PROMPT: &str = "Please repeat the password";
 /// twice.
 ///
 /// If the two entered passwords match, the result is returned.  If
-/// the password was the empty string, `None` is returned.
+/// `allow_none` is `true`, and no password was entered, `Ok(None)` is
+/// returned.
 ///
-/// If the passwords differ, an error message is printed and the
-/// process is repeated.
-pub fn prompt_for_new(
+/// If the passwords differ or `allow_none` is `false` and no password
+/// was entered, an error message is printed and the process is
+/// repeated.
+fn prompt_for_new_internal(
     reason: &str,
+    allow_none: bool,
 ) -> Result<Option<Password>> {
-    let prompt = format!("Please enter the password to protect {} \
-                          (press enter to not use a password)", reason);
+    let mut prompt = format!("Please enter the password to protect {}", reason);
+    if allow_none {
+        prompt.push_str(" (press enter to not use a password)");
+    }
+
     let width = prompt.len().max(REPEAT_PROMPT.len());
     let p0 = format!("{:>1$}: ", prompt, width);
     let p1 = format!("{:>1$}: ", REPEAT_PROMPT, width);
 
     loop {
         let password = prompt_password(&p0)?;
+
+        if password.is_empty() && allow_none {
+            wprintln!("Password required.  Please try again.");
+            wprintln!();
+            continue;
+        }
+
         let password_repeat = prompt_password(&p1)?;
 
         if password != password_repeat {

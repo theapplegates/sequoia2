@@ -123,7 +123,7 @@ pub fn generate(
 
     if ! command.without_password {
         builder = builder.set_password(
-            password::prompt_for_new("key")?);
+            password::prompt_for_new_or_none("key")?);
     }
 
     let on_keystore = command.output.is_none();

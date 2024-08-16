@@ -108,18 +108,15 @@ pub fn encrypt<'a, 'b: 'a>(
     let mut passwords: Vec<crypto::Password> = Vec::with_capacity(npasswords);
     for n in 0..npasswords {
         let nprompt;
-        if let Some(password) = password::prompt_for_new(
+        let password = password::prompt_for_new(
             if npasswords > 1 {
                 nprompt = format!("message (password {})", n + 1);
                 &nprompt
             } else {
                 "message"
             },
-        )? {
-            passwords.push(password)
-        } else {
-            return Err(anyhow::anyhow!("Password can not be empty!"));
-        }
+        )?;
+        passwords.push(password);
     }
 
     if recipients.len() + passwords.len() == 0 {

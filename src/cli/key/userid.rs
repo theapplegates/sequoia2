@@ -416,6 +416,7 @@ signature.
     after_help = USERID_STRIP_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
+#[clap(group(ArgGroup::new("cert-userid").args(&["names", "emails", "userid"]).required(true).multiple(true)))]
 pub struct StripCommand {
     #[clap(
         long,
@@ -453,13 +454,35 @@ modified certificate to stdout.",
     pub output: Option<FileOrStdout>,
 
     #[clap(
+        long = "name",
+        value_name = "NAME",
+        help = "Strip the given name user ID",
+        long_help = "\
+Strip the given name user ID.  Must match a user ID exactly.  To strip
+a user ID that contains more than just a name, use `--userid`.",
+    )]
+    pub names: Vec<String>,
+
+    #[clap(
+        long = "email",
+        value_name = "ADDRESS",
+        help = "Strip the given email address user ID",
+        long_help = "\
+Strip the given email address user ID.  Must match a user ID exactly.
+To strip a user ID that contains more than just an email address name,
+use `--userid`.",
+    )]
+    pub emails: Vec<String>,
+
+    #[clap(
         value_name = "USERID",
         long,
-        help = "User IDs to strip",
-        long_help = "The User IDs to strip.  Values must exactly match a \
-User ID."
+        help = "Strip the given user IDs",
+        long_help = "\
+Strip the given user IDs from the key.  Must match a user ID exactly.",
     )]
     pub userid: Vec<UserID>,
+
     #[clap(
         long,
         help = "Emit binary data",

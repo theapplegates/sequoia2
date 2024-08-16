@@ -379,6 +379,16 @@ fn userid_strip(
         panic!("clap enforces --cert or --cert-file");
     };
 
+    lint_names(&command.names)?;
+    for n in &command.names {
+        command.userid.push(UserID::from(n.as_str()));
+    }
+
+    lint_emails(&command.emails)?;
+    for n in &command.emails {
+        command.userid.push(UserID::from_address(None, None, n)?);
+    }
+
     userid_strip_internal(sq, command, cert, 3)
 }
 

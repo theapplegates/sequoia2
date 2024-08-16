@@ -24,7 +24,7 @@ pub fn prompt_for_new(
     reason: &str,
 ) -> Result<Option<Password>> {
     let prompt = format!("Please enter the password to protect {} \
-                          (press empty to not use a password)", reason);
+                          (press enter to not use a password)", reason);
     let width = prompt.len().max(REPEAT_PROMPT.len());
     let p0 = format!("{:>1$}: ", prompt, width);
     let p1 = format!("{:>1$}: ", REPEAT_PROMPT, width);

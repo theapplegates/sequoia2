@@ -35,7 +35,13 @@ use crate::cli::types::FileOrStdout;
 use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
-use crate::common::userid::{lint_userids, lint_names, lint_emails};
+use crate::common::userid::{
+    lint_email,
+    lint_emails,
+    lint_name,
+    lint_names,
+    lint_userids,
+};
 use crate::parse_notations;
 
 /// Handle the revocation of a User ID
@@ -51,7 +57,7 @@ impl UserIDRevocation {
     /// Create a new UserIDRevocation
     pub fn new(
         sq: &Sq,
-        userid: String,
+        uid: UserID,
         force: bool,
         cert: Cert,
         revoker: Option<Cert>,
@@ -62,7 +68,7 @@ impl UserIDRevocation {
         let (revoker, mut signer)
             = get_secret_signer(sq, &cert, revoker.as_ref())?;
 
-        let uid = UserID::from(userid.as_str());
+        let userid = String::from_utf8_lossy(uid.value()).to_string();
 
         let revocation_packet = {
             // Create a revocation for a User ID.
@@ -516,6 +522,16 @@ pub fn userid_revoke(
         panic!("clap enforces --cert or --cert-file");
     };
 
+    let userid = if let Some(n) = command.name {
+        lint_name(&n)?;
+        UserID::from(n)
+    } else if let Some(e) = command.email {
+        lint_email(&e)?;
+        UserID::from_address(None, None, e)?
+    } else {
+        UserID::from(command.userid.expect("one of the three must be given"))
+    };
+
     let revoker = if let Some(file) = command.revoker_file {
         let br = file.open()?;
         Some(Cert::from_buffered_reader(br)?)
@@ -529,7 +545,7 @@ pub fn userid_revoke(
 
     let revocation = UserIDRevocation::new(
         &sq,
-        command.userid,
+        userid,
         sq.force,
         cert,
         revoker,

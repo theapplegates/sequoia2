@@ -198,6 +198,7 @@ instead of the current time.",
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 #[clap(group(ArgGroup::new("revoker_input").args(&["revoker_file", "revoker"])))]
+#[clap(group(ArgGroup::new("cert-userid").args(&["name", "email", "userid"]).required(true)))]
 pub struct RevokeCommand {
     #[clap(
         long,
@@ -250,17 +251,38 @@ for the file to contain more than one certificate.",
     pub revoker_file: Option<FileOrStdin>,
 
     #[clap(
+        long = "name",
+        value_name = "NAME",
+        help = "Revoke the given name user ID",
+        long_help = "\
+Revoke the given name user ID.  Must match a user ID exactly.  To revoke
+a user ID that contains more than just a name, use `--userid`.",
+    )]
+    pub name: Option<String>,
+
+    #[clap(
+        long = "email",
+        value_name = "ADDRESS",
+        help = "Revoke the given email address user ID",
+        long_help = "\
+Revoke the given email address user ID.  Must match a user ID exactly.
+To revoke a user ID that contains more than just an email address name,
+use `--userid`.",
+    )]
+    pub email: Option<String>,
+
+    #[clap(
         long,
         value_name = "USERID",
-        help = "The user ID to revoke",
+        help = "Revoke the given user ID",
         long_help = "\
-The user ID to revoke.
+Revoke the given user ID.
 
 By default, this must exactly match a self-signed User ID.  Use \
 `--force` to generate a revocation certificate for a User ID that is \
 not self signed."
     )]
-    pub userid: String,
+    pub userid: Option<String>,
 
     #[clap(
         value_enum,

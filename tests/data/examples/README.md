@@ -12,26 +12,49 @@ By using static data, we can use known fingerprints in the examples.
 
 # Contents
 
-- alice-secret.pgp: A general-purpose certificate for Alice
+- alice-secret.pgp: A general-purpose key for Alice
   <alice@example.org>.
 
     - Imported into the cert store.
+    - NOT Imported into the key store.
 
-- bob-secret.pgp: A general-purpose certificate for Bob
+- alice-new-secret.pgp: A general-purpose key for Alice
+  <alice@example.org>.
+
+    - Not related to alice-secret.pgp, modulo having the same user ID.
+    - NOT imported into the cert store.
+    - NOT Imported into the key store.
+
+- bob.pgp: A general-purpose certificate for Bob
   <bob@example.org>.
 
     - Imported into the cert store.
     - Certified by Alice.
+
+- bob-secret.pgp: A general-purpose key for Bob
+  <bob@example.org>.
+
+    - NOT Imported into the key store.
 
 - juliet.pgp: A general-purpose certificate for Juliet Capulet
   <juliet@example.org>.
 
     - NOT imported into the cert store.
 
+- juliet-secret.pgp: A general-purpose key for Juliet Capulet
+  <juliet@example.org>.
+
+    - NOT imported into the key store.
+
 - romeo.pgp: A general-purpose certificate for Romeo Montague
   <romeo@example.org>.
 
     - NOT imported into the cert store.
+
+- romeo-secret.pgp: A general-purpose key for Romeo Montague
+  <romeo@example.org>.
+
+    - NOT imported into the key store.
 
 - document.txt, document.sig: A document, and a detached signatured.
 
@@ -44,3 +67,6 @@ By using static data, we can use known fingerprints in the examples.
 
     - `echo 'Golf this afternoon?' | sq encrypt --recipient-file bob-secret.pgp --signer-file alice-secret.pgp > message.pgp`
 
+- ciphertext.pgp: A document encrypted for Juliet, and signed by Romeo.
+
+    - `echo 'Ti amo!' | sq encrypt --recipient-file juliet.pgp --signer-file romeo-secret.pgp > ciphertext.pgp`

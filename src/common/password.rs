@@ -70,7 +70,7 @@ fn prompt_for_new_internal(
     loop {
         let password = prompt_password(&p0)?;
 
-        if password.is_empty() && allow_none {
+        if password.is_empty() && ! allow_none {
             wprintln!("Password required.  Please try again.");
             wprintln!();
             continue;

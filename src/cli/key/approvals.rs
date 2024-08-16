@@ -127,9 +127,7 @@ pub struct ListCommand {
 
 const UPDATE_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Import Alice's key.",
+        Action::Setup(Setup {
             command: &[
                 "sq", "key", "import",
                 "alice-secret.pgp",
@@ -137,7 +135,7 @@ Import Alice's key.",
         }),
         Action::Example(Example {
             comment: "\
-Attest to all of the certifications on all the user IDs.",
+Attest to all of the certifications on all of Alice's user IDs.",
             command: &[
                 "sq", "key", "approvals", "update",
                 "--all",

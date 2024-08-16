@@ -14,6 +14,7 @@ use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
 use examples::Example;
+use examples::Setup;
 
 #[derive(Debug, Subcommand)]
 #[clap(
@@ -35,16 +36,14 @@ pub enum Command {
 
 const USERID_ADD_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Import a key.",
+        Action::Setup(Setup {
             command: &[
                 "sq", "key", "import", "alice-secret.pgp"
             ],
         }),
         Action::Example(Example {
             comment: "\
-Add a new user ID.",
+Add a new user ID to Alice's key.",
             command: &[
                 "sq", "key", "userid", "add",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
@@ -157,16 +156,14 @@ modified certificate to stdout.",
 
 const USERID_REVOKE_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Import a key.",
+        Action::Setup(Setup {
             command: &[
                 "sq", "key", "import", "alice-secret.pgp"
             ],
         }),
         Action::Example(Example {
             comment: "\
-Retire a user ID.",
+Retire a user ID on Alice's key.",
             command: &[
                 "sq", "key", "userid", "revoke",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",

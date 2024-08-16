@@ -24,6 +24,7 @@ use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
 use examples::Example;
+use examples::Setup;
 
 pub mod approvals;
 pub mod expire;
@@ -403,9 +404,7 @@ pub struct ImportCommand {
 
 const EXPORT_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Import a certificate.",
+        Action::Setup(Setup {
             command: &[
                 "sq", "key", "import", "alice-secret.pgp",
             ],
@@ -455,16 +454,14 @@ the certificate does not contain any secret key material.",
 
 const DELETE_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Import Alice's key.",
+        Action::Setup(Setup {
             command: &[
                 "sq", "key", "import", "alice-secret.pgp",
             ],
         }),
         Action::Example(Example {
             comment: "\
-Delete any secret key associated with the certificate.",
+Delete any secret key associated with Alice's certificate.",
             command: &[
                 "sq", "key", "delete",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
@@ -518,16 +515,15 @@ for the file to contain more than one certificate.",
 
 const PASSWORD_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Import a key that has no password protection.",
+        Action::Setup(Setup {
             command: &[
                 "sq", "key", "import", "alice-secret.pgp"
             ],
         }),
         Action::Example(Example {
             comment: "\
-Change the password for all keys to password in the specified file.",
+Change the password for all of Alice's keys to the password in the \
+specified file.",
             command: &[
                 "sq", "key", "password",
                 "--new-password-file", "password-file.txt",
@@ -536,7 +532,7 @@ Change the password for all keys to password in the specified file.",
         }),
         Action::Example(Example {
             comment: "\
-Clear the password protection.",
+Clear the password protection for all of Alice's keys.",
             command: &[
                 "sq", "key", "password",
                 "--password-file", "password-file.txt",
@@ -622,21 +618,19 @@ any surrounding whitespace like a trailing newline."
 
 const REVOKE_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Import a key.",
+        Action::Setup(Setup {
             command: &[
                 "sq", "key", "import", "alice-secret.pgp"
             ],
         }),
         Action::Example(Example {
             comment: "\
-Revoke the key, indicating that there is a new certificate.",
+Revoke Alice's key, indicating that there is a new certificate.",
             command: &[
                 "sq", "key", "revoke",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "superseded",
-                "My new cert is 31EC6A9453BC59F1239C785E4CA79EF01933A2ED",
+                "My new cert is C5999E8191BF7B503653BE958B1F7910D01F86E5",
             ],
         }),
         Action::Example(Example {
@@ -796,9 +790,7 @@ modified certificate to stdout.",
 
 const ADOPT_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Import Alice's old key and new key.",
+        Action::Setup(Setup {
             command: &[
                 "sq", "key", "import",
                 "alice-secret.pgp", "alice-new-secret.pgp",
@@ -806,7 +798,7 @@ Import Alice's old key and new key.",
         }),
         Action::Example(Example {
             comment: "\
-Have the new certificate adopt Alice's old authentication subkey.",
+Have Alice's new certificate adopt Alice's old authentication subkey.",
             command: &[
                 "sq", "key", "adopt",
                 "--cert", "C5999E8191BF7B503653BE958B1F7910D01F86E5",
@@ -909,9 +901,7 @@ pub enum SubkeyCommand {
 
 const SUBKEY_ADD_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Import Alice's key.",
+        Action::Setup(Setup {
             command: &[
                 "sq", "key", "import",
                 "alice-secret.pgp",
@@ -919,7 +909,7 @@ Import Alice's key.",
         }),
         Action::Example(Example {
             comment: "\
-Add a new signing-capable subkey.",
+Add a new signing-capable subkey to Alice's key.",
             command: &[
                 "sq", "key", "subkey", "add",
                 "--without-password",
@@ -1069,9 +1059,7 @@ modified certificate to stdout.",
 
 const SUBKEY_EXPORT_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Import a certificate.",
+        Action::Setup(Setup {
             command: &[
                 "sq", "key", "import", "alice-secret.pgp",
             ],
@@ -1124,9 +1112,7 @@ key material for the specified key is not available.",
 
 const SQ_KEY_SUBKEY_DELETE_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Import Alice's key.",
+        Action::Setup(Setup {
             command: &[
                 "sq", "key", "import", "alice-secret.pgp",
             ],
@@ -1217,16 +1203,15 @@ file.  When deleting secret key material managed by the key store using \
 
 const SQ_KEY_SUBKEY_PASSWORD_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Import a key that has no password protection.",
+        Action::Setup(Setup {
             command: &[
                 "sq", "key", "import", "alice-secret.pgp"
             ],
         }),
         Action::Example(Example {
             comment: "\
-Change the password for the signing key to the password in the specified file.",
+Change the password for Alice's signing key to the password in the \
+specified file.",
             command: &[
                 "sq", "key", "subkey", "password",
                 "--new-password-file", "password-file.txt",
@@ -1236,7 +1221,7 @@ Change the password for the signing key to the password in the specified file.",
         }),
         Action::Example(Example {
             comment: "\
-Clear the password protection for the signing key.",
+Clear the password protection for Alice's signing key.",
             command: &[
                 "sq", "key", "subkey", "password",
                 "--password-file", "password-file.txt",
@@ -1334,9 +1319,7 @@ any surrounding whitespace like a trailing newline."
 
 const SQ_KEY_SUBKEY_EXPIRE_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Import Alice's key.",
+        Action::Setup(Setup {
             command: &[
                 "sq", "key", "import",
                 "alice-secret.pgp",
@@ -1435,9 +1418,7 @@ modified certificate to stdout.",
 
 const SUBKEY_REVOKE_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Import Alice's key.",
+        Action::Setup(Setup {
             command: &[
                 "sq", "key", "import",
                 "alice-secret.pgp",
@@ -1445,7 +1426,7 @@ Import Alice's key.",
         }),
         Action::Example(Example {
             comment: "\
-Alice revokes her signing subkey.",
+Revoke Alice's signing subkey.",
             command: &[
                 "sq", "key", "subkey", "revoke",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",

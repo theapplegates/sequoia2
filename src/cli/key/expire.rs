@@ -15,11 +15,17 @@ use crate::cli::examples::*;
 
 const EXAMPLES: Actions = Actions {
     actions: &[
+        Action::Setup(Setup {
+            command: &[
+                "sq", "key", "import",
+                "alice-secret.pgp",
+            ],
+        }),
         Action::Example(Example {
             comment: "Make Alice's key expire in a year.",
             command: &[
                 "sq", "key", "expire", "1y",
-                "--cert-file", "alice-secret.pgp",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
 
@@ -27,7 +33,7 @@ const EXAMPLES: Actions = Actions {
             comment: "Make Alice's key never expire.",
             command: &[
                 "sq", "key", "expire", "never",
-                "--cert-file", "alice-secret.pgp",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
     ],

@@ -1,5 +1,6 @@
 use sequoia_openpgp as openpgp;
 use openpgp::packet::UserID;
+use openpgp::cert::amalgamation::ValidUserIDAmalgamation;
 
 /// A canonical user ID.
 #[derive(thiserror::Error, Debug)]
@@ -291,6 +292,42 @@ pub fn lint_emails(emails: &[String]) -> Result<(), anyhow::Error> {
 
         Err(anyhow::anyhow!("Some email addresses had issues"))
     }
+}
+
+/// Given a list of names, email addresses, and user IDs, returns a
+/// user ID filter.
+///
+/// The names and email addresses are linted first, returning an error
+/// with hints if there are any issues found.
+///
+/// If neither names, email addresses, or user IDs are given, the
+/// filter accepts all user IDs.
+///
+/// Should be used for subcommands that operate on (subsets of) user
+/// IDs.
+pub fn make_userid_filter<'c>(
+    names: &'c [String],
+    emails: &'c [String],
+    userids: &'c [String]
+)
+    -> anyhow::Result<Box<dyn Fn(&ValidUserIDAmalgamation) -> bool + 'c>>
+{
+    lint_names(names)?;
+    lint_emails(emails)?;
+
+    Ok(Box::new(|uid: &ValidUserIDAmalgamation| {
+        if emails.is_empty() && names.is_empty() && userids.is_empty() {
+            // No filter, list all user IDs.
+            true
+        } else {
+            uid.email_normalized().ok().flatten()
+                .map(|e| emails.contains(&e)).unwrap_or(false)
+                || uid.name2().ok().flatten()
+                .map(|n| names.iter().any(|i| i == n)).unwrap_or(false)
+                || std::str::from_utf8(uid.value())
+                .map(|u| userids.iter().any(|i| i == u)).unwrap_or(false)
+        }
+    }))
 }
 
 #[cfg(test)]

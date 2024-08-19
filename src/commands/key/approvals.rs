@@ -4,7 +4,6 @@ use std::{
 
 use sequoia_openpgp::{
     Result,
-    cert::amalgamation::ValidUserIDAmalgamation,
     serialize::Serialize,
 };
 
@@ -15,6 +14,7 @@ use crate::cli;
 use crate::cli::key::approvals;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::cli::types::FileOrStdout;
+use crate::common::userid::make_userid_filter;
 
 pub fn dispatch(sq: Sq, command: approvals::Command)
                 -> Result<()>
@@ -30,20 +30,8 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
     let vcert = cert.with_policy(sq.policy, sq.time)?;
     let store = sq.cert_store_or_else()?;
 
-    let uid_filter = |uid: &ValidUserIDAmalgamation| {
-        if cmd.emails.is_empty() && cmd.names.is_empty() && cmd.userids.is_empty() {
-            // No filter, list all user IDs.
-            true
-        } else {
-            uid.email_normalized().ok().flatten()
-                .map(|e| cmd.emails.contains(&e)).unwrap_or(false)
-                || uid.name2().ok().flatten()
-                .map(|n| cmd.names.iter().any(|i| i == n)).unwrap_or(false)
-                || std::str::from_utf8(uid.value())
-                .map(|u| cmd.userids.iter().any(|i| i == u)).unwrap_or(false)
-        }
-    };
-
+    let uid_filter = make_userid_filter(
+        &cmd.names, &cmd.emails, &cmd.userids)?;
     for uid in vcert.userids().filter(uid_filter) {
         eprintln!("- {}", String::from_utf8_lossy(uid.value()));
 

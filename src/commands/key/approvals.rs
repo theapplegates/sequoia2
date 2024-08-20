@@ -8,6 +8,7 @@ use sequoia_openpgp::{
 };
 
 use sequoia_cert_store::Store;
+use sequoia_wot as wot;
 
 use crate::Sq;
 use crate::cli;
@@ -95,8 +96,7 @@ fn update(
     sq: Sq,
     mut command: cli::key::approvals::UpdateCommand,
 ) -> Result<()> {
-    // Attest to all certifications?
-    let all = !command.none; // All is the default.
+    let store = sq.cert_store_or_else()?;
 
     let handle: FileStdinOrKeyHandle = if let Some(file) = command.cert_file {
         assert!(command.cert.is_none());
@@ -114,46 +114,154 @@ fn update(
         panic!("clap enforces --cert or --cert-file is set");
     };
     let key = sq.lookup_one(handle, None, true)?;
+    let vcert = key.with_policy(sq.policy, sq.time)?;
+
+    // Lookup any explicitly goodlisted certifiers.  We need these to
+    // verify the certifications.
+    let mut add_by = Vec::new();
+    for i in &command.add_by {
+        add_by.append(&mut store.lookup_by_cert(i)?);
+    }
+
+    // If we want to authenticate, prepare the authentication network.
+    let network_threshold = command.add_authenticated.map(
+        |threshold|
+        (wot::NetworkBuilder::rooted(store, &*sq.trust_roots()).build(),
+         usize::from(threshold)));
 
     // Get a signer.
     let mut pk_signer = sq.get_primary_key(&key, None)?;
 
     // Now, create new attestation signatures.
     let mut attestation_signatures = Vec::new();
-    for uid in key.userids() {
-        if all {
-            attestation_signatures.append(&mut uid.attest_certifications2(
-                sq.policy,
-                sq.time,
-                &mut pk_signer,
-                uid.certifications(),
-            )?);
-        } else {
-            attestation_signatures.append(&mut uid.attest_certifications2(
-                sq.policy,
-                sq.time,
-                &mut pk_signer,
-                &[],
-            )?);
-        }
-    }
 
-    for ua in key.user_attributes() {
-        if all {
-            attestation_signatures.append(&mut ua.attest_certifications2(
-                sq.policy,
-                sq.time,
-                &mut pk_signer,
-                ua.certifications(),
-            )?);
+    // For the selected user IDs.
+    let uid_filter = make_userid_filter(
+        &command.names, &command.emails, &command.userids)?;
+    for uid in vcert.userids().filter(uid_filter) {
+        eprintln!("- {}", String::from_utf8_lossy(uid.value()));
+
+        let previously_approved =
+            uid.attested_certifications().collect::<BTreeSet<_>>();
+
+        // Start from scratch or from the current set?
+        let mut next_approved = if command.remove_all {
+            Default::default()
         } else {
-            attestation_signatures.append(&mut ua.attest_certifications2(
-                sq.policy,
-                sq.time,
-                &mut pk_signer,
-                &[],
-            )?);
+            previously_approved.clone()
+        };
+
+        // Selectively remove approvals.
+        next_approved.retain(|s| ! s.get_issuers().iter().any(
+            // Quadratic, but how bad can it be...?
+            |i| command.remove_by.iter().any(|j| i.aliases(j))));
+
+        // Selectively add approvals.
+        let next_approved_cloned = next_approved.clone();
+        for sig in uid.certifications()
+        // Don't consider those that we already approved.
+            .filter(|s| ! next_approved_cloned.contains(s))
+        // Don't consider those explicitly removed.
+            .filter(|s| ! s.get_issuers().iter().any(
+                // Quadratic, but how bad can it be...?
+                |i| command.remove_by.iter().any(|j| i.aliases(j))))
+        {
+            if command.add_all {
+                next_approved.insert(sig);
+                continue;
+            }
+
+            // Add by issuer handle.
+            if let Some(cert) = sig.get_issuers().iter().find_map(
+                // Quadratic, but how bad can it be...?
+                |i| add_by.iter().find_map(
+                    |cert| i.aliases(cert.key_handle()).then_some(cert)))
+            {
+                if sig.verify_signature(&cert.primary_key()).is_ok() {
+                    next_approved.insert(sig);
+                }
+                continue;
+            }
+
+            // Add authenticated certifiers.
+            if let Some((ref network, threshold)) = network_threshold {
+                if let Some(cert) = sig.get_issuers().iter().find_map(
+                    |i| store.lookup_by_cert(i).unwrap_or_default().into_iter()
+                        .find_map(
+                            |cert| sig.verify_signature(&cert.primary_key())
+                                .is_ok().then_some(cert)))
+                {
+                    // We found the certifier.
+                    if cert.userids().any(
+                        |u| network.authenticate(u, cert.fingerprint(),
+                                                 threshold)
+                            .amount() >= threshold)
+                    {
+                        next_approved.insert(sig);
+                        continue;
+                    }
+                }
+            }
         }
+
+        let mut any = false;
+        for (prev, next, c) in uid.certifications()
+            .map(|c| (previously_approved.contains(c),
+                      next_approved.contains(c), c))
+        {
+            // Verify certifications by looking up the issuing cert.
+            let mut issuer = None;
+            let mut err = None;
+            for i in c.get_issuers().into_iter()
+                .filter_map(|i| store.lookup_by_cert(&i).ok()
+                            .map(IntoIterator::into_iter))
+                .flatten()
+            {
+                match c.verify_signature(&i.primary_key()) {
+                    Ok(_) => issuer = Some(i),
+                    Err(e) => err = Some(e),
+                }
+            }
+
+            eprintln!("  {} {}: {}",
+                      match (prev, next) {
+                          (false, false) => '.',
+                          (true, false) => '-',
+                          (false, true) => '+',
+                          (true, true) => '=',
+                      },
+                      issuer.as_ref()
+                      .and_then(|i| Some(sq.best_userid(i.to_cert().ok()?, true)
+                                         .to_string()))
+                      .or(c.get_issuers().into_iter().next()
+                          .map(|h| h.to_string()))
+                      .unwrap_or_else(|| "no issuer information".into()),
+                      if issuer.is_none() {
+                          if let Some(e) = err {
+                              e.to_string()
+                          } else {
+                              "issuer cert not found".into()
+                          }
+                      } else if next {
+                          "approved".into()
+                      } else if prev {
+                          "previously approved".into()
+                      } else {
+                          "unapproved".into()
+                      });
+            any = true;
+        }
+
+        if ! any {
+            eprintln!("    no certifications");
+        }
+
+        attestation_signatures.append(&mut uid.attest_certifications2(
+            sq.policy,
+            sq.time,
+            &mut pk_signer,
+            next_approved.into_iter(),
+        )?);
     }
 
     // Finally, add the new signatures.

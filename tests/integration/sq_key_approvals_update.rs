@@ -1,13 +1,17 @@
 use std::ffi::OsStr;
 use std::path::Path;
 
-use super::common::Sq;
+use super::common::{Sq, STANDARD_POLICY};
 
 use sequoia_openpgp as openpgp;
-use openpgp::Result;
+use openpgp::{
+    Cert,
+    Result,
+    cert::amalgamation::ValidateAmalgamation,
+};
 
 #[test]
-fn attest_certifications() -> Result<()> {
+fn update_files() -> Result<()> {
     // See https://gitlab.com/sequoia-pgp/sequoia/-/issues/1111
     let now = std::time::SystemTime::now()
         - std::time::Duration::new(60 * 60, 0);
@@ -38,7 +42,7 @@ fn attest_certifications() -> Result<()> {
             &*format!("{}-attestation", public.display()));
 
         let attestation = sq.key_approvals_update(
-            &priv_file, true, &*attestation_file);
+            &priv_file, &["--add-all"], &*attestation_file);
 
         eprintln!("{}", sq.inspect(&attestation_file));
 
@@ -67,47 +71,166 @@ fn attest_certifications() -> Result<()> {
     Ok(())
 }
 
+const ALICE_USERID: &str = "<alice@example.org>";
+const BOB_USERID: &str = "<bob@example.org>";
+
+fn make_keys(sq: &Sq) -> Result<(Cert, Cert)> {
+    let (alice, alice_pgp, _alice_rev)
+        = sq.key_generate(&[], &[ALICE_USERID]);
+    let (bob, bob_pgp, _bob_rev)
+        = sq.key_generate(&[], &[BOB_USERID]);
+
+    sq.key_import(alice_pgp);
+    sq.key_import(bob_pgp);
+
+    Ok((alice, bob))
+}
+
+
 #[test]
-fn attest_certifications_cert_store() -> Result<()> {
+fn update_all() -> Result<()> {
     // See https://gitlab.com/sequoia-pgp/sequoia/-/issues/1111
     let now = std::time::SystemTime::now()
         - std::time::Duration::new(60 * 60, 0);
 
     let sq = Sq::at(now);
-
-    let alice_userid = "<alice@example.org>";
-    let (alice, alice_pgp, _alice_rev)
-        = sq.key_generate(&[], &["<alice@example.org>"]);
-    let (bob, bob_pgp, _bob_rev)
-        = sq.key_generate(&[], &["<bob@example.org>"]);
-
-    sq.key_import(alice_pgp);
-    sq.key_import(bob_pgp);
+    let (alice, bob) = make_keys(&sq)?;
 
     // Attest the zero certifications.
     let attestation = sq.key_approvals_update(
-        alice.key_handle(), true, None);
+        alice.key_handle(), &["--add-all"], None);
 
     assert_eq!(attestation.bad_signatures().count(), 0);
     let attestation_ua = attestation.userids().next().unwrap();
     assert_eq!(attestation_ua.attestations().count(), 1);
+    assert_eq!(attestation_ua.with_policy(STANDARD_POLICY, None).unwrap()
+               .attested_certifications().count(), 0);
 
     // Have Bob certify Alice.
     let alice2 = sq.pki_certify(&[],
                                 bob.key_handle(),
                                 alice.key_handle(),
-                                alice_userid,
+                                ALICE_USERID,
                                 None);
     assert_eq!(alice2.fingerprint(), alice.fingerprint());
 
     // Attest Bob's certification.
     let attestation = sq.key_approvals_update(
-        &alice.key_handle(), true, None);
+        &alice.key_handle(), &["--add-all"], None);
 
     assert_eq!(attestation.bad_signatures().count(), 0);
     let attestation_ua = attestation.userids().next().unwrap();
     assert_eq!(attestation_ua.attestations().count(), 2);
+    assert_eq!(attestation_ua.with_policy(STANDARD_POLICY, None).unwrap()
+               .attested_certifications().count(), 1);
 
+    // Drop the approval of Bob's certification.
+    let attestation = sq.key_approvals_update(
+        &alice.key_handle(), &["--remove-all"], None);
+
+    assert_eq!(attestation.bad_signatures().count(), 0);
+    let attestation_ua = attestation.userids().next().unwrap();
+    assert_eq!(attestation_ua.attestations().count(), 3);
+    assert_eq!(attestation_ua.with_policy(STANDARD_POLICY, None).unwrap()
+               .attested_certifications().count(), 0);
+
+    Ok(())
+}
+
+#[test]
+fn update_by() -> Result<()> {
+    // See https://gitlab.com/sequoia-pgp/sequoia/-/issues/1111
+    let now = std::time::SystemTime::now()
+        - std::time::Duration::new(60 * 60, 0);
+
+    let sq = Sq::at(now);
+    let (alice, bob) = make_keys(&sq)?;
+    let bob_fp = bob.fingerprint().to_string();
+
+    // Attest the zero certifications.
+    let attestation = sq.key_approvals_update(
+        alice.key_handle(), &["--add-by", &bob_fp], None);
+
+    assert_eq!(attestation.bad_signatures().count(), 0);
+    let attestation_ua = attestation.userids().next().unwrap();
+    assert_eq!(attestation_ua.attestations().count(), 1);
+    assert_eq!(attestation_ua.with_policy(STANDARD_POLICY, None).unwrap()
+               .attested_certifications().count(), 0);
+
+    // Have Bob certify Alice.
+    let alice2 = sq.pki_certify(&[],
+                                bob.key_handle(),
+                                alice.key_handle(),
+                                ALICE_USERID,
+                                None);
+    assert_eq!(alice2.fingerprint(), alice.fingerprint());
+
+    // Attest Bob's certification.
+    let attestation = sq.key_approvals_update(
+        &alice.key_handle(), &["--add-by", &bob_fp], None);
+
+    assert_eq!(attestation.bad_signatures().count(), 0);
+    let attestation_ua = attestation.userids().next().unwrap();
+    assert_eq!(attestation_ua.attestations().count(), 2);
+    assert_eq!(attestation_ua.with_policy(STANDARD_POLICY, None).unwrap()
+               .attested_certifications().count(), 1);
+
+    // Drop the approval of Bob's certification.
+    let attestation = sq.key_approvals_update(
+        &alice.key_handle(), &["--remove-by", &bob_fp], None);
+
+    assert_eq!(attestation.bad_signatures().count(), 0);
+    let attestation_ua = attestation.userids().next().unwrap();
+    assert_eq!(attestation_ua.attestations().count(), 3);
+    assert_eq!(attestation_ua.with_policy(STANDARD_POLICY, None).unwrap()
+               .attested_certifications().count(), 0);
+
+    Ok(())
+}
+
+
+#[test]
+fn update_authenticated() -> Result<()> {
+    // See https://gitlab.com/sequoia-pgp/sequoia/-/issues/1111
+    let now = std::time::SystemTime::now()
+        - std::time::Duration::new(60 * 60, 0);
+
+    let sq = Sq::at(now);
+    let (alice, bob) = make_keys(&sq)?;
+    let bob_fp = bob.fingerprint().to_string();
+
+    // Have Bob certify Alice.
+    let alice2 = sq.pki_certify(&[],
+                                bob.key_handle(),
+                                alice.key_handle(),
+                                ALICE_USERID,
+                                None);
+    assert_eq!(alice2.fingerprint(), alice.fingerprint());
+
+    // Attest the zero certifications.
+    let attestation = sq.key_approvals_update(
+        alice.key_handle(), &["--add-authenticated"], None);
+
+    assert_eq!(attestation.bad_signatures().count(), 0);
+    let attestation_ua = attestation.userids().next().unwrap();
+    assert_eq!(attestation_ua.attestations().count(), 1);
+    assert_eq!(attestation_ua.with_policy(STANDARD_POLICY, None).unwrap()
+               .attested_certifications().count(), 0);
+
+    // Link Bob's cert to his user ID.
+    let mut link = sq.command();
+    link.args(&["pki", "link", "add", &bob_fp, BOB_USERID]);
+    sq.run(link, true);
+
+    // Attest Bob's certification.
+    let attestation = sq.key_approvals_update(
+        &alice.key_handle(), &["--add-authenticated"], None);
+
+    assert_eq!(attestation.bad_signatures().count(), 0);
+    let attestation_ua = attestation.userids().next().unwrap();
+    assert_eq!(attestation_ua.attestations().count(), 2);
+    assert_eq!(attestation_ua.with_policy(STANDARD_POLICY, None).unwrap()
+               .attested_certifications().count(), 1);
 
     Ok(())
 }

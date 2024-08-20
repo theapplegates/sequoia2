@@ -667,7 +667,7 @@ impl Sq {
 
     pub fn key_approvals_update<'a, H, Q>(&self,
                                           cert: H,
-                                          attest_all: bool,
+                                          args: &[&str],
                                           output_file: Q)
         -> Cert
     where H: Into<FileOrKeyHandle>,
@@ -688,11 +688,8 @@ impl Sq {
             }
         }
 
-        if attest_all {
-            cmd.arg("--all");
-        } else {
-            cmd.arg("--none");
-        }
+        cmd.args(args);
+
         if let Some(output_file) = output_file {
             cmd.arg("--output").arg(output_file);
         }

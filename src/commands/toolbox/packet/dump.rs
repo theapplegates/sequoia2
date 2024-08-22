@@ -25,6 +25,7 @@ use crate::cli::types::SessionKey;
 #[derive(Debug)]
 pub enum Kind {
     Message {
+        #[allow(dead_code)]
         encrypted: bool,
     },
     Keyring,

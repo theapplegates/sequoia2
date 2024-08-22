@@ -67,6 +67,9 @@ fn sq_export() -> Result<()>
 
         let cert = Cert::from_file(&data.filename)?;
         eprintln!("Importing {}", cert.fingerprint());
+        for ka in cert.keys().subkeys() {
+            eprintln!("  - {}", ka.fingerprint());
+        }
 
         data.cert = Some(cert);
 
@@ -119,7 +122,7 @@ fn sq_export() -> Result<()>
         }
     };
 
-    // args: --cert|--key|--userid|... pattern
+    // args: --cert|--userid|... pattern
     let call = |args: &[&str], success: bool, data: &[&Data]| {
         let mut cmd = Command::cargo_bin("sq").unwrap();
         cmd.args(["--cert-store", &certd,
@@ -159,7 +162,7 @@ fn sq_export() -> Result<()>
             for kh in [ KeyHandle::from(ka.fingerprint()),
                         KeyHandle::from(ka.keyid()) ]
             {
-                call(&["--cert", &kh.to_string()], ka.primary(), &[data]);
+                call(&["--cert", &kh.to_string()], true, &[data]);
             }
         }
 
@@ -167,7 +170,7 @@ fn sq_export() -> Result<()>
         for kh in cert.keys().map(|ka| KeyHandle::from(ka.fingerprint()))
             .chain(cert.keys().map(|ka| KeyHandle::from(ka.keyid())))
         {
-            call(&["--key", &kh.to_string()], true, &[data]);
+            call(&["--cert", &kh.to_string()], true, &[data]);
         }
 
         for ua in cert.userids() {
@@ -217,7 +220,7 @@ fn sq_export() -> Result<()>
     // Match a cert in many ways.  It should only be exported
     // once.
     call(&["--cert", &carol.cert().fingerprint().to_string(),
-           "--key",
+           "--cert",
            &carol.cert().keys().nth(1).unwrap().fingerprint().to_string(),
            "--userid", carol.userids[0],
            "--email", "carol@example.org",
@@ -226,7 +229,7 @@ fn sq_export() -> Result<()>
 
     // Match multiple certs in different ways.
     call(&["--cert", &alice.cert().fingerprint().to_string(),
-           "--key", &bob.cert().fingerprint().to_string(),
+           "--cert", &bob.cert().fingerprint().to_string(),
            "--email", "carol@sub.example.org",
     ], true, &[alice, bob, carol]);
 

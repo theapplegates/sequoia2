@@ -80,7 +80,7 @@ pub fn dispatch(sq: Sq, mut cmd: export::Command) -> Result<()> {
 
     for query in cmd.query {
         if let Ok(h) = query.parse() {
-            cmd.key.push(h);
+            cmd.cert.push(h);
         } else if let Ok(email) = UserIDQueryParams::is_email(&query) {
             let mut q = UserIDQueryParams::new();
             q.set_email(true);
@@ -94,8 +94,7 @@ pub fn dispatch(sq: Sq, mut cmd: export::Command) -> Result<()> {
         }
     }
 
-    if cmd.cert.is_empty() && cmd.key.is_empty() && userid_query.is_empty()
-        && ! cmd.all
+    if cmd.cert.is_empty() && userid_query.is_empty() && ! cmd.all
     {
         sq.hint(format_args!(
             "Use --all to export all certs, or give a query."));
@@ -147,19 +146,6 @@ pub fn dispatch(sq: Sq, mut cmd: export::Command) -> Result<()> {
         let mut exported = HashSet::new();
 
         for kh in cmd.cert.iter() {
-            if let Ok(certs) = cert_store.lookup_by_cert(kh) {
-                for cert in certs.into_iter().filter(
-                    |c| c.to_cert().map(cert_exportable).unwrap_or(false))
-                {
-                    if exported.insert(cert.fingerprint()) {
-                        exported_something = true;
-                        cert.export(&mut sink)?;
-                    }
-                }
-            }
-        }
-
-        for kh in cmd.key.iter() {
             if let Ok(certs) = cert_store.lookup_by_cert_or_subkey(kh) {
                 for cert in certs.into_iter().filter(
                         |c| c.to_cert().map(cert_exportable).unwrap_or(false))

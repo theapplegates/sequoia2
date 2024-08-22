@@ -37,18 +37,10 @@ authenticated.  Note: this check is case insensitive.",
         }),
         Action::Example(Example {
             comment: "\
-Export certificates where the certificate (i.e., the primary key) \
+Export certificates where a certificate's primary key or a subkey \
 has the specified Key ID.",
             command: &[
                 "sq", "cert", "export", "--cert", "6F0073F60FD0CBF0",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Export certificates where the primary key or a subkey matches the \
-specified Key ID.",
-            command: &[
-                "sq", "cert", "export", "--key", "24F3955B0B8DECC8",
             ],
         }),
         Action::Example(Example {
@@ -82,9 +74,7 @@ Before using the certificates, be sure to validate and authenticate
 them.
 
 When matching on subkeys or User IDs, the component must have a valid
-self signature according to the policy.  This is not the case when
-matching the certificate's key handle using `--cert` or when exporting
-all certificates.
+self signature according to the policy.
 
 Fails if search criteria are specified and none of them matches any
 certificates.  Note: this means if the certificate store is empty and
@@ -101,7 +91,7 @@ pub struct Command {
     #[clap(
         long,
         conflicts_with_all = [
-            "cert", "key", "userid", "grep", "email", "domain", "query",
+            "cert", "userid", "grep", "email", "domain", "query",
         ],
         help = "Export all certificates",
     )]
@@ -110,18 +100,10 @@ pub struct Command {
     #[clap(
         long = "cert",
         value_name = "FINGERPRINT|KEYID",
-        help = "Return certificates that \
-                have the specified fingerprint or key ID",
+        help = "Return certificates that contain a primary key or a \
+                subkey with the specified fingerprint or key ID",
     )]
     pub cert: Vec<KeyHandle>,
-
-    #[clap(
-        long = "key",
-        value_name = "FINGERPRINT|KEYID",
-        help = "Return certificates where the primary key or \
-                a subkey has the specified fingerprint or key ID",
-    )]
-    pub key: Vec<KeyHandle>,
 
     #[clap(
         long = "userid",

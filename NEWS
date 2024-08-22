@@ -31,6 +31,8 @@
      `--without-password`.
    - New subcommand `sq key approvals list` that lists approved
      third-party certifications and those pending approval.
+   - Remove `sq cert export`'s `--key` argument.  Change `--cert` to
+     match both primary keys and subkeys.
 * Changes in 0.37.0
 ** Notable changes
    - Remove PKS support.

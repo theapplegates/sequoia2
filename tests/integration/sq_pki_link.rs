@@ -218,7 +218,7 @@ fn sq_certify(cert_store: &str,
 
 // Verify signatures using the acceptance machinery.
 #[test]
-fn sq_link_add_retract() -> Result<()> {
+fn sq_pki_link_add_retract() -> Result<()> {
     let dir = TempDir::new()?;
 
     let certd = dir.path().join("cert.d").display().to_string();
@@ -481,7 +481,7 @@ fn sq_link_add_retract() -> Result<()> {
 // make sure no certifications are written; when they are different
 // make sure the file changed.
 #[test]
-fn sq_link_update_detection() -> Result<()> {
+fn sq_pki_link_update_detection() -> Result<()> {
     let dir = TempDir::new()?;
 
     let certd = dir.path().join("cert.d").display().to_string();
@@ -606,7 +606,7 @@ fn sq_link_update_detection() -> Result<()> {
 
 // Check that sq pki link add --temporary works.
 #[test]
-fn sq_link_add_temporary() -> Result<()> {
+fn sq_pki_link_add_temporary() -> Result<()> {
     let dir = TempDir::new()?;
 
     let certd = dir.path().join("cert.d").display().to_string();

@@ -20,7 +20,7 @@ use super::common::Sq;
 const P: &StandardPolicy = &StandardPolicy::new();
 
 #[test]
-fn sq_certify() -> Result<()> {
+fn sq_pki_certify() -> Result<()> {
     let mut sq = Sq::new();
 
     let (alice, alice_pgp, _alice_rev)
@@ -255,7 +255,7 @@ fn sq_certify() -> Result<()> {
 }
 
 #[test]
-fn sq_certify_creation_time() -> Result<()>
+fn sq_pki_certify_creation_time() -> Result<()>
 {
     // $ date +'%Y%m%dT%H%M%S%z'; date +'%s'
     let t = 1642692756;
@@ -320,7 +320,7 @@ fn sq_certify_creation_time() -> Result<()>
 }
 
 #[test]
-fn sq_certify_with_expired_key() -> Result<()>
+fn sq_pki_certify_with_expired_key() -> Result<()>
 {
     let seconds_in_day = 24 * 60 * 60;
 
@@ -398,7 +398,7 @@ fn sq_certify_with_expired_key() -> Result<()>
 }
 
 #[test]
-fn sq_certify_with_revoked_key() -> Result<()>
+fn sq_pki_certify_with_revoked_key() -> Result<()>
 {
     let seconds_in_day = 24 * 60 * 60;
 
@@ -494,7 +494,7 @@ fn sq_certify_with_revoked_key() -> Result<()>
 
 // Certify a certificate in the cert store.
 #[test]
-fn sq_certify_using_cert_store() -> Result<()>
+fn sq_pki_certify_using_cert_store() -> Result<()>
 {
     let mut sq = Sq::new();
 

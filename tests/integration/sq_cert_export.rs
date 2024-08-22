@@ -11,7 +11,7 @@ use openpgp::cert::prelude::*;
 use openpgp::parse::Parse;
 
 #[test]
-fn sq_export() -> Result<()>
+fn sq_cert_export() -> Result<()>
 {
     let dir = TempDir::new()?;
 

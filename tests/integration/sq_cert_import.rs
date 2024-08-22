@@ -7,7 +7,7 @@ use openpgp::cert::prelude::*;
 use openpgp::parse::Parse;
 
 #[test]
-fn sq_import() -> Result<()>
+fn sq_cert_import() -> Result<()>
 {
     let dir = TempDir::new()?;
 

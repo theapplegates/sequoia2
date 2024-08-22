@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod sq_packet_dump {
+mod sq_toolbox_packet_dump {
     use assert_cmd::Command;
     use predicates::prelude::*;
 

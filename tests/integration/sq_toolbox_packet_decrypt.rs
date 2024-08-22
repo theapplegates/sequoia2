@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod sq_packet_decrypt {
+mod sq_toolbox_packet_decrypt {
     use assert_cmd::Command;
     use predicates::prelude::*;
 

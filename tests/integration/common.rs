@@ -156,11 +156,35 @@ impl FileOrKeyHandle {
 
 pub struct Sq {
     base: TempDir,
+    // Whether to preserve the directory on exit.  Normally we clean
+    // it up, but preserving it can simplify debugging when a test
+    // fails.
+    preserve: bool,
     home: PathBuf,
     policy: PathBuf,
     certd: PathBuf,
     now: std::time::SystemTime,
     scratch: AtomicUsize,
+}
+
+impl Drop for Sq {
+    fn drop(&mut self) {
+        if self.preserve {
+            self.preserve = false;
+
+            match TempDir::new() {
+                Ok(tmp) => {
+                    let base = std::mem::replace(&mut self.base, tmp);
+                    let path = base.into_path();
+                    eprintln!("Preserving state in {}", path.display());
+                }
+                Err(err) => {
+                    eprintln!("Error preserving state in {}: {}",
+                              self.base.path().display(), err);
+                }
+            }
+        }
+    }
 }
 
 impl Sq {
@@ -181,6 +205,7 @@ impl Sq {
 
         Sq {
             base,
+            preserve: false,
             home,
             policy,
             certd,
@@ -198,6 +223,16 @@ impl Sq {
         now = now - std::time::Duration::new(0, since_epoch.subsec_nanos());
 
         Self::at(now)
+    }
+
+    /// Preserves the files on exit.
+    ///
+    /// Normally we clean delete all files and directories.  This
+    /// suppresses that behavior.  Preserving the state can facilitate
+    /// debugging.  Normally, you'll only enable this to debug a test,
+    /// and then disable it again.
+    pub fn preserve(&mut self) {
+        self.preserve = true;
     }
 
     /// Returns the base directory.

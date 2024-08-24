@@ -1,81 +1,47 @@
-use tempfile::TempDir;
-
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 use openpgp::Result;
-use openpgp::cert::prelude::*;
-use openpgp::parse::Parse;
 
-use super::common::Sq;
+use crate::integration::common::Sq;
 
 #[test]
 fn sq_encrypt_using_cert_store() -> Result<()>
 {
     let sq = Sq::new();
-    let dir = TempDir::new()?;
-
-    let key_pgp = dir.path().join("key.pgp").display().to_string();
 
     // Generate a key.
-    let mut cmd = sq.command();
-    cmd.args(["key", "generate", "--without-password",
-              "--expiration", "never",
-              "--userid", "<alice@example.org>",
-              "--output", &key_pgp]);
-    cmd.assert().success();
-
-    let cert = Cert::from_file(&key_pgp)?;
+    let (cert, key_pgp, _key_rev) = sq.key_generate(
+        &["--expiration", "never"],
+        &["<alice@example.org>"]);
+    let key_pgp = key_pgp.to_str().expect("valid UTF-8");
 
     // Try to encrypt a message.  This should fail, because we
     // haven't imported the key.
     for kh in cert.keys().map(|ka| KeyHandle::from(ka.fingerprint()))
         .chain(cert.keys().map(|ka| KeyHandle::from(ka.keyid())))
     {
-        let mut cmd = sq.command();
-        cmd.args(["encrypt",
-                  "--recipient-cert",
-                  &kh.to_string()])
-            .write_stdin("a secret message")
-            .assert().failure();
+        assert!(
+            sq.encrypt_maybe(&["--recipient-cert", &kh.to_string()], b"")
+                .is_err());
     }
 
-    // Import the key.
-    let mut cmd = sq.command();
-    cmd.args(["cert", "import", &key_pgp]);
-    cmd.assert().success();
+    // Import the certificate.
+    sq.cert_import(key_pgp);
 
-    const MESSAGE: &str = "\na secret message\n\nor two\n";
+    const MESSAGE: &[u8] = b"\na secret message\n\nor two\n";
 
     // Now we should be able to encrypt a message to it, and
     // decrypt it.
     for kh in cert.keys().map(|ka| KeyHandle::from(ka.fingerprint()))
         .chain(cert.keys().map(|ka| KeyHandle::from(ka.keyid())))
     {
-        let mut cmd = sq.command();
-        cmd.args(["encrypt",
-                  "--recipient-cert",
-                  &kh.to_string()])
-            .write_stdin(MESSAGE);
+        let ciphertext = sq.encrypt(
+            &["--recipient-cert", &kh.to_string()], MESSAGE);
 
-        let output = cmd.output().expect("success");
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        assert!(output.status.success(),
-                "encryption succeeds for {}\nstdout:\n{}\nstderr:\n{}",
-                kh, stdout, stderr);
+        let plaintext = sq.decrypt(
+            &["--recipient-file", &key_pgp], ciphertext);
 
-        let mut cmd = sq.command();
-        cmd.args(["decrypt",
-                  "--recipient-file",
-                  &key_pgp])
-            .write_stdin(stdout.as_bytes());
-
-        let output = cmd.output().expect("success");
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        assert!(output.status.success(),
-                "decryption succeeds for {}\nstdout:\n{}\nstderr:\n{}",
-                kh, stdout, stderr);
+        assert_eq!(MESSAGE, plaintext);
     }
 
     Ok(())
@@ -85,19 +51,12 @@ fn sq_encrypt_using_cert_store() -> Result<()>
 fn sq_encrypt_recipient_userid() -> Result<()>
 {
     let sq = Sq::new();
-    let dir = TempDir::new()?;
-
-    let alice_pgp = dir.path().join("alice.pgp").display().to_string();
-    let bob_pgp = dir.path().join("bob.pgp").display().to_string();
 
     // Generate the keys.
-    let mut cmd = sq.command();
-    cmd.args(["key", "generate", "--without-password",
-              "--expiration", "never",
-              "--userid", "<alice@example.org>",
-              "--output", &alice_pgp]);
-    cmd.assert().success();
-    let alice = Cert::from_file(&alice_pgp)?;
+    let (alice, alice_pgp, _alice_rev) = sq.key_generate(
+        &["--expiration", "never"],
+        &["<alice@example.org>"]);
+    let alice_pgp = alice_pgp.to_str().expect("valid UTF-8");
 
     let bob_userids = &[
         "<bob@some.org>",
@@ -116,76 +75,45 @@ fn sq_encrypt_recipient_userid() -> Result<()>
         "bob@other.org",
     ];
 
-    let mut cmd = sq.command();
-    cmd.args(["key", "generate", "--without-password",
-              "--expiration", "never",
-              "--output", &bob_pgp]);
-    for userid in bob_userids.iter() {
-        cmd.args(["--userid", userid]);
-    }
-    cmd.assert().success();
-    let bob = Cert::from_file(&bob_pgp)?;
+    let (bob, bob_pgp, _bob_rev) = sq.key_generate(
+        &["--expiration", "never"],
+        bob_userids);
+    let bob_pgp = bob_pgp.to_str().expect("valid UTF-8");
 
     // Import the certificates.
-    let mut cmd = sq.command();
-    cmd.args(["cert", "import", &alice_pgp]);
-    cmd.assert().success();
-
-    let mut cmd = sq.command();
-    cmd.args(["cert", "import", &bob_pgp]);
-    cmd.assert().success();
+    sq.cert_import(alice_pgp);
+    sq.cert_import(bob_pgp);
 
     const MESSAGE: &[u8] = &[0x42; 24 * 1024 + 23];
     let encrypt = |trust_roots: &[&str],
-    recipients: &[(&str, &str)],
-    decryption_keys: &[&str]|
+                   recipients: &[(&str, &str)],
+                   decryption_keys: &[&str]|
     {
-        let mut cmd = sq.command();
-        for trust_root in trust_roots {
-            cmd.args(["--trust-root", trust_root]);
-        }
-        cmd.arg("encrypt");
+        let mut args = Vec::new();
 
-        // Make a string for debugging.
-        let mut cmd_display = "sq encrypt".to_string();
+        for trust_root in trust_roots {
+            args.push("--trust-root");
+            args.push(trust_root);
+        }
 
         for (option, recipient) in recipients.iter() {
-            cmd.args([option, recipient]);
-
-            cmd_display.push_str(" ");
-            cmd_display.push_str(option);
-            cmd_display.push_str(" ");
-            cmd_display.push_str(recipient);
+            args.push(option);
+            args.push(recipient);
         }
-        cmd.write_stdin(MESSAGE);
 
-        let output = cmd.output().expect("success");
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
+        let result = sq.encrypt_maybe(&args, MESSAGE);
 
         if decryption_keys.is_empty() {
-            assert!(! output.status.success(),
-                    "'{}' should have failed\nstdout:\n{}\nstderr:\n{}",
-                    cmd_display, stdout, stderr);
+            assert!(result.is_err(), "should have failed");
         } else {
-            assert!(output.status.success(),
-                    "'{}' should have succeeded\nstdout:\n{}\nstderr:\n{}",
-                    cmd_display, stdout, stderr);
+            let ciphertext = result.expect("should have succeeded");
 
-            for key in decryption_keys.iter() {
-                let mut cmd = sq.command();
-                cmd.args(["decrypt",
-                          "--recipient-file",
-                          &key])
-                    .write_stdin(stdout.as_bytes());
+            let args = decryption_keys.iter()
+                .flat_map(|k| vec![ "--recipient-file", k ])
+                .collect::<Vec<&str>>();
+            let plaintext = sq.decrypt(&args, ciphertext);
 
-                let output = cmd.output().expect("success");
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                assert!(output.status.success(),
-                        "'{}' decryption should succeed\nstdout:\n{}\nstderr:\n{}",
-                        cmd_display, stdout, stderr);
-            }
+            assert_eq!(MESSAGE, plaintext);
         }
     };
 
@@ -209,23 +137,11 @@ fn sq_encrypt_recipient_userid() -> Result<()>
 
     // Alice certifies Bob's certificate.
     for userid in bob_certified_userids {
-        let mut cmd = sq.command();
-        cmd.args(["pki", "certify",
-                  "--certifier-file", &alice_pgp,
-                  &bob_pgp, userid]);
-
-        let output = cmd.output().expect("success");
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-
-        assert!(output.status.success(),
-                "'sq pki certify {} ...' should have succeeded\
-                 \nstdout:\n{}\nstderr:\n{}",
-                userid, stdout, stderr);
-        let mut cmd = sq.command();
-        cmd.args(["cert", "import"])
-            .write_stdin(stdout.as_bytes());
-        cmd.assert().success();
+        let certification
+            = sq.scratch_file(Some(&format!("alice-certifies-{}", userid)[..]));
+        sq.pki_certify(&[], alice_pgp, bob_pgp, userid,
+                       Some(certification.as_path()));
+        sq.cert_import(certification);
     }
 
     // Still don't use a trust root.  This should still fail.
@@ -287,84 +203,50 @@ fn sq_encrypt_recipient_userid() -> Result<()>
 fn sq_encrypt_keyring() -> Result<()>
 {
     let sq = Sq::new();
-    let dir = TempDir::new()?;
-
-    let alice_pgp = dir.path().join("alice.pgp").display().to_string();
-    let bob_pgp = dir.path().join("bob.pgp").display().to_string();
 
     // Generate the keys.
-    let mut cmd = sq.command();
-    cmd.args(["key", "generate", "--without-password",
-              "--expiration", "never",
-              "--userid", "<alice@example.org>",
-              "--output", &alice_pgp]);
-    cmd.assert().success();
-    let alice = Cert::from_file(&alice_pgp)?;
+    let (alice, alice_pgp, _alice_rev) = sq.key_generate(
+        &["--expiration", "never"],
+        &["<alice@example.org>"]);
+    let alice_pgp = alice_pgp.to_str().expect("valid UTF-8");
     let alice_fpr = alice.fingerprint().to_string();
 
-    let mut cmd = sq.command();
-    cmd.args(["key", "generate", "--without-password",
-              "--expiration", "never",
-              "--userid", "<bob@example.org>",
-              "--output", &bob_pgp]);
-    cmd.assert().success();
-    let bob = Cert::from_file(&bob_pgp)?;
-    let bob_fpr = bob.keyid().to_string();
+    let (bob, bob_pgp, _bob_rev) = sq.key_generate(
+        &["--expiration", "never"],
+        &["<bob@example.org>"]);
+    let bob_pgp = bob_pgp.to_str().expect("valid UTF-8");
+    let bob_fpr = bob.fingerprint().to_string();
 
     const MESSAGE: &[u8] = &[0x42; 24 * 1024 + 23];
     let encrypt = |keyrings: &[&str],
-    recipients: &[&str],
-    decryption_keys: &[&str]|
+                   recipients: &[&str],
+                   decryption_keys: &[&str]|
     {
-        let mut cmd = sq.command();
-
-        // Make a string for debugging.
-        let mut cmd_display = "sq".to_string();
+        let mut args = Vec::new();
 
         for keyring in keyrings.iter() {
-            cmd.args(["--keyring", keyring]);
-
-            cmd_display.push_str(" --keyring ");
-            cmd_display.push_str(keyring);
+            args.push("--keyring");
+            args.push(keyring);
         }
-
-        cmd_display.push_str(" encrypt");
-        cmd.arg("encrypt");
 
         for recipient in recipients.iter() {
-            cmd.args(["--recipient-cert", recipient]);
-
-            cmd_display.push_str(" --recipient-cert ");
-            cmd_display.push_str(recipient);
+            args.push("--recipient-cert");
+            args.push(recipient);
         }
-        cmd.write_stdin(MESSAGE);
 
-        let output = cmd.output().expect("success");
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
+        let result = sq.encrypt_maybe(&args, MESSAGE);
 
-        if decryption_keys.is_empty() {
-            assert!(! output.status.success(),
-                    "'{}' should have failed\nstdout:\n{}\nstderr:\n{}",
-                    cmd_display, stdout, stderr);
-        } else {
-            assert!(output.status.success(),
-                    "'{}' should have succeeded\nstdout:\n{}\nstderr:\n{}",
-                    cmd_display, stdout, stderr);
-
-            for key in decryption_keys.iter() {
-                let mut cmd = sq.command();
-                cmd.args(["decrypt",
-                          "--recipient-file",
-                          &key])
-                    .write_stdin(stdout.as_bytes());
-
-                let output = cmd.output().expect("success");
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                assert!(output.status.success(),
-                        "'{}' decryption should succeed\nstdout:\n{}\nstderr:\n{}",
-                        cmd_display, stdout, stderr);
+        match result {
+            Err(err) => {
+                assert!(decryption_keys.is_empty(),
+                        "Error encrypting message: {}", err);
+            }
+            Ok(ciphertext) => {
+                for key in decryption_keys.iter() {
+                    let plaintext
+                        = sq.decrypt(&["--recipient-file", &key], &ciphertext);
+                    assert_eq!(MESSAGE, plaintext);
+                }
             }
         }
     };
@@ -374,14 +256,7 @@ fn sq_encrypt_keyring() -> Result<()>
             &[&alice_pgp, &bob_pgp]);
 
     // Import Alice's certificate.
-    let mut cmd = sq.command();
-    cmd.args(["cert", "import", &alice_pgp]);
-    let output = cmd.output().expect("success");
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(output.status.success(),
-            "sq import should succeed\nstdout:\n{}\nstderr:\n{}",
-            stdout, stderr);
+    sq.cert_import(&alice_pgp);
 
     encrypt(&[&alice_pgp, &bob_pgp],
             &[&alice_fpr, &bob_fpr],

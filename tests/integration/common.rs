@@ -379,6 +379,60 @@ impl Sq {
         output
     }
 
+    /// Decrypts a message.
+    pub fn decrypt<M>(&self, args: &[&str], msg: M) -> Vec<u8>
+    where M: AsRef<[u8]>,
+    {
+        self.decrypt_maybe(args, msg).expect("can decrypt")
+    }
+
+    /// Decrypts a message.
+    pub fn decrypt_maybe<M>(&self, args: &[&str], msg: M) -> Result<Vec<u8>>
+    where M: AsRef<[u8]>,
+    {
+        let mut cmd = self.command();
+        cmd.args([ "decrypt" ]);
+        for arg in args {
+            cmd.arg(arg);
+        }
+        cmd.write_stdin(msg.as_ref());
+        let output = self.run(cmd, None);
+
+        if output.status.success() {
+            Ok(output.stdout.to_vec())
+        } else {
+            Err(anyhow::anyhow!("sq decrypt returned an error"))
+        }
+    }
+
+    /// Encrypts a message.
+    pub fn encrypt<A, M>(&self, args: &[A], msg: M) -> Vec<u8>
+    where A: AsRef<str>,
+          M: AsRef<[u8]>,
+    {
+        self.encrypt_maybe(args, msg).expect("can encrypt")
+    }
+
+    /// Encrypts a message.
+    pub fn encrypt_maybe<A, M>(&self, args: &[A], msg: M) -> Result<Vec<u8>>
+    where A: AsRef<str>,
+          M: AsRef<[u8]>,
+    {
+        let mut cmd = self.command();
+        cmd.args([ "encrypt" ]);
+        for arg in args {
+            cmd.arg(arg.as_ref());
+        }
+        cmd.write_stdin(msg.as_ref());
+        let output = self.run(cmd, None);
+
+        if output.status.success() {
+            Ok(output.stdout.to_vec())
+        } else {
+            Err(anyhow::anyhow!("sq encrypt returned an error"))
+        }
+    }
+
     /// Generates a new key.
     ///
     /// The certificate is not imported into the cert store or key

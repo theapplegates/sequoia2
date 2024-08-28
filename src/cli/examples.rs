@@ -162,6 +162,7 @@ macro_rules! test_examples {
                 .expect(&format!("Copying {:?} to {:?}",
                                  fixtures, &tmp_dir));
 
+            let home = tmp_dir.path().join("home");
             let cert_store = tmp_dir.path().join("cert-store");
             let key_store = tmp_dir.path().join("key-store");
 
@@ -176,6 +177,7 @@ macro_rules! test_examples {
 
                 Command::cargo_bin(command[0]).unwrap()
                     .current_dir(&tmp_dir)
+                    .env("SEQUOIA_HOME", &home)
                     .env("SQ_CERT_STORE", &cert_store)
                     .env("SQ_KEY_STORE", &key_store)
                     .args(&command[1..])

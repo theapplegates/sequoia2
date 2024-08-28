@@ -247,7 +247,7 @@ Canonical user IDs are of the form `Name (Comment) \
     #[clap(
         long = "cipher-suite",
         value_name = "CIPHER-SUITE",
-        default_value_t = CipherSuite::Cv25519,
+        default_value_t = Default::default(),
         help = "Select the cryptographic algorithms for the key",
         value_enum,
     )]
@@ -357,10 +357,11 @@ If `--output` is `-`, then this option must be provided.",
     pub rev_cert: Option<PathBuf>
 }
 
-#[derive(ValueEnum, Clone, Debug)]
+#[derive(ValueEnum, Clone, Debug, Default)]
 pub enum CipherSuite {
     Rsa3k,
     Rsa4k,
+    #[default]
     Cv25519
 }
 

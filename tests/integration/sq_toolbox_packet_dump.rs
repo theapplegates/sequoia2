@@ -1,18 +1,16 @@
-#[cfg(test)]
-mod sq_toolbox_packet_dump {
-    use assert_cmd::Command;
-    use predicates::prelude::*;
+use assert_cmd::Command;
+use predicates::prelude::*;
 
-    use openpgp::Result;
-    use sequoia_openpgp as openpgp;
+use openpgp::Result;
+use sequoia_openpgp as openpgp;
 
-    fn artifact(filename: &str) -> String {
-        format!("tests/data/{}", filename)
-    }
+fn artifact(filename: &str) -> String {
+    format!("tests/data/{}", filename)
+}
 
-    #[test]
-    fn session_key_without_prefix() -> Result<()> {
-        Command::cargo_bin("sq")
+#[test]
+fn session_key_without_prefix() -> Result<()> {
+    Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
         .arg("--no-key-store")
@@ -24,12 +22,12 @@ mod sq_toolbox_packet_dump {
         .assert()
         .success()
         .stdout(predicate::str::contains("Decryption failed").not());
-        Ok(())
-    }
+    Ok(())
+}
 
-    #[test]
-    fn session_key_with_prefix() -> Result<()> {
-        Command::cargo_bin("sq")
+#[test]
+fn session_key_with_prefix() -> Result<()> {
+    Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
         .arg("--no-key-store")
@@ -41,12 +39,12 @@ mod sq_toolbox_packet_dump {
         .assert()
         .success()
         .stdout(predicate::str::contains("Decryption failed").not());
-        Ok(())
-    }
+    Ok(())
+}
 
-    #[test]
-    fn session_key_with_bad_prefix() -> Result<()> {
-        Command::cargo_bin("sq")
+#[test]
+fn session_key_with_bad_prefix() -> Result<()> {
+    Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
         .arg("--no-key-store")
@@ -59,13 +57,13 @@ mod sq_toolbox_packet_dump {
         .success()
         .stdout(predicate::str::contains("Indicated Symmetric algo: IDEA"))
         .stdout(predicate::str::contains("Decryption failed"));
-        Ok(())
-    }
+    Ok(())
+}
 
-    #[test]
-    fn session_key_wrong_length_without_prefix() -> Result<()> {
-        // too short
-        Command::cargo_bin("sq")
+#[test]
+fn session_key_wrong_length_without_prefix() -> Result<()> {
+    // too short
+    Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
         .arg("--no-key-store")
@@ -78,8 +76,8 @@ mod sq_toolbox_packet_dump {
         .success()
         .stdout(predicate::str::contains("Decryption failed"));
 
-        // too long
-        Command::cargo_bin("sq")
+    // too long
+    Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
         .arg("--no-key-store")
@@ -91,13 +89,13 @@ mod sq_toolbox_packet_dump {
         .assert()
         .success()
         .stdout(predicate::str::contains("Decryption failed"));
-        Ok(())
-    }
+    Ok(())
+}
 
-    #[test]
-    fn session_key_wrong_length_with_prefix() -> Result<()> {
-        // too short
-        Command::cargo_bin("sq")
+#[test]
+fn session_key_wrong_length_with_prefix() -> Result<()> {
+    // too short
+    Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
         .arg("--no-key-store")
@@ -110,8 +108,8 @@ mod sq_toolbox_packet_dump {
         .success()
         .stdout(predicate::str::contains("Decryption failed"));
 
-        // too long
-        Command::cargo_bin("sq")
+    // too long
+    Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
         .arg("--no-key-store")
@@ -123,12 +121,12 @@ mod sq_toolbox_packet_dump {
         .assert()
         .success()
         .stdout(predicate::str::contains("Decryption failed"));
-        Ok(())
-    }
+    Ok(())
+}
 
-    #[test]
-    fn session_key_wrong_key_with_prefix() -> Result<()> {
-        Command::cargo_bin("sq")
+#[test]
+fn session_key_wrong_key_with_prefix() -> Result<()> {
+    Command::cargo_bin("sq")
         .unwrap()
         .arg("--no-cert-store")
         .arg("--no-key-store")
@@ -140,6 +138,5 @@ mod sq_toolbox_packet_dump {
         .assert()
         .success()
         .stdout(predicate::str::contains("Decryption failed"));
-        Ok(())
-    }
+    Ok(())
 }

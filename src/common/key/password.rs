@@ -37,7 +37,7 @@ pub fn password(sq: Sq,
             } else if let Some(path) = new_password_file.as_ref() {
                 Some(Some(std::fs::read(path)?.into()))
             } else {
-                Some(common::password::prompt_for_new_or_none("key")?)
+                Some(common::password::prompt_for_new_or_none(&sq, "key")?)
             };
         }
 
@@ -73,7 +73,7 @@ pub fn password(sq: Sq,
                         }
 
                         loop {
-                            let p = password::prompt_to_unlock(&format!(
+                            let p = password::prompt_to_unlock(&sq, &format!(
                                 "{}/{}, {}",
                                 cert.keyid(), key.keyid(), uid))?;
 

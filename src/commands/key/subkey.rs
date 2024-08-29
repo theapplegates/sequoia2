@@ -273,7 +273,8 @@ fn subkey_add(
                 if command.without_password {
                     (key, None)
                 } else {
-                    (key, common::password::prompt_for_new_or_none("subkey")?)
+                    (key, common::password::prompt_for_new_or_none(
+                        &sq, "subkey")?)
                 }
             }
             Err(error) => {

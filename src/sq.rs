@@ -82,6 +82,10 @@ pub struct Sq<'store, 'rstore>
 {
     pub verbose: bool,
     pub force: bool,
+
+    /// Prevent any kind of interactive prompting.
+    pub batch: bool,
+
     pub output_format: OutputFormat,
     pub output_version: Option<OutputVersion>,
     pub policy: &'rstore P<'rstore>,
@@ -1174,9 +1178,9 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 loop {
                     // Prompt the user.
                     let result = if allow_skipping {
-                        password::prompt_to_unlock_or_cancel(&prompt)
+                        password::prompt_to_unlock_or_cancel(self, &prompt)
                     } else {
-                        password::prompt_to_unlock(&prompt).map(Some)
+                        password::prompt_to_unlock(self, &prompt).map(Some)
                     };
                     match result {
                         Ok(None) => break, // Give up.
@@ -1271,7 +1275,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                         }
 
                         loop {
-                            let p = password::prompt_to_unlock(&format!(
+                            let p = password::prompt_to_unlock(self, &format!(
                                 "{}/{}, {}",
                                 ka.cert().keyid(), ka.keyid(), uid))?;
 

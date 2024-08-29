@@ -381,7 +381,8 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
         // Finally, try to decrypt using the SKESKs.
         let mut first = true;
         loop {
-            let password = password::prompt_to_unlock("the message")?;
+            let password = password::prompt_to_unlock(
+                self.vhelper.sq, "the message")?;
 
             for skesk in skesks {
                 if let Some(sk) = skesk.decrypt(&password).ok()

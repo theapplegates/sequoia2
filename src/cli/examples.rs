@@ -180,6 +180,7 @@ macro_rules! test_examples {
                     .env("SEQUOIA_HOME", &home)
                     .env("SQ_CERT_STORE", &cert_store)
                     .env("SQ_KEY_STORE", &key_store)
+                    .arg("--batch")
                     .args(&command[1..])
                     .assert()
                     .success();

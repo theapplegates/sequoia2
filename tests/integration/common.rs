@@ -264,6 +264,7 @@ impl Sq {
     pub fn command(&self) -> Command {
         let mut cmd = Command::cargo_bin("sq")
             .expect("can run sq");
+        cmd.arg("--batch");
         cmd.arg("--home").arg(self.home());
         cmd.arg("--time").arg(&self.now_as_string());
 

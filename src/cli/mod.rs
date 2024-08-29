@@ -474,6 +474,21 @@ any surrounding whitespace like a trailing newline.",
         help = "Be more verbose.",
     )]
     pub verbose: bool,
+
+    #[clap(
+        long = "batch",
+        global = true,
+        help_heading = GLOBAL_OPTIONS_HEADER,
+        help = "Prevents any kind of prompting",
+        long_help = "\
+Prevents any kind of prompting
+
+Enables batch mode.  In batch mode, sq will never ask for user input,
+such as prompting for passwords.
+",
+    )]
+    pub batch: bool,
+
     #[clap(subcommand)]
     pub subcommand: SqSubcommands,
 }

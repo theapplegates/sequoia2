@@ -109,6 +109,7 @@ pub fn encrypt<'a, 'b: 'a>(
     for n in 0..npasswords {
         let nprompt;
         let password = password::prompt_for_new(
+            sq,
             if npasswords > 1 {
                 nprompt = format!("message (password {})", n + 1);
                 &nprompt

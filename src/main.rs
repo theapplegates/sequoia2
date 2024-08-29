@@ -305,6 +305,7 @@ fn main() -> Result<()> {
     let sq = Sq {
         verbose: c.verbose,
         force,
+        batch: c.batch,
         output_format: c.output_format,
         output_version,
         policy: &policy,

@@ -323,7 +323,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                         0 => "checksum".into(),
                         n => format!("level {} notarizing checksum", n),
                     };
-                    wprintln!("No key to check {} from {}", what, issuer);
+                    wprintln!("No cert to check {} from {}", what, issuer);
                     wprintln!("Consider running `sq network fetch {}`.", issuer);
                     self.unknown_checksums += 1;
                     continue;

@@ -1054,7 +1054,7 @@ fn sq_sign_using_cert_store() -> Result<()> {
     assert!(! output.status.success(),
             "stdout:\n{}\nstderr: {}", stdout, stderr);
 
-    assert!(stderr.contains("No key to check checksum from "),
+    assert!(stderr.contains("No cert to check checksum from "),
             "stdout:\n{}\nstderr: {}", stdout, stderr);
     assert!(stderr.contains("Error: Verification failed"),
             "stdout:\n{}\nstderr: {}", stdout, stderr);

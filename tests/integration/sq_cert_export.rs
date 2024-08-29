@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 use std::ops::Deref;
 
-use assert_cmd::Command;
 use tempfile::TempDir;
 
 use sequoia_openpgp as openpgp;
@@ -10,13 +9,13 @@ use openpgp::Result;
 use openpgp::cert::prelude::*;
 use openpgp::parse::Parse;
 
+use super::common::Sq;
+
 #[test]
 fn sq_cert_export() -> Result<()>
 {
+    let sq = Sq::new();
     let dir = TempDir::new()?;
-
-    let certd = dir.path().join("cert.d").display().to_string();
-    std::fs::create_dir(&certd).expect("mkdir works");
 
     struct Data {
         userids: &'static [&'static str],
@@ -55,9 +54,8 @@ fn sq_cert_export() -> Result<()>
     for data in data.iter_mut() {
         eprintln!("Generating key for {}",
                   data.userids.join(", "));
-        let mut cmd = Command::cargo_bin("sq")?;
-        cmd.args(["--cert-store", &certd,
-                  "key", "generate", "--without-password",
+        let mut cmd = sq.command();
+        cmd.args(["key", "generate", "--without-password",
                   "--expiration", "never",
                   "--output", &data.filename]);
         for userid in data.userids.iter() {
@@ -73,9 +71,8 @@ fn sq_cert_export() -> Result<()>
 
         data.cert = Some(cert);
 
-        let mut cmd = Command::cargo_bin("sq")?;
-        cmd.args(["--cert-store", &certd,
-                  "cert", "import",
+        let mut cmd = sq.command();
+        cmd.args(["cert", "import",
                   &data.filename]);
         cmd.assert().success();
     }
@@ -124,9 +121,8 @@ fn sq_cert_export() -> Result<()>
 
     // args: --cert|--userid|... pattern
     let call = |args: &[&str], success: bool, data: &[&Data]| {
-        let mut cmd = Command::cargo_bin("sq").unwrap();
-        cmd.args(["--cert-store", &certd,
-                  "cert", "export"]);
+        let mut cmd = sq.command();
+        cmd.args(["cert", "export"]);
         cmd.args(args);
 
         let args = args.iter()

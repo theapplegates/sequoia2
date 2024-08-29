@@ -1,18 +1,17 @@
 use tempfile::TempDir;
-use assert_cmd::Command;
 
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
 use openpgp::cert::prelude::*;
 use openpgp::parse::Parse;
 
+use super::common::Sq;
+
 #[test]
 fn sq_cert_import() -> Result<()>
 {
+    let sq = Sq::new();
     let dir = TempDir::new()?;
-
-    let certd = dir.path().join("cert.d").display().to_string();
-    std::fs::create_dir(&certd).expect("mkdir works");
 
     let alice_pgp = dir.path().join("alice.pgp").display().to_string();
     let alice_pgp = &alice_pgp[..];
@@ -22,9 +21,8 @@ fn sq_cert_import() -> Result<()>
     let carol_pgp = &carol_pgp[..];
 
     // Generate keys.
-    let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["--cert-store", &certd,
-              "key", "generate", "--without-password",
+    let mut cmd = sq.command();
+    cmd.args(["key", "generate", "--without-password",
               "--expiration", "never",
               "--userid", "<alice@example.org>",
               "--output", &alice_pgp]);
@@ -32,17 +30,15 @@ fn sq_cert_import() -> Result<()>
 
     let alice_bytes = std::fs::read(&alice_pgp)?;
 
-    let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["--cert-store", &certd,
-              "key", "generate", "--without-password",
+    let mut cmd = sq.command();
+    cmd.args(["key", "generate", "--without-password",
               "--expiration", "never",
               "--userid", "<bob@example.org>",
               "--output", bob_pgp]);
     cmd.assert().success();
 
-    let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["--cert-store", &certd,
-              "key", "generate", "--without-password",
+    let mut cmd = sq.command();
+    cmd.args(["key", "generate", "--without-password",
               "--expiration", "never",
               "--userid", "<carol@example.org>",
               "--output", carol_pgp]);
@@ -53,12 +49,11 @@ fn sq_cert_import() -> Result<()>
     let check = |files: &[&str], stdin: Option<&[u8]>, expected: usize|
     {
         // Use a fresh certd.
-        let dir = TempDir::new().unwrap();
-        let certd = dir.path().join("cert.d").display().to_string();
+        let sq = Sq::new();
 
         // Import.
-        let mut cmd = Command::cargo_bin("sq").unwrap();
-        cmd.args(["--cert-store", &certd, "cert", "import"]);
+        let mut cmd = sq.command();
+        cmd.args(["cert", "import"]);
         cmd.args(files);
         if let Some(stdin) = stdin {
             cmd.write_stdin(stdin);
@@ -70,8 +65,8 @@ fn sq_cert_import() -> Result<()>
 
 
         // Export.
-        let mut cmd = Command::cargo_bin("sq").unwrap();
-        cmd.args(["--cert-store", &certd, "cert", "export", "--all"]);
+        let mut cmd = sq.command();
+        cmd.args(["cert", "export", "--all"]);
 
         eprintln!("sq cert export...");
 

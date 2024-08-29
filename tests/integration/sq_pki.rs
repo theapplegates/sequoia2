@@ -4,7 +4,6 @@ use std::fmt::Result as FMTResult;
 use std::path;
 use std::time;
 
-use assert_cmd::Command;
 use predicates::prelude::*;
 use regex::bytes::Regex;
 
@@ -13,6 +12,8 @@ use sequoia_openpgp as openpgp;
 use openpgp::Fingerprint;
 use openpgp::Result;
 use openpgp::packet::UserID;
+
+use super::common::Sq;
 
 const HR_OK: &'static str = "[✓]";
 const HR_NOT_OK: &'static str = "[ ]";
@@ -91,13 +92,12 @@ fn test<'a, R>(
 where
     R: Into<Option<&'a Fingerprint>>,
 {
+    let sq = Sq::new();
     let trust_root = trust_root.into();
 
     for outputformat in OutputFormat::iterator() {
-        let mut cmd = Command::cargo_bin("sq")?;
+        let mut cmd = sq.command();
         cmd.current_dir(&dir())
-            .arg("--no-cert-store")
-            .arg("--no-key-store")
             .args(&["--output-format", &format!("{}", outputformat)])
             .args(&["--keyring", keyring]);
         if let Some(trust_root) = trust_root {

@@ -1,8 +1,9 @@
-use assert_cmd::Command;
 use predicates::prelude::*;
 
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
+
+use super::common::Sq;
 
 fn artifact(filename: &str) -> String {
     format!("tests/data/{}", filename)
@@ -10,10 +11,8 @@ fn artifact(filename: &str) -> String {
 
 #[test]
 fn session_key_without_prefix() -> Result<()> {
-    Command::cargo_bin("sq")
-        .unwrap()
-        .arg("--no-cert-store")
-        .arg("--no-key-store")
+    let sq = Sq::new();
+    sq.command()
         .arg("toolbox")
         .arg("packet")
         .arg("dump")
@@ -27,10 +26,8 @@ fn session_key_without_prefix() -> Result<()> {
 
 #[test]
 fn session_key_with_prefix() -> Result<()> {
-    Command::cargo_bin("sq")
-        .unwrap()
-        .arg("--no-cert-store")
-        .arg("--no-key-store")
+    let sq = Sq::new();
+    sq.command()
         .arg("toolbox")
         .arg("packet")
         .arg("dump")
@@ -44,10 +41,8 @@ fn session_key_with_prefix() -> Result<()> {
 
 #[test]
 fn session_key_with_bad_prefix() -> Result<()> {
-    Command::cargo_bin("sq")
-        .unwrap()
-        .arg("--no-cert-store")
-        .arg("--no-key-store")
+    let sq = Sq::new();
+    sq.command()
         .arg("toolbox")
         .arg("packet")
         .arg("dump")
@@ -63,10 +58,8 @@ fn session_key_with_bad_prefix() -> Result<()> {
 #[test]
 fn session_key_wrong_length_without_prefix() -> Result<()> {
     // too short
-    Command::cargo_bin("sq")
-        .unwrap()
-        .arg("--no-cert-store")
-        .arg("--no-key-store")
+    let sq = Sq::new();
+    sq.command()
         .arg("toolbox")
         .arg("packet")
         .arg("dump")
@@ -77,10 +70,8 @@ fn session_key_wrong_length_without_prefix() -> Result<()> {
         .stdout(predicate::str::contains("Decryption failed"));
 
     // too long
-    Command::cargo_bin("sq")
-        .unwrap()
-        .arg("--no-cert-store")
-        .arg("--no-key-store")
+    let sq = Sq::new();
+    sq.command()
         .arg("toolbox")
         .arg("packet")
         .arg("dump")
@@ -95,10 +86,8 @@ fn session_key_wrong_length_without_prefix() -> Result<()> {
 #[test]
 fn session_key_wrong_length_with_prefix() -> Result<()> {
     // too short
-    Command::cargo_bin("sq")
-        .unwrap()
-        .arg("--no-cert-store")
-        .arg("--no-key-store")
+    let sq = Sq::new();
+    sq.command()
         .arg("toolbox")
         .arg("packet")
         .arg("dump")
@@ -109,10 +98,8 @@ fn session_key_wrong_length_with_prefix() -> Result<()> {
         .stdout(predicate::str::contains("Decryption failed"));
 
     // too long
-    Command::cargo_bin("sq")
-        .unwrap()
-        .arg("--no-cert-store")
-        .arg("--no-key-store")
+    let sq = Sq::new();
+    sq.command()
         .arg("toolbox")
         .arg("packet")
         .arg("dump")
@@ -126,10 +113,8 @@ fn session_key_wrong_length_with_prefix() -> Result<()> {
 
 #[test]
 fn session_key_wrong_key_with_prefix() -> Result<()> {
-    Command::cargo_bin("sq")
-        .unwrap()
-        .arg("--no-cert-store")
-        .arg("--no-key-store")
+    let sq = Sq::new();
+    sq.command()
         .arg("toolbox")
         .arg("packet")
         .arg("dump")

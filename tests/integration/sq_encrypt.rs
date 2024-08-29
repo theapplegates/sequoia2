@@ -1,4 +1,3 @@
-use assert_cmd::Command;
 use tempfile::TempDir;
 
 use sequoia_openpgp as openpgp;
@@ -7,19 +6,19 @@ use openpgp::Result;
 use openpgp::cert::prelude::*;
 use openpgp::parse::Parse;
 
+use super::common::Sq;
+
 #[test]
 fn sq_encrypt_using_cert_store() -> Result<()>
 {
+    let sq = Sq::new();
     let dir = TempDir::new()?;
 
-    let certd = dir.path().join("cert.d").display().to_string();
-    std::fs::create_dir(&certd).expect("mkdir works");
     let key_pgp = dir.path().join("key.pgp").display().to_string();
 
     // Generate a key.
-    let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["--cert-store", &certd,
-              "key", "generate", "--without-password",
+    let mut cmd = sq.command();
+    cmd.args(["key", "generate", "--without-password",
               "--expiration", "never",
               "--userid", "<alice@example.org>",
               "--output", &key_pgp]);
@@ -32,9 +31,8 @@ fn sq_encrypt_using_cert_store() -> Result<()>
     for kh in cert.keys().map(|ka| KeyHandle::from(ka.fingerprint()))
         .chain(cert.keys().map(|ka| KeyHandle::from(ka.keyid())))
     {
-        let mut cmd = Command::cargo_bin("sq")?;
-        cmd.args(["--cert-store", &certd,
-                  "encrypt",
+        let mut cmd = sq.command();
+        cmd.args(["encrypt",
                   "--recipient-cert",
                   &kh.to_string()])
             .write_stdin("a secret message")
@@ -42,9 +40,8 @@ fn sq_encrypt_using_cert_store() -> Result<()>
     }
 
     // Import the key.
-    let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["--cert-store", &certd,
-              "cert", "import", &key_pgp]);
+    let mut cmd = sq.command();
+    cmd.args(["cert", "import", &key_pgp]);
     cmd.assert().success();
 
     const MESSAGE: &str = "\na secret message\n\nor two\n";
@@ -54,9 +51,8 @@ fn sq_encrypt_using_cert_store() -> Result<()>
     for kh in cert.keys().map(|ka| KeyHandle::from(ka.fingerprint()))
         .chain(cert.keys().map(|ka| KeyHandle::from(ka.keyid())))
     {
-        let mut cmd = Command::cargo_bin("sq")?;
-        cmd.args(["--cert-store", &certd,
-                  "encrypt",
+        let mut cmd = sq.command();
+        cmd.args(["encrypt",
                   "--recipient-cert",
                   &kh.to_string()])
             .write_stdin(MESSAGE);
@@ -68,7 +64,7 @@ fn sq_encrypt_using_cert_store() -> Result<()>
                 "encryption succeeds for {}\nstdout:\n{}\nstderr:\n{}",
                 kh, stdout, stderr);
 
-        let mut cmd = Command::cargo_bin("sq")?;
+        let mut cmd = sq.command();
         cmd.args(["decrypt",
                   "--recipient-file",
                   &key_pgp])
@@ -88,18 +84,15 @@ fn sq_encrypt_using_cert_store() -> Result<()>
 #[test]
 fn sq_encrypt_recipient_userid() -> Result<()>
 {
+    let sq = Sq::new();
     let dir = TempDir::new()?;
-
-    let certd = dir.path().join("cert.d").display().to_string();
-    std::fs::create_dir(&certd).expect("mkdir works");
 
     let alice_pgp = dir.path().join("alice.pgp").display().to_string();
     let bob_pgp = dir.path().join("bob.pgp").display().to_string();
 
     // Generate the keys.
-    let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["--cert-store", &certd,
-              "key", "generate", "--without-password",
+    let mut cmd = sq.command();
+    cmd.args(["key", "generate", "--without-password",
               "--expiration", "never",
               "--userid", "<alice@example.org>",
               "--output", &alice_pgp]);
@@ -123,9 +116,8 @@ fn sq_encrypt_recipient_userid() -> Result<()>
         "bob@other.org",
     ];
 
-    let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["--cert-store", &certd,
-              "key", "generate", "--without-password",
+    let mut cmd = sq.command();
+    cmd.args(["key", "generate", "--without-password",
               "--expiration", "never",
               "--output", &bob_pgp]);
     for userid in bob_userids.iter() {
@@ -135,14 +127,12 @@ fn sq_encrypt_recipient_userid() -> Result<()>
     let bob = Cert::from_file(&bob_pgp)?;
 
     // Import the certificates.
-    let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["--cert-store", &certd,
-              "cert", "import", &alice_pgp]);
+    let mut cmd = sq.command();
+    cmd.args(["cert", "import", &alice_pgp]);
     cmd.assert().success();
 
-    let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["--cert-store", &certd,
-              "cert", "import", &bob_pgp]);
+    let mut cmd = sq.command();
+    cmd.args(["cert", "import", &bob_pgp]);
     cmd.assert().success();
 
     const MESSAGE: &[u8] = &[0x42; 24 * 1024 + 23];
@@ -150,8 +140,7 @@ fn sq_encrypt_recipient_userid() -> Result<()>
     recipients: &[(&str, &str)],
     decryption_keys: &[&str]|
     {
-        let mut cmd = Command::cargo_bin("sq").unwrap();
-        cmd.args(["--cert-store", &certd]);
+        let mut cmd = sq.command();
         for trust_root in trust_roots {
             cmd.args(["--trust-root", trust_root]);
         }
@@ -184,10 +173,8 @@ fn sq_encrypt_recipient_userid() -> Result<()>
                     cmd_display, stdout, stderr);
 
             for key in decryption_keys.iter() {
-                let mut cmd = Command::cargo_bin("sq").unwrap();
-                cmd.args(["--no-cert-store",
-                          "--no-key-store",
-                          "decrypt",
+                let mut cmd = sq.command();
+                cmd.args(["decrypt",
                           "--recipient-file",
                           &key])
                     .write_stdin(stdout.as_bytes());
@@ -222,9 +209,8 @@ fn sq_encrypt_recipient_userid() -> Result<()>
 
     // Alice certifies Bob's certificate.
     for userid in bob_certified_userids {
-        let mut cmd = Command::cargo_bin("sq")?;
-        cmd.args(["--cert-store", &certd,
-                  "pki", "certify",
+        let mut cmd = sq.command();
+        cmd.args(["pki", "certify",
                   "--certifier-file", &alice_pgp,
                   &bob_pgp, userid]);
 
@@ -236,9 +222,8 @@ fn sq_encrypt_recipient_userid() -> Result<()>
                 "'sq pki certify {} ...' should have succeeded\
                  \nstdout:\n{}\nstderr:\n{}",
                 userid, stdout, stderr);
-        let mut cmd = Command::cargo_bin("sq")?;
-        cmd.args(["--cert-store", &certd,
-                  "cert", "import"])
+        let mut cmd = sq.command();
+        cmd.args(["cert", "import"])
             .write_stdin(stdout.as_bytes());
         cmd.assert().success();
     }
@@ -301,18 +286,15 @@ fn sq_encrypt_recipient_userid() -> Result<()>
 #[test]
 fn sq_encrypt_keyring() -> Result<()>
 {
+    let sq = Sq::new();
     let dir = TempDir::new()?;
-
-    let certd = dir.path().join("cert.d").display().to_string();
-    std::fs::create_dir(&certd).expect("mkdir works");
 
     let alice_pgp = dir.path().join("alice.pgp").display().to_string();
     let bob_pgp = dir.path().join("bob.pgp").display().to_string();
 
     // Generate the keys.
-    let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["--cert-store", &certd,
-              "key", "generate", "--without-password",
+    let mut cmd = sq.command();
+    cmd.args(["key", "generate", "--without-password",
               "--expiration", "never",
               "--userid", "<alice@example.org>",
               "--output", &alice_pgp]);
@@ -320,9 +302,8 @@ fn sq_encrypt_keyring() -> Result<()>
     let alice = Cert::from_file(&alice_pgp)?;
     let alice_fpr = alice.fingerprint().to_string();
 
-    let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["--cert-store", &certd,
-              "key", "generate", "--without-password",
+    let mut cmd = sq.command();
+    cmd.args(["key", "generate", "--without-password",
               "--expiration", "never",
               "--userid", "<bob@example.org>",
               "--output", &bob_pgp]);
@@ -335,8 +316,7 @@ fn sq_encrypt_keyring() -> Result<()>
     recipients: &[&str],
     decryption_keys: &[&str]|
     {
-        let mut cmd = Command::cargo_bin("sq").unwrap();
-        cmd.args(["--cert-store", &certd]);
+        let mut cmd = sq.command();
 
         // Make a string for debugging.
         let mut cmd_display = "sq".to_string();
@@ -373,10 +353,8 @@ fn sq_encrypt_keyring() -> Result<()>
                     cmd_display, stdout, stderr);
 
             for key in decryption_keys.iter() {
-                let mut cmd = Command::cargo_bin("sq").unwrap();
-                cmd.args(["--no-cert-store",
-                          "--no-key-store",
-                          "decrypt",
+                let mut cmd = sq.command();
+                cmd.args(["decrypt",
                           "--recipient-file",
                           &key])
                     .write_stdin(stdout.as_bytes());
@@ -396,9 +374,8 @@ fn sq_encrypt_keyring() -> Result<()>
             &[&alice_pgp, &bob_pgp]);
 
     // Import Alice's certificate.
-    let mut cmd = Command::cargo_bin("sq")?;
-    cmd.args(["--cert-store", &certd,
-              "cert", "import", &alice_pgp]);
+    let mut cmd = sq.command();
+    cmd.args(["cert", "import", &alice_pgp]);
     let output = cmd.output().expect("success");
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);

@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use std::borrow::Borrow;
 use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::fs::File;
@@ -156,6 +157,7 @@ impl FileOrKeyHandle {
 pub struct Sq {
     base: TempDir,
     home: PathBuf,
+    certd: PathBuf,
     now: std::time::SystemTime,
     scratch: AtomicUsize,
 }
@@ -167,10 +169,12 @@ impl Sq {
         let base = TempDir::new()
             .expect("can create a temporary directory");
         let home = base.path().join("home");
+        let certd = home.join("data").join("pgp.cert.d");
 
         Sq {
             base,
             home,
+            certd,
             now,
             scratch: 0.into(),
         }
@@ -198,6 +202,11 @@ impl Sq {
     /// Returns the home directory.
     pub fn home(&self) -> &Path {
         &self.home
+    }
+
+    /// Returns the path to the cert.d.
+    pub fn certd(&self) -> &Path {
+        &self.certd
     }
 
     /// Returns the scratch directory.
@@ -916,9 +925,12 @@ impl Sq {
     }
 
     /// Exports the specified certificate.
-    pub fn cert_export(&self, kh: KeyHandle) -> Cert {
+    pub fn cert_export<H>(&self, kh: H) -> Cert
+    where
+        H: Borrow<KeyHandle>,
+    {
         let mut cmd = self.command();
-        cmd.args([ "cert", "export", "--cert", &kh.to_string() ]);
+        cmd.args([ "cert", "export", "--cert", &kh.borrow().to_string() ]);
         let output = self.run(cmd, Some(true));
 
         Cert::from_bytes(&output.stdout)

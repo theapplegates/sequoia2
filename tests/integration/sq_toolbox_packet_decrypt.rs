@@ -1,8 +1,9 @@
-use assert_cmd::Command;
 use predicates::prelude::*;
 
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
+
+use super::common::Sq;
 
 fn artifact(filename: &str) -> String {
     format!("tests/data/{}", filename)
@@ -15,10 +16,8 @@ fn artifact(filename: &str) -> String {
 // So, for now, the tests go here.
 #[test]
 fn session_key() -> Result<()> {
-    Command::cargo_bin("sq")
-        .unwrap()
-        .arg("--no-cert-store")
-        .arg("--no-key-store")
+    let sq = Sq::new();
+    sq.command()
         .arg("toolbox")
 
         .arg("packet")
@@ -33,10 +32,8 @@ fn session_key() -> Result<()> {
 
 #[test]
 fn session_key_with_prefix() -> Result<()> {
-    Command::cargo_bin("sq")
-        .unwrap()
-        .arg("--no-cert-store")
-        .arg("--no-key-store")
+    let sq = Sq::new();
+    sq.command()
         .arg("toolbox")
 
         .arg("packet")
@@ -51,10 +48,8 @@ fn session_key_with_prefix() -> Result<()> {
 
 #[test]
 fn session_key_multiple() -> Result<()> {
-    Command::cargo_bin("sq")
-        .unwrap()
-        .arg("--no-cert-store")
-        .arg("--no-key-store")
+    let sq = Sq::new();
+    sq.command()
         .arg("toolbox")
 
         .arg("packet")
@@ -71,10 +66,8 @@ fn session_key_multiple() -> Result<()> {
 
 #[test]
 fn session_key_wrong_key() -> Result<()> {
-    Command::cargo_bin("sq")
-        .unwrap()
-        .arg("--no-cert-store")
-        .arg("--no-key-store")
+    let sq = Sq::new();
+    sq.command()
         .arg("toolbox")
 
         .arg("packet")

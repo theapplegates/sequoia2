@@ -1,9 +1,6 @@
 use std::path;
 
-use assert_cmd::Command;
 use predicates::prelude::*;
-
-use tempfile::TempDir;
 
 use sequoia_openpgp as openpgp;
 
@@ -11,49 +8,13 @@ use openpgp::Cert;
 use openpgp::Packet;
 use openpgp::parse::Parse;
 
+use super::common::Sq;
+
 fn dir() -> path::PathBuf {
     path::Path::new("tests").join("data").join("cert-lint")
 }
 
 const FROZEN_TIME: &str = "20220101";
-
-/// Returns an assert_cmd::Command for sq with the console detached.
-#[cfg(unix)]
-fn sq() -> Command {
-    use std::os::fd::AsRawFd;
-    use std::os::unix::process::CommandExt;
-    use libc::{TIOCNOTTY, ioctl};
-
-    let mut c =
-        std::process::Command::new(assert_cmd::cargo::cargo_bin("sq"));
-    unsafe {
-        c.pre_exec(|| {
-            // Best-effort, ignores errors.
-            if let Ok(h) = std::fs::File::open("/dev/tty") {
-                ioctl(h.as_raw_fd(), TIOCNOTTY.into());
-            } else {
-                ioctl(std::io::stdin().as_raw_fd(), TIOCNOTTY.into());
-            }
-            Ok(())
-        });
-    }
-
-    c.into()
-}
-
-/// Returns an assert_cmd::Command for sq with the console detached.
-#[cfg(windows)]
-fn sq() -> Command {
-    use std::os::windows::process::CommandExt;
-
-    let mut c =
-        std::process::Command::new(assert_cmd::cargo::cargo_bin("sq"));
-
-    const DETACHED_PROCESS: u32 = 0x00000008;
-    c.creation_flags(DETACHED_PROCESS);
-
-    c.into()
-}
 
 // passwords: one '-p' option per element.
 // required_fixes: the number of fixes (= new top-level signatures) needed.
@@ -63,6 +24,7 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
 {
     assert!(required_fixes >= expected_fixes);
 
+    let sq = Sq::new();
     let dir = dir();
     let mut suffixes = vec![ "pub" ];
     if let Some(prv) = prv {
@@ -71,9 +33,6 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
 
     for suffix in suffixes.iter() {
         for keystore in [false, true] {
-            let home = TempDir::new().unwrap();
-            let home = home.path().display().to_string();
-
             // Lint it.
             let filename = &format!("{}-{}.pgp", base, suffix);
             eprintln!("Linting {}", filename);
@@ -86,11 +45,10 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
                 if suffix == &"pub" {
                     eprintln!("Import certificate from {}", filename);
 
-                    let mut cmd = sq();
+                    let mut cmd = sq.command();
                     cmd
                         .current_dir(&dir)
                         .args([
-                            "--home", &home,
                             "cert",
                             "import",
                             &filename,
@@ -105,11 +63,10 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
                 } else {
                     eprintln!("Import key from {}", filename);
 
-                    let mut cmd = sq();
+                    let mut cmd = sq.command();
                     cmd
                         .current_dir(&dir)
                         .args([
-                            "--home", &home,
                             "key",
                             "import",
                             &filename,
@@ -124,10 +81,9 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
                 }
             }
 
-            let mut cmd = sq();
+            let mut cmd = sq.command();
             cmd
                 .current_dir(&dir)
-                .arg("--home").arg(&home)
                 .arg("cert").arg("lint")
                 .arg("--time").arg(FROZEN_TIME);
             if keystore {
@@ -166,10 +122,9 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
             eprintln!("{} expected fixes, {} required fixes",
                       expected_fixes, required_fixes);
 
-            let mut cmd = sq();
+            let mut cmd = sq.command();
             let mut cmd = cmd.current_dir(&dir)
                 .args(&[
-                    "--home", &home,
                     "cert", "lint",
                     "--time", FROZEN_TIME,
                     "--fix",
@@ -195,10 +150,9 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
                         output == b""
                     } else {
                         // Pass the result through the linter.
-                        let mut cmd = Command::cargo_bin("sq").unwrap();
+                        let mut cmd = sq.command();
                         cmd
                             .current_dir(&dir)
-                            .arg("--home").arg(&home)
                             .arg("cert").arg("lint")
                             .arg("--time").arg(FROZEN_TIME);
                         if keystore {
@@ -234,10 +188,9 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
                             .sum();
 
                         let updated_cert = if keystore {
-                            let mut cmd = sq();
+                            let mut cmd = sq.command();
                             let cmd = cmd.current_dir(&dir)
                                 .args(&[
-                                    "--home", &home,
                                     "cert", "export",
                                     "--cert", &cert.fingerprint().to_string(),
                                 ]);
@@ -524,11 +477,10 @@ fn expired_certificates() {
 
 #[test]
 fn list_keys() {
-    Command::cargo_bin("sq").unwrap()
+    let sq = Sq::new();
+    sq.command()
         .current_dir(&dir())
         .args(&[
-            "--no-cert-store",
-            "--no-key-store",
             "cert", "lint",
             "--time", FROZEN_TIME,
             "--list-keys",
@@ -545,11 +497,10 @@ fn list_keys() {
 
 #[test]
 fn signature() {
-    Command::cargo_bin("sq").unwrap()
+    let sq = Sq::new();
+    sq.command()
         .current_dir(&dir())
         .args(&[
-            "--no-cert-store",
-            "--no-key-store",
             "cert", "lint",
             "--time", FROZEN_TIME,
             "--cert-file", "msg.sig",

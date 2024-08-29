@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 
 use sequoia_openpgp as openpgp;
-use openpgp::Result;
+use openpgp::{
+    KeyHandle,
+    Result,
+};
 
 use chrono::Utc;
 use chrono::DateTime;
@@ -31,7 +34,7 @@ fn sq_autocrypt_import() -> Result<()>
     sq.run(cmd, true);
 
     // Check that the cert is imported.
-    sq.cert_export("A614C91D0392D83EE6B1C4A4DD4147FEF78AD630".parse()?);
+    sq.cert_export("A614C91D0392D83EE6B1C4A4DD4147FEF78AD630".parse::<KeyHandle>()?);
 
     // We can now partially authenticate the sender.
     let mut cmd = sq.command();

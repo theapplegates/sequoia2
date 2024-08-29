@@ -1,8 +1,9 @@
-use assert_cmd::Command;
 use predicates::prelude::*;
 
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
+
+use super::common::Sq;
 
 fn artifact(filename: &str) -> String {
     format!("tests/data/{}", filename)
@@ -15,10 +16,8 @@ fn artifact(filename: &str) -> String {
 // So, for now, the tests go here.
 #[test]
 fn session_key() -> Result<()> {
-    Command::cargo_bin("sq")
-        .unwrap()
-        .arg("--no-cert-store")
-        .arg("--no-key-store")
+    let sq = Sq::new();
+    sq.command()
         .arg("decrypt")
         .args(["--session-key", "1FE820EC21FB5D7E33D83367106D1D3747DCD48E6320C1AEC57EE7D18FC437D4"])
         .arg(artifact("messages/rsa.msg.pgp"))
@@ -30,10 +29,8 @@ fn session_key() -> Result<()> {
 
 #[test]
 fn session_key_with_prefix() -> Result<()> {
-    Command::cargo_bin("sq")
-        .unwrap()
-        .arg("--no-cert-store")
-        .arg("--no-key-store")
+    let sq = Sq::new();
+    sq.command()
         .arg("decrypt")
         .args(["--session-key", "9:1FE820EC21FB5D7E33D83367106D1D3747DCD48E6320C1AEC57EE7D18FC437D4"])
         .arg(artifact("messages/rsa.msg.pgp"))
@@ -45,10 +42,8 @@ fn session_key_with_prefix() -> Result<()> {
 
 #[test]
 fn session_key_multiple() -> Result<()> {
-    Command::cargo_bin("sq")
-        .unwrap()
-        .arg("--no-cert-store")
-        .arg("--no-key-store")
+    let sq = Sq::new();
+    sq.command()
         .arg("decrypt")
         .args(["--session-key", "2FE820EC21FB5D7E33D83367106D1D3747DCD48E6320C1AEC57EE7D18FC437D4"])
         .args(["--session-key", "9:1FE820EC21FB5D7E33D83367106D1D3747DCD48E6320C1AEC57EE7D18FC437D4"])
@@ -62,10 +57,8 @@ fn session_key_multiple() -> Result<()> {
 
 #[test]
 fn session_key_wrong_key() -> Result<()> {
-    Command::cargo_bin("sq")
-        .unwrap()
-        .arg("--no-cert-store")
-        .arg("--no-key-store")
+    let sq = Sq::new();
+    sq.command()
         .arg("decrypt")
         .args(["--session-key", "BB9CCB8EDE22DC222C83BD1C63AEB97335DDC7B696DB171BD16EAA5784CC0478"])
         .arg(artifact("messages/rsa.msg.pgp"))

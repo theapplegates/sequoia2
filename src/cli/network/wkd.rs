@@ -128,14 +128,19 @@ Publishes certificates or certificate updates in a Web Key Directory
 (WKD).  You can create or update a WKD hierarchy on the local system by
 specifying a path as destination.
 
-Typically, a WKD is stored on a web server.  If --rsync is given, this
+Typically, a WKD is stored on a web server.  If `--rsync` is given, this
 command manages remote WKD directory hierarchies by using rsync(1).
 
-To update a WKD hierarchy, it is first copied to a temporary location
-on the local machine, new certificates or certificate updates are
-inserted into the local copy, and the hierarchy is copied back to its
-original location.  As this is not an atomic operation, care must be
-taken to avoid concurrent updates.
+To insert a new certificate into the WKD, use `--cert`.
+
+Any updates for certificates already existing in the WKD are
+automatically published.
+
+Note: To update a WKD hierarchy, it is first copied to a temporary
+location on the local machine, new certificates or certificate updates
+are inserted into the local copy, and the hierarchy is copied back to
+its original location.  As this is not an atomic operation, care must
+be taken to avoid concurrent updates.
 ",
     after_help = PUBLISH_EXAMPLES,
 )]

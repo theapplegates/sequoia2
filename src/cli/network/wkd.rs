@@ -151,6 +151,7 @@ pub struct PublishCommand {
         default_missing_value = "advanced",
         num_args = 0..=1,
         help = "Create the WKD hierarchy if it does not exist yet",
+        requires = "certs",
     )]
     pub create: Option<Method>,
     #[clap(

@@ -1074,7 +1074,8 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                 } else {
                     return Err(anyhow::anyhow!("No policy file found")
                                .context("Neither direct nor advanced \
-                                         WKD detected"))
+                                         WKD detected, consider using \
+                                         --create"))
                 },
                 (true, true) =>
                     return Err(anyhow::anyhow!("Two policy files found")

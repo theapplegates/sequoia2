@@ -1064,6 +1064,15 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             let fetch = fetch.join("openpgpkey");
             let direct_policy = fetch.join("policy");
             let advanced_policy = fetch.join(&c.domain).join("policy");
+
+            if c.create.is_some() && (direct_policy.exists()
+                                      || advanced_policy.exists())
+            {
+                return Err(anyhow::anyhow!(
+                    "Cannot create WKD because {} already contains one",
+                    c.destination));
+            }
+
             let (variant, policy) = match (direct_policy.exists(),
                                            advanced_policy.exists())
             {

@@ -171,7 +171,7 @@ pub struct Command {
     pub signer_key: Vec<KeyHandle>,
 
     #[clap(
-        long = "symmetric",
+        long = "with-password",
         help = "Prompt to add a password to encrypt with",
         long_help =
             "Prompt to add a password to encrypt with.  \
@@ -186,7 +186,7 @@ pub struct Command {
     pub symmetric: u8,
 
     #[clap(
-        long = "symmetric-password-file",
+        long = "with-password-file",
         value_name = "PASSWORD_FILE",
         help = "\
 File containing password to encrypt the secret key material",

@@ -412,7 +412,7 @@ fn sq_encrypt_with_password() -> Result<()>
     let cipher_file = sq.base().join("ciphertext");
     let mut cmd = sq.command();
     cmd.args(["encrypt",
-              "--symmetric-password-file", &password_file.display().to_string(),
+              "--with-password-file", &password_file.display().to_string(),
               "--output", &cipher_file.display().to_string(),
               &plain_file.display().to_string()]);
     sq.run(cmd, Some(true));

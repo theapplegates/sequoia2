@@ -26,7 +26,7 @@ pub fn list(sq: Sq, _command: cli::key::ListCommand) -> Result<()> {
             wprintln!(initial_indent = " - ", "Backend {} has no keys.",
                       backend.id()?);
         } else {
-            wprintln!(initial_indent = " - ", "{}", backend.id()?);
+            wprintln!(initial_indent = " - ", "Backend {} has the following keys:", backend.id()?);
         }
 
         for mut device in devices {

@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-use assert_cmd::Command;
-
 use openpgp::packet::UserID;
 use openpgp::parse::Parse;
 use openpgp::types::ReasonForRevocation;
@@ -20,7 +18,6 @@ use super::common::time_as_string;
 fn sq_key_userid_revoke() -> Result<()> {
     let sq = Sq::new();
     let time = sq.now();
-    let home = sq.home().to_string_lossy();
 
     let userids = &["alice <alice@example.org>", "alice <alice@other.org>"];
     // revoke the last userid
@@ -89,24 +86,11 @@ fn sq_key_userid_revoke() -> Result<()> {
 
             if keystore {
                 // When using the keystore, we need to import the key.
-
-                let mut cmd = Command::cargo_bin("sq")?;
-                cmd.arg("--home").arg(&*home)
-                    .arg("key")
-                    .arg("import")
-                    .arg(&cert_path);
-                let output = cmd.output()?;
-                if !output.status.success() {
-                    panic!(
-                        "sq exited with non-zero status code: {}",
-                        String::from_utf8(output.stderr)?
-                    );
-                }
+                sq.key_import(&cert_path);
             }
 
-            let mut cmd = Command::cargo_bin("sq")?;
+            let mut cmd = sq.command();
             cmd.args([
-                "--home", &home,
                 "key",
                 "userid",
                 "revoke",
@@ -141,30 +125,12 @@ fn sq_key_userid_revoke() -> Result<()> {
                 );
             }
 
-            if keystore {
-                // When using the keystore, we need to export the
-                // revoked certificate.
-
-                let mut cmd = Command::cargo_bin("sq")?;
-                cmd.args([
-                    "--home", &home,
-                    "cert",
-                    "export",
-                    "--cert", &cert.fingerprint().to_string(),
-                ]);
-                let output = cmd.output()?;
-                if !output.status.success() {
-                    panic!(
-                        "sq exited with non-zero status code: {}",
-                        String::from_utf8(output.stderr)?
-                    );
-                }
-                std::fs::write(&revocation, &output.stdout)
-                    .expect(&format!("Writing {}", &revocation.display()));
-            }
-
             // read revocation cert
-            let rev = Cert::from_file(&revocation)?;
+            let rev = if keystore {
+                sq.cert_export(cert.key_handle())
+            } else {
+                Cert::from_file(&revocation)?
+            };
             assert!(! rev.is_tsk());
             let cert = cert.clone().merge_public(rev)?;
             let valid_cert =
@@ -223,7 +189,6 @@ fn sq_key_userid_revoke() -> Result<()> {
 fn sq_key_userid_revoke_thirdparty() -> Result<()> {
     let sq = Sq::new();
     let time = sq.now();
-    let home = sq.home().to_string_lossy();
 
     let userids = &["alice <alice@example.org>", "alice <alice@other.org>"];
     // revoke the last userid
@@ -289,24 +254,12 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
                 // When using the keystore, we need to import the key.
 
                 for path in &[ &cert_path, &thirdparty_path ] {
-                    let mut cmd = Command::cargo_bin("sq")?;
-                    cmd.arg("--home").arg(&*home)
-                        .arg("key")
-                        .arg("import")
-                        .arg(&path);
-                    let output = cmd.output()?;
-                    if !output.status.success() {
-                        panic!(
-                            "sq exited with non-zero status code: {}",
-                            String::from_utf8(output.stderr)?
-                        );
-                    }
+                    sq.key_import(path);
                 }
             }
 
-            let mut cmd = Command::cargo_bin("sq")?;
+            let mut cmd = sq.command();
             cmd.args([
-                "--home", &home,
                 "key",
                 "userid",
                 "revoke",
@@ -343,30 +296,12 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
                 );
             }
 
-            if keystore {
-                // When using the keystore, we need to export the
-                // revoked certificate.
-
-                let mut cmd = Command::cargo_bin("sq")?;
-                cmd.args([
-                    "--home", &home,
-                    "cert",
-                    "export",
-                    "--cert", &cert.fingerprint().to_string(),
-                ]);
-                let output = cmd.output()?;
-                if !output.status.success() {
-                    panic!(
-                        "sq exited with non-zero status code: {}",
-                        String::from_utf8(output.stderr)?
-                    );
-                }
-                std::fs::write(&revocation, &output.stdout)
-                    .expect(&format!("Writing {}", &revocation.display()));
-            }
-
             // read revocation cert
-            let rev = Cert::from_file(&revocation)?;
+            let rev = if keystore {
+                sq.cert_export(cert.key_handle())
+            } else {
+                Cert::from_file(&revocation)?
+            };
             assert!(! rev.is_tsk());
             let revocation_cert = cert.clone().merge_public(rev)?;
             let revocation_valid_cert = revocation_cert

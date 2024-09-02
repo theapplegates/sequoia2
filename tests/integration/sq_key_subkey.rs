@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-use assert_cmd::Command;
-
 use sequoia_openpgp as openpgp;
 use openpgp::packet::Key;
 use openpgp::parse::Parse;
@@ -20,7 +18,6 @@ use super::common::time_as_string;
 #[test]
 fn sq_key_subkey() -> Result<()> {
     let sq = Sq::new();
-    let home = sq.home().to_string_lossy();
 
     for (arg, expected_key_flags, expected_count) in [
         ("--can-authenticate", KeyFlags::empty().set_authentication(), 2),
@@ -35,27 +32,12 @@ fn sq_key_subkey() -> Result<()> {
             let modified_cert_path = sq.scratch_file("new_key.pgp");
 
             if keystore {
-                // When using the keystore, we need to import the key.
-                let mut cmd = Command::cargo_bin("sq")?;
-                cmd.args([
-                    "--home", &home,
-                    "key",
-                    "import",
-                    &cert_path.display().to_string(),
-                ]);
-                let output = cmd.output()?;
-                if !output.status.success() {
-                    panic!(
-                        "sq exited with non-zero status code: {}",
-                        String::from_utf8(output.stderr)?
-                    );
-                }
+                sq.key_import(&cert_path);
             }
 
             // Add the subkey.
-            let mut cmd = Command::cargo_bin("sq")?;
+            let mut cmd = sq.command();
             cmd.args([
-                "--home", &home,
                 "key",
                 "subkey",
                 "add",
@@ -77,29 +59,11 @@ fn sq_key_subkey() -> Result<()> {
             }
             cmd.assert().success();
 
-            if keystore {
-                // When using the keystore, we need to export the
-                // modified certificate.
-
-                let mut cmd = Command::cargo_bin("sq")?;
-                cmd.args([
-                    "--home", &home,
-                    "cert",
-                    "export",
-                    "--cert", &cert.fingerprint().to_string(),
-                ]);
-                let output = cmd.output()?;
-                if !output.status.success() {
-                    panic!(
-                        "sq exited with non-zero status code: {}",
-                        String::from_utf8(output.stderr)?
-                    );
-                }
-                std::fs::write(&modified_cert_path, &output.stdout)
-                    .expect(&format!("Writing {}", &modified_cert_path.display()));
-            }
-
-            let cert = Cert::from_file(&modified_cert_path)?;
+            let cert = if keystore {
+                sq.cert_export(cert.key_handle())
+            } else {
+                Cert::from_file(&modified_cert_path)?
+            };
             let valid_cert = cert.with_policy(STANDARD_POLICY, None)?;
 
             assert_eq!(
@@ -174,7 +138,6 @@ fn sq_key_subkey_add_with_password() -> Result<()> {
 fn sq_key_subkey_revoke() -> Result<()> {
     let sq = Sq::new();
     let time = sq.now();
-    let home = sq.home().to_string_lossy();
 
     // revoke for various reasons, with or without notations added, or with
     // a revocation whose reference time is one hour after the creation of the
@@ -280,23 +243,11 @@ fn sq_key_subkey_revoke() -> Result<()> {
 
             if keystore {
                 // When using the keystore, we need to import the key.
-                let mut cmd = Command::cargo_bin("sq")?;
-                cmd.arg("--home").arg(&*home)
-                    .arg("key")
-                    .arg("import")
-                    .arg(&cert_path);
-                let output = cmd.output()?;
-                if !output.status.success() {
-                    panic!(
-                        "sq exited with non-zero status code: {}",
-                        String::from_utf8(output.stderr)?
-                    );
-                }
+                sq.key_import(&cert_path);
             }
 
-            let mut cmd = Command::cargo_bin("sq")?;
+            let mut cmd = sq.command();
             cmd.args([
-                "--home", &home,
                 "key",
                 "subkey",
                 "revoke",
@@ -328,33 +279,15 @@ fn sq_key_subkey_revoke() -> Result<()> {
                 panic!("sq exited with non-zero status code: {:?}", output.stderr);
             }
 
-            if keystore {
-                // When using the keystore, we need to export the
-                // revoked certificate.
-
-                let mut cmd = Command::cargo_bin("sq")?;
-                cmd.args([
-                    "--home", &home,
-                    "cert",
-                    "export",
-                    "--cert", &cert.fingerprint().to_string(),
-                ]);
-                let output = cmd.output()?;
-                if !output.status.success() {
-                    panic!(
-                        "sq exited with non-zero status code: {}",
-                        String::from_utf8(output.stderr)?
-                    );
-                }
-                std::fs::write(&revocation, &output.stdout)
-                    .expect(&format!("Writing {}", &revocation.display()));
-            }
-
             // whether we found a revocation signature
             let mut found_revoked = false;
 
             // read revocation cert
-            let rev = Cert::from_file(&revocation)?;
+            let rev = if keystore {
+                sq.cert_export(cert.key_handle())
+            } else {
+                Cert::from_file(&revocation)?
+            };
             assert!(! rev.is_tsk());
 
             // and merge it into the certificate.
@@ -418,7 +351,6 @@ fn sq_key_subkey_revoke() -> Result<()> {
 fn sq_key_subkey_revoke_thirdparty() -> Result<()> {
     let sq = Sq::new();
     let time = sq.now();
-    let home = sq.home().to_string_lossy();
 
     // revoke for various reasons, with or without notations added, or with
     // a revocation whose reference time is one hour after the creation of the
@@ -526,24 +458,12 @@ fn sq_key_subkey_revoke_thirdparty() -> Result<()> {
                 // When using the keystore, we need to import the key.
 
                 for path in &[ &cert_path, &thirdparty_path ] {
-                    let mut cmd = Command::cargo_bin("sq")?;
-                    cmd.arg("--home").arg(&*home)
-                        .arg("key")
-                        .arg("import")
-                        .arg(&path);
-                    let output = cmd.output()?;
-                    if !output.status.success() {
-                        panic!(
-                            "sq exited with non-zero status code: {}",
-                            String::from_utf8(output.stderr)?
-                        );
-                    }
+                    sq.key_import(path);
                 }
             }
 
-            let mut cmd = Command::cargo_bin("sq")?;
+            let mut cmd = sq.command();
             cmd.args([
-                "--home", &home,
                 "key",
                 "subkey",
                 "revoke",
@@ -578,30 +498,12 @@ fn sq_key_subkey_revoke_thirdparty() -> Result<()> {
                        String::from_utf8_lossy(&output.stderr));
             }
 
-            if keystore {
-                // When using the keystore, we need to export the
-                // revoked certificate.
-
-                let mut cmd = Command::cargo_bin("sq")?;
-                cmd.args([
-                    "--home", &home,
-                    "cert",
-                    "export",
-                    "--cert", &cert.fingerprint().to_string(),
-                ]);
-                let output = cmd.output()?;
-                if !output.status.success() {
-                    panic!(
-                        "sq exited with non-zero status code: {}",
-                        String::from_utf8(output.stderr)?
-                    );
-                }
-                std::fs::write(&revocation, &output.stdout)
-                    .expect(&format!("Writing {}", &revocation.display()));
-            }
-
             // read revocation cert
-            let rev = Cert::from_file(&revocation)?;
+            let rev = if keystore {
+                sq.cert_export(cert.key_handle())
+            } else {
+                Cert::from_file(&revocation)?
+            };
             assert!(! rev.is_tsk());
 
             // and merge it into the certificate.

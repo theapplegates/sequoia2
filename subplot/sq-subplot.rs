@@ -81,6 +81,7 @@ fn remember_fingerprint_in_variable(context: &ScenarioContext, name: &str) {
     }
 }
 
+#[cfg(all(unix, not(unix)))] // Bottom.
 #[step]
 #[context(Memory)]
 #[context(Runcmd)]
@@ -99,6 +100,7 @@ fn stdout_matches_json_template(context: &ScenarioContext, file: SubplotDataFile
     assert_eq!(actual, wanted);
 }
 
+#[allow(unused)]
 fn expand_from_memory(mut s: &str, memory: &Memory) -> String {
     let mut result = String::new();
     while !s.is_empty() {

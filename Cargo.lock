@@ -3578,7 +3578,6 @@ dependencies = [
  "sequoia-policy-config",
  "sequoia-wot",
  "serde",
- "serde_json",
  "subplot-build",
  "subplotlib",
  "tempfile",

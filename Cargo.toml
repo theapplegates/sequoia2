@@ -51,7 +51,6 @@ tempfile = "3.1"
 thiserror = "1"
 tokio = { version = "1.13.1" }
 rpassword = "7.0"
-serde_json = "1.0.80"
 serde = { version = "1.0.137", features = ["derive"] }
 subplotlib = { version = ">=0.7, <0.10", optional = true }
 terminal_size = ">=0.2.6, <0.4"

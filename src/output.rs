@@ -58,19 +58,6 @@ impl Model {
     }
 }
 
-/// Serializes an object to JSON.
-pub fn to_json<O, W>(mut w: W, o: &O) -> Result<()>
-where
-    O: serde::Serialize,
-    W: std::io::Write,
-{
-    // Pretty-print, then add a final newline.
-    serde_json::to_writer_pretty(&mut w, o)?;
-    writeln!(w)?;
-    Ok(())
-}
-
-
 // Model output as a data type that can be serialized.
 mod keyring {
     use sequoia_openpgp as openpgp;
@@ -124,10 +111,6 @@ mod keyring {
                 }
             }
             Ok(())
-        }
-
-        pub fn json(&self, w: &mut dyn Write) -> Result<()> {
-            super::to_json(w, self)
         }
     }
 

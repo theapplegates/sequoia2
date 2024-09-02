@@ -375,6 +375,7 @@ If `--output` is `-`, then this option must be provided.",
 
 #[derive(ValueEnum, Clone, Debug, Default)]
 pub enum CipherSuite {
+    Rsa2k,
     Rsa3k,
     Rsa4k,
     #[default]
@@ -386,6 +387,7 @@ impl CipherSuite {
     /// Return a matching `sequoia_openpgp::cert::CipherSuite`
     pub fn as_ciphersuite(&self) -> SqCipherSuite {
         match self {
+            CipherSuite::Rsa2k => SqCipherSuite::RSA2k,
             CipherSuite::Rsa3k => SqCipherSuite::RSA3k,
             CipherSuite::Rsa4k => SqCipherSuite::RSA4k,
             CipherSuite::Cv25519 => SqCipherSuite::Cv25519,

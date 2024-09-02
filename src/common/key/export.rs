@@ -82,7 +82,7 @@ pub fn export(sq: Sq,
                         }
                         Err(err) => {
                             if loud {
-                                eprintln!("Exporting {}: {}",
+                                wprintln!("Exporting {}: {}",
                                           key.fingerprint(), err);
                             }
                         }

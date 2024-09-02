@@ -121,10 +121,10 @@ pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
                 Ok((cert, key, builder)) => Some((cert, key, builder)),
                 Err(err) => {
                     if ! missing {
-                        eprintln!("Missing keys:");
+                        wprintln!("Missing keys:");
                     }
 
-                    eprintln!("  - {}: {}", id, err);
+                    wprintln!(initial_indent = "  - ", "{}: {}", id, err);
 
                     missing = true;
                     None

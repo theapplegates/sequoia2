@@ -96,10 +96,10 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
                 .unwrap_or("".to_string());
 
             if ! first_shown {
-                eprintln!();
+                wprintln!();
             }
 
-            eprintln!("{}{}", fingerprint, expired);
+            wprintln!("{}{}", fingerprint, expired);
         }
 
         let revoked = vc
@@ -120,7 +120,7 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
                     .next()
             });
 
-        eprintln!("  [ {} ] {}",
+        wprintln!(initial_indent = "  ", "[ {} ] {}",
                   if revoked.is_some() {
                       "revoked".to_string()
                   } else if aggregated_amount >= self.required_amount {

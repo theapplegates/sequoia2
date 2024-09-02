@@ -1271,7 +1271,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                         .is_none()
                     {
                         if let Some(hint) = hint {
-                            eprintln!("{}", hint);
+                            wprintln!("{}", hint);
                         }
 
                         loop {
@@ -1280,7 +1280,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                 ka.cert().keyid(), ka.keyid(), uid))?;
 
                             if p == "".into() {
-                                eprintln!("Giving up.");
+                                wprintln!("Giving up.");
                                 continue 'key;
                             }
 
@@ -1290,7 +1290,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                     break;
                                 }
                                 Err(err) => {
-                                    eprintln!("Failed to unlock key: {}", err);
+                                    wprintln!("Failed to unlock key: {}", err);
                                 }
                             }
                         }

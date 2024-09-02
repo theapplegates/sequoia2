@@ -69,7 +69,7 @@ pub fn password(sq: Sq,
 
                     if ! unlocked {
                         if let Some(hint) = hint {
-                            eprintln!("{}", hint);
+                            wprintln!("{}", hint);
                         }
 
                         loop {
@@ -83,7 +83,7 @@ pub fn password(sq: Sq,
                                     break;
                                 }
                                 Err(err) => {
-                                    eprintln!("Failed to unlock key: {}", err);
+                                    wprintln!("Failed to unlock key: {}", err);
                                 }
                             }
                         }

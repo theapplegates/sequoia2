@@ -34,7 +34,8 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
     let uid_filter = make_userid_filter(
         &cmd.names, &cmd.emails, &cmd.userids)?;
     for uid in vcert.userids().filter(uid_filter) {
-        eprintln!("- {}", String::from_utf8_lossy(uid.value()));
+        wprintln!(initial_indent = " - ", "{}",
+                  String::from_utf8_lossy(uid.value()));
 
         let approved =
             uid.attested_certifications().collect::<BTreeSet<_>>();
@@ -58,7 +59,7 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
                 }
             }
 
-            eprintln!("  - {}: {}",
+            wprintln!(initial_indent = "   - ", "{}: {}",
                       issuer.as_ref()
                       .and_then(|i| Some(sq.best_userid(i.to_cert().ok()?, true)
                                          .to_string()))
@@ -80,7 +81,7 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
         }
 
         if ! any {
-            eprintln!("  - no {} certifications",
+            wprintln!(initial_indent = "   - ", "no {} certifications",
                       if cmd.pending {
                           "unapproved"
                       } else {
@@ -139,7 +140,8 @@ fn update(
     let uid_filter = make_userid_filter(
         &command.names, &command.emails, &command.userids)?;
     for uid in vcert.userids().filter(uid_filter) {
-        eprintln!("- {}", String::from_utf8_lossy(uid.value()));
+        wprintln!(initial_indent = " - ", "{}",
+                  String::from_utf8_lossy(uid.value()));
 
         let previously_approved =
             uid.attested_certifications().collect::<BTreeSet<_>>();
@@ -223,7 +225,7 @@ fn update(
                 }
             }
 
-            eprintln!("  {} {}: {}",
+            wprintln!(initial_indent = "  ", "{} {}: {}",
                       match (prev, next) {
                           (false, false) => '.',
                           (true, false) => '-',
@@ -253,7 +255,7 @@ fn update(
         }
 
         if ! any {
-            eprintln!("    no certifications");
+            wprintln!("    no certifications");
         }
 
         attestation_signatures.append(&mut uid.attest_certifications2(

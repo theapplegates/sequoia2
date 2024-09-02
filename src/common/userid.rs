@@ -138,14 +138,14 @@ pub(crate) fn lint_userids(uids: &[UserID]) -> Result<(), anyhow::Error> {
     } else {
         if non_canonical.len() == 1 {
             wprintln!("{}.", non_canonical[0]);
-            eprintln!();
+            wprintln!();
         } else {
             wprintln!("The following user IDs are not in canonical form:");
-            eprintln!();
+            wprintln!();
             for err in non_canonical.iter() {
-                eprintln!("  - {}", err);
+                wprintln!(initial_indent = "  - ", "{}", err);
             }
-            eprintln!();
+            wprintln!();
         }
 
         let bare_email = non_canonical.iter()
@@ -169,7 +169,7 @@ pub(crate) fn lint_userids(uids: &[UserID]) -> Result<(), anyhow::Error> {
                   } else {
                       "".to_string()
                   });
-        eprintln!();
+        wprintln!();
 
         Err(anyhow::anyhow!("\
             Some user IDs are not in canonical form"))
@@ -221,14 +221,14 @@ pub fn lint_names(names: &[String]) -> Result<(), anyhow::Error> {
     } else {
         if non_canonical.len() == 1 {
             wprintln!("{}.", non_canonical[0]);
-            eprintln!();
+            wprintln!();
         } else {
             wprintln!("The following names have issues:");
-            eprintln!();
+            wprintln!();
             for err in non_canonical.iter() {
-                eprintln!("  - {}", err);
+                wprintln!(initial_indent = "  - ", "{}", err);
             }
-            eprintln!();
+            wprintln!();
         }
 
         Err(anyhow::anyhow!("Some names had issues"))
@@ -280,14 +280,14 @@ pub fn lint_emails(emails: &[String]) -> Result<(), anyhow::Error> {
     } else {
         if non_canonical.len() == 1 {
             wprintln!("{}.", non_canonical[0]);
-            eprintln!();
+            wprintln!();
         } else {
             wprintln!("The following email addresses have issues:");
-            eprintln!();
+            wprintln!();
             for err in non_canonical.iter() {
-                eprintln!("  - {}", err);
+                wprintln!(initial_indent = "  - ", "{}", err);
             }
-            eprintln!();
+            wprintln!();
         }
 
         Err(anyhow::anyhow!("Some email addresses had issues"))

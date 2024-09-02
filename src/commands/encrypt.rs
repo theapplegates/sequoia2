@@ -154,7 +154,7 @@ pub fn encrypt<'a, 'b: 'a>(
                         "{} is not present on keystore", kh)),
                     1 => (),
                     n => {
-                        eprintln!("Warning: {} is present on multiple \
+                        wprintln!("Warning: {} is present on multiple \
                                    ({}) devices",
                                   kh, n);
                     }
@@ -177,7 +177,7 @@ pub fn encrypt<'a, 'b: 'a>(
                         let keyid = KeyID::from(&fpr);
 
                         if let Some(msg) = msg {
-                            eprintln!("{}", msg);
+                            wprintln!("{}", msg);
                         }
                         loop {
                             let password = Password::from(rpassword::prompt_password(
@@ -200,11 +200,12 @@ pub fn encrypt<'a, 'b: 'a>(
                         | Ok(Protection::ExternalOther(msg)) =>
                     {
                         // Locked.
-                        eprint!("Key is locked");
-                        if let Some(msg) = msg {
-                            eprint!(": {}", msg);
-                        }
-                        eprintln!();
+                        wprintln!("Key is locked{}",
+                                  if let Some(msg) = msg {
+                                      format!(": {}", msg)
+                                  } else {
+                                      "".into()
+                                  });
                     }
                     Err(err) => {
                         // Failed to get the key's locked status.  Just print

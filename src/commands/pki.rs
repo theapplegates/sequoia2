@@ -140,7 +140,7 @@ fn authenticate<'store, 'rstore>(
                     // and thus the authentication confidence must be
                     // 0, and the certificate should only be shown
                     // when `--gossip` is passed.
-                    eprintln!("Certificate {} contains the subkey {}.",
+                    wprintln!("Certificate {} contains the subkey {}.",
                               fpr, kh);
                 }
                 certificate_dealiased = Some(KeyHandle::from(&fpr));

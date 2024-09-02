@@ -341,7 +341,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                 });
             wprintln!("No key to decrypt message.  The message appears \
                        to be encrypted to:");
-            eprintln!();
+            wprintln!();
             for recipient in recipients.into_iter() {
                 let certs = self.sq.lookup(
                     std::iter::once(KeyHandle::from(recipient)),
@@ -354,7 +354,8 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                 match certs {
                     Ok(certs) => {
                         for cert in certs {
-                            eprintln!("  - {}, {}",
+                            wprintln!(initial_indent = "  - ",
+                                      "{}, {}",
                                       cert.fingerprint(),
                                       self.sq.best_userid(&cert, true));
                         }
@@ -363,16 +364,18 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                         if let Some(StoreError::NotFound(_))
                             = err.downcast_ref()
                         {
-                            eprintln!("  - {}, certificate not found",
+                            wprintln!(initial_indent = "  - ",
+                                      "{}, certificate not found",
                                       recipient);
                         } else {
-                            eprintln!("  - {}, error looking up certificate: {}",
+                            wprintln!(initial_indent = "  - ",
+                                      "{}, error looking up certificate: {}",
                                       recipient, err);
                         }
                     }
                 };
             }
-            eprintln!();
+            wprintln!();
 
             return
                 Err(anyhow::anyhow!("No key to decrypt message"));

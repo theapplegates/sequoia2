@@ -103,7 +103,7 @@ pub fn get_keys<'a>(sq: &'a Sq,
             {
                 ka
             } else {
-                eprintln!("{} does not contain {}",
+                wprintln!("{} does not contain {}",
                           cert.fingerprint(), key);
                 not_found_key_count += 1;
                 continue;
@@ -119,7 +119,7 @@ pub fn get_keys<'a>(sq: &'a Sq,
             };
 
             if no_secret_key_material {
-                eprintln!("{} does not contain any secret key material",
+                wprintln!("{} does not contain any secret key material",
                           key);
                 no_secret_key_material_count += 1;
                 continue;

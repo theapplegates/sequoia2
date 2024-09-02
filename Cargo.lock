@@ -231,12 +231,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 
 [[package]]
-name = "base64"
-version = "0.22.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
-
-[[package]]
 name = "base64ct"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2105,7 +2099,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.5",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -3008,7 +3002,7 @@ version = "0.11.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd67538700a17451e7cba03ac727fb961abb7607553461627b97de0b89cf4a62"
 dependencies = [
- "base64 0.21.7",
+ "base64",
  "bytes",
  "encoding_rs",
  "futures-core",
@@ -3185,7 +3179,7 @@ version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c74cae0a4cf6ccbbf5f359f08efdf8ee7e1dc532573bf0db71968cb56b1448c"
 dependencies = [
- "base64 0.21.7",
+ "base64",
 ]
 
 [[package]]
@@ -3279,7 +3273,7 @@ version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e24fc0ec87c156a35f24fc153ab694e0f37cd6fa87c1cf5005c9f4fa5e10415b"
 dependencies = [
- "base64 0.21.7",
+ "base64",
  "sequoia-openpgp",
 ]
 
@@ -3450,7 +3444,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6abf810ba698339f332b946b485cc815c13a0f750189009bc10514c71fba814b"
 dependencies = [
  "anyhow",
- "base64 0.21.7",
+ "base64",
  "futures-util",
  "hickory-client",
  "hickory-resolver",
@@ -3470,14 +3464,14 @@ dependencies = [
 
 [[package]]
 name = "sequoia-openpgp"
-version = "1.21.1"
+version = "1.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b870b0275eeae174058fcf0ce5affccaaafeb7eceeabce8d6c7f51fbe6a41e2a"
+checksum = "13261ee216b44d932ef93b2d4a75d45199bef77864bcc5b77ecfc7bc0ecb02d6"
 dependencies = [
  "aes",
  "aes-gcm",
  "anyhow",
- "base64 0.22.1",
+ "base64",
  "block-padding",
  "blowfish",
  "botan",
@@ -3846,7 +3840,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2c5723f41235a3deefab3cfd6164a5b780802f596fa97eb40dfcf3c39c36b21"
 dependencies = [
  "anyhow",
- "base64 0.21.7",
+ "base64",
  "clap",
  "env_logger",
  "file_diff",
@@ -3888,7 +3882,7 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fc3c17998cc92ec00493a7d1c0d0256f8977c7baed553777ba347dd6d1c3ccf"
 dependencies = [
- "base64 0.21.7",
+ "base64",
  "fehler",
  "filetime",
  "fs2",

@@ -324,7 +324,12 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                         n => format!("level {} notarizing checksum", n),
                     };
                     wprintln!("No cert to check {} from {}", what, issuer);
-                    wprintln!("Consider running `sq network fetch {}`.", issuer);
+
+                    self.sq.hint(format_args!(
+                        "Consider trying to retrieve the key from the network \
+                         using:"))
+                        .command(format_args!("sq network fetch {}", issuer));
+
                     self.unknown_checksums += 1;
                     continue;
                 },
@@ -490,28 +495,26 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                     wprintln!(indent=prefix,
                               "Unauthenticated checksum from {} ({:?})",
                               label, signer_userid);
-                    eprintln!();
-                    wprintln!(indent=prefix,
-                              "After checking that {} belongs to {:?}, \
-                               you can authenticate the binding using:",
-                              issuer_str, signer_userid);
-                    eprintln!();
-                    eprintln!("{}  $ sq pki link add {} {:?}",
-                              prefix, issuer_str, signer_userid);
+
+                    self.sq.hint(format_args!(
+                        "\nAfter checking that {} belongs to {:?}, \
+                         you can authenticate the binding using:",
+                        issuer_str, signer_userid))
+                        .command(format_args!("sq pki link add {} {:?}",
+                                              issuer_str, signer_userid));
                 }
                 (false, false) => {
                     wprintln!(indent=prefix,
                               "Unauthenticated level {} notarizing \
                                checksum from {} ({:?})",
                               level, label, signer_userid);
-                    eprintln!();
-                    wprintln!(indent=prefix,
-                              "After checking that {} belongs to {:?}, \
-                               you can authenticate the binding using:",
-                              issuer_str, signer_userid);
-                    eprintln!();
-                    eprintln!("{}  $ sq pki link add {} {:?}",
-                              prefix, issuer_str, signer_userid);
+
+                    self.sq.hint(format_args!(
+                        "\nAfter checking that {} belongs to {:?}, \
+                         you can authenticate the binding using:",
+                        issuer_str, signer_userid))
+                        .command(format_args!("sq pki link add {} {:?}",
+                                              issuer_str, signer_userid));
                 }
             };
 

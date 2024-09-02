@@ -144,14 +144,13 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
             return Ok(());
         }
 
-        eprintln!();
-        eprintln!("To view why a user ID is considered valid, pass \
-                   `--show-paths`");
-        eprintln!();
-        eprintln!("To see more details about a certificate, run:");
-        eprintln!();
-        eprintln!("  $ sq inspect --cert FINGERPRINT");
-        eprintln!();
+        self.sq.hint(format_args!(
+            "\nTo view why a user ID is considered valid, pass \
+             `--show-paths`\n\
+             \n\
+             To see more details about a certificate, run:"))
+            .command(format_args!(
+                "sq inspect --cert FINGERPRINT"));
 
         Ok(())
     }

@@ -8,7 +8,26 @@ use super::common::power_set;
 use super::common::Sq;
 
 #[test]
-fn sq_key_subkey_password() -> Result<()>
+fn sq_key_subkey_password_0() -> Result<()> {
+    sq_key_subkey_password_mod(0)
+}
+
+#[test]
+fn sq_key_subkey_password_1() -> Result<()> {
+    sq_key_subkey_password_mod(1)
+}
+
+#[test]
+fn sq_key_subkey_password_2() -> Result<()> {
+    sq_key_subkey_password_mod(2)
+}
+
+#[test]
+fn sq_key_subkey_password_3() -> Result<()> {
+    sq_key_subkey_password_mod(3)
+}
+
+fn sq_key_subkey_password_mod(modulus: usize) -> Result<()>
 {
     let sq = Sq::new();
 
@@ -36,6 +55,7 @@ fn sq_key_subkey_password() -> Result<()>
 
     for (((i, to_change), keystore), by_fpr) in power_set(&key_ids).into_iter()
         .enumerate()
+        .filter(|(i, _)| i % 4 == modulus)
         .flat_map(|x| [(x.clone(), false), (x.clone(), true)])
         .flat_map(|x| [(x.clone(), false), (x.clone(), true)])
     {

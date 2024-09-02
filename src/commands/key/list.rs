@@ -23,17 +23,19 @@ pub fn list(sq: Sq, _command: cli::key::ListCommand) -> Result<()> {
     for backend in &mut backends {
         let devices = backend.list()?;
         if devices.len() == 0 {
-            println!(" - Backend {} has no keys.", backend.id()?);
+            wprintln!(initial_indent = " - ", "Backend {} has no keys.",
+                      backend.id()?);
         } else {
-            println!(" - {}", backend.id()?);
+            wprintln!(initial_indent = " - ", "{}", backend.id()?);
         }
 
         for mut device in devices {
             let keys = device.list()?;
             if keys.len() == 0 {
-                println!("   - Device {} has no keys.", device.id()?);
+                wprintln!(initial_indent = "   - ", "Device {} has no keys.",
+                          device.id()?);
             } else {
-                println!("   - {}", device.id()?);
+                wprintln!(initial_indent = "   - ", "{}", device.id()?);
             }
 
             for mut key in keys.into_iter() {
@@ -49,7 +51,7 @@ pub fn list(sq: Sq, _command: cli::key::ListCommand) -> Result<()> {
 
                 let signing_capable = key.signing_capable().unwrap_or(false);
                 let decryption_capable = key.decryption_capable().unwrap_or(false);
-                println!("     - {} {} ({}, {}, {})",
+                wprintln!(initial_indent = "     - ", "{} {} ({}, {}, {})",
                          fpr, sanitized_userid,
                          if key.available().unwrap_or(false) {
                              "available"

@@ -36,6 +36,16 @@ macro_rules! wprintln {
                                            format_args!($($arg),*))
     }};
 
+    {
+        initial_indent=$ii: expr,
+        $($arg: expr),*
+    } => {{
+        let ii = $ii;
+        let si = format!("{:1$}", "", ii.len());
+        crate::output::wrapping::iwprintln(ii.as_ref(), si.as_ref(),
+                                           format_args!($($arg),*))
+    }};
+
     { $($arg: expr),* } => {
         crate::output::wrapping::wprintln(format_args!($($arg),*))
     };

@@ -179,13 +179,13 @@ fn authenticate<'store, 'rstore>(
         let userid_check = UserID::from(format!("<{}>", email));
         if let Ok(Some(email_check)) = userid_check.email2() {
             if &email != email_check {
-                println!("{:?} does not appear to be an email address",
-                         email);
+                wprintln!("{:?} does not appear to be an email address",
+                          email);
                 std::process::exit(1);
             }
         } else {
-            println!("{:?} does not appear to be an email address",
-                     email);
+            wprintln!("{:?} does not appear to be an email address",
+                      email);
             std::process::exit(1);
         }
 

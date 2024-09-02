@@ -20,7 +20,7 @@ use crate::output::wrapping::NBSP;
 
 /// Prints a Path Error
 pub fn print_path_error(err: Error) {
-    println!("└   Checking path: {}", err);
+    wprintln!(initial_indent = "└   ", "Checking path: {}", err);
 }
 
 /// Prints information of a Path for a target UserID associated with a KeyHandle
@@ -239,8 +239,9 @@ impl OutputType for HumanReadableOutputNetwork {
                 "  "
             } else {
                 if !self.gossip && paths.len() > 1 {
-                    println!(
-                        "  Path #{}{}of{}{}, trust amount {}:",
+                    wprintln!(
+                        initial_indent="  ",
+                        "Path #{}{}of{}{}, trust amount {}:",
                         i + 1, NBSP, NBSP,
                         paths.len(),
                         amount

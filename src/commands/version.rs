@@ -14,7 +14,7 @@ pub fn dispatch(_sq: Sq, c: version::Command)
         wprintln!("{}", output::DEFAULT_OUTPUT_VERSION);
     } else if c.output_versions {
         for v in output::OUTPUT_VERSIONS {
-            println!("{}", v);
+            wprintln!("{}", v);
         }
     } else {
         wprintln!("sq {}", env!("CARGO_PKG_VERSION"));

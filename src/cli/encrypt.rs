@@ -169,6 +169,7 @@ pub struct Command {
         help = "Sign the message using the specified key on the key store",
     )]
     pub signer_key: Vec<KeyHandle>,
+
     #[clap(
         long = "symmetric",
         help = "Prompt to add a password to encrypt with",
@@ -183,6 +184,26 @@ pub struct Command {
         action = Count,
     )]
     pub symmetric: u8,
+
+    #[clap(
+        long = "symmetric-password-file",
+        value_name = "PASSWORD_FILE",
+        help = "\
+File containing password to encrypt the secret key material",
+        long_help = "\
+File containing password to encrypt the secret key material.
+
+Note that the entire key file will be used as the password including \
+any surrounding whitespace like a trailing newline.
+
+This option can be provided more than once to provide more than \
+one password. \
+The encrypted data can afterwards be decrypted with either one of \
+the recipient's keys, or one of the provided passwords.",
+    )]
+    pub symmetric_password_file: Vec<PathBuf>,
+
+
     #[clap(
         long = "encrypt-for",
         value_name = "PURPOSE",

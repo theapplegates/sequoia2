@@ -1,5 +1,6 @@
 use std::fs::metadata;
 use std::io;
+use std::path::PathBuf;
 use std::time::SystemTime;
 
 use anyhow::anyhow;
@@ -73,6 +74,7 @@ pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
         command.input,
         output,
         command.symmetric as usize,
+        command.symmetric_password_file,
         &recipients,
         additional_secrets,
         signer_keys,
@@ -93,6 +95,7 @@ pub fn encrypt<'a, 'b: 'a>(
     input: FileOrStdin,
     message: Message<'a>,
     npasswords: usize,
+    password_files: Vec<PathBuf>,
     recipients: &'b [openpgp::Cert],
     signers: Vec<openpgp::Cert>,
     signer_keys: &[KeyHandle],
@@ -118,6 +121,14 @@ pub fn encrypt<'a, 'b: 'a>(
             },
         )?;
         passwords.push(password);
+    }
+
+    for password_file in password_files {
+        let password = std::fs::read(&password_file)
+            .with_context(|| {
+                format!("Reading {}", password_file.display())
+            })?;
+        passwords.push(password.into());
     }
 
     if recipients.len() + passwords.len() == 0 {

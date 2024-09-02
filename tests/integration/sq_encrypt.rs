@@ -394,3 +394,36 @@ fn sq_encrypt_keyring() -> Result<()>
 
     Ok(())
 }
+
+#[test]
+fn sq_encrypt_with_password() -> Result<()>
+{
+    let sq = Sq::new();
+
+    let password = "hunter2";
+    let password_file = sq.base().join("password");
+    std::fs::write(&password_file, password)?;
+
+    const MESSAGE: &str = "\na secret message\n\nor two\n";
+
+    let plain_file = sq.base().join("plaintext");
+    std::fs::write(&plain_file, MESSAGE)?;
+
+    let cipher_file = sq.base().join("ciphertext");
+    let mut cmd = sq.command();
+    cmd.args(["encrypt",
+              "--symmetric-password-file", &password_file.display().to_string(),
+              "--output", &cipher_file.display().to_string(),
+              &plain_file.display().to_string()]);
+    sq.run(cmd, Some(true));
+
+    let mut cmd = sq.command();
+    cmd.args(["decrypt",
+              "--password-file", &password_file.display().to_string(),
+              &cipher_file.display().to_string()]);
+    let output = sq.run(cmd, Some(true));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert_eq!(stdout, MESSAGE);
+
+    Ok(())
+}

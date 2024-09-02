@@ -23,7 +23,7 @@ pub fn list(sq: Sq, _command: cli::key::ListCommand) -> Result<()> {
     for backend in &mut backends {
         let devices = backend.list()?;
         if devices.len() == 0 {
-            println!(" - Backend {} has no devices.", backend.id()?);
+            println!(" - Backend {} has no keys.", backend.id()?);
         } else {
             println!(" - {}", backend.id()?);
         }

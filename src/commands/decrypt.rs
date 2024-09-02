@@ -378,7 +378,22 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                 Err(anyhow::anyhow!("No key to decrypt message"));
         }
 
-        // Finally, try to decrypt using the SKESKs.
+        // Finally, try to decrypt using the SKESKs.  Before
+        // prompting, try all passwords supplied on the cli.
+        for password in self.sq.password_cache.lock().unwrap().iter() {
+            for skesk in skesks {
+                if let Some(sk) = skesk.decrypt(&password).ok()
+                    .and_then(|(algo, sk)| { if decrypt(algo, &sk) { Some(sk) } else { None }})
+                {
+                    if self.dump_session_key {
+                        wprintln!("Session key: {}", hex::encode(&sk));
+                    }
+                    return Ok(None);
+                }
+            }
+        }
+
+        // Now prompt for passwords.
         let mut first = true;
         loop {
             let password = password::prompt_to_unlock(

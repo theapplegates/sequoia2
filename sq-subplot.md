@@ -828,41 +828,6 @@ then stdout contains "Bob"
 
 The scenarios in this section verify the contents of a keyring can be listed.
 
-### Choose too-new output major version for keyring listing
-
-_Requirement: If we ask for an unsupported major output version, we get an error._
-
-~~~scenario
-given an installed sq
-when I run sq --no-cert-store --no-key-store key generate --without-password --userid Alice --output alice.pgp
-when I try to run sq --output-version=9999 keyring list alice.pgp
-then command fails
-when I try to run env SQ_OUTPUT_VERSION=9999 sq toolbox keyring list alice.pgp
-then command fails
-~~~
-
-### Choose too-new output minor version for keyring listing
-
-_Requirement: If we ask for an unsupported output minor version, we get an error._
-
-~~~scenario
-given an installed sq
-when I run sq --no-cert-store --no-key-store key generate --without-password --userid Alice --output alice.pgp
-when I try to run sq --output-version=0.9999 keyring list alice.pgp
-then command fails
-~~~
-
-### Choose too-new output patch version for keyring listing
-
-_Requirement: If we ask for an unsupported output patch version, we get an error._
-
-~~~scenario
-given an installed sq
-when I run sq --no-cert-store --no-key-store key generate --without-password --userid Alice --output alice.pgp
-when I try to run sq --output-version=0.0.9999 keyring list alice.pgp
-then command fails
-~~~
-
 ### List keys in a keyring
 
 _Requirement: we can list the keys in a keyring._
@@ -875,44 +840,6 @@ when I run sq --no-cert-store --no-key-store toolbox keyring merge alice.pgp bob
 when I run sq --no-cert-store --no-key-store toolbox keyring list ring.pgp
 then stdout contains "Alice"
 then stdout contains "Bob"
-~~~
-
-### List, as JSON, keys in a keyring
-
-_Requirement: we can list the keys in a keyring in a JSON format._
-
-~~~scenario
-given an installed sq
-when I run sq --no-cert-store --no-key-store key generate --without-password --userid Alice --userid '<alice@example.com>' --output alice.pgp
-when I run sq --no-cert-store --no-key-store inspect alice.pgp
-then I remember the fingerprint as ALICE_FINGERPRINT
-
-when I run sq --no-cert-store --no-key-store toolbox keyring merge alice.pgp --output ring.pgp
-when I run sq --no-cert-store --no-key-store --output-format=json toolbox keyring list ring.pgp
-then stdout, as JSON, matches pattern keyring-list-pattern.json
-
-when I run env SQ_OUTPUT_FORMAT=json sq toolbox keyring list ring.pgp
-then stdout, as JSON, matches pattern keyring-list-pattern.json
-
-when I run env SQ_OUTPUT_FORMAT=human-readable sq --output-format=json toolbox keyring list ring.pgp
-then stdout, as JSON, matches pattern keyring-list-pattern.json
-~~~
-
-~~~{#keyring-list-pattern.json .file .json .numberLines}
-{
-  "sq_output_version": {
-      "major": 0,
-      "minor": 0,
-      "patch": 0
-  },
-  "keys": [
-    {
-      "fingerprint": "${ALICE_FINGERPRINT}",
-      "primary_userid": "Alice",
-      "userids": ["<alice@example.com>"]
-    }
-  ]
-}
 ~~~
 
 ### List keys in a key file

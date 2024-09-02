@@ -98,7 +98,6 @@ where
     for outputformat in OutputFormat::iterator() {
         let mut cmd = sq.command();
         cmd.current_dir(&dir())
-            .args(&["--output-format", &format!("{}", outputformat)])
             .args(&["--keyring", keyring]);
         if let Some(trust_root) = trust_root {
             cmd.args(&["--trust-root", &trust_root.to_string()]);

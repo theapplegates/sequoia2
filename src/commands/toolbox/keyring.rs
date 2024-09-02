@@ -220,8 +220,8 @@ fn list(sq: Sq,
     for item in iter {
         certs.push(item);
     }
-    let list = Model::keyring_list(sq.output_version, certs, list_all_uids)?;
-    list.write(sq.output_format, &mut std::io::stdout())?;
+    let list = Model::keyring_list(certs, list_all_uids)?;
+    list.write(&mut std::io::stdout())?;
     Ok(())
 }
 

@@ -12,7 +12,6 @@ use std::borrow::Borrow;
 use std::collections::btree_map::{BTreeMap, Entry};
 use std::io;
 use std::path::Path;
-use std::str::FromStr;
 use std::time::SystemTime;
 
 use once_cell::sync::OnceCell;
@@ -46,7 +45,6 @@ mod cli;
 use cli::SECONDS_IN_DAY;
 use cli::SECONDS_IN_YEAR;
 use cli::types::Time;
-use cli::output::{OutputFormat, OutputVersion};
 
 mod commands;
 pub mod output;
@@ -287,12 +285,6 @@ fn main() -> Result<()> {
 
     let force = c.force;
 
-    let output_version = if let Some(v) = &c.output_version {
-        Some(OutputVersion::from_str(v)?)
-    } else {
-        None
-    };
-
     let mut password_cache = Vec::new();
     for password_file in &c.password_file {
         let password = std::fs::read(&password_file)
@@ -306,8 +298,6 @@ fn main() -> Result<()> {
         verbose: c.verbose,
         force,
         batch: c.batch,
-        output_format: c.output_format,
-        output_version,
         policy: &policy,
         time,
         time_is_now,

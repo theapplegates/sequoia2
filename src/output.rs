@@ -14,7 +14,7 @@ pub mod wrapping;
 
 pub use keyring::ListItem as KeyringListItem;
 
-use crate::cli::output::{OutputFormat, OutputVersion};
+use crate::cli::output::OutputVersion;
 
 pub const DEFAULT_OUTPUT_VERSION: OutputVersion = OutputVersion::new(0, 0, 0);
 pub const OUTPUT_VERSIONS: &[OutputVersion] = &[OutputVersion::new(0, 0, 0)];
@@ -39,8 +39,8 @@ impl Model {
 
     /// Create a model for the output of the `sq toolbox keyring list`
     /// subcommand.
-    pub fn keyring_list(version: Option<OutputVersion>, certs: Vec<keyring::ListItem>, all_uids: bool) -> Result<Self> {
-        let version = Self::version(version);
+    pub fn keyring_list(certs: Vec<keyring::ListItem>, all_uids: bool) -> Result<Self> {
+        let version = Self::version(None);
         let result = match version {
             keyring::ListV0::V => Self::KeyringListV0(keyring::ListV0::new(certs, all_uids)),
             _ => return Err(anyhow!("unknown output version {:?}", version)),
@@ -50,14 +50,9 @@ impl Model {
 
     /// Write the output of a model to an open write handle in the
     /// format requested by the user.
-    pub fn write(&self, format: OutputFormat, w: &mut dyn Write) -> Result<()> {
+    pub fn write(&self, w: &mut dyn Write) -> Result<()> {
         match self {
-            Self::KeyringListV0(x) => {
-                match format {
-                    OutputFormat::Json => x.json(w)?,
-                    _ => x.human_readable(w)?,
-                }
-            }
+            Self::KeyringListV0(x) => x.human_readable(w)?
         }
         Ok(())
     }

@@ -45,8 +45,6 @@ use keystore::Protection;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::common::password;
 use crate::ImportStatus;
-use crate::OutputFormat;
-use crate::OutputVersion;
 use crate::output::hint::Hint;
 use crate::PreferredUserID;
 use crate::print_error_chain;
@@ -86,8 +84,6 @@ pub struct Sq<'store, 'rstore>
     /// Prevent any kind of interactive prompting.
     pub batch: bool,
 
-    pub output_format: OutputFormat,
-    pub output_version: Option<OutputVersion>,
     pub policy: &'rstore P<'rstore>,
     pub time: SystemTime,
     pub time_is_now: bool,

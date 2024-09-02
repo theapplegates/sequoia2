@@ -285,20 +285,16 @@ fn authenticate<'store, 'rstore>(
     let mut authenticated = 0;
     let mut lint_input = true;
 
-    let mut output = match sq.output_format {
-        _ => {
-            if show_paths {
-                Box::new(
-                    output::HumanReadableOutputNetwork::new(
-                        required_amount, gossip))
-                    as Box<dyn output::OutputType>
-            } else {
-                Box::new(
-                    output::ConciseHumanReadableOutputNetwork::new(
-                        &sq, required_amount))
-                    as Box<dyn output::OutputType>
-            }
-        }
+    let mut output = if show_paths {
+        Box::new(
+            output::HumanReadableOutputNetwork::new(
+                required_amount, gossip))
+            as Box<dyn output::OutputType>
+    } else {
+        Box::new(
+            output::ConciseHumanReadableOutputNetwork::new(
+                &sq, required_amount))
+            as Box<dyn output::OutputType>
     };
 
     for (fingerprint, userid) in bindings.iter() {
@@ -558,34 +554,27 @@ fn check_path(sq: &Sq,
 
     match r {
         Ok(path) => {
-            match sq.output_format {
-                _ => {
-                    print_path_header(
-                        target_kh,
-                        &userid,
-                        path.amount(),
-                        required_amount,
-                    );
-                    print_path(&path, &userid, "  ")?;
-                }
-            };
+            print_path_header(
+                target_kh,
+                &userid,
+                path.amount(),
+                required_amount,
+            );
+            print_path(&path, &userid, "  ")?;
 
             if path.amount() >= required_amount {
                 std::process::exit(0);
             }
         }
         Err(err) => {
-            match sq.output_format {
-                _ => {
-                    print_path_header(
-                        target_kh,
-                        &userid,
-                        0,
-                        required_amount,
-                    );
-                    print_path_error(err);
-                }
-            };
+            print_path_header(
+                target_kh,
+                &userid,
+                0,
+                required_amount,
+            );
+
+            print_path_error(err);
         }
     }
 

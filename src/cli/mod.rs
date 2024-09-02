@@ -373,30 +373,7 @@ looked up, it is looked up in all keyrings and any certificate \
 store, and the results are merged together."
     )]
     pub keyring: Vec<PathBuf>,
-    #[clap(
-        long = "output-format",
-        value_name = "FORMAT",
-        default_value = "human-readable",
-        env = "SQ_OUTPUT_FORMAT",
-        global = true,
-        help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Produce output in FORMAT, if possible",
-    )]
-    pub output_format: output::OutputFormat,
-    #[clap(
-        long = "output-version",
-        value_name = "VERSION",
-        env = "SQ_OUTPUT_VERSION",
-        global = true,
-        help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Produce output variant VERSION.",
-        long_help = "Produce output variant VERSION, such as 0.0.0. \
-                     The default is the newest version. The output version \
-                     is separate from the version of the sq program. To see \
-                     the current supported versions, use output-versions \
-                     subcommand."
-    )]
-    pub output_version: Option<String>,
+
     #[clap(
         long = "known-notation",
         value_name = "NOTATION",

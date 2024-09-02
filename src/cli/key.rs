@@ -252,11 +252,27 @@ Canonical user IDs are of the form `Name (Comment) \
         value_enum,
     )]
     pub cipher_suite: CipherSuite,
+
+    #[clap(
+        long = "new-password-file",
+        value_name = "PASSWORD_FILE",
+        help = "\
+File containing password to encrypt the secret key material",
+        long_help = "\
+File containing password to encrypt the secret key material.
+
+Note that the entire key file will be used as the password including \
+any surrounding whitespace like a trailing newline.",
+        conflicts_with = "without_password",
+    )]
+    pub new_password_file: Option<PathBuf>,
+
     #[clap(
         long = "without-password",
         help = "Don't protect the secret key material with a password",
     )]
     pub without_password: bool,
+
     #[clap(
         long = "expiration",
         value_name = "EXPIRATION",

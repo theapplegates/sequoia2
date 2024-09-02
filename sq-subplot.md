@@ -466,14 +466,10 @@ then stdout contains "Secret key: Unencrypted"
 _Requirement: We must be able to generate a that does have a
 password._
 
-Unfortunately, the `--with-password` option causes `sq` to read the
-password from the terminal, and that makes it hard to do in an
-automated test. Thus, this scenario isn't enabled, waiting for a way
-to feed `sq` a password as if the user typed it from a terminal.
-
-~~~
+~~~scenario
 given an installed sq
-when I run sq --no-cert-store --no-key-store key generate --no-userids --output key.pgp --with-password
+given file password.txt
+when I run sq --no-cert-store --no-key-store key generate --no-userids --output key.pgp --new-password-file password.txt
 when I run sq --no-cert-store --no-key-store inspect key.pgp
 then stdout contains "Secret key: Encrypted"
 ~~~
@@ -1602,4 +1598,10 @@ aGVsbG8sIHdvcmxkCg==
 This is an empty file.
 
 ~~~{#empty .file add-newline=no}
+~~~
+
+This is a file containing a password.
+
+~~~{#password.txt .file}
+hunter2
 ~~~

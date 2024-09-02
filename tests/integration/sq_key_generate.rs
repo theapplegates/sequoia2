@@ -44,3 +44,27 @@ fn sq_key_generate_name_email() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn sq_key_generate_with_password() -> Result<()> {
+    let sq = common::Sq::new();
+
+    let password = "hunter2";
+    let path = sq.base().join("password");
+    std::fs::write(&path, password)?;
+
+    let (cert, _, _) = sq.key_generate(&[
+        "--new-password-file", &path.display().to_string(),
+    ], &[]);
+
+    assert!(cert.is_tsk());
+
+    let password = password.into();
+    for key in cert.keys() {
+        let secret = key.optional_secret().unwrap();
+        assert!(secret.is_encrypted());
+        assert!(secret.clone().decrypt(key.pk_algo(), &password).is_ok());
+    }
+
+    Ok(())
+}

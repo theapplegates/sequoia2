@@ -347,7 +347,12 @@ impl Sq {
         -> (Cert, PathBuf, PathBuf)
     {
         let mut cmd = self.command();
-        cmd.args([ "key", "generate", "--without-password" ]);
+        cmd.args([ "key", "generate" ]);
+
+        if ! extra_args.contains(&"--new-password-file") {
+            cmd.arg("--without-password");
+        }
+
         for arg in extra_args {
             cmd.arg(arg);
         }

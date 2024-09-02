@@ -121,7 +121,13 @@ pub fn generate(
         }
     }
 
-    if ! command.without_password {
+    if let Some(password_file) = command.new_password_file {
+        let password = std::fs::read(&password_file)
+            .with_context(|| {
+                format!("Reading {}", password_file.display())
+            })?;
+        builder = builder.set_password(Some(password.into()));
+    } else if ! command.without_password {
         builder = builder.set_password(
             password::prompt_for_new_or_none(&sq, "key")?);
     }

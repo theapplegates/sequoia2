@@ -1,3 +1,5 @@
+use anyhow::Context;
+
 use chrono::DateTime;
 use chrono::Utc;
 
@@ -270,7 +272,13 @@ fn subkey_add(
         match sq.get_primary_key(&cert, None) {
             Ok(key) => {
                 // Don't use a password, or prompt for one.
-                if command.without_password {
+                if let Some(password_file) = command.new_password_file {
+                    let password = std::fs::read(&password_file)
+                        .with_context(|| {
+                            format!("Reading {}", password_file.display())
+                        })?;
+                    (key, Some(password.into()))
+                } else if command.without_password {
                     (key, None)
                 } else {
                     (key, common::password::prompt_for_new_or_none(

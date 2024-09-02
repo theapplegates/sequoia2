@@ -1047,6 +1047,21 @@ universal]",
         value_enum,
     )]
     pub can_encrypt: Option<EncryptPurpose>,
+
+    #[clap(
+        long = "new-password-file",
+        value_name = "PASSWORD_FILE",
+        help = "\
+File containing password to encrypt the secret key material",
+        long_help = "\
+File containing password to encrypt the secret key material.
+
+Note that the entire key file will be used as the password including \
+any surrounding whitespace like a trailing newline.",
+        conflicts_with = "without_password",
+    )]
+    pub new_password_file: Option<PathBuf>,
+
     #[clap(
         long,
         help = "Don't protect the subkey's secret key material with a password",

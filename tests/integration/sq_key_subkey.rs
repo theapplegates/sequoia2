@@ -113,6 +113,64 @@ fn sq_key_subkey() -> Result<()> {
 }
 
 #[test]
+fn sq_key_subkey_add_with_password() -> Result<()> {
+    let sq = Sq::new();
+
+    let password2 = "hunter2";
+    let path2 = sq.base().join("password2");
+    std::fs::write(&path2, password2)?;
+
+    let (cert, cert_path, _) = sq.key_generate(&[
+        "--cannot-sign",
+        "--cannot-authenticate",
+        "--cannot-encrypt",
+        "--new-password-file", &path2.display().to_string(),
+    ], &[]);
+
+    assert!(cert.is_tsk());
+    assert_eq!(cert.keys().subkeys().count(), 0);
+    let key = cert.primary_key();
+    let secret = key.optional_secret().unwrap();
+    assert!(secret.is_encrypted());
+    assert!(secret.clone().decrypt(key.pk_algo(), &password2.into()).is_ok());
+
+    // Add the subkey.
+    let password3 = "hunter3";
+    let path3 = sq.base().join("password3");
+    std::fs::write(&path3, password3)?;
+
+    let output = sq.base().join("output");
+    let mut cmd = sq.command();
+    cmd.args([
+        "key",
+        "subkey",
+        "add",
+        "--can-authenticate",
+        "--cert-file", &cert_path.display().to_string(),
+        "--password-file", &path2.display().to_string(),
+        "--new-password-file", &path3.display().to_string(),
+        "--output", &output.display().to_string(),
+    ]);
+    sq.run(cmd, Some(true));
+
+    let cert = Cert::from_file(output)?;
+
+    assert!(cert.is_tsk());
+    assert_eq!(cert.keys().subkeys().count(), 1);
+    let key = cert.primary_key();
+    let secret = key.optional_secret().unwrap();
+    assert!(secret.is_encrypted());
+    assert!(secret.clone().decrypt(key.pk_algo(), &password2.into()).is_ok());
+
+    let key = cert.keys().subkeys().next().unwrap();
+    let secret = key.optional_secret().unwrap();
+    assert!(secret.is_encrypted());
+    assert!(secret.clone().decrypt(key.pk_algo(), &password3.into()).is_ok());
+
+    Ok(())
+}
+
+#[test]
 fn sq_key_subkey_revoke() -> Result<()> {
     let sq = Sq::new();
     let time = sq.now();

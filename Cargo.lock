@@ -3568,7 +3568,6 @@ dependencies = [
  "fs_extra",
  "humantime",
  "indicatif",
- "itertools",
  "libc",
  "once_cell",
  "predicates",

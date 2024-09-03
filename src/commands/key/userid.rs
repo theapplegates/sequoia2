@@ -5,7 +5,6 @@ use std::time::SystemTime;
 use anyhow::Context;
 
 use anyhow::anyhow;
-use itertools::Itertools;
 
 use sequoia_openpgp as openpgp;
 use openpgp::cert::amalgamation::ValidAmalgamation;
@@ -228,7 +227,8 @@ fn userid_add(
     if !exists.is_empty() {
         return Err(anyhow::anyhow!(
             "The certificate already contains the User ID(s) {}.",
-            exists.iter().map(|s| format!("{:?}", s)).join(", ")
+            exists.iter().map(|s| format!("{:?}", s)).collect::<Vec<_>>()
+                .join(", "),
         ));
     }
 
@@ -415,7 +415,8 @@ fn userid_strip_internal(
     if !missing.is_empty() {
         return Err(anyhow::anyhow!(
             "The certificate doesn't contain the User ID(s) {}.",
-            missing.iter().map(|s| format!("{:?}", s)).join(", ")
+            missing.iter().map(|s| format!("{:?}", s)).collect::<Vec<_>>()
+                .join(", "),
         ));
     }
 

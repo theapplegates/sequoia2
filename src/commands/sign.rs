@@ -6,7 +6,7 @@ use tempfile::NamedTempFile;
 
 use sequoia_openpgp as openpgp;
 use openpgp::armor;
-use openpgp::KeyHandle;
+use openpgp::crypto;
 use openpgp::{Packet, Result};
 use openpgp::packet::prelude::*;
 use openpgp::packet::signature::subpacket::NotationData;
@@ -46,9 +46,14 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
         return Err(anyhow::anyhow!("Notarizing messages is not supported."));
     }
 
-    let secrets =
+    let mut secrets =
         load_certs(command.secret_key_file.iter().map(|s| s.as_ref()))?;
-    let signer_keys = &command.signer_key[..];
+
+    for kh in command.signer_key {
+        let cert = sq.lookup_one(
+            kh, Some(KeyFlags::empty().set_signing()), true)?;
+        secrets.push(cert);
+    };
 
     let notations = parse_notations(command.notation)?;
 
@@ -60,16 +65,22 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
         )?;
         let data: FileOrStdin = merge.into();
         let mut input2 = data.open()?;
-        merge_signatures(&mut input, &mut input2, output)?;
-    } else if command.clearsign {
+        return merge_signatures(&mut input, &mut input2, output);
+    }
+
+    let signers = sq.get_signing_keys(&secrets, None)?;
+    if signers.is_empty() {
+        return Err(anyhow::anyhow!("No signing keys found"));
+    }
+
+    if command.clearsign {
         let output = output.create_safe(sq.force)?;
-        clearsign(sq, input, output, secrets, &notations)?;
+        clearsign(sq, input, output, signers, &notations)?;
     } else {
         sign(sq,
              &mut input,
              output,
-             secrets,
-             signer_keys,
+             signers,
              detached,
              binary,
              append,
@@ -84,8 +95,7 @@ pub fn sign<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
     input: &'a mut (dyn io::Read + Sync + Send),
     output: &'a FileOrStdout,
-    secrets: Vec<openpgp::Cert>,
-    signer_keys: &[KeyHandle],
+    signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
     detached: bool,
     binary: bool,
     append: bool,
@@ -98,8 +108,7 @@ pub fn sign<'a, 'store, 'rstore>(
             sign_data(sq,
                       input,
                       output,
-                      secrets,
-                      signer_keys,
+                      signers,
                       detached,
                       binary,
                       append,
@@ -108,7 +117,7 @@ pub fn sign<'a, 'store, 'rstore>(
             sign_message(sq,
                          input,
                          output,
-                         secrets,
+                         signers,
                          binary,
                          notarize,
                          notations),
@@ -119,8 +128,7 @@ fn sign_data<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
     input: &'a mut (dyn io::Read + Sync + Send),
     output_path: &'a FileOrStdout,
-    mut secrets: Vec<openpgp::Cert>,
-    signer_keys: &[KeyHandle],
+    mut signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
     detached: bool,
     binary: bool,
     append: bool,
@@ -160,17 +168,6 @@ fn sign_data<'a, 'store, 'rstore>(
         } else {
             (output_path.create_safe(sq.force)?, Vec::new(), None)
         };
-
-    for kh in signer_keys.into_iter() {
-        let cert = sq.lookup_one(
-            kh, Some(KeyFlags::empty().set_signing()), true)?;
-        secrets.push(cert);
-    };
-
-    let mut signers = sq.get_signing_keys(&secrets, None)?;
-    if signers.is_empty() {
-        return Err(anyhow::anyhow!("No signing keys found"));
-    }
 
     // Stream an OpenPGP message.
     // The sink may be a NamedTempFile.  Carefully keep a reference so
@@ -245,7 +242,7 @@ fn sign_message<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
     input: &'a mut (dyn io::Read + Sync + Send),
     output: &'a FileOrStdout,
-    secrets: Vec<openpgp::Cert>,
+    signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
     binary: bool,
     notarize: bool,
     notations: &'a [(bool, NotationData)])
@@ -258,7 +255,7 @@ fn sign_message<'a, 'store, 'rstore>(
     )?;
     sign_message_(sq,
                   input,
-                  secrets,
+                  signers,
                   notarize,
                   notations,
                   &mut output)?;
@@ -269,17 +266,12 @@ fn sign_message<'a, 'store, 'rstore>(
 fn sign_message_<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
     input: &'a mut (dyn io::Read + Sync + Send),
-    secrets: Vec<openpgp::Cert>,
+    mut signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
     notarize: bool,
     notations: &'a [(bool, NotationData)],
     output: &mut (dyn io::Write + Sync + Send))
     -> Result<()>
 {
-    let mut keypairs = sq.get_signing_keys(&secrets, None)?;
-    if keypairs.is_empty() {
-        return Err(anyhow::anyhow!("No signing keys found"));
-    }
-
     let mut sink = Message::new(output);
 
     // Create a parser for the message to be notarized.
@@ -354,9 +346,9 @@ fn sign_message_<'a, 'store, 'rstore>(
                 }
 
                 let mut signer = Signer::with_template(
-                    sink, keypairs.pop().unwrap(), builder);
+                    sink, signers.pop().unwrap(), builder);
                 signer = signer.creation_time(sq.time);
-                for s in keypairs.drain(..) {
+                for s in signers.drain(..) {
                     signer = signer.add_signer(s);
                 }
                 sink = signer.build().context("Failed to create signer")?;
@@ -473,15 +465,10 @@ fn sign_message_<'a, 'store, 'rstore>(
 pub fn clearsign(sq: Sq,
                  mut input: impl io::Read + Sync + Send,
                  mut output: impl io::Write + Sync + Send,
-                 secrets: Vec<openpgp::Cert>,
+                 mut signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
                  notations: &[(bool, NotationData)])
                  -> Result<()>
 {
-    let mut keypairs = sq.get_signing_keys(&secrets, None)?;
-    if keypairs.is_empty() {
-        return Err(anyhow::anyhow!("No signing keys found"));
-    }
-
     // Prepare a signature template.
     let mut builder = SignatureBuilder::new(SignatureType::Text);
     for (critical, n) in notations.iter() {
@@ -494,10 +481,10 @@ pub fn clearsign(sq: Sq,
 
     let message = Message::new(&mut output);
     let mut signer = Signer::with_template(
-        message, keypairs.pop().unwrap(), builder)
+        message, signers.pop().unwrap(), builder)
         .cleartext();
     signer = signer.creation_time(sq.time);
-    for s in keypairs {
+    for s in signers {
         signer = signer.add_signer(s);
     }
     let mut message = signer.build().context("Failed to create signer")?;

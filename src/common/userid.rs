@@ -320,12 +320,11 @@ pub fn make_userid_filter<'c>(
             // No filter, list all user IDs.
             true
         } else {
-            uid.email_normalized().ok().flatten()
-                .map(|e| emails.contains(&e)).unwrap_or(false)
-                || uid.name2().ok().flatten()
-                .map(|n| names.iter().any(|i| i == n)).unwrap_or(false)
-                || std::str::from_utf8(uid.value())
-                .map(|u| userids.iter().any(|i| i == u)).unwrap_or(false)
+            std::str::from_utf8(uid.value())
+                .map(|u| names.iter().any(|v| u == v)
+                     || emails.iter().any(|v| u == v)
+                     || userids.iter().any(|v| u == v))
+                .unwrap_or(false)
         }
     }))
 }

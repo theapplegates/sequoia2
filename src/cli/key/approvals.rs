@@ -101,13 +101,13 @@ pub struct ListCommand {
 
     #[clap(
         long = "name",
-        help = "List certifications on user IDs with this name",
+        help = "List certifications on this name user ID",
     )]
     pub names: Vec<String>,
 
     #[clap(
         long = "email",
-        help = "List certifications on user IDs with this email address",
+        help = "List certifications on this email address user ID",
     )]
     pub emails: Vec<String>,
 
@@ -228,13 +228,13 @@ distributed, e.g. by uploading it to a key server.
 pub struct UpdateCommand {
     #[clap(
         long = "name",
-        help = "Change approvals on user IDs with this name",
+        help = "Change approvals on this name user ID",
     )]
     pub names: Vec<String>,
 
     #[clap(
         long = "email",
-        help = "Change approvals on user IDs with this email address",
+        help = "Change approvals on this email address user ID",
     )]
     pub emails: Vec<String>,
 

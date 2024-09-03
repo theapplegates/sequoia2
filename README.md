@@ -6,7 +6,7 @@ This crate provides the `sq` command line application. `sq` is aimed
 at command line users as a way to use OpenPGP conveniently from the
 command line.
 
-See the [sq user guide][] for instructions. The program also has built-in
+See the [sq user documentation][] for instructions. The program also has built-in
 help, using the `--help` option and `help` subcommand:
 
 ~~~sh
@@ -19,7 +19,7 @@ criteria][], and browse the [rustdoc output][] if you want to learn about
 the implementation.
 
 [Sequoia-PGP]: https://sequoia-pgp.org/
-[sq user guide]: https://sequoia-pgp.gitlab.io/sq-user-guide/
+[sq user documentation]: https://sequoia-pgp.gitlab.io/user-documentation
 [manual pages]: https://sequoia-pgp.gitlab.io/sequoia-sq/man/
 [acceptance criteria]: https://sequoia-pgp.gitlab.io/sequoia-sq/subplot/
 [rustdoc output]: https://sequoia-pgp.gitlab.io/sequoia-sq/impl/

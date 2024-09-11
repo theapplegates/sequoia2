@@ -93,6 +93,8 @@ pub fn dispatch(sq: Sq, c: cli::network::Command)
 ///
 /// This does not certify the certificates.
 pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
+    make_qprintln!(sq.quiet);
+
     if certs.is_empty() {
         // No need to do and say anything.
         return Ok(());
@@ -106,7 +108,7 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
 
     let certs = merge_keyring(certs)?.into_values().collect::<Vec<_>>();
 
-    wprintln!("\nImporting {} into the certificate store:\n",
+    qprintln!("\nImporting {} into the certificate store:\n",
               certs.len().of("certificate"));
     for cert in certs.iter() {
         cert_store.update_by(Arc::new(cert.clone().into()), &mut stats)
@@ -129,19 +131,20 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
     certs.sort_unstable_by_key(|cert| usize::MAX - cert.0.trust_amount());
 
     for (i, (userid, cert)) in certs.into_iter().enumerate() {
-        wprintln!("  {}. {} {}", i + 1, cert.fingerprint(), userid);
+        qprintln!("  {}. {} {}", i + 1, cert.fingerprint(), userid);
     }
 
-    wprintln!("\nImported {}, updated {}, {} unchanged, {}.",
+    qprintln!("\nImported {}, updated {}, {} unchanged, {}.",
               stats.new_certs().of("new certificate"),
               stats.updated_certs().of("certificate"),
               stats.unchanged_certs().of("certificate"),
               stats.errors().of("error"));
 
-    wprintln!("\nAfter checking that a certificate really belongs to the \
-               stated owner, you can mark the certificate as authenticated \
-               using: \n\
-               \n    sq pki link add FINGERPRINT\n");
+    sq.hint(format_args!(
+        "\nAfter checking that a certificate really belongs to the \
+         stated owner, you can mark the certificate as authenticated \
+         using:"))
+        .command(format_args!("sq pki link add FINGERPRINT"));
 
     Ok(())
 }
@@ -492,6 +495,8 @@ impl Method {
         -> Option<Arc<LazyCert<'store>>>
         where 'store: 'rstore
     {
+        make_qprintln!(sq.quiet);
+
         let ca = || -> Result<_> {
             let certd = sq.certd_or_else()?;
             let (cert, created) = match self {
@@ -578,7 +583,7 @@ impl Method {
             use std::sync::Once;
             static MSG: Once = Once::new();
             MSG.call_once(|| {
-                wprintln!("Note: Created a local CA to record \
+                qprintln!("Note: Created a local CA to record \
                            provenance information.\n\
                            Note: See `sq pki link list --ca` \
                            and `sq pki link --help` for more \
@@ -873,6 +878,8 @@ pub fn dispatch_keyserver(mut sq: Sq,
                           c: cli::network::keyserver::Command)
     -> Result<()>
 {
+    make_qprintln!(sq.quiet);
+
     let default_servers = default_keyservers_p(&c.servers);
     let servers = c.servers.iter().map(
         |uri| KeyServer::with_client(uri, http_client()?)
@@ -947,7 +954,7 @@ pub fn dispatch_keyserver(mut sq: Sq,
                 let (url, response) = response?;
                 match response {
                     Ok(()) => {
-                        wprintln!("{}: ok", url);
+                        qprintln!("{}: ok", url);
                         one_ok = true;
                     },
                     Err(e) if default_servers

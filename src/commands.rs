@@ -262,7 +262,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
             bad_signatures: 0,
             bad_checksums: 0,
             broken_signatures: 0,
-            quiet: false,
+            quiet: sq.quiet,
         }
     }
 

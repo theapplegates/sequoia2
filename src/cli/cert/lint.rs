@@ -73,10 +73,6 @@ $ sq cert lint --list-keys keyring.pgp \\
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct Command {
-    /// Quiet; does not output any diagnostics.
-    #[arg(long)]
-    pub quiet: bool,
-
     /// Attempts to fix certificates, when possible.
     #[arg(long)]
     pub fix: bool,

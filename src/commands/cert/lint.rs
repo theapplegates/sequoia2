@@ -191,7 +191,7 @@ fn update_subkey_binding<P>(sq: &Sq,
     Ok(sig)
 }
 
-pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
+pub fn lint(mut sq: Sq, args: Command) -> Result<()> {
     // If there were any errors reading the input.
     let mut bad_input = false;
 
@@ -233,7 +233,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
     let mut certs_with_sha1_protected_backsig = 0;
 
     if args.list_keys {
-        args.quiet = true;
+        sq.quiet = true;
     }
 
     let reference_time = sq.time;
@@ -276,7 +276,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                 for (certi, certo) in certp.enumerate() {
                     match certo {
                         Err(err) => {
-                            if ! args.quiet {
+                            if ! sq.quiet {
                                 if certi == 0 {
                                     wprintln!("{:?} does not appear to be a keyring: {}",
                                               filename, err);
@@ -314,7 +314,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                                          cert.fingerprint().to_hex());
                             }
                         }
-                        if ! args.quiet {
+                        if ! sq.quiet {
                             wprintln!($($arg)*);
                         }
                     }
@@ -790,7 +790,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                   pl(certs_valid + certs_invalid,
                      "certificate", "certificates"));
 
-        if ! args.quiet {
+        if ! sq.quiet {
             err!(certs_invalid,
                  "  {} {} invalid and {} not linted.",
                  certs_invalid,
@@ -867,7 +867,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                     exit(0);
                 }
             } else {
-                if ! args.quiet {
+                if ! sq.quiet {
                     err!(unfixed_issue,
                          "Failed to fix {} {}.",
                          unfixed_issue,

@@ -205,9 +205,10 @@ pub fn check_userids(sq: &Sq, cert: &Cert, self_signed: bool,
 //
 // This does some normalization and only considers things that are
 // relevant to links.
-fn diff_link(old: &Signature, new: &SignatureBuilder, new_ct: SystemTime)
+fn diff_link(sq: &Sq, old: &Signature, new: &SignatureBuilder, new_ct: SystemTime)
     -> bool
 {
+    make_qprintln!(sq.quiet);
     let mut changed = false;
 
     let a_expiration = old.signature_expiration_time();
@@ -218,7 +219,7 @@ fn diff_link(old: &Signature, new: &SignatureBuilder, new_ct: SystemTime)
     };
     if a_expiration != b_expiration {
         changed = true;
-        wprintln!(
+        qprintln!(
             "  Updating expiration time: {} -> {}.",
             if let Some(a_expiration) = a_expiration {
                 chrono::DateTime::<chrono::offset::Utc>::from(
@@ -239,12 +240,12 @@ fn diff_link(old: &Signature, new: &SignatureBuilder, new_ct: SystemTime)
 
     if a_amount != b_amount {
         changed = true;
-        wprintln!("  Updating trust amount: {} -> {}.",
+        qprintln!("  Updating trust amount: {} -> {}.",
                   a_amount, b_amount);
     }
     if a_depth != b_depth {
         changed = true;
-        wprintln!("  Update trust depth: {} -> {}.",
+        qprintln!("  Update trust depth: {} -> {}.",
                   a_depth, b_depth);
     }
 
@@ -257,7 +258,7 @@ fn diff_link(old: &Signature, new: &SignatureBuilder, new_ct: SystemTime)
 
     if a_regex != b_regex {
         changed = true;
-        wprintln!("  Updating regular expressions:");
+        qprintln!("  Updating regular expressions:");
         let a_regex: Vec<String> = a_regex.into_iter()
             .enumerate()
             .map(|(i, r)| {
@@ -265,7 +266,7 @@ fn diff_link(old: &Signature, new: &SignatureBuilder, new_ct: SystemTime)
                         i + 1, String::from_utf8_lossy(r))
             })
             .collect();
-        wprintln!("    Current link:\n      {}",
+        qprintln!("    Current link:\n      {}",
                   a_regex.join("\n      "));
 
         let b_regex: Vec<String> = b_regex.into_iter()
@@ -275,7 +276,7 @@ fn diff_link(old: &Signature, new: &SignatureBuilder, new_ct: SystemTime)
                         i + 1, String::from_utf8_lossy(r))
             })
             .collect();
-        wprintln!("    Updated link:\n      {}",
+        qprintln!("    Updated link:\n      {}",
                   b_regex.join("\n      "));
     }
 
@@ -287,14 +288,14 @@ fn diff_link(old: &Signature, new: &SignatureBuilder, new_ct: SystemTime)
         .collect();
     if a_notations != b_notations {
         changed = true;
-        wprintln!("  Updating notations.");
+        qprintln!("  Updating notations.");
         let a_notations: Vec<String> = a_notations.into_iter()
             .enumerate()
             .map(|(i, n)| {
                 format!("{}. {:?}", i + 1, n)
             })
             .collect();
-        wprintln!("    Current link:\n      {}",
+        qprintln!("    Current link:\n      {}",
                   a_notations.join("\n      "));
 
         let b_notations: Vec<String> = b_notations.into_iter()
@@ -303,7 +304,7 @@ fn diff_link(old: &Signature, new: &SignatureBuilder, new_ct: SystemTime)
                 format!("{}. {:?}", i + 1, n)
             })
             .collect();
-        wprintln!("    Updated link:\n       {}",
+        qprintln!("    Updated link:\n       {}",
                   b_notations.join("\n      "));
     }
 
@@ -311,7 +312,7 @@ fn diff_link(old: &Signature, new: &SignatureBuilder, new_ct: SystemTime)
     let b_exportable = new.exportable_certification().unwrap_or(true);
     if a_exportable != b_exportable {
         changed = true;
-        wprintln!("  Updating exportable flag: {} -> {}.",
+        qprintln!("  Updating exportable flag: {} -> {}.",
                   a_exportable, b_exportable);
     }
 
@@ -331,6 +332,8 @@ pub fn link(sq: Sq, c: link::Command) -> Result<()> {
 pub fn add(sq: Sq, c: link::AddCommand)
     -> Result<()>
 {
+    make_qprintln!(sq.quiet);
+
     let trust_root = sq.local_trust_root()?;
     let trust_root = trust_root.to_cert()?;
 
@@ -504,7 +507,7 @@ pub fn add(sq: Sq, c: link::AddCommand)
                     }
                 }
             } else {
-                wprintln!("Note: {:?} is NOT a self signed User ID.  \
+                qprintln!("Note: {:?} is NOT a self signed User ID.  \
                            If this was a mistake, use \
                            `sq pki link retract {} \"{}\"` to undo it.",
                           userid_str(), cert.fingerprint(), userid);
@@ -518,29 +521,30 @@ pub fn add(sq: Sq, c: link::AddCommand)
                 let retracted = matches!(active_certification.trust_signature(),
                                          Some((_depth, 0)));
                 if retracted {
-                    wprintln!("{}, {} was retracted at {}.",
+                    qprintln!("{}, {} was retracted at {}.",
                               cert.fingerprint(), userid_str(),
                               chrono::DateTime::<chrono::offset::Utc>::from(
                                   active_certification_ct));
                 } else {
-                    wprintln!("{}, {} was already linked at {}.",
+                    qprintln!("{}, {} was already linked at {}.",
                               cert.fingerprint(), userid_str(),
                               chrono::DateTime::<chrono::offset::Utc>::from(
                                   active_certification_ct));
                 }
 
                 let changed = diff_link(
+                    &sq,
                     &active_certification,
                     &builders[0], sq.time);
 
                 if ! changed && sq.force {
-                    wprintln!("  Link parameters are unchanged, but \
+                    qprintln!("  Link parameters are unchanged, but \
                                updating anyway as \"--force\" was specified.");
                 } else if c.temporary {
-                    wprintln!("  Creating a temporary link, \
+                    qprintln!("  Creating a temporary link, \
                                which expires in a week.");
                 } else if ! changed {
-                    wprintln!("  Link parameters are unchanged, no update \
+                    qprintln!("  Link parameters are unchanged, no update \
                                needed (specify \"--force\" to update anyway).");
 
                     // Return a signature packet to indicate that we
@@ -548,11 +552,11 @@ pub fn add(sq: Sq, c: link::AddCommand)
                     // signature.
                     return Ok(vec![ Packet::from(userid.clone()) ]);
                 } else {
-                    wprintln!("  Link parameters changed, updating link.");
+                    qprintln!("  Link parameters changed, updating link.");
                 }
             }
 
-            wprintln!("Linking {} and {:?}.",
+            qprintln!("Linking {} and {:?}.",
                       cert.fingerprint(), userid_str());
 
             let mut sigs = builders.iter()
@@ -569,7 +573,7 @@ pub fn add(sq: Sq, c: link::AddCommand)
                 })
                 .collect::<Result<Vec<Packet>>>()?;
 
-            wprintln!();
+            qprintln!();
 
             let mut packets = vec![ Packet::from(userid.clone()) ];
             packets.append(&mut sigs);
@@ -604,6 +608,8 @@ pub fn add(sq: Sq, c: link::AddCommand)
 pub fn retract(sq: Sq, c: link::RetractCommand)
     -> Result<()>
 {
+    make_qprintln!(sq.quiet);
+
     let trust_root = sq.local_trust_root()?;
     let trust_root = trust_root.to_cert()?;
     let trust_root_kh = trust_root.key_handle();
@@ -655,7 +661,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
                         .any(|issuer| issuer.aliases(&trust_root_kh))
                 })
                 {
-                    wprintln!("You never linked {:?} to {}, \
+                    qprintln!("You never linked {:?} to {}, \
                                no need to retract it.",
                               userid_str(), cert.fingerprint());
                     return Ok(vec![]);
@@ -670,26 +676,27 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
                 let retracted = matches!(active_certification.trust_signature(),
                                          Some((_depth, 0)));
                 if retracted {
-                    wprintln!("{}, {} was already retracted at {}.",
+                    qprintln!("{}, {} was already retracted at {}.",
                               cert.fingerprint(), userid_str(),
                               chrono::DateTime::<chrono::offset::Utc>::from(
                                   active_certification_ct));
                 } else {
-                    wprintln!("{}, {} was linked at {}.",
+                    qprintln!("{}, {} was linked at {}.",
                               cert.fingerprint(), userid_str(),
                               chrono::DateTime::<chrono::offset::Utc>::from(
                                   active_certification_ct));
                 }
 
                 let changed = diff_link(
+                    &sq,
                     &active_certification,
                     &builder, sq.time);
 
                 if ! changed && sq.force {
-                    wprintln!("  Link parameters are unchanged, but \
+                    qprintln!("  Link parameters are unchanged, but \
                                updating anyway as \"--force\" was specified.");
                 } else if ! changed {
-                    wprintln!("  Link parameters are unchanged, no update \
+                    qprintln!("  Link parameters are unchanged, no update \
                                needed (specify \"--force\" to update anyway).");
 
                     // Return a signature packet to indicate that we
@@ -697,14 +704,14 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
                     // signature.
                     return Ok(vec![ Packet::from(userid.clone()) ]);
                 } else {
-                    wprintln!("  Link parameters changed, updating link.");
+                    qprintln!("  Link parameters changed, updating link.");
                 }
             } else if sq.force {
-                wprintln!("There is no link to retract between {} and {:?}, \
+                qprintln!("There is no link to retract between {} and {:?}, \
                            retracting anyways as \"--force\" was specified.",
                           cert.fingerprint(), userid_str());
             } else {
-                wprintln!("There is no link to retract between {} and {:?} \
+                qprintln!("There is no link to retract between {} and {:?} \
                            (specify \"--force\" to mark as retracted anyways).",
                           cert.fingerprint(), userid_str());
 
@@ -714,7 +721,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
                 return Ok(vec![ Packet::from(userid.clone()) ]);
             }
 
-            wprintln!("Breaking link between {} and {:?}.",
+            qprintln!("Breaking link between {} and {:?}.",
                       cert.fingerprint(), userid_str());
 
             // XXX: If we already have exactly this signature (modulo
@@ -738,7 +745,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
         .collect::<Vec<Packet>>();
 
     if certifications.is_empty() {
-        wprintln!("Nothing to retract.");
+        qprintln!("Nothing to retract.");
         return Ok(());
     }
 

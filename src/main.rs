@@ -296,6 +296,7 @@ fn main() -> Result<()> {
 
     let sq = Sq {
         verbose: c.verbose,
+        quiet: c.quiet,
         force,
         batch: c.batch,
         policy: &policy,

@@ -79,6 +79,7 @@ pub struct Sq<'store, 'rstore>
     where 'store: 'rstore
 {
     pub verbose: bool,
+    pub quiet: bool,
     pub force: bool,
 
     /// Prevent any kind of interactive prompting.
@@ -1617,8 +1618,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
     /// Prints a hint for the user.
     pub fn hint(&self, msg: fmt::Arguments) -> Hint {
-        // XXX: If we gain a --quiet, pass it to Hint::new.
-        Hint::new(false)
+        Hint::new(self.quiet)
             .hint(msg)
     }
 }

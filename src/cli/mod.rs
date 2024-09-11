@@ -443,6 +443,7 @@ Note that the entire key file will be used as the password, including \
 any surrounding whitespace like a trailing newline.",
     )]
     pub password_file: Vec<PathBuf>,
+
     #[clap(
         short = 'v',
         long,
@@ -451,6 +452,16 @@ any surrounding whitespace like a trailing newline.",
         help = "Be more verbose.",
     )]
     pub verbose: bool,
+
+    #[clap(
+        short = 'q',
+        long = "quiet",
+        global = true,
+        help_heading = GLOBAL_OPTIONS_HEADER,
+        help = "Be more quiet.",
+        conflicts_with = "verbose",
+    )]
+    pub quiet: bool,
 
     #[clap(
         long = "batch",

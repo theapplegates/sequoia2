@@ -150,14 +150,10 @@ impl RevocationOutput for UserIDRevocation
     }
 
     fn comment(&self) -> String {
-        let s = format!("Includes a revocation certificate for User ID {}",
-                        self.userid);
-        // Truncate it, if it is too long.
-        if s.len() > 70 {
-            format!("{:.70}", s)
-        } else {
-            s
-        }
+        format!("This is a revocation certificate for \
+                 the User ID {} of cert {}.",
+                self.userid,
+                self.cert.fingerprint())
     }
 
     fn revoker(&self) -> &Cert {

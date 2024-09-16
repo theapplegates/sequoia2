@@ -75,8 +75,8 @@ impl RevocationOutput for CertificateRevocation
     }
 
     fn comment(&self) -> String {
-        "Includes a revocation certificate for the certificate"
-            .to_string()
+        format!("This is a revocation certificate for the cert {}.",
+                self.cert.fingerprint())
     }
 
     fn revoker(&self) -> &Cert {

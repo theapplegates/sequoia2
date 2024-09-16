@@ -214,13 +214,17 @@ impl RevocationOutput for SubkeyRevocation {
 
     fn comment(&self) -> String {
         if self.revocations.len() == 1 {
-            format!("Includes a revocation certificate to revoke the subkey {}",
-                    self.revocations[0].0.fingerprint())
+            format!("This is a revocation certificate for \
+                     the subkey {} of cert {}.",
+                    self.revocations[0].0.fingerprint(),
+                    self.cert.fingerprint())
         } else {
             let fingerprints: Vec<_> = self.revocations.iter()
                 .map(|k| k.0.fingerprint().to_string()).collect();
-            format!("Includes revocation certificates to revoke the subkeys {}",
-                    fingerprints.join(", "))
+            format!("This is a revocation certificate for \
+                     the subkeys {} of cert {}.",
+                    fingerprints.join(", "),
+                    self.cert.fingerprint())
         }
     }
 

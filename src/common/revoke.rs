@@ -71,21 +71,15 @@ pub trait RevocationOutput {
                 let first_party_issuer = revoker.fingerprint() == cert.fingerprint();
                 if ! first_party_issuer {
                     // Then if it was issued by a third-party.
-                    more.push("issued by".to_string());
-                    more.push(revoker.fingerprint().to_spaced_hex());
-                    // This information may be published so only consider
-                    // self-signed user IDs to avoid leaking information
-                    // about the user's web of trust.
-                    let sanitized_uid = sq.best_userid(revoker, false);
-                    // Truncate it, if it is too long.
-                    more.push(format!("{:.COMMENT_WIDTH$}", sanitized_uid));
+                    more.push("".into());
+                    more.push(format!("This revocation is issued \
+                                       by the cert {} ({}).",
+                                      revoker.fingerprint(),
+                                      sq.best_userid(revoker, false)));
                 }
 
-                let headers = &cert.armor_headers();
-                let headers: Vec<(&str, &str)> = headers
-                    .iter()
-                    .map(|s| ("Comment", s.as_str()))
-                    .chain(more.iter().map(|value| ("Comment", value.as_str())))
+                let headers: Vec<(&str, &str)> = more.iter()
+                    .map(|value| ("Comment", value.as_str()))
                     .collect();
 
                 let mut writer =

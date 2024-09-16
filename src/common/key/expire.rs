@@ -89,6 +89,8 @@ pub fn expire(sq: Sq,
                     .ok_or(anyhow::anyhow!("no binding signature")))?
                 .clone();
 
+            // Push a copy of the key to make reordering easier.
+            acc.push(Packet::from(skb.key().clone()));
             acc.push(skb.bind(
                 &mut primary_signer,
                 &key,
@@ -109,6 +111,10 @@ pub fn expire(sq: Sq,
                 .ok_or(anyhow::anyhow!("no primary key signature")))?
             .clone();
 
+        // We can't add a copy of the primary key, as that's not
+        // allowed by `Cert::insert_packets`.  But it's easy to
+        // reorder direct key signatures as there is only a single
+        // possible component, the primary key.
         acc.push(SignatureBuilder::from(template)
                  .set_type(SignatureType::DirectKey)
                  .set_signature_creation_time(sq.time)?
@@ -125,6 +131,8 @@ pub fn expire(sq: Sq,
                     .ok_or(anyhow::anyhow!("no user ID binding signature")))?
                 .clone();
 
+            // Push a copy of the user ID to make reordering easier.
+            acc.push(Packet::from(uidb.userid().clone()));
             acc.push(uidb.bind(
                 &mut primary_signer,
                 &key,

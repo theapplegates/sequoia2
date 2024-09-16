@@ -18,13 +18,13 @@ use openpgp::Packet;
 use openpgp::Result;
 
 use crate::Sq;
-use crate::cli::key::SubkeyAddCommand;
-use crate::cli::key::SubkeyCommand;
-use crate::cli::key::SubkeyDeleteCommand;
-use crate::cli::key::SubkeyExpireCommand;
-use crate::cli::key::SubkeyExportCommand;
-use crate::cli::key::SubkeyPasswordCommand;
-use crate::cli::key::SubkeyRevokeCommand;
+use crate::cli::key::subkey::AddCommand;
+use crate::cli::key::subkey::Command;
+use crate::cli::key::subkey::DeleteCommand;
+use crate::cli::key::subkey::ExpireCommand;
+use crate::cli::key::subkey::ExportCommand;
+use crate::cli::key::subkey::PasswordCommand;
+use crate::cli::key::subkey::RevokeCommand;
 use crate::cli::types::EncryptPurpose;
 use crate::cli::types::FileOrStdout;
 use crate::common;
@@ -37,20 +37,20 @@ use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
 use crate::parse_notations;
 
-pub fn dispatch(sq: Sq, command: SubkeyCommand) -> Result<()> {
+pub fn dispatch(sq: Sq, command: Command) -> Result<()> {
     match command {
-        SubkeyCommand::Add(c) => subkey_add(sq, c)?,
-        SubkeyCommand::Export(c) => subkey_export(sq, c)?,
-        SubkeyCommand::Delete(c) => subkey_delete(sq, c)?,
-        SubkeyCommand::Password(c) => subkey_password(sq, c)?,
-        SubkeyCommand::Expire(c) => subkey_expire(sq, c)?,
-        SubkeyCommand::Revoke(c) => subkey_revoke(sq, c)?,
+        Command::Add(c) => subkey_add(sq, c)?,
+        Command::Export(c) => subkey_export(sq, c)?,
+        Command::Delete(c) => subkey_delete(sq, c)?,
+        Command::Password(c) => subkey_password(sq, c)?,
+        Command::Expire(c) => subkey_expire(sq, c)?,
+        Command::Revoke(c) => subkey_revoke(sq, c)?,
     }
 
     Ok(())
 }
 
-fn subkey_export(sq: Sq, command: SubkeyExportCommand)
+fn subkey_export(sq: Sq, command: ExportCommand)
     -> Result<()>
 {
     assert!(! command.key.is_empty());
@@ -58,7 +58,7 @@ fn subkey_export(sq: Sq, command: SubkeyExportCommand)
     export(sq, vec![], command.key)
 }
 
-fn subkey_delete(sq: Sq, command: SubkeyDeleteCommand)
+fn subkey_delete(sq: Sq, command: DeleteCommand)
     -> Result<()>
 {
     let handle = if let Some(file) = command.cert_file {
@@ -75,7 +75,7 @@ fn subkey_delete(sq: Sq, command: SubkeyDeleteCommand)
     delete(sq, handle, command.key, command.output, command.binary)
 }
 
-fn subkey_password(sq: Sq, command: SubkeyPasswordCommand)
+fn subkey_password(sq: Sq, command: PasswordCommand)
     -> Result<()>
 {
     let handle = if let Some(file) = command.cert_file {
@@ -94,7 +94,7 @@ fn subkey_password(sq: Sq, command: SubkeyPasswordCommand)
              command.output, command.binary)
 }
 
-fn subkey_expire(sq: Sq, command: SubkeyExpireCommand)
+fn subkey_expire(sq: Sq, command: ExpireCommand)
     -> Result<()>
 {
     let handle = if let Some(file) = command.cert_file {
@@ -232,7 +232,7 @@ impl RevocationOutput for SubkeyRevocation {
 /// If no specific expiry is requested, the subkey never expires.
 fn subkey_add(
     sq: Sq,
-    mut command: SubkeyAddCommand,
+    mut command: AddCommand,
 ) -> Result<()> {
     let cert = if let Some(file) = command.cert_file {
         if command.output.is_none() {
@@ -322,7 +322,7 @@ fn subkey_add(
 /// revocation fails.
 pub fn subkey_revoke(
     sq: Sq,
-    mut command: SubkeyRevokeCommand,
+    mut command: RevokeCommand,
 ) -> Result<()> {
     let cert = if let Some(file) = command.cert_file {
         if command.output.is_none() {

@@ -157,6 +157,7 @@ impl FileOrKeyHandle {
 pub struct Sq {
     base: TempDir,
     home: PathBuf,
+    policy: PathBuf,
     certd: PathBuf,
     now: std::time::SystemTime,
     scratch: AtomicUsize,
@@ -169,11 +170,19 @@ impl Sq {
         let base = TempDir::new()
             .expect("can create a temporary directory");
         let home = base.path().join("home");
+
+        // Create an empty policy configuration file.  We use this
+        // instead of the system-wide policy configuration file, which
+        // might be more strict than what our test vectors expect.
+        let policy = base.path().join("empty-policy.toml");
+        std::fs::write(&policy, "").unwrap();
+
         let certd = home.join("data").join("pgp.cert.d");
 
         Sq {
             base,
             home,
+            policy,
             certd,
             now,
             scratch: 0.into(),
@@ -273,6 +282,7 @@ impl Sq {
     pub fn command(&self) -> Command {
         let mut cmd = Command::cargo_bin("sq")
             .expect("can run sq");
+        cmd.env("SEQUOIA_CRYPTO_POLICY", &self.policy);
         cmd.arg("--batch");
         cmd.arg("--home").arg(self.home());
         cmd.arg("--time").arg(&self.now_as_string());

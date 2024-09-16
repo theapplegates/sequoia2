@@ -162,6 +162,13 @@ macro_rules! test_examples {
                 .expect(&format!("Copying {:?} to {:?}",
                                  fixtures, &tmp_dir));
 
+            // Create an empty policy configuration file.  We use this
+            // instead of the system-wide policy configuration file,
+            // which might be more strict than what our test vectors
+            // expect.
+            let policy = tmp_dir.path().join("empty-policy.toml");
+            std::fs::write(&policy, "").unwrap();
+
             let home = tmp_dir.path().join("home");
             let cert_store = tmp_dir.path().join("cert-store");
             let key_store = tmp_dir.path().join("key-store");
@@ -177,6 +184,7 @@ macro_rules! test_examples {
 
                 Command::cargo_bin(command[0]).unwrap()
                     .current_dir(&tmp_dir)
+                    .env("SEQUOIA_CRYPTO_POLICY", &policy)
                     .env("SEQUOIA_HOME", &home)
                     .env("SQ_CERT_STORE", &cert_store)
                     .env("SQ_KEY_STORE", &key_store)

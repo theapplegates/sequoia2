@@ -44,6 +44,9 @@ pub trait RevocationOutput {
     fn write(&self, sq: &Sq, output: Option<FileOrStdout>, binary: bool)
         -> Result<()>
     {
+        // Target width of comments.
+        const COMMENT_WIDTH: usize = 70;
+
         if let Some(output) = output {
             let mut output = output.create_safe(sq.force)?;
 
@@ -60,7 +63,8 @@ pub trait RevocationOutput {
                 let mut more: Vec<String> = vec![];
 
                 // First, the thing that is being revoked.
-                more.push(self.comment());
+                textwrap::wrap(&self.comment(), COMMENT_WIDTH)
+                    .into_iter().for_each(|line| more.push(line.into()));
 
                 let revoker = self.revoker();
 
@@ -74,7 +78,7 @@ pub trait RevocationOutput {
                     // about the user's web of trust.
                     let sanitized_uid = sq.best_userid(revoker, false);
                     // Truncate it, if it is too long.
-                    more.push(format!("{:.70}", sanitized_uid));
+                    more.push(format!("{:.COMMENT_WIDTH$}", sanitized_uid));
                 }
 
                 let headers = &cert.armor_headers();

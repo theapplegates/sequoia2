@@ -149,7 +149,17 @@ fn sq_key_subkey_expire() -> Result<()> {
             eprintln!("Checking expiration status at {}", time_as_string(t.into()));
             let vc = updated.with_policy(STANDARD_POLICY, t).expect("valid");
             for k in vc.keys() {
-                assert!(k.alive().is_ok());
+                eprintln!("  {} expires at {}",
+                          k.fingerprint(),
+                          if let Some(t) = k.key_expiration_time() {
+                              time_as_string(t.into())
+                          } else {
+                              "never".to_string()
+                          });
+                if let Err(err) = k.alive() {
+                    panic!("{} should be alive, but it's not: {}",
+                           k.fingerprint(), err);
+                }
             }
 
             // And in exactly one day...
@@ -157,7 +167,17 @@ fn sq_key_subkey_expire() -> Result<()> {
             eprintln!("Checking expiration status at {}", time_as_string(t.into()));
             let vc = updated.with_policy(STANDARD_POLICY, t).expect("valid");
             for k in vc.keys() {
-                assert!(k.alive().is_ok());
+                eprintln!("  {} expires at {}",
+                          k.fingerprint(),
+                          if let Some(t) = k.key_expiration_time() {
+                              time_as_string(t.into())
+                          } else {
+                              "never".to_string()
+                          });
+                if let Err(err) = k.alive() {
+                    panic!("{} should be alive, but it's not: {}",
+                           k.fingerprint(), err);
+                }
             }
         }
     }

@@ -7,6 +7,7 @@ pub mod dearmor;
 pub mod extract_cert;
 pub mod keyring;
 pub mod packet;
+pub mod strip_userid;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -30,6 +31,7 @@ pub struct Command {
 pub enum Subcommands {
     Keyring(keyring::Command),
     ExtractCert(extract_cert::Command),
+    StripUserid(strip_userid::Command),
     Packet(packet::Command),
     Armor(armor::Command),
     Dearmor(dearmor::Command),

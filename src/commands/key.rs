@@ -20,7 +20,7 @@ mod password;
 mod revoke;
 use revoke::certificate_revoke;
 mod subkey;
-mod userid;
+pub mod userid;
 
 pub fn dispatch(sq: Sq, command: cli::key::Command) -> Result<()>
 {

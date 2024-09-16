@@ -25,5 +25,7 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
             armor::dispatch(sq, command),
         Subcommands::Dearmor(command) =>
             dearmor::dispatch(sq, command),
+        Subcommands::StripUserid(command) =>
+            crate::commands::key::userid::userid_strip(sq, command),
     }
 }

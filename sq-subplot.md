@@ -494,7 +494,7 @@ _Requirement: We must be able to generate a key with a User ID, and then strip t
 ~~~scenario
 given an installed sq
 when I run sq --no-cert-store --no-key-store key generate --without-password --userid "<juliet@example.org>" --output key.pgp
-when I run sq --no-cert-store --no-key-store key userid strip --cert-file key.pgp --userid "<juliet@example.org>" --output new.pgp
+when I run sq --no-cert-store --no-key-store toolbox strip-userid --cert-file key.pgp --userid "<juliet@example.org>" --output new.pgp
 when I run sq --no-cert-store --no-key-store inspect new.pgp
 then stdout doesn't contain "UserID:"
 ~~~
@@ -1103,11 +1103,11 @@ when I run sq --no-cert-store --no-key-store toolbox extract-cert bob.pgp --outp
 
 when I run sq --no-cert-store --no-key-store pki certify --certifier-file alice.pgp bob-cert.pgp --email bob@example.org --output cert.pgp
 
-when I run sq --no-cert-store --no-key-store key userid strip --cert-file cert.pgp --userid "<bob@example.org>" --output cert.0.pgp
+when I run sq --no-cert-store --no-key-store toolbox strip-userid --cert-file cert.pgp --userid "<bob@example.org>" --output cert.0.pgp
 when I run sq --no-cert-store --no-key-store inspect cert.0.pgp
 then stdout contains "Certifications: 1,"
 
-when I run sq --no-cert-store --no-key-store key userid strip --cert-file cert.pgp --userid "Bob <bob@example.org>" --output cert.1.pgp
+when I run sq --no-cert-store --no-key-store toolbox strip-userid --cert-file cert.pgp --userid "Bob <bob@example.org>" --output cert.1.pgp
 when I run sq --no-cert-store --no-key-store inspect cert.1.pgp
 then stdout contains "Certifications: 1,"
 ~~~

@@ -945,9 +945,9 @@ impl Sq {
     }
 
     /// Strips user IDs to the given key.
-    pub fn key_userid_strip(&self, key: Cert, args: &[&str]) -> Result<Cert> {
+    pub fn toolbox_strip_userid(&self, key: Cert, args: &[&str]) -> Result<Cert> {
         let mut cmd = self.command();
-        cmd.args(["key", "userid", "strip"]);
+        cmd.args(["toolbox", "strip-userid"]);
         for arg in args {
             cmd.arg(arg);
         }

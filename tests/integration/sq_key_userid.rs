@@ -401,7 +401,7 @@ fn sq_key_userid_strip() -> Result<()> {
     assert_eq!(key.userids().count(), 3);
 
     // Whoops, that's a secret.
-    let key = sq.key_userid_strip(key, &[
+    let key = sq.toolbox_strip_userid(key, &[
         "--userid", "<joan@hut8.bletchley.park>",
     ])?;
 

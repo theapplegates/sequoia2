@@ -168,7 +168,6 @@ pub fn dispatch(
     match command {
         cli::key::userid::Command::Add(c) => userid_add(sq, c)?,
         cli::key::userid::Command::Revoke(c) => userid_revoke(sq, c)?,
-        cli::key::userid::Command::Strip(c) => userid_strip(sq, c)?,
     }
 
     Ok(())
@@ -356,9 +355,9 @@ fn cert_checksum(cert: &Cert) -> Result<Vec<u8>> {
     sum.into_digest()
 }
 
-fn userid_strip(
+pub fn userid_strip(
     sq: Sq,
-    mut command: cli::key::userid::StripCommand,
+    mut command: cli::toolbox::strip_userid::Command,
 ) -> Result<()> {
     let cert = if let Some(file) = &command.cert_file {
         if command.output.is_none() {
@@ -390,7 +389,7 @@ fn userid_strip(
 
 fn userid_strip_internal(
     sq: Sq,
-    command: cli::key::userid::StripCommand,
+    command: cli::toolbox::strip_userid::Command,
     key: Cert,
     tries: usize,
 ) -> Result<()> {

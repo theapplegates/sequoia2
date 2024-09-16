@@ -8,7 +8,7 @@ use openpgp::Packet;
 use openpgp::Result;
 
 use crate::Sq;
-use crate::cli::key::RevokeCommand;
+use crate::cli::key::revoke::Command;
 use crate::cli::types::FileOrStdout;
 use crate::common::get_secret_signer;
 use crate::common::NULL_POLICY;
@@ -87,7 +87,7 @@ impl RevocationOutput for CertificateRevocation
 /// Revoke a certificate
 pub fn certificate_revoke(
     sq: Sq,
-    mut command: RevokeCommand,
+    mut command: Command,
 ) -> Result<()> {
     let cert = if let Some(file) = command.cert_file {
         if command.output.is_none() {

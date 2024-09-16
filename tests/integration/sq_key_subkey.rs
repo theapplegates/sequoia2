@@ -251,7 +251,7 @@ fn sq_key_subkey_revoke() -> Result<()> {
                 "key",
                 "subkey",
                 "revoke",
-                &subkey_fingerprint.to_string(),
+                "--key", &subkey_fingerprint.to_string(),
                 reason_str,
                 message,
             ]);
@@ -276,7 +276,8 @@ fn sq_key_subkey_revoke() -> Result<()> {
             }
             let output = cmd.output()?;
             if !output.status.success() {
-                panic!("sq exited with non-zero status code: {:?}", output.stderr);
+                panic!("sq exited with non-zero status code: {}",
+                       String::from_utf8_lossy(&output.stderr));
             }
 
             // whether we found a revocation signature
@@ -346,6 +347,42 @@ fn sq_key_subkey_revoke() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn sq_key_subkey_revoke_multiple() -> Result<()> {
+    let sq = Sq::new();
+
+    let (cert, cert_path, _rev_path)
+        = sq.key_generate(&["--email", "alice@example.org"], &[]);
+    assert!(cert.keys().subkeys().count() > 0);
+    sq.key_import(cert_path);
+
+    let mut cmd = sq.command();
+    cmd.args([
+        "key", "subkey", "revoke",
+        "--cert", &cert.fingerprint().to_string(),
+    ]);
+
+    for subkey in cert.keys().subkeys() {
+        cmd.args(["--key", &subkey.key().fingerprint().to_string(),]);
+    }
+
+    cmd.args(["retired", "rotation"]);
+    sq.run(cmd, Some(true));
+
+    let revoked = sq.cert_export(cert.key_handle());
+    assert_eq!(cert.keys().subkeys().count(), revoked.keys().subkeys().count());
+
+    let vrevoked = revoked.with_policy(STANDARD_POLICY, sq.now())?;
+    for subkey in vrevoked.keys().subkeys() {
+        use sequoia_openpgp::cert::amalgamation::ValidAmalgamation;
+        assert!(matches!(subkey.revocation_status(),
+                         RevocationStatus::Revoked(_)));
+    }
+
+    Ok(())
+}
+
 
 #[test]
 fn sq_key_subkey_revoke_thirdparty() -> Result<()> {
@@ -467,7 +504,7 @@ fn sq_key_subkey_revoke_thirdparty() -> Result<()> {
                 "key",
                 "subkey",
                 "revoke",
-                &subkey_fingerprint.to_string(),
+                "--key", &subkey_fingerprint.to_string(),
                 reason_str,
                 message,
             ]);

@@ -534,6 +534,7 @@ pub struct ExpireCommand {
 
     #[clap(
         long,
+        value_name = "FINGERPRINT|KEYID",
         help = "Change the expiration of this subkey",
         required = true,
     )]
@@ -585,13 +586,27 @@ const SUBKEY_REVOKE_EXAMPLES: Actions = Actions {
                 "alice-secret.pgp",
             ],
         }),
+
         Action::Example(Example {
             comment: "\
 Revoke Alice's signing subkey.",
             command: &[
                 "sq", "key", "subkey", "revoke",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "42020B87D51877E5AF8D272124F3955B0B8DECC8",
+                "--key", "42020B87D51877E5AF8D272124F3955B0B8DECC8",
+                "retired",
+                "Subkey rotation.",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Revoke Alice's signing subkey and encryption subkeys.",
+            command: &[
+                "sq", "key", "subkey", "revoke",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--key", "42020B87D51877E5AF8D272124F3955B0B8DECC8",
+                "--key", "74DCDEAF17D9B995679EB52BA6E65EA2C8497728",
                 "retired",
                 "Subkey rotation.",
             ],
@@ -675,10 +690,12 @@ for the file to contain more than one certificate.",
     pub revoker_file: Option<FileOrStdin>,
 
     #[clap(
+        long = "key",
         value_name = "FINGERPRINT|KEYID",
-        help = "The subkey to revoke",
+        help = "Revoke this subkey",
+        required = true,
     )]
-    pub subkey: KeyHandle,
+    pub keys: Vec<KeyHandle>,
 
     #[clap(
         value_name = "REASON",

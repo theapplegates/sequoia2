@@ -6,7 +6,7 @@ use chrono::Utc;
 use sequoia_openpgp as openpgp;
 use openpgp::cert::KeyBuilder;
 use openpgp::cert::SubkeyRevocationBuilder;
-use openpgp::packet::{Key, key};
+use openpgp::packet::{Key, Signature, key};
 use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::parse::Parse;
 use openpgp::serialize::Serialize;
@@ -116,27 +116,26 @@ fn subkey_expire(sq: Sq, command: ExpireCommand)
 struct SubkeyRevocation {
     cert: Cert,
     revoker: Cert,
-    revocation_packet: Packet,
-    subkey: Key<key::PublicParts, key::SubordinateRole>,
+    revocations: Vec<(Key<key::PublicParts, key::SubordinateRole>, Signature)>,
 }
 
 impl SubkeyRevocation {
     /// Create a new SubkeyRevocation
     pub fn new(
         sq: &Sq,
-        keyhandle: &KeyHandle,
+        keyhandles: &[KeyHandle],
         cert: Cert,
         revoker: Option<Cert>,
         reason: ReasonForRevocation,
         message: &str,
         notations: &[(bool, NotationData)],
     ) -> Result<Self> {
+        let valid_cert = cert.with_policy(NULL_POLICY, None)?;
         let (revoker, mut signer)
             = get_secret_signer(sq, &cert, revoker.as_ref())?;
 
-        let (subkey, revocation_packet) = {
-            let valid_cert = cert.with_policy(NULL_POLICY, None)?;
-
+        let mut revocations = Vec::new();
+        for keyhandle in keyhandles {
             let keys = valid_cert.keys().subkeys()
                 .key_handle(keyhandle.clone())
                 .map(|skb| skb.key().clone())
@@ -156,7 +155,7 @@ impl SubkeyRevocation {
                     )?;
                 }
                 let rev = rev.build(&mut signer, &cert, &subkey, None)?;
-                (subkey.into(), Packet::Signature(rev))
+                revocations.push((subkey, rev));
             } else if keys.len() > 1 {
                 wprintln!("Key ID {} does not uniquely identify a subkey, \
                            please use a fingerprint instead.\nValid subkeys:",
@@ -198,26 +197,31 @@ impl SubkeyRevocation {
         Ok(SubkeyRevocation {
             cert,
             revoker,
-            revocation_packet,
-            subkey,
+            revocations,
         })
     }
 }
 
 impl RevocationOutput for SubkeyRevocation {
     fn cert(&self) -> Result<Cert> {
-        let cert = Cert::from_packets(vec![
-            self.cert.primary_key().key().clone().into(),
-            self.subkey.clone().into(),
-            self.revocation_packet.clone(),
-        ].into_iter())?;
-
-        Ok(cert)
+         Cert::from_packets(
+            std::iter::once(
+                Packet::from(self.cert.primary_key().key().clone()))
+                .chain(self.revocations.iter().flat_map(
+                    |(k, s)| [k.clone().into(), s.clone().into()].into_iter()))
+        )
     }
 
     fn comment(&self) -> String {
-        format!("Includes a revocation certificate to revoke the subkey {}",
-                self.subkey.fingerprint())
+        if self.revocations.len() == 1 {
+            format!("Includes a revocation certificate to revoke the subkey {}",
+                    self.revocations[0].0.fingerprint())
+        } else {
+            let fingerprints: Vec<_> = self.revocations.iter()
+                .map(|k| k.0.fingerprint().to_string()).collect();
+            format!("Includes revocation certificates to revoke the subkeys {}",
+                    fingerprints.join(", "))
+        }
     }
 
     fn revoker(&self) -> &Cert {
@@ -352,7 +356,7 @@ pub fn subkey_revoke(
 
     let revocation = SubkeyRevocation::new(
         &sq,
-        &command.subkey,
+        &command.keys,
         cert,
         revoker,
         command.reason.into(),

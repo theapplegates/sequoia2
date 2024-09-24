@@ -1133,6 +1133,36 @@ impl Sq {
             .expect("success")
     }
 
+    /// Add a link for the binding.
+    pub fn pki_link_add_maybe(&self, extra_args: &[&str],
+                              cert: KeyHandle, userid: &str)
+        -> Result<()>
+    {
+        let mut cmd = self.command();
+        cmd.args([ "pki", "link", "add" ]);
+        for arg in extra_args {
+            cmd.arg(arg);
+        }
+        cmd.arg(&cert.to_string());
+        cmd.arg(userid);
+
+        let output = self.run(cmd, None);
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!(format!(
+                "Command failed:\n{}",
+                String::from_utf8_lossy(&output.stderr))))
+        }
+    }
+
+    /// Add a link for the binding.
+    pub fn pki_link_add(&self, args: &[&str],
+                        cert: KeyHandle, userid: &str)
+    {
+        self.pki_link_add_maybe(args, cert, userid).expect("success")
+    }
+
     pub fn sign<'a, H, Q>(&self,
                           signer: H,
                           password_file: Option<&Path>,

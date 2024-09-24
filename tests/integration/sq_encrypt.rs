@@ -1,8 +1,116 @@
+use std::collections::HashSet;
+
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
+use openpgp::KeyID;
+use openpgp::Fingerprint;
+use openpgp::Packet;
+use openpgp::parse::PacketParser;
+use openpgp::parse::PacketParserResult;
+use openpgp::parse::Parse;
 use openpgp::Result;
 
+use crate::integration::common::power_set;
 use crate::integration::common::Sq;
+use crate::integration::common::STANDARD_POLICY;
+
+// Encrypts a message to the specified recipients.  If
+// `decryption_keys` is empty, asserts that encrypt failed.  If
+// `decryption_keys` is not empty, asserts that the recipients of the
+// PKESKs match `decryption_keys`.
+fn try_encrypt(sq: &Sq, extra_args: &[&str],
+               decryption_keys: &[&Fingerprint],
+               recipient_certs: &[&Fingerprint],
+               recipient_userids: &[&str],
+               recipient_emails: &[&str])
+{
+    let mut args: Vec<&str> = extra_args.to_vec();
+
+    let recipient_certs_ = recipient_certs
+        .iter()
+        .map(|fpr| fpr.to_string())
+        .collect::<Vec<_>>();
+    for recipient_cert in recipient_certs_.iter() {
+        args.push("--recipient-cert");
+        args.push(&recipient_cert);
+    }
+
+    for recipient_userid in recipient_userids.iter() {
+        args.push("--recipient-userid");
+        args.push(&recipient_userid);
+    }
+
+    for recipient_email in recipient_emails.iter() {
+        args.push("--recipient-email");
+        args.push(&recipient_email);
+    }
+
+    eprintln!("sq encrypt {:?}", args);
+
+    let message = format!("{:?}", args);
+
+    let result = sq.encrypt_maybe(&args, &message);
+
+    match result {
+        Err(err) => {
+            assert!(decryption_keys.is_empty(),
+                    "Error encrypting message: {}", err);
+        }
+        Ok(ciphertext) => {
+            // Make sure we can decrypt the message using the keys
+            // on the key store.
+            let plaintext = sq.decrypt(&[], &ciphertext);
+            assert_eq!(message.as_bytes(), plaintext);
+
+            let mut die = false;
+
+            let mut actual_recipients = Vec::new();
+            let mut ppr = PacketParser::from_bytes(&ciphertext)
+                .expect("valid ciphertet");
+            while let PacketParserResult::Some(pp) = ppr {
+                let (packet, next_ppr) = pp.next().expect("valid message");
+                ppr = next_ppr;
+
+                // Process the packet.
+                if let Packet::PKESK(pkesk) = packet {
+                    eprintln!("  PKESK for {}", pkesk.recipient());
+                    actual_recipients.push(pkesk.recipient().clone());
+                }
+            }
+            actual_recipients.sort();
+            let actual_recipients: HashSet<KeyID>
+                = HashSet::from_iter(actual_recipients.into_iter());
+
+            let mut decryption_keyids = decryption_keys
+                .iter()
+                .map(|fpr| KeyID::from(*fpr))
+                .collect::<Vec<KeyID>>();
+            decryption_keyids.sort();
+            let decryption_keyids
+                = HashSet::from_iter(decryption_keyids.into_iter());
+
+            for missing in decryption_keyids.difference(&actual_recipients) {
+                eprintln!("Message should have been encrypted to {}, \
+                           but wasn't",
+                          missing);
+                die = true;
+            }
+
+            for extra in actual_recipients.difference(&decryption_keyids) {
+                eprintln!("Message was encrypted to {}, \
+                           but shouldn't have been",
+                          extra);
+                die = true;
+            }
+
+            if die {
+                eprintln!("Actual recipients: {:?}", actual_recipients);
+                eprintln!("Expected: {:?}", decryption_keyids);
+                panic!("Something went wrong");
+            }
+        }
+    }
+}
 
 #[test]
 fn sq_encrypt_using_cert_store() -> Result<()>
@@ -299,6 +407,156 @@ fn sq_encrypt_with_password() -> Result<()>
     let output = sq.run(cmd, Some(true));
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert_eq!(stdout, MESSAGE);
+
+    Ok(())
+}
+
+// Exercise various ways to encrypt a message to a recipient
+// (--recipient-cert, --recipient-userid, and --recipient-email).
+// When designating a certificate by name, make sure only
+// authenticated certificates are used.
+#[test]
+fn sq_encrypt_cert_designators() -> Result<()>
+{
+    let sq = Sq::new();
+
+    // Generate and import the keys.
+    let gen_key = |userids: &[&str]| {
+        let (cert, cert_pgp, _cert_rev)
+            = sq.key_generate(&[], userids);
+        let cert_vc = cert.with_policy(STANDARD_POLICY, None).expect("valid cert");
+        let cert_enc = cert_vc.keys().for_transport_encryption()
+            .map(|ka| ka.fingerprint())
+            .collect::<Vec<_>>();
+        assert_eq!(cert_enc.len(), 1);
+        let cert_enc = cert_enc.into_iter().next().unwrap();
+
+        eprintln!("{} {:?} => {}",
+                  cert.fingerprint(), userids, cert_enc);
+
+        sq.key_import(&cert_pgp);
+
+        (cert, cert_enc)
+    };
+
+    let alice_email = "alice@example.org";
+    let alice_userid = format!("Alice <{}>", alice_email);
+    let (alice, alice_enc) = gen_key(&[&alice_userid]);
+    let alice_fpr = alice.fingerprint();
+
+    sq.pki_link_add(&[], alice.key_handle(), &alice_userid);
+
+    let bob_email1 = "bob@example.org";
+    let bob_userid1 = format!("Bob <{}>", bob_email1);
+    let bob_email2 = "bob@other.org";
+    let bob_userid2 = format!("Bob <{}>", bob_email2);
+    let (bob, bob_enc) = gen_key(&[&bob_userid1, &bob_userid2]);
+    let bob_fpr = bob.fingerprint();
+
+    sq.pki_link_add(&[], bob.key_handle(), &bob_userid1);
+    sq.pki_link_add(&[], bob.key_handle(), &bob_userid2);
+
+    // Mallory's certificate includes Alice's and Bob's user IDs.
+    // Since Mallory's certificate is not authenticated, it shouldn't
+    // be used when addressing certificates by user ID or email
+    // address.
+    let mallory_email = "mallory@example.org";
+    let mallory_userid = format!("Mallory <{}>", mallory_email);
+    let (mallory, mallory_enc)
+        = gen_key(&[&mallory_userid, &alice_userid, &bob_userid1, &bob_userid2]);
+    let mallory_fpr = mallory.fingerprint();
+
+    // Check that different subsets of fingerprints, user ids, and
+    // email addresses can be used to select recipients.  Check that
+    // we encrypt to the relevant certificates, and only the relevant
+    // certificates.  This checks that we only consider authenticated
+    // user IDs: mallory's certificate is completely unauthenticated,
+    // but contains Alice's and Bob's user IDs.
+    let power_set_of = |recipients: &[(&Fingerprint, // Recipient
+                                       Option<&Fingerprint>, // Fingerprint
+                                       Option<&str>, // User ID
+                                       Option<&str>)]| // Email
+    {
+        for recipients in power_set(recipients) {
+            let intended_recipients = recipients.iter()
+                .map(|(fpr, _, _, _)| *fpr)
+                .collect::<Vec<_>>();
+
+            let recipient_fprs = recipients.iter()
+                .filter_map(|(_, fpr, _, _)| fpr.as_ref())
+                .map(|fpr| *fpr)
+                .collect::<Vec<&Fingerprint>>();
+            let recipient_userids = recipients.iter()
+                .filter_map(|(_, _, userid, _)| userid.as_ref())
+                .map(|userid| &userid[..])
+                .collect::<Vec<&str>>();
+            let recipient_emails = recipients.iter()
+                .filter_map(|(_, _, _, email)| email.as_ref())
+                .map(|email| &email[..])
+                .collect::<Vec<&str>>();
+
+            try_encrypt(&sq, &[],
+                        &intended_recipients,
+                        &recipient_fprs[..],
+                        &recipient_userids,
+                        &recipient_emails);
+        }
+    };
+
+    // Because a power set results in a combinatorial explosion, we
+    // check the power set of a couple of different smaller sets
+    // instead of one large set.
+
+    let all = &[
+        // Primary fingerprint.
+        (&[-1, 0, 2][..], (&alice_enc, Some(&alice_fpr), None, None)),
+        (&[-1, 2], (&bob_enc, Some(&bob_fpr), None, None)),
+        (&[-1, 0, 1, 4], (&mallory_enc, Some(&mallory_fpr), None, None)),
+        // Subkey fingerprint.
+        (&[-2, 1, 2], (&alice_enc, Some(&alice_enc), None, None)),
+        (&[-2, 0], (&bob_enc, Some(&bob_enc), None, None)),
+        (&[-2, 1, 2, 3], (&mallory_enc, Some(&mallory_enc), None, None)),
+        // User ID.
+        (&[-3, 0, 3], (&alice_enc, None, Some(&alice_userid[..]), None)),
+        (&[-3, 2, 3], (&bob_enc, None, Some(&bob_userid1[..]), None)),
+        (&[-3, 1, 3], (&bob_enc, None, Some(&bob_userid2[..]), None)),
+        // Email
+        (&[-4, 1, 4], (&alice_enc, None, None, Some(alice_email))),
+        (&[-4, 0, 4], (&bob_enc, None, None, Some(bob_email1))),
+        (&[-4, 2, 4], (&bob_enc, None, None, Some(bob_email2))),
+    ];
+
+    let mut runs: Vec<isize> = all.iter()
+        .flat_map(|(runs, _)| runs.iter().cloned())
+        .collect();
+    runs.sort();
+    runs.dedup();
+
+    for run in runs.into_iter() {
+        let recipients = all
+            .iter()
+            .filter_map(|(runs, recipient)| {
+                if runs.contains(&run) {
+                    Some(recipient.clone())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        power_set_of(&recipients[..]);
+    }
+
+
+    // Make sure we can't encrypt to mallory's certificate using his
+    // primary user ID (it's not authenticated).
+    try_encrypt(&sq, &[], &[], &[], &[], &[&mallory_email]);
+    try_encrypt(&sq, &[], &[], &[], &[&mallory_userid], &[]);
+
+    // Make sure we don't encrypt succeed even if we have a valid designator.
+    try_encrypt(&sq, &[], &[], &[&alice_fpr], &[], &[&mallory_email]);
+    try_encrypt(&sq, &[], &[], &[&alice_fpr], &[&mallory_userid], &[]);
+    try_encrypt(&sq, &[], &[], &[&mallory_fpr], &[&mallory_userid], &[]);
 
     Ok(())
 }

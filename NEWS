@@ -2,6 +2,10 @@
 #+TITLE: sequoia-sq NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 0.39.0
+** Notable changes
+   - Subcommand `sq key userid strip` has been moved to `sq toolbox
+     strip-userid`.
 * Changes in 0.38.0
 ** Notable changes
    - New subcommand `sq key subkey delete` to delete secret key

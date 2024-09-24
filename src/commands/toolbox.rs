@@ -11,6 +11,7 @@ pub mod dearmor;
 pub mod extract_cert;
 pub mod keyring;
 pub mod packet;
+pub mod strip_userid;
 
 pub fn dispatch(sq: Sq, command: Command) -> Result<()>
 {
@@ -26,6 +27,6 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
         Subcommands::Dearmor(command) =>
             dearmor::dispatch(sq, command),
         Subcommands::StripUserid(command) =>
-            crate::commands::key::userid::userid_strip(sq, command),
+            strip_userid::userid_strip(sq, command),
     }
 }

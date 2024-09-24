@@ -9,7 +9,6 @@
 use anyhow::Context as _;
 
 use std::borrow::Borrow;
-use std::collections::btree_map::{BTreeMap, Entry};
 use std::io;
 use std::path::Path;
 use std::time::SystemTime;
@@ -20,7 +19,6 @@ use sequoia_openpgp as openpgp;
 
 use openpgp::Result;
 use openpgp::{armor, Cert};
-use openpgp::Fingerprint;
 use openpgp::parse::Parse;
 use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::packet::signature::subpacket::NotationDataFlags;
@@ -112,26 +110,6 @@ fn load_certs<'a, I>(files: I) -> openpgp::Result<Vec<Cert>>
     Ok(certs)
 }
 
-/// Merges duplicate certs in a keyring.
-fn merge_keyring<C>(certs: C) -> Result<BTreeMap<Fingerprint, Cert>>
-where
-    C: IntoIterator<Item = Cert>,
-{
-    let mut merged = BTreeMap::new();
-    for cert in certs {
-        match merged.entry(cert.fingerprint()) {
-            Entry::Vacant(e) => {
-                e.insert(cert);
-            },
-            Entry::Occupied(mut e) => {
-                let old = e.get().clone();
-                e.insert(old.merge_public(cert)?);
-            },
-        }
-    }
-    Ok(merged)
-}
-
 /// Serializes a keyring, adding descriptive headers if armored.
 #[allow(dead_code)]
 fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
@@ -150,12 +128,9 @@ fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
         return certs[0].armored().serialize(&mut output);
     }
 
-    // Otherwise, merge the certs.
-    let merged = merge_keyring(certs)?;
-
     // Then, collect the headers.
     let mut headers = Vec::new();
-    for (i, cert) in merged.values().enumerate() {
+    for (i, cert) in certs.iter().enumerate() {
         headers.push(format!("Key #{}", i));
         headers.append(&mut cert.armor_headers());
     }
@@ -166,7 +141,7 @@ fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
     let mut output = armor::Writer::with_headers(&mut output,
                                                  armor::Kind::PublicKey,
                                                  headers)?;
-    for cert in merged.values() {
+    for cert in certs {
         cert.serialize(&mut output)?;
     }
     output.finalize()?;

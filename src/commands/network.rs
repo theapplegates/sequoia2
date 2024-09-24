@@ -1,6 +1,6 @@
 //! Network services.
 
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 use std::fs::{self, DirEntry};
 use std::path::Path;
@@ -55,7 +55,6 @@ use crate::{
         pluralize::Pluralize,
     },
     Sq,
-    merge_keyring,
     serialize_keyring,
     print_error_chain,
     utils::cert_exportable,
@@ -108,8 +107,6 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
 
     let mut stats
         = cert_store::store::MergePublicCollectStats::new();
-
-    let certs = merge_keyring(certs)?.into_values().collect::<Vec<_>>();
 
     qprintln!("\nImporting {} into the certificate store:\n",
               certs.len().of("certificate"));
@@ -645,19 +642,44 @@ impl Response {
     /// If `silent_errors` is given, then failure messages are
     /// suppressed unless --verbose is given, or there was not a
     /// single successful result.
-    async fn collect<'store, 'rstore, 'acc>(
+    async fn collect<'store, 'rstore>(
         sq: &mut Sq<'store, 'rstore>,
         mut responses: JoinSet<Response>,
-        certs: &'acc mut Vec<Cert>,
+        certs: &mut BTreeMap<Fingerprint, Cert>,
         certify: bool,
         silent_errors: bool,
         pb: &mut ProgressBar,
     )
-        -> Result<&'acc [Cert]>
+        -> Result<Vec<Fingerprint>>
     where
         'store: 'rstore
     {
-        let certs_len_before = certs.len();
+        let mut new = Vec::new();
+
+        /// Merges `cert` into `acc`, adding its fingerprint to `new`
+        /// if the cert is new, or there are new user IDs.
+        fn merge(acc: &mut BTreeMap<Fingerprint, Cert>,
+                 new: &mut Vec<Fingerprint>,
+                 cert: Cert)
+                 -> Result<()>
+        {
+            use std::collections::btree_map::Entry;
+            match acc.entry(cert.fingerprint()) {
+                Entry::Occupied(e) => {
+                    let e = e.into_mut();
+                    let n_uids = e.userids().count();
+                    *e = e.clone().merge_public(cert)?;
+                    if e.userids().count() > n_uids {
+                        new.push(e.fingerprint());
+                    }
+                },
+                Entry::Vacant(e) => {
+                    new.push(cert.fingerprint());
+                    e.insert(cert);
+                },
+            }
+            Ok(())
+        }
 
         let mut errors = Vec::new();
         while let Some(response) = responses.join_next().await {
@@ -667,16 +689,20 @@ impl Response {
                 Ok(returned_certs) => for cert in returned_certs {
                     match cert {
                         Ok(cert) => if ! certify {
-                            certs.push(cert);
-                        } else { pb.suspend(|| {
+                            merge(certs, &mut new, cert)?;
+                        } else { pb.suspend(|| -> Result<()> {
                             if let Some(ca) = response.method.ca(sq)
                             {
-                                certs.append(&mut certify_downloads(
-                                    sq, ca, vec![cert], None));
+                                for cert in certify_downloads(
+                                    sq, ca, vec![cert], None)
+                                {
+                                    merge(certs, &mut new, cert)?;
+                                }
                             } else {
-                                certs.push(cert);
+                                merge(certs, &mut new, cert)?;
                             }
-                        })},
+                            Ok(())
+                        })?},
                         Err(e) =>
                             errors.push((response.method.clone(),
                                          response.query.clone(), e)),
@@ -696,7 +722,7 @@ impl Response {
         if certs.is_empty() {
             Err(anyhow::anyhow!("No cert found."))
         } else {
-            Ok(&certs[certs_len_before..])
+            Ok(new)
         }
     }
 
@@ -704,9 +730,10 @@ impl Response {
     fn import_or_emit(mut sq: Sq<'_, '_>,
                       output: Option<FileOrStdout>,
                       binary: bool,
-                      certs: Vec<Cert>)
+                      certs: BTreeMap<Fingerprint, Cert>)
                       -> Result<()>
     {
+        let certs = certs.into_values().collect();
         if let Some(file) = &output {
             let mut output = file.create_safe(&sq)?;
             serialize_keyring(&mut output, certs, binary)?;
@@ -741,7 +768,7 @@ pub fn dispatch_fetch(mut sq: Sq, c: cli::network::fetch::Command)
     } else {
         Query::parse(&c.query)?
     };
-    let mut results = Vec::new();
+    let mut results = Default::default();
     let mut pb = Response::progress_bar(&sq);
 
     let rt = tokio::runtime::Runtime::new()?;
@@ -863,12 +890,12 @@ pub fn dispatch_fetch(mut sq: Sq, c: cli::network::fetch::Command)
             return Result::Ok(());
         }
 
-        let certs = Response::collect(
+        let new = Response::collect(
             &mut sq, requests, &mut results, c.output.is_none(),
             default_servers, &mut pb).await?;
 
         // Expand certs to discover new identifiers to query.
-        for cert in certs {
+        for cert in new.iter().filter_map(|fp| results.get(fp)) {
             queries.push(Query::Handle(cert.key_handle()));
 
             for uid in cert.userids() {
@@ -949,7 +976,7 @@ pub fn dispatch_keyserver(mut sq: Sq,
                 }
             });
 
-            let mut certs = Vec::new();
+            let mut certs = Default::default();
             Response::collect(&mut sq, requests, &mut certs, c.output.is_none(),
                               default_servers, &mut pb).await?;
             drop(pb);
@@ -1061,7 +1088,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                 });
             });
 
-            let mut certs = Vec::new();
+            let mut certs = Default::default();
             Response::collect(&mut sq, requests, &mut certs, c.output.is_none(),
                               false, &mut pb).await?;
             drop(pb);
@@ -1304,7 +1331,7 @@ pub fn dispatch_dane(mut sq: Sq, c: cli::network::dane::Command)
                 });
             });
 
-            let mut certs = Vec::new();
+            let mut certs = Default::default();
             Response::collect(&mut sq, requests, &mut certs, c.output.is_none(),
                               false, &mut pb).await?;
             drop(pb);

@@ -78,6 +78,19 @@ fn try_encrypt(sq: &Sq, extra_args: &[&str],
                 }
             }
             actual_recipients.sort();
+
+            // Make sure the recipients are deduped.
+            for rs in actual_recipients.windows(2) {
+                let r1 = &rs[0];
+                let r2 = &rs[1];
+
+                if r1 == r2 {
+                    eprintln!("Multiple PKESKs for the same recipient ({}).",
+                              r1);
+                    die = true;
+                }
+            }
+
             let actual_recipients: HashSet<KeyID>
                 = HashSet::from_iter(actual_recipients.into_iter());
 

@@ -857,6 +857,84 @@ impl Sq {
         }
     }
 
+    /// Run `sq key subkey revoke` and return the revocation certificate.
+    pub fn key_subkey_revoke<'a, H, I, Q>(&self,
+                                          cert_handle: H,
+                                          key_handles: &[KeyHandle],
+                                          revoker_handle: I,
+                                          reason: &str,
+                                          message: &str,
+                                          revocation_time: Option<DateTime<Utc>>,
+                                          notations: &[(&str, &str)],
+                                          output_file: Q)
+        -> Cert
+        where H: Into<FileOrKeyHandle>,
+              I: Into<Option<FileOrKeyHandle>>,
+              Q: Into<Option<&'a Path>>,
+    {
+        let cert_handle = cert_handle.into();
+        let revoker_handle = revoker_handle.into();
+        let output_file = output_file.into();
+
+        let mut cmd = self.command();
+        cmd.arg("key").arg("subkey").arg("revoke")
+            .arg(reason)
+            .arg(message);
+
+        for key in key_handles {
+            cmd.arg("--key").arg(key.to_string());
+        }
+
+        match &cert_handle {
+            FileOrKeyHandle::FileOrStdin(path) => {
+                cmd.arg("--cert-file").arg(path);
+            }
+            FileOrKeyHandle::KeyHandle((_kh, s)) => {
+                cmd.arg("--cert").arg(&s);
+            }
+        };
+        match revoker_handle.as_ref() {
+            Some(FileOrKeyHandle::FileOrStdin(path)) => {
+                cmd.arg("--revoker-file").arg(path);
+            }
+            Some(FileOrKeyHandle::KeyHandle((_kh, s))) => {
+                cmd.arg("--revoker").arg(&s);
+            }
+            None => (),
+        };
+
+        if let Some(output_file) = output_file {
+            cmd.arg("--output").arg(output_file);
+        }
+
+        for (k, v) in notations {
+            cmd.args(["--notation", k, v]);
+        }
+
+        if let Some(time) = revocation_time {
+            cmd.args([
+                "--time",
+                &time.format("%Y-%m-%dT%H:%M:%SZ").to_string(),
+            ]);
+        }
+
+        let output = self.run(cmd, Some(true));
+        assert!(output.status.success());
+
+        if let Some(output_file) = output_file {
+            if output_file != &PathBuf::from("-") {
+                return Cert::from_file(output_file)
+                    .expect("can parse certificate");
+            }
+        } else if output_file.is_none() {
+            if let FileOrKeyHandle::KeyHandle((kh, _s)) = cert_handle {
+                return self.cert_export(kh);
+            }
+        }
+        Cert::from_bytes(&output.stdout)
+            .expect("can parse certificate")
+    }
+
     /// Delete the specified key.
     pub fn key_subkey_delete<'a, H, Q>(&self,
                                        cert_handle: H,

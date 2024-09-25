@@ -40,6 +40,9 @@ use openpgp::types::Timestamp;
 use crate::cli::SECONDS_IN_DAY;
 use crate::cli::SECONDS_IN_YEAR;
 
+pub mod cert_designator;
+pub use cert_designator::CertDesignators;
+
 struct CliWarningOnce(());
 impl CliWarningOnce {
     /// Emit a warning message only once

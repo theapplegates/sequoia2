@@ -3591,6 +3591,7 @@ dependencies = [
  "textwrap",
  "thiserror",
  "tokio",
+ "typenum",
 ]
 
 [[package]]

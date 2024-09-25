@@ -1,5 +1,7 @@
 use std::borrow::Borrow;
+use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::collections::btree_map::Entry;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -42,12 +44,17 @@ use wot::store::Store as _;
 use sequoia_keystore as keystore;
 use keystore::Protection;
 
+use crate::cli::types::CertDesignators;
+use crate::cli::types::cert_designator::ArgumentPrefix;
+use crate::cli::types::cert_designator::CertDesignator;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::common::password;
 use crate::ImportStatus;
 use crate::output::hint::Hint;
 use crate::PreferredUserID;
 use crate::print_error_chain;
+
+const TRACE: bool = false;
 
 static NULL_POLICY: NullPolicy = NullPolicy::new();
 
@@ -1620,5 +1627,438 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     pub fn hint(&self, msg: fmt::Arguments) -> Hint {
         Hint::new(self.quiet)
             .hint(msg)
+    }
+
+    /// Resolve cert designators to certificates.
+    ///
+    /// When matching on a subkey via `--cert`, the subkey must be
+    /// bound to the certificate, but a back signature is not
+    /// required.  If a subkey is bound to multiple certificates, all
+    /// of the certificates are returned.
+    ///
+    /// When matching on a user ID, a certificate is only returned if
+    /// the matching user ID can be authenticated at the specified
+    /// amount (`trust_amount`).  Note: when `trust_amount` is 0,
+    /// matching user IDs do not have to be self signed.  If a
+    /// designator matches multiple certificates, all of them are
+    /// returned.
+    ///
+    /// When matching by key handle via `--cert`, or reading a
+    /// certificate from a file, or from stdin, the certificate is not
+    /// further authenticated.
+    ///
+    /// The returned certificates are deduped (duplicate certificates
+    /// are merged).
+    ///
+    /// This function returns a vector of certificates and a vector of
+    /// errors.  If processing a certificate results in an error, we
+    /// add it to the list of errors.  If a designator does not match
+    /// any certificates, an error is added to the error vector.  In
+    /// general, designator-specific errors are returned as `Err`s in
+    /// the `Vec`.  General errors, like the certificate store is
+    /// disabled, are returned using the outer `Result`.
+    pub fn resolve_certs<Options, Prefix>(
+        &self,
+        designators: &CertDesignators<Options, Prefix>,
+        trust_amount: usize,
+    )
+        -> Result<(Vec<Cert>, Vec<anyhow::Error>)>
+    where
+        Prefix: ArgumentPrefix
+    {
+        tracer!(TRACE, "Sq::resolve_certs");
+        t!("{:?}", designators);
+
+        // To report all errors, and not just the first one that we
+        // encounter, we maintain a list of errors.
+        let mut errors: Vec<anyhow::Error> = Vec::new();
+
+        // We merge the certificates eagerly.  To do so, we maintain a
+        // list of certificates that we've looked up.
+        let mut results: Vec<Cert> = Vec::new();
+
+        // Whether `ret` added something.  This needs to be a
+        // `RefCell`. because the `ret` closure holds a `&mut` to
+        // `results`.
+        let matched: RefCell<bool> = RefCell::new(false);
+
+        // Whether we've seen the given certificate.  The boolean is
+        // if we merged in the certificate from the cert store.  The
+        // index is the index of the certificate in `results`.
+        let mut have: BTreeMap<Fingerprint, (bool, usize)>
+            = BTreeMap::new();
+
+        // The list of user ID queries.
+        let mut userid_queries: Vec<(&CertDesignator, _, String)>
+            = Vec::new();
+
+        // Only open the cert store if we actually need it.
+        let mut cert_store_ = None;
+        let mut cert_store = || -> Result<_> {
+            if let Some(cert_store) = cert_store_ {
+                Ok(cert_store)
+            } else {
+                cert_store_ = Some(self.cert_store_or_else()?);
+                Ok(cert_store_.expect("just set"))
+            }
+        };
+
+        // Return a certificate or an error to the caller.
+        //
+        // `from_cert_store` is whether the certificate was read from
+        // the certificate store or not.
+        let mut ret = |designator: &CertDesignator,
+                       cert: Result<Arc<LazyCert>>,
+                       from_cert_store: bool|
+        {
+            let cert = match cert {
+                Ok(cert) => cert,
+                Err(err) => {
+                    errors.push(
+                        err.context(format!(
+                            "Failed to resolve {}",
+                            designator.argument::<Prefix>())));
+                    return;
+                }
+            };
+
+            match have.entry(cert.fingerprint()) {
+                Entry::Occupied(mut oe) => {
+                    let (have_from_cert_store, have_cert) = oe.get_mut();
+                    if from_cert_store {
+                        if *have_from_cert_store {
+                            // We read `cert` from the cert store, and
+                            // we read the same cert from the cert
+                            // store in the past.  There's nothing to
+                            // merge; we're done.
+                            *matched.borrow_mut() = true;
+                            return;
+                        }
+                    }
+
+                    let cert = match cert.to_cert() {
+                        Ok(cert) => cert.clone(),
+                        Err(err) => {
+                            errors.push(
+                                err.context(format!(
+                                    "Failed to resolve {}",
+                                    designator.argument::<Prefix>())));
+                            return;
+                        }
+                    };
+
+                    assert!(*have_cert < results.len());
+                    if let Some(have_cert) = results.get_mut(*have_cert) {
+                        *have_cert = have_cert.clone()
+                            .merge_public_and_secret(cert)
+                            .expect("same cert");
+                    }
+
+                    *have_from_cert_store |= from_cert_store;
+
+                    *matched.borrow_mut() = true;
+                }
+                Entry::Vacant(ve) => {
+                    let cert = match cert.to_cert() {
+                        Ok(cert) => cert.clone(),
+                        Err(err) => {
+                            errors.push(
+                                err.context(format!(
+                                    "Failed to resolve {}",
+                                    designator.argument::<Prefix>())));
+                            return;
+                        }
+                    };
+
+                    ve.insert((from_cert_store, results.len()));
+
+                    results.push(cert);
+
+                    *matched.borrow_mut() = true;
+                }
+            }
+        };
+
+        for designator in designators.designators.iter() {
+            *matched.borrow_mut() = false;
+
+            match designator {
+                CertDesignator::Cert(kh) => {
+                    t!("Looking up certificate by handle {}", kh);
+
+                    match cert_store()?.lookup_by_cert_or_subkey(kh) {
+                        Ok(matches) => {
+                            // If the designator doesn't match
+                            // anything, we can sometimes provide a
+                            // hint, e.g., weak crypto.
+                            let mut hint = Vec::new();
+
+                            for cert in matches.into_iter() {
+                                if cert.key_handle().aliases(kh) {
+                                    // We matched on the primary key.
+                                    ret(designator, Ok(cert), true);
+                                } else {
+                                    // When matching on a subkey, we
+                                    // need to check that there is a
+                                    // valid binding signature (but
+                                    // not a back signature).
+                                    let cert = match cert.to_cert() {
+                                        Ok(cert) => cert,
+                                        Err(err) => {
+                                            hint.push(err.context(
+                                                format!("when considering {}",
+                                                        cert.fingerprint())));
+                                            continue;
+                                        }
+                                    };
+
+                                    for ka in cert.keys().subkeys() {
+                                        if ka.key_handle().aliases(kh) {
+                                            match ka.with_policy(self.policy, None) {
+                                                Ok(_ka) => {
+                                                    ret(designator,
+                                                        Ok(Arc::new(cert.into())),
+                                                        true);
+                                                }
+                                                Err(err) => {
+                                                    hint.push(err.context(
+                                                        format!("{} on {}",
+                                                                kh,
+                                                                cert.fingerprint())));
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if ! *matched.borrow() {
+                                // The designator didn't match any
+                                // certificates.
+                                if hint.is_empty() {
+                                    ret(designator,
+                                        Err(anyhow::anyhow!("Didn't match any certificates")),
+                                        true);
+                                } else {
+                                    for hint in hint.into_iter() {
+                                        ret(designator,
+                                            Err(hint),
+                                            true);
+                                    }
+                                }
+                            }
+                        }
+                        Err(err) => {
+                            ret(designator, Err(err), true);
+                        }
+                    }
+                }
+
+                CertDesignator::UserID(userid) => {
+                    t!("Looking up certificate by userid {:?}", userid);
+
+                    let q = UserIDQueryParams::new();
+                    userid_queries.push(
+                        (designator, q, userid.to_string()));
+                }
+
+                CertDesignator::Email(email) => {
+                    t!("Looking up certificate by email {:?}", email);
+
+                    match UserIDQueryParams::is_email(&email) {
+                        Ok(email) => {
+                            let mut q = UserIDQueryParams::new();
+                            q.set_email(true);
+                            userid_queries.push(
+                                (designator, q, email.clone()));
+                        }
+                        Err(err) => {
+                            ret(designator, Err(err), true);
+                        }
+                    }
+                }
+
+                CertDesignator::Domain(domain) => {
+                    t!("Looking up certificate by domain {:?}", domain);
+
+                    match UserIDQueryParams::is_domain(&domain) {
+                        Ok(domain) => {
+                            let mut q = UserIDQueryParams::new();
+                            q.set_email(true)
+                                .set_anchor_start(false);
+                            userid_queries.push(
+                                (designator, q, format!("@{}", domain)));
+                        }
+                        Err(err) => {
+                            ret(designator, Err(err), true);
+                        }
+                    }
+                }
+
+                CertDesignator::Grep(pattern) => {
+                    t!("Looking up certificate by pattern {:?}", pattern);
+
+                    let mut q = UserIDQueryParams::new();
+                    q.set_anchor_start(false)
+                        .set_anchor_end(false)
+                        .set_ignore_case(true);
+                    userid_queries.push((designator, q, pattern.clone()));
+                }
+
+                CertDesignator::File(filename) => {
+                    t!("Reading certificates from the file {}",
+                       filename.display());
+
+                    match crate::load_certs(
+                        std::iter::once(filename.as_path()))
+                    {
+                        Ok(found) => {
+                            if found.is_empty() {
+                                ret(designator,
+                                    Err(anyhow::anyhow!(
+                                        "File does not contain any \
+                                         certificates")),
+                                    false);
+                            } else {
+                                for cert in found.into_iter() {
+                                    ret(designator,
+                                        Ok(Arc::new(cert.into())),
+                                        false);
+                                }
+                            }
+                        },
+                        Err(err) => {
+                            ret(designator, Err(err), false);
+                        }
+                    }
+                }
+
+                CertDesignator::Stdin => {
+                    t!("Reading certificates from stdin");
+                    let parser = CertParser::from_reader(std::io::stdin())
+                        .with_context(|| {
+                            format!("Failed to load certs from stdin")
+                        })?;
+                    for cert in parser {
+                        match cert {
+                            Ok(cert) => {
+                                ret(
+                                    designator,
+                                    Ok(Arc::new(cert.into())),
+                                    false);
+                            }
+                            Err(err) => {
+                                ret(designator,
+                                    Err(err),
+                                    false);
+                                continue;
+                            }
+                        }
+                    }
+                    if ! *matched.borrow() {
+                        ret(
+                            designator,
+                            Err(anyhow::anyhow!(
+                                "stdin did not contain any certificates")),
+                            false);
+                    }
+                }
+            }
+        }
+
+        let n = if ! userid_queries.is_empty() {
+            Some(self.wot_query()?.build())
+        } else {
+            None
+        };
+
+        for (designator, q, pattern) in userid_queries.iter() {
+            t!("Executing query {:?} against {}", q, pattern);
+
+            let n = n.as_ref().unwrap();
+
+            *matched.borrow_mut() = false;
+
+            let cert_store = cert_store()?;
+            match cert_store.select_userid(q, pattern) {
+                Ok(found) => {
+                    t!("=> {} results", found.len());
+
+                    if found.is_empty() {
+                        ret(designator,
+                            Err(anyhow::anyhow!(
+                                "query did not match any certificates")),
+                            true);
+                    }
+
+                    // If the designator doesn't match anything, we
+                    // can sometimes provide a hint, e.g., weak
+                    // crypto.
+                    let mut hint = Vec::new();
+
+                    for cert in found.into_iter() {
+                        let mut authenticated = false;
+                        if trust_amount == 0 {
+                            authenticated = true;
+                        } else {
+                            // Find the matching user ID and
+                            // authenticate it.
+                            for userid in cert.userids() {
+                                if q.check(&userid, pattern) {
+                                    let paths = n.authenticate(
+                                        &userid, cert.fingerprint(),
+                                        trust_amount);
+                                    if paths.amount() < trust_amount {
+                                        hint.push(Err(anyhow::anyhow!(
+                                            "{}, {:?} cannot be authenticated \
+                                             at the required level ({} of {}). \
+                                             After checking that {} really \
+                                             controls {}, you could certify \
+                                             their certificate by running \
+                                             `sq pki link add {} {:?}`.",
+                                            cert.fingerprint(),
+                                            String::from_utf8_lossy(userid.value()),
+                                            paths.amount(), trust_amount,
+                                            String::from_utf8_lossy(userid.value()),
+                                            cert.fingerprint(),
+                                            cert.fingerprint(),
+                                            String::from_utf8_lossy(userid.value()))));
+                                    } else {
+                                        authenticated = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        if authenticated {
+                            ret(designator, Ok(cert), true);
+                        }
+                    }
+
+                    if ! *matched.borrow() {
+                        // The designator didn't match any
+                        // certificates.
+                        if hint.is_empty() {
+                            ret(designator,
+                                Err(anyhow::anyhow!("Didn't match any certificates")),
+                                true);
+                        } else {
+                            for hint in hint.into_iter() {
+                                ret(designator,
+                                    hint,
+                                    true);
+                            }
+                        }
+                    }
+                }
+                Err(err) => {
+                    t!("=> {}", err);
+                    ret(designator, Err(err), true);
+                }
+            }
+        }
+
+        Ok((results, errors))
     }
 }

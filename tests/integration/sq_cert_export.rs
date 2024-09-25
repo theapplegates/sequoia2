@@ -219,7 +219,7 @@ fn sq_cert_export() -> Result<()>
            "--cert",
            &carol.cert().keys().nth(1).unwrap().fingerprint().to_string(),
            "--userid", carol.userids[0],
-           "--email", "carol@example.org",
+           "--email", "carol@sub.example.org",
            "--domain", "other.org"
     ], true, &[carol]);
 

@@ -35,28 +35,22 @@ use crate::Sq;
 use crate::Result;
 use crate::common::password;
 use crate::load_certs;
+use crate::print_error_chain;
 
 use crate::commands::CompressionMode;
 
 pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
     tracer!(TRACE, "decrypt::dispatch");
 
-    let mut recipients = load_certs(
-        command.recipients_file.iter().map(|s| s.as_ref()))?;
-    recipients.extend(
-        sq.lookup(command.recipients_cert,
-                  Some(KeyFlags::empty()
-                       .set_storage_encryption()
-                       .set_transport_encryption()),
-                  true,
-                  false)
-            .context("--recipient-cert")?);
-    recipients.extend(
-        sq.lookup_by_userid(&command.recipients_email, true)
-            .context("--recipient-email")?);
-    recipients.extend(
-        sq.lookup_by_userid(&command.recipients_userid, false)
-            .context("--recipient-userid")?);
+    let (recipients, errors) = sq.resolve_certs(
+        &command.recipients,
+        sequoia_wot::FULLY_TRUSTED)?;
+    for error in errors.iter() {
+        print_error_chain(error);
+    }
+    if ! errors.is_empty() {
+        return Err(anyhow::anyhow!("Failed to resolve certificates"));
+    }
 
     let output = command.output.create_pgp_safe(
         sq.force,

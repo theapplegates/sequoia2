@@ -14,6 +14,10 @@ use super::types::MetadataTime;
 use super::types::FileOrStdin;
 use super::types::FileOrStdout;
 
+use crate::cli::types::CertDesignators;
+use crate::cli::types::cert_designator::CertUserIDEmailFileArgs;
+use crate::cli::types::cert_designator::RecipientPrefix;
+
 use crate::cli::examples;
 use examples::*;
 
@@ -93,32 +97,8 @@ pub struct Command {
     )]
     pub binary: bool,
 
-    #[clap(
-        long = "recipient-email",
-        value_name = "EMAIL",
-        help = "Encrypt to all certificates that can be authenticated \
-                for the specified email address",
-    )]
-    pub recipients_email: Vec<String>,
-    #[clap(
-        long = "recipient-userid",
-        value_name = "USERID",
-        help = "Encrypt to all certificates that can be authenticated \
-                for the specified User ID",
-    )]
-    pub recipients_userid: Vec<String>,
-    #[clap(
-        long = "recipient-cert",
-        value_name = "FINGERPRINT|KEYID",
-        help = "Encrypt to the named certificates",
-    )]
-    pub recipients_cert: Vec<KeyHandle>,
-    #[clap(
-        long = "recipient-file",
-        value_name = "CERT_RING_FILE",
-        help = "Encrypt to all certificates in CERT_RING_FILE",
-    )]
-    pub recipients_file: Vec<PathBuf>,
+    #[command(flatten)]
+    pub recipients: CertDesignators<CertUserIDEmailFileArgs, RecipientPrefix>,
 
     #[clap(
         help = "Set the filename of the encrypted file as metadata",

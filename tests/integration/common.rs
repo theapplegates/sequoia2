@@ -977,6 +977,64 @@ impl Sq {
         }
     }
 
+    /// Change the key's expiration.
+    pub fn key_subkey_expire<'a, H, Q>(&self,
+                                       cert_handle: H,
+                                       keys: &[KeyHandle],
+                                       expire: &str,
+                                       password_file: Option<&'a Path>,
+                                       output_file: Q,
+                                       success: bool)
+        -> Result<Cert>
+    where
+        H: Into<FileOrKeyHandle>,
+        Q: Into<Option<&'a Path>>,
+    {
+        let cert_handle = cert_handle.into();
+        let output_file = output_file.into();
+
+        let mut cmd = self.command();
+        cmd.arg("key").arg("subkey").arg("expire").arg(expire);
+
+        if cert_handle.is_file() {
+            cmd.arg("--cert-file").arg(&cert_handle);
+        } else {
+            cmd.arg("--cert").arg(&cert_handle);
+        };
+
+        for key in keys.iter() {
+            cmd.arg("--key").arg(key.to_string());
+        }
+
+        if let Some(p) = password_file {
+            cmd.arg("--password-file").arg(p);
+        }
+
+        if let Some(output_file) = output_file {
+            cmd.arg("--output").arg(output_file);
+        }
+
+        let output = self.run(cmd, Some(success));
+        if output.status.success() {
+            if let Some(output_file) = output_file {
+                if output_file != &PathBuf::from("-") {
+                    return Ok(Cert::from_file(output_file)
+                        .expect("can parse certificate"));
+                }
+            } else if output_file.is_none() {
+                if let FileOrKeyHandle::KeyHandle((kh, _s)) = cert_handle {
+                    return Ok(self.key_export(kh));
+                }
+            }
+            Ok(Cert::from_bytes(&output.stdout)
+                .expect("can parse certificate"))
+        } else {
+            Err(anyhow::anyhow!(format!(
+                "Failed (expected):\n{}",
+                String::from_utf8_lossy(&output.stderr))))
+        }
+    }
+
     /// Adds user IDs to the given key.
     pub fn key_userid_add(&self, key: Cert, args: &[&str]) -> Result<Cert> {
         let mut cmd = self.command();

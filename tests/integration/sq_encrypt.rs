@@ -603,3 +603,68 @@ fn sq_encrypt_not_encryption_capable() -> Result<()>
 
     Ok(())
 }
+
+// Try encrypting to a certificate with an expired subkey.  Make sure
+// it fails, unless '--use-expired-subkey' is provided.
+#[test]
+fn sq_encrypt_expired() -> Result<()>
+{
+    let mut sq = Sq::new();
+
+    // Generate the keys.  Alice has an encryption capable subkey, but
+    // Bob doesn't.
+    let (alice, alice_pgp, _alice_rev) = sq.key_generate(
+        &[],
+        &["<alice@example.org>"]);
+    sq.key_import(alice_pgp);
+
+    let alice_enc = alice.keys().with_policy(STANDARD_POLICY, sq.now())
+        .for_storage_encryption()
+        .next()
+        .expect("have a storage encryption-capable subkey")
+        .fingerprint();
+
+    let (bob, bob_pgp, _bob_rev) = sq.key_generate(
+        &[],
+        &["<bob@example.org>"]);
+    sq.key_import(&bob_pgp);
+
+    let bob_enc = bob.keys().with_policy(STANDARD_POLICY, sq.now())
+        .for_storage_encryption()
+        .next()
+        .expect("have a storage encryption-capable subkey");
+
+    sq.tick(1);
+
+    // Expire in a day.
+    let bob = sq.key_subkey_expire(
+        bob.key_handle(), &[bob_enc.key_handle()], "1d",
+        None, None, true)
+        .expect("can set expiration");
+    sq.cert_import(&bob_pgp);
+
+    let bob_enc = bob_enc.fingerprint();
+
+    // Two days pass...
+    sq.tick(2 * 24 * 60 * 60);
+
+    for (i, (args, recipients, result)) in [
+        (&[][..], &[ &alice ][..], &[ &alice_enc ][..]),
+        (&[], &[ &bob ], &[]),
+        (&[], &[ &alice, &bob ], &[]),
+        (&["--use-expired-subkey"], &[ &alice ], &[ &alice_enc ]),
+        (&["--use-expired-subkey"], &[ &bob ], &[ &bob_enc ]),
+        (&["--use-expired-subkey"], &[ &alice, &bob ], &[ &alice_enc, &bob_enc ]),
+    ].into_iter().enumerate() {
+        eprintln!("Test #{}", i + 1);
+
+        let recipients = recipients.iter().map(|r| r.fingerprint())
+            .collect::<Vec<Fingerprint>>();
+        let recipients = recipients.iter()
+            .collect::<Vec<&Fingerprint>>();
+
+        try_encrypt(&sq, args, result, &recipients, &[], &[]);
+    }
+
+    Ok(())
+}

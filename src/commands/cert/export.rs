@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
@@ -13,6 +11,7 @@ use sequoia_cert_store as cert_store;
 use cert_store::Store;
 use cert_store::store::UserIDQueryParams;
 
+use crate::cli::types::cert_designator::CertDesignator;
 use crate::cli::types::FileOrStdout;
 use crate::{
     Sq,
@@ -25,77 +24,7 @@ use crate::cli::cert::export;
 pub fn dispatch(sq: Sq, mut cmd: export::Command) -> Result<()> {
     let cert_store = sq.cert_store_or_else()?;
 
-    let mut userid_query = Vec::new();
-    let mut die = false;
-
-    for userid in cmd.userid.into_iter() {
-        let q = UserIDQueryParams::new();
-        userid_query.push((q, userid));
-    }
-
-    for pattern in cmd.grep.into_iter() {
-        let mut q = UserIDQueryParams::new();
-        q.set_anchor_start(false)
-            .set_anchor_end(false)
-            .set_ignore_case(true);
-        userid_query.push((q, pattern));
-    }
-
-    for email in cmd.email.into_iter() {
-        match UserIDQueryParams::is_email(&email) {
-            Ok(email) => {
-                let mut q = UserIDQueryParams::new();
-                q.set_email(true);
-                userid_query.push((q, email));
-            }
-            Err(err) => {
-                let err = err.context(format!(
-                    "Invalid value for --email: {:?}", email));
-                print_error_chain(&err);
-                die = true;
-            }
-        }
-    }
-
-    for domain in cmd.domain.into_iter() {
-        match UserIDQueryParams::is_domain(&domain) {
-            Ok(domain) => {
-                let mut q = UserIDQueryParams::new();
-                q.set_email(true)
-                    .set_anchor_start(false);
-                userid_query.push((q, format!("@{}", domain)));
-            }
-            Err(err) => {
-                let err = err.context(format!(
-                    "Invalid value for --domain: {:?}", domain));
-                print_error_chain(&err);
-                die = true;
-            }
-        }
-    }
-
-    if die {
-        return Err(anyhow::anyhow!("Invalid arguments."));
-    }
-
-    for query in cmd.query {
-        if let Ok(h) = query.parse() {
-            cmd.cert.push(h);
-        } else if let Ok(email) = UserIDQueryParams::is_email(&query) {
-            let mut q = UserIDQueryParams::new();
-            q.set_email(true);
-            userid_query.push((q, email));
-        } else {
-            let mut q = UserIDQueryParams::new();
-            q.set_anchor_start(false)
-                .set_anchor_end(false)
-                .set_ignore_case(true);
-            userid_query.push((q, query));
-        }
-    }
-
-    if cmd.cert.is_empty() && userid_query.is_empty() && ! cmd.all
-    {
+    if cmd.certs.is_empty() && cmd.query.is_empty() && ! cmd.all {
         sq.hint(format_args!(
             "Use --all to export all certs, or give a query."));
         return Err(anyhow::anyhow!("no query given"));
@@ -131,75 +60,34 @@ pub fn dispatch(sq: Sq, mut cmd: export::Command) -> Result<()> {
             }
         }
 
-        // If we have nothing and we export nothing, that is fine.
+        // When specifying `--all`, if we have nothing and we export
+        // nothing, that is fine.
         exported_something = true;
     } else {
-        // There are two possible approaches when there are multiple
-        // search criteria: we iterate overall the certificates and
-        // check each one individually, or we execute each query and
-        // merge the results.  The former makes more sense when most
-        // of the certificates will be selected, but that is rarely
-        // the case in practice.  Further, some backends, like the
-        // KeyServer backend, don't support iteration.  So, we execute
-        // each query and merge the results.
+        let mut designators = cmd.certs;
 
-        let mut exported = HashSet::new();
-
-        for kh in cmd.cert.iter() {
-            if let Ok(certs) = cert_store.lookup_by_cert_or_subkey(kh) {
-                for cert in certs.into_iter().filter(
-                        |c| c.to_cert().map(cert_exportable).unwrap_or(false))
-                {
-                    if exported.get(&cert.fingerprint()).is_some() {
-                        // Already exported this one.
-                        continue;
-                    }
-
-                    if cert.key_handle().aliases(kh) {
-                        // When matching the primary key, we don't
-                        // need a valid self signature.
-                        exported_something = true;
-                        cert.export(&mut sink)?;
-                        exported.insert(cert.fingerprint());
-                    } else {
-                        // But, when matching a subkey, we do.
-                        if let Ok(vc) = cert.with_policy(sq.policy, None) {
-                            if vc.keys().subkeys().any(|ka| {
-                                ka.key_handle().aliases(kh)
-                            })
-                            {
-                                exported_something = true;
-                                cert.export(&mut sink)?;
-                                exported.insert(cert.fingerprint());
-                            }
-                        }
-                    }
-                }
+        for query in cmd.query {
+            if let Ok(h) = query.parse() {
+                designators.push(CertDesignator::Cert(h));
+            } else if let Ok(email) = UserIDQueryParams::is_email(&query) {
+                designators.push(CertDesignator::Email(email));
+            } else {
+                designators.push(CertDesignator::Grep(query));
             }
         }
 
-        for (q, pattern) in userid_query.iter() {
-            if let Ok(certs) = cert_store.select_userid(q, pattern) {
-                for cert in certs.into_iter().filter(
-                    |c| c.to_cert().map(cert_exportable).unwrap_or(false))
-                {
-                    if exported.get(&cert.fingerprint()).is_some() {
-                        // Already exported this one.
-                        continue;
-                    }
+        let (certs, errors)
+            = sq.resolve_certs(&designators, 0)?;
+        for error in errors.iter() {
+            print_error_chain(error);
+        }
+        if ! errors.is_empty() {
+            return Err(anyhow::anyhow!("Failed to resolve certificates"));
+        }
 
-                    // Matching User IDs need a valid self signature.
-                    if let Ok(vc) = cert.with_policy(sq.policy, None) {
-                        if vc.userids().any(|ua| {
-                            q.check(ua.userid(), pattern)
-                        }) {
-                            exported_something = true;
-                            cert.export(&mut sink)?;
-                            exported.insert(cert.fingerprint());
-                        }
-                    }
-                }
-            }
+        for cert in certs.into_iter() {
+            cert.export(&mut sink)?;
+            exported_something = true;
         }
     }
 

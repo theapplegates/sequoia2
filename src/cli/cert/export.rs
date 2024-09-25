@@ -1,8 +1,7 @@
 use clap::Parser;
 
-use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
-
+use crate::cli::types::CertDesignators;
+use crate::cli::types::cert_designator::CertUserIDEmailDomainGrepArgs;
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
@@ -91,51 +90,14 @@ pub struct Command {
     #[clap(
         long,
         conflicts_with_all = [
-            "cert", "userid", "grep", "email", "domain", "query",
+            "cert", "userid", "email", "domain", "grep", "query",
         ],
         help = "Export all certificates",
     )]
     pub all: bool,
 
-    #[clap(
-        long = "cert",
-        value_name = "FINGERPRINT|KEYID",
-        help = "Return certificates that contain a primary key or a \
-                subkey with the specified fingerprint or key ID",
-    )]
-    pub cert: Vec<KeyHandle>,
-
-    #[clap(
-        long = "userid",
-        value_name = "USERID",
-        help = "Return certificates that have a User ID that \
-                matches exactly, including case",
-    )]
-    pub userid: Vec<String>,
-
-    #[clap(
-        long = "grep",
-        value_name = "PATTERN",
-        help = "Return certificates that have a User ID that \
-                contains the string, case insensitively",
-    )]
-    pub grep: Vec<String>,
-
-    #[clap(
-        long = "email",
-        value_name = "EMAIL",
-        help = "Return certificates that have a User ID with \
-                the specified email address, case insensitively",
-    )]
-    pub email: Vec<String>,
-
-    #[clap(
-        long = "domain",
-        value_name = "DOMAIN",
-        help = "Return certificates that have a User ID with \
-                an email address from the specified domain",
-    )]
-    pub domain: Vec<String>,
+    #[command(flatten)]
+    pub certs: CertDesignators<CertUserIDEmailDomainGrepArgs>,
 
     #[clap(
         value_name = "QUERY",

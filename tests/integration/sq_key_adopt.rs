@@ -106,6 +106,22 @@ fn carol_encryption() -> (Fingerprint, KeyFlags) {
      KeyFlags::empty().set_transport_encryption().set_storage_encryption())
 }
 
+fn bare() -> path::PathBuf {
+    // $ sq inspect bare.pgp
+    // bare.pgp: Revocation Certificate.
+    //
+    //     Fingerprint: B321BA8F650CB16443E06826DBFA98A78CF6562F
+    //                  Invalid: No binding signature at time 2024-09-26T08:21:08Z
+    // Public-key algo: RSA
+    // Public-key size: 2048 bits
+    //   Creation time: 1970-01-01 00:00:00 UTC
+    dir().join("bare.pgp")
+}
+fn bare_signing() -> (Fingerprint, KeyFlags) {
+    ("B321BA8F650CB16443E06826DBFA98A78CF6562F".parse().unwrap(),
+     KeyFlags::empty().set_signing())
+}
+
 fn check(cert: &Cert,
          key_count: usize,
          keys: ((Fingerprint, KeyFlags), &[(Fingerprint, KeyFlags)]))
@@ -625,6 +641,45 @@ fn adopt_from_multiple() -> Result<()> {
                        carol_signing(), carol_encryption()
                    ]))
                 .is_ok());
+    }
+
+    Ok(())
+}
+
+// A bare certificate is a certificate that consists of just a primary
+// key (no subkeys, no user IDs, and no signatures).  Make sure we are
+// able to adopt one.
+#[test]
+fn adopt_bare() -> Result<()> {
+    let sq = Sq::new();
+
+    sq.key_import(alice());
+
+    let alice2_pgp = sq.scratch_file("alice2.pgp");
+
+    let to_adopt = bare_signing().0;
+
+    let cert = sq.key_adopt(
+        &[],
+        vec![ bare() ],
+        alice_primary().0,
+        vec![ to_adopt.clone() ],
+        &alice2_pgp);
+
+    let mut found = false;
+    for k in cert.keys() {
+        eprintln!("{}{}", k.fingerprint(),
+                  if k.fingerprint() == to_adopt {
+                      " (adopted)"
+                  } else {
+                      ""
+                  });
+        if k.fingerprint() == to_adopt {
+            found = true;
+        }
+    }
+    if ! found {
+        panic!("{} was not adopted", to_adopt);
     }
 
     Ok(())

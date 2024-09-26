@@ -6,6 +6,8 @@
 ** Notable changes
    - Subcommand `sq key userid strip` has been moved to `sq toolbox
      strip-userid`.
+   - `sq key adopt` supports adopting bare keys (i.e., a primary key
+     without any signatures).
 * Changes in 0.38.0
 ** Notable changes
    - New subcommand `sq key subkey delete` to delete secret key

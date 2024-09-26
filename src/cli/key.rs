@@ -653,6 +653,18 @@ Have Alice's new certificate adopt Alice's old authentication subkey.",
                 "--key", "0D45C6A756A038670FDFD85CB1C82E8D27DB23A1",
             ],
         }),
+        Action::Example(Example {
+            comment: "\
+Have Alice's certificate adopt a bare key.  A bare key is a public key
+without any components or signatures.  This simplifies working with raw
+keys, e.g., keys generated on an OpenPGP card, a TPM device, etc.",
+            command: &[
+                "sq", "key", "adopt",
+                "--keyring", "bare.pgp",
+                "--cert", "C5999E8191BF7B503653BE958B1F7910D01F86E5",
+                "--key", "B321BA8F650CB16443E06826DBFA98A78CF6562F",
+            ],
+        }),
     ]
 };
 test_examples!(sq_key_adopt, ADOPT_EXAMPLES);

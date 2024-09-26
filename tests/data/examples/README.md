@@ -56,6 +56,16 @@ By using static data, we can use known fingerprints in the examples.
 
     - NOT imported into the key store.
 
+- bare.pgp: A bare key.
+
+  A bare key is a public key without any components or signatures.
+  Bare keys are useful when working with raw keys, e.g., keys
+  generated on an OpenPGP card, a TPM device, etc.  To add them to a
+  certificate, they just need to be wrapped in a minimal amount of
+  OpenPGP framing; no signatures are required.
+
+    - NOT imported into the key store.
+
 - document.txt, document.sig: A document, and a detached signatured.
 
     - `sq sign --detached --signer-file juliet-secret.pgp document.txt > document.sig`

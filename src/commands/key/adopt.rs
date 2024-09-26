@@ -1,6 +1,5 @@
 use anyhow::Context;
 
-use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::packet::key;
 use openpgp::packet::signature::subpacket::SubpacketTag;
 use openpgp::packet::signature::SignatureBuilder;
@@ -67,24 +66,21 @@ pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
                 Err(err) => return (kh, Err(err)),
             };
 
-            let vc = match cert.with_policy(adoptee_policy, sq.time) {
-                Ok(vc) => vc,
-                Err(err) => return (kh, Err(err)),
-            };
 
-            let key = vc.keys().key_handle(kh.clone())
+            let key = cert.keys().key_handle(kh.clone())
                 .next().expect("have key");
 
-            let sig = key.binding_signature();
-            let builder: SignatureBuilder = match sig.typ() {
-                SignatureType::SubkeyBinding => {
+            let sig = key.binding_signature(adoptee_policy, sq.time).ok();
+            let builder: SignatureBuilder = match sig {
+                Some(sig) if sig.typ() == SignatureType::SubkeyBinding => {
                     sig.clone().into()
                 }
-                SignatureType::DirectKey
-                    | SignatureType::PositiveCertification
-                    | SignatureType::CasualCertification
-                    | SignatureType::PersonaCertification
-                    | SignatureType::GenericCertification => {
+                Some(sig) if sig.typ() == SignatureType::DirectKey
+                    || sig.typ() == SignatureType::PositiveCertification
+                    || sig.typ() == SignatureType::CasualCertification
+                    || sig.typ() == SignatureType::PersonaCertification
+                    || sig.typ() == SignatureType::GenericCertification =>
+                {
                         // Convert to a binding signature.
                         let kf = match sig.key_flags().context(
                             "Missing required subpacket, KeyFlags")
@@ -98,7 +94,10 @@ pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
                             Ok(b) => b,
                             Err(err) => return (kh, Err(err)),
                         }
-                    }
+                }
+                None => {
+                    SignatureBuilder::new(SignatureType::SubkeyBinding)
+                }
                 _ => panic!("Unsupported binding signature: {:?}", sig),
             };
 
@@ -156,7 +155,7 @@ pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
         let need_backsig = builder
             .key_flags()
             .map(|kf| kf.for_signing() || kf.for_certification())
-            .expect("Missing keyflags");
+            .unwrap_or(false);
 
         if need_backsig {
             // Derive a signer.

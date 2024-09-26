@@ -384,15 +384,8 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                     let cert_store = sequoia_wot::store::CertStore::from_store(
                         cert_store, self.sq.policy, reference_time);
 
-                    let userids = if let Some(userid) = sig.signers_user_id() {
-                        let userid = UserID::from(userid);
-                        wprintln!(indent=prefix,
-                                  "Signature was made by {}",
-                                  String::from_utf8_lossy(userid.value()));
-                        vec![ userid ]
-                    } else {
-                        cert_store.certified_userids_of(&cert_fpr)
-                    };
+                    let userids =
+                        cert_store.certified_userids_of(&cert_fpr);
 
                     if userids.is_empty() {
                         wprintln!(indent=prefix,
@@ -467,8 +460,24 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                             trusted = false;
                         } else {
                             trusted = true;
-                            signer_userid = String::from_utf8_lossy(
-                                authenticated_userids[0].value()).to_string();
+
+                            // If we managed to authenticate the
+                            // signers user ID, prefer that one.
+                            if let Some(u) = sig.signers_user_id()
+                                .and_then(|u| {
+                                    authenticated_userids.contains(
+                                        &UserID::from(u))
+                                        .then_some(u)
+                                })
+                            {
+                                signer_userid = String::from_utf8_lossy(u)
+                                    .to_string();
+                            } else {
+                                // Else just pick the first one.
+                                signer_userid = String::from_utf8_lossy(
+                                    authenticated_userids[0].value())
+                                    .to_string();
+                            }
                         }
                     }
                 } else {

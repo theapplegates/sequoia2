@@ -333,157 +333,6 @@ impl PacketDumper {
         }
         writeln!(output)?;
 
-        fn dump_key<P, R>(pd: &PacketDumper,
-                          output: &mut dyn io::Write, i: &str,
-                          k: &Key<P, R>)
-            -> Result<()>
-            where P: key::KeyParts,
-                  R: key::KeyRole,
-        {
-            writeln!(output, "{}  Version: {}", i, k.version())?;
-            writeln!(output, "{}  Creation time: {}", i,
-                     k.creation_time().convert())?;
-            writeln!(output, "{}  Pk algo: {}", i, k.pk_algo())?;
-            if let Some(bits) = k.mpis().bits() {
-                writeln!(output, "{}  Pk size: {} bits", i, bits)?;
-            }
-            writeln!(output, "{}  Fingerprint: {}", i, k.fingerprint())?;
-            writeln!(output, "{}  KeyID: {}", i, k.keyid())?;
-            if pd.mpis {
-                writeln!(output, "{}", i)?;
-                writeln!(output, "{}  Public Key:", i)?;
-
-                let ii = format!("{}    ", i);
-                match k.mpis() {
-                    mpi::PublicKey::RSA { e, n } =>
-                        pd.dump_mpis(output, &ii,
-                                       &[e.value(), n.value()],
-                                       &["e", "n"])?,
-                    mpi::PublicKey::DSA { p, q, g, y } =>
-                        pd.dump_mpis(output, &ii,
-                                       &[p.value(), q.value(), g.value(),
-                                         y.value()],
-                                       &["p", "q", "g", "y"])?,
-                    mpi::PublicKey::ElGamal { p, g, y } =>
-                        pd.dump_mpis(output, &ii,
-                                       &[p.value(), g.value(), y.value()],
-                                       &["p", "g", "y"])?,
-                    mpi::PublicKey::EdDSA { curve, q } => {
-                        writeln!(output, "{}  Curve: {}", ii, curve)?;
-                        pd.dump_mpis(output, &ii, &[q.value()], &["q"])?;
-                    },
-                    mpi::PublicKey::ECDSA { curve, q } => {
-                        writeln!(output, "{}  Curve: {}", ii, curve)?;
-                        pd.dump_mpis(output, &ii, &[q.value()], &["q"])?;
-                    },
-                    mpi::PublicKey::ECDH { curve, q, hash, sym } => {
-                        writeln!(output, "{}  Curve: {}", ii, curve)?;
-                        writeln!(output, "{}  KDF hash algo: {}", ii, hash)?;
-                        writeln!(output, "{}  KEK symmetric algo: {}", ii,
-                                 sym)?;
-                        pd.dump_mpis(output, &ii, &[q.value()], &["q"])?;
-                    },
-                    mpi::PublicKey::Unknown { mpis, rest } => {
-                        let keys: Vec<String> =
-                            (0..mpis.len()).map(
-                                |i| format!("mpi{}", i)).collect();
-                        pd.dump_mpis(
-                            output, &ii,
-                            &mpis.iter().map(|m| {
-                                m.value().iter().as_slice()
-                            }).collect::<Vec<_>>()[..],
-                            &keys.iter().map(|k| k.as_str())
-                                .collect::<Vec<_>>()[..],
-                        )?;
-
-                        pd.dump_mpis(output, &ii, &[&rest[..]], &["rest"])?;
-                    },
-
-                    // crypto::mpi:Publickey is non-exhaustive
-                    u => writeln!(output, "{}Unknown variant: {:?}", ii, u)?,
-                }
-            }
-
-            if let Some(secrets) = k.optional_secret() {
-                writeln!(output, "{}", i)?;
-                writeln!(output, "{}  Secret Key:", i)?;
-
-                let ii = format!("{}    ", i);
-                match secrets {
-                    SecretKeyMaterial::Unencrypted(ref u) => {
-                        writeln!(output, "{}", i)?;
-                        writeln!(output, "{}  Unencrypted", ii)?;
-                        if pd.mpis {
-                            u.map(|mpis| -> Result<()> {
-                                match mpis
-                                {
-                                    mpi::SecretKeyMaterial::RSA { d, p, q, u } =>
-                                        pd.dump_mpis(output, &ii,
-                                                     &[d.value(), p.value(),
-                                                       q.value(), u.value()],
-                                                     &["d", "p", "q", "u"])?,
-                                    mpi::SecretKeyMaterial::DSA { x } =>
-                                        pd.dump_mpis(output, &ii, &[x.value()],
-                                                     &["x"])?,
-                                    mpi::SecretKeyMaterial::ElGamal { x } =>
-                                        pd.dump_mpis(output, &ii, &[x.value()],
-                                                     &["x"])?,
-                                    mpi::SecretKeyMaterial::EdDSA { scalar } =>
-                                        pd.dump_mpis(output, &ii,
-                                                     &[scalar.value()],
-                                                     &["scalar"])?,
-                                    mpi::SecretKeyMaterial::ECDSA { scalar } =>
-                                        pd.dump_mpis(output, &ii,
-                                                     &[scalar.value()],
-                                                     &["scalar"])?,
-                                    mpi::SecretKeyMaterial::ECDH { scalar } =>
-                                        pd.dump_mpis(output, &ii,
-                                                     &[scalar.value()],
-                                                     &["scalar"])?,
-                                    mpi::SecretKeyMaterial::Unknown { mpis, rest } => {
-                                        let keys: Vec<String> =
-                                            (0..mpis.len()).map(
-                                                |i| format!("mpi{}", i)).collect();
-                                        pd.dump_mpis(
-                                            output, &ii,
-                                            &mpis.iter().map(|m| {
-                                                m.value().iter().as_slice()
-                                            }).collect::<Vec<_>>()[..],
-                                            &keys.iter().map(|k| k.as_str())
-                                                .collect::<Vec<_>>()[..],
-                                        )?;
-
-                                        pd.dump_mpis(output, &ii, &[rest],
-                                                     &["rest"])?;
-                                    },
-
-                                    // crypto::mpi::SecretKeyMaterial is non-exhaustive.
-                                    u => writeln!(output, "{}Unknown variant: {:?}", ii, u)?,
-                                }
-                                Ok(())
-                            })?;
-                        }
-                    }
-                    SecretKeyMaterial::Encrypted(ref e) => {
-                        writeln!(output, "{}", i)?;
-                        writeln!(output, "{}  Encrypted", ii)?;
-                        write!(output, "{}  S2K: ", ii)?;
-                        pd.dump_s2k(output, &ii, e.s2k())?;
-                        writeln!(output, "{}  Sym. algo: {}", ii,
-                                 e.algo())?;
-                        if pd.mpis {
-                            if let Ok(ciphertext) = e.ciphertext() {
-                                pd.dump_mpis(output, &ii, &[ciphertext],
-                                             &["ciphertext"])?;
-                            }
-                        }
-                    },
-                }
-            }
-
-            Ok(())
-        }
-
         #[allow(deprecated)]
         match p {
             Unknown(ref u) => {
@@ -491,10 +340,10 @@ impl PacketDumper {
                 writeln!(output, "{}  Error: {}", i, u.error())?;
             },
 
-            PublicKey(ref k) => dump_key(self, output, i, k)?,
-            PublicSubkey(ref k) => dump_key(self, output, i, k)?,
-            SecretKey(ref k) => dump_key(self, output, i, k)?,
-            SecretSubkey(ref k) => dump_key(self, output, i, k)?,
+            PublicKey(ref k) => self.dump_key(output, i, k)?,
+            PublicSubkey(ref k) => self.dump_key(output, i, k)?,
+            SecretKey(ref k) => self.dump_key(output, i, k)?,
+            SecretSubkey(ref k) => self.dump_key(output, i, k)?,
 
             Signature(ref s) => {
                 writeln!(output, "{}  Version: {}", i, s.version())?;
@@ -775,6 +624,168 @@ impl PacketDumper {
 
             let output = hd.into_inner();
             writeln!(output, "{}", i)?;
+        }
+
+        Ok(())
+    }
+
+    /// Dumps the given key packet.
+    fn dump_key<P, R>(&self, output: &mut dyn io::Write, i: &str,
+                      k: &Key<P, R>)
+                      -> Result<()>
+    where
+        P: key::KeyParts,
+        R: key::KeyRole,
+    {
+        self.dump_key_internal(
+            output, i, k.parts_as_unspecified().role_as_unspecified())
+    }
+
+    /// Dumps the given key packet, prevents monomorphization of this
+    /// big function.
+    fn dump_key_internal(&self, output: &mut dyn io::Write, i: &str,
+                         k: &Key<key::UnspecifiedParts, key::UnspecifiedRole>)
+                         -> Result<()>
+    {
+        writeln!(output, "{}  Version: {}", i, k.version())?;
+        writeln!(output, "{}  Creation time: {}", i,
+                 k.creation_time().convert())?;
+        writeln!(output, "{}  Pk algo: {}", i, k.pk_algo())?;
+        if let Some(bits) = k.mpis().bits() {
+            writeln!(output, "{}  Pk size: {} bits", i, bits)?;
+        }
+        writeln!(output, "{}  Fingerprint: {}", i, k.fingerprint())?;
+        writeln!(output, "{}  KeyID: {}", i, k.keyid())?;
+        if self.mpis {
+            writeln!(output, "{}", i)?;
+            writeln!(output, "{}  Public Key:", i)?;
+
+            let ii = format!("{}    ", i);
+            match k.mpis() {
+                mpi::PublicKey::RSA { e, n } =>
+                    self.dump_mpis(output, &ii,
+                                 &[e.value(), n.value()],
+                                 &["e", "n"])?,
+                mpi::PublicKey::DSA { p, q, g, y } =>
+                    self.dump_mpis(output, &ii,
+                                 &[p.value(), q.value(), g.value(),
+                                   y.value()],
+                                 &["p", "q", "g", "y"])?,
+                mpi::PublicKey::ElGamal { p, g, y } =>
+                    self.dump_mpis(output, &ii,
+                                 &[p.value(), g.value(), y.value()],
+                                 &["p", "g", "y"])?,
+                mpi::PublicKey::EdDSA { curve, q } => {
+                    writeln!(output, "{}  Curve: {}", ii, curve)?;
+                    self.dump_mpis(output, &ii, &[q.value()], &["q"])?;
+                },
+                mpi::PublicKey::ECDSA { curve, q } => {
+                    writeln!(output, "{}  Curve: {}", ii, curve)?;
+                    self.dump_mpis(output, &ii, &[q.value()], &["q"])?;
+                },
+                mpi::PublicKey::ECDH { curve, q, hash, sym } => {
+                    writeln!(output, "{}  Curve: {}", ii, curve)?;
+                    writeln!(output, "{}  KDF hash algo: {}", ii, hash)?;
+                    writeln!(output, "{}  KEK symmetric algo: {}", ii,
+                             sym)?;
+                    self.dump_mpis(output, &ii, &[q.value()], &["q"])?;
+                },
+                mpi::PublicKey::Unknown { mpis, rest } => {
+                    let keys: Vec<String> =
+                        (0..mpis.len()).map(
+                            |i| format!("mpi{}", i)).collect();
+                    self.dump_mpis(
+                        output, &ii,
+                        &mpis.iter().map(|m| {
+                            m.value().iter().as_slice()
+                        }).collect::<Vec<_>>()[..],
+                        &keys.iter().map(|k| k.as_str())
+                            .collect::<Vec<_>>()[..],
+                    )?;
+
+                    self.dump_mpis(output, &ii, &[&rest[..]], &["rest"])?;
+                },
+
+                // crypto::mpi:Publickey is non-exhaustive
+                u => writeln!(output, "{}Unknown variant: {:?}", ii, u)?,
+            }
+        }
+
+        if let Some(secrets) = k.optional_secret() {
+            writeln!(output, "{}", i)?;
+            writeln!(output, "{}  Secret Key:", i)?;
+
+            let ii = format!("{}    ", i);
+            match secrets {
+                SecretKeyMaterial::Unencrypted(ref u) => {
+                    writeln!(output, "{}", i)?;
+                    writeln!(output, "{}  Unencrypted", ii)?;
+                    if self.mpis {
+                        u.map(|mpis| -> Result<()> {
+                            match mpis
+                            {
+                                mpi::SecretKeyMaterial::RSA { d, p, q, u } =>
+                                    self.dump_mpis(output, &ii,
+                                                 &[d.value(), p.value(),
+                                                   q.value(), u.value()],
+                                                 &["d", "p", "q", "u"])?,
+                                mpi::SecretKeyMaterial::DSA { x } =>
+                                    self.dump_mpis(output, &ii, &[x.value()],
+                                                 &["x"])?,
+                                mpi::SecretKeyMaterial::ElGamal { x } =>
+                                    self.dump_mpis(output, &ii, &[x.value()],
+                                                 &["x"])?,
+                                mpi::SecretKeyMaterial::EdDSA { scalar } =>
+                                    self.dump_mpis(output, &ii,
+                                                 &[scalar.value()],
+                                                 &["scalar"])?,
+                                mpi::SecretKeyMaterial::ECDSA { scalar } =>
+                                    self.dump_mpis(output, &ii,
+                                                 &[scalar.value()],
+                                                 &["scalar"])?,
+                                mpi::SecretKeyMaterial::ECDH { scalar } =>
+                                    self.dump_mpis(output, &ii,
+                                                 &[scalar.value()],
+                                                 &["scalar"])?,
+                                mpi::SecretKeyMaterial::Unknown { mpis, rest } => {
+                                    let keys: Vec<String> =
+                                        (0..mpis.len()).map(
+                                            |i| format!("mpi{}", i)).collect();
+                                    self.dump_mpis(
+                                        output, &ii,
+                                        &mpis.iter().map(|m| {
+                                            m.value().iter().as_slice()
+                                        }).collect::<Vec<_>>()[..],
+                                        &keys.iter().map(|k| k.as_str())
+                                            .collect::<Vec<_>>()[..],
+                                    )?;
+
+                                    self.dump_mpis(output, &ii, &[rest],
+                                                 &["rest"])?;
+                                },
+
+                                // crypto::mpi::SecretKeyMaterial is non-exhaustive.
+                                u => writeln!(output, "{}Unknown variant: {:?}", ii, u)?,
+                            }
+                            Ok(())
+                        })?;
+                    }
+                }
+                SecretKeyMaterial::Encrypted(ref e) => {
+                    writeln!(output, "{}", i)?;
+                    writeln!(output, "{}  Encrypted", ii)?;
+                    write!(output, "{}  S2K: ", ii)?;
+                    self.dump_s2k(output, &ii, e.s2k())?;
+                    writeln!(output, "{}  Sym. algo: {}", ii,
+                             e.algo())?;
+                    if self.mpis {
+                        if let Ok(ciphertext) = e.ciphertext() {
+                            self.dump_mpis(output, &ii, &[ciphertext],
+                                         &["ciphertext"])?;
+                        }
+                    }
+                },
+            }
         }
 
         Ok(())

@@ -7,6 +7,7 @@ use openpgp::packet::Key;
 use openpgp::packet::Signature;
 use openpgp::policy::Policy;
 use openpgp::serialize::Serialize;
+use openpgp::types::KeyFlags;
 use openpgp::types::SignatureType;
 use openpgp::Cert;
 use openpgp::KeyHandle;
@@ -16,6 +17,7 @@ use sequoia_openpgp as openpgp;
 
 use crate::Sq;
 use crate::cli;
+use cli::types::EncryptPurpose;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::FileStdinOrKeyHandle;
 
@@ -99,6 +101,44 @@ pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
                     SignatureBuilder::new(SignatureType::SubkeyBinding)
                 }
                 _ => panic!("Unsupported binding signature: {:?}", sig),
+            };
+
+            let mut key_flags = builder.key_flags()
+                .unwrap_or(KeyFlags::empty());
+            if command.can_sign {
+                key_flags = key_flags.set_signing();
+            }
+            if command.cannot_sign {
+                key_flags = key_flags.clear_signing();
+            }
+            if command.can_authenticate {
+                key_flags = key_flags.set_authentication();
+            }
+            if command.cannot_authenticate {
+                key_flags = key_flags.clear_authentication();
+            }
+            if let Some(purpose) = command.can_encrypt.as_ref() {
+                match purpose {
+                    EncryptPurpose::Universal => {
+                        key_flags = key_flags.set_storage_encryption()
+                            .set_transport_encryption();
+                    }
+                    EncryptPurpose::Storage => {
+                        key_flags = key_flags.set_storage_encryption();
+                    }
+                    EncryptPurpose::Transport => {
+                        key_flags = key_flags.set_transport_encryption();
+                    }
+                }
+            }
+            if command.cannot_encrypt {
+                key_flags = key_flags.clear_storage_encryption();
+                key_flags = key_flags.clear_transport_encryption();
+            }
+
+            let builder = match builder.set_key_flags(key_flags) {
+                Ok(b) => b,
+                Err(err) => return (kh, Err(err)),
             };
 
             let builder = match builder.set_signature_creation_time(sq.time) {

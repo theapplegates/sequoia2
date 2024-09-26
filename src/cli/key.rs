@@ -663,6 +663,7 @@ keys, e.g., keys generated on an OpenPGP card, a TPM device, etc.",
                 "--keyring", "bare.pgp",
                 "--cert", "C5999E8191BF7B503653BE958B1F7910D01F86E5",
                 "--key", "B321BA8F650CB16443E06826DBFA98A78CF6562F",
+                "--can-encrypt", "universal",
             ],
         }),
     ]
@@ -684,6 +685,9 @@ a server and updating its configuration is not feasible.  This command \
 makes it easy to attach the subkey to the new certificate.",
     after_help = ADOPT_EXAMPLES,
 )]
+#[clap(group(ArgGroup::new("cap-sign").args(&["can_sign", "cannot_sign"])))]
+#[clap(group(ArgGroup::new("cap-authenticate").args(&["can_authenticate", "cannot_authenticate"])))]
+#[clap(group(ArgGroup::new("cap-encrypt").args(&["can_encrypt", "cannot_encrypt"])))]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct AdoptCommand {
     #[clap(
@@ -717,6 +721,44 @@ pub struct AdoptCommand {
         help = "Add keys to the specified certificate",
     )]
     pub cert_file: Option<FileOrStdin>,
+
+    #[clap(
+        long = "can-sign",
+        help ="Set the signing-capable flag",
+    )]
+    pub can_sign: bool,
+    #[clap(
+        long = "cannot-sign",
+        help = "Don't set the signing-capable flag",
+    )]
+    pub cannot_sign: bool,
+    #[clap(
+        long = "can-authenticate",
+        help = "Set the authentication-capable flag",
+    )]
+    pub can_authenticate: bool,
+    #[clap(
+        long = "cannot-authenticate",
+        help = "Don't set the authentication-capable flag",
+    )]
+    pub cannot_authenticate: bool,
+    #[clap(
+        long = "can-encrypt",
+        value_name = "PURPOSE",
+        help = "Set the encryption-capable flag",
+        long_help = "\
+Encryption-capable subkeys can be marked as suitable for transport \
+encryption, storage encryption, or both, i.e., universal.  [default: \
+universal]",
+        value_enum,
+    )]
+    pub can_encrypt: Option<EncryptPurpose>,
+    #[clap(
+        long = "cannot-encrypt",
+        help = "Don't set the encryption-capable flag",
+    )]
+    pub cannot_encrypt: bool,
+
     #[clap(
         long,
         value_name = FileOrStdout::VALUE_NAME,

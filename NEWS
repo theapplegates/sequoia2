@@ -8,6 +8,9 @@
      strip-userid`.
    - `sq key adopt` supports adopting bare keys (i.e., a primary key
      without any signatures).
+   - `sq key adopt` add options (`--can-`--can-sign`, `--cannot-sign`,
+     `--can-authenticate`, `--cannot-authenticate`, `--can-encrypt`,
+     `--cannot-encrypt`) to allow overriding the key flags.
 * Changes in 0.38.0
 ** Notable changes
    - New subcommand `sq key subkey delete` to delete secret key

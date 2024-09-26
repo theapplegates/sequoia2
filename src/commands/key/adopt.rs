@@ -153,6 +153,12 @@ pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
                     Ok(_) => (),
                     Err(err) => return (kh, Err(err)),
                 }
+            } else if key.creation_time() == std::time::UNIX_EPOCH {
+                // We have a bare key.  Set the creation time to now.
+                match key.set_creation_time(sq.time) {
+                    Ok(_) => (),
+                    Err(err) => return (kh, Err(err)),
+                }
             }
 
             (kh, Ok((cert, key, builder)))

@@ -704,9 +704,12 @@ pub struct AdoptCommand {
         long_help = "\
 Make adopted subkeys have the specified creation time.
 
-Normally, the key's creation time is preserved.  This option allows \
-setting the key's creation time to a specified value.  Note: changing \
-the key's creation time also changes its fingerprint.",
+Normally, the key's creation time is preserved.  The exception is if \
+the key's creation time is the Unix epoch.  In that case, the current \
+time is used.
+
+This option allows setting the key's creation time to a specified value.  \
+Note: changing a key's creation time also changes its fingerprint.",
     )]
     pub creation_time: Option<Time>,
     #[clap(

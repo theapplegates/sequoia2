@@ -13,6 +13,9 @@
      `--cannot-encrypt`) to allow overriding the key flags.
    - `sq key adopt` now accepts the options `--creation-time` to allow
      the user to override the key's creation time.
+   - `sq key adopt` sets the key's creation time to the current time
+     (while respecting `--time`) if `--creation-time` is not
+     specified, and the key's time is the Unix epoch.
 * Changes in 0.38.0
 ** Notable changes
    - New subcommand `sq key subkey delete` to delete secret key

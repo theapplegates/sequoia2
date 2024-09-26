@@ -660,12 +660,15 @@ fn adopt_bare() -> Result<()> {
 
     let to_adopt = bare_signing().0;
 
+    let bare_file = bare();
+    let bare = Cert::from_file(&bare_file).expect("can read file");
+
     // First, a bare certificate doesn't have any key flags set.  Make
     // sure `sq key adopt` complains, if we don't specify any (e.g.,
     // `--can-encrypt`).
     let r = sq.key_adopt_maybe(
         &[],
-        vec![ bare() ],
+        vec![ bare_file.clone() ],
         alice_primary().0,
         vec![ to_adopt.clone() ],
         &alice2_pgp);
@@ -676,20 +679,22 @@ fn adopt_bare() -> Result<()> {
 
     let cert = sq.key_adopt(
         &["--can-encrypt", "universal"],
-        vec![ bare() ],
+        vec![ bare_file.clone() ],
         alice_primary().0,
         vec![ to_adopt.clone() ],
         &alice2_pgp);
 
     let mut found = false;
     for k in cert.keys() {
+        let was_adopted = k.mpis() == bare.primary_key().mpis();
+
         eprintln!("{}{}", k.fingerprint(),
-                  if k.fingerprint() == to_adopt {
+                  if was_adopted {
                       " (adopted)"
                   } else {
                       ""
                   });
-        if k.fingerprint() == to_adopt {
+        if was_adopted {
             found = true;
         }
     }

@@ -24,9 +24,6 @@ test_examples!(sq_cert_import, EXAMPLES);
 #[clap(
     name = "import",
     about = "Import certificates into the local certificate store",
-    long_about =
-"Import certificates into the local certificate store
-",
     after_help = EXAMPLES,
 )]
 pub struct Command {

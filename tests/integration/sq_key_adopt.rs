@@ -659,8 +659,22 @@ fn adopt_bare() -> Result<()> {
 
     let to_adopt = bare_signing().0;
 
-    let cert = sq.key_adopt(
+    // First, a bare certificate doesn't have any key flags set.  Make
+    // sure `sq key adopt` complains, if we don't specify any (e.g.,
+    // `--can-encrypt`).
+    let r = sq.key_adopt_maybe(
         &[],
+        vec![ bare() ],
+        alice_primary().0,
+        vec![ to_adopt.clone() ],
+        &alice2_pgp);
+    if r.is_ok() {
+        panic!("sq key adopt succeeded, but should have complained about \
+                missing key flags");
+    }
+
+    let cert = sq.key_adopt(
+        &["--can-encrypt", "universal"],
         vec![ bare() ],
         alice_primary().0,
         vec![ to_adopt.clone() ],

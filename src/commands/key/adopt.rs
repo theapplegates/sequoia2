@@ -191,13 +191,17 @@ pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
             builder = builder.set_key_expiration_time(&key, e.timestamp())?;
         }
 
-        // If there is a valid backsig, recreate it.
-        let need_backsig = builder
-            .key_flags()
-            .map(|kf| kf.for_signing() || kf.for_certification())
-            .unwrap_or(false);
+        let key_flags = builder.key_flags().unwrap_or(KeyFlags::empty());
+        if key_flags.is_empty() {
+            return Err(anyhow::anyhow!(
+                "{} has no key capabilities.  Pass at least one of \
+                 --can-sign, --can-authenticate, and --can-encrypt to \
+                 adopt this key.",
+                key.fingerprint()));
+        };
 
-        if need_backsig {
+        // If we need a valid backsig, create it.
+        if key_flags.for_signing() || key_flags.for_certification() {
             // Derive a signer.
             let ka = cert.keys().key_handle(key.fingerprint())
                 .next()

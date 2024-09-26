@@ -171,6 +171,7 @@ fn adopt_encryption() -> Result<()> {
 
         // Have Bob adopt alice's encryption subkey.
         let cert = sq.key_adopt(
+            &[],
             keyrings.to_vec(),
             handle,
             [ alice_encryption().0.clone() ].to_vec(),
@@ -223,6 +224,7 @@ fn adopt_signing() -> Result<()> {
 
         // Adopt a signing subkey (subkey has secret key material).
         let cert = sq.key_adopt(
+            &[],
             keyrings.to_vec(),
             handle,
             [ alice_signing().0.clone() ].to_vec(),
@@ -276,6 +278,7 @@ fn adopt_certification() -> Result<()> {
         // Adopt a certification subkey (subkey has secret key
         // material).
         let cert = sq.key_adopt(
+            &[],
             keyrings.to_vec(),
             handle,
             [ alice_primary().0.clone() ].to_vec(),
@@ -326,6 +329,7 @@ fn adopt_encryption_and_signing() -> Result<()> {
         }
 
         let cert = sq.key_adopt(
+            &[],
             keyrings.to_vec(),
             handle,
             [
@@ -384,6 +388,7 @@ fn adopt_twice() -> Result<()> {
 
         // Adopt the same an encryption subkey twice.
         let cert = sq.key_adopt(
+            &[],
             keyrings.to_vec(),
             handle,
             [
@@ -409,6 +414,7 @@ fn adopt_key_appears_twice() -> Result<()> {
 
     // Adopt an encryption subkey that appears twice.
     let cert = sq.key_adopt(
+        &[],
         [ alice(), alice(), ].to_vec(),
         bob(),
         [
@@ -462,6 +468,7 @@ fn adopt_own_encryption() -> Result<()> {
 
         // Adopt its own encryption subkey.  This should be a noop.
         let cert = sq.key_adopt(
+            &[],
             keyrings.to_vec(),
             handle,
             [
@@ -516,6 +523,7 @@ fn adopt_own_primary() -> Result<()> {
 
         // Adopt own primary key.
         let cert = sq.key_adopt(
+            &[],
             keyrings.to_vec(),
             handle,
             [
@@ -578,6 +586,7 @@ fn adopt_missing() -> Result<()> {
 
         // Adopt a key that is not present.
         let r = sq.key_adopt(
+            &[],
             keyrings.to_vec(),
             handle,
             [
@@ -632,6 +641,7 @@ fn adopt_from_multiple() -> Result<()> {
 
         // Adopt own primary key.
         let cert = sq.key_adopt(
+            &[],
             keyrings.to_vec(),
             handle,
             [

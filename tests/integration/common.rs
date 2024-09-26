@@ -715,6 +715,7 @@ impl Sq {
     ///
     /// `keys` is the set of keys to adopt.
     pub fn key_adopt<P, T, K, Q>(&self,
+                                 extra_args: &[&str],
                                  keyrings: Vec<P>,
                                  target: T,
                                  keys: Vec<K>,
@@ -734,6 +735,10 @@ impl Sq {
 
         let mut cmd = self.command();
         cmd.arg("key").arg("adopt");
+
+        for arg in extra_args {
+            cmd.arg(arg);
+        }
 
         for k in keyrings.into_iter() {
             cmd.arg("--keyring").arg(k.as_ref());

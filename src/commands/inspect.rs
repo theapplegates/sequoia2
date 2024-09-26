@@ -34,6 +34,7 @@ use crate::SECONDS_IN_DAY;
 
 use crate::cli::inspect;
 use crate::cli::types::FileOrStdout;
+use crate::commands::toolbox::packet::dump::PacketDumper;
 
 /// Width of the largest key of any key, value pair we emit.
 const WIDTH: usize = 17;
@@ -387,8 +388,15 @@ fn inspect_cert(
         writeln!(output)?;
     }
 
-    for bad in cert.bad_signatures() {
-        writeln!(output, "{:>WIDTH$}: {:?}", "Bad Signature", bad)?;
+    if cert.bad_signatures().next().is_some() {
+        let width = terminal_size::terminal_size()
+            .map(|(w, _)| w.0.into());
+
+        let pd = PacketDumper::new(width.unwrap_or(80), false);
+        for bad in cert.bad_signatures() {
+            writeln!(output, "{:>WIDTH$}:", "Bad Signature")?;
+            pd.dump_signature(output, &format!("{:>WIDTH$}", ""), bad)?;
+        }
     }
 
     Ok(())

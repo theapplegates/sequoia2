@@ -718,9 +718,9 @@ impl PacketDumper {
         Ok(())
     }
 
-    fn dump_signature(&self, output: &mut dyn io::Write, i: &str,
-                      s: &Signature)
-                      -> Result<()>
+    pub fn dump_signature(&self, output: &mut dyn io::Write, i: &str,
+                          s: &Signature)
+                          -> Result<()>
     {
         writeln!(output, "{}  Version: {}", i, s.version())?;
         writeln!(output, "{}  Type: {}", i, s.typ())?;

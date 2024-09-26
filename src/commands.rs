@@ -476,8 +476,11 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                 }
             }
 
-            let issuer_str = issuer.to_string();
-            let label = self.labels.get(&issuer).unwrap_or(&issuer_str);
+            let mut label_store = Default::default();
+            let label = self.labels.get(&issuer).unwrap_or_else(|| {
+                label_store = cert_fpr.to_string();
+                &label_store
+            });
 
             let level = sig.level();
             match (level == 0, trusted) {

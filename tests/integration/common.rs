@@ -711,16 +711,23 @@ impl Sq {
         }
     }
 
-    /// Target is a certificate.
+    /// Calls `sq key adopt`.
+    ///
+    /// `keyrings` are a list of files to pass to `--keyring`.  They
+    /// usually contain the key to adopt.
+    ///
+    /// `target` is the certificate that will adopt the key.
     ///
     /// `keys` is the set of keys to adopt.
-    pub fn key_adopt<P, T, K, Q>(&self,
-                                 extra_args: &[&str],
-                                 keyrings: Vec<P>,
-                                 target: T,
-                                 keys: Vec<K>,
-                                 output_file: Q,
-                                 success: bool)
+    ///
+    /// The resulting certificate is NOT imported into the key store
+    /// or the cert store.
+    pub fn key_adopt_maybe<P, T, K, Q>(&self,
+                                       extra_args: &[&str],
+                                       keyrings: Vec<P>,
+                                       target: T,
+                                       keys: Vec<K>,
+                                       output_file: Q)
         -> Result<Cert>
     where
         P: AsRef<Path>,
@@ -756,7 +763,7 @@ impl Sq {
 
         cmd.arg("--output").arg(&output_file);
 
-        let output = self.run(cmd, Some(success));
+        let output = self.run(cmd, None);
         if output.status.success() {
             let cert = if output_file == PathBuf::from("-") {
                 Cert::from_bytes(&output.stdout)
@@ -769,9 +776,39 @@ impl Sq {
             Ok(cert)
         } else {
             Err(anyhow::anyhow!(format!(
-                "Failed (expected):\n{}",
+                "Failed:\n{}",
                 String::from_utf8_lossy(&output.stderr))))
         }
+    }
+
+    /// Calls `sq key adopt`.
+    ///
+    /// `keyrings` are a list of files to pass to `--keyring`.  They
+    /// usually contain the key to adopt.
+    ///
+    /// `target` is the certificate that will adopt the key.
+    ///
+    /// `keys` is the set of keys to adopt.
+    ///
+    /// The resulting certificate is NOT imported into the key store
+    /// or the cert store.
+    ///
+    /// This version panics if `sq key adopt` fails.
+    pub fn key_adopt<P, T, K, Q>(&self,
+                                 extra_args: &[&str],
+                                 keyrings: Vec<P>,
+                                 target: T,
+                                 keys: Vec<K>,
+                                 output_file: Q)
+        -> Cert
+    where
+        P: AsRef<Path>,
+        T: Into<FileOrKeyHandle>,
+        K: Into<KeyHandle>,
+        Q: AsRef<Path>,
+    {
+        self.key_adopt_maybe(extra_args, keyrings, target, keys, output_file)
+            .expect("sq key adopt succeeds")
     }
 
     pub fn key_approvals_update<'a, H, Q>(&self,

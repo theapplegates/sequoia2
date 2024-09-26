@@ -175,9 +175,7 @@ fn adopt_encryption() -> Result<()> {
             keyrings.to_vec(),
             handle,
             [ alice_encryption().0.clone() ].to_vec(),
-            "-",
-            true)
-            .unwrap();
+            "-");
 
         assert!(
             check(&cert, 2, (bob_primary(), &[alice_encryption()])).is_ok());
@@ -226,9 +224,7 @@ fn adopt_signing() -> Result<()> {
             keyrings.to_vec(),
             handle,
             [ alice_signing().0.clone() ].to_vec(),
-            "-",
-            true)
-            .unwrap();
+            "-");
 
         assert!(
             check(&cert, 2, (bob_primary(), &[alice_signing()])).is_ok());
@@ -278,9 +274,7 @@ fn adopt_certification() -> Result<()> {
             keyrings.to_vec(),
             handle,
             [ alice_primary().0.clone() ].to_vec(),
-            "-",
-            true)
-            .unwrap();
+            "-");
 
         assert!(check(&cert, 4, (carol_primary(), &[alice_primary()])).is_ok());
     }
@@ -330,9 +324,7 @@ fn adopt_encryption_and_signing() -> Result<()> {
                 alice_signing().0.clone(),
                 alice_encryption().0.clone(),
             ].to_vec(),
-            "-",
-            true)
-            .unwrap();
+            "-");
 
         assert!(
             check(&cert, 3,
@@ -387,9 +379,7 @@ fn adopt_twice() -> Result<()> {
                 alice_encryption().0.clone(),
                 alice_encryption().0.clone(),
             ].to_vec(),
-            "-",
-            true)
-            .unwrap();
+            "-");
 
         assert!(
             check(&cert, 2, (bob_primary(), &[alice_encryption()])).is_ok());
@@ -410,9 +400,7 @@ fn adopt_key_appears_twice() -> Result<()> {
         [
             alice_encryption().0.clone(),
         ].to_vec(),
-        "-",
-        true)
-        .unwrap();
+        "-");
 
     assert!(
         check(&cert, 2, (bob_primary(), &[alice_encryption()])).is_ok());
@@ -462,9 +450,7 @@ fn adopt_own_encryption() -> Result<()> {
             [
                 alice_encryption().0.clone(),
             ].to_vec(),
-            "-",
-            true)
-            .unwrap();
+            "-");
 
         assert!(
             check(&cert, 3, (alice_primary(), &[alice_encryption()])).is_ok());
@@ -515,9 +501,7 @@ fn adopt_own_primary() -> Result<()> {
             [
                 bob_primary().0.clone(),
             ].to_vec(),
-            "-",
-            true)
-            .unwrap();
+            "-");
 
         assert!(
             check(&cert, 2, (bob_primary(), &[bob_primary()])).is_ok());
@@ -569,7 +553,7 @@ fn adopt_missing() -> Result<()> {
         }
 
         // Adopt a key that is not present.
-        let r = sq.key_adopt(
+        let r = sq.key_adopt_maybe(
             &[],
             keyrings.to_vec(),
             handle,
@@ -578,8 +562,7 @@ fn adopt_missing() -> Result<()> {
                     .parse::<KeyHandle>()
                     .expect("valid fingerprint")
             ].to_vec(),
-            "-",
-            false);
+            "-");
 
         assert!(r.is_err());
     }
@@ -632,9 +615,7 @@ fn adopt_from_multiple() -> Result<()> {
                 carol_signing().0.clone(),
                 carol_encryption().0.clone(),
             ].to_vec(),
-            "-",
-            true)
-            .unwrap();
+            "-");
 
         assert!(
             check(&cert, 5,

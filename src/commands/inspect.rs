@@ -35,6 +35,9 @@ use crate::SECONDS_IN_DAY;
 use crate::cli::inspect;
 use crate::cli::types::FileOrStdout;
 
+/// Width of the largest key of any key, value pair we emit.
+const WIDTH: usize = 17;
+
 pub fn dispatch(mut sq: Sq, c: inspect::Command)
     -> Result<()>
 {
@@ -293,20 +296,19 @@ fn inspect_cert(
         writeln!(output, "OpenPGP Certificate.")?;
     }
     writeln!(output)?;
-    writeln!(output, "    Fingerprint: {}", cert.fingerprint())?;
-    inspect_revocation(output, "", cert.revocation_status(sq.policy, sq.time))?;
+    writeln!(output, "{:>WIDTH$}: {}", "Fingerprint", cert.fingerprint())?;
+    inspect_revocation(output, cert.revocation_status(sq.policy, sq.time))?;
     inspect_key(
         sq,
         output,
-        "",
         cert.keys().next().unwrap(),
         print_certifications,
     )?;
     writeln!(output)?;
 
     for skb in cert.keys().subkeys() {
-        writeln!(output, "         Subkey: {}", skb.key().fingerprint())?;
-        inspect_revocation(output, "", skb.revocation_status(sq.policy, sq.time))?;
+        writeln!(output, "{:>WIDTH$}: {}", "Subkey", skb.key().fingerprint())?;
+        inspect_revocation(output, skb.revocation_status(sq.policy, sq.time))?;
         match skb.binding_signature(sq.policy, sq.time) {
             Ok(sig) => {
                 if let Err(e) = sig.signature_alive(sq.time, Duration::new(0, 0)) {
@@ -318,7 +320,6 @@ fn inspect_cert(
         inspect_key(
             sq,
             output,
-            "",
             skb.into(),
             print_certifications,
         )?;
@@ -327,16 +328,16 @@ fn inspect_cert(
 
     fn print_error_chain(output: &mut dyn io::Write, err: &anyhow::Error)
                          -> Result<()> {
-        writeln!(output, "                 Invalid: {}", err)?;
+        writeln!(output, "{:>WIDTH$}  Invalid: {}", "", err)?;
         for cause in err.chain().skip(1) {
-            writeln!(output, "                 because: {}", cause)?;
+            writeln!(output, "{:>WIDTH$}  because: {}", "", cause)?;
         }
         Ok(())
     }
 
     for uidb in cert.userids() {
-        writeln!(output, "         UserID: {}", uidb.userid())?;
-        inspect_revocation(output, "", uidb.revocation_status(sq.policy, sq.time))?;
+        writeln!(output, "{:>WIDTH$}: {}", "UserID", uidb.userid())?;
+        inspect_revocation(output, uidb.revocation_status(sq.policy, sq.time))?;
         match uidb.binding_signature(sq.policy, sq.time) {
             Ok(sig) => {
                 if let Err(e) = sig.signature_alive(sq.time, Duration::new(0, 0)) {
@@ -352,9 +353,9 @@ fn inspect_cert(
     }
 
     for uab in cert.user_attributes() {
-        writeln!(output, "         User attribute: {:?}",
+        writeln!(output, "{:>WIDTH$}: {:?}", "User attribute",
                  uab.user_attribute())?;
-        inspect_revocation(output, "", uab.revocation_status(sq.policy, sq.time))?;
+        inspect_revocation(output, uab.revocation_status(sq.policy, sq.time))?;
         match uab.binding_signature(sq.policy, sq.time) {
             Ok(sig) => {
                 if let Err(e) = sig.signature_alive(sq.time, Duration::new(0, 0)) {
@@ -370,7 +371,8 @@ fn inspect_cert(
     }
 
     for ub in cert.unknowns() {
-        writeln!(output, "         Unknown component: {:?}", ub.unknown())?;
+        writeln!(output, "{:>WIDTH$}: {:?}", "Unknown component",
+                 ub.unknown())?;
         match ub.binding_signature(sq.policy, sq.time) {
             Ok(sig) => {
                 if let Err(e) = sig.signature_alive(sq.time, Duration::new(0, 0)) {
@@ -386,7 +388,7 @@ fn inspect_cert(
     }
 
     for bad in cert.bad_signatures() {
-        writeln!(output, "             Bad Signature: {:?}", bad)?;
+        writeln!(output, "{:>WIDTH$}: {:?}", "Bad Signature", bad)?;
     }
 
     Ok(())
@@ -395,55 +397,52 @@ fn inspect_cert(
 fn inspect_key(
     sq: &mut Sq,
     output: &mut dyn io::Write,
-    indent: &str,
     ka: ErasedKeyAmalgamation<PublicParts>,
     print_certifications: bool,
 ) -> Result<()> {
     let key = ka.key();
     let bundle = ka.bundle();
+
     let vka = match ka.with_policy(sq.policy, sq.time) {
         Ok(vka) => {
             if let Err(e) = vka.alive() {
-                writeln!(output, "{}                 Invalid: {}",
-                         indent,
+                writeln!(output, "{:>WIDTH$}  Invalid: {}", "",
                          one_line_error_chain(&e))?;
             }
             Some(vka)
         },
         Err(e) => {
-            writeln!(output, "{}                 Invalid: {}",
-                     indent,
+            writeln!(output, "{:>WIDTH$}  Invalid: {}", "",
                      one_line_error_chain(&e))?;
             None
         },
     };
 
-    writeln!(output, "{}Public-key algo: {}", indent, key.pk_algo())?;
+    writeln!(output, "{:>WIDTH$}: {}", "Public-key algo", key.pk_algo())?;
     if let Some(bits) = key.mpis().bits() {
-        writeln!(output, "{}Public-key size: {} bits", indent, bits)?;
+        writeln!(output, "{:>WIDTH$}: {} bits", "Public-key size", bits)?;
     }
     if let Some(secret) = key.optional_secret() {
-        writeln!(output, "{}     Secret key: {}",
-                 indent,
+        writeln!(output, "{:>WIDTH$}: {}", "Secret key",
                  if let SecretKeyMaterial::Unencrypted(_) = secret {
                      "Unencrypted"
                  } else {
                      "Encrypted"
                  })?;
     }
-    writeln!(output, "{}  Creation time: {}", indent,
+    writeln!(output, "{:>WIDTH$}: {}", "Creation time",
              key.creation_time().convert())?;
     if let Some(vka) = vka {
         if let Some(expires) = vka.key_validity_period() {
             let expiration_time = key.creation_time() + expires;
-            writeln!(output, "{}Expiration time: {} (creation time + {})",
-                     indent,
+            writeln!(output, "{:>WIDTH$}: {} (creation time + {})",
+                     "Expiration time",
                      expiration_time.convert(),
                      expires.convert())?;
         }
 
         if let Some(flags) = vka.key_flags().and_then(inspect_key_flags) {
-            writeln!(output, "{}      Key flags: {}", indent, flags)?;
+            writeln!(output, "{:>WIDTH$}: {}", "Key flags", flags)?;
         }
     }
     inspect_certifications(sq, output,
@@ -454,7 +453,7 @@ fn inspect_key(
 }
 
 /// Prints the revocation reasons.
-fn print_reasons(output: &mut dyn io::Write, indent: &str,
+fn print_reasons(output: &mut dyn io::Write,
                  third_party: bool, sigs: &[&Signature])
                  -> Result<()> {
     for sig in sigs {
@@ -462,42 +461,41 @@ fn print_reasons(output: &mut dyn io::Write, indent: &str,
             .map(|(r, m)| (r, Some(m)))
             .unwrap_or((ReasonForRevocation::Unspecified, None));
 
-        writeln!(output, "{}                  - {}", indent, reason)?;
-        writeln!(output, "{}                    On: {}",
-                 indent, sig.signature_creation_time()
+        writeln!(output, "{:>WIDTH$}   - {}", "", reason)?;
+        writeln!(output, "{:>WIDTH$}     On: {}", "",
+                 sig.signature_creation_time()
                  .expect("valid sigs have one").convert())?;
         if third_party {
-            writeln!(output, "{}                    Issued by {}",
-                     indent,
+            writeln!(output, "{:>WIDTH$}     Issued by{}", "",
                      if let Some(issuer)
                      = sig.get_issuers().into_iter().next()
                      {
-                         issuer.to_string()
+                         format!(": {}", issuer)
                      } else {
-                         "an unknown certificate".into()
+                         " an unknown certificate".into()
                      })?;
         }
         if let Some(msg) = message {
-            writeln!(output, "{}                    Message: {:?}",
-                     indent, String::from_utf8_lossy(msg))?;
+            writeln!(output, "{:>WIDTH$}     Message: {}", "",
+                     String::from_utf8_lossy(msg))?;
         }
     }
     Ok(())
 }
 
 fn inspect_revocation(output: &mut dyn io::Write,
-                      indent: &str,
                       revoked: openpgp::types::RevocationStatus)
                       -> Result<()> {
     use openpgp::types::RevocationStatus::*;
+
     match revoked {
         Revoked(sigs) => {
-            writeln!(output, "{}                 Revoked:", indent)?;
-            print_reasons(output, indent, false, &sigs)?;
+            writeln!(output, "{:>WIDTH$}  Revoked:", "")?;
+            print_reasons(output, false, &sigs)?;
         },
         CouldBe(sigs) => {
-            writeln!(output, "{}                 Possibly revoked:", indent)?;
-            print_reasons(output, indent, true, &sigs)?;
+            writeln!(output, "{:>WIDTH$}  Possibly revoked:", "")?;
+            print_reasons(output, true, &sigs)?;
         },
         NotAsFarAsWeKnow => (),
     }
@@ -508,10 +506,9 @@ fn inspect_revocation(output: &mut dyn io::Write,
 fn inspect_bare_revocation(sq: &mut Sq,
                            output: &mut dyn io::Write, sig: &Signature)
                            -> Result<()> {
-    let indent = "";
     inspect_issuers(sq, output, &sig)?;
-    writeln!(output, "{}                 Possible revocation:", indent)?;
-    print_reasons(output, indent, false, &[sig])?;
+    writeln!(output, "{:>WIDTH$}  Possible revocation:", "")?;
+    print_reasons(output, false, &[sig])?;
     writeln!(output)?;
     Ok(())
 }
@@ -555,14 +552,14 @@ fn inspect_signatures(sq: &mut Sq,
         match sig.typ() {
             Binary | Text => (),
             signature_type =>
-                writeln!(output, "           Kind: {}", signature_type)?,
+                writeln!(output, "{:>WIDTH$}: {}", "Kind", signature_type)?,
         }
 
         inspect_issuers(sq, output, &sig)?;
     }
     if ! sigs.is_empty() {
-        writeln!(output, "           Note: \
-                          Signatures have NOT been verified!")?;
+        writeln!(output, "{:>WIDTH$}: {}", "Note",
+                          "Signatures have NOT been verified!")?;
     }
 
     Ok(())
@@ -576,7 +573,7 @@ fn inspect_issuers(sq: &mut Sq,
     fps.dedup();
     let khs: Vec<KeyHandle> = fps.into_iter().map(|fp| fp.into()).collect();
     for kh in khs.iter() {
-        writeln!(output, " Alleged signer: {}, {}",
+        writeln!(output, "{:>WIDTH$}: {}, {}", "Alleged signer",
                  kh, sq.best_userid_for(kh, true))?;
     }
 
@@ -585,7 +582,7 @@ fn inspect_issuers(sq: &mut Sq,
     keyids.dedup();
     for keyid in keyids {
         if ! khs.iter().any(|kh| kh.aliases(&keyid.into())) {
-            writeln!(output, " Alleged signer: {}, {}",
+            writeln!(output, "{:>WIDTH$}: {}, {}", "Alleged signer",
                      keyid,
                      sq.best_userid_for(&KeyHandle::from(keyid), true))?;
         }
@@ -615,9 +612,8 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
 
             emit_warning = true;
 
-            writeln!(output, "  Certification: Creation time: {}", time)?;
-
-            let indent = "                 ";
+            writeln!(output, "{:>WIDTH$}: Creation time: {}", "Certification",
+                     time)?;
 
             if let Some(e) = sig.signature_expiration_time() {
                 let e = chrono::DateTime::<chrono::offset::Utc>::from(e);
@@ -627,8 +623,8 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
                 let days = rest / (SECONDS_IN_DAY as i64);
                 let rest = rest - days * (SECONDS_IN_DAY as i64);
 
-                writeln!(output, "{}Expiration time: {} (after {}{}{}{}{})",
-                         indent,
+                writeln!(output, "{:>WIDTH$}  Expiration time: {} (after {}{}{}{}{})",
+                         "",
                          e,
                          match years {
                              0 => "".into(),
@@ -654,19 +650,19 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
             }
 
             if let Some((depth, amount)) = sig.trust_signature() {
-                writeln!(output, "{}Trust depth: {}", indent,
+                writeln!(output, "{:>WIDTH$}  Trust depth: {}", "",
                          depth)?;
-                writeln!(output, "{}Trust amount: {}", indent,
+                writeln!(output, "{:>WIDTH$}  Trust amount: {}", "",
                          amount)?;
             }
             for re in sig.regular_expressions() {
                 if let Ok(re) = String::from_utf8(re.to_vec()) {
-                    writeln!(output, "{}Regular expression: {:?}", indent,
+                    writeln!(output, "{:>WIDTH$}  Regular expression: {:?}", "",
                              re)?;
                 } else {
                     writeln!(output,
-                             "{}Regular expression (invalid UTF-8): {:?}",
-                             indent,
+                             "{:>WIDTH$}  Regular expression (invalid UTF-8): {:?}",
+                             "",
                              String::from_utf8_lossy(re))?;
                 }
             }
@@ -676,8 +672,8 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
             fps.dedup();
             let khs: Vec<KeyHandle> = fps.into_iter().map(|fp| fp.into()).collect();
             for kh in khs.iter() {
-                writeln!(output, "{}Alleged certifier: {}, {}",
-                         indent, kh,
+                writeln!(output, "{:>WIDTH$}  Alleged certifier: {}, {}",
+                         "", kh,
                          sq.best_userid_for(kh, true))?;
             }
             let mut keyids: Vec<_> = sig.issuers().collect();
@@ -685,35 +681,35 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
             keyids.dedup();
             for keyid in keyids {
                 if ! khs.iter().any(|kh| kh.aliases(&keyid.into())) {
-                    writeln!(output, "{}Alleged certifier: {}, {}", indent,
+                    writeln!(output, "{:>WIDTH$}: {}, {}", "Alleged certifier",
                              keyid,
                              sq.best_userid_for(
                                  &KeyHandle::from(keyid), true))?;
                 }
             }
 
-            writeln!(output, "{}Hash algorithm: {}",
-                     indent, sig.hash_algo())?;
+            writeln!(output, "{:>WIDTH$}  Hash algorithm: {}",
+                     "", sig.hash_algo())?;
             if let Err(err) = sq.policy.signature(
                 sig, HashAlgoSecurity::CollisionResistance)
             {
                 writeln!(output,
-                         "{}Certification is not valid according to \
-                          the current policy:\n\
-                          {}  {}",
-                         indent, indent,
+                         "{:>WIDTH$}  Certification is not valid according to \
+                          the current policy:", "")?;
+                writeln!(output, "{:>WIDTH$}  {}", "",
                          one_line_error_chain(&err))?;
             }
         }
         if emit_warning {
-            writeln!(output, "           Note: \
-                              Certifications have NOT been verified!")?;
+            writeln!(output,
+                     "{:>WIDTH$}: Certifications have NOT been verified!",
+                     "Note")?;
         }
     } else {
         let count = certs.count();
         if count > 0 {
-            writeln!(output, " Certifications: {}, \
-                              use --certifications to list", count)?;
+            writeln!(output, "{:>WIDTH$}: {}, use --certifications to list",
+                     "Certifications", count)?;
         }
     }
 

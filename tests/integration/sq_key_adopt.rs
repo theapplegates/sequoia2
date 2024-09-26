@@ -9,6 +9,7 @@ use openpgp::Fingerprint;
 use openpgp::KeyHandle;
 use openpgp::Result;
 use openpgp::cert::prelude::*;
+use openpgp::parse::Parse;
 use openpgp::policy::StandardPolicy;
 use openpgp::types::KeyFlags;
 
@@ -689,6 +690,57 @@ fn adopt_bare() -> Result<()> {
                       ""
                   });
         if k.fingerprint() == to_adopt {
+            found = true;
+        }
+    }
+    if ! found {
+        panic!("{} was not adopted", to_adopt);
+    }
+
+    Ok(())
+}
+
+// Check that we can set the key creation time.
+#[test]
+fn key_creation_time() -> Result<()> {
+    let sq = Sq::new();
+
+    sq.key_import(alice());
+
+    let alice2_pgp = sq.scratch_file("alice2.pgp");
+
+    let to_adopt = bare_signing().0;
+
+    // $ date --iso-8601=seconds --utc --date='@1577483647'
+    // 2019-12-27T21:54:07+00:00
+    let time = 1577483647;
+    let time = std::time::UNIX_EPOCH + std::time::Duration::new(time, 0);
+    let time_str = "2019-12-27T21:54:07+00:00";
+
+    let bare_file = bare();
+    let bare = Cert::from_file(&bare_file).expect("can read file");
+
+    let cert = sq.key_adopt(
+        &["--can-encrypt", "universal", "--creation-time", time_str ],
+        vec![ bare_file ],
+        alice_primary().0,
+        vec![ to_adopt.clone() ],
+        &alice2_pgp);
+
+    let mut found = false;
+    for k in cert.keys() {
+        let was_adopted = k.mpis() == bare.primary_key().mpis();
+
+        eprintln!("{}: {:?}{}",
+                  k.fingerprint(),
+                  k.creation_time(),
+                  if was_adopted {
+                      " (adopted)"
+                  } else {
+                      ""
+                  });
+        if was_adopted {
+            assert_eq!(k.creation_time(), time);
             found = true;
         }
     }

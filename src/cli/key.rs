@@ -699,6 +699,18 @@ pub struct AdoptCommand {
     pub key: Vec<KeyHandle>,
     #[clap(
         long,
+        value_name = "CREATION_TIME",
+        help = "Make adopted subkeys have the specified creation time",
+        long_help = "\
+Make adopted subkeys have the specified creation time.
+
+Normally, the key's creation time is preserved.  This option allows \
+setting the key's creation time to a specified value.  Note: changing \
+the key's creation time also changes its fingerprint.",
+    )]
+    pub creation_time: Option<Time>,
+    #[clap(
+        long,
         value_name = "EXPIRATION",
         help = "Make adopted subkeys expire at the given time",
     )]

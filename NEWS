@@ -11,6 +11,8 @@
    - `sq key adopt` add options (`--can-`--can-sign`, `--cannot-sign`,
      `--can-authenticate`, `--cannot-authenticate`, `--can-encrypt`,
      `--cannot-encrypt`) to allow overriding the key flags.
+   - `sq key adopt` now accepts the options `--creation-time` to allow
+     the user to override the key's creation time.
 * Changes in 0.38.0
 ** Notable changes
    - New subcommand `sq key subkey delete` to delete secret key

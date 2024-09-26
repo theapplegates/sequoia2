@@ -146,7 +146,14 @@ pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
                 Err(err) => return (kh, Err(err)),
             };
 
-            let key = key.key().clone().role_into_subordinate();
+            let mut key = key.key().clone().role_into_subordinate();
+
+            if let Some(creation_time) = &command.creation_time {
+                match key.set_creation_time(creation_time.clone()) {
+                    Ok(_) => (),
+                    Err(err) => return (kh, Err(err)),
+                }
+            }
 
             (kh, Ok((cert, key, builder)))
         })

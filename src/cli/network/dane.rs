@@ -16,8 +16,8 @@ use crate::cli::examples::*;
     long_about =
 "Retrieve and publishes certificates via DANE
 
-DNS-Based Authentication of Named Entities (DANE) is a method for
-publishing and retrieving certificates in DNS as specified in RFC
+DNS-Based Authentication of Named Entities (DANE) is a method for \
+publishing and retrieving certificates in DNS as specified in RFC \
 7929.
 ",
 
@@ -56,13 +56,14 @@ test_examples!(sq_network_dane_generate, GENERATE_EXAMPLES);
     long_about =
 "Generate DANE records for the given domain and certs
 
-The certificates are minimized, and one record per email address is
-emitted.  If multiple user IDs map to one email address, then all
+The certificates are minimized, and one record per email address is \
+emitted.  If multiple user IDs map to one email address, then all \
 matching user IDs are included in the emitted certificates.
 
-By default, OPENPGPKEY resource records are emitted.  If your DNS
-server doesn't understand those, use `--generic` to emit generic
-records instead.",
+By default, OPENPGPKEY resource records are emitted.  If your DNS \
+server doesn't understand those, use `--generic` to emit generic \
+records instead.
+",
     after_help = GENERATE_EXAMPLES,
 )]
 pub struct GenerateCommand {
@@ -113,16 +114,16 @@ pub struct GenerateCommand {
     long_about =
 "Retrieve certificates using DANE
 
-By default, any returned certificates are stored in the local
-certificate store.  This can be overridden by using `--output`
+By default, any returned certificates are stored in the local \
+certificate store.  This can be overridden by using `--output` \
 option.
 
-When a certificate is retrieved using DANE, and imported into the
-local certificate store, any User IDs with the email address that was
-looked up are certificated with a local DANE-specific key.  That proxy
-certificate is in turn certified as a minimally trusted CA (trust
-amount: 1 of 120) by the local trust root.  How much the DANE proxy CA
-is trusted can be tuned using `sq pki link add` or `sq pki link retract`
+When a certificate is retrieved using DANE, and imported into the \
+local certificate store, any User IDs with the email address that was \
+looked up are certificated with a local DANE-specific key.  That proxy \
+certificate is in turn certified as a minimally trusted CA (trust \
+amount: 1 of 120) by the local trust root.  How much the DANE proxy CA \
+is trusted can be tuned using `sq pki link add` or `sq pki link retract` \
 in the usual way.
 "
 )]

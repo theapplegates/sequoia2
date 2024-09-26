@@ -52,7 +52,7 @@ test_examples!(sq_sign, SIGN_EXAMPLES);
     long_about =
 "Sign messages or data files
 
-Creates signed messages or detached signatures.  Detached signatures
+Creates signed messages or detached signatures.  Detached signatures \
 are often used to sign software packages.
 
 The converse operation is `sq verify`.

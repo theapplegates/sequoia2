@@ -11,10 +11,10 @@ use crate::cli::types::FileOrStdout;
     long_about =
 "Convert ASCII to binary
 
-To make encrypted data easier to handle and transport, OpenPGP data
-can be transformed to an ASCII representation called ASCII Armor.  sq
-transparently handles armored data, but this subcommand can be used to
-explicitly convert existing ASCII-encoded OpenPGP data to its binary
+To make encrypted data easier to handle and transport, OpenPGP data \
+can be transformed to an ASCII representation called ASCII Armor.  sq \
+transparently handles armored data, but this subcommand can be used to \
+explicitly convert existing ASCII-encoded OpenPGP data to its binary \
 representation.
 
 The converse operation is `sq toolbox armor`.

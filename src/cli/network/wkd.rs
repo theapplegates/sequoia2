@@ -18,7 +18,7 @@ use examples::Example;
     long_about =
 "Retrieve and publishes certificates via Web Key Directories
 
-The Web Key Directory (WKD) is a method for publishing and retrieving
+The Web Key Directory (WKD) is a method for publishing and retrieving \
 certificates from web servers.
 ",
     subcommand_required = true,
@@ -41,16 +41,16 @@ pub enum Subcommands {
     long_about =
 "Retrieve certificates from a Web Key Directory
 
-By default, any returned certificates are stored in the local
-certificate store.  This can be overridden by using `--output`
+By default, any returned certificates are stored in the local \
+certificate store.  This can be overridden by using `--output` \
 option.
 
-When a certificate is retrieved from a WKD, and imported into the
-local certificate store, any User IDs with the email address that was
-looked up are certificated with a local WKD-specific key.  That proxy
-certificate is in turn certified as a minimally trusted CA (trust
-amount: 1 of 120) by the local trust root.  How much the WKD proxy CA
-is trusted can be tuned using `sq pki link add` or `sq pki link retract`
+When a certificate is retrieved from a WKD, and imported into the \
+local certificate store, any User IDs with the email address that was \
+looked up are certificated with a local WKD-specific key.  That proxy \
+certificate is in turn certified as a minimally trusted CA (trust \
+amount: 1 of 120) by the local trust root.  How much the WKD proxy CA \
+is trusted can be tuned using `sq pki link add` or `sq pki link retract` \
 in the usual way.
 "
 )]
@@ -124,22 +124,22 @@ test_examples!(sq_network_wkd_publish, PUBLISH_EXAMPLES);
     long_about =
 "Publish certificates in a Web Key Directory
 
-Publishes certificates or certificate updates in a Web Key Directory
-(WKD).  You can create or update a WKD hierarchy on the local system by
+Publishes certificates or certificate updates in a Web Key Directory \
+(WKD).  You can create or update a WKD hierarchy on the local system by \
 specifying a path as destination.
 
-Typically, a WKD is stored on a web server.  If `--rsync` is given, this
+Typically, a WKD is stored on a web server.  If `--rsync` is given, this \
 command manages remote WKD directory hierarchies by using rsync(1).
 
 To insert a new certificate into the WKD, use `--cert`.
 
-Any updates for certificates already existing in the WKD are
+Any updates for certificates already existing in the WKD are \
 automatically published.
 
-Note: To update a WKD hierarchy, it is first copied to a temporary
-location on the local machine, new certificates or certificate updates
-are inserted into the local copy, and the hierarchy is copied back to
-its original location.  As this is not an atomic operation, care must
+Note: To update a WKD hierarchy, it is first copied to a temporary \
+location on the local machine, new certificates or certificate updates \
+are inserted into the local copy, and the hierarchy is copied back to \
+its original location.  As this is not an atomic operation, care must \
 be taken to avoid concurrent updates.
 ",
     after_help = PUBLISH_EXAMPLES,

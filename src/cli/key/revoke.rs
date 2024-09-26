@@ -63,7 +63,8 @@ certificate designated the key to be a designated revoker.
 `--time` argument.  When set, it uses the specified time instead of \
 the current time when determining what keys are valid, and it sets \
 the revocation certificate's creation time to the reference time \
-instead of the current time.",
+instead of the current time.
+",
     after_help = REVOKE_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]

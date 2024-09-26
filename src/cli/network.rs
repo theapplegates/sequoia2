@@ -14,8 +14,8 @@ pub mod wkd;
     long_about =
 "Retrieve and publish certificates over the network
 
-OpenPGP certificates can be discovered and updated from, and published
-on services accessible over the network.  This is a collection of
+OpenPGP certificates can be discovered and updated from, and published \
+on services accessible over the network.  This is a collection of \
 commands to interact with these services.
 ",
     subcommand_required = true,

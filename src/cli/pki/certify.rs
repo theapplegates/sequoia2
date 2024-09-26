@@ -59,24 +59,24 @@ test_examples!(sq_pki_certify, CERTIFY_EXAMPLES);
     long_about = format!(
 "Certify a User ID for a Certificate
 
-Using a certification a keyholder may vouch for the fact that another
-certificate legitimately belongs to a user id.  In the context of
-emails this means that the same entity controls the key and the email
-address.  These kind of certifications form the basis for the Web of
+Using a certification a keyholder may vouch for the fact that another \
+certificate legitimately belongs to a user id.  In the context of \
+emails this means that the same entity controls the key and the email \
+address.  These kind of certifications form the basis for the Web of \
 Trust.
 
-This command emits the certificate with the new certification.  The
-updated certificate has to be distributed, preferably by sending it to
-the certificate holder for attestation.  See also `sq key
+This command emits the certificate with the new certification.  The \
+updated certificate has to be distributed, preferably by sending it to \
+the certificate holder for attestation.  See also `sq key \
 attest-certifications`.
 
-By default a certification expires after {} years.
-Using the `--expiration` argument specific validity periods may be defined.
-It allows for providing a point in time for validity to end or a validity
+By default a certification expires after {} years. \
+Using the `--expiration` argument specific validity periods may be defined. \
+It allows for providing a point in time for validity to end or a validity \
 duration.
 
-`sq pki certify` respects the reference time set by the top-level
-`--time` argument.  It sets the certification's creation time to the
+`sq pki certify` respects the reference time set by the top-level \
+`--time` argument.  It sets the certification's creation time to the \
 reference time.
 ",
         THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS,

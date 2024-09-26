@@ -18,9 +18,9 @@ use examples::Example;
     about = "Communicate certificates using Autocrypt",
     long_about = "Communicate certificates using Autocrypt
 
-Autocrypt is a standard for mail user agents to provide convenient
-end-to-end encryption of emails.  This subcommand provides a limited
-way to produce and consume headers that are used by Autocrypt to
+Autocrypt is a standard for mail user agents to provide convenient \
+end-to-end encryption of emails.  This subcommand provides a limited \
+way to produce and consume headers that are used by Autocrypt to \
 communicate certificates between clients.
 
 See <https://autocrypt.org/>.
@@ -59,7 +59,7 @@ test_examples!(sq_autocrypt_import, IMPORT_EXAMPLES);
     about = "Import Autocrypt-encoded certificates",
     long_about = "Import Autocrypt-encoded certificates
 
-Given a mail containing autocrypt headers (or an key-gossip headers),
+Given a mail containing autocrypt headers (or an key-gossip headers), \
 this command extracts and imports the certificates encoded within it.
 ",
     after_help = IMPORT_EXAMPLES,
@@ -105,7 +105,7 @@ test_examples!(sq_autocrypt_decode, DECODE_EXAMPLES);
     about = "Read Autocrypt-encoded certificates",
     long_about = "Read Autocrypt-encoded certificates
 
-Given an autocrypt header (or an key-gossip header), this command
+Given an autocrypt header (or an key-gossip header), this command \
 extracts the certificate encoded within it.
 
 The converse operation is `sq autocrypt encode-sender`.
@@ -165,10 +165,10 @@ test_examples!(sq_autocrypt_encode_sender, ENCODE_SENDER_EXAMPLES);
     about = "Encode a certificate into an Autocrypt header",
     long_about = "Encode a certificate into an Autocrypt header
 
-A certificate can be encoded and included in a header of an email
-message.  This command encodes the certificate, adds the senders email
-address (which must match the one used in the `From` header), and the
-senders `prefer-encrypt` state (see the Autocrypt spec for more
+A certificate can be encoded and included in a header of an email \
+message.  This command encodes the certificate, adds the senders email \
+address (which must match the one used in the `From` header), and the \
+senders `prefer-encrypt` state (see the Autocrypt spec for more \
 information).
 
 The converse operation is `sq autocrypt decode`.

@@ -15,38 +15,38 @@ use crate::cli::types::TrustAmount;
     long_about =
 "Manage authenticated certificate and User ID links
 
-Link a certificate and User ID is one way of making `sq` consider a
-binding to be authentic.  Another way is to use `sq pki certify` to
-certify the binding with an explicitly configured trust root.  The
-linking functionality is often easier to work with, and the
+Link a certificate and User ID is one way of making `sq` consider a \
+binding to be authentic.  Another way is to use `sq pki certify` to \
+certify the binding with an explicitly configured trust root.  The \
+linking functionality is often easier to work with, and the \
 information is private by default.
 
-Authenticated bindings can be used to designate a certificate using a
-symbolic name.  For instance, using `sq encrypt`'s
-`--recipient-userid` and `--recipient-email` options, a user can
-designate a certificate using a User ID or an email address that is
+Authenticated bindings can be used to designate a certificate using a \
+symbolic name.  For instance, using `sq encrypt`'s \
+`--recipient-userid` and `--recipient-email` options, a user can \
+designate a certificate using a User ID or an email address that is \
 authenticated for that certificate.
 
-`sq` also uses authenticated certificates to authenticate other
-data.  For instance, `sq verify` considers signatures made by an
+`sq` also uses authenticated certificates to authenticate other \
+data.  For instance, `sq verify` considers signatures made by an \
 authenticated certificate to be authentic.
 
-Users can create a link using `sq pki link add`.  That link can later be
-retracted using `sq pki link retract`.  A certificate can also be
-accepted as a trusted introducer by passing the `--ca` option to
+Users can create a link using `sq pki link add`.  That link can later be \
+retracted using `sq pki link retract`.  A certificate can also be \
+accepted as a trusted introducer by passing the `--ca` option to \
 `sq pki link add`.
 
-`sq` implements linking using non-exportable certifications, and an
-implicit trust root.  An OpenPGP certificate directory, the default
-certificate store used by `sq`, includes a local trust root, which
-is stored under the `trust-root` special name.  When the user
-instructs `sq` to accept a binding, `sq` uses the local trust root
-to create a non-exportable certification, which it stores in the
-certificate directory.  In this way, operations that use the Web of
+`sq` implements linking using non-exportable certifications, and an \
+implicit trust root.  An OpenPGP certificate directory, the default \
+certificate store used by `sq`, includes a local trust root, which \
+is stored under the `trust-root` special name.  When the user \
+instructs `sq` to accept a binding, `sq` uses the local trust root \
+to create a non-exportable certification, which it stores in the \
+certificate directory.  In this way, operations that use the Web of \
 Trust to authenticate a binding automatically use links.
 
-When a user retracts a link, `sq` creates a new, non-exportable
-certification with zero trust.  This certification suppresses the
+When a user retracts a link, `sq` creates a new, non-exportable \
+certification with zero trust.  This certification suppresses the \
 previous link.
 ",
 after_help = "EXAMPLES:
@@ -90,29 +90,29 @@ pub enum Subcommands {
     long_about =
 "Link a certificate and a User ID
 
-This cause `sq` to considers the certificate and User ID binding to be
+This cause `sq` to considers the certificate and User ID binding to be \
 authentic.
 
-A certificate can also be accepted as a certification authority, which
-is also known as a trusted introducer, by using the `--ca` or
+A certificate can also be accepted as a certification authority, which \
+is also known as a trusted introducer, by using the `--ca` or \
 `--depth` option.
 
 A link can be retracted using `sq pki link retract`.
 
-This command is similar to `sq pki certify`, but the certifications it
-makes are done using the certificate directory's trust root, not an
-arbitrary key.  Further, the certificates are marked as
-non-exportable.  The former makes it easier to manage certifications,
-especially when the user's certification key is offline.  And the
-latter improves the user's privacy, by reducing the chance that parts
+This command is similar to `sq pki certify`, but the certifications it \
+makes are done using the certificate directory's trust root, not an \
+arbitrary key.  Further, the certificates are marked as \
+non-exportable.  The former makes it easier to manage certifications, \
+especially when the user's certification key is offline.  And the \
+latter improves the user's privacy, by reducing the chance that parts \
 of the user's social graph is leaked when a certificate is shared.
 
-By default a link never expires.
-Using the `--expiration` argument specific validity periods may be defined.
-It allows for providing a point in time for validity to end or a validity
+By default a link never expires. \
+Using the `--expiration` argument specific validity periods may be defined. \
+It allows for providing a point in time for validity to end or a validity \
 duration.
 
-`sq pki link` respects the reference time set by the top-level `--time`
+`sq pki link` respects the reference time set by the top-level `--time` \
 argument. It sets the link's creation time to the reference time.
 ",
     after_help =
@@ -323,14 +323,14 @@ pub struct AddCommand {
     long_about =
 "Retract links
 
-This command retracts links that were previously created using `sq
-pki link add`.  See that subcommand's documentation for more details.
-Note: this is called `retract` and not `remove`, because the
-certifications are not removed.  Instead a new certification is added,
+This command retracts links that were previously created using `sq \
+pki link add`.  See that subcommand's documentation for more details. \
+Note: this is called `retract` and not `remove`, because the \
+certifications are not removed.  Instead a new certification is added, \
 which says that the binding has not been authenticated.
 
-`sq pki link retract` respects the reference time set by the top-level
-`--time` argument.  This causes a link to be retracted as of a
+`sq pki link retract` respects the reference time set by the top-level \
+`--time` argument.  This causes a link to be retracted as of a \
 particular time instead of the current time.
 ",
 )]
@@ -398,7 +398,7 @@ pub struct RetractCommand {
     long_about =
 "List links
 
-This command lists all bindings that are linked or whose link has been
+This command lists all bindings that are linked or whose link has been \
 retracted.
 ",
 )]

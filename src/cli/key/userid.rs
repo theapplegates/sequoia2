@@ -62,9 +62,9 @@ test_examples!(sq_key_userid_add, USERID_ADD_EXAMPLES);
 
 A user ID can contain a name, like `Juliet`, or an email address, like \
 `<juliet@example.org>`.  Historically, a name and an email address were \
-usually combined as a single user ID, like `Juliet <juliet@example.org>`.
-However, user IDs that include different information such as name and
-email address are more difficult to reason about, so using distinct
+usually combined as a single user ID, like `Juliet <juliet@example.org>`. \
+However, user IDs that include different information such as name and \
+email address are more difficult to reason about, so using distinct \
 user IDs for name and email address is preferred nowadays.
 
 `sq userid add` respects the reference time set by the top-level \
@@ -192,7 +192,8 @@ certificate designated the key to be a designated revoker.
 `--time` argument.  When set, it uses the specified time instead of \
 the current time when determining what keys are valid, and it sets \
 the revocation certificate's creation time to the reference time \
-instead of the current time.",
+instead of the current time.
+",
     after_help = USERID_REVOKE_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]

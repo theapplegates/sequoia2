@@ -50,9 +50,10 @@ test_examples!(sq_key_expire, EXAMPLES);
 
 Change or clear a certificate's expiration time.
 
-This subcommand changes the certificate's expiration time.  To change
-the expiration time of an individual subkey, use the `sq key subkey
-expire` subcommand.",
+This subcommand changes the certificate's expiration time.  To change \
+the expiration time of an individual subkey, use the `sq key subkey \
+expire` subcommand.
+",
     after_help = EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]

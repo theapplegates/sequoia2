@@ -79,7 +79,8 @@ otherwise manipulate keys.
 
 Conversely, we use the term \"certificate\", or \"cert\" for short, to refer \
 to OpenPGP keys that do not contain secrets.  See `sq cert` for operations on \
-certificates.",
+certificates.
+",
     subcommand_required = true,
     arg_required_else_help = true,
 )]
@@ -453,7 +454,8 @@ exportable.  For instance, secret key material stored on a hardware \
 security module usually cannot be exported from the device.
 
 If you only want to export a particular key and not all keys associate \
-with a certificate, use `sq key subkey export`.",
+with a certificate, use `sq key subkey export`.
+",
     after_help = EXPORT_EXAMPLES,
 )]
 pub struct ExportCommand {
@@ -580,7 +582,8 @@ password when prompted for the new password.
 If a key is password protected, and the correct password was not \
 supplied using the `--password-file` argument, the user is \
 prompted for the password.  Likewise, if the new password isn't \
-provided, the user is prompted.",
+provided, the user is prompted.
+",
     after_help = PASSWORD_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
@@ -682,7 +685,8 @@ attached to one certificate to another certificate.  Say you want to \
 transition to a new certificate, but have an authentication subkey on \
 your current certificate that you want to keep because it allows access \
 a server and updating its configuration is not feasible.  This command \
-makes it easy to attach the subkey to the new certificate.",
+makes it easy to attach the subkey to the new certificate.
+",
     after_help = ADOPT_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cap-sign").args(&["can_sign", "cannot_sign"])))]

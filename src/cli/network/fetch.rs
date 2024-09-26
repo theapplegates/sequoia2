@@ -12,30 +12,30 @@ use super::keyserver::DEFAULT_KEYSERVERS;
     long_about =
 "Retrieve certificates using all supported network services
 
-This command will try to locate relevant certificates given a query,
-which may be a fingerprint, a key ID, an email address, or a https
-URL.  It may also discover and import certificate related to the one
+This command will try to locate relevant certificates given a query, \
+which may be a fingerprint, a key ID, an email address, or a https \
+URL.  It may also discover and import certificate related to the one \
 queried, such as alternative certs, expired certs, or revoked certs.
 
-Discovering related certs is useful: alternative certs support key
-rotations, expired certs allow verification of signatures made in the
-past, and discovering revoked certs is important to get the revocation
-information.  The PKI mechanism will help to select the correct cert,
+Discovering related certs is useful: alternative certs support key \
+rotations, expired certs allow verification of signatures made in the \
+past, and discovering revoked certs is important to get the revocation \
+information.  The PKI mechanism will help to select the correct cert, \
 see `sq pki`.
 
-By default, any returned certificates are stored in the local
-certificate store.  This can be overridden by using `--output`
+By default, any returned certificates are stored in the local \
+certificate store.  This can be overridden by using `--output` \
 option.
 
-When a certificate is retrieved from a verifying key server (currently,
-this is limited to a list of known servers: `hkps://keys.openpgp.org`,
-`hkps://keys.mailvelope.com`, and `hkps://mail-api.proton.me`),
-WKD, DANE, or via https, and
-imported into the local certificate store, the User IDs are also
-certificated with a local server-specific key.  That proxy certificate
-is in turn certified as a minimally trusted CA (trust amount: 1 of
-120) by the local trust root.  How much a proxy key server CA is
-trusted can be tuned using `sq pki link add` or `sq pki link retract` in
+When a certificate is retrieved from a verifying key server (currently, \
+this is limited to a list of known servers: `hkps://keys.openpgp.org`, \
+`hkps://keys.mailvelope.com`, and `hkps://mail-api.proton.me`), \
+WKD, DANE, or via https, and \
+imported into the local certificate store, the User IDs are also \
+certificated with a local server-specific key.  That proxy certificate \
+is in turn certified as a minimally trusted CA (trust amount: 1 of \
+120) by the local trust root.  How much a proxy key server CA is \
+trusted can be tuned using `sq pki link add` or `sq pki link retract` in \
 the usual way.
 ",
     arg_required_else_help = true,

@@ -204,19 +204,19 @@ pub fn build(globals_hidden: bool) -> Command {
     about = "A command-line frontend for Sequoia, an implementation of OpenPGP",
     long_about = "A command-line frontend for Sequoia, an implementation of OpenPGP
 
-Functionality is grouped and available using subcommands.  This
-interface is not completely stateless.  In particular, the user's
-default certificate store is used.  This can be disabled using
-`--no-cert-store`.  Similarly, a key store is used to manage and
-protect secret key material.  This can be disabled using
+Functionality is grouped and available using subcommands.  This \
+interface is not completely stateless.  In particular, the user's \
+default certificate store is used.  This can be disabled using \
+`--no-cert-store`.  Similarly, a key store is used to manage and \
+protect secret key material.  This can be disabled using \
 `--no-key-store`.
 
-OpenPGP data can be provided in binary or ASCII armored form.  This
-will be handled automatically.  Emitted OpenPGP data is ASCII armored
+OpenPGP data can be provided in binary or ASCII armored form.  This \
+will be handled automatically.  Emitted OpenPGP data is ASCII armored \
 by default.
 
-We use the term \"certificate\", or \"cert\" for short, to refer to OpenPGP
-keys that do not contain secrets.  Conversely, we use the term \"key\"
+We use the term \"certificate\", or \"cert\" for short, to refer to OpenPGP \
+keys that do not contain secrets.  Conversely, we use the term \"key\" \
 to refer to OpenPGP keys that do contain secrets.
 ",
     subcommand_required = true,

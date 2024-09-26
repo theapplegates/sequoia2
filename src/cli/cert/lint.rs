@@ -17,30 +17,30 @@ use crate::cli::types::FileOrStdout;
     about = "Check certificates for issues",
     long_about = "Check certificates for issues
 
-`sq cert lint` checks the supplied certificates for the following
+`sq cert lint` checks the supplied certificates for the following \
 SHA-1-related issues:
 
   - Whether a certificate revocation uses SHA-1.
 
-  - Whether the current self signature for a non-revoked User ID uses
+  - Whether the current self signature for a non-revoked User ID uses \
     SHA-1.
 
-  - Whether the current subkey binding signature for a non-revoked,
+  - Whether the current subkey binding signature for a non-revoked, \
     live subkey uses SHA-1.
 
-  - Whether a primary key binding signature (\"backsig\") for a
+  - Whether a primary key binding signature (\"backsig\") for a \
     non-revoked, live subkey uses SHA-1.
 
-Diagnostics are printed to stderr.  At the end, some statistics are
-shown.  This is useful when examining a keyring.  If `--fix` is
-specified and at least one issue could be fixed, the fixed
+Diagnostics are printed to stderr.  At the end, some statistics are \
+shown.  This is useful when examining a keyring.  If `--fix` is \
+specified and at least one issue could be fixed, the fixed \
 certificates are printed to stdout.
 
-This tool does not currently support smart cards.  But, if only the
-subkeys are on a smart card, this tool may still be able to partially
-repair the certificate.  In particular, it will be able to fix any
-issues with User ID self signatures and subkey binding signatures for
-encryption-capable subkeys, but it will not be able to generate new
+This tool does not currently support smart cards.  But, if only the \
+subkeys are on a smart card, this tool may still be able to partially \
+repair the certificate.  In particular, it will be able to fix any \
+issues with User ID self signatures and subkey binding signatures for \
+encryption-capable subkeys, but it will not be able to generate new \
 primary key binding signatures for any signing-capable subkeys.
 ",
     after_help =

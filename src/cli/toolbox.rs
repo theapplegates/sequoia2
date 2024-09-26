@@ -16,7 +16,7 @@ pub mod strip_userid;
     long_about =
 "Tools for developers, maintainers, and forensic specialists
 
-This is a collection of low-level tools to inspect and manipulate
+This is a collection of low-level tools to inspect and manipulate \
 OpenPGP data structures.
 ",
     subcommand_required = true,

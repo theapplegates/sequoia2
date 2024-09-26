@@ -18,12 +18,12 @@ use crate::cli::types::FileOrStdout;
     long_about =
 "Manage collections of keys or certs
 
-Collections of keys or certificates (also known as \"keyrings\" when
-they contain secret key material, and \"certrings\" when they don't) are
-any number of concatenated certificates.  This subcommand provides
+Collections of keys or certificates (also known as \"keyrings\" when \
+they contain secret key material, and \"certrings\" when they don't) are \
+any number of concatenated certificates.  This subcommand provides \
 tools to list, split, merge, and filter keyrings.
 
-Note: In the documentation of this subcommand, we sometimes use the
+Note: In the documentation of this subcommand, we sometimes use the \
 terms keys and certs interchangeably.
 ",
     subcommand_required = true,
@@ -48,16 +48,16 @@ pub enum Subcommands {
     long_about =
 "Join keys into a keyring applying a filter
 
-This can be used to filter keys based on given predicates,
-e.g. whether they have a user id containing an email address with a
-certain domain.  Additionally, the keys can be pruned to only include
+This can be used to filter keys based on given predicates, \
+e.g. whether they have a user id containing an email address with a \
+certain domain.  Additionally, the keys can be pruned to only include \
 components matching the predicates.
 
 If no filters are supplied, everything matches.
 
-If multiple predicates are given, they are or'ed, i.e. a key matches
-if any of the predicates match.  To require all predicates to match,
-chain multiple invocations of this command.  See EXAMPLES for
+If multiple predicates are given, they are or'ed, i.e., a key matches \
+if any of the predicates match.  To require all predicates to match, \
+chain multiple invocations of this command.  See EXAMPLES for \
 inspiration.
 ",
     after_help =
@@ -170,9 +170,9 @@ pub struct FilterCommand {
     long_about =
 "Merge keys or keyrings into a single keyring
 
-Multiple
-versions of the same certificate are merged together.  Where data is
-replaced (e.g., secret key material), data from the later certificate
+Multiple \
+versions of the same certificate are merged together.  Where data is \
+replaced (e.g., secret key material), data from the later certificate \
 is preferred.
 ",
     after_help =
@@ -205,7 +205,7 @@ pub struct MergeCommand {
     long_about =
 "List keys in a keyring
 
-Prints the fingerprint as well as the primary userid for every
+Prints the fingerprint as well as the primary userid for every \
 certificate encountered in the keyring.
 ",
     after_help =
@@ -242,7 +242,7 @@ pub struct ListCommand {
     long_about =
 "Split a keyring into individual keys
 
-Splitting up a keyring into individual keys helps with curating a
+Splitting up a keyring into individual keys helps with curating a \
 keyring.
 
 The converse operation is `sq toolbox keyring merge`.

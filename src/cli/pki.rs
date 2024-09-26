@@ -27,18 +27,18 @@ use examples::Example;
     long_about =
 "Authenticate certs using the Web of Trust
 
-The \"Web of Trust\" is a decentralized trust model popularized by PGP.
-It is a superset of X.509, which is a hierarchical trust model, and is
-the most popular trust model on the public internet today.  As used on
-the public internet, however, X.509 relies on a handful of global
+The \"Web of Trust\" is a decentralized trust model popularized by PGP. \
+It is a superset of X.509, which is a hierarchical trust model, and is \
+the most popular trust model on the public internet today.  As used on \
+the public internet, however, X.509 relies on a handful of global \
 certification authorities (CAs) who often undermine its security.
 
-The Web of Trust is more nuanced than X.509.  Using the Web of Trust,
-require multiple, independent paths to authenticate a binding by only
-partially trusting CAs.  This prevents a single bad actor from
-compromising their security.  And those who have stronger security
-requirements can use the Web of Trust in a completely decentralized
-manner where only the individuals they select – who are not
+The Web of Trust is more nuanced than X.509.  Using the Web of Trust, \
+require multiple, independent paths to authenticate a binding by only \
+partially trusting CAs.  This prevents a single bad actor from \
+compromising their security.  And those who have stronger security \
+requirements can use the Web of Trust in a completely decentralized \
+manner where only the individuals they select – who are not \
 necessarily institutions – act as trusted introducers.
 ",
     subcommand_required = true,

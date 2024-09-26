@@ -65,19 +65,20 @@ test_examples!(sq_cert_export, EXAMPLES);
     long_about =
 "Export certificates from the local certificate store
 
-If multiple predicates are specified a certificate is returned if
+If multiple predicates are specified a certificate is returned if \
 at least one of them matches.
 
-This does not check the authenticity of the certificates in anyway.
-Before using the certificates, be sure to validate and authenticate
+This does not check the authenticity of the certificates in anyway. \
+Before using the certificates, be sure to validate and authenticate \
 them.
 
-When matching on subkeys or User IDs, the component must have a valid
+When matching on subkeys or User IDs, the component must have a valid \
 self signature according to the policy.
 
-Fails if search criteria are specified and none of them matches any
-certificates.  Note: this means if the certificate store is empty and
-no search criteria are specified, then this will return success.",
+Fails if search criteria are specified and none of them matches any \
+certificates.  Note: this means if the certificate store is empty and \
+no search criteria are specified, then this will return success.
+",
     after_help = EXAMPLES,
 )]
 pub struct Command {

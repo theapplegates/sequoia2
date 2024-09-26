@@ -11,9 +11,9 @@ use crate::cli::types::FileOrStdout;
     long_about =
 "Convert a key to a cert
 
-After generating a key, use this command to get the certificate
-corresponding to the key.  The key must be kept secure, while the
-certificate should be handed out to correspondents, e.g. by uploading
+After generating a key, use this command to get the certificate \
+corresponding to the key.  The key must be kept secure, while the \
+certificate should be handed out to correspondents, e.g. by uploading \
 it to a key server.
 ",
     after_help = "EXAMPLES:

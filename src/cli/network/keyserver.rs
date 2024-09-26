@@ -25,7 +25,7 @@ pub const DEFAULT_KEYSERVERS: &[&'static str] = &[
     long_about =
 "Retrieve and publishes certificates via key servers
 
-The OpenPGP HTTP Keyserver Protocol (HKP) is a method for publishing
+The OpenPGP HTTP Keyserver Protocol (HKP) is a method for publishing \
 and retrieving certificates from key servers.
 ",
     subcommand_required = true,
@@ -59,18 +59,18 @@ pub enum Subcommands {
     long_about =
 "Retrieve certificates from key servers
 
-By default, any returned certificates are stored in the local
-certificate store.  This can be overridden by using `--output`
+By default, any returned certificates are stored in the local \
+certificate store.  This can be overridden by using `--output` \
 option.
 
-When a certificate is retrieved from a verifying key server (currently,
-this is limited to a list of known servers: `hkps://keys.openpgp.org`,
-`hkps://keys.mailvelope.com`, and `hkps://mail-api.proton.me`), and
-imported into the local certificate store, the User IDs are also
-certificated with a local server-specific key.  That proxy certificate
-is in turn certified as a minimally trusted CA (trust amount: 1 of
-120) by the local trust root.  How much a proxy key server CA is
-trusted can be tuned using `sq pki link add` or `sq pki link retract` in
+When a certificate is retrieved from a verifying key server (currently, \
+this is limited to a list of known servers: `hkps://keys.openpgp.org`, \
+`hkps://keys.mailvelope.com`, and `hkps://mail-api.proton.me`), and \
+imported into the local certificate store, the User IDs are also \
+certificated with a local server-specific key.  That proxy certificate \
+is in turn certified as a minimally trusted CA (trust amount: 1 of \
+120) by the local trust root.  How much a proxy key server CA is \
+trusted can be tuned using `sq pki link add` or `sq pki link retract` in \
 the usual way.
 "
 )]
@@ -111,9 +111,10 @@ pub struct FetchCommand {
     long_about = format!(
 "Publish certificates on key servers
 
-Sends certificates to the configured key servers for publication.  By
-default, the certificates are sent to {}.  This can be tweaked using
-`--servers`.",
+Sends certificates to the configured key servers for publication.  By \
+default, the certificates are sent to {}.  This can be tweaked using \
+`--servers`.
+",
         join(DEFAULT_KEYSERVERS.iter().cloned())),
 )]
 #[clap(group(ArgGroup::new("in").args(&["cert", "input"]).required(true)))]

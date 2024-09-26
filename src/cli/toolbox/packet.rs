@@ -20,10 +20,10 @@ use crate::cli::types::SessionKey;
     long_about =
 "Low-level packet manipulation
 
-An OpenPGP data stream consists of packets.  These tools allow working
-with packet streams.  They are mostly of interest to developers, but
-`sq toolbox packet dump` may be helpful to a wider audience both to provide
-valuable information in bug reports to OpenPGP-related software, and
+An OpenPGP data stream consists of packets.  These tools allow working \
+with packet streams.  They are mostly of interest to developers, but \
+`sq toolbox packet dump` may be helpful to a wider audience both to provide \
+valuable information in bug reports to OpenPGP-related software, and \
 as a learning tool.
 ",
     subcommand_required = true,
@@ -48,12 +48,12 @@ pub enum Subcommands {
     long_about =
 "List packets
 
-Creates a human-readable description of the packet sequence.
-Additionally, it can print cryptographic artifacts, and print the raw
-octet stream similar to hexdump(1), annotating specifically which
+Creates a human-readable description of the packet sequence. \
+Additionally, it can print cryptographic artifacts, and print the raw \
+octet stream similar to hexdump(1), annotating specifically which \
 bytes are parsed into OpenPGP values.
 
-To inspect encrypted messages, either supply the session key, or see
+To inspect encrypted messages, either supply the session key, or see \
 `sq decrypt` with the `--dump` flag, or `sq toolbox packet decrypt`.
 ",
     after_help =
@@ -117,8 +117,8 @@ pub struct DumpCommand {
     about = "Unwrap an encryption container",
     long_about = "Unwrap an encryption container
 
-Decrypts a message, dumping the content of the encryption container
-without further processing.  The result is a valid OpenPGP message
+Decrypts a message, dumping the content of the encryption container \
+without further processing.  The result is a valid OpenPGP message \
 that can, among other things, be inspected using `sq toolbox packet dump`.
 ",
     after_help =
@@ -172,8 +172,8 @@ pub struct DecryptCommand {
     about = "Split a message into packets",
     long_about = "Split a message into packets
 
-Splitting a packet sequence into individual packets, then recombining
-them freely with `sq toolbox packet join` is a great way to experiment with
+Splitting a packet sequence into individual packets, then recombining \
+them freely with `sq toolbox packet join` is a great way to experiment with \
 OpenPGP data.
 
 The converse operation is `sq toolbox packet join`.
@@ -212,8 +212,8 @@ pub struct SplitCommand {
     about = "Join packets split across files",
     long_about = "Join packets split across files
 
-Splitting a packet sequence into individual packets, then recombining
-them freely with `sq toolbox packet join` is a great way to experiment with
+Splitting a packet sequence into individual packets, then recombining \
+them freely with `sq toolbox packet join` is a great way to experiment with \
 OpenPGP data.
 
 The converse operation is `sq toolbox packet split`.

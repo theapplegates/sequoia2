@@ -22,14 +22,14 @@ use crate::cli::examples::*;
     long_about = "\
 Manages certification approvals.
 
-Key holders may approve of third-party certifications associated with
+Key holders may approve of third-party certifications associated with \
 their certificate.  This subcommand manages the approvals.
 
-To prevent certificate flooding attacks, modern key servers prevent
-uncontrolled distribution of third-party certifications on
-certificates.  To allow the key holder to control what information is
-distributed with their certificate, these key servers only distribute
-third-party certifications that the key holder has explicitly
+To prevent certificate flooding attacks, modern key servers prevent \
+uncontrolled distribution of third-party certifications on \
+certificates.  To allow the key holder to control what information is \
+distributed with their certificate, these key servers only distribute \
+third-party certifications that the key holder has explicitly \
 approved.
 ",
     subcommand_required = true,
@@ -83,11 +83,11 @@ test_examples!(sq_key_approvals_list, LIST_EXAMPLES);
     long_about = "\
 Lists third-party certifications and their approval status.
 
-To prevent certificate flooding attacks, modern key servers prevent
-uncontrolled distribution of third-party certifications on
-certificates.  To allow the key holder to control what information is
-distributed with their certificate, these key servers only distribute
-third-party certifications that the key holder has explicitly
+To prevent certificate flooding attacks, modern key servers prevent \
+uncontrolled distribution of third-party certifications on \
+certificates.  To allow the key holder to control what information is \
+distributed with their certificate, these key servers only distribute \
+third-party certifications that the key holder has explicitly \
 approved.
 ",
     after_help = LIST_EXAMPLES,
@@ -208,18 +208,18 @@ test_examples!(sq_key_approvals_update, UPDATE_EXAMPLES);
     long_about = "\
 Approves of third-party certifications allowing for their distribution.
 
-To prevent certificate flooding attacks, modern key servers prevent
-uncontrolled distribution of third-party certifications on
-certificates.  To allow the key holder to control what information is
-distributed with their certificate, these key servers only distribute
-third-party certifications that the key holder has explicitly
+To prevent certificate flooding attacks, modern key servers prevent \
+uncontrolled distribution of third-party certifications on \
+certificates.  To allow the key holder to control what information is \
+distributed with their certificate, these key servers only distribute \
+third-party certifications that the key holder has explicitly \
 approved.
 
-By default, all user IDs are considered, but if at least one `--name`,
-`--email`, or `--userid` argument is given, only the matching user IDs
+By default, all user IDs are considered, but if at least one `--name`, \
+`--email`, or `--userid` argument is given, only the matching user IDs \
 are considered.
 
-After the approvals have been changed, the certificate has to be
+After the approvals have been changed, the certificate has to be \
 distributed, e.g. by uploading it to a key server.
 ",
     after_help = UPDATE_EXAMPLES,

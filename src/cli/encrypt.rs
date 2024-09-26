@@ -65,14 +65,14 @@ test_examples!(sq_encrypt, ENCRYPT_EXAMPLES);
     long_about =
 "Encrypt a message
 
-Encrypt a message for any number of recipients and with any number of
+Encrypt a message for any number of recipients and with any number of \
 passwords, optionally signing the message in the process.
 
 The converse operation is `sq decrypt`.
 
-`sq encrypt` respects the reference time set by the top-level
-`--time` argument.  It uses the reference time when selecting
-encryption keys, and it sets the signature's creation time to the
+`sq encrypt` respects the reference time set by the top-level \
+`--time` argument.  It uses the reference time when selecting \
+encryption keys, and it sets the signature's creation time to the \
 reference time.
 ",
     after_help = ENCRYPT_EXAMPLES,

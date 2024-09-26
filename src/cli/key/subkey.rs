@@ -251,7 +251,8 @@ key material stored on a hardware security module usually cannot be \
 exported from the device.
 
 If you want to export all secret key material associated with a \
-certificate, use `sq key export`.",
+certificate, use `sq key export`.
+",
     after_help = SUBKEY_EXPORT_EXAMPLES,
 )]
 pub struct ExportCommand {
@@ -303,7 +304,8 @@ command only deletes the specified secret key material.
 
 Although the secret key material is deleted, the public keys are \
 retained.  If you don't want the keys to be used anymore you should \
-revoke the keys using `sq key subkey revoke`.",
+revoke the keys using `sq key subkey revoke`.
+",
     after_help = SQ_KEY_SUBKEY_DELETE_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
@@ -411,7 +413,8 @@ password when prompted for the new password.
 If a key is password protected, and the correct password was not \
 supplied using the `--password-file` argument, the user is \
 prompted for the password.  Likewise, if the new password isn't \
-provided, the user is prompted.",
+provided, the user is prompted.
+",
     after_help = SQ_KEY_SUBKEY_PASSWORD_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
@@ -633,7 +636,8 @@ certificate designated the key to be a designated revoker.
 `--time` argument.  When set, it uses the specified time instead of \
 the current time when determining what keys are valid, and it sets \
 the revocation certificate's creation time to the reference time \
-instead of the current time.",
+instead of the current time.
+",
     after_help = SUBKEY_REVOKE_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]

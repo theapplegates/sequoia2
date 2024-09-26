@@ -9,8 +9,8 @@ use clap::Parser;
     long_about =
 "Detailed version and output version information
 
-With no further options, this command lists the version of `sq`, the
-version of the underlying OpenPGP implementation `sequoia-openpgp`,
+With no further options, this command lists the version of `sq`, the \
+version of the underlying OpenPGP implementation `sequoia-openpgp`, \
 and which cryptographic library is used.
 ",
 )]

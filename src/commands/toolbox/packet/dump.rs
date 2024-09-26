@@ -345,80 +345,7 @@ impl PacketDumper {
             SecretKey(ref k) => self.dump_key(output, i, k)?,
             SecretSubkey(ref k) => self.dump_key(output, i, k)?,
 
-            Signature(ref s) => {
-                writeln!(output, "{}  Version: {}", i, s.version())?;
-                writeln!(output, "{}  Type: {}", i, s.typ())?;
-                writeln!(output, "{}  Pk algo: {}", i, s.pk_algo())?;
-                writeln!(output, "{}  Hash algo: {}", i, s.hash_algo())?;
-                if s.hashed_area().iter().count() > 0 {
-                    writeln!(output, "{}  Hashed area:", i)?;
-                    for pkt in s.hashed_area().iter() {
-                        self.dump_subpacket(output, i, pkt, s)?;
-                    }
-                }
-                if s.unhashed_area().iter().count() > 0 {
-                    writeln!(output, "{}  Unhashed area:", i)?;
-                    for pkt in s.unhashed_area().iter() {
-                        self.dump_subpacket(output, i, pkt, s)?;
-                    }
-                }
-                writeln!(output, "{}  Digest prefix: {}", i,
-                         hex::encode(s.digest_prefix()))?;
-                write!(output, "{}  Level: {} ", i, s.level())?;
-                match s.level() {
-                    0 => writeln!(output, "(signature over data)")?,
-                    1 => writeln!(output, "(notarization over signatures \
-                                           level 0 and data)")?,
-                    n => writeln!(output, "(notarization over signatures \
-                                           level <= {} and data)", n - 1)?,
-                }
-                if self.mpis {
-                    writeln!(output, "{}", i)?;
-                    writeln!(output, "{}  Signature:", i)?;
-
-                    let ii = format!("{}    ", i);
-                    match s.mpis() {
-                        mpi::Signature::RSA { s } =>
-                            self.dump_mpis(output, &ii,
-                                           &[s.value()],
-                                           &["s"])?,
-                        mpi::Signature::DSA { r, s } =>
-                            self.dump_mpis(output, &ii,
-                                           &[r.value(), s.value()],
-                                           &["r", "s"])?,
-                        mpi::Signature::ElGamal { r, s } =>
-                            self.dump_mpis(output, &ii,
-                                           &[r.value(), s.value()],
-                                           &["r", "s"])?,
-                        mpi::Signature::EdDSA { r, s } =>
-                            self.dump_mpis(output, &ii,
-                                           &[r.value(), s.value()],
-                                           &["r", "s"])?,
-                        mpi::Signature::ECDSA { r, s } =>
-                            self.dump_mpis(output, &ii,
-                                           &[r.value(), s.value()],
-                                           &["r", "s"])?,
-                        mpi::Signature::Unknown { mpis, rest } => {
-                            let keys: Vec<String> =
-                                (0..mpis.len()).map(
-                                    |i| format!("mpi{}", i)).collect();
-                            self.dump_mpis(
-                                output, &ii,
-                                &mpis.iter().map(|m| {
-                                    m.value().iter().as_slice()
-                                }).collect::<Vec<_>>()[..],
-                                &keys.iter().map(|k| k.as_str())
-                                    .collect::<Vec<_>>()[..],
-                            )?;
-
-                            self.dump_mpis(output, &ii, &[&rest[..]], &["rest"])?;
-                        },
-
-                        // crypto::mpi::Signature is non-exhaustive.
-                        u => writeln!(output, "{}Unknown variant: {:?}", ii, u)?,
-                    }
-                }
-            },
+            Signature(s) => self.dump_signature(output, i, s)?,
 
             OnePassSig(ref o) => {
                 writeln!(output, "{}  Version: {}", i, o.version())?;
@@ -791,6 +718,86 @@ impl PacketDumper {
         Ok(())
     }
 
+    fn dump_signature(&self, output: &mut dyn io::Write, i: &str,
+                      s: &Signature)
+                      -> Result<()>
+    {
+        writeln!(output, "{}  Version: {}", i, s.version())?;
+        writeln!(output, "{}  Type: {}", i, s.typ())?;
+        writeln!(output, "{}  Pk algo: {}", i, s.pk_algo())?;
+        writeln!(output, "{}  Hash algo: {}", i, s.hash_algo())?;
+        if s.hashed_area().iter().count() > 0 {
+            writeln!(output, "{}  Hashed area:", i)?;
+            for pkt in s.hashed_area().iter() {
+                self.dump_subpacket(output, i, pkt, s)?;
+            }
+        }
+        if s.unhashed_area().iter().count() > 0 {
+            writeln!(output, "{}  Unhashed area:", i)?;
+            for pkt in s.unhashed_area().iter() {
+                self.dump_subpacket(output, i, pkt, s)?;
+            }
+        }
+        writeln!(output, "{}  Digest prefix: {}", i,
+                 hex::encode(s.digest_prefix()))?;
+        write!(output, "{}  Level: {} ", i, s.level())?;
+        match s.level() {
+            0 => writeln!(output, "(signature over data)")?,
+            1 => writeln!(output, "(notarization over signatures \
+                                   level 0 and data)")?,
+            n => writeln!(output, "(notarization over signatures \
+                                   level <= {} and data)", n - 1)?,
+        }
+        if self.mpis {
+            writeln!(output, "{}", i)?;
+            writeln!(output, "{}  Signature:", i)?;
+
+            let ii = format!("{}    ", i);
+            match s.mpis() {
+                mpi::Signature::RSA { s } =>
+                    self.dump_mpis(output, &ii,
+                                   &[s.value()],
+                                   &["s"])?,
+                mpi::Signature::DSA { r, s } =>
+                    self.dump_mpis(output, &ii,
+                                   &[r.value(), s.value()],
+                                   &["r", "s"])?,
+                mpi::Signature::ElGamal { r, s } =>
+                    self.dump_mpis(output, &ii,
+                                   &[r.value(), s.value()],
+                                   &["r", "s"])?,
+                mpi::Signature::EdDSA { r, s } =>
+                    self.dump_mpis(output, &ii,
+                                   &[r.value(), s.value()],
+                                   &["r", "s"])?,
+                mpi::Signature::ECDSA { r, s } =>
+                    self.dump_mpis(output, &ii,
+                                   &[r.value(), s.value()],
+                                   &["r", "s"])?,
+                mpi::Signature::Unknown { mpis, rest } => {
+                    let keys: Vec<String> =
+                        (0..mpis.len()).map(
+                            |i| format!("mpi{}", i)).collect();
+                    self.dump_mpis(
+                        output, &ii,
+                        &mpis.iter().map(|m| {
+                            m.value().iter().as_slice()
+                        }).collect::<Vec<_>>()[..],
+                        &keys.iter().map(|k| k.as_str())
+                            .collect::<Vec<_>>()[..],
+                    )?;
+
+                    self.dump_mpis(output, &ii, &[&rest[..]], &["rest"])?;
+                },
+
+                // crypto::mpi::Signature is non-exhaustive.
+                u => writeln!(output, "{}Unknown variant: {:?}", ii, u)?,
+            }
+        }
+
+        Ok(())
+    }
+
     fn dump_subpacket(&self, output: &mut dyn io::Write, i: &str,
                       s: &Subpacket, sig: &Signature)
                       -> Result<()> {
@@ -937,8 +944,7 @@ impl PacketDumper {
                 writeln!(output)?;
                 let indent = format!("{}      ", i);
                 write!(output, "{}", indent)?;
-                self.dump_packet(output, &indent, None, &sig.clone().into(),
-                                 None, &Vec::new())?;
+                self.dump_signature(output, &indent, sig)?;
             },
             _ => {
                 if s.critical() {

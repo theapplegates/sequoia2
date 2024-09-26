@@ -50,6 +50,7 @@ pub fn dispatch(mut sq: Sq, c: inspect::Command)
     let print_certifications = c.certifications;
 
     let input = c.input;
+    let dump_bad_signatures = c.dump_bad_signatures;
 
     let mut bytes: Vec<u8> = Vec::new();
     if c.cert.is_empty() {
@@ -64,7 +65,7 @@ pub fn dispatch(mut sq: Sq, c: inspect::Command)
 
         inspect(&mut sq, input.open()?,
                 Some(&input.to_string()), output,
-                print_certifications)
+                print_certifications, dump_bad_signatures)
     } else {
         let cert_store = sq.cert_store_or_else()?;
         for cert in c.cert.into_iter() {
@@ -81,7 +82,7 @@ pub fn dispatch(mut sq: Sq, c: inspect::Command)
         let br = buffered_reader::Memory::with_cookie(
             &bytes, sequoia_openpgp::parse::Cookie::default());
         inspect(&mut sq, br, None, output,
-                print_certifications)
+                print_certifications, dump_bad_signatures)
     }
 }
 
@@ -97,7 +98,8 @@ pub fn inspect<'a, R>(sq: &mut Sq,
                       input: R,
                       input_filename: Option<&str>,
                       output: &mut Box<dyn std::io::Write + Send + Sync>,
-                      print_certifications: bool)
+                      print_certifications: bool,
+                      dump_bad_signatures: bool)
     -> Result<()>
 where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
 {
@@ -135,6 +137,7 @@ where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
                         output,
                         &cert,
                         print_certifications,
+                        dump_bad_signatures,
                     )?;
                 }
             },
@@ -204,7 +207,8 @@ where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
         } else if is_cert.is_ok() || is_keyring.is_ok() {
             let pp = openpgp::PacketPile::from(packets);
             let cert = openpgp::Cert::try_from(pp)?;
-            inspect_cert(sq, output, &cert, print_certifications)?;
+            inspect_cert(sq, output, &cert, print_certifications,
+                         dump_bad_signatures)?;
         } else if packets.is_empty() && ! sigs.is_empty() {
             if sigs.iter().all(is_revocation_sig) {
                 writeln!(output, "Revocation Certificate{}.",
@@ -288,6 +292,7 @@ fn inspect_cert(
     output: &mut dyn io::Write,
     cert: &openpgp::Cert,
     print_certifications: bool,
+    dump_bad_signatures: bool,
 ) -> Result<()> {
     if cert.is_tsk() {
         writeln!(output, "Transferable Secret Key.")?;
@@ -389,13 +394,18 @@ fn inspect_cert(
     }
 
     if cert.bad_signatures().next().is_some() {
-        let width = terminal_size::terminal_size()
-            .map(|(w, _)| w.0.into());
+        if dump_bad_signatures {
+            let width = terminal_size::terminal_size()
+                .map(|(w, _)| w.0.into());
 
-        let pd = PacketDumper::new(width.unwrap_or(80), false);
-        for bad in cert.bad_signatures() {
-            writeln!(output, "{:>WIDTH$}:", "Bad Signature")?;
-            pd.dump_signature(output, &format!("{:>WIDTH$}", ""), bad)?;
+            let pd = PacketDumper::new(width.unwrap_or(80), false);
+            for bad in cert.bad_signatures() {
+                writeln!(output, "{:>WIDTH$}:", "Bad Signature")?;
+                pd.dump_signature(output, &format!("{:>WIDTH$}", ""), bad)?;
+            }
+        } else {
+            writeln!(output, "{:>WIDTH$}: {}, use --dump-bad-signatures to list",
+                     "Bad Signatures", cert.bad_signatures().count())?;
         }
     }
 

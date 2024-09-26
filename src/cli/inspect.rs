@@ -79,9 +79,16 @@ pub struct Command {
         help = "Read the specified certificate from the certificate store",
     )]
     pub cert: Vec<KeyHandle>,
+
     #[clap(
         long = "certifications",
         help = "Print third-party certifications",
     )]
     pub certifications: bool,
+
+    #[clap(
+        long = "dump-bad-signatures",
+        help = "Dump signatures that are definitively bad",
+    )]
+    pub dump_bad_signatures: bool,
 }

@@ -241,7 +241,7 @@ pub fn generate(
                 })
                 .as_deref(),
             &mut (Box::new(std::io::stderr()) as Box<dyn std::io::Write + Send + Sync>),
-            false)
+            false, false)
         {
             wprintln!("Failed to display key: {}", err);
             wprintln!("This is probably a bug in sq, please report it to \

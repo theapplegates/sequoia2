@@ -499,9 +499,9 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                     self.sq.hint(format_args!(
                         "\nAfter checking that {} belongs to {:?}, \
                          you can authenticate the binding using:",
-                        issuer_str, signer_userid))
+                        cert_fpr, signer_userid))
                         .command(format_args!("sq pki link add {} {:?}",
-                                              issuer_str, signer_userid));
+                                              cert_fpr, signer_userid));
                 }
                 (false, false) => {
                     wprintln!(indent=prefix,
@@ -512,9 +512,9 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                     self.sq.hint(format_args!(
                         "\nAfter checking that {} belongs to {:?}, \
                          you can authenticate the binding using:",
-                        issuer_str, signer_userid))
+                        cert_fpr, signer_userid))
                         .command(format_args!("sq pki link add {} {:?}",
-                                              issuer_str, signer_userid));
+                                              cert_fpr, signer_userid));
                 }
             };
 

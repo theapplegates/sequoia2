@@ -719,8 +719,6 @@ impl Sq {
                                  keyrings: Vec<P>,
                                  target: T,
                                  keys: Vec<K>,
-                                 expire: Option<DateTime<Utc>>,
-                                 allow_broken_crypto: bool,
                                  output_file: Q,
                                  success: bool)
         -> Result<Cert>
@@ -754,14 +752,6 @@ impl Sq {
         for k in keys.into_iter() {
             let k: KeyHandle = k.into();
             cmd.arg("--key").arg(k.to_string());
-        }
-
-        if let Some(expire) = expire {
-            cmd.arg("--expire").arg(time_as_string(expire.into()));
-        }
-
-        if allow_broken_crypto {
-            cmd.arg("--allow-broken-crypto");
         }
 
         cmd.arg("--output").arg(&output_file);

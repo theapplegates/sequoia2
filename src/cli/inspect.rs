@@ -38,7 +38,7 @@ Inspect an encrypted message.",
         }),
         Action::Example(Example {
             comment: "\
-Inspect a detachted signature.",
+Inspect a detached signature.",
             command: &[
                 "sq", "inspect", "document.sig",
             ],

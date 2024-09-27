@@ -94,7 +94,7 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
 
             cmd
                 .assert()
-                .code(if required_fixes > 0 { 2 } else { 0 });
+                .code(if required_fixes > 0 { 1 } else { 0 });
 
 
             // Fix it.
@@ -142,8 +142,8 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
                 cmd = cmd.arg("-p").arg(p)
             }
             cmd.assert()
-            // If not everything can be fixed, then --fix's exit code is 3.
-                .code(if expected_fixes == required_fixes { 0 } else { 3 })
+                // If not everything can be fixed, then --fix's exit code is 1.
+                .code(if expected_fixes == required_fixes { 0 } else { 1 })
                 .stdout(predicate::function(|output: &[u8]| -> bool {
                     if expected_fixes == 0 {
                         // If there are no fixes, nothing is printed.
@@ -170,7 +170,7 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
                                     0
                                 } else {
                                     // There are still issues.
-                                    2
+                                    1
                                 });
 
                         // Check that the number of new signatures equals
@@ -490,8 +490,8 @@ fn list_keys() {
             "--cert-file", "gnupg-rsa-normal-pub.pgp"
         ])
         .assert()
-    // If there are issues, the exit code is 2.
-        .code(2)
+        // If there are issues, the command fails.
+        .failure()
         .stdout(predicate::eq("94F19D3CB5656E0BC3977C09A8AC5ACC2FB87104\n"));
 }
 
@@ -506,6 +506,6 @@ fn signature() {
             "--cert-file", "msg.sig",
         ])
         .assert()
-    // If there are issues, the exit code is 1.
-        .code(1);
+        // If there are issues, the command fails.
+        .failure();
 }

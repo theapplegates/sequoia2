@@ -44,19 +44,7 @@ encryption-capable subkeys, but it will not be able to generate new \
 primary key binding signatures for any signing-capable subkeys.
 ",
     after_help =
-"EXIT STATUS:
-
-If `--fix` is not specified:
-  2  if any issues were found,
-  1  if not issues were found, but there were errors reading the input,
-  0  if there were no issues.
-
-If `--fix` is specified:
-  3  if any issues could not be fixed,
-  1  if not issues were found, but there were errors reading the input,
-  0  if all issues were fixed or there were no issues.
-
-EXAMPLES:
+"EXAMPLES:
 
 # To gather statistics, simply run:
 $ sq cert lint keyring.pgp

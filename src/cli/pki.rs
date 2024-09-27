@@ -100,9 +100,9 @@ test_examples!(sq_pki_authenticate, AUTHENTICATE_EXAMPLES);
 /// uncertainty (i.e., certifications may be marked as conveying
 /// only partial or marginal trust), multiple paths may be needed.
 ///
-/// If a binding could be authenticated to the specified level (by
-/// default: fully authenticated, i.e., a trust amount of 120),
-/// then the exit status is 0.  Otherwise the exit status is 1.
+/// An error is return if no binding could be authenticated to the
+/// specified level (by default: fully authenticated, i.e., a trust
+/// amount of 120).
 ///
 /// If any valid paths to the binding are found, they are printed
 /// on stdout whether they are sufficient to authenticate the
@@ -168,9 +168,9 @@ test_examples!(sq_pki_lookup, LOOKUP_EXAMPLES);
 /// Identifies authenticated bindings (User ID and certificate
 /// pairs) where the User ID matches the specified User ID.
 ///
-/// If a binding could be authenticated to the specified level (by
-/// default: fully authenticated, i.e., a trust amount of 120),
-/// then the exit status is 0.  Otherwise the exit status is 1.
+/// An error is return if no binding could be authenticated to the
+/// specified level (by default: fully authenticated, i.e., a trust
+/// amount of 120).
 ///
 /// If a binding could be partially authenticated (i.e., its trust
 /// amount is greater than 0), then the binding is displayed, even
@@ -234,9 +234,9 @@ test_examples!(sq_pki_identify, IDENTIFY_EXAMPLES);
 /// Identify a certificate by finding authenticated bindings (User
 /// ID and certificate pairs).
 ///
-/// If a binding could be authenticated to the specified level (by
-/// default: fully authenticated, i.e., a trust amount of 120),
-/// then the exit status is 0.  Otherwise the exit status is 1.
+/// An error is return if no binding could be authenticated to the
+/// specified level (by default: fully authenticated, i.e., a trust
+/// amount of 120).
 ///
 /// If a binding could be partially authenticated (i.e., its trust
 /// amount is greater than 0), then the binding is displayed, even

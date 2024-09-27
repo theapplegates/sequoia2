@@ -1,7 +1,6 @@
 use std::cmp::Ordering;
 use std::io::IsTerminal;
 use std::io:: Write;
-use std::process::exit;
 use std::time::SystemTime;
 use std::sync::Arc;
 
@@ -860,28 +859,28 @@ pub fn lint(mut sq: Sq, args: Command) -> Result<()> {
         }
 
         if args.fix {
-            if unfixed_issue == 0 {
-                if bad_input {
-                    exit(1);
-                } else {
-                    exit(0);
-                }
-            } else {
+            if unfixed_issue > 0 {
                 if ! sq.quiet {
                     err!(unfixed_issue,
                          "Failed to fix {} {}.",
                          unfixed_issue,
                          pl(unfixed_issue, "issue", "issues"));
                 }
-                exit(3);
+                return Err(anyhow::anyhow!(
+                    "Failed to fix {} {}",
+                    unfixed_issue,
+                    pl(unfixed_issue, "issue", "issues")));
             }
         } else {
-            exit(2);
+            return Err(anyhow::anyhow!("{} {} have at least one issue",
+                                       certs_with_issues,
+                                       pl(certs_with_issues,
+                                          "certificate", "certificates")));
         }
     }
 
     if bad_input {
-        exit(1);
+        return Err(anyhow::anyhow!("Error reading input"));
     }
 
     Ok(())

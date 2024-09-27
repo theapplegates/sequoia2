@@ -179,14 +179,14 @@ fn authenticate<'store, 'rstore>(
         let userid_check = UserID::from(format!("<{}>", email));
         if let Ok(Some(email_check)) = userid_check.email2() {
             if &email != email_check {
-                wprintln!("{:?} does not appear to be an email address",
-                          email);
-                std::process::exit(1);
+                return Err(anyhow::anyhow!(
+                    "{:?} does not appear to be an email address",
+                    email));
             }
         } else {
-            wprintln!("{:?} does not appear to be an email address",
-                      email);
-            std::process::exit(1);
+            return Err(anyhow::anyhow!(
+                "{:?} does not appear to be an email address",
+                email));
         }
 
         // Now, iterate over all of the certifications of the target,
@@ -552,7 +552,7 @@ fn check_path(sq: &Sq,
 
     let target_kh = khs.last().expect("have one");
 
-    match r {
+    let trust_amount = match r {
         Ok(path) => {
             print_path_header(
                 target_kh,
@@ -562,9 +562,12 @@ fn check_path(sq: &Sq,
             );
             print_path(&path, &userid, "  ")?;
 
-            if path.amount() >= required_amount {
-                std::process::exit(0);
+            let trust_amount = path.amount();
+            if trust_amount >= required_amount {
+                return Ok(());
             }
+
+            trust_amount
         }
         Err(err) => {
             print_path_header(
@@ -575,10 +578,15 @@ fn check_path(sq: &Sq,
             );
 
             print_path_error(err);
-        }
-    }
 
-    std::process::exit(1);
+            0
+        }
+    };
+
+    Err(anyhow::anyhow!(
+        "The path is not sufficient to authenticate the binding.  \
+         Its trust amount is {}, but a trust amount of {} is required.",
+        trust_amount, required_amount))
 }
 
 pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {

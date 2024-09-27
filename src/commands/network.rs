@@ -857,6 +857,9 @@ pub fn dispatch_fetch(mut sq: Sq, c: cli::network::fetch::Command)
     })?;
     drop(pb);
 
+    // Release all thread pool resources.
+    drop(rt);
+
     Response::import_or_emit(sq, c.output, c.binary, results)?;
     Ok(())
 }

@@ -20,6 +20,7 @@ use crate::cli;
 use cli::types::EncryptPurpose;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::FileStdinOrKeyHandle;
+use crate::common::password;
 
 pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
 {
@@ -199,7 +200,7 @@ pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
 
     // Add the keys and signatures to cert.
     let mut packets: Vec<Packet> = vec![];
-    for (cert, key, mut builder) in wanted.into_iter() {
+    for (cert, mut key, mut builder) in wanted.into_iter() {
         // Set key expiration.
         if let Some(e) = &command.expiration {
             builder = builder.set_key_expiration_time(&key, e.timestamp())?;
@@ -214,6 +215,99 @@ pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
                 key.fingerprint()));
         };
 
+        // If the key we got from the certificate does not contain a
+        // secret (for example, because we got it from the cert
+        // store), try to get it from the key store.  This will only
+        // succeed for the softkeys backend.  But, for the softkeys
+        // backend it is necessary to actually get the secret key
+        // material, so that we have secret key material to import
+        // back into the softkeys backend.
+        //
+        // Note that keys backed by the softkeys backend can also
+        // adopt keys with material backed by hardware keys.  In this
+        // case, we'll import the public key and binding signature
+        // into the cert store, and the change will not be reflected
+        // in the key store.
+
+        // If we have to prompt for a password in order to identify
+        // the right key, at least store the keypair so that we don't
+        // have to ask again.
+        let mut keypair = None;
+
+        if key.optional_secret().is_none() {
+            let ks = sq.key_store_or_else()?;
+            let mut ks = ks.lock().unwrap();
+
+            // Try to get secrets from the store.
+            let secrets = ks.find_key(key.key_handle())?.into_iter()
+                .filter_map(|mut k| k.export().ok()).collect::<Vec<_>>();
+
+            match secrets.len() {
+                0 => (),
+                1 => key = secrets.into_iter().next().unwrap().into(),
+                _ => if secrets.iter().all(|k| ! k.secret().is_encrypted()) {
+                    // There is more than one variant of the secret
+                    // key, and all of them are unlocked.  Pick one.
+                    let k = secrets.into_iter().next().unwrap();
+                    keypair =
+                        Some(k.clone().into_keypair()?);
+                    key = k.into();
+                } else {
+                    // There is more than one variant of the secret
+                    // key.  Prompt for a password to unlock one, so
+                    // that we know which one the user wants.  This is
+                    // a bit annoying, but on the plus side we don't
+                    // need to ask the user again to create the
+                    // primary key binding signature.
+                    let uid = sq.best_userid(&cert, true);
+
+                    'password_loop: loop {
+                        let p = password::prompt_to_unlock(&sq, &format!(
+                            "{}/{}, {}",
+                            cert.keyid(), key.keyid(), uid))?;
+
+                        // Empty password given and a key without
+                        // encryption?  Pick it.
+                        if p.map(|p| p.is_empty()) {
+                            if let Some(k) = secrets.iter()
+                                .find(|k| ! k.secret().is_encrypted())
+                            {
+                                keypair =
+                                    Some(k.clone().into_keypair()?);
+                                key = k.clone().into();
+                                break;
+                            }
+                        }
+
+                        let mut err = None;
+                        for k in &secrets {
+                            match k.secret().clone().decrypt(key.pk_algo(), &p) {
+                                Ok(decrypted) => {
+                                    // Keep the decrypted keypair.
+                                    keypair = Some({
+                                        let k = key.add_secret(decrypted).0;
+                                        k.clone().into_keypair()?
+                                    });
+                                    // Adopt the encrypted key.
+                                    key = k.clone().into();
+                                    break 'password_loop;
+                                },
+
+                                Err(e) => err = Some(e),
+                            }
+                        }
+
+                        if p == "".into() {
+                            wprintln!("Giving up.");
+                            return Err(anyhow::anyhow!(
+                                "Failed to unlock key: {}",
+                                err.expect("must be set when we came here")));
+                        }
+                    }
+                },
+            }
+        }
+
         // If we need a valid backsig, create it.
         if key_flags.for_signing() || key_flags.for_certification() {
             // Derive a signer.
@@ -221,10 +315,14 @@ pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
                 .next()
                 .expect("have key");
 
-            let mut subkey_signer = sq.get_signer(&ka)
-                .with_context(|| {
-                    format!("Getting signer for {}", ka.fingerprint())
-                })?;
+            let mut subkey_signer = if let Some(k) = keypair {
+                Box::new(k)
+            } else {
+                sq.get_signer(&ka)
+                    .with_context(|| {
+                        format!("Getting signer for {}", ka.fingerprint())
+                    })?
+            };
 
             let backsig = builder
                 .embedded_signatures()

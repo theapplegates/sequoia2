@@ -61,10 +61,11 @@ pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
     )> = command.key
         .into_iter()
         .map(|kh| {
-            let cert = match sq.lookup_one_with_policy(
-                kh.clone(), None, false, adoptee_policy, sq.time)
+            let cert = match sq.lookup_with_policy(
+                std::iter::once(kh.clone()), None, false, true,
+                adoptee_policy, sq.time)
             {
-                Ok(cert) => cert,
+                Ok(certs) => certs.into_iter().next().unwrap(),
                 Err(err) => return (kh, Err(err)),
             };
 

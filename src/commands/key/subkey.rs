@@ -29,6 +29,7 @@ use crate::cli::key::subkey::PasswordCommand;
 use crate::cli::key::subkey::RevokeCommand;
 use crate::cli::types::EncryptPurpose;
 use crate::cli::types::FileOrStdout;
+use crate::commands::key::adopt;
 use crate::common;
 use crate::common::key::expire;
 use crate::common::key::export;
@@ -47,6 +48,7 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()> {
         Command::Password(c) => subkey_password(sq, c)?,
         Command::Expire(c) => subkey_expire(sq, c)?,
         Command::Revoke(c) => subkey_revoke(sq, c)?,
+        Command::Adopt(c) => adopt::adopt(sq, c)?,
     }
 
     Ok(())

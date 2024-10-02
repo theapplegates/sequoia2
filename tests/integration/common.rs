@@ -722,12 +722,12 @@ impl Sq {
     ///
     /// The resulting certificate is NOT imported into the key store
     /// or the cert store.
-    pub fn key_adopt_maybe<P, T, K, Q>(&self,
-                                       extra_args: &[&str],
-                                       keyrings: Vec<P>,
-                                       target: T,
-                                       keys: Vec<K>,
-                                       output_file: Q)
+    pub fn key_subkey_adopt_maybe<P, T, K, Q>(&self,
+                                              extra_args: &[&str],
+                                              keyrings: Vec<P>,
+                                              target: T,
+                                              keys: Vec<K>,
+                                              output_file: Q)
         -> Result<Cert>
     where
         P: AsRef<Path>,
@@ -739,7 +739,7 @@ impl Sq {
         let output_file = output_file.as_ref();
 
         let mut cmd = self.command();
-        cmd.arg("key").arg("adopt");
+        cmd.arg("key").arg("subkey").arg("adopt");
 
         for arg in extra_args {
             cmd.arg(arg);
@@ -794,12 +794,12 @@ impl Sq {
     /// or the cert store.
     ///
     /// This version panics if `sq key adopt` fails.
-    pub fn key_adopt<P, T, K, Q>(&self,
-                                 extra_args: &[&str],
-                                 keyrings: Vec<P>,
-                                 target: T,
-                                 keys: Vec<K>,
-                                 output_file: Q)
+    pub fn key_subkey_adopt<P, T, K, Q>(&self,
+                                        extra_args: &[&str],
+                                        keyrings: Vec<P>,
+                                        target: T,
+                                        keys: Vec<K>,
+                                        output_file: Q)
         -> Cert
     where
         P: AsRef<Path>,
@@ -807,7 +807,8 @@ impl Sq {
         K: Into<KeyHandle>,
         Q: AsRef<Path>,
     {
-        self.key_adopt_maybe(extra_args, keyrings, target, keys, output_file)
+        self.key_subkey_adopt_maybe(
+            extra_args, keyrings, target, keys, output_file)
             .expect("sq key adopt succeeds")
     }
 

@@ -187,7 +187,7 @@ fn adopt_encryption() -> Result<()> {
         }
 
         // Have Bob adopt alice's encryption subkey.
-        let cert = sq.key_adopt(
+        let cert = sq.key_subkey_adopt(
             &[],
             keyrings.to_vec(),
             handle,
@@ -236,7 +236,7 @@ fn adopt_signing() -> Result<()> {
         }
 
         // Adopt a signing subkey (subkey has secret key material).
-        let cert = sq.key_adopt(
+        let cert = sq.key_subkey_adopt(
             &[],
             keyrings.to_vec(),
             handle,
@@ -286,7 +286,7 @@ fn adopt_certification() -> Result<()> {
 
         // Adopt a certification subkey (subkey has secret key
         // material).
-        let cert = sq.key_adopt(
+        let cert = sq.key_subkey_adopt(
             &[],
             keyrings.to_vec(),
             handle,
@@ -333,7 +333,7 @@ fn adopt_encryption_and_signing() -> Result<()> {
             sq.key_import(file);
         }
 
-        let cert = sq.key_adopt(
+        let cert = sq.key_subkey_adopt(
             &[],
             keyrings.to_vec(),
             handle,
@@ -388,7 +388,7 @@ fn adopt_twice() -> Result<()> {
         }
 
         // Adopt the same an encryption subkey twice.
-        let cert = sq.key_adopt(
+        let cert = sq.key_subkey_adopt(
             &[],
             keyrings.to_vec(),
             handle,
@@ -410,7 +410,7 @@ fn adopt_key_appears_twice() -> Result<()> {
     let sq = Sq::new();
 
     // Adopt an encryption subkey that appears twice.
-    let cert = sq.key_adopt(
+    let cert = sq.key_subkey_adopt(
         &[],
         [ alice(), alice(), ].to_vec(),
         bob(),
@@ -460,7 +460,7 @@ fn adopt_own_encryption() -> Result<()> {
         }
 
         // Adopt its own encryption subkey.  This should be a noop.
-        let cert = sq.key_adopt(
+        let cert = sq.key_subkey_adopt(
             &[],
             keyrings.to_vec(),
             handle,
@@ -511,7 +511,7 @@ fn adopt_own_primary() -> Result<()> {
         }
 
         // Adopt own primary key.
-        let cert = sq.key_adopt(
+        let cert = sq.key_subkey_adopt(
             &[],
             keyrings.to_vec(),
             handle,
@@ -570,7 +570,7 @@ fn adopt_missing() -> Result<()> {
         }
 
         // Adopt a key that is not present.
-        let r = sq.key_adopt_maybe(
+        let r = sq.key_subkey_adopt_maybe(
             &[],
             keyrings.to_vec(),
             handle,
@@ -622,7 +622,7 @@ fn adopt_from_multiple() -> Result<()> {
         }
 
         // Adopt own primary key.
-        let cert = sq.key_adopt(
+        let cert = sq.key_subkey_adopt(
             &[],
             keyrings.to_vec(),
             handle,
@@ -666,7 +666,7 @@ fn adopt_bare() -> Result<()> {
     // First, a bare certificate doesn't have any key flags set.  Make
     // sure `sq key adopt` complains, if we don't specify any (e.g.,
     // `--can-encrypt`).
-    let r = sq.key_adopt_maybe(
+    let r = sq.key_subkey_adopt_maybe(
         &[],
         vec![ bare_file.clone() ],
         alice_primary().0,
@@ -677,7 +677,7 @@ fn adopt_bare() -> Result<()> {
                 missing key flags");
     }
 
-    let cert = sq.key_adopt(
+    let cert = sq.key_subkey_adopt(
         &["--can-encrypt", "universal"],
         vec![ bare_file.clone() ],
         alice_primary().0,
@@ -725,7 +725,7 @@ fn key_creation_time() -> Result<()> {
     let bare_file = bare();
     let bare = Cert::from_file(&bare_file).expect("can read file");
 
-    let cert = sq.key_adopt(
+    let cert = sq.key_subkey_adopt(
         &["--can-encrypt", "universal", "--creation-time", time_str ],
         vec![ bare_file ],
         alice_primary().0,

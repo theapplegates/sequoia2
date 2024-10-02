@@ -6,7 +6,7 @@ mod integration {
     mod sq_cert_lint;
     mod sq_decrypt;
     mod sq_encrypt;
-    mod sq_key_adopt;
+    mod sq_key_subkey_adopt;
     mod sq_key_approvals_update;
     mod sq_key_delete;
     mod sq_key_expire;

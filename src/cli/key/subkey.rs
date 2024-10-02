@@ -9,6 +9,7 @@ use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
+use crate::cli::types::Time;
 
 use crate::cli::key::{
     CipherSuite,
@@ -43,6 +44,7 @@ pub enum Command {
     Password(PasswordCommand),
     Expire(ExpireCommand),
     Revoke(RevokeCommand),
+    Adopt(AdoptCommand),
 }
 
 const SUBKEY_ADD_EXAMPLES: Actions = Actions {
@@ -766,3 +768,162 @@ modified certificate to stdout.",
     )]
     pub binary: bool,
 }
+
+#[derive(Debug, Args)]
+#[clap(
+    name = "adopt",
+    about = "Bind keys from one certificate to another",
+    long_about = "\
+Bind keys from one certificate to another.
+
+This command allows the user to attach a primary key or a subkey \
+attached to one certificate to another certificate.  Say you want to \
+transition to a new certificate, but have an authentication subkey on \
+your current certificate that you want to keep because it allows access \
+a server and updating its configuration is not feasible.  This command \
+makes it easy to attach the subkey to the new certificate.
+",
+    after_help = ADOPT_EXAMPLES,
+)]
+#[clap(group(ArgGroup::new("cap-sign").args(&["can_sign", "cannot_sign"])))]
+#[clap(group(ArgGroup::new("cap-authenticate").args(&["can_authenticate", "cannot_authenticate"])))]
+#[clap(group(ArgGroup::new("cap-encrypt").args(&["can_encrypt", "cannot_encrypt"])))]
+#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
+pub struct AdoptCommand {
+    #[clap(
+        long,
+        value_name = "KEY",
+        required(true),
+        help = "Add the key or subkey KEY to the certificate",
+    )]
+    pub key: Vec<KeyHandle>,
+    #[clap(
+        long,
+        value_name = "CREATION_TIME",
+        help = "Make adopted subkeys have the specified creation time",
+        long_help = "\
+Make adopted subkeys have the specified creation time.
+
+Normally, the key's creation time is preserved.  The exception is if \
+the key's creation time is the Unix epoch.  In that case, the current \
+time is used.
+
+This option allows setting the key's creation time to a specified value.  \
+Note: changing a key's creation time also changes its fingerprint.",
+    )]
+    pub creation_time: Option<Time>,
+    #[clap(
+        long,
+        value_name = "EXPIRATION",
+        help = "Make adopted subkeys expire at the given time",
+    )]
+    pub expiration: Option<Time>,
+    #[clap(
+        long,
+        help = "Allow adopting keys from certificates \
+            using broken cryptography",
+    )]
+    pub allow_broken_crypto: bool,
+    #[clap(
+        long,
+        help = "Add keys to the specified certificate",
+        value_name = "CERT_FILE",
+    )]
+    pub cert: Option<KeyHandle>,
+    #[clap(
+        long,
+        value_name = "CERT_FILE",
+        help = "Add keys to the specified certificate",
+    )]
+    pub cert_file: Option<FileOrStdin>,
+
+    #[clap(
+        long = "can-sign",
+        help ="Set the signing-capable flag",
+    )]
+    pub can_sign: bool,
+    #[clap(
+        long = "cannot-sign",
+        help = "Don't set the signing-capable flag",
+    )]
+    pub cannot_sign: bool,
+    #[clap(
+        long = "can-authenticate",
+        help = "Set the authentication-capable flag",
+    )]
+    pub can_authenticate: bool,
+    #[clap(
+        long = "cannot-authenticate",
+        help = "Don't set the authentication-capable flag",
+    )]
+    pub cannot_authenticate: bool,
+    #[clap(
+        long = "can-encrypt",
+        value_name = "PURPOSE",
+        help = "Set the encryption-capable flag",
+        long_help = "\
+Encryption-capable subkeys can be marked as suitable for transport \
+encryption, storage encryption, or both, i.e., universal.  [default: \
+universal]",
+        value_enum,
+    )]
+    pub can_encrypt: Option<EncryptPurpose>,
+    #[clap(
+        long = "cannot-encrypt",
+        help = "Don't set the encryption-capable flag",
+    )]
+    pub cannot_encrypt: bool,
+
+    #[clap(
+        long,
+        value_name = FileOrStdout::VALUE_NAME,
+        help = "Write to the specified FILE",
+        long_help = "\
+Write to the specified FILE.
+
+If not specified, and the certificate was read from the certificate \
+store, imports the modified certificate into the cert store.  If not \
+specified, and the certificate was read from a file, writes the \
+modified certificate to stdout.",
+    )]
+    pub output: Option<FileOrStdout>,
+    #[clap(
+        long,
+        help = "Emit binary data",
+    )]
+    pub binary: bool,
+}
+
+const ADOPT_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Setup(Setup {
+            command: &[
+                "sq", "key", "import",
+                "alice-secret.pgp", "alice-new-secret.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Have Alice's new certificate adopt Alice's old authentication subkey.",
+            command: &[
+                "sq", "key", "subkey", "adopt",
+                "--cert", "C5999E8191BF7B503653BE958B1F7910D01F86E5",
+                "--key", "0D45C6A756A038670FDFD85CB1C82E8D27DB23A1",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Have Alice's certificate adopt a bare key.  A bare key is a public key \
+without any components or signatures.  This simplifies working with raw \
+keys, e.g., keys generated on an OpenPGP card, a TPM device, etc.",
+            command: &[
+                "sq", "key", "subkey", "adopt",
+                "--keyring", "bare.pgp",
+                "--cert", "C5999E8191BF7B503653BE958B1F7910D01F86E5",
+                "--key", "B321BA8F650CB16443E06826DBFA98A78CF6562F",
+                "--can-encrypt", "universal",
+            ],
+        }),
+    ]
+};
+test_examples!(sq_key_adopt, ADOPT_EXAMPLES);

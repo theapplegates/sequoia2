@@ -36,7 +36,6 @@ pub fn dispatch(sq: Sq, command: cli::key::Command) -> Result<()>
         Userid(c) => userid::dispatch(sq, c)?,
         Revoke(c) => certificate_revoke(sq, c)?,
         Subkey(c) => subkey::dispatch(sq, c)?,
-        Adopt(c) => adopt(sq, c)?,
         Approvals(c) => approvals::dispatch(sq, c)?,
     }
     Ok(())

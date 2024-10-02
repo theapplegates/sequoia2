@@ -22,7 +22,7 @@ use crate::cli::types::FileOrStdout;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::common::password;
 
-pub fn adopt(sq: Sq, mut command: cli::key::AdoptCommand) -> Result<()>
+pub fn adopt(sq: Sq, mut command: cli::key::subkey::AdoptCommand) -> Result<()>
 {
     let handle: FileStdinOrKeyHandle = if let Some(file) = command.cert_file {
         assert!(command.cert.is_none());

@@ -104,18 +104,105 @@ pub fn expire(sq: Sq,
     // To change the key's expiration time, create a new direct key
     // signature and new binding signatures for the user IDs.
     if update_primary_key {
+        use openpgp::cert::amalgamation::ValidAmalgamation;
+
+        let template =
         // Preferably use the direct key signature under our policy,
-        // fall back to the most recent direct key signature.
-        let template = key.primary_key().binding_signature(&policy, sq.time)
-            .or(key.primary_key().self_signatures().next()
-                .ok_or(anyhow::anyhow!("no primary key signature")))?
+            key.primary_key().binding_signature(&policy, sq.time).ok()
+        // fall back to the most recent direct key signature,
+            .or_else(|| key.primary_key().self_signatures().next())
+        // fall back to the primary user ID's binding signature,
+            .or_else(|| key.with_policy(&policy, sq.time)
+                     .and_then(|vcert| vcert.primary_userid())
+                     .map(|uidb| uidb.binding_signature())
+                     .ok())
+        // fall back to the newest user ID binding signature.
+            .or_else(|| {
+                let mut sigs = key.userids()
+                    .filter_map(|uidb| uidb.self_signatures().next())
+                    .collect::<Vec<_>>();
+                sigs.sort_by_key(|s| s.signature_creation_time()
+                                 .unwrap_or(std::time::UNIX_EPOCH));
+                sigs.last().cloned()
+            })
+            .ok_or(anyhow::anyhow!("no primary key signature"))?
             .clone();
+
+        // Clean the template.
+        let template = SignatureBuilder::from(template)
+            .modify_unhashed_area(|mut a| {
+                a.clear();
+                Ok(a)
+            })?
+            .modify_hashed_area(|mut a| {
+                // XXX: Rework once
+                // https://gitlab.com/sequoia-pgp/sequoia/-/issues/1127
+                // is available.
+                let mut strip_tags: std::collections::BTreeSet<_> =
+                    a.iter().map(|s| s.tag()).collect();
+
+                // Symbolic names for the policy below.
+                let strip = true;
+                let keep = false;
+
+                use openpgp::packet::signature::subpacket::SubpacketTag::*;
+                #[allow(deprecated)]
+                strip_tags.retain(|t| match t {
+                    // These we keep.
+                    PreferredSymmetricAlgorithms => keep,
+                    RevocationKey => keep,
+                    NotationData => keep,
+                    PreferredHashAlgorithms => keep,
+                    PreferredCompressionAlgorithms => keep,
+                    KeyServerPreferences => keep,
+                    PreferredKeyServer => keep,
+                    PolicyURI => keep,
+                    KeyFlags => keep,
+                    Features => keep,
+                    // XXXv6: PreferredAEADCiphersuites => keep,
+
+                    // Oddballs, keep them.
+                    Reserved(_) => keep,
+                    Private(_) => keep,
+                    Unknown(_) => keep,
+
+                    // These we want to strip.
+                    SignatureCreationTime => strip,
+                    SignatureExpirationTime => strip,
+                    ExportableCertification => strip,
+                    TrustSignature => strip,
+                    RegularExpression => strip,
+                    Revocable => strip,
+                    KeyExpirationTime => strip,
+                    PlaceholderForBackwardCompatibility => strip,
+                    Issuer => strip,
+                    PrimaryUserID => strip,
+                    SignersUserID => strip,
+                    ReasonForRevocation => strip,
+                    SignatureTarget => strip,
+                    EmbeddedSignature => strip,
+                    IssuerFingerprint => strip,
+                    PreferredAEADAlgorithms => strip, // Note, "v5".
+                    IntendedRecipient => strip,
+                    AttestedCertifications => strip,
+
+                    // Enum is non-exhaustive, conservative choice is
+                    // to keep unknown subpackets.
+                    _ => keep,
+                });
+
+                for t in strip_tags {
+                    a.remove_all(t);
+                }
+
+                Ok(a)
+            })?;
 
         // We can't add a copy of the primary key, as that's not
         // allowed by `Cert::insert_packets`.  But it's easy to
         // reorder direct key signatures as there is only a single
         // possible component, the primary key.
-        acc.push(SignatureBuilder::from(template)
+        acc.push(template
                  .set_type(SignatureType::DirectKey)
                  .set_signature_creation_time(sq.time)?
                  .set_key_expiration_time(key.primary_key().key(),

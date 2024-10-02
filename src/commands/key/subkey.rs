@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use anyhow::Context;
 
 use chrono::DateTime;
@@ -135,6 +137,7 @@ impl SubkeyRevocation {
             = get_secret_signer(sq, &cert, revoker.as_ref())?;
 
         let mut revocations = Vec::new();
+        let mut revoked = BTreeSet::new();
         for keyhandle in keyhandles {
             let keys = valid_cert.keys().subkeys()
                 .key_handle(keyhandle.clone())
@@ -143,6 +146,13 @@ impl SubkeyRevocation {
 
             if keys.len() == 1 {
                 let subkey = keys[0].clone();
+
+                // Did we already revoke it?
+                if revoked.contains(&subkey.fingerprint()) {
+                    continue;
+                }
+                revoked.insert(subkey.fingerprint());
+
                 let mut rev = SubkeyRevocationBuilder::new()
                     .set_reason_for_revocation(reason, message.as_bytes())?;
                 rev = rev.set_signature_creation_time(sq.time)?;

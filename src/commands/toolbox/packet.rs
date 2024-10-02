@@ -46,7 +46,7 @@ pub fn dispatch(sq: Sq, command: Command)
         Subcommands::Dump(command) => {
             let mut input = command.input.open()?;
             let output_type = command.output;
-            let mut output = output_type.create_unsafe(sq.force)?;
+            let mut output = output_type.create_unsafe(&sq)?;
 
             let width = if let Some((width, _)) = terminal_size() {
                 Some(width.0.into())
@@ -65,7 +65,7 @@ pub fn dispatch(sq: Sq, command: Command)
         Subcommands::Decrypt(command) => {
             let mut input = command.input.open()?;
             let mut output = command.output.create_pgp_safe(
-                sq.force,
+                &sq,
                 command.binary,
                 openpgp::armor::Kind::Message,
             )?;
@@ -226,9 +226,9 @@ pub fn join(sq: Sq, c: JoinCommand) -> Result<()> {
     let mut sink = if c.binary {
         // No need for any auto-detection.
         Some(output.create_pgp_safe(
-            sq.force, true, openpgp::armor::Kind::File)?)
+            &sq, true, openpgp::armor::Kind::File)?)
     } else if let Some(kind) = kind {
-        Some(output.create_pgp_safe(sq.force, false, kind)?)
+        Some(output.create_pgp_safe(&sq, false, kind)?)
     } else {
         None // Defer.
     };
@@ -253,7 +253,7 @@ pub fn join(sq: Sq, c: JoinCommand) -> Result<()> {
                 };
 
                 *sink = Some(
-                    output.create_pgp_safe(sq.force, false, kind)?
+                    output.create_pgp_safe(&sq, false, kind)?
                 );
             }
 

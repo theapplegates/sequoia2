@@ -48,7 +48,7 @@ pub trait RevocationOutput {
         const COMMENT_WIDTH: usize = 70;
 
         if let Some(output) = output {
-            let mut output = output.create_safe(sq.force)?;
+            let mut output = output.create_safe(sq)?;
 
             // First, build a minimal revocation certificate containing
             // the primary key, the revoked component, and the revocation

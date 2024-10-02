@@ -71,7 +71,7 @@ pub fn dispatch(sq: Sq, command: cli::toolbox::armor::Command)
         && (want_kind.is_none() || want_kind == have_kind)
     {
         // It is already armored and has the correct kind.
-        let mut output = command.output.create_safe(sq.force)?;
+        let mut output = command.output.create_safe(&sq)?;
         io::copy(&mut input, &mut output)?;
         return Ok(());
     }
@@ -85,7 +85,7 @@ pub fn dispatch(sq: Sq, command: cli::toolbox::armor::Command)
     let want_kind = want_kind.expect("given or detected");
 
     let mut output =
-        command.output.create_pgp_safe(sq.force, false, want_kind)?;
+        command.output.create_pgp_safe(&sq, false, want_kind)?;
 
     if already_armored {
         // Dearmor and copy to change the type.

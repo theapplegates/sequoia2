@@ -59,7 +59,7 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
 
     if let Some(merge) = command.merge {
         let output = output.create_pgp_safe(
-            sq.force,
+            &sq,
             binary,
             armor::Kind::Message,
         )?;
@@ -74,7 +74,7 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
     }
 
     if command.clearsign {
-        let output = output.create_safe(sq.force)?;
+        let output = output.create_safe(&sq)?;
         clearsign(sq, input, output, signers, &notations)?;
     } else {
         sign(sq,
@@ -166,7 +166,7 @@ fn sign_data<'a, 'store, 'rstore>(
             let tmp_path = tmp_file.path().into();
             (Box::new(tmp_file), sigs, Some(tmp_path))
         } else {
-            (output_path.create_safe(sq.force)?, Vec::new(), None)
+            (output_path.create_safe(&sq)?, Vec::new(), None)
         };
 
     // Stream an OpenPGP message.
@@ -249,7 +249,7 @@ fn sign_message<'a, 'store, 'rstore>(
     -> Result<()>
 {
     let mut output = output.create_pgp_safe(
-        sq.force,
+        &sq,
         binary,
         armor::Kind::Message,
     )?;

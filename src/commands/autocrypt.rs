@@ -154,7 +154,7 @@ fn decode(sq: Sq, command: &cli::autocrypt::DecodeCommand)
 {
     let input = command.input.open()?;
     let mut output = command.output.create_pgp_safe(
-        sq.force,
+        &sq,
         command.binary,
         armor::Kind::PublicKey,
     )?;
@@ -173,7 +173,7 @@ fn encode_sender(sq: Sq, command: &cli::autocrypt::EncodeSenderCommand)
                  -> Result<()>
 {
     let input = command.input.open()?;
-    let mut output = command.output.create_safe(sq.force)?;
+    let mut output = command.output.create_safe(&sq)?;
     let cert = Cert::from_buffered_reader(input)?;
     let addr = command.address.clone()
         .or_else(|| {

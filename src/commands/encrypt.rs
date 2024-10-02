@@ -53,7 +53,7 @@ pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
     }
 
     let output = command.output.create_pgp_safe(
-        sq.force,
+        &sq,
         command.binary,
         armor::Kind::Message,
     )?;

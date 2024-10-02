@@ -45,7 +45,7 @@ pub fn dispatch(mut sq: Sq, c: inspect::Command)
     // sq inspect does not have --output, but commands::inspect does.
     // Work around this mismatch by always creating a stdout output.
     let output_type = FileOrStdout::default();
-    let output = &mut output_type.create_unsafe(sq.force)?;
+    let output = &mut output_type.create_unsafe(&sq)?;
 
     let print_certifications = c.certifications;
 

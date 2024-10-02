@@ -180,7 +180,7 @@ pub fn generate(
             .collect();
         headers.insert(0, ("Comment", "Revocation certificate for"));
 
-        let w = rev_path.create_safe(sq.force)?;
+        let w = rev_path.create_safe(&sq)?;
         let mut w = Writer::with_headers(w, Kind::PublicKey, headers)?;
         Packet::from(cert.primary_key().key().clone()).serialize(&mut w)?;
         Packet::Signature(rev).serialize(&mut w)?;
@@ -198,7 +198,7 @@ pub fn generate(
             Some(ref output_file) => {
                 // Write the key to a file or to stdout.
                 let w = output_file.clone().for_secrets()
-                    .create_safe(sq.force)?;
+                    .create_safe(&sq)?;
                 let mut w = Writer::with_headers(w, Kind::SecretKey, headers)?;
                 cert.as_tsk().serialize(&mut w)?;
                 w.finalize()?;

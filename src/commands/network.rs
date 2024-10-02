@@ -682,7 +682,7 @@ impl Response {
                       -> Result<()>
     {
         if let Some(file) = &output {
-            let mut output = file.create_safe(sq.force)?;
+            let mut output = file.create_safe(&sq)?;
             serialize_keyring(&mut output, certs, binary)?;
         } else {
             import_certs(&mut sq, certs)?;

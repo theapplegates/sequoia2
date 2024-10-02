@@ -320,7 +320,7 @@ fn subkey_add(
         .attach_cert()?;
 
     if let Some(output) = command.output {
-        let mut sink = output.for_secrets().create_safe(sq.force)?;
+        let mut sink = output.for_secrets().create_safe(&sq)?;
         if command.binary {
             new_cert.as_tsk().serialize(&mut sink)?;
         } else {

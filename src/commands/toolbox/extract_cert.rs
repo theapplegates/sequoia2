@@ -14,7 +14,7 @@ pub fn dispatch(
     command: cli::toolbox::extract_cert::Command,
 ) -> Result<()> {
     let input = command.input.open()?;
-    let mut output = command.output.create_safe(sq.force)?;
+    let mut output = command.output.create_safe(&sq)?;
 
     let cert = Cert::from_buffered_reader(input)?;
     if command.binary {

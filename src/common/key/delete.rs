@@ -54,7 +54,7 @@ pub fn delete(sq: Sq,
             stripped.into_iter().map(|stripped| Packet::from(stripped)))?;
 
         let output = output.unwrap_or_else(|| FileOrStdout::new(None));
-        let mut output = output.for_secrets().create_safe(sq.force)?;
+        let mut output = output.for_secrets().create_safe(&sq)?;
         if binary {
             cert.as_tsk().serialize(&mut output)?;
         } else {

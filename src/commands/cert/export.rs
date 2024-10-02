@@ -32,7 +32,7 @@ pub fn dispatch(sq: Sq, mut cmd: export::Command) -> Result<()> {
 
     let output = FileOrStdout::default();
     let mut sink = output.create_pgp_safe(
-        sq.force,
+        &sq,
         cmd.binary,
         armor::Kind::PublicKey,
     )?;

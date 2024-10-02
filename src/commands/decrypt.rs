@@ -40,7 +40,7 @@ pub fn dispatch(sq: Sq, command: cli::decrypt::Command) -> Result<()> {
     tracer!(TRACE, "decrypt::dispatch");
 
     let mut input = command.input.open()?;
-    let mut output = command.output.create_safe(sq.force)?;
+    let mut output = command.output.create_safe(&sq)?;
 
     let certs = load_certs(
         command.sender_cert_file.iter().map(|s| s.as_ref()),

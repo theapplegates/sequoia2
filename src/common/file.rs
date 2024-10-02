@@ -13,7 +13,10 @@ use sequoia_openpgp::{
     serialize::stream::{Armorer, Message},
 };
 
-use crate::cli::types::FileOrStdout;
+use crate::{
+    cli::types::FileOrStdout,
+    sq::Sq,
+};
 
 impl FileOrStdout {
     /// Opens the file (or stdout) for writing data that is safe for
@@ -23,9 +26,9 @@ impl FileOrStdout {
     /// authenticated payloads.
     pub fn create_safe(
         &self,
-        force: bool,
+        sq: &Sq,
     ) -> Result<Box<dyn Write + Sync + Send>> {
-        self.create(force)
+        self.create(sq)
     }
 
     /// Opens the file (or stdout) for writing data that is NOT safe
@@ -35,10 +38,10 @@ impl FileOrStdout {
     /// warning once.
     pub fn create_unsafe(
         &self,
-        force: bool,
+        sq: &Sq,
     ) -> Result<Box<dyn Write + Sync + Send>> {
         CliWarningOnce::warn();
-        self.create(force)
+        self.create(sq)
     }
 
     /// Opens the file (or stdout) for writing data that is safe for
@@ -48,7 +51,7 @@ impl FileOrStdout {
     /// implicitly configures this output to emit secret keys.
     pub fn create_pgp_safe<'a>(
         &self,
-        force: bool,
+        sq: &Sq,
         binary: bool,
         kind: armor::Kind,
     ) -> Result<Message<'a>> {
@@ -58,7 +61,7 @@ impl FileOrStdout {
         if kind == armor::Kind::SecretKey {
             o = o.for_secrets();
         }
-        let sink = o.create_safe(force)?;
+        let sink = o.create_safe(sq)?;
 
         let mut message = Message::new(sink);
         if ! binary {
@@ -69,8 +72,8 @@ impl FileOrStdout {
 
     /// Helper function, do not use directly. Instead, use create_or_stdout_safe
     /// or create_or_stdout_unsafe.
-    fn create(&self, force: bool) -> Result<Box<dyn Write + Sync + Send>> {
-        let sink = self._create_sink(force)?;
+    fn create(&self, sq: &Sq) -> Result<Box<dyn Write + Sync + Send>> {
+        let sink = self._create_sink(sq)?;
         if self.is_for_secrets() || ! cfg!(debug_assertions) {
             // We either expect secrets, or we are in release mode.
             Ok(sink)
@@ -80,10 +83,10 @@ impl FileOrStdout {
             Ok(Box::new(SecretLeakDetector::new(sink)))
         }
     }
-    fn _create_sink(&self, force: bool) -> Result<Box<dyn Write + Sync + Send>>
+    fn _create_sink(&self, sq: &Sq) -> Result<Box<dyn Write + Sync + Send>>
     {
         if let Some(path) = self.path() {
-            if !path.exists() || force {
+            if !path.exists() || sq.force {
                 Ok(Box::new(
                     OpenOptions::new()
                         .write(true)

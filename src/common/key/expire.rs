@@ -236,7 +236,7 @@ pub fn expire(sq: Sq,
 
     if let Some(sink) = output {
         let path = sink.path().map(Clone::clone);
-        let mut output = sink.for_secrets().create_safe(sq.force)?;
+        let mut output = sink.for_secrets().create_safe(&sq)?;
         if binary {
             key.as_tsk().serialize(&mut output)?;
         } else {

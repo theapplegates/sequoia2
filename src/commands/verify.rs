@@ -22,7 +22,7 @@ pub fn dispatch(sq: Sq, command: cli::verify::Command)
     tracer!(TRACE, "verify::dispatch");
 
     let mut input = command.input.open()?;
-    let mut output = command.output.create_safe(sq.force)?;
+    let mut output = command.output.create_safe(&sq)?;
     let mut detached = if let Some(f) = command.detached {
         Some(File::open(f)?)
     } else {

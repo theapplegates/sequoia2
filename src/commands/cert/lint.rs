@@ -246,7 +246,7 @@ pub fn lint(mut sq: Sq, args: Command) -> Result<()> {
         };
 
         Some(output.create_pgp_safe(
-            sq.force, args.binary,
+            &sq, args.binary,
             if args.export_secret_keys {
                 armor::Kind::SecretKey
             } else {

@@ -154,7 +154,7 @@ pub fn password(sq: Sq,
         let cert = cert.insert_packets(packets)?;
 
         let output = output.unwrap_or_else(|| FileOrStdout::new(None));
-        let mut output = output.for_secrets().create_safe(sq.force)?;
+        let mut output = output.for_secrets().create_safe(&sq)?;
         if binary {
             cert.as_tsk().serialize(&mut output)?;
         } else {

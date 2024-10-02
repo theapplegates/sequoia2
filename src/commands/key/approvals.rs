@@ -271,7 +271,7 @@ fn update(
 
     if let Some(sink) = command.output {
         let path = sink.path().map(Clone::clone);
-        let mut output = sink.for_secrets().create_safe(sq.force)?;
+        let mut output = sink.for_secrets().create_safe(&sq)?;
         if command.binary {
             key.as_tsk().serialize(&mut output)?;
         } else {

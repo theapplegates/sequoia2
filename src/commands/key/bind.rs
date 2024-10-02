@@ -390,7 +390,7 @@ pub fn bind(sq: Sq, mut command: cli::key::subkey::BindCommand) -> Result<()>
     }
 
     if let Some(output) = command.output {
-        let mut sink = output.for_secrets().create_safe(sq.force)?;
+        let mut sink = output.for_secrets().create_safe(&sq)?;
         if command.binary {
             cert.as_tsk().serialize(&mut sink)?;
         } else {

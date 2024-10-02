@@ -185,7 +185,7 @@ fn filter<F>(sq: &Sq, inputs: Vec<PathBuf>, output: FileOrStdout,
     }
 
     let mut output = output.for_secrets().create_pgp_safe(
-        sq.force,
+        &sq,
         binary,
         if ! to_certificate && certs.iter().any(|c| c.is_tsk()) {
             armor::Kind::SecretKey
@@ -353,7 +353,7 @@ fn merge(sq: &Sq, inputs: Vec<PathBuf>, output: FileOrStdout,
     }
 
     let mut output = output.for_secrets().create_pgp_safe(
-        sq.force,
+        &sq,
         binary,
         if certs.values().any(|c| c.as_ref().map(Cert::is_tsk).unwrap_or(false))
         {

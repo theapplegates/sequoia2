@@ -202,7 +202,7 @@ pub fn certify(sq: Sq, mut c: certify::Command)
     if let Some(output) = c.output {
         // And export it.
         let mut message = output.create_pgp_safe(
-            sq.force,
+            &sq,
             c.binary,
             sequoia_openpgp::armor::Kind::PublicKey,
         )?;

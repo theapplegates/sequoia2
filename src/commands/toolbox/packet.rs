@@ -111,6 +111,7 @@ pub fn split(_sq: Sq, c: SplitCommand) -> Result<()>
     // nested packets.
     let mut ppr =
         openpgp::parse::PacketParserBuilder::from_buffered_reader(input)?
+        .buffer_unread_content()
         .map(true).build()?;
 
     fn join(pos: &[usize], delimiter: &str) -> String {
@@ -292,7 +293,9 @@ pub fn join(sq: Sq, c: JoinCommand) -> Result<()> {
                     ppr = match
                         PacketParserBuilder::from_buffered_reader(reader)
                         .and_then(
-                            |builder| builder.map(true)
+                            |builder| builder
+                                .buffer_unread_content()
+                                .map(true)
                                 .dearmor(Dearmor::Enabled(
                                     ReaderMode::Tolerant(None)))
                                 .build())
@@ -321,12 +324,14 @@ pub fn join(sq: Sq, c: JoinCommand) -> Result<()> {
         for name in c.input {
             let ppr =
                 openpgp::parse::PacketParserBuilder::from_file(name)?
+                .buffer_unread_content()
                 .map(true).build()?;
             copy_all(&sq, ppr, &output, &mut sink)?;
         }
     } else {
         let ppr =
             openpgp::parse::PacketParserBuilder::from_reader(io::stdin())?
+            .buffer_unread_content()
             .map(true).build()?;
         copy_all(&sq, ppr, &output, &mut sink)?;
     }

@@ -176,6 +176,15 @@ Splitting a packet sequence into individual packets, then recombining \
 them freely with `sq toolbox packet join` is a great way to experiment with \
 OpenPGP data.
 
+By default, the packets are written to stdout as a sequence of ASCII \
+armored blocks.  It is possible to edit this file directly (e.g., \
+moving, adding, or removing packets), and then use `sq toolbox packet \
+join` to assemble the stream.
+
+Alternatively, if a `--prefix` is given, the packets are written into \
+individual files starting with the prefix, and can be reassembled \
+with `sq toolbox packet join`.
+
 The converse operation is `sq toolbox packet join`.
 ",
     after_help =
@@ -192,17 +201,25 @@ pub struct SplitCommand {
         value_name = FileOrStdin::VALUE_NAME,
     )]
     pub input: FileOrStdin,
+
     #[clap(
-        long,
+        long = "binary",
         requires = "prefix",
         help = "Emit binary data",
     )]
     pub binary: bool,
+
     #[clap(
         long = "prefix",
         value_name = "PREFIX",
-        help = "Write to files with PREFIX \
-            [defaults: `FILE-` if FILE is set, or `output-` if read from stdin]",
+        help = "Write packets to files starting with PREFIX",
+        help = "\
+Write packets to individual files starting with the given prefix.
+
+The file names are formed by joining the prefix, the path of the \
+packet in the source object (recall: packets can be nested), and \
+a human-readable packet type with dashes ('-').
+",
     )]
     pub prefix: Option<OsString>,
 }

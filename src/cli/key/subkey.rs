@@ -44,7 +44,7 @@ pub enum Command {
     Password(PasswordCommand),
     Expire(ExpireCommand),
     Revoke(RevokeCommand),
-    Adopt(AdoptCommand),
+    Bind(BindCommand),
 }
 
 const SUBKEY_ADD_EXAMPLES: Actions = Actions {
@@ -771,7 +771,7 @@ modified certificate to stdout.",
 
 #[derive(Debug, Args)]
 #[clap(
-    name = "adopt",
+    name = "bind",
     about = "Bind keys from one certificate to another",
     long_about = "\
 Bind keys from one certificate to another.
@@ -782,14 +782,20 @@ transition to a new certificate, but have an authentication subkey on \
 your current certificate that you want to keep because it allows access \
 a server and updating its configuration is not feasible.  This command \
 makes it easy to attach the subkey to the new certificate.
+
+After the operation, the key is bound both to the old certificate and to \
+the new one.  To remove secret key material from the old certificate, use \
+`sq key subkey delete` or `sq key delete`, as appropriate.  To revoke the \
+old subkey or key, use `sq key subkey revoke` or `sq key revoke`, \
+respectively.
 ",
-    after_help = ADOPT_EXAMPLES,
+    after_help = BIND_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cap-sign").args(&["can_sign", "cannot_sign"])))]
 #[clap(group(ArgGroup::new("cap-authenticate").args(&["can_authenticate", "cannot_authenticate"])))]
 #[clap(group(ArgGroup::new("cap-encrypt").args(&["can_encrypt", "cannot_encrypt"])))]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
-pub struct AdoptCommand {
+pub struct BindCommand {
     #[clap(
         long,
         value_name = "KEY",
@@ -800,22 +806,24 @@ pub struct AdoptCommand {
     #[clap(
         long,
         value_name = "CREATION_TIME",
-        help = "Make adopted subkeys have the specified creation time",
+        help = "Make bound subkeys have the specified creation time",
         long_help = "\
-Make adopted subkeys have the specified creation time.
+Make bound subkeys have the specified creation time.
 
 Normally, the key's creation time is preserved.  The exception is if \
 the key's creation time is the Unix epoch.  In that case, the current \
 time is used.
 
 This option allows setting the key's creation time to a specified value.  \
-Note: changing a key's creation time also changes its fingerprint.",
+Note: changing a key's creation time also changes its fingerprint.  \
+Changing the fingerprint will make it impossible to look up the key for \
+the purpose of signature verification, for example.",
     )]
     pub creation_time: Option<Time>,
     #[clap(
         long,
         value_name = "EXPIRATION",
-        help = "Make adopted subkeys expire at the given time",
+        help = "Make bound subkeys expire at the given time",
     )]
     pub expiration: Option<Time>,
     #[clap(
@@ -894,7 +902,7 @@ modified certificate to stdout.",
     pub binary: bool,
 }
 
-const ADOPT_EXAMPLES: Actions = Actions {
+const BIND_EXAMPLES: Actions = Actions {
     actions: &[
         Action::Setup(Setup {
             command: &[
@@ -904,20 +912,20 @@ const ADOPT_EXAMPLES: Actions = Actions {
         }),
         Action::Example(Example {
             comment: "\
-Have Alice's new certificate adopt Alice's old authentication subkey.",
+Bind Alice's old authentication subkey to Alice's new certificate.",
             command: &[
-                "sq", "key", "subkey", "adopt",
+                "sq", "key", "subkey", "bind",
                 "--cert", "C5999E8191BF7B503653BE958B1F7910D01F86E5",
                 "--key", "0D45C6A756A038670FDFD85CB1C82E8D27DB23A1",
             ],
         }),
         Action::Example(Example {
             comment: "\
-Have Alice's certificate adopt a bare key.  A bare key is a public key \
+Bind a bare key to Alice's certificate.  A bare key is a public key \
 without any components or signatures.  This simplifies working with raw \
 keys, e.g., keys generated on an OpenPGP card, a TPM device, etc.",
             command: &[
-                "sq", "key", "subkey", "adopt",
+                "sq", "key", "subkey", "bind",
                 "--keyring", "bare.pgp",
                 "--cert", "C5999E8191BF7B503653BE958B1F7910D01F86E5",
                 "--key", "B321BA8F650CB16443E06826DBFA98A78CF6562F",
@@ -926,4 +934,4 @@ keys, e.g., keys generated on an OpenPGP card, a TPM device, etc.",
         }),
     ]
 };
-test_examples!(sq_key_adopt, ADOPT_EXAMPLES);
+test_examples!(sq_key_bind, BIND_EXAMPLES);

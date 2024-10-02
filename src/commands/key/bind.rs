@@ -22,7 +22,7 @@ use crate::cli::types::FileOrStdout;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::common::password;
 
-pub fn adopt(sq: Sq, mut command: cli::key::subkey::AdoptCommand) -> Result<()>
+pub fn bind(sq: Sq, mut command: cli::key::subkey::BindCommand) -> Result<()>
 {
     let handle: FileStdinOrKeyHandle = if let Some(file) = command.cert_file {
         assert!(command.cert.is_none());
@@ -211,7 +211,7 @@ pub fn adopt(sq: Sq, mut command: cli::key::subkey::AdoptCommand) -> Result<()>
             return Err(anyhow::anyhow!(
                 "{} has no key capabilities.  Pass at least one of \
                  --can-sign, --can-authenticate, and --can-encrypt to \
-                 adopt this key.",
+                 bind this key.",
                 key.fingerprint()));
         };
 
@@ -224,7 +224,7 @@ pub fn adopt(sq: Sq, mut command: cli::key::subkey::AdoptCommand) -> Result<()>
         // back into the softkeys backend.
         //
         // Note that keys backed by the softkeys backend can also
-        // adopt keys with material backed by hardware keys.  In this
+        // bind keys with material backed by hardware keys.  In this
         // case, we'll import the public key and binding signature
         // into the cert store, and the change will not be reflected
         // in the key store.
@@ -288,7 +288,7 @@ pub fn adopt(sq: Sq, mut command: cli::key::subkey::AdoptCommand) -> Result<()>
                                         let k = key.add_secret(decrypted).0;
                                         k.clone().into_keypair()?
                                     });
-                                    // Adopt the encrypted key.
+                                    // Bind the encrypted key.
                                     key = k.clone().into();
                                     break 'password_loop;
                                 },

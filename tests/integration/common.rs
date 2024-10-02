@@ -711,23 +711,23 @@ impl Sq {
         }
     }
 
-    /// Calls `sq key adopt`.
+    /// Calls `sq key bind`.
     ///
     /// `keyrings` are a list of files to pass to `--keyring`.  They
-    /// usually contain the key to adopt.
+    /// usually contain the key to bind.
     ///
-    /// `target` is the certificate that will adopt the key.
+    /// `target` is the certificate that will bind the key.
     ///
-    /// `keys` is the set of keys to adopt.
+    /// `keys` is the set of keys to bind.
     ///
     /// The resulting certificate is NOT imported into the key store
     /// or the cert store.
-    pub fn key_subkey_adopt_maybe<P, T, K, Q>(&self,
-                                              extra_args: &[&str],
-                                              keyrings: Vec<P>,
-                                              target: T,
-                                              keys: Vec<K>,
-                                              output_file: Q)
+    pub fn key_subkey_bind_maybe<P, T, K, Q>(&self,
+                                             extra_args: &[&str],
+                                             keyrings: Vec<P>,
+                                             target: T,
+                                             keys: Vec<K>,
+                                             output_file: Q)
         -> Result<Cert>
     where
         P: AsRef<Path>,
@@ -739,7 +739,7 @@ impl Sq {
         let output_file = output_file.as_ref();
 
         let mut cmd = self.command();
-        cmd.arg("key").arg("subkey").arg("adopt");
+        cmd.arg("key").arg("subkey").arg("bind");
 
         for arg in extra_args {
             cmd.arg(arg);
@@ -781,25 +781,25 @@ impl Sq {
         }
     }
 
-    /// Calls `sq key adopt`.
+    /// Calls `sq key bind`.
     ///
     /// `keyrings` are a list of files to pass to `--keyring`.  They
-    /// usually contain the key to adopt.
+    /// usually contain the key to bind.
     ///
-    /// `target` is the certificate that will adopt the key.
+    /// `target` is the certificate that will bind the key.
     ///
-    /// `keys` is the set of keys to adopt.
+    /// `keys` is the set of keys to bind.
     ///
     /// The resulting certificate is NOT imported into the key store
     /// or the cert store.
     ///
-    /// This version panics if `sq key adopt` fails.
-    pub fn key_subkey_adopt<P, T, K, Q>(&self,
-                                        extra_args: &[&str],
-                                        keyrings: Vec<P>,
-                                        target: T,
-                                        keys: Vec<K>,
-                                        output_file: Q)
+    /// This version panics if `sq key bind` fails.
+    pub fn key_subkey_bind<P, T, K, Q>(&self,
+                                       extra_args: &[&str],
+                                       keyrings: Vec<P>,
+                                       target: T,
+                                       keys: Vec<K>,
+                                       output_file: Q)
         -> Cert
     where
         P: AsRef<Path>,
@@ -807,9 +807,9 @@ impl Sq {
         K: Into<KeyHandle>,
         Q: AsRef<Path>,
     {
-        self.key_subkey_adopt_maybe(
+        self.key_subkey_bind_maybe(
             extra_args, keyrings, target, keys, output_file)
-            .expect("sq key adopt succeeds")
+            .expect("sq key subkey bind succeeds")
     }
 
     pub fn key_approvals_update<'a, H, Q>(&self,

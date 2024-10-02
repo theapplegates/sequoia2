@@ -153,7 +153,7 @@ fn check(cert: &Cert,
 }
 
 #[test]
-fn adopt_encryption() -> Result<()> {
+fn bind_encryption() -> Result<()> {
     for (keyrings, key_imports, handle) in [
         (
             // Keyrings
@@ -186,8 +186,8 @@ fn adopt_encryption() -> Result<()> {
             sq.key_import(file);
         }
 
-        // Have Bob adopt alice's encryption subkey.
-        let cert = sq.key_subkey_adopt(
+        // Have Bob bind alice's encryption subkey.
+        let cert = sq.key_subkey_bind(
             &[],
             keyrings.to_vec(),
             handle,
@@ -202,7 +202,7 @@ fn adopt_encryption() -> Result<()> {
 }
 
 #[test]
-fn adopt_signing() -> Result<()> {
+fn bind_signing() -> Result<()> {
     for (keyrings, key_imports, handle) in [
         (
             // Keyrings
@@ -235,8 +235,8 @@ fn adopt_signing() -> Result<()> {
             sq.key_import(file);
         }
 
-        // Adopt a signing subkey (subkey has secret key material).
-        let cert = sq.key_subkey_adopt(
+        // Bind a signing subkey (subkey has secret key material).
+        let cert = sq.key_subkey_bind(
             &[],
             keyrings.to_vec(),
             handle,
@@ -251,7 +251,7 @@ fn adopt_signing() -> Result<()> {
 }
 
 #[test]
-fn adopt_certification() -> Result<()> {
+fn bind_certification() -> Result<()> {
     for (keyrings, key_imports, handle) in [
         (
             // Keyrings
@@ -284,9 +284,9 @@ fn adopt_certification() -> Result<()> {
             sq.key_import(file);
         }
 
-        // Adopt a certification subkey (subkey has secret key
+        // Bind a certification subkey (subkey has secret key
         // material).
-        let cert = sq.key_subkey_adopt(
+        let cert = sq.key_subkey_bind(
             &[],
             keyrings.to_vec(),
             handle,
@@ -300,7 +300,7 @@ fn adopt_certification() -> Result<()> {
 }
 
 #[test]
-fn adopt_encryption_and_signing() -> Result<()> {
+fn bind_encryption_and_signing() -> Result<()> {
     for (keyrings, key_imports, handle) in [
         (
             // Keyrings
@@ -333,7 +333,7 @@ fn adopt_encryption_and_signing() -> Result<()> {
             sq.key_import(file);
         }
 
-        let cert = sq.key_subkey_adopt(
+        let cert = sq.key_subkey_bind(
             &[],
             keyrings.to_vec(),
             handle,
@@ -354,7 +354,7 @@ fn adopt_encryption_and_signing() -> Result<()> {
 }
 
 #[test]
-fn adopt_twice() -> Result<()> {
+fn bind_twice() -> Result<()> {
     for (keyrings, key_imports, handle) in [
         (
             // Keyrings
@@ -387,8 +387,8 @@ fn adopt_twice() -> Result<()> {
             sq.key_import(file);
         }
 
-        // Adopt the same an encryption subkey twice.
-        let cert = sq.key_subkey_adopt(
+        // Bind the same an encryption subkey twice.
+        let cert = sq.key_subkey_bind(
             &[],
             keyrings.to_vec(),
             handle,
@@ -406,11 +406,11 @@ fn adopt_twice() -> Result<()> {
 }
 
 #[test]
-fn adopt_key_appears_twice() -> Result<()> {
+fn bind_key_appears_twice() -> Result<()> {
     let sq = Sq::new();
 
-    // Adopt an encryption subkey that appears twice.
-    let cert = sq.key_subkey_adopt(
+    // Bind an encryption subkey that appears twice.
+    let cert = sq.key_subkey_bind(
         &[],
         [ alice(), alice(), ].to_vec(),
         bob(),
@@ -426,7 +426,7 @@ fn adopt_key_appears_twice() -> Result<()> {
 }
 
 #[test]
-fn adopt_own_encryption() -> Result<()> {
+fn bind_own_encryption() -> Result<()> {
     for (keyrings, key_imports, handle) in [
         (
             // Keyrings
@@ -459,8 +459,8 @@ fn adopt_own_encryption() -> Result<()> {
             sq.key_import(file);
         }
 
-        // Adopt its own encryption subkey.  This should be a noop.
-        let cert = sq.key_subkey_adopt(
+        // Bind its own encryption subkey.  This should be a noop.
+        let cert = sq.key_subkey_bind(
             &[],
             keyrings.to_vec(),
             handle,
@@ -477,7 +477,7 @@ fn adopt_own_encryption() -> Result<()> {
 }
 
 #[test]
-fn adopt_own_primary() -> Result<()> {
+fn bind_own_primary() -> Result<()> {
     for (keyrings, key_imports, handle) in [
         (
             // Keyrings
@@ -510,8 +510,8 @@ fn adopt_own_primary() -> Result<()> {
             sq.key_import(file);
         }
 
-        // Adopt own primary key.
-        let cert = sq.key_subkey_adopt(
+        // Bind own primary key.
+        let cert = sq.key_subkey_bind(
             &[],
             keyrings.to_vec(),
             handle,
@@ -528,7 +528,7 @@ fn adopt_own_primary() -> Result<()> {
 }
 
 #[test]
-fn adopt_missing() -> Result<()> {
+fn bind_missing() -> Result<()> {
     for (keyrings, key_imports, handle) in [
         (
             // Keyrings
@@ -569,8 +569,8 @@ fn adopt_missing() -> Result<()> {
             sq.key_import(file);
         }
 
-        // Adopt a key that is not present.
-        let r = sq.key_subkey_adopt_maybe(
+        // Bind a key that is not present.
+        let r = sq.key_subkey_bind_maybe(
             &[],
             keyrings.to_vec(),
             handle,
@@ -588,7 +588,7 @@ fn adopt_missing() -> Result<()> {
 }
 
 #[test]
-fn adopt_from_multiple() -> Result<()> {
+fn bind_from_multiple() -> Result<()> {
     for (keyrings, key_imports, handle) in [
         (
             // Keyrings
@@ -621,8 +621,8 @@ fn adopt_from_multiple() -> Result<()> {
             sq.key_import(file);
         }
 
-        // Adopt own primary key.
-        let cert = sq.key_subkey_adopt(
+        // Bind own primary key.
+        let cert = sq.key_subkey_bind(
             &[],
             keyrings.to_vec(),
             handle,
@@ -649,57 +649,57 @@ fn adopt_from_multiple() -> Result<()> {
 
 // A bare certificate is a certificate that consists of just a primary
 // key (no subkeys, no user IDs, and no signatures).  Make sure we are
-// able to adopt one.
+// able to bind one.
 #[test]
-fn adopt_bare() -> Result<()> {
+fn bind_bare() -> Result<()> {
     let sq = Sq::new();
 
     sq.key_import(alice());
 
     let alice2_pgp = sq.scratch_file("alice2.pgp");
 
-    let to_adopt = bare_signing().0;
+    let to_bind = bare_signing().0;
 
     let bare_file = bare();
     let bare = Cert::from_file(&bare_file).expect("can read file");
 
     // First, a bare certificate doesn't have any key flags set.  Make
-    // sure `sq key adopt` complains, if we don't specify any (e.g.,
+    // sure `sq key bind` complains, if we don't specify any (e.g.,
     // `--can-encrypt`).
-    let r = sq.key_subkey_adopt_maybe(
+    let r = sq.key_subkey_bind_maybe(
         &[],
         vec![ bare_file.clone() ],
         alice_primary().0,
-        vec![ to_adopt.clone() ],
+        vec![ to_bind.clone() ],
         &alice2_pgp);
     if r.is_ok() {
-        panic!("sq key adopt succeeded, but should have complained about \
+        panic!("sq key bind succeeded, but should have complained about \
                 missing key flags");
     }
 
-    let cert = sq.key_subkey_adopt(
+    let cert = sq.key_subkey_bind(
         &["--can-encrypt", "universal"],
         vec![ bare_file.clone() ],
         alice_primary().0,
-        vec![ to_adopt.clone() ],
+        vec![ to_bind.clone() ],
         &alice2_pgp);
 
     let mut found = false;
     for k in cert.keys() {
-        let was_adopted = k.mpis() == bare.primary_key().mpis();
+        let was_bound = k.mpis() == bare.primary_key().mpis();
 
         eprintln!("{}{}", k.fingerprint(),
-                  if was_adopted {
-                      " (adopted)"
+                  if was_bound {
+                      " (bound)"
                   } else {
                       ""
                   });
-        if was_adopted {
+        if was_bound {
             found = true;
         }
     }
     if ! found {
-        panic!("{} was not adopted", to_adopt);
+        panic!("{} was not bound", to_bind);
     }
 
     Ok(())
@@ -714,7 +714,7 @@ fn key_creation_time() -> Result<()> {
 
     let alice2_pgp = sq.scratch_file("alice2.pgp");
 
-    let to_adopt = bare_signing().0;
+    let to_bind = bare_signing().0;
 
     // $ date --iso-8601=seconds --utc --date='@1577483647'
     // 2019-12-27T21:54:07+00:00
@@ -725,32 +725,32 @@ fn key_creation_time() -> Result<()> {
     let bare_file = bare();
     let bare = Cert::from_file(&bare_file).expect("can read file");
 
-    let cert = sq.key_subkey_adopt(
+    let cert = sq.key_subkey_bind(
         &["--can-encrypt", "universal", "--creation-time", time_str ],
         vec![ bare_file ],
         alice_primary().0,
-        vec![ to_adopt.clone() ],
+        vec![ to_bind.clone() ],
         &alice2_pgp);
 
     let mut found = false;
     for k in cert.keys() {
-        let was_adopted = k.mpis() == bare.primary_key().mpis();
+        let was_bound = k.mpis() == bare.primary_key().mpis();
 
         eprintln!("{}: {:?}{}",
                   k.fingerprint(),
                   k.creation_time(),
-                  if was_adopted {
-                      " (adopted)"
+                  if was_bound {
+                      " (bound)"
                   } else {
                       ""
                   });
-        if was_adopted {
+        if was_bound {
             assert_eq!(k.creation_time(), time);
             found = true;
         }
     }
     if ! found {
-        panic!("{} was not adopted", to_adopt);
+        panic!("{} was not bound", to_bind);
     }
 
     Ok(())

@@ -8,6 +8,8 @@ use sequoia_wot as wot;
 
 use crate::output::sanitize::Safe;
 
+pub mod file;
+
 mod revoke;
 pub use revoke::get_secret_signer;
 pub use revoke::RevocationOutput;

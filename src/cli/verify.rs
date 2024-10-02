@@ -40,7 +40,7 @@ Verify a signed message.",
             comment: "\
 Verify a detached message.",
             command: &[
-                "sq", "verify", "--detached", "document.sig", "document.txt",
+                "sq", "verify", "--signature-file", "document.sig", "document.txt",
             ],
         }),
         Action::Example(Example {
@@ -109,7 +109,7 @@ pub struct Command {
     )]
     pub output: FileOrStdout,
     #[clap(
-        long = "detached",
+        long = "signature-file",
         value_name = "SIG",
         help = "Verify a detached signature"
     )]

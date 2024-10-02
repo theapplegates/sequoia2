@@ -426,7 +426,7 @@ fn sq_sign_detached() {
     sq.command()
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
-        .args(["--detached", &sig.to_string_lossy()])
+        .args(["--signature-file", &sig.to_string_lossy()])
         .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
         .assert()
         .success();
@@ -465,7 +465,7 @@ fn sq_sign_detached_append() {
     sq.command()
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
-        .args(["--detached", &sig.to_string_lossy()])
+        .args(["--signature-file", &sig.to_string_lossy()])
         .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
         .assert()
         .success();
@@ -513,7 +513,7 @@ fn sq_sign_detached_append() {
     sq.command()
         .arg("verify")
         .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
-        .args(["--detached", &sig.to_string_lossy()])
+        .args(["--signature-file", &sig.to_string_lossy()])
         .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
         .assert()
         .success();
@@ -521,7 +521,7 @@ fn sq_sign_detached_append() {
     sq.command()
         .arg("verify")
         .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
-        .args(["--detached", &sig.to_string_lossy()])
+        .args(["--signature-file", &sig.to_string_lossy()])
         .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
         .assert()
         .success();

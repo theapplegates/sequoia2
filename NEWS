@@ -20,6 +20,9 @@
      has been introduced.  `sq network dane generate --type generic`
      replaces the old `--generic` flag.
    - `sq key adopt` is now called `sq key subkey bind`.
+   - The option to verify a detached signature has been renamed from
+     `--detached` to `--signature-file`: `sq verify --signature-file
+     foo.sig foo.txt`.
 * Changes in 0.38.0
 ** Notable changes
    - New subcommand `sq key subkey delete` to delete secret key

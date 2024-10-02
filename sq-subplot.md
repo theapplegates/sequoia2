@@ -1329,7 +1329,7 @@ when I run sq --no-cert-store --no-key-store toolbox extract-cert key.pgp --outp
 when I run sq --no-cert-store --no-key-store sign --detached --signer-file key.pgp hello.txt --output sig.txt
 then file sig.txt contains "-----BEGIN PGP SIGNATURE-----"
 then file sig.txt contains "-----END PGP SIGNATURE-----"
-when I run sq --no-cert-store --no-key-store verify --detached=sig.txt --signer-file=cert.pgp hello.txt
+when I run sq --no-cert-store --no-key-store verify --signature-file=sig.txt --signer-file=cert.pgp hello.txt
 then stdout doesn't contain "hello, world"
 then exit code is 0
 ~~~
@@ -1349,7 +1349,7 @@ when I run sq --no-cert-store --no-key-store toolbox extract-cert key.pgp --outp
 
 when I run sq --no-cert-store --no-key-store sign --detached --signer-file key.pgp hello.txt --output sig.txt
 when I run sh sed-in-place s/hello/HELLO/ hello.txt
-when I try to run sq verify --detached=sig.txt --signer-file=cert.pgp hello.txt
+when I try to run sq verify --signature-file=sig.txt --signer-file=cert.pgp hello.txt
 then exit code is 1
 ~~~
 

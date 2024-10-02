@@ -53,7 +53,7 @@ fn sq_key_subkey_expire() -> Result<()> {
                 cmd.args(["--cert", &fpr ]);
             } else {
                 cmd
-                    .arg("--force")
+                    .arg("--overwrite")
                     .arg("--cert-file").arg(&cert_path)
                     .arg("--output").arg(&updated_path);
             }
@@ -114,7 +114,7 @@ fn sq_key_subkey_expire() -> Result<()> {
                 cmd.args([ "--cert", &fpr ]);
             } else {
                 cmd
-                    .arg("--force")
+                    .arg("--overwrite")
                     .arg("--cert-file").arg(&updated_path)
                     .arg("--output").arg(&updated2_path);
             }

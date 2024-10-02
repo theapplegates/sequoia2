@@ -283,8 +283,6 @@ fn main() -> Result<()> {
         .collect::<Vec<&str>>();
     policy.good_critical_notations(&known_notations);
 
-    let force = c.force;
-
     let mut password_cache = Vec::new();
     for password_file in &c.password_file {
         let password = std::fs::read(&password_file)
@@ -297,7 +295,7 @@ fn main() -> Result<()> {
     let sq = Sq {
         verbose: c.verbose,
         quiet: c.quiet,
-        force,
+        overwrite: c.overwrite,
         batch: c.batch,
         policy: &policy,
         time,

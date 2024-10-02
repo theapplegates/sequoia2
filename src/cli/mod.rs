@@ -226,12 +226,12 @@ to refer to OpenPGP keys that do contain secrets.
 )]
 pub struct SqCommand {
     #[clap(
-        long = "force",
+        long = "overwrite",
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Overwrite existing files",
     )]
-    pub force: bool,
+    pub overwrite: bool,
     #[clap(
         long,
         env = "SEQUOIA_HOME",

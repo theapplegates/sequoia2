@@ -86,7 +86,7 @@ impl FileOrStdout {
     fn _create_sink(&self, sq: &Sq) -> Result<Box<dyn Write + Sync + Send>>
     {
         if let Some(path) = self.path() {
-            if !path.exists() || sq.force {
+            if !path.exists() || sq.overwrite {
                 Ok(Box::new(
                     OpenOptions::new()
                         .write(true)
@@ -97,7 +97,7 @@ impl FileOrStdout {
                 ))
             } else {
                 Err(anyhow::anyhow!(
-                    "File {} exists, use \"sq --force ...\" to overwrite",
+                    "File {} exists, use \"sq --overwrite ...\" to overwrite",
                     path.display(),
                 ))
             }

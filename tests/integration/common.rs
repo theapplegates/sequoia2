@@ -1245,7 +1245,7 @@ impl Sq {
         cmd.arg(&cert).arg(userid);
 
         if let Some(output_file) = output_file {
-            cmd.arg("--force").arg("--output").arg(output_file);
+            cmd.arg("--overwrite").arg("--output").arg(output_file);
         }
 
         let output = self.run(cmd, Some(success));

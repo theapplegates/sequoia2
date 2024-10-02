@@ -51,7 +51,7 @@ fn sq_key_subkey() -> Result<()> {
                 ]);
             } else {
                 cmd.args([
-                    "--force",
+                    "--overwrite",
                     "--output",
                     &modified_cert_path.to_string_lossy(),
                     "--cert-file", &cert_path.to_string_lossy(),

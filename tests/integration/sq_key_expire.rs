@@ -35,7 +35,7 @@ fn sq_key_expire() -> Result<()> {
             cmd.args(["--cert", &fpr ]);
         } else {
             cmd
-                .arg("--force")
+                .arg("--overwrite")
                 .arg("--cert-file").arg(&cert_path)
                 .arg("--output").arg(&updated_path);
         }

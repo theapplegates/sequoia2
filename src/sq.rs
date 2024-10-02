@@ -87,7 +87,9 @@ pub struct Sq<'store, 'rstore>
 {
     pub verbose: bool,
     pub quiet: bool,
-    pub force: bool,
+
+    /// Overwrite existing files.
+    pub overwrite: bool,
 
     /// Prevent any kind of interactive prompting.
     pub batch: bool,

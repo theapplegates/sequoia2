@@ -123,11 +123,23 @@ pub fn split(_sq: Sq, c: SplitCommand) -> Result<()>
             let mut sink: Box<dyn io::Write> = match &mut sink {
                 Ok(sink) => Box::new(sink),
                 Err(prefix) => {
+                    // Construct the filename:
+                    //
+                    //   PREFIX - PATH - [Unknown-]TAG
+
+                    // Start with the prefix.
                     let mut filename = prefix.clone();
+
+                    // Add the path.
                     filename.push("-");
                     filename.push(join(pp.path(), "-"));
-                    filename.push(pp.packet.kind().map(|_| "").unwrap_or("Unknown-"));
-                    filename.push(format!("{}", pp.packet.tag()));
+
+                    // Add the tag.
+                    filename.push("-");
+                    filename.push(
+                        pp.packet.kind().map(|_| "").unwrap_or("Unknown-"));
+                    filename.push(
+                        pp.packet.tag().to_string().replace(" ", "-"));
 
                     let sink = File::create(filename)
                         .context("Failed to create output file")?;

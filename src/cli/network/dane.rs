@@ -61,7 +61,7 @@ emitted.  If multiple user IDs map to one email address, then all \
 matching user IDs are included in the emitted certificates.
 
 By default, OPENPGPKEY resource records are emitted.  If your DNS \
-server doesn't understand those, use `--generic` to emit generic \
+server doesn't understand those, use `--type generic` to emit generic \
 records instead.
 ",
     after_help = GENERATE_EXAMPLES,
@@ -95,17 +95,29 @@ pub struct GenerateCommand {
         help = "Try to shrink the certificates to this size",
     )]
     pub size_limit: usize,
+
     #[clap(
-        long = "generic",
-        help = "Emit generic resource records [default: OPENPGPKEY records]",
+        long = "type",
+        value_name = "TYPE",
+        default_value = "openpgp",
+        help = "Change the emitted resource record type",
     )]
-    pub generic: bool,
+    pub typ: ResourceRecordType,
+
     #[clap(
         long = "skip",
         help = "Skip expired certificates and those that do not have \
                 User IDs for given domain.",
     )]
     pub skip: bool,
+}
+
+#[derive(clap::ValueEnum, Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ResourceRecordType {
+    #[default]
+    #[clap(name = "openpgp")]
+    OpenPGP,
+    Generic,
 }
 
 #[derive(Debug, Args)]

@@ -1220,11 +1220,17 @@ pub fn dispatch_dane(mut sq: Sq, c: cli::network::dane::Command)
                     e @ Err(_) if ! c.skip => e?,
                     _ => continue,
                 };
-                match if c.generic {
-                    dane::generate_generic(&vc, &c.domain, c.ttl, c.size_limit)
-                } else {
-                    dane::generate(&vc, &c.domain, c.ttl, c.size_limit)
-                } {
+
+                use cli::network::dane::ResourceRecordType;
+                let r = match c.typ {
+                    ResourceRecordType::OpenPGP =>
+                        dane::generate(&vc, &c.domain, c.ttl, c.size_limit),
+                    ResourceRecordType::Generic =>
+                        dane::generate_generic(&vc, &c.domain, c.ttl,
+                                               c.size_limit),
+                };
+
+                match r {
                     Ok(records) =>
                         records.iter().for_each(|r| println!("{}", r)),
                     Err(e) =>

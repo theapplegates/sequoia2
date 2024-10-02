@@ -58,7 +58,8 @@ impl CliWarningOnce {
                 // our environment.
                 && std::env::var_os("COLUMNS").is_none() {
                 eprintln!(
-                    "\nWARNING: sq does not have a stable CLI interface. \
+                    "\nWARNING: sq does not have a stable CLI interface, \
+                     and the human-readable output should not be parsed.\n\
                     Use with caution in scripts.\n"
                 );
             }

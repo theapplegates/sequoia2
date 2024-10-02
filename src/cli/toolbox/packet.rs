@@ -7,6 +7,7 @@ use std::{
 
 use clap::{Args, Parser, Subcommand};
 
+use crate::cli::examples::*;
 use crate::cli::types::ArmorKind;
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrStdin;
@@ -56,21 +57,7 @@ bytes are parsed into OpenPGP values.
 To inspect encrypted messages, either supply the session key, or see \
 `sq decrypt` with the `--dump` flag, or `sq toolbox packet decrypt`.
 ",
-    after_help =
-"EXAMPLES:
-
-# Prints the packets of a certificate
-$ sq toolbox packet dump juliet.pgp
-
-# Prints cryptographic artifacts of a certificate
-$ sq toolbox packet dump --mpis juliet.pgp
-
-# Prints a hexdump of a certificate
-$ sq toolbox packet dump --hex juliet.pgp
-
-# Prints the packets of an encrypted message
-$ sq toolbox packet dump --session-key AABBCC... ciphertext.pgp
-",
+    after_help = DUMP_EXAMPLES,
 )]
 pub struct DumpCommand {
     #[clap(
@@ -112,6 +99,49 @@ pub struct DumpCommand {
     pub hex: bool,
 }
 
+const DUMP_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Print the packets of a certificate.",
+            command: &[
+                "sq", "toolbox", "packet", "dump",
+                "juliet.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Print the packets including cryptographic artifacts of a certificate.",
+            command: &[
+                "sq", "toolbox", "packet", "dump",
+                "--mpis", "juliet.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Print the packets including a dump of every byte of a certificate.",
+            command: &[
+                "sq", "toolbox", "packet", "dump",
+                "--hex", "juliet.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Prints the packets of an encrypted message, decrypting it using a \
+secret key file.",
+            command: &[
+                "sq", "toolbox", "packet", "dump",
+                "--recipient-file", "bob-secret.pgp",
+                "message.pgp",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_toolbox_packet_dump, DUMP_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     about = "Unwrap an encryption container",
@@ -121,13 +151,7 @@ Decrypts a message, dumping the content of the encryption container \
 without further processing.  The result is a valid OpenPGP message \
 that can, among other things, be inspected using `sq toolbox packet dump`.
 ",
-    after_help =
-"EXAMPLES:
-
-# Unwraps the encryption revealing the signed message
-$ sq toolbox packet decrypt --recipient-file juliet.pgp \\
-     ciphertext.pgp
-",
+    after_help = DECRYPT_EXAMPLES,
 )]
 pub struct DecryptCommand {
     #[clap(
@@ -167,6 +191,21 @@ pub struct DecryptCommand {
     pub dump_session_key: bool,
 }
 
+const DECRYPT_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Unwrap the encryption revealing the signed message.",
+            command: &[
+                "sq", "toolbox", "packet", "decrypt",
+                "--recipient-file", "bob-secret.pgp",
+                "message.pgp",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_toolbox_packet_decrypt, DECRYPT_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     about = "Split a message into packets",
@@ -187,12 +226,7 @@ with `sq toolbox packet join`.
 
 The converse operation is `sq toolbox packet join`.
 ",
-    after_help =
-"EXAMPLES:
-
-# Split a certificate into individual packets
-$ sq toolbox packet split juliet.pgp
-",
+    after_help = SPLIT_EXAMPLES,
 )]
 pub struct SplitCommand {
     #[clap(
@@ -224,6 +258,44 @@ a human-readable packet type with dashes ('-').
     pub prefix: Option<OsString>,
 }
 
+const SPLIT_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Split a certificate into individual packets printed to stdout.",
+            command: &[
+                "sq", "toolbox", "packet", "split",
+                "juliet.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Split a inline-signed message into individual packets written to \
+individual files with the prefix 'packet'.",
+            command: &[
+                "sq", "toolbox", "packet", "split",
+                "--prefix", "packet",
+                "document.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Then reassemble the message, transforming it into an old-style \
+signed message with a prefix signature.",
+            command: &[
+                "sq", "toolbox", "packet", "join",
+                "--output", "prefix-signature.pgp",
+                "--label", "message",
+                "packet-2-Signature-Packet",
+                "packet-1-Literal-Data-Packet",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_toolbox_packet_split, SPLIT_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     about = "Join packets split across files",
@@ -235,15 +307,7 @@ OpenPGP data.
 
 The converse operation is `sq toolbox packet split`.
 ",
-    after_help =
-"EXAMPLES:
-
-# Split a certificate into individual packets
-$ sq toolbox packet split juliet.pgp
-
-# Then join only a subset of these packets
-$ sq toolbox packet join juliet.pgp-[0-3]*
-",
+    after_help = JOIN_EXAMPLES,
 )]
 pub struct JoinCommand {
     #[clap(value_name = "FILE", help = "Read from FILE or stdin if omitted")]
@@ -270,3 +334,32 @@ pub struct JoinCommand {
     )]
     pub binary: bool,
 }
+
+const JOIN_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Split a inline-signed message into individual packets written to \
+individual files with the prefix 'packet'.",
+            command: &[
+                "sq", "toolbox", "packet", "split",
+                "--prefix", "packet",
+                "document.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Then reassemble the message, transforming it into an old-style \
+signed message with a prefix signature.",
+            command: &[
+                "sq", "toolbox", "packet", "join",
+                "--output", "prefix-signature.pgp",
+                "--label", "message",
+                "packet-2-Signature-Packet",
+                "packet-1-Literal-Data-Packet",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_toolbox_packet_join, JOIN_EXAMPLES);

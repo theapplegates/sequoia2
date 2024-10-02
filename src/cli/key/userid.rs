@@ -279,10 +279,18 @@ use `--userid`.",
 Revoke the given user ID.
 
 By default, this must exactly match a self-signed User ID.  Use \
-`--force` to generate a revocation certificate for a User ID that is \
+`--add-userid` to generate a revocation certificate for a User ID that is \
 not self signed."
     )]
     pub userid: Option<String>,
+
+    #[clap(
+        long = "add-userid",
+        help = "Add the given user ID if it doesn't exist.",
+        long_help =
+            "Add the given user ID if it doesn't exist in the certificate.",
+    )]
+    pub add_userid: bool,
 
     #[clap(
         value_enum,

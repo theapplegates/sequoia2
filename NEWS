@@ -23,6 +23,9 @@
    - The option to verify a detached signature has been renamed from
      `--detached` to `--signature-file`: `sq verify --signature-file
      foo.sig foo.txt`.
+   - `sq key userid revoke` has a new flag `--add-userid` that adds
+     missing user IDs, analogous to the flag in `sq pki certify`.
+     Previously, the global `--force` was used for this.
 * Changes in 0.38.0
 ** Notable changes
    - New subcommand `sq key subkey delete` to delete secret key

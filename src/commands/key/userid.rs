@@ -101,7 +101,7 @@ impl UserIDRevocation {
                     return Err(anyhow!(
                         "The certificate does not contain the specified User \
                         ID.  To create a revocation certificate for that User \
-                        ID anyways, specify '--force'"
+                        ID anyways, specify '--add-userid'"
                     ));
                 }
             }
@@ -395,7 +395,7 @@ pub fn userid_revoke(
     let revocation = UserIDRevocation::new(
         &sq,
         userid,
-        sq.force,
+        command.add_userid,
         cert,
         revoker,
         command.reason.into(),

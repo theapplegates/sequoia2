@@ -218,6 +218,18 @@ pub struct AddCommand {
     pub notation: Vec<String>,
 
     #[clap(
+        long = "recreate",
+        help = "Recreate signature even if the parameters did not change",
+        long_help = "\
+Recreate signature even if the parameters did not change
+
+If the link parameters did not change, and thus creating a signature \
+should not be necessary, we omit the operation.  This flag can be given \
+to force the signature to be re-created anyway.",
+    )]
+    pub recreate: bool,
+
+    #[clap(
         long = "temporary",
         conflicts_with_all = &[ "amount" ],
         help = "Temporarily accepts the binding",
@@ -349,6 +361,19 @@ pub struct RetractCommand {
             being human readable."
     )]
     pub notation: Vec<String>,
+
+    #[clap(
+        long = "recreate",
+        help = "Recreate signature even if the parameters did not change",
+        long_help = "\
+Recreate signature even if the parameters did not change
+
+If the link parameters did not change, and thus creating a signature \
+should not be necessary, we omit the operation.  This flag can be given \
+to force the signature to be re-created anyway.",
+    )]
+    pub recreate: bool,
+
     #[clap(
         value_name = "FINGERPRINT|KEYID",
         required = true,

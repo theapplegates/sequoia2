@@ -26,6 +26,10 @@
    - `sq key userid revoke` has a new flag `--add-userid` that adds
      missing user IDs, analogous to the flag in `sq pki certify`.
      Previously, the global `--force` was used for this.
+   - `sq pki link add` and `sq pki link retract` have a new flag
+     `--recreate` that forces a signature to be created even if it
+     should not be necessary because the parameters did not change.
+     Previously, the global `--force` was used for this.
 * Changes in 0.38.0
 ** Notable changes
    - New subcommand `sq key subkey delete` to delete secret key

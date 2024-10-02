@@ -537,15 +537,15 @@ pub fn add(sq: Sq, c: link::AddCommand)
                     &active_certification,
                     &builders[0], sq.time);
 
-                if ! changed && sq.force {
+                if ! changed && c.recreate {
                     qprintln!("  Link parameters are unchanged, but \
-                               updating anyway as \"--force\" was specified.");
+                               updating anyway as \"--recreate\" was specified.");
                 } else if c.temporary {
                     qprintln!("  Creating a temporary link, \
                                which expires in a week.");
                 } else if ! changed {
                     qprintln!("  Link parameters are unchanged, no update \
-                               needed (specify \"--force\" to update anyway).");
+                               needed (specify \"--recreate\" to update anyway).");
 
                     // Return a signature packet to indicate that we
                     // processed something.  But don't return a
@@ -692,12 +692,12 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
                     &active_certification,
                     &builder, sq.time);
 
-                if ! changed && sq.force {
+                if ! changed && c.recreate {
                     qprintln!("  Link parameters are unchanged, but \
-                               updating anyway as \"--force\" was specified.");
+                               updating anyway as \"--recreate\" was specified.");
                 } else if ! changed {
                     qprintln!("  Link parameters are unchanged, no update \
-                               needed (specify \"--force\" to update anyway).");
+                               needed (specify \"--recreate\" to update anyway).");
 
                     // Return a signature packet to indicate that we
                     // processed something.  But don't return a
@@ -706,13 +706,13 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
                 } else {
                     qprintln!("  Link parameters changed, updating link.");
                 }
-            } else if sq.force {
+            } else if c.recreate {
                 qprintln!("There is no link to retract between {} and {:?}, \
-                           retracting anyways as \"--force\" was specified.",
+                           retracting anyways as \"--recreate\" was specified.",
                           cert.fingerprint(), userid_str());
             } else {
                 qprintln!("There is no link to retract between {} and {:?} \
-                           (specify \"--force\" to mark as retracted anyways).",
+                           (specify \"--recreate\" to mark as retracted anyways).",
                           cert.fingerprint(), userid_str());
 
                 // Return a signature packet to indicate that we

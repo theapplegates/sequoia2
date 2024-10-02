@@ -28,6 +28,7 @@ pub fn import(sq: Sq, command: cli::key::ImportCommand) -> Result<()> {
                              cert.fingerprint(),
                              sq.best_userid(&cert, true));
 
+            let cert_is_tsk = cert.is_tsk();
             match sq.import_key(cert) {
                 Ok(ImportStatus::New) => {
                     wprintln!("Imported {} from {}: new",
@@ -44,6 +45,14 @@ pub fn import(sq: Sq, command: cli::key::ImportCommand) -> Result<()> {
                 Err(err) => {
                     wprintln!("Error importing {} from {}: {}",
                               id, file.display(), err);
+
+                    if ! cert_is_tsk {
+                        sq.hint(format_args!(
+                            "To import certificates, do:"))
+                            .command(format_args!(
+                                "sq cert import {}", file.display()));
+                    }
+
                     if ret.is_ok() {
                         ret = Err(err);
                     }

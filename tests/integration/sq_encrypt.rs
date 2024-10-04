@@ -31,7 +31,7 @@ fn try_encrypt(sq: &Sq, extra_args: &[&str],
         .map(|fpr| fpr.to_string())
         .collect::<Vec<_>>();
     for recipient_cert in recipient_certs_.iter() {
-        args.push("--recipient-cert");
+        args.push("--recipient");
         args.push(&recipient_cert);
     }
 
@@ -142,7 +142,7 @@ fn sq_encrypt_using_cert_store() -> Result<()>
         .chain(cert.keys().map(|ka| KeyHandle::from(ka.keyid())))
     {
         assert!(
-            sq.encrypt_maybe(&["--recipient-cert", &kh.to_string()], b"")
+            sq.encrypt_maybe(&["--recipient", &kh.to_string()], b"")
                 .is_err());
     }
 
@@ -157,7 +157,7 @@ fn sq_encrypt_using_cert_store() -> Result<()>
         .chain(cert.keys().map(|ka| KeyHandle::from(ka.keyid())))
     {
         let ciphertext = sq.encrypt(
-            &["--recipient-cert", &kh.to_string()], MESSAGE);
+            &["--recipient", &kh.to_string()], MESSAGE);
 
         let plaintext = sq.decrypt(
             &["--recipient-file", &key_pgp], ciphertext);
@@ -240,7 +240,7 @@ fn sq_encrypt_recipient_userid() -> Result<()>
 
     // Encryption by fingerprint should work.
     encrypt(&[],
-            &[("--recipient-cert", &bob.fingerprint().to_string())],
+            &[("--recipient", &bob.fingerprint().to_string())],
             &[&bob_pgp]);
 
     // Encryption by email address and user id should fail if the
@@ -351,7 +351,7 @@ fn sq_encrypt_keyring() -> Result<()>
         }
 
         for recipient in recipients.iter() {
-            args.push("--recipient-cert");
+            args.push("--recipient");
             args.push(recipient);
         }
 
@@ -425,7 +425,7 @@ fn sq_encrypt_with_password() -> Result<()>
 }
 
 // Exercise various ways to encrypt a message to a recipient
-// (--recipient-cert, --recipient-userid, and --recipient-email).
+// (--recipient, --recipient-userid, and --recipient-email).
 // When designating a certificate by name, make sure only
 // authenticated certificates are used.
 #[test]

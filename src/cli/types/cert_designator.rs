@@ -193,7 +193,7 @@ impl CertDesignator {
 /// `Options` are the set of options to enable.
 ///
 /// `Prefix` is a prefix to use.  Using `RecipientPrefix` will
-/// change, e.g., `--cert` to `--recipient-cert`.
+/// change, e.g., `--email` to `--recipient-email`.
 pub struct CertDesignators<Options, Prefix=NoPrefix>
 {
     /// The set of certificate designators.
@@ -285,9 +285,10 @@ where
 
         let prefix = Prefix::prefix();
         let full_name = |name| {
-            if prefix == CertPrefix::prefix() && name == "cert" {
-                // We want `--cert`, not `--cert-cert`.
-                format!("cert")
+            if ! prefix.is_empty() && name == "cert" {
+                // We want `--cert`, not `--cert-cert`, or
+                // `--recipient` instead of `--recipient-cert`.
+                prefix.strip_suffix("-").expect("prefix must end with -").into()
             } else {
                 format!("{}{}", prefix, name)
             }
@@ -387,8 +388,11 @@ where
 
         if let Ok(Some(certs))
             = matches.try_get_many::<KeyHandle>(
-                &format!("{}cert",
-                         if prefix == "cert-" { "" } else { prefix }))
+                if prefix.is_empty() {
+                    "cert"
+                } else {
+                    prefix.strip_suffix("-").expect("prefix must end with -")
+                })
         {
             for cert in certs.cloned() {
                 designators.push(CertDesignator::Cert(cert));

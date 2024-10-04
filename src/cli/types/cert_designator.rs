@@ -67,17 +67,17 @@ pub type GrepArg = typenum::U64;
 /// Enables --cert, --userid, --email, --domain, and --grep (i.e., not
 /// --file).
 pub type CertUserIDEmailDomainGrepArgs
-    = <<<<CertArg as std::ops::Add<UserIDArg>>::Output
-         as std::ops::Add<EmailArg>>::Output
-        as std::ops::Add<DomainArg>>::Output
-       as std::ops::Add<GrepArg>>::Output;
+    = <<<<CertArg as std::ops::BitOr<UserIDArg>>::Output
+         as std::ops::BitOr<EmailArg>>::Output
+        as std::ops::BitOr<DomainArg>>::Output
+       as std::ops::BitOr<GrepArg>>::Output;
 
 /// Enables --cert, --userid, --email, and --file (i.e., not --domain,
 /// or --grep).
 pub type CertUserIDEmailFileArgs
-    = <<<CertArg as std::ops::Add<UserIDArg>>::Output
-        as std::ops::Add<EmailArg>>::Output
-       as std::ops::Add<FileArg>>::Output;
+    = <<<CertArg as std::ops::BitOr<UserIDArg>>::Output
+        as std::ops::BitOr<EmailArg>>::Output
+       as std::ops::BitOr<FileArg>>::Output;
 
 /// A certificate designator.
 #[derive(Debug)]

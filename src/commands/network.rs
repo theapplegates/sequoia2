@@ -1042,15 +1042,15 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
         Publish(c) => {
             use wkd::Variant;
             let cert_store = sq.cert_store_or_else()?;
-            let insert = c.certs.iter()
-                .map(|fp| {
-                    let fp = fp.parse().with_context(
-                        || format!("Parsing {:?} as fingerprint", fp))?;
-                    cert_store.lookup_by_cert_fpr(&fp)
-                        .with_context(
-                            || format!("Looking up {} for insertion", fp))
-                })
-                .collect::<Result<Vec<_>>>()?;
+
+            let (insert, errors) = sq.resolve_certs(
+                &c.certs, sequoia_wot::FULLY_TRUSTED)?;
+            for error in errors.iter() {
+                print_error_chain(error);
+            }
+            if ! errors.is_empty() {
+                return Err(anyhow::anyhow!("Failed to resolve certificates"));
+            }
 
             // Strategy: We transfer the WKD to a temporary directory,
             // read all the certs, update them from the local cert
@@ -1128,7 +1128,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
 
             // Insert the new ones, if any.
             for cert in insert {
-                wkd::insert(&push, &c.domain, variant, cert.to_cert()?)?;
+                wkd::insert(&push, &c.domain, variant, &cert)?;
             }
 
             // Preserve the original policy file, if any.

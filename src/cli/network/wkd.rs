@@ -5,6 +5,10 @@ use sequoia_net::wkd;
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
 use crate::cli::types::FileOrStdout;
+use crate::cli::types::cert_designator::{
+    CertDesignators,
+    CertUserIDEmailFileArgs,
+};
 
 use crate::cli::examples;
 use examples::Action;
@@ -145,21 +149,18 @@ be taken to avoid concurrent updates.
     after_help = PUBLISH_EXAMPLES,
 )]
 pub struct PublishCommand {
+    #[command(flatten)]
+    pub certs: CertDesignators<CertUserIDEmailFileArgs>,
+
     #[clap(
         long = "create",
         value_name = "METHOD",
         default_missing_value = "advanced",
         num_args = 0..=1,
         help = "Create the WKD hierarchy if it does not exist yet",
-        requires = "certs",
     )]
     pub create: Option<Method>,
-    #[clap(
-        long = "cert",
-        value_name = "FINGERPRINT",
-        help = "Insert the given cert into the WKD",
-    )]
-    pub certs: Vec<String>,
+
     #[clap(
         long = "rsync",
         value_name = "RSYNC",

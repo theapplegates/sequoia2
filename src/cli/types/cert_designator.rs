@@ -385,25 +385,35 @@ where
     {
         // eprintln!("matches: {:#?}", matches);
 
+        let options = Options::to_usize();
+        let file_arg = (options & FileArg::to_usize()) > 0;
+        let cert_arg = (options & CertArg::to_usize()) > 0;
+        let userid_arg = (options & UserIDArg::to_usize()) > 0;
+        let email_arg = (options & EmailArg::to_usize()) > 0;
+        let domain_arg = (options & DomainArg::to_usize()) > 0;
+        let grep_arg = (options & GrepArg::to_usize()) > 0;
+
         let mut designators = Vec::new();
 
         let prefix = Prefix::prefix();
 
-        if let Ok(Some(certs))
+        if let Some(Some(certs))
             = matches.try_get_many::<KeyHandle>(
                 if prefix.is_empty() {
                     "cert"
                 } else {
                     prefix.strip_suffix("-").expect("prefix must end with -")
                 })
+            .ok().filter(|_| cert_arg)
         {
             for cert in certs.cloned() {
                 designators.push(CertDesignator::Cert(cert));
             }
         }
 
-        if let Ok(Some(userids))
+        if let Some(Some(userids))
             = matches.try_get_many::<String>(&format!("{}userid", prefix))
+            .ok().filter(|_| userid_arg)
         {
             for userid in userids.cloned() {
                 designators.push(
@@ -411,32 +421,36 @@ where
             }
         }
 
-        if let Ok(Some(emails))
+        if let Some(Some(emails))
             = matches.try_get_many::<String>(&format!("{}email", prefix))
+            .ok().filter(|_| email_arg)
         {
             for email in emails.cloned() {
                 designators.push(CertDesignator::Email(email));
             }
         }
 
-        if let Ok(Some(domains))
+        if let Some(Some(domains))
             = matches.try_get_many::<String>(&format!("{}domain", prefix))
+            .ok().filter(|_| domain_arg)
         {
             for domain in domains.cloned() {
                 designators.push(CertDesignator::Domain(domain));
             }
         }
 
-        if let Ok(Some(patterns))
+        if let Some(Some(patterns))
             = matches.try_get_many::<String>(&format!("{}grep", prefix))
+            .ok().filter(|_| grep_arg)
         {
             for pattern in patterns.cloned() {
                 designators.push(CertDesignator::Grep(pattern));
             }
         }
 
-        if let Ok(Some(paths))
+        if let Some(Some(paths))
             = matches.try_get_many::<PathBuf>(&format!("{}file", prefix))
+            .ok().filter(|_| file_arg)
         {
             for path in paths.cloned() {
                 if let Some("-") = path.to_str() {

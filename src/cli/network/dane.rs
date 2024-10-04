@@ -42,7 +42,7 @@ const GENERATE_EXAMPLES: Actions = Actions {
 Generate DANE records from juliet.pgp for example.org.",
             command: &[
                 "sq", "network", "dane", "generate",
-                "example.org",
+                "--domain=example.org",
                 "juliet.pgp",
             ],
         }),
@@ -68,10 +68,12 @@ records instead.
 )]
 pub struct GenerateCommand {
     #[clap(
+        long = "domain",
         value_name = "FQDN",
         help = "Generate DANE records for this domain name",
     )]
     pub domain: String,
+
     #[clap(
         default_value_t = FileOrStdin::default(),
         value_name = "CERT-RING",

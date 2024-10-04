@@ -24,7 +24,8 @@ where T: typenum::Unsigned;
 pub type NoPrefix = ConcreteArgumentPrefix<typenum::U0>;
 // "--cert", "--cert-userid", "--cert-file", etc.
 pub type CertPrefix = ConcreteArgumentPrefix<typenum::U1>;
-// "--recipient", "--recipient-userid", "--recipient-file", etc.
+
+/// "--for", "--for-userid", "--for-file", etc.
 pub type RecipientPrefix = ConcreteArgumentPrefix<typenum::U2>;
 
 impl ArgumentPrefix for NoPrefix {
@@ -41,7 +42,7 @@ impl ArgumentPrefix for CertPrefix {
 
 impl ArgumentPrefix for RecipientPrefix {
     fn prefix() -> &'static str {
-        "recipient-"
+        "for-"
     }
 }
 
@@ -193,7 +194,7 @@ impl CertDesignator {
 /// `Options` are the set of options to enable.
 ///
 /// `Prefix` is a prefix to use.  Using `RecipientPrefix` will
-/// change, e.g., `--email` to `--recipient-email`.
+/// change, e.g., `--email` to `--for-email`.
 pub struct CertDesignators<Options, Prefix=NoPrefix>
 {
     /// The set of certificate designators.
@@ -287,7 +288,7 @@ where
         let full_name = |name| {
             if ! prefix.is_empty() && name == "cert" {
                 // We want `--cert`, not `--cert-cert`, or
-                // `--recipient` instead of `--recipient-cert`.
+                // `--for` instead of `--for-cert`.
                 prefix.strip_suffix("-").expect("prefix must end with -").into()
             } else {
                 format!("{}{}", prefix, name)

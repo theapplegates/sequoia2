@@ -23,7 +23,7 @@ information is private by default.
 
 Authenticated bindings can be used to designate a certificate using a \
 symbolic name.  For instance, using `sq encrypt`'s \
-`--recipient-userid` and `--recipient-email` options, a user can \
+`--for-userid` and `--for-email` options, a user can \
 designate a certificate using a User ID or an email address that is \
 authenticated for that certificate.
 

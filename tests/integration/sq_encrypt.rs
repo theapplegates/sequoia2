@@ -31,17 +31,17 @@ fn try_encrypt(sq: &Sq, extra_args: &[&str],
         .map(|fpr| fpr.to_string())
         .collect::<Vec<_>>();
     for recipient_cert in recipient_certs_.iter() {
-        args.push("--recipient");
+        args.push("--for");
         args.push(&recipient_cert);
     }
 
     for recipient_userid in recipient_userids.iter() {
-        args.push("--recipient-userid");
+        args.push("--for-userid");
         args.push(&recipient_userid);
     }
 
     for recipient_email in recipient_emails.iter() {
-        args.push("--recipient-email");
+        args.push("--for-email");
         args.push(&recipient_email);
     }
 
@@ -142,7 +142,7 @@ fn sq_encrypt_using_cert_store() -> Result<()>
         .chain(cert.keys().map(|ka| KeyHandle::from(ka.keyid())))
     {
         assert!(
-            sq.encrypt_maybe(&["--recipient", &kh.to_string()], b"")
+            sq.encrypt_maybe(&["--for", &kh.to_string()], b"")
                 .is_err());
     }
 
@@ -157,7 +157,7 @@ fn sq_encrypt_using_cert_store() -> Result<()>
         .chain(cert.keys().map(|ka| KeyHandle::from(ka.keyid())))
     {
         let ciphertext = sq.encrypt(
-            &["--recipient", &kh.to_string()], MESSAGE);
+            &["--for", &kh.to_string()], MESSAGE);
 
         let plaintext = sq.decrypt(
             &["--recipient-file", &key_pgp], ciphertext);
@@ -240,19 +240,19 @@ fn sq_encrypt_recipient_userid() -> Result<()>
 
     // Encryption by fingerprint should work.
     encrypt(&[],
-            &[("--recipient", &bob.fingerprint().to_string())],
+            &[("--for", &bob.fingerprint().to_string())],
             &[&bob_pgp]);
 
     // Encryption by email address and user id should fail if the
     // binding can't be authenticated.
     for email in bob_emails.iter() {
         encrypt(&[],
-                &[("--recipient-email", email)],
+                &[("--for-email", email)],
                 &[]);
     }
     for userid in bob_userids.iter() {
         encrypt(&[],
-                &[("--recipient-userid", userid)],
+                &[("--for-userid", userid)],
                 &[]);
     }
 
@@ -268,12 +268,12 @@ fn sq_encrypt_recipient_userid() -> Result<()>
     // Still don't use a trust root.  This should still fail.
     for email in bob_emails.iter() {
         encrypt(&[],
-                &[("--recipient-email", email)],
+                &[("--for-email", email)],
                 &[]);
     }
     for userid in bob_userids.iter() {
         encrypt(&[],
-                &[("--recipient-userid", userid)],
+                &[("--for-userid", userid)],
                 &[]);
     }
 
@@ -281,22 +281,22 @@ fn sq_encrypt_recipient_userid() -> Result<()>
     for email in bob_emails.iter() {
         if bob_certified_emails.contains(email) {
             encrypt(&[&alice.fingerprint().to_string()],
-                    &[("--recipient-email", email)],
+                    &[("--for-email", email)],
                     &[ &bob_pgp ]);
         } else {
             encrypt(&[&alice.fingerprint().to_string()],
-                    &[("--recipient-email", email)],
+                    &[("--for-email", email)],
                     &[]);
         }
     }
     for userid in bob_userids.iter() {
         if bob_certified_userids.contains(userid) {
             encrypt(&[&alice.fingerprint().to_string()],
-                    &[("--recipient-userid", userid)],
+                    &[("--for-userid", userid)],
                     &[ &bob_pgp ]);
         } else {
             encrypt(&[&alice.fingerprint().to_string()],
-                    &[("--recipient-userid", userid)],
+                    &[("--for-userid", userid)],
                     &[]);
         }
     }
@@ -305,12 +305,12 @@ fn sq_encrypt_recipient_userid() -> Result<()>
     // self-signed user ids.
     for email in bob_emails.iter() {
         encrypt(&[&bob.fingerprint().to_string()],
-                &[("--recipient-email", email)],
+                &[("--for-email", email)],
                 &[&bob_pgp]);
     }
     for userid in bob_userids.iter() {
         encrypt(&[&bob.fingerprint().to_string()],
-                &[("--recipient-userid", userid)],
+                &[("--for-userid", userid)],
                 &[&bob_pgp]);
     }
 
@@ -351,7 +351,7 @@ fn sq_encrypt_keyring() -> Result<()>
         }
 
         for recipient in recipients.iter() {
-            args.push("--recipient");
+            args.push("--for");
             args.push(recipient);
         }
 
@@ -425,7 +425,7 @@ fn sq_encrypt_with_password() -> Result<()>
 }
 
 // Exercise various ways to encrypt a message to a recipient
-// (--recipient, --recipient-userid, and --recipient-email).
+// (--for, --for-userid, and --for-email).
 // When designating a certificate by name, make sure only
 // authenticated certificates are used.
 #[test]

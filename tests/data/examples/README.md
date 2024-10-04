@@ -75,8 +75,8 @@ By using static data, we can use known fingerprints in the examples.
 
 - message.pgp: A document encrypted for Bob, and signed by Alice.
 
-    - `echo 'Golf this afternoon?' | sq encrypt --recipient-file bob-secret.pgp --signer-file alice-secret.pgp > message.pgp`
+    - `echo 'Golf this afternoon?' | sq encrypt --for-file bob-secret.pgp --signer-file alice-secret.pgp > message.pgp`
 
 - ciphertext.pgp: A document encrypted for Juliet, and signed by Romeo.
 
-    - `echo 'Ti amo!' | sq encrypt --recipient-file juliet.pgp --signer-file romeo-secret.pgp > ciphertext.pgp`
+    - `echo 'Ti amo!' | sq encrypt --for-file juliet.pgp --signer-file romeo-secret.pgp > ciphertext.pgp`

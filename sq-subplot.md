@@ -913,7 +913,7 @@ given an installed sq
 given file hello.txt
 when I run sq --no-cert-store --no-key-store key generate --without-password --no-userids --output key.pgp
 when I run sq --no-cert-store --no-key-store toolbox extract-cert --output cert.pgp key.pgp
-when I run sq --no-cert-store --no-key-store encrypt --recipient-file cert.pgp hello.txt
+when I run sq --no-cert-store --no-key-store encrypt --for-file cert.pgp hello.txt
 then stdout contains "-----BEGIN PGP MESSAGE-----"
 then stdout doesn't contain "hello, world"
 ~~~
@@ -932,7 +932,7 @@ given an installed sq
 given file hello.txt
 when I run sq --no-cert-store --no-key-store key generate --without-password --no-userids --output key.pgp
 when I run sq --no-cert-store --no-key-store toolbox extract-cert --output cert.pgp key.pgp
-when I run sq --no-cert-store --no-key-store encrypt --binary --recipient-file cert.pgp hello.txt
+when I run sq --no-cert-store --no-key-store encrypt --binary --for-file cert.pgp hello.txt
 then stdout doesn't contain "-----BEGIN PGP MESSAGE-----"
 then stdout doesn't contain "hello, world"
 ~~~
@@ -954,7 +954,7 @@ given an installed sq
 given file hello.txt
 when I run sq --no-cert-store --no-key-store key generate --without-password --no-userids --output key.pgp
 when I run sq --no-cert-store --no-key-store toolbox extract-cert --output cert.pgp key.pgp
-when I run sq --no-cert-store --no-key-store encrypt --output x.pgp --recipient-file cert.pgp hello.txt
+when I run sq --no-cert-store --no-key-store encrypt --output x.pgp --for-file cert.pgp hello.txt
 when I run sq --no-cert-store --no-key-store decrypt --output output.txt --recipient-file key.pgp x.pgp
 then files hello.txt and output.txt match
 ~~~
@@ -973,7 +973,7 @@ when I run sq --no-cert-store --no-key-store toolbox extract-cert --output alice
 when I run sq --no-cert-store --no-key-store key generate --without-password --no-userids --output bob.pgp
 when I run sq --no-cert-store --no-key-store toolbox extract-cert --output bob-cert.pgp bob.pgp
 
-when I run sq --no-cert-store --no-key-store encrypt --recipient-file alice-cert.pgp --recipient-file bob-cert.pgp hello.txt --output x.pgp
+when I run sq --no-cert-store --no-key-store encrypt --for-file alice-cert.pgp --for-file bob-cert.pgp hello.txt --output x.pgp
 
 when I run sq --no-cert-store --no-key-store decrypt --recipient-file alice.pgp --output alice.txt x.pgp
 then files hello.txt and alice.txt match
@@ -994,7 +994,7 @@ given file hello.txt
 when I run sq --no-cert-store --no-key-store key generate --without-password --no-userids --output alice.pgp
 when I run sq --no-cert-store --no-key-store toolbox extract-cert --output alice-cert.pgp alice.pgp
 
-when I run sq --no-cert-store --no-key-store encrypt --recipient-file alice-cert.pgp --signer-file alice.pgp hello.txt --output x.pgp
+when I run sq --no-cert-store --no-key-store encrypt --for-file alice-cert.pgp --signer-file alice.pgp hello.txt --output x.pgp
 
 when I run sq --no-cert-store --no-key-store decrypt --recipient-file alice.pgp --output alice.txt x.pgp --signer-file alice-cert.pgp
 then files hello.txt and alice.txt match
@@ -1015,7 +1015,7 @@ when I run sq --no-cert-store --no-key-store toolbox extract-cert --output alice
 when I run sq --no-cert-store --no-key-store key generate --without-password --no-userids --output bob.pgp
 when I run sq --no-cert-store --no-key-store toolbox extract-cert --output bob-cert.pgp bob.pgp
 
-when I run sq --no-cert-store --no-key-store encrypt --recipient-file alice-cert.pgp --signer-file alice.pgp hello.txt --output x.pgp
+when I run sq --no-cert-store --no-key-store encrypt --for-file alice-cert.pgp --signer-file alice.pgp hello.txt --output x.pgp
 
 when I try to run sq decrypt --recipient-file alice.pgp --output alice.txt x.pgp --signer-file bob-cert.pgp
 then exit code is 1

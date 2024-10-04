@@ -34,7 +34,7 @@ const ENCRYPT_EXAMPLES: Actions = Actions {
             comment: "\
 Encrypt a file for a recipient given by email.",
             command: &[
-                "sq", "encrypt", "--recipient-email", "alice@example.org",
+                "sq", "encrypt", "--for-email", "alice@example.org",
                 "document.txt",
             ],
         }),
@@ -43,14 +43,14 @@ Encrypt a file for a recipient given by email.",
             comment: "\
 Encrypt a file using a certificate.",
             command: &[
-                "sq", "encrypt", "--recipient-file", "romeo.pgp", "document.txt",
+                "sq", "encrypt", "--for-file", "romeo.pgp", "document.txt",
             ],
         }),
         Action::Example(Example {
             comment: "\
 Encrypt a file creating a signature in the process.",
             command: &[
-                "sq", "encrypt", "--recipient-file", "romeo.pgp",
+                "sq", "encrypt", "--for-file", "romeo.pgp",
                 "--signer-file", "juliet-secret.pgp", "document.txt",
             ],
         }),

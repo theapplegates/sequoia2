@@ -33,7 +33,9 @@
    - The global `--force` flag has been renamed to `--overwrite` and
      now controls whether existing files are overwritten.
    - The argument `--signer-key` is now just called `--signer`.
-   - The argument `--recipient-cert` is now just called `--recipient`.
+   - The arguments to name recipients for encryption now use the
+     `--for` prefix, as in `sq encrypt --for-email alice@example.org`.
+     Further, `--recipient-cert` is now just called `--for`
 * Changes in 0.38.0
 ** Notable changes
    - New subcommand `sq key subkey delete` to delete secret key

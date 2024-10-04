@@ -932,23 +932,24 @@ pub fn dispatch_keyserver(mut sq: Sq,
         })?,
 
         Publish(c) => rt.block_on(async {
-            let cert = if let Some(input) = c.input {
-                let mut input = input.open()?;
-                Arc::new(Cert::from_buffered_reader(&mut input).
-                         context("Malformed key")?)
-            } else if let Some(h) = c.cert {
-                Arc::new(sq.lookup_one(h, None, false)?)
-            } else {
-                unreachable!("one must be given")
-            };
+            let (certs, errors) = sq.resolve_certs(
+                &c.certs, sequoia_wot::FULLY_TRUSTED)?;
+            for error in errors.iter() {
+                print_error_chain(error);
+            }
+            if ! errors.is_empty() {
+                return Err(anyhow::anyhow!("Failed to resolve certificates"));
+            }
 
             let mut requests = tokio::task::JoinSet::new();
-            for ks in servers.iter().cloned() {
-                let cert = cert.clone();
-                requests.spawn(async move {
-                    let response = ks.send(&cert).await;
-                    (ks.url().to_string(), response)
-                });
+            for ks in servers.iter() {
+                for cert in certs.iter().cloned() {
+                    let ks = ks.clone();
+                    requests.spawn(async move {
+                        let response = ks.send(&cert).await;
+                        (ks.url().to_string(), response)
+                    });
+                }
             }
 
             let mut one_ok = false;

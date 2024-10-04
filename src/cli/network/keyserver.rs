@@ -1,13 +1,12 @@
-use clap::{ArgGroup, Args, Parser, Subcommand};
-
-use sequoia_openpgp::{
-    KeyHandle,
-};
+use clap::{Args, Parser, Subcommand};
 
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
-use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
+use crate::cli::types::cert_designator::{
+    CertDesignators,
+    CertUserIDEmailFileArgs,
+};
 
 /// The default key servers to query.
 pub const DEFAULT_KEYSERVERS: &[&'static str] = &[
@@ -117,8 +116,10 @@ default, the certificates are sent to {}.  This can be tweaked using \
 ",
         join(DEFAULT_KEYSERVERS.iter().cloned())),
 )]
-#[clap(group(ArgGroup::new("in").args(&["cert", "input"]).required(true)))]
 pub struct PublishCommand {
+    #[command(flatten)]
+    pub certs: CertDesignators<CertUserIDEmailFileArgs>,
+
     #[clap(
         long,
         help = "Require that all publish operations succeed \
@@ -127,21 +128,6 @@ pub struct PublishCommand {
                 operation succeeds.",
     )]
     pub require_all: bool,
-
-    #[clap(
-        long = "cert",
-        value_name = "FINGERPRINT|KEYID",
-        conflicts_with = "input",
-        help = "Publish the given cert",
-    )]
-    pub cert: Option<KeyHandle>,
-
-    #[clap(
-        help = FileOrStdin::HELP_OPTIONAL,
-        value_name = FileOrStdin::VALUE_NAME,
-        conflicts_with = "cert",
-    )]
-    pub input: Option<FileOrStdin>,
 }
 
 /// Joins the given key server URLs into a list.

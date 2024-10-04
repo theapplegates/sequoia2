@@ -1352,7 +1352,7 @@ impl Sq {
                 cmd.arg("--signer-file").arg(path);
             }
             FileOrKeyHandle::KeyHandle((_kh, s)) => {
-                cmd.arg("--signer-key").arg(&s);
+                cmd.arg("--signer").arg(&s);
             }
         };
 

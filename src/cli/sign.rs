@@ -79,7 +79,6 @@ pub struct Command {
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,
-    // TODO: Why capital B?
     #[clap(
         long,
         help = "Emit binary data",
@@ -133,12 +132,14 @@ pub struct Command {
         help = "Sign the message using the key in KEY_FILE",
     )]
     pub secret_key_file: Vec<PathBuf>,
+
     #[clap(
-        long = "signer-key",
+        long = "signer",
         value_name = "KEYID|FINGERPRINT",
         help = "Sign the message using the specified key on the key store",
     )]
     pub signer_key: Vec<KeyHandle>,
+
     #[clap(
         long,
         value_names = &["NAME", "VALUE"],

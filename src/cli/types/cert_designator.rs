@@ -150,9 +150,11 @@ impl CertDesignator {
             Stdin => format!("--{}file", prefix),
             File(_path) => format!("--{}file", prefix),
             Cert(_kh) => {
-                if prefix == CertPrefix::prefix() {
-                    // We don't want --cert-cert.
-                    format!("--cert")
+                if ! prefix.is_empty() {
+                    // We want `--cert`, not `--cert-cert`, or
+                    // `--for` instead of `--for-cert`.
+                    format!("--{}", prefix.strip_suffix("-")
+                            .expect("prefix must end with -"))
                 } else {
                     format!("--{}cert", prefix)
                 }

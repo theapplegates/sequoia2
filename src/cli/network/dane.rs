@@ -4,8 +4,11 @@ use clap::{Args, Parser, Subcommand};
 
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
-use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
+use crate::cli::types::cert_designator::{
+    CertDesignators,
+    CertUserIDEmailFileArgs,
+};
 
 use crate::cli::examples::*;
 
@@ -43,7 +46,7 @@ Generate DANE records from juliet.pgp for example.org.",
             command: &[
                 "sq", "network", "dane", "generate",
                 "--domain=example.org",
-                "juliet.pgp",
+                "--file=juliet.pgp",
             ],
         }),
     ],
@@ -67,6 +70,9 @@ records instead.
     after_help = GENERATE_EXAMPLES,
 )]
 pub struct GenerateCommand {
+    #[command(flatten)]
+    pub certs: CertDesignators<CertUserIDEmailFileArgs>,
+
     #[clap(
         long = "domain",
         value_name = "FQDN",
@@ -74,13 +80,6 @@ pub struct GenerateCommand {
     )]
     pub domain: String,
 
-    #[clap(
-        default_value_t = FileOrStdin::default(),
-        value_name = "CERT-RING",
-        help = "Emit records for certificates from CERT-RING \
-                (or stdin if omitted)",
-    )]
-    pub input: FileOrStdin,
     #[clap(
         long = "ttl",
         value_name = "DURATION",

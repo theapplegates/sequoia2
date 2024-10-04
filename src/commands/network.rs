@@ -1213,8 +1213,16 @@ pub fn dispatch_dane(mut sq: Sq, c: cli::network::dane::Command)
     use crate::cli::network::dane::Subcommands::*;
     match c.subcommand {
         Generate(c) => {
-            for cert in CertParser::from_buffered_reader(c.input.open()?)? {
-                let cert = cert?;
+            let (certs, errors) = sq.resolve_certs(
+                &c.certs, sequoia_wot::FULLY_TRUSTED)?;
+            for error in errors.iter() {
+                print_error_chain(error);
+            }
+            if ! errors.is_empty() {
+                return Err(anyhow::anyhow!("Failed to resolve certificates"));
+            }
+
+            for cert in certs {
                 let vc = match cert.with_policy(sq.policy, sq.time) {
                     Ok(vc) => vc,
                     e @ Err(_) if ! c.skip => e?,

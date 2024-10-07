@@ -211,12 +211,21 @@ pub fn expire(sq: Sq,
                  .into());
 
         for uidb in key.userids() {
-            // Preferably use the direct binding signature under our
-            // policy, fall back to the most recent binding signature.
-            let template = uidb.binding_signature(&policy, sq.time)
-                .or(uidb.self_signatures().next()
-                    .ok_or(anyhow::anyhow!("no user ID binding signature")))?
-                .clone();
+            // Use the binding signature that is valid under our
+            // policy as of the reference time.  If there is none,
+            // fall back to the most recent binding signature.
+            let template = if let Ok(sig) = uidb.binding_signature(
+                &policy, sq.time)
+            {
+                sig.clone()
+            } else if let Some(sig) = uidb.self_signatures().next() {
+                sig.clone()
+            } else {
+                // The user ID is not bound.  It may be certified by a
+                // third-party, but not by the user.  This is
+                // perfectly valid!  Just silently skip it.
+                continue;
+            };
 
             // Push a copy of the user ID to make reordering easier.
             acc.push(Packet::from(uidb.userid().clone()));

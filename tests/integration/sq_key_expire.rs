@@ -208,3 +208,37 @@ fn sq_key_expire_no_direct_key_sig() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn unbound_userid() {
+    // Make sure we can extend the expiration time of a certificate
+    // that includes an unbound user ID (i.e., a user ID without a
+    // self signature).
+
+    let sq = Sq::new();
+
+    let cert_path = sq.test_data()
+        .join("keys")
+        .join("unbound-userid.pgp");
+
+    let cert = Cert::from_file(&cert_path).expect("can read");
+    let vc = cert.with_policy(STANDARD_POLICY, sq.now())
+        .expect("valid cert");
+    // It shouldn't be expired yet.
+    assert!(vc.primary_key().key_expiration_time().is_none());
+
+    // Set it to expire in a day.
+    let updated_path = sq.scratch_file("updated");
+    let updated = sq.key_expire(cert_path,
+                                "1d",
+                                None,
+                                updated_path.as_path(),
+                                true)
+        .expect("sq key expire should suceed");
+
+    let vc = updated.with_policy(STANDARD_POLICY, sq.now())
+        .expect("valid cert");
+    let expiration = vc.primary_key().key_expiration_time();
+    assert_eq!(expiration,
+               Some(sq.now() + std::time::Duration::new(24 * 60 * 60, 0)));
+}

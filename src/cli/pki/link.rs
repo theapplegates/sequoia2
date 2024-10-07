@@ -5,6 +5,7 @@ use clap::{ArgGroup, Parser, Subcommand};
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
+use crate::cli::examples::*;
 use crate::cli::types::Expiration;
 use crate::cli::types::TrustAmount;
 
@@ -49,25 +50,7 @@ When a user retracts a link, `sq` creates a new, non-exportable \
 certification with zero trust.  This certification suppresses the \
 previous link.
 ",
-after_help = "EXAMPLES:
-
-# Link 0123456789ABCDEF and User ID '<romeo@example.org>'.
-$ sq pki link add 0123456789ABCDEF '<romeo@example.org>'
-
-# Link the certificate 0123456789ABCDEF with its current set of
-# self-signed User IDs as a trusted introducer for example.org.
-$ sq pki link add --ca example.org 0123456789ABCDEF
-
-# Link the certificate 0123456789ABCDEF with its current set of
-# self-signed User IDs as a trusted introducer.
-$ sq pki link add --ca '*' 0123456789ABCDEF
-
-# Retract the link between 0123456789ABCDEF and '<romeo@example.org>'.
-$ sq pki link retract 0123456789ABCDEF '<romeo@example.org>'
-
-# Retract all links associated with 0123456789ABCDEF.
-$ sq pki link retract 0123456789ABCDEF
-",
+after_help = LINK_EXAMPLES,
     subcommand_required = true,
     arg_required_else_help = true,
 )]
@@ -75,6 +58,67 @@ pub struct Command {
     #[clap(subcommand)]
     pub subcommand: Subcommands,
 }
+
+
+const LINK_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+with the email address alice@example.org.",
+            command: &[
+                "sq", "pki", "link", "add",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--email=alice@example.org",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Then, temporarily accept the certificate \
+EB28F26E2739A4870ECC47726F0073F60FD0CBF0 with all of its self-signed \
+user IDs for a week.",
+            command: &[
+                "sq", "pki", "link", "add",
+                "--expiration=1w",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Accept the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+with all of its self-signed user IDs as a trusted certification \
+authority constrained to the domain example.org.  That is, the \
+certificate is considered a trusted introducer for example.org.",
+            command: &[
+                "sq", "pki", "link", "add",
+                "--ca=example.org",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "List all links.",
+            command: &[
+                "sq", "pki", "link", "list",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Retract the acceptance of certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+and any associated user IDs.  This effectively invalidates all links.",
+            command: &[
+                "sq", "pki", "link", "retract",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_pki_link, LINK_EXAMPLES);
 
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
@@ -115,36 +159,7 @@ duration.
 `sq pki link` respects the reference time set by the top-level `--time` \
 argument. It sets the link's creation time to the reference time.
 ",
-    after_help =
-"EXAMPLES:
-
-# The user links 0123456789ABCDEF and the User ID
-# '<romeo@example.org>'.
-$ sq pki link add 0123456789ABCDEF '<romeo@example.org>'
-
-# The user examines 0123456789ABCDEF and then accepts the certificate
-# 0123456789ABCDEF with its current set of self-signed User IDs.
-$ sq cert export --cert 0123456789ABCDEF | sq inspect
-...
-$ sq pki link add 0123456789ABCDEF --all
-
-# The user links the certificate and its current self-signed User
-# IDs for a week.
-$ sq pki link add --expires-in 1w 0123456789ABCDEF --all
-
-# The user accepts the certificate, and its current self-signed User
-# IDs as a certification authority.  That is, the certificate is
-# considered a trust root.
-$ sq pki link add --ca '*' 0123456789ABCDEF --all
-
-# The user accepts the certificate and its current self-signed User
-# IDs as a partially trusted certification authority.
-$ sq pki link add --ca '*' --amount 60 0123456789ABCDEF --all
-
-# The user retracts their acceptance of 0123456789ABCDEF and any
-# associated User IDs.  This effectively invalidates any links.
-$ sq pki link retract 0123456789ABCDEF
-",
+    after_help = ADD_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("expiration-group")
              .args(&["expiration", "temporary"])))]
@@ -328,6 +343,97 @@ to force the signature to be re-created anyway.",
     pub pattern: Vec<String>,
 }
 
+const ADD_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+with the email address alice@example.org.",
+            command: &[
+                "sq", "pki", "link", "add",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--email=alice@example.org",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+First, examine the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0.",
+            command: &[
+                "sq", "inspect",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Then, temporarily accept the certificate \
+EB28F26E2739A4870ECC47726F0073F60FD0CBF0 with all of its self-signed \
+user IDs for a week.",
+            command: &[
+                "sq", "pki", "link", "add",
+                "--expiration=1w",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Once satisfied, permanently accept the certificate \
+EB28F26E2739A4870ECC47726F0073F60FD0CBF0 with all of its self-signed \
+user IDs.",
+            command: &[
+                "sq", "pki", "link", "add",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Accept the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+with all of its self-signed user IDs as a trusted certification \
+authority.  That is, the certificate is considered a trust root.",
+            command: &[
+                "sq", "pki", "link", "add",
+                "--ca=*",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Accept the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+with all of its self-signed user IDs as a trusted certification \
+authority constrained to the domain example.org.  That is, the \
+certificate is considered a trusted introducer for example.org.",
+            command: &[
+                "sq", "pki", "link", "add",
+                "--ca=example.org",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Accept the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+with all of its self-signed user IDs as a partially trusted \
+certification authority.",
+            command: &[
+                "sq", "pki", "link", "add",
+                "--ca=*",
+                "--amount=60",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_pki_link_add, ADD_EXAMPLES);
+
 #[derive(Parser, Debug)]
 #[clap(
     name = "retract",
@@ -345,6 +451,7 @@ which says that the binding has not been authenticated.
 `--time` argument.  This causes a link to be retracted as of a \
 particular time instead of the current time.
 ",
+    after_help = RETRACT_EXAMPLES,
 )]
 pub struct RetractCommand {
     #[clap(
@@ -416,6 +523,43 @@ to force the signature to be re-created anyway.",
     pub pattern: Vec<String>,
 }
 
+const RETRACT_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+with the email address alice@example.org.",
+            command: &[
+                "sq", "pki", "link", "add",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--email=alice@example.org",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Retract the acceptance of certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+and the email address alice@example.org.",
+            command: &[
+                "sq", "pki", "link", "retract",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--email=alice@example.org",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Retract the acceptance of certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+and any associated user IDs.  This effectively invalidates all links.",
+            command: &[
+                "sq", "pki", "link", "retract",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_pki_link_retract, RETRACT_EXAMPLES);
+
 #[derive(Parser, Debug)]
 #[clap(
     name = "list",
@@ -426,6 +570,7 @@ to force the signature to be re-created anyway.",
 This command lists all bindings that are linked or whose link has been \
 retracted.
 ",
+    after_help = LIST_EXAMPLES,
 )]
 pub struct ListCommand {
     #[clap(
@@ -437,3 +582,26 @@ pub struct ListCommand {
     )]
     pub ca: bool,
 }
+
+const LIST_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+with the email address alice@example.org.",
+            command: &[
+                "sq", "pki", "link", "add",
+                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--email=alice@example.org",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "List all links.",
+            command: &[
+                "sq", "pki", "link", "list",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_pki_link_list, LIST_EXAMPLES);

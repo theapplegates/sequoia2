@@ -92,6 +92,13 @@ impl<'a> IntoResettable<clap::builder::StyledStr> for Actions<'a> {
                     .fold(vec!["$".to_string()], |mut s, arg| {
                         let first = s.len() == 1;
 
+                        if *arg == "|" {
+                            let last = s.last_mut().expect("have one");
+                            *last = format!("{} \\", last);
+                            s.push(format!("  {}", arg));
+                            return s;
+                        }
+
                         // Quote the argument, if necessary.
                         let arg = if arg.contains(&[
                             '\"',
@@ -183,18 +190,28 @@ macro_rules! test_examples {
                     continue;
                 };
 
-                eprintln!("Executing: {:?}", command);
+                // Handle pipelines by tracking intermediate results.
+                let mut intermediate = None;
+                for command in command.split(|p| *p == "|") {
+                    eprintln!("Executing: {:?}", command);
 
-                Command::cargo_bin(command[0]).unwrap()
-                    .current_dir(&tmp_dir)
-                    .env("SEQUOIA_CRYPTO_POLICY", &policy)
-                    .env("SEQUOIA_HOME", &home)
-                    .env("SQ_CERT_STORE", &cert_store)
-                    .env("SQ_KEY_STORE", &key_store)
-                    .arg("--batch")
-                    .args(&command[1..])
-                    .assert()
-                    .success();
+                    let mut cmd = Command::cargo_bin(command[0]).unwrap();
+                    cmd.current_dir(&tmp_dir)
+                        .env("SEQUOIA_CRYPTO_POLICY", &policy)
+                        .env("SEQUOIA_HOME", &home)
+                        .env("SQ_CERT_STORE", &cert_store)
+                        .env("SQ_KEY_STORE", &key_store)
+                        .arg("--batch")
+                        .args(&command[1..]);
+
+                    if let Some(prev) = intermediate {
+                        cmd.write_stdin(prev);
+                    }
+
+                    let res = cmd.assert();
+                    intermediate = Some(res.get_output().stdout.clone());
+                    res.success();
+                }
             }
         }
     };

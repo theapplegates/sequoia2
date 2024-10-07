@@ -7,6 +7,7 @@ use clap::{Args, Parser, Subcommand};
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
+use crate::cli::examples::*;
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
@@ -60,31 +61,7 @@ if any of the predicates match.  To require all predicates to match, \
 chain multiple invocations of this command.  See EXAMPLES for \
 inspiration.
 ",
-    after_help =
-"EXAMPLES:
-
-# Converts a key to a cert (i.e., remove any secret key material)
-$ sq toolbox keyring filter --to-cert cat juliet.pgp
-
-# Gets the keys with a user id on example.org
-$ sq toolbox keyring filter --domain example.org keys.pgp
-
-# Gets the keys with a user id on example.org or example.net
-$ sq toolbox keyring filter --domain example.org \\
-     --domain example.net \\
-     keys.pgp
-
-# Gets the keys with a user id with the name Juliet
-$ sq toolbox keyring filter --name Juliet keys.pgp
-
-# Gets the keys with a user id with the name Juliet on example.org
-$ sq toolbox keyring filter --domain example.org keys.pgp | \\
-  sq toolbox keyring filter --name Juliet
-
-# Gets the keys with a user id on example.org, pruning other userids
-$ sq toolbox keyring filter --domain example.org --prune-certs \\
-     certs.pgp
-",
+    after_help = FILTER_EXAMPLES,
 )]
 pub struct FilterCommand {
     #[clap(value_name = "FILE", help = "Read from FILE or stdin if omitted")]
@@ -164,6 +141,83 @@ pub struct FilterCommand {
     pub to_certificate: bool,
 }
 
+const FILTER_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Setup(Setup {
+            command: &[
+                "sq", "toolbox", "keyring", "merge",
+                "--output=certs.pgp",
+                "bob.pgp", "romeo.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Convert all keys to certificates (i.e. remove any secret key material).",
+            command: &[
+                "sq", "toolbox", "keyring", "filter",
+                "--to-cert",
+                "certs.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Get all certificates with a user ID on example.org.",
+            command: &[
+                "sq", "toolbox", "keyring", "filter",
+                "--domain=example.org",
+                "certs.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Get all certificates with a user ID on example.org or example.net.",
+            command: &[
+                "sq", "toolbox", "keyring", "filter",
+                "--domain=example.org",
+                "--domain=example.net",
+                "certs.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Get all certificates with a name user ID matching Romeo.",
+            command: &[
+                "sq", "toolbox", "keyring", "filter",
+                "--name=Romeo",
+                "certs.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Get all certificates with a name user ID matching Romeo on example.org.",
+            command: &[
+                "sq", "toolbox", "keyring", "filter",
+                "--domain=example.org",
+                "certs.pgp",
+                "|", "sq", "toolbox", "keyring", "filter",
+                "--name=Romeo",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Get all certificates with a user ID on example.org, pruning other user IDs.",
+            command: &[
+                "sq", "toolbox", "keyring", "filter",
+                "--domain=example.org",
+                "--prune-certs",
+                "certs.pgp",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_toolbox_keyring_filter, FILTER_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     about = "Merge keys or keyrings into a single keyring",
@@ -175,12 +229,7 @@ versions of the same certificate are merged together.  Where data is \
 replaced (e.g., secret key material), data from the later certificate \
 is preferred.
 ",
-    after_help =
-"EXAMPLES:
-
-# Merge certificate updates
-$ sq toolbox keyring merge certs.pgp romeo-updates.pgp
-",
+    after_help = MERGE_EXAMPLES,
 )]
 pub struct MergeCommand {
     #[clap(value_name = "FILE", help = "Read from FILE or stdin if omitted")]
@@ -199,6 +248,27 @@ pub struct MergeCommand {
     pub binary: bool,
 }
 
+const MERGE_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Setup(Setup {
+            command: &[
+                "sq", "toolbox", "dearmor",
+                "--output=bob-updates.pgp",
+                "bob.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "Merge certificate updates.",
+            command: &[
+                "sq", "toolbox", "keyring", "merge",
+                "bob.pgp", "bob-updates.pgp",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_toolbox_keyring_merge, MERGE_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     about = "List keys in a keyring",
@@ -208,16 +278,7 @@ pub struct MergeCommand {
 Prints the fingerprint as well as the primary userid for every \
 certificate encountered in the keyring.
 ",
-    after_help =
-"EXAMPLES:
-
-# List all certs
-$ sq toolbox keyring list certs.pgp
-
-# List all certs with a userid on example.org
-$ sq toolbox keyring filter --domain example.org certs.pgp \\
-     | sq toolbox keyring list
-",
+    after_help = LIST_EXAMPLES,
 )]
 pub struct ListCommand {
     #[clap(
@@ -236,6 +297,38 @@ pub struct ListCommand {
     pub all_userids: bool,
 }
 
+const LIST_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Setup(Setup {
+            command: &[
+                "sq", "toolbox", "keyring", "merge",
+                "--output=certs.pgp",
+                "bob.pgp", "romeo.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "List all certificates.",
+            command: &[
+                "sq", "toolbox", "keyring", "list",
+                "certs.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+List all certificates with a user ID on example.org.",
+            command: &[
+                "sq", "toolbox", "keyring", "filter",
+                "--domain=example.org",
+                "certs.pgp",
+                "|", "sq", "toolbox", "keyring", "list",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_toolbox_keyring_list, LIST_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     about = "Split a keyring into individual keys",
@@ -247,15 +340,7 @@ keyring.
 
 The converse operation is `sq toolbox keyring merge`.
 ",
-    after_help =
-"EXAMPLES:
-
-# Split all certs
-$ sq toolbox keyring split certs.pgp
-
-# Split all certs, merging them first to avoid duplicates
-$ sq toolbox keyring merge certs.pgp | sq toolbox keyring split
-",
+    after_help = SPLIT_EXAMPLES,
 )]
 pub struct SplitCommand {
     #[clap(
@@ -277,3 +362,35 @@ pub struct SplitCommand {
     )]
     pub binary: bool,
 }
+
+const SPLIT_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Setup(Setup {
+            command: &[
+                "sq", "toolbox", "keyring", "merge",
+                "--output=certs.pgp",
+                "bob.pgp", "romeo.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "Split all certificates.",
+            command: &[
+                "sq", "toolbox", "keyring", "split",
+                "certs.pgp",
+            ],
+        }),
+
+
+        Action::Example(Example {
+            comment: "\
+Split all certificates, merging them first to avoid duplicates.",
+            command: &[
+                "sq", "toolbox", "keyring", "merge",
+                "certs.pgp",
+                "|", "sq", "toolbox", "keyring", "split",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_toolbox_keyring_split, SPLIT_EXAMPLES);

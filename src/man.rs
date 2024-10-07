@@ -286,11 +286,13 @@ impl Command {
         Self::extract("Examples:\n", &mut self.examples, text)
     }
 
-    /// Extract examples from help text: anything that follows a line
-    /// consisting of "EXAMPLES:". This is a convention specific to sq,
-    /// not something that comes from `clap`.
+    /// Extract exit status from help text: anything that follows a line
+    /// consisting of "Exit status:".
+    ///
+    /// This is a convention specific to sq, not something that comes
+    /// from `clap`.
     fn extract_exit_status(&mut self, text: &str) -> String {
-        Self::extract("EXIT STATUS:\n", &mut self.exit_status, text)
+        Self::extract("Exit status:\n", &mut self.exit_status, text)
     }
 
     /// Extracts sections, like examples, putting them into `into`.

@@ -1,5 +1,6 @@
 use clap::Args;
 
+use crate::cli::examples::*;
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
@@ -16,15 +17,7 @@ corresponding to the key.  The key must be kept secure, while the \
 certificate should be handed out to correspondents, e.g. by uploading \
 it to a key server.
 ",
-    after_help = "EXAMPLES:
-
-# First, generate a key
-$ sq key generate --userid '<juliet@example.org>' \\
-     --output juliet.key.pgp
-
-# Then, extract the certificate for distribution
-$ sq toolbox extract-cert --output juliet.cert.pgp juliet.key.pgp
-",
+    after_help = EXAMPLES,
 )]
 pub struct Command {
     #[clap(
@@ -46,3 +39,17 @@ pub struct Command {
     )]
     pub binary: bool,
 }
+
+const EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Extract Alice's cert from her secret key material.",
+            command: &[
+                "sq", "toolbox", "extract-cert",
+                "alice-secret.pgp",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_toolbox_extract_cert, EXAMPLES);

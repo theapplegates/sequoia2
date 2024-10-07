@@ -1,5 +1,6 @@
 use clap::Parser;
 
+use crate::cli::examples::*;
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
@@ -19,16 +20,8 @@ representation.
 
 The converse operation is `sq toolbox armor`.
 ",
-    after_help =
-"EXAMPLES:
-
-# Convert a ASCII certificate to binary
-$ sq toolbox dearmor ascii-juliet.pgp
-
-# Convert a ASCII message to binary
-$ sq toolbox dearmor ascii-message.pgp
-",
-    )]
+    after_help = EXAMPLES,
+)]
 pub struct Command {
     #[clap(
         default_value_t = FileOrStdin::default(),
@@ -44,3 +37,18 @@ pub struct Command {
     )]
     pub output: FileOrStdout,
 }
+
+const EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Example(Example {
+            comment: "\
+Convert an ASCII armored OpenPGP message to a binary OpenPGP message.",
+            command: &[
+                "sq", "toolbox", "dearmor",
+                "--output=message.bin",
+                "message.pgp",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_toolbox_dearmor, EXAMPLES);

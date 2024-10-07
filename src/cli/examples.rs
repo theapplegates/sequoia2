@@ -55,6 +55,9 @@ impl<'a> IntoResettable<clap::builder::StyledStr> for Actions<'a> {
         // Default width when we aren't connected to a terminal.
         let default_width = 72;
 
+        // We prefix lines with either `# `, `$ `, or `  `.
+        const PREFIX_WIDTH: usize = 2;
+
         let terminal_size = terminal_size::terminal_size();
         let width = if let Some((width, _height)) = terminal_size {
             let width = width.0 as usize;
@@ -64,7 +67,7 @@ impl<'a> IntoResettable<clap::builder::StyledStr> for Actions<'a> {
                 // the default.
                 default_width
             } else {
-                std::cmp::max(40, width)
+                std::cmp::max(40, width - PREFIX_WIDTH)
             }
         } else {
             default_width

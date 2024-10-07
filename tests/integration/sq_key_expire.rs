@@ -1,9 +1,11 @@
 use std::time::Duration;
 
+use sequoia_openpgp as openpgp;
 use openpgp::parse::Parse;
 use openpgp::Cert;
+use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::Result;
-use sequoia_openpgp as openpgp;
+use openpgp::types::RevocationStatus;
 
 use super::common::STANDARD_POLICY;
 use super::common::Sq;
@@ -234,11 +236,58 @@ fn unbound_userid() {
                                 None,
                                 updated_path.as_path(),
                                 true)
-        .expect("sq key expire should suceed");
+        .expect("sq key expire should succeed");
 
     let vc = updated.with_policy(STANDARD_POLICY, sq.now())
         .expect("valid cert");
     let expiration = vc.primary_key().key_expiration_time();
     assert_eq!(expiration,
                Some(sq.now() + std::time::Duration::new(24 * 60 * 60, 0)));
+}
+
+
+#[test]
+fn revoked_userid() {
+    // Make sure we can extend the expiration time of a certificate
+    // that includes a revoked user ID (i.e., a user ID without a self
+    // signature), and make sure we DON'T make the user ID valid.
+
+    let sq = Sq::new();
+
+    let cert_path = sq.test_data()
+        .join("keys")
+        .join("retired-userid.pgp");
+
+    let cert = Cert::from_file(&cert_path).expect("can read");
+    let vc = cert.with_policy(STANDARD_POLICY, sq.now())
+        .expect("valid cert");
+    // It shouldn't be expired yet.
+    assert!(vc.primary_key().key_expiration_time().is_none());
+
+    let ua = vc.userids().next().expect("have a user ID");
+    if let RevocationStatus::Revoked(_) = ua.revocation_status() {
+    } else {
+        panic!("User ID should be revoked, but isn't.");
+    };
+
+    // Set it to expire in a day.
+    let updated_path = sq.scratch_file("updated");
+    let updated = sq.key_expire(cert_path,
+                                "1d",
+                                None,
+                                updated_path.as_path(),
+                                true)
+        .expect("sq key expire should succeed");
+
+    let vc = updated.with_policy(STANDARD_POLICY, sq.now())
+        .expect("valid cert");
+    let expiration = vc.primary_key().key_expiration_time();
+    assert_eq!(expiration,
+               Some(sq.now() + std::time::Duration::new(24 * 60 * 60, 0)));
+
+    let ua = vc.userids().next().expect("have a user ID");
+    if let RevocationStatus::Revoked(_) = ua.revocation_status() {
+    } else {
+        panic!("User ID should be revoked, but isn't.");
+    };
 }

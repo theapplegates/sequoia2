@@ -8,6 +8,7 @@ use openpgp::Packet;
 use openpgp::Result;
 use openpgp::packet::signature::SignatureBuilder;
 use openpgp::serialize::Serialize;
+use openpgp::types::RevocationStatus;
 use openpgp::types::SignatureType;
 
 use sequoia_cert_store::StoreUpdate;
@@ -211,6 +212,14 @@ pub fn expire(sq: Sq,
                  .into());
 
         for uidb in key.userids() {
+            if let RevocationStatus::Revoked(_)
+                = uidb.revocation_status(&policy, sq.time)
+            {
+                // The user ID is revoked.  Skip it.  (Adding a new
+                // self signature would actually "unrevoke it"!)
+                continue;
+            }
+
             // Use the binding signature that is valid under our
             // policy as of the reference time.  If there is none,
             // fall back to the most recent binding signature.

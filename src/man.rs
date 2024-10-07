@@ -278,10 +278,12 @@ impl Command {
     }
 
     /// Extract examples from help text: anything that follows a line
-    /// consisting of "EXAMPLES:". This is a convention specific to sq,
-    /// not something that comes from `clap`.
+    /// consisting of "Examples:".
+    ///
+    /// This is a convention specific to sq, not something that comes
+    /// from `clap`.
     fn extract_example(&mut self, text: &str) -> String {
-        Self::extract("EXAMPLES:\n", &mut self.examples, text)
+        Self::extract("Examples:\n", &mut self.examples, text)
     }
 
     /// Extract examples from help text: anything that follows a line

@@ -73,7 +73,7 @@ impl<'a> IntoResettable<clap::builder::StyledStr> for Actions<'a> {
             default_width
         };
 
-        let mut lines = vec![ "EXAMPLES:".to_string() ];
+        let mut lines = vec![ "Examples:".to_string() ];
 
         lines.extend(self.actions
             .iter()

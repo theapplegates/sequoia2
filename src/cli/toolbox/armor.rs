@@ -1,5 +1,6 @@
 use clap::Parser;
 
+use crate::cli::examples::*;
 use crate::cli::types::ArmorKind;
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrStdin;
@@ -21,16 +22,8 @@ convert existing OpenPGP data to its ASCII-encoded representation.
 
 The converse operation is `sq toolbox dearmor`.
 ",
-    after_help =
-"EXAMPLES:
-
-# Convert a binary certificate to ASCII
-$ sq toolbox armor binary-juliet.pgp
-
-# Convert a binary message to ASCII
-$ sq toolbox armor binary-message.pgp
-"
-    )]
+    after_help = EXAMPLES,
+)]
 pub struct Command {
     #[clap(
         default_value_t = FileOrStdin::default(),
@@ -54,3 +47,36 @@ pub struct Command {
     )]
     pub kind: ArmorKind,
 }
+
+const EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Setup(Setup {
+            command: &[
+                "sq", "toolbox", "dearmor",
+                "--output=message.bin",
+                "message.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Convert a binary OpenPGP message to an ASCII armored OpenPGP message.",
+            command: &[
+                "sq", "toolbox", "armor",
+                "message.bin",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Convert a binary OpenPGP message to an ASCII armored OpenPGP message
+explicitly choosing the armor label.",
+            command: &[
+                "sq", "toolbox", "armor",
+                "--label=message",
+                "message.bin",
+            ],
+        }),
+    ],
+};
+test_examples!(sq_toolbox_armor, EXAMPLES);

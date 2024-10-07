@@ -6,6 +6,7 @@ use clap::ArgGroup;
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
+use crate::cli::examples::*;
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
@@ -43,21 +44,7 @@ issues with User ID self signatures and subkey binding signatures for \
 encryption-capable subkeys, but it will not be able to generate new \
 primary key binding signatures for any signing-capable subkeys.
 ",
-    after_help =
-"EXAMPLES:
-
-# To gather statistics, simply run:
-$ sq cert lint keyring.pgp
-
-# To fix a key:
-$ gpg --export-secret-keys FPR \\
-    | sq cert lint --fix -p passw0rd -p password123 \\
-    | gpg --import
-
-# To get a list of keys with issues:
-$ sq cert lint --list-keys keyring.pgp \\
-    | while read FPR; do something; done
-"
+    after_help = EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct Command {
@@ -111,3 +98,52 @@ pub struct Command {
     )]
     pub binary: bool,
 }
+
+const EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::Setup(Setup {
+            command: &[
+                "sq", "toolbox", "keyring", "merge",
+                "--output=certs.pgp",
+                "bob.pgp", "romeo.pgp",
+            ],
+        }),
+
+        Action::Setup(Setup {
+            command: &[
+                "sq", "key", "import", "alice-secret.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Gather statistics on the certificates in a keyring.",
+            command: &[
+                "sq", "cert", "lint",
+                "--cert-file", "certs.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Get a list of certificates with issues.",
+            command: &[
+                "sq", "cert", "lint",
+                "--list-keys",
+                "--cert-file", "certs.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Fix a key with known problems.",
+            command: &[
+                "sq", "key", "export",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "|", "sq", "cert", "lint", "--fix", "--cert-file=-",
+                "|", "sq", "cert", "import"
+            ],
+        }),
+    ],
+};
+test_examples!(sq_cert_lint, EXAMPLES);

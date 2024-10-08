@@ -1,9 +1,10 @@
 use std::time::Duration;
 
-use openpgp::parse::Parse;
-use openpgp::Cert;
-use openpgp::Result;
 use sequoia_openpgp as openpgp;
+use openpgp::Cert;
+use openpgp::KeyHandle;
+use openpgp::Result;
+use openpgp::parse::Parse;
 
 use super::common::STANDARD_POLICY;
 use super::common::Sq;
@@ -183,4 +184,36 @@ fn sq_key_subkey_expire() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[test]
+fn unbound_subkey() {
+    // Make sure we can't extend the expiration time of an unbound
+    // subkey.
+
+    let sq = Sq::new();
+
+    let cert_path = sq.test_data()
+        .join("keys")
+        .join("unbound-subkey.pgp");
+
+    let cert = Cert::from_file(&cert_path).expect("can read");
+    let vc = cert.with_policy(STANDARD_POLICY, sq.now())
+        .expect("valid cert");
+
+    // One subkey should be considered invalid.
+    assert!(vc.keys().count() < cert.keys().count());
+
+    let unbound = "E992BF8BA7A27BB4FBB71D973857E47B14874045"
+        .parse::<KeyHandle>().expect("valid");
+
+    // Set it to expire in a day.
+    let updated_path = sq.scratch_file("updated");
+    let updated = sq.key_subkey_expire(cert_path,
+                                       &[ unbound ],
+                                       "1d",
+                                       None,
+                                       updated_path.as_path(),
+                                       false);
+    assert!(updated.is_err());
 }

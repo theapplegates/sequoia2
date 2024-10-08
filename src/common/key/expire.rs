@@ -79,12 +79,23 @@ pub fn expire(sq: Sq,
         // To update subkey expiration times, create new binding
         // signatures.
         for ka in subkeys {
-            // Preferably use the binding signature under our policy,
-            // fall back to the most recent binding signature.
-            let template = ka.binding_signature(sq.policy, sq.time)
-                .or(ka.self_signatures().next()
-                    .ok_or(anyhow::anyhow!("no binding signature")))?
-                .clone();
+            // Preferably use the binding signature under our policy.
+            let template = match ka.binding_signature(sq.policy, sq.time) {
+                Ok(sig) => {
+                    sig.clone()
+                }
+                Err(err) => {
+                    // But fall back to the most recent binding
+                    // signature, which is mathematically valid.
+                    if let Some(sig) = ka.self_signatures().next() {
+                        sig.clone()
+                    } else {
+                        return Err(err.context(format!(
+                            "Can't update {}: it is not bound to {}.",
+                            ka.fingerprint(), cert.fingerprint())));
+                    }
+                }
+            };
 
             // Push a copy of the key to make reordering easier.
             acc.push(Packet::from(ka.key().clone()));

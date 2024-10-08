@@ -300,9 +300,10 @@ fn main() -> Result<()> {
         policy: &policy,
         time,
         time_is_now,
-        home: sequoia_directories::Home::new(c.home.clone())?,
+        home: sequoia_directories::Home::new(
+            c.home.as_ref().and_then(|a| a.path()))?,
         no_rw_cert_store: c.no_cert_store,
-        cert_store_path: c.cert_store.clone(),
+        cert_store_path: c.cert_store.as_ref().and_then(|a| a.path()),
         pep_cert_store_path: c.pep_cert_store.clone(),
         keyrings: c.keyring.clone(),
         keyring_tsks: Default::default(),
@@ -310,7 +311,7 @@ fn main() -> Result<()> {
         trust_roots: c.trust_roots.clone(),
         trust_root_local: Default::default(),
         no_key_store: c.no_key_store,
-        key_store_path: c.key_store.clone(),
+        key_store_path: c.key_store.as_ref().and_then(|a| a.path()),
         key_store: OnceCell::new(),
         password_cache: password_cache.into(),
     };

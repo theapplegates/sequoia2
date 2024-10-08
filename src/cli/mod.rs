@@ -107,6 +107,7 @@ pub mod verify;
 pub mod version;
 
 pub mod types;
+use types::paths::{AbsolutePathOrDefault, AbsolutePathOrDefaultValueParser};
 
 /// The seconds in a day
 pub const SECONDS_IN_DAY : u64 = 24 * 60 * 60;
@@ -232,6 +233,7 @@ pub struct SqCommand {
         help = "Overwrite existing files",
     )]
     pub overwrite: bool,
+
     #[clap(
         long,
         env = "SEQUOIA_HOME",
@@ -259,8 +261,10 @@ a lightweight way to partially isolate `sq`.",
                     p
                 })
                 .unwrap_or("<unknown>".to_string())),
+        value_parser = AbsolutePathOrDefaultValueParser::default(),
     )]
-    pub home: Option<PathBuf>,
+    pub home: Option<AbsolutePathOrDefault>,
+
     #[clap(
         long,
         global = true,
@@ -273,6 +277,7 @@ It is still possible to use functionality that does not require the
 key store."
     )]
     pub no_key_store: bool,
+
     #[clap(
         long,
         value_name = "PATH",
@@ -303,8 +308,10 @@ its data in the specified location.",
                     p
                 })
                 .unwrap_or("<unknown>".to_string())),
+        value_parser = AbsolutePathOrDefaultValueParser::default(),
     )]
-    pub key_store: Option<PathBuf>,
+    pub key_store: Option<AbsolutePathOrDefault>,
+
     #[clap(
         long,
         global = true,
@@ -315,6 +322,7 @@ Disable the use of a certificate store.  Normally sq uses the user's \
 standard cert-d, which is located in `$HOME/.local/share/pgp.cert.d`."
     )]
     pub no_cert_store: bool,
+
     #[clap(
         long,
         value_name = "PATH",
@@ -342,8 +350,10 @@ environment variable.",
                     p
                 })
                 .unwrap_or("<unknown>".to_string())),
+        value_parser = AbsolutePathOrDefaultValueParser::default(),
     )]
-    pub cert_store: Option<PathBuf>,
+    pub cert_store: Option<AbsolutePathOrDefault>,
+
     #[clap(
         long,
         value_name = "PATH",

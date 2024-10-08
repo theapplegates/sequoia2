@@ -130,7 +130,7 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
     // Reverse sort, i.e., most authenticated first.
     certs.sort_unstable_by_key(|cert| usize::MAX - cert.0.trust_amount());
 
-    for (i, (userid, cert)) in certs.into_iter().enumerate() {
+    for (i, (userid, cert)) in certs.iter().enumerate() {
         qprintln!("  {}. {} {}", i + 1, cert.fingerprint(), userid);
     }
 
@@ -140,11 +140,34 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
               stats.unchanged_certs().of("certificate"),
               stats.errors().of("error"));
 
-    sq.hint(format_args!(
-        "\nAfter checking that a certificate really belongs to the \
-         stated owner, you can mark the certificate as authenticated \
-         using:"))
-        .command(format_args!("sq pki link add FINGERPRINT"));
+    for vcert in certs.iter()
+        .filter_map(|(_, cert)| cert.with_policy(sq.policy, sq.time).ok())
+    {
+        let mut hint = sq.hint(format_args!(
+            "After checking that the certificate {} really belongs to the \
+             stated owner, you can mark the certificate as authenticated.  \
+             Each stated user ID can be marked individually using:",
+            vcert.fingerprint()));
+
+        let mut count = 0;
+        for uid in vcert.userids()
+            .filter_map(|uid| std::str::from_utf8(uid.value())
+                        .map(ToString::to_string).ok())
+        {
+            hint = hint
+                .command(format_args!("sq pki link add {} --userid {:?}",
+                                      vcert.fingerprint(), uid));
+            count += 1;
+        }
+
+        if count > 1 {
+            hint.hint(format_args!(
+                "Alternatively, all user IDs can be marked as authenticated \
+                 using:"))
+                .command(format_args!("sq pki link add {} --all",
+                                      vcert.fingerprint()));
+        }
+    }
 
     Ok(())
 }

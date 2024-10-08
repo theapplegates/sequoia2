@@ -493,7 +493,7 @@ const SQ_KEY_SUBKEY_EXPIRE_EXAMPLES: Actions = Actions {
         }),
         Action::Example(Example {
             comment: "\
-Make Alice's authentication subkey expire in 6 months.",
+Change Alice's authentication subkey to expire in 6 months.",
             command: &[
                 "sq", "key", "subkey", "expire", "6m",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
@@ -516,7 +516,8 @@ expiration time of the certificate, use the `sq key expire` \
 subcommand.
 
 Changing the expiration time of the primary key is equivalent to \
-changing the certificate's expiration time.
+changing the certificate's expiration time.  The expiration time \
+of a subkey is bound by the expiration of the certificate.
 ",
     after_help = SQ_KEY_SUBKEY_EXPIRE_EXAMPLES,
 )]

@@ -22,7 +22,7 @@ const EXAMPLES: Actions = Actions {
             ],
         }),
         Action::Example(Example {
-            comment: "Make Alice's key expire in a year.",
+            comment: "Change Alice's certificate to expire in a year.",
             command: &[
                 "sq", "key", "expire", "1y",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
@@ -30,7 +30,7 @@ const EXAMPLES: Actions = Actions {
         }),
 
         Action::Example(Example {
-            comment: "Make Alice's key never expire.",
+            comment: "Change Alice's certificate to never expire.",
             command: &[
                 "sq", "key", "expire", "never",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
@@ -44,13 +44,11 @@ test_examples!(sq_key_expire, EXAMPLES);
 #[derive(Debug, Args)]
 #[clap(
     name = "expire",
-    about = "Change expiration times",
+    about = "Change a certificate's expiration time",
     long_about =
-"Change expiration times
+"Change a certificate's expiration time.
 
-Change or clear a certificate's expiration time.
-
-This subcommand changes the certificate's expiration time.  To change \
+This subcommand changes a certificate's expiration time.  To change \
 the expiration time of an individual subkey, use the `sq key subkey \
 expire` subcommand.
 ",

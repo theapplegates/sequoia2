@@ -93,7 +93,7 @@ pub fn dispatch(sq: Sq, command: Command)
 }
 
 
-pub fn split(_sq: Sq, c: SplitCommand) -> Result<()>
+pub fn split(sq: Sq, c: SplitCommand) -> Result<()>
 {
     let input = c.input.open()?;
 
@@ -104,7 +104,10 @@ pub fn split(_sq: Sq, c: SplitCommand) -> Result<()>
     // We either emit one stream, or open one file per packet.
     let mut sink = match c.prefix {
         Some(p) => Err(p),
-        None => Ok(io::stdout()),
+        None => Ok(
+            c.output.as_ref()
+                .expect("either prefix or output must be given")
+                .create_pgp_safe(&sq, true, Kind::SecretKey)?),
     };
 
     // We (ab)use the mapping feature to create byte-accurate dumps of

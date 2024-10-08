@@ -5,7 +5,7 @@ use std::{
     path::PathBuf,
 };
 
-use clap::{Args, Parser, Subcommand};
+use clap::{ArgGroup, Args, Parser, Subcommand};
 
 use crate::cli::examples::*;
 use crate::cli::types::ArmorKind;
@@ -228,6 +228,7 @@ The converse operation is `sq toolbox packet join`.
 ",
     after_help = SPLIT_EXAMPLES,
 )]
+#[clap(group(ArgGroup::new("sink").args(&["output", "prefix"]).required(true)))]
 pub struct SplitCommand {
     #[clap(
         default_value_t = FileOrStdin::default(),
@@ -235,6 +236,13 @@ pub struct SplitCommand {
         value_name = FileOrStdin::VALUE_NAME,
     )]
     pub input: FileOrStdin,
+
+    #[clap(
+        help = FileOrStdout::HELP_OPTIONAL,
+        long,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: Option<FileOrStdout>,
 
     #[clap(
         long = "binary",
@@ -265,6 +273,7 @@ const SPLIT_EXAMPLES: Actions = Actions {
 Split a certificate into individual packets printed to stdout.",
             command: &[
                 "sq", "toolbox", "packet", "split",
+                "--output=-",
                 "juliet.pgp",
             ],
         }),

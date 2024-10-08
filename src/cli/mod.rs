@@ -236,6 +236,7 @@ pub struct SqCommand {
 
     #[clap(
         long,
+        value_name = "PATH",
         env = "SEQUOIA_HOME",
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,

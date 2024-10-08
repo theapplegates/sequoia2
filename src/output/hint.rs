@@ -41,7 +41,14 @@ impl Hint {
     pub fn command(self, cmd: fmt::Arguments) -> Self {
         if ! self.quiet {
             wprintln!();
-            wprintln!(indent="  ", "{}", cmd);
+
+            // XXX: Don't wrap the command, so that if it wraps hard,
+            // at least users can still copy and paste it.  It'd be
+            // nice to wrap it nicely, but that would either require
+            // parsing the command, or changing the hint framework to
+            // hand in an argument vectors, and doing some smarter
+            // line wrapping.
+            eprintln!("  {}", cmd);
         }
         self
     }

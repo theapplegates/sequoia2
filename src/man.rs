@@ -420,6 +420,22 @@ impl Command {
         }
 
         man.exit_status_section(self);
+
+        // Maybe add environment section.
+        if self == &builder.maincmd {
+            let opts = self.get_options();
+            let mut envs: Vec<_> =
+                opts.iter().filter(|o| o.env.is_some()).collect();
+            envs.sort_by_key(|o| o.env.as_ref());
+
+            if ! envs.is_empty() {
+                man.section("ENVIRONMENT");
+                for opt in envs {
+                    man.env_option(opt);
+                }
+            }
+        }
+
         man.examples_section(&self.subcommands.iter().collect::<Vec<_>>());
 
         man.section("SEE ALSO");
@@ -513,6 +529,7 @@ struct CommandOption {
     index: Option<usize>,
     short: Option<String>,
     long: Option<String>,
+    env: Option<String>,
     value_names: Values,
     possible_values: Vec<String>,
     default_values: Vec<String>,
@@ -586,6 +603,7 @@ impl CommandOption {
             short: arg.get_short().map(|o| format!("-{}", o)),
             long: arg.get_long().map(|o| format!("--{}", o)),
             value_names,
+            env: arg.get_env().and_then(|e| e.to_str().map(Into::into)),
             possible_values: arg.get_possible_values().iter()
                 .map(|o| o.get_name().into()).collect(),
             default_values: if arg.get_num_args()
@@ -736,6 +754,57 @@ impl ManualPage {
                 if matches!(opt.value_names, Values::Optional(_)) {
                     line.push(roman("]"));
                 }
+            },
+        }
+
+        self.tagged_paragraph(line, &opt.help);
+
+        if ! opt.default_values.is_empty() {
+            self.indented_paragraph();
+            let mut line = vec![];
+            line.push(roman("[default: "));
+            for (i, v) in opt.default_values.iter().enumerate() {
+                if i > 0 {
+                    line.push(roman(", "));
+                }
+                line.push(bold(v));
+            }
+            line.push(roman("]"));
+            self.roff.text(line);
+        }
+
+        if ! opt.possible_values.is_empty() {
+            self.indented_paragraph();
+            let mut line = vec![];
+            line.push(roman("[possible values: "));
+            for (i, v) in opt.possible_values.iter().enumerate() {
+                if i > 0 {
+                    line.push(roman(", "));
+                }
+                line.push(bold(v));
+            }
+            line.push(roman("]"));
+            self.roff.text(line);
+        }
+    }
+
+    /// Typeset an option, for the ENVIRONMENT section.
+    ///
+    /// This is typeset using "tagged paragraphs", where the first
+    /// line lists the aliases of the option, and any values it may
+    /// take, and the rest is indented paragraphs of text explaining
+    /// what the option does.
+    fn env_option(&mut self, opt: &CommandOption) {
+        let mut line = vec![
+            bold(opt.env.as_ref().expect("must be an env")),
+        ];
+
+        match &opt.value_names {
+            Values::None => (),
+            Values::Some(values) | Values::Optional(values) => {
+                assert_eq!(values.len(), 1);
+                line.push(roman("="));
+                line.push(italic(&values[0]));
             },
         }
 

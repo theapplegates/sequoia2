@@ -2,9 +2,11 @@ use std::time::Duration;
 
 use sequoia_openpgp as openpgp;
 use openpgp::Cert;
+use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::KeyHandle;
 use openpgp::Result;
 use openpgp::parse::Parse;
+use openpgp::types::RevocationStatus;
 
 use super::common::STANDARD_POLICY;
 use super::common::Sq;
@@ -216,4 +218,65 @@ fn unbound_subkey() {
                                        updated_path.as_path(),
                                        false);
     assert!(updated.is_err());
+}
+
+#[test]
+fn soft_revoked_subkey() {
+    // Make sure we can't extend the expiration time of a soft revoked
+    // subkey.
+
+    let sq = Sq::new();
+
+    let cert_path = sq.test_data()
+        .join("keys")
+        .join("soft-revoked-subkey.pgp");
+
+    let cert = Cert::from_file(&cert_path).expect("can read");
+    let vc = cert.with_policy(STANDARD_POLICY, sq.now())
+        .expect("valid cert");
+
+    // Make sure the revoked key is there and is really revoked.
+    let mut revoked = None;
+    for k in vc.keys().subkeys() {
+        if let RevocationStatus::Revoked(_) = k.revocation_status() {
+            assert!(revoked.is_none(),
+                    "Only expected a single revoked subkey");
+            revoked = Some(k.fingerprint());
+        }
+    }
+    let revoked = if let Some(revoked) = revoked {
+        revoked
+    } else {
+        panic!("Expected a revoked subkey, but didn't fine one");
+    };
+
+    // Set it to expire in a day.
+    let updated_path = sq.scratch_file("updated");
+    let updated = sq.key_subkey_expire(cert_path,
+                                       &[ revoked.clone().into() ],
+                                       "1d",
+                                       None,
+                                       updated_path.as_path(),
+                                       true)
+        .expect("sq key expire should succeed");
+
+    let vc = updated.with_policy(STANDARD_POLICY, sq.now())
+        .expect("valid cert");
+    let mut good = false;
+    for k in vc.keys() {
+        if k.fingerprint() == revoked {
+            if let RevocationStatus::Revoked(_) = k.revocation_status() {
+                panic!("{} shouldn't be revoked, but is.",
+                       revoked);
+            }
+
+            let expiration = k.key_expiration_time();
+            assert_eq!(expiration,
+                       Some(sq.now()
+                            + std::time::Duration::new(24 * 60 * 60, 0)));
+            good = true;
+            break;
+        }
+    }
+    assert!(good);
 }

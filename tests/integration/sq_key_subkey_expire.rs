@@ -280,3 +280,46 @@ fn soft_revoked_subkey() {
     }
     assert!(good);
 }
+
+#[test]
+fn hard_revoked_subkey() {
+    // Make sure we can't extend the expiration time of a hard revoked
+    // subkey.
+
+    let sq = Sq::new();
+
+    let cert_path = sq.test_data()
+        .join("keys")
+        .join("hard-revoked-subkey.pgp");
+
+    let cert = Cert::from_file(&cert_path).expect("can read");
+    let vc = cert.with_policy(STANDARD_POLICY, sq.now())
+        .expect("valid cert");
+
+    // Make sure the revoked key is there and is really revoked.
+    let mut revoked = None;
+    for k in vc.keys().subkeys() {
+        if let RevocationStatus::Revoked(_) = k.revocation_status() {
+            assert!(revoked.is_none(),
+                    "Only expected a single revoked subkey");
+            revoked = Some(k.fingerprint());
+        }
+    }
+    let revoked = if let Some(revoked) = revoked {
+        revoked
+    } else {
+        panic!("Expected a revoked subkey, but didn't fine one");
+    };
+
+    // Set it to expire in a day.
+    let updated_path = sq.scratch_file("updated");
+    let result = sq.key_subkey_expire(cert_path,
+                                       &[ revoked.clone().into() ],
+                                       "1d",
+                                       None,
+                                       updated_path.as_path(),
+                                       false);
+    if result.is_ok() {
+        panic!("Updated expiration of hard revoked subkey, but shouldn't have.");
+    }
+}

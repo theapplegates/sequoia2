@@ -9,6 +9,7 @@ use openpgp::Result;
 use openpgp::packet::signature::SignatureBuilder;
 use openpgp::serialize::Serialize;
 use openpgp::types::RevocationStatus;
+use openpgp::types::RevocationType;
 use openpgp::types::SignatureType;
 
 use sequoia_cert_store::StoreUpdate;
@@ -79,6 +80,32 @@ pub fn expire(sq: Sq,
         // To update subkey expiration times, create new binding
         // signatures.
         for ka in subkeys {
+            if let RevocationStatus::Revoked(sigs)
+                = ka.revocation_status(sq.policy, sq.time)
+            {
+                for sig in sigs {
+                    let reason = sig.reason_for_revocation();
+                    let bad = if let Some((reason, _)) = reason {
+                        if reason.revocation_type()
+                            == RevocationType::Hard
+                        {
+                            true
+                        } else {
+                            false
+                        }
+                    } else {
+                        true
+                    };
+
+                    if bad {
+                        return Err(anyhow::anyhow!(
+                            "Can't extend the expiration of {}, \
+                             it is hard revoked",
+                            ka.fingerprint()));
+                    }
+                }
+            }
+
             // Preferably use the binding signature under our policy.
             let template = match ka.binding_signature(sq.policy, sq.time) {
                 Ok(sig) => {

@@ -36,6 +36,10 @@
    - The arguments to name recipients for encryption now use the
      `--for` prefix, as in `sq encrypt --for-email alice@example.org`.
      Further, `--recipient-cert` is now just called `--for`
+   - The environment variables to override the default cert store and
+     key store location have been renamed from SQ_CERT_STORE to
+     SEQUOIA_CERT_STORE, and SQ_KEY_STORE to SEQUOIA_KEY_STORE,
+     respectively.
 * Changes in 0.38.0
 ** Notable changes
    - New subcommand `sq key subkey delete` to delete secret key

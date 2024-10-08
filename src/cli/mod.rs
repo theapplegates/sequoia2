@@ -281,7 +281,7 @@ key store."
     #[clap(
         long,
         value_name = "PATH",
-        env = "SQ_KEY_STORE",
+        env = "SEQUOIA_KEY_STORE",
         conflicts_with_all = &[ "no_key_store" ],
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
@@ -326,7 +326,7 @@ standard cert-d, which is located in `$HOME/.local/share/pgp.cert.d`."
     #[clap(
         long,
         value_name = "PATH",
-        env = "SQ_CERT_STORE",
+        env = "SEQUOIA_CERT_STORE",
         conflicts_with_all = &[ "no_cert_store" ],
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
@@ -335,7 +335,7 @@ standard cert-d, which is located in `$HOME/.local/share/pgp.cert.d`."
 Specify the location of the certificate store.  By default, `sq` uses \
 the OpenPGP certificate directory in Sequoia's home directory (see `--home`), \
 {}.  This can be overridden by setting the `PGP_CERT_D` environment \
-variable.  That in turn can be overridden by setting the `SQ_CERT_STORE` \
+variable.  That in turn can be overridden by setting the `SEQUOIA_CERT_STORE` \
 environment variable.",
             sequoia_directories::Home::default()
                 .map(|home| {

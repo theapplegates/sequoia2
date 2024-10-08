@@ -199,8 +199,8 @@ macro_rules! test_examples {
                     cmd.current_dir(&tmp_dir)
                         .env("SEQUOIA_CRYPTO_POLICY", &policy)
                         .env("SEQUOIA_HOME", &home)
-                        .env("SQ_CERT_STORE", &cert_store)
-                        .env("SQ_KEY_STORE", &key_store)
+                        .env("SEQUOIA_CERT_STORE", &cert_store)
+                        .env("SEQUOIA_KEY_STORE", &key_store)
                         .arg("--batch")
                         .args(&command[1..]);
 

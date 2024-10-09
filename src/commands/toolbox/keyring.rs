@@ -21,6 +21,7 @@ use openpgp::{
         UserAttribute,
         Key,
         Tag,
+        key,
     },
     parse::Parse,
     serialize::Serialize,
@@ -78,11 +79,22 @@ pub fn dispatch(sq: Sq, c: keyring::Command) -> Result<()> {
             let any_ua_predicates = false;
             let ua_predicate = |_ua: &UserAttribute| false;
 
-            let any_key_predicates = ! command.handle.is_empty();
-            let key_predicate = |key: &Key<_, _>| {
+            let any_cert_predicates = ! command.cert.is_empty();
+            let cert_predicate = |key: &Key<_, key::PrimaryRole>| {
                 let mut keep = false;
 
-                for handle in &command.handle {
+                for handle in &command.cert {
+                    keep |= handle.aliases(key.key_handle());
+                }
+
+                keep
+            };
+
+            let any_key_predicates = ! command.key.is_empty();
+            let key_predicate = |key: &Key<_, key::SubordinateRole>| {
+                let mut keep = false;
+
+                for handle in &command.key {
                     keep |= handle.aliases(key.key_handle());
                 }
 
@@ -92,12 +104,15 @@ pub fn dispatch(sq: Sq, c: keyring::Command) -> Result<()> {
             let filter_fn = |c: Cert| -> Option<Cert> {
                 if ! (any_uid_predicates
                       || any_ua_predicates
+                      || any_cert_predicates
                       || any_key_predicates) {
                     // If there are no filters, pass it through.
                     Some(c)
                 } else if ! (c.userids().any(|c| uid_predicate(&c))
                              || c.user_attributes().any(|c| ua_predicate(&c))
-                             || c.keys().any(|c| key_predicate(c.key()))) {
+                             || cert_predicate(c.primary_key().key())
+                             || key_predicate(c.primary_key().key().role_as_subordinate())
+                             || c.keys().subkeys().any(|c| key_predicate(c.key()))) {
                     None
                 } else if command.prune_certs {
                     let c = c
@@ -108,12 +123,15 @@ pub fn dispatch(sq: Sq, c: keyring::Command) -> Result<()> {
                             ! any_ua_predicates || ua_predicate(&c)
                         })
                         .retain_subkeys(|c| {
-                            ! any_key_predicates
-                                || key_predicate(c.key().role_as_unspecified())
+                            ! any_key_predicates || key_predicate(c.key())
                         });
-                    if c.userids().count() == 0
+                    if (c.userids().count() == 0
                         && c.user_attributes().count() == 0
-                        && c.keys().subkeys().count() == 0
+                        && c.keys().subkeys().count() == 0)
+                        || ((any_key_predicates
+                             && c.keys().subkeys().count() == 0)
+                            && (any_cert_predicates
+                                && ! cert_predicate(c.primary_key().key())))
                     {
                         // We stripped all components, omit this cert.
                         None

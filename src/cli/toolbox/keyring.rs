@@ -110,16 +110,29 @@ pub struct FilterCommand {
             requiring an exact match.",
     )]
     pub domain: Vec<String>,
+
     #[clap(
-        long = "handle",
+        long = "cert",
         value_name = "FINGERPRINT|KEYID",
-        help = "Match on (sub)key fingerprints and key ids",
+        help = "Match on certificate fingerprints and key IDs",
+        long_help =
+            "Match on primary keys, \
+            including those certificates that match the \
+            given fingerprint or key ID.",
+    )]
+    pub cert: Vec<KeyHandle>,
+
+    #[clap(
+        long = "key",
+        value_name = "FINGERPRINT|KEYID",
+        help = "Match on (sub)key fingerprints and key IDs",
         long_help =
             "Match on both primary keys and subkeys, \
             including those certificates that match the \
-            given fingerprint or key id.",
+            given fingerprint or key ID.",
     )]
-    pub handle: Vec<KeyHandle>,
+    pub key: Vec<KeyHandle>,
+
     #[clap(
         long = "prune-certs",
         help = "Remove certificate components not matching the filter",

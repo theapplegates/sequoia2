@@ -44,6 +44,11 @@
    - `sq pki certify` no longer supports using expired or revoked
      certificates; the options `--allow-not-alive-certifier` and
      `--allow-revoked-certifier` have been removed.
+   - `sq toolbox keyring filter --handle` has been made more robust by
+     splitting `--handle` into `--cert` and `--key`, where the former
+     only matches on primary keys, and the latter matches on both
+     primary keys and subkeys.
+
 * Changes in 0.38.0
 ** Notable changes
    - New subcommand `sq key subkey delete` to delete secret key

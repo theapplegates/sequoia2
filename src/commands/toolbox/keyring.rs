@@ -170,17 +170,13 @@ fn filter<F>(sq: &Sq, inputs: Vec<PathBuf>, output: FileOrStdout,
             for cert in CertParser::from_file(name.deref())? {
                 let cert = cert.context(
                     format!("Malformed certificate in keyring {:?}", name.display()))?;
-                if let Some(cert) = filter(cert) {
-                    certs.push(cert);
-                }
+                certs.push(cert);
             }
         }
     } else {
         for cert in CertParser::from_reader(io::stdin())? {
             let cert = cert.context("Malformed certificate in keyring")?;
-            if let Some(cert) = filter(cert) {
-                certs.push(cert);
-            }
+            certs.push(cert);
         }
     }
 

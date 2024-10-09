@@ -37,7 +37,8 @@ pub const STANDARD_POLICY: &StandardPolicy = &StandardPolicy::new();
 pub const NULL_POLICY: &NullPolicy = &NullPolicy::new();
 
 pub fn artifact(filename: &str) -> PathBuf {
-    PathBuf::from("tests/data").join(filename)
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests").join("data").join(filename)
 }
 
 // Returns the power set excluding the empty set.
@@ -161,6 +162,10 @@ pub struct Sq {
     // fails.
     preserve: bool,
     home: PathBuf,
+
+    /// The working directory to invoke commands in.
+    working_dir: PathBuf,
+
     policy: PathBuf,
     certd: PathBuf,
     now: std::time::SystemTime,
@@ -195,6 +200,9 @@ impl Sq {
             .expect("can create a temporary directory");
         let home = base.path().join("home");
 
+        let working_dir = base.path().join("working-dir");
+        std::fs::create_dir_all(&working_dir).unwrap();
+
         // Create an empty policy configuration file.  We use this
         // instead of the system-wide policy configuration file, which
         // might be more strict than what our test vectors expect.
@@ -207,6 +215,7 @@ impl Sq {
             base,
             preserve: false,
             home,
+            working_dir,
             policy,
             certd,
             now,
@@ -248,6 +257,11 @@ impl Sq {
         &self.home
     }
 
+    /// Returns the working directory.
+    pub fn working_dir(&self) -> &Path {
+        &self.working_dir
+    }
+
     /// Returns the path to the cert.d.
     pub fn certd(&self) -> &Path {
         &self.certd
@@ -255,7 +269,8 @@ impl Sq {
 
     /// Returns the path to the test data.
     pub fn test_data(&self) -> PathBuf {
-        std::path::Path::new("tests").join("data")
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("tests").join("data")
     }
 
     /// Returns the scratch directory.
@@ -322,6 +337,7 @@ impl Sq {
     pub fn command(&self) -> Command {
         let mut cmd = Command::cargo_bin("sq")
             .expect("can run sq");
+        cmd.current_dir(&self.working_dir);
         cmd.env("SEQUOIA_CRYPTO_POLICY", &self.policy);
         cmd.arg("--batch");
         cmd.arg("--home").arg(self.home());

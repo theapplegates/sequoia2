@@ -240,7 +240,7 @@ fn certify(sq: &Sq,
     }
 
     let certifications = active_certification(
-            sq, &cert.fingerprint(),
+            sq, cert,
             userids.iter().cloned().collect(),
             signer.public())
         .into_iter()

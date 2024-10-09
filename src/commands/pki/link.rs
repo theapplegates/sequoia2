@@ -485,7 +485,7 @@ pub fn add(sq: Sq, c: link::AddCommand)
         .context("Looking up local trust root")?;
 
     let certifications = active_certification(
-            &sq, &vc.fingerprint(), userids,
+            &sq, &cert, userids,
             signer.public())
         .into_iter()
         .map(|(userid, active_certification)| {
@@ -650,7 +650,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
         .context("Looking up local trust root")?;
 
     let certifications = active_certification(
-            &sq, &cert.fingerprint(), userids, signer.public())
+            &sq, &cert, userids, signer.public())
         .into_iter()
         .map(|(userid, active_certification)| {
             let userid_str = || String::from_utf8_lossy(userid.value());
@@ -770,9 +770,19 @@ pub fn list(sq: Sq, c: link::ListCommand)
 
     let cert_store = sq.cert_store_or_else()?;
     for cert in cert_store.certs() {
+        let cert = if let Ok(cert) = cert.to_cert() {
+            cert
+        } else {
+            // Invalid cert.  Skip it.
+            continue;
+        };
+
+        let userids = cert.userids()
+            .map(|ua| ua.userid().clone())
+            .collect::<Vec<_>>();
+
         for (userid, certification) in active_certification(
-                &sq, &cert.fingerprint(), cert.userids().collect(),
-                trust_root_key)
+                &sq, &cert, userids, trust_root_key)
             .into_iter()
             .filter_map(|(user, certification)| {
                 if let Some(certification) = certification {

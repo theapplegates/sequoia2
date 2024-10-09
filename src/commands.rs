@@ -3,7 +3,7 @@ use std::time::SystemTime;
 
 use sequoia_openpgp as openpgp;
 use openpgp::cert::prelude::*;
-use openpgp::{Cert, Fingerprint, KeyID, Result};
+use openpgp::{Cert, KeyID, Result};
 use openpgp::packet::prelude::*;
 use openpgp::parse::stream::*;
 use openpgp::policy::HashAlgoSecurity;
@@ -75,33 +75,15 @@ pub fn dispatch(sq: Sq, command: SqCommand) -> Result<()>
 
 /// Returns the active certification, if any, for the specified bindings.
 ///
-/// The certificate is looked up in the certificate store.
-///
 /// Note: if `n` User IDs are provided, then the returned vector has
 /// `n` elements.
-fn active_certification(sq: &Sq,
-                        cert: &Fingerprint, userids: Vec<UserID>,
-                        issuer: &Key<openpgp::packet::key::PublicParts,
-                                     openpgp::packet::key::UnspecifiedRole>)
+fn active_certification(
+    sq: &Sq,
+    cert: &Cert, userids: Vec<UserID>,
+    issuer: &Key<openpgp::packet::key::PublicParts,
+                 openpgp::packet::key::UnspecifiedRole>)
     -> Vec<(UserID, Option<Signature>)>
 {
-    // Look up the cert and find the certifications for the specified
-    // User ID, if any.
-    let lc = sq.cert_store_or_else()
-        .and_then(|cert_store| cert_store.lookup_by_cert_fpr(cert));
-    let lc = match lc {
-        Ok(lc) => lc,
-        Err(_) => {
-            return userids.into_iter().map(|userid| (userid, None)).collect();
-        }
-    };
-    let cert = match lc.to_cert() {
-        Ok(cert) => cert,
-        Err(_) => {
-            return userids.into_iter().map(|userid| (userid, None)).collect();
-        }
-    };
-
     let issuer_kh = issuer.key_handle();
 
     userids.into_iter().map(|userid| {

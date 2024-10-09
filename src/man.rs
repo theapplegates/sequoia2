@@ -360,7 +360,7 @@ impl Command {
             .filter(|cmd| cmd.get_name() != "help")
             .map(|cmd| Command::from_command(&parent, cmd))
             .collect();
-        new.leaf = cmd.get_subcommands().count() == 0;
+        new.leaf = cmd.get_subcommands().next().is_none();
         new
     }
 

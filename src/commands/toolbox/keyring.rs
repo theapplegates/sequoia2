@@ -125,11 +125,11 @@ pub fn dispatch(sq: Sq, c: keyring::Command) -> Result<()> {
                         .retain_subkeys(|c| {
                             ! any_key_predicates || key_predicate(c.key())
                         });
-                    if (c.userids().count() == 0
-                        && c.user_attributes().count() == 0
-                        && c.keys().subkeys().count() == 0)
+                    if (c.userids().next().is_none()
+                        && c.user_attributes().next().is_none()
+                        && c.keys().subkeys().next().is_none())
                         || ((any_key_predicates
-                             && c.keys().subkeys().count() == 0)
+                             && c.keys().subkeys().next().is_none())
                             && (any_cert_predicates
                                 && ! cert_predicate(c.primary_key().key())))
                     {

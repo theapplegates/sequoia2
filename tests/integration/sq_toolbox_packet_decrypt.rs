@@ -3,11 +3,7 @@ use predicates::prelude::*;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
-use super::common::Sq;
-
-fn artifact(filename: &str) -> String {
-    format!("tests/data/{}", filename)
-}
+use super::common::{Sq, artifact};
 
 // Integration tests should be done with subplot.
 // However, at this time, subplot does not support static binary files in tests.

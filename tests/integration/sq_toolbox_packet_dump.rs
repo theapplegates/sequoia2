@@ -3,11 +3,7 @@ use predicates::prelude::*;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
-use super::common::Sq;
-
-fn artifact(filename: &str) -> String {
-    format!("tests/data/{}", filename)
-}
+use super::common::{Sq, artifact};
 
 #[test]
 fn session_key_without_prefix() -> Result<()> {

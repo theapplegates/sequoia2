@@ -1,5 +1,5 @@
 use super::common::FileOrKeyHandle;
-use super::common::Sq;
+use super::common::{Sq, artifact};
 
 use std::path;
 
@@ -13,9 +13,6 @@ use openpgp::parse::Parse;
 use openpgp::policy::StandardPolicy;
 use openpgp::types::KeyFlags;
 
-fn dir() -> path::PathBuf {
-    path::Path::new("tests").join("data").join("keys")
-}
 fn alice() -> path::PathBuf {
     //     Fingerprint: 5CCB BA06 74EA 5162 615E  36E9 80E5 ADE9 43CA 0DC3
     // Public-key algo: EdDSA Edwards-curve Digital Signature Algorithm
@@ -39,7 +36,7 @@ fn alice() -> path::PathBuf {
     //       Key flags: transport encryption, data-at-rest encryption
     //
     //          UserID: Alice Lovelace <alice@example.org>
-    dir().join("alice-lovelace-encryption-subkey-signing-subkey-priv.pgp")
+    artifact("keys").join("alice-lovelace-encryption-subkey-signing-subkey-priv.pgp")
 }
 fn alice_primary() -> (Fingerprint, KeyFlags) {
     ("5CCB BA06 74EA 5162 615E  36E9 80E5 ADE9 43CA 0DC3".parse().unwrap(),
@@ -62,7 +59,7 @@ fn bob() -> path::PathBuf {
     //       Key flags: certification
     //
     //          UserID: Bob Babbage <bob@example.org>
-    dir().join("bob-babbage-cert-only-priv.pgp")
+    artifact("keys").join("bob-babbage-cert-only-priv.pgp")
 }
 fn bob_primary() -> (Fingerprint, KeyFlags) {
     ("C1CF 22F6 C838 07CE 3901  6CDE 8463 B196 87EE 13BB".parse().unwrap(),
@@ -92,7 +89,7 @@ fn carol() -> path::PathBuf {
     //       Key flags: transport encryption, data-at-rest encryption
     //
     //          UserID: Carol <carol@example.org>
-    dir().join("carol-encryption-subkey-signing-subkey-priv.pgp")
+    artifact("keys").join("carol-encryption-subkey-signing-subkey-priv.pgp")
 }
 fn carol_primary() -> (Fingerprint, KeyFlags) {
     ("0B17 34A8 2726 A5D1 D5AC  1568 1EC1 4781 FD88 09B4".parse().unwrap(),
@@ -116,7 +113,7 @@ fn bare() -> path::PathBuf {
     // Public-key algo: RSA
     // Public-key size: 2048 bits
     //   Creation time: 1970-01-01 00:00:00 UTC
-    dir().join("bare.pgp")
+    artifact("keys").join("bare.pgp")
 }
 fn bare_signing() -> (Fingerprint, KeyFlags) {
     ("B321BA8F650CB16443E06826DBFA98A78CF6562F".parse().unwrap(),

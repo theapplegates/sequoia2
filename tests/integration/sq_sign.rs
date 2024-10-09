@@ -19,13 +19,9 @@ use openpgp::policy::StandardPolicy;
 use openpgp::serialize::stream::{Message, Signer, Compressor, LiteralWriter};
 use openpgp::serialize::Serialize;
 
-use super::common::Sq;
+use super::common::{Sq, artifact};
 
 const P: &StandardPolicy = &StandardPolicy::new();
-
-fn artifact(filename: &str) -> String {
-    format!("tests/data/{}", filename)
-}
 
 #[test]
 fn sq_sign() {
@@ -36,7 +32,7 @@ fn sq_sign() {
     // Sign message.
     sq.command()
         .arg("sign")
-        .args(["--signer-file", &artifact("keys/dennis-simon-anton-private.pgp")])
+        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton-private.pgp"))
         .args(["--output", &sig.to_string_lossy()])
         .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
         .assert()
@@ -69,7 +65,7 @@ fn sq_sign() {
     // Verify signed message.
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
+        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
         .arg(&*sig.to_string_lossy())
         .assert()
         .success();
@@ -84,7 +80,7 @@ fn sq_sign_with_notations() {
     // Sign message.
     sq.command()
         .arg("sign")
-        .args(["--signer-file", &artifact("keys/dennis-simon-anton-private.pgp")])
+        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton-private.pgp"))
         .args(["--output", &sig.to_string_lossy()])
         .args(["--notation", "foo", "bar"])
         .args(["--notation", "!foo", "xyzzy"])
@@ -146,7 +142,7 @@ fn sq_sign_with_notations() {
     sq.command()
         .args(["--known-notation", "foo"])
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
+        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
         .arg(&*sig.to_string_lossy())
         .assert()
         .success();
@@ -161,7 +157,7 @@ fn sq_sign_append() {
     // Sign message.
     sq.command()
         .arg("sign")
-        .args(["--signer-file", &artifact("keys/dennis-simon-anton-private.pgp")])
+        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton-private.pgp"))
         .args(["--output", &sig0.to_string_lossy()])
         .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
         .assert()
@@ -194,7 +190,7 @@ fn sq_sign_append() {
     // Verify signed message.
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
+        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
         .arg(&*sig0.to_string_lossy())
         .assert()
         .success();
@@ -204,7 +200,7 @@ fn sq_sign_append() {
     sq.command()
         .arg("sign")
         .arg("--append")
-        .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
+        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"))
         .arg("--output")
         .arg(&*sig1.to_string_lossy())
         .arg(&*sig0.to_string_lossy())
@@ -251,13 +247,13 @@ fn sq_sign_append() {
     // Verify both signatures of the signed message.
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
+        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
         .arg(&*sig1.to_string_lossy())
         .assert()
         .success();
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
+        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp"))
         .arg(&*sig1.to_string_lossy())
         .assert()
         .success();
@@ -320,7 +316,7 @@ fn sq_sign_append_on_compress_then_sign() {
     // Verify signed message.
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
+        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
         .arg(&*sig0.to_string_lossy())
         .assert()
         .success();
@@ -330,7 +326,7 @@ fn sq_sign_append_on_compress_then_sign() {
     sq.command()
         .arg("sign")
         .arg("--append")
-        .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
+        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"))
         .arg("--output")
         .arg(&*sig1.to_string_lossy())
         .arg(&*sig0.to_string_lossy())
@@ -380,14 +376,14 @@ fn sq_sign_append_on_compress_then_sign() {
     // Verify both signatures of the signed message.
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
+        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
         .arg(&*sig0.to_string_lossy())
         .assert()
         .success();
 
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
+        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp"))
         .arg(&*sig0.to_string_lossy())
         .assert()
         .success();
@@ -403,7 +399,7 @@ fn sq_sign_detached() {
     sq.command()
         .arg("sign")
         .arg("--detached")
-        .args(["--signer-file", &artifact("keys/dennis-simon-anton-private.pgp")])
+        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton-private.pgp"))
         .args(["--output", &sig.to_string_lossy()])
         .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
         .assert()
@@ -425,7 +421,7 @@ fn sq_sign_detached() {
     // Verify detached.
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
+        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
         .args(["--signature-file", &sig.to_string_lossy()])
         .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
         .assert()
@@ -442,7 +438,7 @@ fn sq_sign_detached_append() {
     sq.command()
         .arg("sign")
         .arg("--detached")
-        .args(["--signer-file", &artifact("keys/dennis-simon-anton-private.pgp")])
+        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton-private.pgp"))
         .args(["--output", &sig.to_string_lossy()])
         .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
         .assert()
@@ -464,7 +460,7 @@ fn sq_sign_detached_append() {
     // Verify detached.
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
+        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
         .args(["--signature-file", &sig.to_string_lossy()])
         .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
         .assert()
@@ -474,7 +470,7 @@ fn sq_sign_detached_append() {
     sq.command()
         .arg("sign")
         .arg("--detached")
-        .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
+        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"))
         .args(["--output", &sig.to_string_lossy()])
         .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
         .assert()
@@ -485,7 +481,7 @@ fn sq_sign_detached_append() {
         .arg("sign")
         .arg("--detached")
         .arg("--append")
-        .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
+        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"))
         .args(["--output", &sig.to_string_lossy()])
         .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
         .assert()
@@ -512,7 +508,7 @@ fn sq_sign_detached_append() {
     // Verify both detached signatures.
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/dennis-simon-anton.pgp")])
+        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
         .args(["--signature-file", &sig.to_string_lossy()])
         .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
         .assert()
@@ -520,7 +516,7 @@ fn sq_sign_detached_append() {
 
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
+        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp"))
         .args(["--signature-file", &sig.to_string_lossy()])
         .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
         .assert()
@@ -568,7 +564,7 @@ fn sq_sign_append_a_notarization() {
     sq.command()
         .arg("sign")
         .arg("--append")
-        .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
+        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"))
         .args(["--output", &sig0.to_string_lossy()])
         .arg(&artifact("messages/signed-1-notarized-by-ed25519.pgp"))
         .assert()
@@ -626,19 +622,19 @@ fn sq_sign_append_a_notarization() {
     // Verify both notarizations and the signature.
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/neal.pgp")])
+        .arg("--signer-file").arg(artifact("keys/neal.pgp"))
         .arg(&*sig0.to_string_lossy())
         .assert()
         .success();
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp")])
+        .arg("--signer-file").arg(artifact("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp"))
         .arg(&*sig0.to_string_lossy())
         .assert()
         .success();
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
+        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp"))
         .arg(&*sig0.to_string_lossy())
         .assert()
         .success();
@@ -655,7 +651,7 @@ fn sq_sign_notarize() {
     sq.command()
         .arg("sign")
         .arg("--notarize")
-        .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
+        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"))
         .args(["--output", &sig0.to_string_lossy()])
         .arg(&artifact("messages/signed-1.gpg"))
         .assert()
@@ -701,13 +697,13 @@ fn sq_sign_notarize() {
     // Verify both notarizations and the signature.
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/neal.pgp")])
+        .arg("--signer-file").arg(artifact("keys/neal.pgp"))
         .arg(&*sig0.to_string_lossy())
         .assert()
         .success();
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
+        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp"))
         .arg(&*sig0.to_string_lossy())
         .assert()
         .success();
@@ -724,7 +720,7 @@ fn sq_sign_notarize_a_notarization() {
     sq.command()
         .arg("sign")
         .arg("--notarize")
-        .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp")])
+        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"))
         .args(["--output", &sig0.to_string_lossy()])
         .arg(&artifact("messages/signed-1-notarized-by-ed25519.pgp"))
         .assert()
@@ -782,19 +778,19 @@ fn sq_sign_notarize_a_notarization() {
     // Verify both notarizations and the signature.
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/neal.pgp")])
+        .arg("--signer-file").arg(artifact("keys/neal.pgp"))
         .arg(&*sig0.to_string_lossy())
         .assert()
         .success();
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp")])
+        .arg("--signer-file").arg(artifact("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp"))
         .arg(&*sig0.to_string_lossy())
         .assert()
         .success();
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")])
+        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp"))
         .arg(&*sig0.to_string_lossy())
         .assert()
         .success();

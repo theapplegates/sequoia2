@@ -8,11 +8,7 @@ use sequoia_openpgp as openpgp;
 use openpgp::Result;
 use openpgp::Cert;
 
-use super::common::Sq;
-
-fn artifact(filename: &str) -> String {
-    format!("tests/data/{}", filename)
-}
+use super::common::{Sq, artifact};
 
 // We are going to replace certifications, and we want to make sure
 // that the newest one is the active one.  This means ensuring that

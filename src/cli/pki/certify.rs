@@ -204,23 +204,7 @@ pub struct Command {
             "Add the given user ID if it doesn't exist in the certificate.",
     )]
     pub add_userid: bool,
-    #[clap(
-        long = "allow-not-alive-certifier",
-        help = "Don't fail if the certificate making the \
-                certification is not alive.",
-        long_help =
-            "Allow the key to make a certification even if \
-             the current time is prior to its creation time \
-             or the current time is at or after its expiration \
-             time.",
-    )]
-    pub allow_not_alive_certifier: bool,
-    #[clap(
-        long = "allow-revoked-certifier",
-        help = "Don't fail if the certificate making the \
-                certification is revoked.",
-    )]
-    pub allow_revoked_certifier: bool,
+
     #[clap(
         long,
         value_name = "KEY",

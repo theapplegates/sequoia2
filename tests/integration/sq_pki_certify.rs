@@ -358,40 +358,6 @@ fn sq_pki_certify_with_expired_key() -> Result<()>
         // Make sure using an expired key fails by default.
         assert!(sq.pki_certify_p(
             &[], &alice_handle, &bob_pgp, bob, Some(&*bob_pgp), false).is_err());
-
-        // Try again.
-        let cert = sq.pki_certify(
-            &["--allow-not-alive-certifier"],
-            &alice_handle, &bob_pgp, bob, None);
-
-        assert_eq!(cert.bad_signatures().count(), 0,
-                   "Bad signatures in cert\n\n{}",
-                   String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
-
-        let vc = cert.with_policy(P, None)?;
-
-        assert!(
-            creation_time.duration_since(vc.primary_key().creation_time()).unwrap()
-                < time::Duration::new(1, 0));
-
-        let mut userid = None;
-        for u in vc.userids() {
-            if u.userid().value() == bob.as_bytes() {
-                userid = Some(u);
-                break;
-            }
-        }
-
-        if let Some(userid) = userid {
-            let certifications: Vec<_> = userid.certifications().collect();
-            assert_eq!(certifications.len(), 1);
-            let certification = certifications.into_iter().next().unwrap();
-
-            assert_eq!(certification.get_issuers().into_iter().next(),
-                       Some(KeyHandle::from(alice_key.fingerprint())));
-        } else {
-            panic!("missing user id");
-        }
     }
 
     Ok(())
@@ -453,40 +419,6 @@ fn sq_pki_certify_with_revoked_key() -> Result<()>
         // Make sure using an expired key fails by default.
         assert!(sq.pki_certify_p(
             &[], &alice_handle, &bob_pgp, bob, None, false).is_err());
-
-        // Try again.
-        let cert = sq.pki_certify(
-            &["--allow-revoked-certifier"],
-            &alice_handle, &bob_pgp, bob, None);
-
-        assert_eq!(cert.bad_signatures().count(), 0,
-                   "Bad signatures in cert\n\n{}",
-                   String::from_utf8(cert.armored().to_vec().unwrap()).unwrap());
-
-        let vc = cert.with_policy(P, None)?;
-
-        assert!(
-            creation_time.duration_since(vc.primary_key().creation_time()).unwrap()
-                < time::Duration::new(1, 0));
-
-        let mut userid = None;
-        for u in vc.userids() {
-            if u.userid().value() == bob.as_bytes() {
-                userid = Some(u);
-                break;
-            }
-        }
-
-        if let Some(userid) = userid {
-            let certifications: Vec<_> = userid.certifications().collect();
-            assert_eq!(certifications.len(), 1);
-            let certification = certifications.into_iter().next().unwrap();
-
-            assert_eq!(certification.get_issuers().into_iter().next(),
-                       Some(KeyHandle::from(alice_key.fingerprint())));
-        } else {
-            panic!("missing user id");
-        }
     }
 
     Ok(())

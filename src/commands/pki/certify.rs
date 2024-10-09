@@ -18,7 +18,6 @@ use cert_store::StoreUpdate;
 
 use crate::Sq;
 use crate::parse_notations;
-use crate::sq::GetKeysOptions;
 use crate::cli::pki::certify;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileStdinOrKeyHandle;
@@ -135,15 +134,7 @@ pub fn certify(sq: Sq, mut c: certify::Command)
     };
 
     // Get the signer to certify with.
-    let mut options = Vec::new();
-    if c.allow_not_alive_certifier {
-        options.push(GetKeysOptions::AllowNotAlive);
-    }
-    if c.allow_revoked_certifier {
-        options.push(GetKeysOptions::AllowRevoked);
-    }
-
-    let mut signer = sq.get_certification_key(certifier, Some(&options))?;
+    let mut signer = sq.get_certification_key(certifier, None)?;
 
     // Create the certifications.
     let mut new_packets: Vec<Packet> = Vec::new();

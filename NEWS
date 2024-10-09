@@ -41,6 +41,9 @@
      SEQUOIA_CERT_STORE, and SQ_KEY_STORE to SEQUOIA_KEY_STORE,
      respectively.
    - `sq toolbox packet split` now requires an explicit output parameter.
+   - `sq pki certify` no longer supports using expired or revoked
+     certificates; the options `--allow-not-alive-certifier` and
+     `--allow-revoked-certifier` have been removed.
 * Changes in 0.38.0
 ** Notable changes
    - New subcommand `sq key subkey delete` to delete secret key

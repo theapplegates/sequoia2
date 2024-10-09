@@ -23,6 +23,7 @@ mod integration {
     mod sq_pki_certify;
     mod sq_pki_link;
     mod sq_sign;
+    mod sq_toolbox_keyring_filter;
     mod sq_toolbox_packet_decrypt;
     mod sq_toolbox_packet_dump;
 }

@@ -1099,11 +1099,27 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             return PreferredUserID::unknown()
         };
 
-        let cert = self.lookup_one(key_handle, keyflags.into(), false);
+        let certs = self.lookup(std::iter::once(key_handle),
+                                keyflags.into(), false, true);
 
-        match cert {
-            Ok(cert) => {
-                self.best_userid(&cert, true)
+        match certs {
+            Ok(certs) => {
+                assert!(! certs.is_empty());
+
+                // Compute the best user ID and the associated trust
+                // amount for each cert.
+                let mut certs = certs.into_iter().map(|c| {
+                    (self.best_userid(&c, true), c)
+                }).collect::<Vec<_>>();
+
+                // Sort by trust amount, then fingerprint.  This way,
+                // if two certs have the same trust amount, at least
+                // the result will be stable.
+                certs.sort_by_key(
+                    |(puid, cert)| (puid.trust_amount(), cert.fingerprint()));
+
+                // Then pick the one with the highest trust amount.
+                certs.into_iter().rev().next().expect("at least one").0
             }
             Err(err) => {
                 if let Some(StoreError::NotFound(_))

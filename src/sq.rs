@@ -1095,10 +1095,6 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     where
         F: Into<Option<KeyFlags>>,
     {
-        if ! use_wot {
-            return PreferredUserID::unknown()
-        };
-
         let certs = self.lookup(std::iter::once(key_handle),
                                 keyflags.into(), false, true);
 
@@ -1109,7 +1105,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 // Compute the best user ID and the associated trust
                 // amount for each cert.
                 let mut certs = certs.into_iter().map(|c| {
-                    (self.best_userid(&c, true), c)
+                    (self.best_userid(&c, use_wot), c)
                 }).collect::<Vec<_>>();
 
                 // Sort by trust amount, then fingerprint.  This way,

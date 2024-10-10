@@ -17,6 +17,7 @@ pub use revoke::RevocationOutput;
 pub mod key;
 
 pub mod password;
+pub mod pki;
 pub mod userid;
 
 pub const NULL_POLICY: &NullPolicy = &NullPolicy::new();

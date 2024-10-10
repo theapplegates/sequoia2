@@ -1,27 +1,36 @@
 use std::fmt;
-use std::sync::Arc;
-
-use chrono::DateTime;
-use chrono::Utc;
 
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
+use openpgp::packet::UserID;
 use openpgp::Result;
-use openpgp::packet::prelude::*;
-use openpgp::packet::signature::subpacket::NotationDataFlags;
-use openpgp::serialize::Serialize;
-use openpgp::types::SignatureType;
 use openpgp::types::KeyFlags;
 
-use sequoia_cert_store as cert_store;
-use cert_store::StoreUpdate;
-
 use crate::Sq;
-use crate::parse_notations;
 use crate::cli::pki::certify;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::commands::FileOrStdout;
+use crate::parse_notations;
+
+/// How to match on user IDs.
+#[derive(Debug)]
+enum UserIDQuery {
+    /// Exact match.
+    Exact(String),
+
+    /// Match on the email address.
+    Email(String),
+}
+
+impl fmt::Display for UserIDQuery {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UserIDQuery::Exact(q) => f.write_str(q),
+            UserIDQuery::Email(q) => write!(f, "<{}>", q),
+        }
+    }
+}
 
 pub fn certify(sq: Sq, mut c: certify::Command)
     -> Result<()>
@@ -34,6 +43,9 @@ pub fn certify(sq: Sq, mut c: certify::Command)
     } else {
         panic!("clap enforces --certifier or --certifier-file is set");
     };
+
+    let certifier = sq.lookup_one(
+        certifier, Some(KeyFlags::empty().set_certification()), true)?;
 
     // XXX: Change this interface: it's dangerous to guess whether an
     // identifier is a file or a key handle.
@@ -51,36 +63,16 @@ pub fn certify(sq: Sq, mut c: certify::Command)
         }
     }
 
-    let userid = c.userid;
-
-    let certifier = sq.lookup_one(
-        certifier, Some(KeyFlags::empty().set_certification()), true)?;
-
     let cert = sq.lookup_one(cert, None, true)?;
-
-    let trust_depth: u8 = c.depth;
-    let trust_amount: u8 = c.amount.amount();
-    let regex = c.regex;
-    if trust_depth == 0 && !regex.is_empty() {
-        return Err(
-            anyhow::format_err!("A regex only makes sense \
-                                 if the trust depth is greater than 0"));
-    }
-
-    let local = c.local;
-    let non_revocable = c.non_revocable;
-
-    let time = sq.time;
-
-    let vc = cert.with_policy(sq.policy, Some(time))?;
-
-    let query = if c.email {
-        UserIDQuery::Email(userid)
-    } else {
-        UserIDQuery::Exact(userid)
-    };
+    let vc = cert.with_policy(sq.policy, Some(sq.time))?;
 
     // Find the matching User ID.
+    let query = if c.email {
+        UserIDQuery::Email(c.userid)
+    } else {
+        UserIDQuery::Exact(c.userid)
+    };
+
     let mut userids = Vec::new();
     for ua in vc.userids() {
         match &query {
@@ -133,125 +125,22 @@ pub fn certify(sq: Sq, mut c: certify::Command)
         return Err(anyhow::format_err!("No matching User ID found"));
     };
 
-    // Get the signer to certify with.
-    let mut signer = sq.get_certification_key(certifier, None)?;
+    let notations = parse_notations(&c.notation)?;
 
-    // Create the certifications.
-    let mut new_packets: Vec<Packet> = Vec::new();
-    for userid in userids {
-        let mut builder
-            = SignatureBuilder::new(SignatureType::GenericCertification);
-
-        if trust_depth != 0 || trust_amount != 120 {
-            builder = builder.set_trust_signature(trust_depth, trust_amount)?;
-        }
-
-        for regex in &regex {
-            builder = builder.add_regular_expression(regex)?;
-        }
-
-        if local {
-            builder = builder.set_exportable_certification(false)?;
-        }
-
-        if non_revocable {
-            builder = builder.set_revocable(false)?;
-        }
-
-        // Creation time.
-        builder = builder.set_signature_creation_time(time)?;
-
-        if let Some(validity) = c
-            .expiration
-            .as_duration(DateTime::<Utc>::from(sq.time))?
-        {
-            builder = builder.set_signature_validity_period(validity)?;
-        }
-
-        let notations = parse_notations(&c.notation)?;
-        for (critical, n) in notations {
-            builder = builder.add_notation(
-                n.name(),
-                n.value(),
-                NotationDataFlags::empty().set_human_readable(),
-                critical)?;
-        };
-
-        // Sign it.
-        let certification = builder
-            .sign_userid_binding(
-                &mut signer,
-                cert.primary_key().component(),
-                &userid)?;
-
-        new_packets.push(userid.into());
-        new_packets.push(certification.into());
-    }
-
-    let cert = cert.insert_packets(new_packets)?;
-
-    if let Some(output) = c.output {
-        // And export it.
-        let path = output.path().map(Clone::clone);
-        let mut message = output.create_pgp_safe(
-            &sq,
-            c.binary,
-            sequoia_openpgp::armor::Kind::PublicKey,
-        )?;
-        cert.serialize(&mut message)?;
-        message.finalize()?;
-
-        if let Some(path) = path {
-            sq.hint(format_args!(
-                "Updated certificate written to {}.  \
-                 To make the update effective, it has to be published \
-                 so that others can find it, for example using:",
-                path.display()))
-                .sq().arg("network").arg("keyserver").arg("publish")
-                .arg_value("--file", path.display())
-                .done();
-        } else {
-            sq.hint(format_args!(
-                "To make the update effective, it has to be published \
-                 so that others can find it."));
-        }
-    } else {
-        // Import it.
-        let cert_store = sq.cert_store_or_else()?;
-
-        let fipr = cert.fingerprint();
-        if let Err(err) = cert_store.update(Arc::new(cert.into())) {
-            wprintln!("Error importing updated cert: {}", err);
-            return Err(err);
-        } else {
-            sq.hint(format_args!(
-                "Imported updated cert into the cert store.  \
-                 To make the update effective, it has to be published \
-                 so that others can find it, for example using:"))
-                .sq().arg("network").arg("keyserver").arg("publish")
-                .arg_value("--cert", fipr)
-                .done();
-        }
-    }
-
-    Ok(())
-}
-
-/// How to match on user IDs.
-#[derive(Debug)]
-enum UserIDQuery {
-    /// Exact match.
-    Exact(String),
-
-    /// Match on the email address.
-    Email(String),
-}
-
-impl fmt::Display for UserIDQuery {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            UserIDQuery::Exact(q) => f.write_str(q),
-            UserIDQuery::Email(q) => write!(f, "<{}>", q),
-        }
-    }
+    crate::common::pki::certify::certify(
+        &sq,
+        true, // Always recreate.
+        &certifier,
+        &cert,
+        &userids[..],
+        c.add_userid,
+        true, // User supplied user IDs.
+        &[(c.amount, c.expiration)],
+        c.depth,
+        &c.regex[..],
+        c.local,
+        c.non_revocable,
+        &notations[..],
+        c.output,
+        c.binary)
 }

@@ -1,30 +1,24 @@
-use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 use anyhow::Context;
-
-use chrono::DateTime;
-use chrono::Utc;
 
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
 use openpgp::cert::prelude::*;
 use openpgp::packet::prelude::*;
-use openpgp::packet::signature::subpacket::NotationDataFlags;
-use openpgp::types::RevocationStatus;
-use openpgp::types::SignatureType;
 
 use sequoia_cert_store as cert_store;
 use cert_store::Store;
-use cert_store::StoreUpdate;
 use cert_store::store::UserIDQueryParams;
 
 use crate::Sq;
 use crate::commands::active_certification;
+use crate::commands::pki::TrustAmount;
 use crate::parse_notations;
 use crate::print_error_chain;
 
 use crate::cli::pki::link;
+use crate::cli::types::Expiration;
 
 /// Checks that the search terms provided to --userid, --email, and
 /// patterns match known User IDs.
@@ -201,124 +195,6 @@ pub fn check_userids(sq: &Sq, cert: &Cert, self_signed: bool,
     }
 }
 
-// Returns whether two signatures have the same parameters.
-//
-// This does some normalization and only considers things that are
-// relevant to links.
-fn diff_link(sq: &Sq, old: &Signature, new: &SignatureBuilder, new_ct: SystemTime)
-    -> bool
-{
-    make_qprintln!(sq.quiet);
-    let mut changed = false;
-
-    let a_expiration = old.signature_expiration_time();
-    let b_expiration = if let Some(vp) = new.signature_validity_period() {
-        Some(new_ct + vp)
-    } else {
-        None
-    };
-    if a_expiration != b_expiration {
-        changed = true;
-        qprintln!(
-            "  Updating expiration time: {} -> {}.",
-            if let Some(a_expiration) = a_expiration {
-                chrono::DateTime::<chrono::offset::Utc>::from(
-                    a_expiration).to_string()
-            } else {
-                "no expiration".to_string()
-            },
-            if let Some(b_expiration) = b_expiration {
-                chrono::DateTime::<chrono::offset::Utc>::from(
-                    b_expiration).to_string()
-            } else {
-                "no expiration".to_string()
-            });
-    }
-
-    let (a_depth, a_amount) = old.trust_signature().unwrap_or((0, 120));
-    let (b_depth, b_amount) = new.trust_signature().unwrap_or((0, 120));
-
-    if a_amount != b_amount {
-        changed = true;
-        qprintln!("  Updating trust amount: {} -> {}.",
-                  a_amount, b_amount);
-    }
-    if a_depth != b_depth {
-        changed = true;
-        qprintln!("  Update trust depth: {} -> {}.",
-                  a_depth, b_depth);
-    }
-
-    let mut a_regex: Vec<_> = old.regular_expressions().collect();
-    a_regex.sort();
-    a_regex.dedup();
-    let mut b_regex: Vec<_> = new.regular_expressions().collect();
-    b_regex.sort();
-    b_regex.dedup();
-
-    if a_regex != b_regex {
-        changed = true;
-        qprintln!("  Updating regular expressions:");
-        let a_regex: Vec<String> = a_regex.into_iter()
-            .enumerate()
-            .map(|(i, r)| {
-                format!("{}. {:?}",
-                        i + 1, String::from_utf8_lossy(r))
-            })
-            .collect();
-        qprintln!("    Current link:\n      {}",
-                  a_regex.join("\n      "));
-
-        let b_regex: Vec<String> = b_regex.into_iter()
-            .enumerate()
-            .map(|(i, r)| {
-                format!("{}. {:?}",
-                        i + 1, String::from_utf8_lossy(r))
-            })
-            .collect();
-        qprintln!("    Updated link:\n      {}",
-                  b_regex.join("\n      "));
-    }
-
-    let a_notations: Vec<_> = old.notation_data()
-        .filter(|n| n.name() != "salt@notations.sequoia-pgp.org")
-        .collect();
-    let b_notations: Vec<_> = new.notation_data()
-        .filter(|n| n.name() != "salt@notations.sequoia-pgp.org")
-        .collect();
-    if a_notations != b_notations {
-        changed = true;
-        qprintln!("  Updating notations.");
-        let a_notations: Vec<String> = a_notations.into_iter()
-            .enumerate()
-            .map(|(i, n)| {
-                format!("{}. {:?}", i + 1, n)
-            })
-            .collect();
-        qprintln!("    Current link:\n      {}",
-                  a_notations.join("\n      "));
-
-        let b_notations: Vec<String> = b_notations.into_iter()
-            .enumerate()
-            .map(|(i, n)| {
-                format!("{}. {:?}", i + 1, n)
-            })
-            .collect();
-        qprintln!("    Updated link:\n       {}",
-                  b_notations.join("\n      "));
-    }
-
-    let a_exportable = old.exportable_certification().unwrap_or(true);
-    let b_exportable = new.exportable_certification().unwrap_or(true);
-    if a_exportable != b_exportable {
-        changed = true;
-        qprintln!("  Updating exportable flag: {} -> {}.",
-                  a_exportable, b_exportable);
-    }
-
-    changed
-}
-
 pub fn link(sq: Sq, c: link::Command) -> Result<()> {
     use link::Subcommands::*;
     match c.subcommand {
@@ -332,8 +208,6 @@ pub fn link(sq: Sq, c: link::Command) -> Result<()> {
 pub fn add(sq: Sq, c: link::AddCommand)
     -> Result<()>
 {
-    make_qprintln!(sq.quiet);
-
     let trust_root = sq.local_trust_root()?;
     let trust_root = trust_root.to_cert()?;
 
@@ -381,7 +255,6 @@ pub fn add(sq: Sq, c: link::AddCommand)
     } else {
         0
     };
-    let trust_amount: u8 = c.amount.amount();
 
     let mut regex = c.regex;
     if trust_depth == 0 && !regex.is_empty() {
@@ -430,189 +303,49 @@ pub fn add(sq: Sq, c: link::AddCommand)
         }
     }
 
-    // Create the certification.
-    let mut builder
-        = SignatureBuilder::new(SignatureType::GenericCertification);
-
-    if trust_depth != 0 || trust_amount != 120 {
-        builder = builder.set_trust_signature(trust_depth, trust_amount)?;
-    }
-
-    for regex in regex {
-        builder = builder.add_regular_expression(regex)?;
-    }
-
-    builder = builder.set_exportable_certification(false)?;
-
-    // Creation time.
-    builder = builder.set_signature_creation_time(sq.time)?;
-
     let notations = parse_notations(c.notation)?;
-    for (critical, n) in notations {
-        builder = builder.add_notation(
-            n.name(),
-            n.value(),
-            NotationDataFlags::empty().set_human_readable(),
-            critical)?;
-    };
 
-    let builders: Vec<SignatureBuilder> = if c.temporary {
+    let templates = if c.temporary {
         // Make the partially trusted link one second younger.  When
         // the fully trusted link expired, then this link will come
         // into effect.  If the user has fully linked the binding in
         // the meantime, then this won't override that, which is
         // exactly what we want.
-        let mut partial = builder.clone();
-        partial = partial.set_signature_creation_time(
-            sq.time - Duration::new(1, 0))?;
-        partial = partial.set_trust_signature(trust_depth, 40)?;
+        let week = Duration::new(7 * 24 * 60 * 60, 0);
 
-        builder = builder.set_signature_validity_period(
-            Duration::new(7 * 24 * 60 * 60, 0))?;
-
-        vec![ builder, partial ]
+        vec![
+            (TrustAmount::Other(40), c.expiration),
+            (c.amount, Expiration::Duration(week)),
+        ]
     } else {
-        if let Some(validity) = c
-            .expiration
-            .as_duration(DateTime::<Utc>::from(sq.time))? {
-            builder = builder.set_signature_validity_period(validity)?;
-        }
-        vec![ builder ]
+        vec![
+            (c.amount, c.expiration),
+        ]
     };
 
-    // Sign it.
-    let mut signer = sq.get_certification_key(trust_root, None)
-        .context("Looking up local trust root")?;
-
-    let certifications = active_certification(
-            &sq, &cert, userids,
-            signer.public())
-        .into_iter()
-        .map(|(userid, active_certification)| {
-            let userid_str = || String::from_utf8_lossy(userid.value());
-
-            if let Some(ua) = vc.userids().find(|ua| ua.userid() == &userid) {
-                if let RevocationStatus::Revoked(_) = ua.revocation_status() {
-                    // It's revoked.
-                    if user_supplied_userids {
-                        // It was explicitly mentioned.  Return an
-                        // error.
-                        return Err(anyhow::anyhow!(
-                            "Can't link {:?} with {}, it's revoked",
-                            userid_str(), cert.fingerprint()));
-                    } else {
-                        // We're just considering valid, self-signed
-                        // User IDs.  Silently, skip it.
-                        return Ok(vec![]);
-                    }
-                }
-            } else {
-                qprintln!("Note: {:?} is NOT a self signed User ID.  \
-                           If this was a mistake, use \
-                           `sq pki link retract {} \"{}\"` to undo it.",
-                          userid_str(), cert.fingerprint(), userid);
-            }
-
-            if let Some(active_certification) = active_certification {
-                let active_certification_ct
-                    = active_certification.signature_creation_time()
-                    .expect("valid signature");
-
-                let retracted = matches!(active_certification.trust_signature(),
-                                         Some((_depth, 0)));
-                if retracted {
-                    qprintln!("{}, {} was retracted at {}.",
-                              cert.fingerprint(), userid_str(),
-                              chrono::DateTime::<chrono::offset::Utc>::from(
-                                  active_certification_ct));
-                } else {
-                    qprintln!("{}, {} was already linked at {}.",
-                              cert.fingerprint(), userid_str(),
-                              chrono::DateTime::<chrono::offset::Utc>::from(
-                                  active_certification_ct));
-                }
-
-                let changed = diff_link(
-                    &sq,
-                    &active_certification,
-                    &builders[0], sq.time);
-
-                if ! changed && c.recreate {
-                    qprintln!("  Link parameters are unchanged, but \
-                               updating anyway as \"--recreate\" was specified.");
-                } else if c.temporary {
-                    qprintln!("  Creating a temporary link, \
-                               which expires in a week.");
-                } else if ! changed {
-                    qprintln!("  Link parameters are unchanged, no update \
-                               needed (specify \"--recreate\" to update anyway).");
-
-                    // Return a signature packet to indicate that we
-                    // processed something.  But don't return a
-                    // signature.
-                    return Ok(vec![ Packet::from(userid.clone()) ]);
-                } else {
-                    qprintln!("  Link parameters changed, updating link.");
-                }
-            }
-
-            qprintln!("Linking {} and {:?}.",
-                      cert.fingerprint(), userid_str());
-
-            let mut sigs = builders.iter()
-                .map(|builder| {
-                    builder.clone().sign_userid_binding(
-                        &mut signer,
-                        cert.primary_key().key(),
-                        &userid)
-                        .with_context(|| {
-                            format!("Creating certification for {:?}",
-                                    userid_str())
-                        })
-                        .map(Into::into)
-                })
-                .collect::<Result<Vec<Packet>>>()?;
-
-            qprintln!();
-
-            let mut packets = vec![ Packet::from(userid.clone()) ];
-            packets.append(&mut sigs);
-            Ok(packets)
-        })
-        .collect::<Result<Vec<Vec<Packet>>>>()?
-        .into_iter()
-        .flatten()
-        .collect::<Vec<Packet>>();
-
-    if certifications.is_empty() {
-        return Err(anyhow::anyhow!(
-            "Can't link {} to anything.  The certificate has no self-signed \
-             User IDs and you didn't specify any User IDs to link to it.",
-            cert.fingerprint()));
-    }
-
-    if certifications.iter().all(|p| matches!(p, Packet::UserID(_))) {
-        // There are no signatures to insert.  We're done.
-        return Ok(());
-    }
-
-    let cert = cert.insert_packets(certifications.clone())?;
-
-    let cert_store = sq.cert_store_or_else()?;
-    cert_store.update(Arc::new(cert.into()))
-        .with_context(|| format!("Updating {}", c.certificate))?;
-
-    Ok(())
+    crate::common::pki::certify::certify(
+        &sq,
+        c.recreate, // Recreate.
+        &trust_root,
+        &cert,
+        &userids[..],
+        true, // Add userid.
+        user_supplied_userids,
+        &templates,
+        trust_depth,
+        &regex[..],
+        true, // Local.
+        false, // Non-revocable.
+        &notations[..],
+        None, // Output.
+        false) // Binary.
 }
 
 pub fn retract(sq: Sq, c: link::RetractCommand)
     -> Result<()>
 {
-    make_qprintln!(sq.quiet);
-
     let trust_root = sq.local_trust_root()?;
     let trust_root = trust_root.to_cert()?;
-    let trust_root_kh = trust_root.key_handle();
 
     let cert = sq.lookup_one(&c.certificate, None, true)?;
 
@@ -620,142 +353,34 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
         check_userids(&sq, &cert, false, &c.userid, &c.email, &c.pattern)
         .context("sq pki link retract: Invalid User IDs")?;
 
-    // Nothing was specified.  Retract all known User IDs.
-    if userids.is_empty() {
+    let user_supplied_userids = if userids.is_empty() {
+        // Nothing was specified.  Retract all known User IDs.
         let vc = cert.with_policy(sq.policy, Some(sq.time))?;
         userids = vc.userids().map(|ua| ua.userid().clone()).collect();
-    }
 
-    // Create the certification.
-    let mut builder
-        = SignatureBuilder::new(SignatureType::GenericCertification);
-
-    builder = builder.set_trust_signature(0, 0)?;
-    builder = builder.set_exportable_certification(false)?;
-
-    // Creation time.
-    builder = builder.set_signature_creation_time(sq.time)?;
-
-    let notations = parse_notations(c.notation)?;
-    for (critical, n) in notations {
-        builder = builder.add_notation(
-            n.name(),
-            n.value(),
-            NotationDataFlags::empty().set_human_readable(),
-            critical)?;
+        false
+    } else {
+        true
     };
 
-    // Sign it.
-    let mut signer = sq.get_certification_key(trust_root, None)
-        .context("Looking up local trust root")?;
+    let notations = parse_notations(c.notation)?;
 
-    let certifications = active_certification(
-            &sq, &cert, userids, signer.public())
-        .into_iter()
-        .map(|(userid, active_certification)| {
-            let userid_str = || String::from_utf8_lossy(userid.value());
-
-            if let Some(ua) = cert.userids().find(|ua| ua.userid() == &userid) {
-                if ! ua.certifications().any(|c| {
-                    c.get_issuers().into_iter()
-                        .any(|issuer| issuer.aliases(&trust_root_kh))
-                })
-                {
-                    qprintln!("You never linked {:?} to {}, \
-                               no need to retract it.",
-                              userid_str(), cert.fingerprint());
-                    return Ok(vec![]);
-                }
-            }
-
-            if let Some(active_certification) = active_certification {
-                let active_certification_ct
-                    = active_certification.signature_creation_time()
-                    .expect("valid signature");
-
-                let retracted = matches!(active_certification.trust_signature(),
-                                         Some((_depth, 0)));
-                if retracted {
-                    qprintln!("{}, {} was already retracted at {}.",
-                              cert.fingerprint(), userid_str(),
-                              chrono::DateTime::<chrono::offset::Utc>::from(
-                                  active_certification_ct));
-                } else {
-                    qprintln!("{}, {} was linked at {}.",
-                              cert.fingerprint(), userid_str(),
-                              chrono::DateTime::<chrono::offset::Utc>::from(
-                                  active_certification_ct));
-                }
-
-                let changed = diff_link(
-                    &sq,
-                    &active_certification,
-                    &builder, sq.time);
-
-                if ! changed && c.recreate {
-                    qprintln!("  Link parameters are unchanged, but \
-                               updating anyway as \"--recreate\" was specified.");
-                } else if ! changed {
-                    qprintln!("  Link parameters are unchanged, no update \
-                               needed (specify \"--recreate\" to update anyway).");
-
-                    // Return a signature packet to indicate that we
-                    // processed something.  But don't return a
-                    // signature.
-                    return Ok(vec![ Packet::from(userid.clone()) ]);
-                } else {
-                    qprintln!("  Link parameters changed, updating link.");
-                }
-            } else if c.recreate {
-                qprintln!("There is no link to retract between {} and {:?}, \
-                           retracting anyways as \"--recreate\" was specified.",
-                          cert.fingerprint(), userid_str());
-            } else {
-                qprintln!("There is no link to retract between {} and {:?} \
-                           (specify \"--recreate\" to mark as retracted anyways).",
-                          cert.fingerprint(), userid_str());
-
-                // Return a signature packet to indicate that we
-                // processed something.  But don't return a
-                // signature.
-                return Ok(vec![ Packet::from(userid.clone()) ]);
-            }
-
-            qprintln!("Breaking link between {} and {:?}.",
-                      cert.fingerprint(), userid_str());
-
-            // XXX: If we already have exactly this signature (modulo
-            // the creation time), then don't add it!  Note: it is
-            // explicitly NOT enough to check that there is a
-            // certification from the local trust root.
-
-            let sig = builder.clone().sign_userid_binding(
-                &mut signer,
-                cert.primary_key().key(),
-                &userid)
-                .with_context(|| {
-                    format!("Creating certification for {:?}", userid_str())
-                })?;
-
-            Ok(vec![ Packet::from(userid.clone()), Packet::from(sig) ])
-        })
-        .collect::<Result<Vec<Vec<Packet>>>>()?
-        .into_iter()
-        .flatten()
-        .collect::<Vec<Packet>>();
-
-    if certifications.is_empty() {
-        qprintln!("Nothing to retract.");
-        return Ok(());
-    }
-
-    let cert = cert.insert_packets(certifications.clone())?;
-
-    let cert_store = sq.cert_store_or_else()?;
-    cert_store.update(Arc::new(cert.into()))
-        .with_context(|| format!("Updating {}", c.certificate))?;
-
-    Ok(())
+    crate::common::pki::certify::certify(
+        &sq,
+        c.recreate, // Recreate.
+        &trust_root,
+        &cert,
+        &userids[..],
+        false, // Add userid.
+        user_supplied_userids,
+        &[(TrustAmount::None, Expiration::Never)],
+        0,
+        &[][..],
+        true, // Local.
+        false, // Non-revocable.
+        &notations[..],
+        None, // Output.
+        false) // Binary.
 }
 
 pub fn list(sq: Sq, c: link::ListCommand)

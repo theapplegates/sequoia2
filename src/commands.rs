@@ -77,7 +77,7 @@ pub fn dispatch(sq: Sq, command: SqCommand) -> Result<()>
 ///
 /// Note: if `n` User IDs are provided, then the returned vector has
 /// `n` elements.
-fn active_certification(
+pub fn active_certification(
     sq: &Sq,
     cert: &Cert, userids: Vec<UserID>,
     issuer: &Key<openpgp::packet::key::PublicParts,

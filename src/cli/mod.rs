@@ -172,7 +172,7 @@ pub fn build(globals_hidden: bool) -> Command {
                 };
 
             after_long_help.write_str(&format!("\
-{}:\nSee 'sq --help' for a description of the global options.",
+{}:\n  See 'sq --help' for a description of the global options.",
                                                GLOBAL_OPTIONS_HEADER))
                 .expect("Can write to string");
 

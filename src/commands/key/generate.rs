@@ -23,7 +23,7 @@ use crate::commands::inspect::inspect;
 
 pub fn generate(
     mut sq: Sq,
-    mut command: cli::key::GenerateCommand,
+    mut command: cli::key::generate::Command,
 ) -> Result<()> {
     let mut builder = CertBuilder::new();
 

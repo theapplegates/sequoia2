@@ -292,7 +292,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                                     let pkesk = key_status.pkesk().clone();
                                     let mut key = key_status.into_key();
                                     let keyid = key.keyid();
-                                    let userid = self.sq.best_userid_for(
+                                    let (userid, _) = self.sq.best_userid_for(
                                         &KeyHandle::from(&keyid),
                                         KeyFlags::empty()
                                             .set_storage_encryption()

@@ -1091,7 +1091,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                   key_handle: &KeyHandle,
                                   keyflags: F,
                                   use_wot: bool)
-                                  -> PreferredUserID
+                                  -> (PreferredUserID, Result<Cert>)
     where
         F: Into<Option<KeyFlags>>,
     {
@@ -1115,16 +1115,20 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     |(puid, cert)| (puid.trust_amount(), cert.fingerprint()));
 
                 // Then pick the one with the highest trust amount.
-                certs.into_iter().rev().next().expect("at least one").0
+                let best =
+                    certs.into_iter().rev().next().expect("at least one");
+                (best.0, Ok(best.1))
             }
             Err(err) => {
                 if let Some(StoreError::NotFound(_))
                     = err.downcast_ref()
                 {
-                    PreferredUserID::from_string("(certificate not found)", 0)
+                    (PreferredUserID::from_string("(certificate not found)", 0),
+                     Err(err))
                 } else {
-                    PreferredUserID::from_string(
-                        format!("(error looking up certificate: {})", err), 0)
+                    (PreferredUserID::from_string(
+                        format!("(error looking up certificate: {})", err), 0),
+                     Err(err))
                 }
             }
         }

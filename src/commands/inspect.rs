@@ -595,7 +595,7 @@ fn inspect_issuers(sq: &mut Sq,
     let khs: Vec<KeyHandle> = fps.into_iter().map(|fp| fp.into()).collect();
     for kh in khs.iter() {
         writeln!(output, "{:>WIDTH$}: {}, {}", "Alleged signer",
-                 kh, sq.best_userid_for(kh, for_signing.clone(), true))?;
+                 kh, sq.best_userid_for(kh, for_signing.clone(), true).0)?;
     }
 
     let mut keyids: Vec<_> = sig.issuers().collect();
@@ -606,7 +606,7 @@ fn inspect_issuers(sq: &mut Sq,
             writeln!(output, "{:>WIDTH$}: {}, {}", "Alleged signer",
                      keyid,
                      sq.best_userid_for(&KeyHandle::from(keyid),
-                                        for_signing.clone(), true))?;
+                                        for_signing.clone(), true).0)?;
         }
     }
 
@@ -698,7 +698,7 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
             for kh in khs.iter() {
                 writeln!(output, "{:>WIDTH$}  Alleged certifier: {}, {}",
                          "", kh,
-                         sq.best_userid_for(kh, for_signing.clone(), true))?;
+                         sq.best_userid_for(kh, for_signing.clone(), true).0)?;
             }
             let mut keyids: Vec<_> = sig.issuers().collect();
             keyids.sort();
@@ -709,7 +709,7 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
                              keyid,
                              sq.best_userid_for(
                                  &KeyHandle::from(keyid), for_signing.clone(),
-                                 true))?;
+                                 true).0)?;
                 }
             }
 

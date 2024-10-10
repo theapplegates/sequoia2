@@ -264,7 +264,22 @@ fn main() -> Result<()> {
                     std::process::exit(err.exit_code());
                 }
             }
-            err.exit();
+
+            // Print the error message.
+            err.print()?;
+
+            // Then, figure out if this is a usage message, and
+            // extract the usage string.
+            if let Some(usage) = err.context()
+                .find_map(|(kind, value)|
+                          (kind == clap::error::ContextKind::Usage)
+                          .then_some(value))
+            {
+                print_examples(&cli, usage)?;
+            }
+
+            // Finally, exit with an error code.
+            std::process::exit(err.exit_code());
         }
     };
 
@@ -424,3 +439,41 @@ where E: Borrow<anyhow::Error>,
 {
     display_error_chain(err, ": ", ", because ")
 }
+
+/// Given a `clap::Command` and a usage string, try to augment the
+/// usage message with relevant examples.
+fn print_examples(cli: &clap::Command, usage: impl ToString) -> Result<()> {
+    // First, find the invoked subcommand.
+    let usage = usage.to_string();
+    let prefix = usage.find("sq ");
+    let subcommands = if let Some(i) = prefix {
+        usage[i + 3..].split(" ")
+        // Split, but only take the parts that do not denote options
+        // or flags.
+            .take_while(|p| p.chars().all(|c| c.is_alphabetic()))
+    } else {
+        // Odd...
+        return Ok(());
+    };
+
+    // Now traverse the CLI tree to find the subcommand.
+    let mut cmd = cli;
+    for sub in subcommands {
+        cmd = if let Some(c) = cmd.get_subcommands()
+            .find(|c| c.get_name() == sub)
+        {
+            c
+        } else {
+            // Very odd...
+            return Ok(());
+        };
+    }
+
+    // And print the examples, if any.
+    if let Some(examples) = cmd.get_after_help() {
+        wprintln!("\n{}", examples);
+    }
+
+    Ok(())
+}
+

@@ -25,6 +25,13 @@ pub fn generate(
     mut sq: Sq,
     mut command: cli::key::generate::Command,
 ) -> Result<()> {
+    if command.output.as_ref().map(|s| s.is_stdout()).unwrap_or(false)
+        && command.rev_cert.as_ref().map(|s| s.is_stdout()).unwrap_or(false)
+    {
+        return Err(anyhow::anyhow!(
+            "--output and --rev-cert must not both be stdout"));
+    }
+
     let mut builder = CertBuilder::new();
 
     // Names, email addresses, and user IDs.
@@ -144,7 +151,7 @@ pub fn generate(
     let rev_path = if let Some(rev_cert) = command.rev_cert {
         (cert, rev) = gen()?;
 
-        FileOrStdout::new(Some(rev_cert))
+        rev_cert
     } else if let Some(path) = command.output.as_ref().and_then(|o| o.path()) {
         (cert, rev) = gen()?;
 

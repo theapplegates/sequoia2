@@ -19,6 +19,11 @@ use crate::{
 };
 
 impl FileOrStdout {
+    /// Returns whether the stream is stdout.
+    pub fn is_stdout(&self) -> bool {
+        self.path().is_none()
+    }
+
     /// Opens the file (or stdout) for writing data that is safe for
     /// non-interactive use.
     ///

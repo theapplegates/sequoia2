@@ -216,7 +216,8 @@ stored in {} by default.
 When `--output` is specified, the revocation certificate is written to \
 `FILE.rev` by default.
 
-If `--output` is `-`, then this option must be provided.",
+If `--output` is `-`, then this option must be provided, and must not \
+also be `-`.",
             sequoia_directories::Home::default()
             .map(|home| {
                 let p = home.data_dir(sequoia_directories::Component::Other(
@@ -232,7 +233,7 @@ If `--output` is `-`, then this option must be provided.",
             })
             .unwrap_or("<unknown>".to_string()))
     )]
-    pub rev_cert: Option<PathBuf>
+    pub rev_cert: Option<FileOrStdout>
 }
 
 const GENERATE_EXAMPLES: Actions = Actions {

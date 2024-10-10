@@ -293,7 +293,11 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                                     let mut key = key_status.into_key();
                                     let keyid = key.keyid();
                                     let userid = self.sq.best_userid_for(
-                                        &KeyHandle::from(&keyid), true);
+                                        &KeyHandle::from(&keyid),
+                                        KeyFlags::empty()
+                                            .set_storage_encryption()
+                                            .set_transport_encryption(),
+                                        true);
 
                                     let keypair = loop {
                                         let password = rpassword::prompt_password(

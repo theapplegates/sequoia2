@@ -18,6 +18,7 @@ use openpgp::parse::{Dearmor, Parse, PacketParserBuilder, PacketParserResult};
 use openpgp::policy::{Policy, HashAlgoSecurity};
 use openpgp::packet::key::SecretKeyMaterial;
 use openpgp::types::{
+    KeyFlags,
     ReasonForRevocation,
     SignatureType,
 };
@@ -586,13 +587,15 @@ fn inspect_signatures(sq: &mut Sq,
 fn inspect_issuers(sq: &mut Sq,
                    output: &mut dyn io::Write,
                    sig: &Signature) -> Result<()> {
+    let for_signing = KeyFlags::empty().set_signing();
+
     let mut fps: Vec<_> = sig.issuer_fingerprints().collect();
     fps.sort();
     fps.dedup();
     let khs: Vec<KeyHandle> = fps.into_iter().map(|fp| fp.into()).collect();
     for kh in khs.iter() {
         writeln!(output, "{:>WIDTH$}: {}, {}", "Alleged signer",
-                 kh, sq.best_userid_for(kh, true))?;
+                 kh, sq.best_userid_for(kh, for_signing.clone(), true))?;
     }
 
     let mut keyids: Vec<_> = sig.issuers().collect();
@@ -602,7 +605,8 @@ fn inspect_issuers(sq: &mut Sq,
         if ! khs.iter().any(|kh| kh.aliases(&keyid.into())) {
             writeln!(output, "{:>WIDTH$}: {}, {}", "Alleged signer",
                      keyid,
-                     sq.best_userid_for(&KeyHandle::from(keyid), true))?;
+                     sq.best_userid_for(&KeyHandle::from(keyid),
+                                        for_signing.clone(), true))?;
         }
     }
 
@@ -616,6 +620,8 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
     -> Result<()>
     where A: std::iter::Iterator<Item=&'a openpgp::packet::Signature>
 {
+    let for_signing = KeyFlags::empty().set_signing();
+
     if print_certifications {
         let mut emit_warning = false;
         for sig in certs {
@@ -692,7 +698,7 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
             for kh in khs.iter() {
                 writeln!(output, "{:>WIDTH$}  Alleged certifier: {}, {}",
                          "", kh,
-                         sq.best_userid_for(kh, true))?;
+                         sq.best_userid_for(kh, for_signing.clone(), true))?;
             }
             let mut keyids: Vec<_> = sig.issuers().collect();
             keyids.sort();
@@ -702,7 +708,8 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
                     writeln!(output, "{:>WIDTH$}: {}, {}", "Alleged certifier",
                              keyid,
                              sq.best_userid_for(
-                                 &KeyHandle::from(keyid), true))?;
+                                 &KeyHandle::from(keyid), for_signing.clone(),
+                                 true))?;
                 }
             }
 

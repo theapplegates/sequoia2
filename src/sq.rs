@@ -1087,20 +1087,19 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     ///
     /// If `use_wot` is set, then we use the best authenticated user
     /// ID.  If `use_wot` is not set, then we use the primary user ID.
-    pub fn best_userid_for<'u>(&self, key_handle: &KeyHandle,
-                               use_wot: bool)
-                              -> PreferredUserID
+    pub fn best_userid_for<'u, F>(&self,
+                                  key_handle: &KeyHandle,
+                                  keyflags: F,
+                                  use_wot: bool)
+                                  -> PreferredUserID
+    where
+        F: Into<Option<KeyFlags>>,
     {
         if ! use_wot {
             return PreferredUserID::unknown()
         };
 
-        let cert = self.lookup_one(
-            key_handle,
-            Some(KeyFlags::empty()
-                 .set_storage_encryption()
-                 .set_transport_encryption()),
-            false);
+        let cert = self.lookup_one(key_handle, keyflags.into(), false);
 
         match cert {
             Ok(cert) => {

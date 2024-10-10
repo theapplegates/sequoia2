@@ -135,6 +135,8 @@ pub fn list(sq: Sq, _command: cli::key::ListCommand) -> Result<()> {
     } else {
         // The key store is disabled.  Don't fail, just return
         // nothing.
+        sq.hint(format_args!(
+            "The key store is disabled using --no-key-store."));
         return Ok(());
     };
     let mut ks = ks.lock().unwrap();
@@ -250,6 +252,41 @@ pub fn list(sq: Sq, _command: cli::key::ListCommand) -> Result<()> {
                 wprintln!(initial_indent = "     - ", "{}", loc);
             }
         }
+    }
+
+    // Add some helpful guidance if there aren't any keys.
+    if the_keys.is_empty() {
+        let mut hint = sq.hint(format_args!(
+            "There are no secret keys."));
+
+        if sq.key_store_path.is_some() || ! sq.home.is_default_location() {
+            hint = hint.hint(format_args!(
+                "The non-default key store location {} is selected \
+                 using the `{}` option.  Consider using the default \
+                 key store location to access your keys.",
+                sq.key_store_path()?.unwrap().display(),
+                if sq.key_store_path.is_some() {
+                    "--key-store"
+                } else {
+                    "--home"
+                }));
+        }
+
+        hint.hint(format_args!(
+            "Consider generating a new key like so:"))
+            .command(format_args!(
+                "sq key generate --name 'Juliet Capulet' \
+                 --email juliet@example.org"))
+            .hint(format_args!(
+            "Or, you can import an existing key:"))
+            .command(format_args!(
+                "sq key import juliets-secret-key.pgp"));
+
+        sq.hint(format_args!(
+            "Sequoia calls public keys 'certificates'.  \
+             Perhaps you meant to list known certificates, \
+             which can be done using:"))
+            .command(format_args!("sq pki list"));
     }
 
     Ok(())

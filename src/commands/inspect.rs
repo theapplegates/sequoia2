@@ -705,8 +705,8 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
             keyids.dedup();
             for keyid in keyids {
                 if ! khs.iter().any(|kh| kh.aliases(&keyid.into())) {
-                    writeln!(output, "{:>WIDTH$}: {}, {}", "Alleged certifier",
-                             keyid,
+                    writeln!(output, "{:>WIDTH$}  Alleged certifier: {}, {}",
+                             "", keyid,
                              sq.best_userid_for(
                                  &KeyHandle::from(keyid), for_signing.clone(),
                                  true).0)?;

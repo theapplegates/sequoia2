@@ -7,7 +7,7 @@ use anyhow::Context;
 use buffered_reader::BufferedReader;
 
 use sequoia_openpgp as openpgp;
-use openpgp::{KeyHandle, Packet, Result};
+use openpgp::{Fingerprint, KeyHandle, Packet, Result};
 use openpgp::armor::ReaderMode;
 use openpgp::cert::prelude::*;
 use openpgp::packet::{
@@ -36,6 +36,7 @@ use crate::SECONDS_IN_DAY;
 use crate::cli::inspect;
 use crate::cli::types::FileOrStdout;
 use crate::commands::toolbox::packet::dump::PacketDumper;
+use crate::common::PreferredUserID;
 
 /// Width of the largest key of any key, value pair we emit.
 const WIDTH: usize = 17;
@@ -587,6 +588,29 @@ fn inspect_signatures(sq: &mut Sq,
 fn inspect_issuers(sq: &mut Sq,
                    output: &mut dyn io::Write,
                    sig: &Signature) -> Result<()> {
+    emit_issuers(sq, |id| match id {
+        Ok((kh, uid)) => {
+            writeln!(output, "{:>WIDTH$}: {}", "Alleged signer", kh)?;
+            writeln!(output, "{:>WIDTH$}  {}", "", uid)?;
+            Ok(())
+        },
+        Err((kh, _, _)) => {
+            writeln!(output, "{:>WIDTH$}: {}", "Alleged signer",
+                     "signer's cert not found")?;
+            writeln!(output, "{:>WIDTH$}  {}", "", kh)?;
+            writeln!(output, "{:>WIDTH$}  {}", "", "(signature subkey)")?;
+            Ok(())
+        },
+    }, sig)
+}
+
+fn emit_issuers<F>(sq: &mut Sq, mut emit: F, sig: &Signature)
+                   -> Result<()>
+where
+    F: FnMut(std::result::Result<(Fingerprint, PreferredUserID),
+                                 (KeyHandle, PreferredUserID, anyhow::Error)>)
+             -> Result<()>,
+{
     let for_signing = KeyFlags::empty().set_signing();
 
     let mut fps: Vec<_> = sig.issuer_fingerprints().collect();
@@ -594,19 +618,22 @@ fn inspect_issuers(sq: &mut Sq,
     fps.dedup();
     let khs: Vec<KeyHandle> = fps.into_iter().map(|fp| fp.into()).collect();
     for kh in khs.iter() {
-        writeln!(output, "{:>WIDTH$}: {}, {}", "Alleged signer",
-                 kh, sq.best_userid_for(kh, for_signing.clone(), true).0)?;
+        match sq.best_userid_for(kh, for_signing.clone(), true) {
+            (puid, Ok(cert)) => emit(Ok((cert.fingerprint(), puid)))?,
+            (puid, Err(e)) => emit(Err((kh.clone(), puid, e)))?,
+        }
     }
 
     let mut keyids: Vec<_> = sig.issuers().collect();
     keyids.sort();
     keyids.dedup();
     for keyid in keyids {
-        if ! khs.iter().any(|kh| kh.aliases(&keyid.into())) {
-            writeln!(output, "{:>WIDTH$}: {}, {}", "Alleged signer",
-                     keyid,
-                     sq.best_userid_for(&KeyHandle::from(keyid),
-                                        for_signing.clone(), true).0)?;
+        let keyid = keyid.into();
+        if ! khs.iter().any(|kh| kh.aliases(&keyid)) {
+            match sq.best_userid_for(&keyid, for_signing.clone(), true) {
+                (puid, Ok(cert)) => emit(Ok((cert.fingerprint(), puid)))?,
+                (puid, Err(e)) => emit(Err((keyid, puid, e)))?,
+            }
         }
     }
 
@@ -620,8 +647,6 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
     -> Result<()>
     where A: std::iter::Iterator<Item=&'a openpgp::packet::Signature>
 {
-    let for_signing = KeyFlags::empty().set_signing();
-
     if print_certifications {
         let mut emit_warning = false;
         for sig in certs {
@@ -691,27 +716,21 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
                 }
             }
 
-            let mut fps: Vec<_> = sig.issuer_fingerprints().collect();
-            fps.sort();
-            fps.dedup();
-            let khs: Vec<KeyHandle> = fps.into_iter().map(|fp| fp.into()).collect();
-            for kh in khs.iter() {
-                writeln!(output, "{:>WIDTH$}  Alleged certifier: {}, {}",
-                         "", kh,
-                         sq.best_userid_for(kh, for_signing.clone(), true).0)?;
-            }
-            let mut keyids: Vec<_> = sig.issuers().collect();
-            keyids.sort();
-            keyids.dedup();
-            for keyid in keyids {
-                if ! khs.iter().any(|kh| kh.aliases(&keyid.into())) {
-                    writeln!(output, "{:>WIDTH$}  Alleged certifier: {}, {}",
-                             "", keyid,
-                             sq.best_userid_for(
-                                 &KeyHandle::from(keyid), for_signing.clone(),
-                                 true).0)?;
-                }
-            }
+            emit_issuers(sq, |id| match id {
+                Ok((kh, uid)) => {
+                    writeln!(output, "{:>WIDTH$}  Alleged certifier: {}",
+                             "", kh)?;
+                    writeln!(output, "{:>WIDTH$}      {}", "", uid)?;
+                    Ok(())
+                },
+                Err((kh, _, _)) => {
+                    writeln!(output, "{:>WIDTH$}  Alleged certifier: {}",
+                             "", "signer's cert not found")?;
+                    writeln!(output, "{:>WIDTH$}      {}", "", kh)?;
+                    writeln!(output, "{:>WIDTH$}      {}", "", "(signature subkey)")?;
+                    Ok(())
+                },
+            }, sig)?;
 
             writeln!(output, "{:>WIDTH$}  Hash algorithm: {}",
                      "", sig.hash_algo())?;

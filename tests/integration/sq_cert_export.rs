@@ -1,8 +1,6 @@
 use std::borrow::Cow;
 use std::ops::Deref;
 
-use tempfile::TempDir;
-
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 use openpgp::Result;
@@ -15,11 +13,9 @@ use super::common::Sq;
 fn sq_cert_export() -> Result<()>
 {
     let sq = Sq::new();
-    let dir = TempDir::new()?;
 
     struct Data {
         userids: &'static [&'static str],
-        filename: String,
         cert: Option<Cert>,
     }
 
@@ -32,12 +28,10 @@ fn sq_cert_export() -> Result<()>
     let data: &mut [Data] = &mut [
         Data {
             userids: &[ "<alice@example.org>" ][..],
-            filename: dir.path().join("alice.pgp").display().to_string(),
             cert: None,
         },
         Data {
             userids: &[ "<bob@example.org>" ][..],
-            filename: dir.path().join("bob.pgp").display().to_string(),
             cert: None,
         },
         Data {
@@ -45,7 +39,6 @@ fn sq_cert_export() -> Result<()>
                 "<carol@sub.example.org>",
                 "<carol@other.org>",
             ][..],
-            filename: dir.path().join("carol.pgp").display().to_string(),
             cert: None,
         },
     ][..];
@@ -54,16 +47,9 @@ fn sq_cert_export() -> Result<()>
     for data in data.iter_mut() {
         eprintln!("Generating key for {}",
                   data.userids.join(", "));
-        let mut cmd = sq.command();
-        cmd.args(["key", "generate", "--without-password",
-                  "--expiration", "never",
-                  "--output", &data.filename]);
-        for userid in data.userids.iter() {
-            cmd.args(["--userid", userid]);
-        }
-        cmd.assert().success();
+        let (cert, key_file, _rev) =
+            sq.key_generate(&["--expiration", "never"], &data.userids);
 
-        let cert = Cert::from_file(&data.filename)?;
         eprintln!("Importing {}", cert.fingerprint());
         for ka in cert.keys().subkeys() {
             eprintln!("  - {}", ka.fingerprint());
@@ -71,10 +57,7 @@ fn sq_cert_export() -> Result<()>
 
         data.cert = Some(cert);
 
-        let mut cmd = sq.command();
-        cmd.args(["cert", "import",
-                  &data.filename]);
-        cmd.assert().success();
+        sq.cert_import(key_file);
     }
 
     assert_eq!(data.len(), 3);

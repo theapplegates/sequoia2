@@ -875,31 +875,23 @@ fn sq_sign_using_cert_store() -> Result<()> {
     let certd = dir.path().join("cert.d").display().to_string();
     std::fs::create_dir(&certd).expect("mkdir works");
 
-    let alice_pgp = dir.path().join("alice.pgp").display().to_string();
     let msg_pgp = dir.path().join("msg.pgp").display().to_string();
 
     // Generate a key.
-    let mut cmd = sq.command();
-    cmd.args(["--cert-store", &certd,
-              "key", "generate", "--without-password",
-              "--expiration", "never",
-              "--userid", "<alice@example.org>",
-              "--output", &alice_pgp]);
-    cmd.assert().success();
-
-    let alice = Cert::from_file(&alice_pgp)?;
+    let (alice, alice_pgp, _rev) =
+        sq.key_generate(&["--expiration", "never"], &["<alice@example.org>"]);
 
     // Import it.
     let mut cmd = sq.command();
     cmd.args(["--cert-store", &certd,
-              "cert", "import", &alice_pgp]);
-    cmd.assert().success();
-
+              "cert", "import"]);
+    cmd.arg(&alice_pgp);
+    sq.run(cmd, true);
 
     // Sign a message.
     sq.command()
         .arg("sign")
-        .args(["--signer-file", &alice_pgp])
+        .arg("--signer-file").arg(&alice_pgp)
         .args(["--output", &msg_pgp])
         .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
         .assert()
@@ -938,7 +930,7 @@ fn sq_sign_using_cert_store() -> Result<()> {
     // explicitly.
     sq.command()
         .arg("verify")
-        .args(["--signer-file", &alice_pgp])
+        .arg("--signer-file").arg(&alice_pgp)
         .arg(&msg_pgp)
         .assert()
         .success();

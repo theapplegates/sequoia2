@@ -1,5 +1,3 @@
-use tempfile::TempDir;
-
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
 use openpgp::cert::prelude::*;
@@ -11,38 +9,25 @@ use super::common::Sq;
 fn sq_cert_import() -> Result<()>
 {
     let sq = Sq::new();
-    let dir = TempDir::new()?;
-
-    let alice_pgp = dir.path().join("alice.pgp").display().to_string();
-    let alice_pgp = &alice_pgp[..];
-    let bob_pgp = dir.path().join("bob.pgp").display().to_string();
-    let bob_pgp = &bob_pgp[..];
-    let carol_pgp = dir.path().join("carol.pgp").display().to_string();
-    let carol_pgp = &carol_pgp[..];
 
     // Generate keys.
-    let mut cmd = sq.command();
-    cmd.args(["key", "generate", "--without-password",
-              "--expiration", "never",
-              "--userid", "<alice@example.org>",
-              "--output", &alice_pgp]);
-    cmd.assert().success();
+    let (_cert, alice_pgp, _rev) =
+        sq.key_generate(&["--expiration", "never"], &["<alice@example.org>"]);
 
     let alice_bytes = std::fs::read(&alice_pgp)?;
 
-    let mut cmd = sq.command();
-    cmd.args(["key", "generate", "--without-password",
-              "--expiration", "never",
-              "--userid", "<bob@example.org>",
-              "--output", bob_pgp]);
-    cmd.assert().success();
+    let (_cert, bob_pgp, _rev) =
+        sq.key_generate(&["--expiration", "never"], &["<bob@example.org>"]);
 
-    let mut cmd = sq.command();
-    cmd.args(["key", "generate", "--without-password",
-              "--expiration", "never",
-              "--userid", "<carol@example.org>",
-              "--output", carol_pgp]);
-    cmd.assert().success();
+    let (_cert, carol_pgp, _rev) =
+        sq.key_generate(&["--expiration", "never"], &["<carol@example.org>"]);
+
+    let alice_pgp = alice_pgp.display().to_string();
+    let alice_pgp = &alice_pgp[..];
+    let bob_pgp = bob_pgp.display().to_string();
+    let bob_pgp = &bob_pgp[..];
+    let carol_pgp = carol_pgp.display().to_string();
+    let carol_pgp = &carol_pgp[..];
 
     let files = &[ alice_pgp, bob_pgp, carol_pgp ];
 

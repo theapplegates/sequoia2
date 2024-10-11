@@ -50,6 +50,8 @@
      primary keys and subkeys.
    - The argument `sq network keyserver publish --require-all` is the
      default now and has been removed.
+   - The argument `sq key generate --rev-cert ...` is now mandatory if
+     `--output` has been given.
 
 * Changes in 0.38.0
 ** Notable changes

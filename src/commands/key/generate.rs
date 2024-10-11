@@ -152,12 +152,6 @@ pub fn generate(
         (cert, rev) = gen()?;
 
         rev_cert
-    } else if let Some(path) = command.output.as_ref().and_then(|o| o.path()) {
-        (cert, rev) = gen()?;
-
-        let mut path = path.clone();
-        path.as_mut_os_string().push(".rev");
-        FileOrStdout::from(path)
     } else if on_keystore {
         let dir = sq.home.data_dir(sequoia_directories::Component::Other(
             "revocation-certificates".into()));
@@ -172,8 +166,8 @@ pub fn generate(
                                   cert.fingerprint()))))
     } else {
         return Err(anyhow::anyhow!(
-            "Missing arguments: --rev-cert is mandatory if --output is '-' \
-             or not provided."
+            "Missing arguments: --rev-cert is mandatory if --output is \
+             given."
         ));
     };
 

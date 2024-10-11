@@ -200,6 +200,7 @@ universal]",
 Write the key to the specified file.
 
 When not specified, the key is saved on the key store.",
+        requires = "rev_cert",
     )]
     pub output: Option<FileOrStdout>,
 
@@ -214,10 +215,9 @@ When the key is stored on the key store, the revocation certificate is \
 stored in {} by default.
 
 When `--output` is specified, the revocation certificate is written to \
-`FILE.rev` by default.
+the file specified by `--rev-cert`.
 
-If `--output` is `-`, then this option must be provided, and must not \
-also be `-`.",
+If `--output` is `-`, then this option must not also be `-`.",
             sequoia_directories::Home::default()
             .map(|home| {
                 let p = home.data_dir(sequoia_directories::Component::Other(
@@ -257,6 +257,7 @@ Generate a key, and save it in a file instead of in the key store.",
                 "--name", "Alice",
                 "--email", "alice@example.org",
                 "--output", "alice-priv.pgp",
+                "--rev-cert", "alice-priv.rev",
             ],
         }),
         Action::Example(Example {

@@ -48,6 +48,8 @@
      splitting `--handle` into `--cert` and `--key`, where the former
      only matches on primary keys, and the latter matches on both
      primary keys and subkeys.
+   - The argument `sq network keyserver publish --require-all` is the
+     default now and has been removed.
 
 * Changes in 0.38.0
 ** Notable changes

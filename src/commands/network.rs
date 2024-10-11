@@ -978,14 +978,12 @@ pub fn dispatch_keyserver(mut sq: Sq,
                 }
             }
 
-            let mut one_ok = false;
             let mut result = Ok(());
             while let Some(response) = requests.join_next().await {
                 let (url, cert, response) = response?;
                 match response {
                     Ok(()) => {
                         qprintln!("{}: ok", url);
-                        one_ok = true;
                     },
                     Err(e) if default_servers
                         && url == "hkps://mail-api.proton.me" =>
@@ -1023,16 +1021,6 @@ pub fn dispatch_keyserver(mut sq: Sq,
                         }
                     },
                 }
-            }
-
-            if ! c.require_all && one_ok && result.is_err() {
-                // We don't require all requests to be successful,
-                // there was a successful one, but also at least one
-                // error that we didn't yet report.  Report that now,
-                // and clear it.
-                let (url, e) = result.unwrap_err();
-                wprintln!("{}: {}", url, e);
-                result = Ok(());
             }
 
             result.map_err(|(_url, e)| e)

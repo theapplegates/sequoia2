@@ -119,15 +119,6 @@ default, the certificates are sent to {}.  This can be tweaked using \
 pub struct PublishCommand {
     #[command(flatten)]
     pub certs: CertDesignators<CertUserIDEmailFileArgs>,
-
-    #[clap(
-        long,
-        help = "Require that all publish operations succeed \
-                and return an error otherwise.  \
-                By default we only require that one publish \
-                operation succeeds.",
-    )]
-    pub require_all: bool,
 }
 
 /// Joins the given key server URLs into a list.

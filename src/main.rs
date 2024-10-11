@@ -477,3 +477,14 @@ fn print_examples(cli: &clap::Command, usage: impl ToString) -> Result<()> {
     Ok(())
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    // Run some clap tests.
+    #[test]
+    fn verify_app() {
+        let cli = cli::build(true);
+        cli.debug_assert();
+    }
+}

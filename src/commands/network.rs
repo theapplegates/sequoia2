@@ -27,14 +27,17 @@ use openpgp::{
         UserID,
     },
     parse::Parse,
-    types::SignatureType,
+    types::{
+        KeyFlags,
+        SignatureType,
+    },
 };
 use sequoia_net as net;
 use net::{
     KeyServer,
     wkd,
     dane,
-    reqwest::Url,
+    reqwest::{StatusCode, Url},
 };
 
 use sequoia_cert_store as cert_store;
@@ -970,7 +973,7 @@ pub fn dispatch_keyserver(mut sq: Sq,
                     let ks = ks.clone();
                     requests.spawn(async move {
                         let response = ks.send(&cert).await;
-                        (ks.url().to_string(), response)
+                        (ks.url().to_string(), cert, response)
                     });
                 }
             }
@@ -978,7 +981,7 @@ pub fn dispatch_keyserver(mut sq: Sq,
             let mut one_ok = false;
             let mut result = Ok(());
             while let Some(response) = requests.join_next().await {
-                let (url, response) = response?;
+                let (url, cert, response) = response?;
                 match response {
                     Ok(()) => {
                         qprintln!("{}: ok", url);
@@ -998,6 +1001,22 @@ pub fn dispatch_keyserver(mut sq: Sq,
                         }
                     },
                     Err(e) => {
+                        if url == "hkps://keys.mailvelope.com"
+                            && matches!(e.downcast_ref(),
+                                        Some(net::Error::HttpStatus(
+                                            StatusCode::BAD_REQUEST)))
+                            && cert.keys().with_policy(sq.policy, sq.time)
+                            .key_flags(KeyFlags::empty()
+                                       .set_transport_encryption()
+                                       .set_storage_encryption())
+                            .next().is_none()
+                        {
+                            sq.hint(format_args!(
+                                "The Mailvelope key server rejects \
+                                 certificates that are not \
+                                 encryption-capable."));
+                        }
+
                         if result.is_ok() {
                             result = Err((url, e));
                         } else {

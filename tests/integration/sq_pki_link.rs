@@ -5,10 +5,14 @@ use std::sync::{Mutex, OnceLock};
 use tempfile::TempDir;
 
 use sequoia_openpgp as openpgp;
+use openpgp::KeyHandle;
 use openpgp::Result;
 use openpgp::Cert;
 
-use super::common::{Sq, artifact};
+use super::common::artifact;
+use super::common::Sq;
+use super::common::FileOrKeyHandle;
+
 
 // We are going to replace certifications, and we want to make sure
 // that the newest one is the active one.  This means ensuring that
@@ -150,6 +154,13 @@ fn sq_certify(sq: &Sq,
 
     let certification = sq.scratch_file(Some(&format!(
         "certification {} {} by {}", cert, userid, certifier)[..]));
+
+    let cert = if let Ok(kh) = cert.parse::<KeyHandle>() {
+        kh.into()
+    } else {
+        FileOrKeyHandle::FileOrStdin(cert.into())
+    };
+
     sq.pki_certify(&extra_args, certifier, cert, userid,
                    Some(certification.as_path()));
     sq.cert_import(&certification);

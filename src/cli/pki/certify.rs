@@ -15,7 +15,10 @@ use crate::cli::types::Expiration;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::TrustAmount;
+use crate::cli::types::cert_designator::CertFileArgs;
+use crate::cli::types::cert_designator::CertPrefix;
 use crate::cli::types::cert_designator::NoPrefix;
+use crate::cli::types::cert_designator::OneValue;
 use crate::cli::types::cert_designator::UserIDEmailArgs;
 
 use crate::cli::examples::*;
@@ -34,7 +37,7 @@ Alice certifies that Bob controls 3F68CB84CE537C9A and bob@example.org.",
             command: &[
                 "sq", "pki", "certify",
                 "--certifier", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+                "--cert", "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
                 "--email", "bob@example.org",
             ],
         }),
@@ -46,7 +49,7 @@ which is not a self-signed user ID.",
             command: &[
                 "sq", "pki", "certify",
                 "--certifier", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+                "--cert", "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
                 "--add-userid",
                 "--email", "bob@bobs.lair.net",
             ],
@@ -206,13 +209,9 @@ pub struct Command {
         help = "Create the certification using KEY-FILE.",
     )]
     pub certifier_file: Option<FileOrStdin>,
-    #[clap(
-        value_name = "KEY_ID|FINGERPRINT|FILE",
-        required = true,
-        index = 1,
-        help = "Certify CERTIFICATE.",
-    )]
-    pub certificate: String,
+
+    #[command(flatten)]
+    pub cert: CertDesignators<CertFileArgs, CertPrefix, OneValue>,
 
     #[command(flatten)]
     pub userids: CertDesignators<UserIDEmailArgs, NoPrefix>,

@@ -47,6 +47,7 @@ use keystore::Protection;
 use crate::cli::types::CertDesignators;
 use crate::cli::types::cert_designator::ArgumentPrefix;
 use crate::cli::types::cert_designator::CertDesignator;
+use crate::cli::types::cert_designator::OneValue;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::common::password;
 use crate::output::hint::Hint;
@@ -2101,5 +2102,54 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         }
 
         Ok((results, errors))
+    }
+
+    /// Like `Sq::resolve_certs`, but bails if there is not exactly
+    /// one designator, or the designator resolves to multiple
+    /// certificates.
+    ///
+    /// Returns whether the certificate was read from a file.
+    pub fn resolve_cert<Arguments, Prefix>(
+        &self,
+        designators: &CertDesignators<Arguments, Prefix, OneValue>,
+        trust_amount: usize,
+    )
+        -> Result<(Cert, bool)>
+    where
+        Prefix: ArgumentPrefix
+    {
+        // Assuming this is only called with OneValue, then the
+        // following are not required.
+        if designators.designators.len() == 0 {
+            panic!("clap failed to enforce that the {} argument is \
+                    required.",
+                   Prefix::name());
+        } else if designators.designators.len() > 1 {
+            panic!("clap failed to enforce that the {} argument is \
+                    specified at most once.",
+                   Prefix::name());
+        }
+
+        let (certs, errors) = self.resolve_certs(designators, trust_amount)?;
+        if certs.len() > 1 {
+            wprintln!("{} is ambiguous.  It resolves to multiple certificates.",
+                      designators.designators[0].argument::<Prefix>());
+            for cert in certs.iter() {
+                eprintln!("  - {} {}",
+                          cert.fingerprint(),
+                          self.best_userid(cert, true));
+            }
+
+            return Err(anyhow::anyhow!(
+                "{} is ambiguous.  It resolves to multiple certificates.",
+                designators.designators[0].argument::<Prefix>()))
+        }
+
+        if let Some(errors) = errors.into_iter().next() {
+            return Err(errors);
+        }
+
+        Ok((certs.into_iter().next().unwrap(),
+            designators.designators[0].from_file()))
     }
 }

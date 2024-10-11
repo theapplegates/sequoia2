@@ -62,6 +62,9 @@
      changes the meaning of how `--userid` is interpreted, but takes
      an email address.  The `--userid` and `--email` arguments may be
      given multiple times to certify multiple user IDs at once.
+   - `sq pki certify`'s positional argument for specifying the
+     certificate to certify must now be specified using a named
+     argument, `--cert` or `--cert-file`.
 
 * Changes in 0.38.0
 ** Notable changes

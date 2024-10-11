@@ -1316,7 +1316,15 @@ impl Sq {
                 cmd.arg("--certifier").arg(s);
             }
         }
-        cmd.arg(&cert).arg("--userid").arg(userid);
+        match &cert {
+            FileOrKeyHandle::FileOrStdin(file) => {
+                cmd.arg("--cert-file").arg(file);
+            }
+            FileOrKeyHandle::KeyHandle((_kh, s)) => {
+                cmd.arg("--cert").arg(s);
+            }
+        }
+        cmd.arg("--userid").arg(userid);
 
         if let Some(output_file) = output_file {
             cmd.arg("--overwrite").arg("--output").arg(output_file);

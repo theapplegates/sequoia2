@@ -19,7 +19,9 @@ use openpgp::policy::StandardPolicy;
 use openpgp::serialize::stream::{Message, Signer, Compressor, LiteralWriter};
 use openpgp::serialize::Serialize;
 
-use super::common::{Sq, artifact};
+use super::common::artifact;
+use super::common::Sq;
+use super::common::FileOrKeyHandle;
 
 const P: &StandardPolicy = &StandardPolicy::new();
 
@@ -1059,6 +1061,13 @@ fn sq_verify_wot() -> Result<()> {
 
         let certification = sq.scratch_file(Some(&format!(
             "certification {} {} by {}", cert, userid, certifier)[..]));
+
+        let cert = if let Ok(kh) = cert.parse::<KeyHandle>() {
+            kh.into()
+        } else {
+            FileOrKeyHandle::FileOrStdin(cert.into())
+        };
+
         sq.pki_certify(&extra_args, certifier, cert, userid,
                        Some(certification.as_path()));
         sq.cert_import(&certification);

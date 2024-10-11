@@ -15,6 +15,9 @@ use openpgp::packet::UserID;
 /// See [`NoPrefix`], [`CertPrefix`], etc.
 pub trait ArgumentPrefix {
     fn prefix() -> &'static str;
+
+    /// The argument group's name, e.g., "cert", "for".
+    fn name() -> &'static str;
 }
 
 pub struct ConcreteArgumentPrefix<T>(std::marker::PhantomData<T>)
@@ -32,17 +35,29 @@ impl ArgumentPrefix for NoPrefix {
     fn prefix() -> &'static str {
         ""
     }
+
+    fn name() -> &'static str {
+        "cert"
+    }
 }
 
 impl ArgumentPrefix for CertPrefix {
     fn prefix() -> &'static str {
         "cert-"
     }
+
+    fn name() -> &'static str {
+        "cert"
+    }
 }
 
 impl ArgumentPrefix for RecipientPrefix {
     fn prefix() -> &'static str {
         "for-"
+    }
+
+    fn name() -> &'static str {
+        "for"
     }
 }
 
@@ -83,6 +98,11 @@ pub type CertUserIDEmailFileArgs
 /// or --grep).
 pub type UserIDEmailArgs
     = <UserIDArg as std::ops::BitOr<EmailArg>>::Output;
+
+/// Enables --cert, and --file (i.e., not --userid, --email, --domain,
+/// or --grep).
+pub type CertFileArgs = <CertArg as std::ops::BitOr<FileArg>>::Output;
+
 
 /// Argument parser options.
 
@@ -200,6 +220,16 @@ impl CertDesignator {
             Grep(pattern) => format!("{} {:?}", argument_name, pattern),
         }
     }
+
+    /// Whether the argument reads from a file.
+    pub fn from_file(&self) -> bool
+    {
+        if let CertDesignator::File(_) = self {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 /// A data structure that can be flattened into a clap `Command`, and
@@ -270,7 +300,7 @@ where
         let optional_value = (options & OptionalValue::to_usize()) > 0;
 
         let group = format!("cert-designator-{}-{:X}-{:X}",
-                            Prefix::prefix(),
+                            Prefix::name(),
                             arguments,
                             options);
         let mut arg_group = clap::ArgGroup::new(group);

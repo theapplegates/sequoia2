@@ -141,7 +141,7 @@ const UPDATE_EXAMPLES: Actions = Actions {
             command: &[
                 "sq", "pki", "certify",
                 "--certifier", "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email", "alice@example.org",
             ],
         }),

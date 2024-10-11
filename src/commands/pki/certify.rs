@@ -1,12 +1,10 @@
 use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
 use openpgp::packet::UserID;
 use openpgp::Result;
 use openpgp::types::KeyFlags;
 
 use crate::Sq;
 use crate::cli::pki::certify;
-use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::cli::types::cert_designator::CertDesignator;
 use crate::commands::FileOrStdout;
@@ -27,15 +25,8 @@ pub fn certify(sq: Sq, mut c: certify::Command)
     let certifier = sq.lookup_one(
         certifier, Some(KeyFlags::empty().set_certification()), true)?;
 
-    // XXX: Change this interface: it's dangerous to guess whether an
-    // identifier is a file or a key handle.
-    let cert = if let Ok(kh) = c.certificate.parse::<KeyHandle>() {
-        FileStdinOrKeyHandle::KeyHandle(kh)
-    } else {
-        FileStdinOrKeyHandle::FileOrStdin(
-            FileOrStdin::new(Some(c.certificate.into())))
-    };
-    if cert.is_file() {
+    let (cert, from_file) = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
+    if from_file {
         // If the cert is read from a file, we default to stdout.
         // (None means write to the cert store.)
         if c.output.is_none() {
@@ -43,7 +34,6 @@ pub fn certify(sq: Sq, mut c: certify::Command)
         }
     }
 
-    let cert = sq.lookup_one(cert, None, true)?;
     let vc = cert.with_policy(sq.policy, Some(sq.time))?;
 
     // Find the matching User ID.

@@ -8,6 +8,8 @@ use crate::cli::types::FileOrStdout;
 use crate::cli::types::cert_designator::{
     CertDesignators,
     CertUserIDEmailFileArgs,
+    OptionalValue,
+    NoPrefix,
 };
 
 use crate::cli::examples::*;
@@ -71,7 +73,9 @@ records instead.
 )]
 pub struct GenerateCommand {
     #[command(flatten)]
-    pub certs: CertDesignators<CertUserIDEmailFileArgs>,
+    pub certs: CertDesignators<CertUserIDEmailFileArgs,
+                               NoPrefix,
+                               OptionalValue>,
 
     #[clap(
         long = "domain",

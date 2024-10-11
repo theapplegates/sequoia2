@@ -2,6 +2,8 @@ use clap::Parser;
 
 use crate::cli::types::CertDesignators;
 use crate::cli::types::cert_designator::CertUserIDEmailDomainGrepArgs;
+use crate::cli::types::cert_designator::NoPrefix;
+use crate::cli::types::cert_designator::OptionalValue;
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
@@ -98,7 +100,9 @@ pub struct Command {
     pub all: bool,
 
     #[command(flatten)]
-    pub certs: CertDesignators<CertUserIDEmailDomainGrepArgs>,
+    pub certs: CertDesignators<CertUserIDEmailDomainGrepArgs,
+                               NoPrefix,
+                               OptionalValue>,
 
     #[clap(
         value_name = "QUERY",

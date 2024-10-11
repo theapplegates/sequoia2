@@ -6,6 +6,7 @@ use crate::cli::types::FileOrStdout;
 use crate::cli::types::cert_designator::{
     CertDesignators,
     CertUserIDEmailFileArgs,
+    NoPrefix,
 };
 
 /// The default key servers to query.
@@ -118,7 +119,8 @@ default, the certificates are sent to {}.  This can be tweaked using \
 )]
 pub struct PublishCommand {
     #[command(flatten)]
-    pub certs: CertDesignators<CertUserIDEmailFileArgs>,
+    pub certs: CertDesignators<CertUserIDEmailFileArgs,
+                               NoPrefix>,
 }
 
 /// Joins the given key server URLs into a list.

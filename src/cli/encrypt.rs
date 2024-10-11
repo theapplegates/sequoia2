@@ -16,6 +16,7 @@ use super::types::FileOrStdout;
 
 use crate::cli::types::CertDesignators;
 use crate::cli::types::cert_designator::CertUserIDEmailFileArgs;
+use crate::cli::types::cert_designator::OptionalValue;
 use crate::cli::types::cert_designator::RecipientPrefix;
 
 use crate::cli::examples;
@@ -98,7 +99,9 @@ pub struct Command {
     pub binary: bool,
 
     #[command(flatten)]
-    pub recipients: CertDesignators<CertUserIDEmailFileArgs, RecipientPrefix>,
+    pub recipients: CertDesignators<CertUserIDEmailFileArgs,
+                                    RecipientPrefix,
+                                    OptionalValue>,
 
     #[clap(
         help = "Set the filename of the encrypted file as metadata",

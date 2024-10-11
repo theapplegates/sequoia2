@@ -84,6 +84,17 @@ pub type CertUserIDEmailFileArgs
 pub type UserIDEmailArgs
     = <UserIDArg as std::ops::BitOr<EmailArg>>::Output;
 
+/// Argument parser options.
+
+/// Normally it is possible to designate multiple certificates.  This
+/// errors out if there is more than one value.
+pub type OneValue = typenum::U1;
+
+/// Normally a certificate designator is required, and errors out if
+/// there isn't at least one value.  This makes the cert designator
+/// completely optional.
+pub type OptionalValue = typenum::U2;
+
 /// A certificate designator.
 #[derive(Debug)]
 pub enum CertDesignator {
@@ -194,23 +205,25 @@ impl CertDesignator {
 /// A data structure that can be flattened into a clap `Command`, and
 /// adds arguments to address certificates.
 ///
-/// Depending on `Options`, it adds zero or more arguments to the
+/// Depending on `Arguments`, it adds zero or more arguments to the
 /// subcommand.  If `CertArg` is selected, for instance, then a
 /// `--cert` argument is added.
 ///
-/// `Options` are the set of options to enable.
-///
 /// `Prefix` is a prefix to use.  Using `RecipientPrefix` will
 /// change, e.g., `--email` to `--for-email`.
-pub struct CertDesignators<Options, Prefix=NoPrefix>
+///
+/// `Options` are the set of options to the argument parser.
+pub struct CertDesignators<Arguments, Prefix=NoPrefix, Options=typenum::U0>
 {
     /// The set of certificate designators.
     pub designators: Vec<CertDesignator>,
 
-    options: std::marker::PhantomData<(Options, Prefix)>,
+    arguments: std::marker::PhantomData<(Arguments, Prefix, Options)>,
 }
 
-impl<Options, Prefix> std::fmt::Debug for CertDesignators<Options, Prefix> {
+impl<Arguments, Prefix, Options> std::fmt::Debug
+    for CertDesignators<Arguments, Prefix, Options>
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CertDesignators")
             .field("designators", &self.designators)
@@ -218,7 +231,7 @@ impl<Options, Prefix> std::fmt::Debug for CertDesignators<Options, Prefix> {
     }
 }
 
-impl<Options, Prefix> CertDesignators<Options, Prefix> {
+impl<Arguments, Prefix, Options> CertDesignators<Arguments, Prefix, Options> {
     /// Like `Vec::push`.
     pub fn push(&mut self, designator: CertDesignator) {
         self.designators.push(designator)
@@ -235,20 +248,49 @@ impl<Options, Prefix> CertDesignators<Options, Prefix> {
     }
 }
 
-impl<Options, Prefix> clap::Args for CertDesignators<Options, Prefix>
+impl<Arguments, Prefix, Options> clap::Args
+    for CertDesignators<Arguments, Prefix, Options>
 where
-    Options: typenum::Unsigned,
+    Arguments: typenum::Unsigned,
     Prefix: ArgumentPrefix,
+    Options: typenum::Unsigned,
 {
     fn augment_args(mut cmd: clap::Command) -> clap::Command
     {
+        let arguments = Arguments::to_usize();
+        let file_arg = (arguments & FileArg::to_usize()) > 0;
+        let cert_arg = (arguments & CertArg::to_usize()) > 0;
+        let userid_arg = (arguments & UserIDArg::to_usize()) > 0;
+        let email_arg = (arguments & EmailArg::to_usize()) > 0;
+        let domain_arg = (arguments & DomainArg::to_usize()) > 0;
+        let grep_arg = (arguments & GrepArg::to_usize()) > 0;
+
         let options = Options::to_usize();
-        let file_arg = (options & FileArg::to_usize()) > 0;
-        let cert_arg = (options & CertArg::to_usize()) > 0;
-        let userid_arg = (options & UserIDArg::to_usize()) > 0;
-        let email_arg = (options & EmailArg::to_usize()) > 0;
-        let domain_arg = (options & DomainArg::to_usize()) > 0;
-        let grep_arg = (options & GrepArg::to_usize()) > 0;
+        let one_value = (options & OneValue::to_usize()) > 0;
+        let optional_value = (options & OptionalValue::to_usize()) > 0;
+
+        let group = format!("cert-designator-{}-{:X}-{:X}",
+                            Prefix::prefix(),
+                            arguments,
+                            options);
+        let mut arg_group = clap::ArgGroup::new(group);
+        if one_value {
+            arg_group = arg_group.multiple(false);
+        } else {
+            arg_group = arg_group.multiple(true);
+        }
+
+        if optional_value {
+            arg_group = arg_group.required(false);
+        } else {
+            arg_group = arg_group.required(true);
+        }
+
+        let action = if one_value {
+            clap::ArgAction::Set
+        } else {
+            clap::ArgAction::Append
+        };
 
         // Converts a string to a valid `KeyHandle`.
         //
@@ -311,57 +353,62 @@ where
             let full_name = full_name("cert");
             cmd = cmd.arg(
                 clap::Arg::new(&full_name)
-                    .long(full_name)
+                    .long(&full_name)
                     .value_name("FINGERPRINT|KEYID")
                     .value_parser(parse_as_key_handle)
-                    .action(clap::ArgAction::Append)
+                    .action(action.clone())
                     .help("Uses certificates with the specified \
                            fingerprint or key ID"));
+            arg_group = arg_group.arg(full_name);
         }
 
         if userid_arg {
             let full_name = full_name("userid");
             cmd = cmd.arg(
                 clap::Arg::new(&full_name)
-                    .long(full_name)
+                    .long(&full_name)
                     .value_name("USERID")
-                    .action(clap::ArgAction::Append)
+                    .action(action.clone())
                     .help("Uses certificates with the specified user ID"));
+            arg_group = arg_group.arg(full_name);
         }
 
         if email_arg {
             let full_name = full_name("email");
             cmd = cmd.arg(
                 clap::Arg::new(&full_name)
-                    .long(full_name)
+                    .long(&full_name)
                     .value_name("EMAIL")
                     .value_parser(parse_as_email)
-                    .action(clap::ArgAction::Append)
+                    .action(action.clone())
                     .help("Uses certificates where a user ID includes \
                            the specified email address"));
+            arg_group = arg_group.arg(full_name);
         }
 
         if domain_arg {
             let full_name = full_name("domain");
             cmd = cmd.arg(
                 clap::Arg::new(&full_name)
-                    .long(full_name)
+                    .long(&full_name)
                     .value_name("DOMAIN")
                     .value_parser(parse_as_domain)
-                    .action(clap::ArgAction::Append)
+                    .action(action.clone())
                     .help("Uses certificates where a user ID includes \
                            an email address for the specified domain"));
+            arg_group = arg_group.arg(full_name);
         }
 
         if grep_arg {
             let full_name = full_name("grep");
             cmd = cmd.arg(
                 clap::Arg::new(&full_name)
-                    .long(full_name)
+                    .long(&full_name)
                     .value_name("PATTERN")
-                    .action(clap::ArgAction::Append)
+                    .action(action.clone())
                     .help("Uses certificates with a user ID that \
                            matches the pattern, case insensitively"));
+            arg_group = arg_group.arg(full_name);
         }
 
         // Add all of the variants that are enabled.
@@ -369,12 +416,15 @@ where
             let full_name = full_name("file");
             cmd = cmd.arg(
                 clap::Arg::new(&full_name)
-                    .long(full_name)
+                    .long(&full_name)
                     .value_name("PATH")
                     .value_parser(clap::value_parser!(PathBuf))
-                    .action(clap::ArgAction::Append)
+                    .action(action.clone())
                     .help("Reads certificates from PATH"));
+            arg_group = arg_group.arg(full_name);
         }
+
+        cmd = cmd.group(arg_group);
 
         cmd
     }
@@ -385,23 +435,25 @@ where
     }
 }
 
-impl<Options, Prefix> clap::FromArgMatches for CertDesignators<Options, Prefix>
+impl<Arguments, Prefix, Options> clap::FromArgMatches
+    for CertDesignators<Arguments, Prefix, Options>
 where
-    Options: typenum::Unsigned,
+    Arguments: typenum::Unsigned,
     Prefix: ArgumentPrefix,
+    Options: typenum::Unsigned,
 {
     fn update_from_arg_matches(&mut self, matches: &clap::ArgMatches)
         -> Result<(), clap::Error>
     {
         // eprintln!("matches: {:#?}", matches);
 
-        let options = Options::to_usize();
-        let file_arg = (options & FileArg::to_usize()) > 0;
-        let cert_arg = (options & CertArg::to_usize()) > 0;
-        let userid_arg = (options & UserIDArg::to_usize()) > 0;
-        let email_arg = (options & EmailArg::to_usize()) > 0;
-        let domain_arg = (options & DomainArg::to_usize()) > 0;
-        let grep_arg = (options & GrepArg::to_usize()) > 0;
+        let arguments = Arguments::to_usize();
+        let file_arg = (arguments & FileArg::to_usize()) > 0;
+        let cert_arg = (arguments & CertArg::to_usize()) > 0;
+        let userid_arg = (arguments & UserIDArg::to_usize()) > 0;
+        let email_arg = (arguments & EmailArg::to_usize()) > 0;
+        let domain_arg = (arguments & DomainArg::to_usize()) > 0;
+        let grep_arg = (arguments & GrepArg::to_usize()) > 0;
 
         let mut designators = Vec::new();
 
@@ -480,7 +532,7 @@ where
     {
         let mut designators = Self {
             designators: Vec::new(),
-            options: std::marker::PhantomData,
+            arguments: std::marker::PhantomData,
         };
 
         // The way we use clap, this is never called.
@@ -660,5 +712,109 @@ mod test {
         check!(DomainArg,  false, false, false,  true, false, false);
         check!(GrepArg,    false, false, false, false,  true, false);
         check!(FileArg,    false, false, false, false, false,  true);
+    }
+
+    #[test]
+    fn cert_designators_one() {
+        use clap::Parser;
+        use clap::CommandFactory;
+        use clap::FromArgMatches;
+
+        #[derive(Parser, Debug)]
+        #[clap(name = "prog")]
+        struct CLI {
+            #[command(flatten)]
+            pub certs: CertDesignators<CertUserIDEmailFileArgs,
+                                       NoPrefix,
+                                       OneValue>,
+        }
+
+        let command = CLI::command();
+
+        // Check if --cert is recognized.
+        let m = command.clone().try_get_matches_from(vec![
+            "prog",
+            "--cert", "C2B819056C652598",
+        ]);
+        let m = m.expect("valid arguments");
+        let c = CLI::from_arg_matches(&m).expect("ok");
+        assert_eq!(c.certs.designators.len(), 1);
+
+        // Make sure that we can't give it twice.
+        let m = command.clone().try_get_matches_from(vec![
+            "prog",
+            "--cert", "C2B819056C652598",
+            "--cert", "C2B819056C652598",
+        ]);
+        assert!(m.is_err());
+
+        // Make sure that we can't give it zero times.
+        let m = command.clone().try_get_matches_from(vec![
+            "prog",
+        ]);
+        assert!(m.is_err());
+
+        // Mixing is also not allowed.
+        let m = command.clone().try_get_matches_from(vec![
+            "prog",
+            "--cert", "C2B819056C652598",
+            "--email", "localpart@example.org",
+        ]);
+        assert!(m.is_err());
+    }
+
+    #[test]
+    fn cert_designators_optional() {
+        use clap::Parser;
+        use clap::CommandFactory;
+        use clap::FromArgMatches;
+
+        #[derive(Parser, Debug)]
+        #[clap(name = "prog")]
+        struct CLI {
+            #[command(flatten)]
+            pub certs: CertDesignators<CertUserIDEmailFileArgs,
+                                       NoPrefix,
+                                       OptionalValue>,
+        }
+
+        let command = CLI::command();
+
+        // Check if --cert is recognized.
+        let m = command.clone().try_get_matches_from(vec![
+            "prog",
+            "--cert", "C2B819056C652598",
+        ]);
+        let m = m.expect("valid arguments");
+        let c = CLI::from_arg_matches(&m).expect("ok");
+        assert_eq!(c.certs.designators.len(), 1);
+
+        // Make sure that we can give it twice.
+        let m = command.clone().try_get_matches_from(vec![
+            "prog",
+            "--cert", "C2B819056C652598",
+            "--cert", "C2B819056C652598",
+        ]);
+        let m = m.expect("valid arguments");
+        let c = CLI::from_arg_matches(&m).expect("ok");
+        assert_eq!(c.certs.designators.len(), 2);
+
+        // Make sure that we can give it zero times.
+        let m = command.clone().try_get_matches_from(vec![
+            "prog",
+        ]);
+        let m = m.expect("valid arguments");
+        let c = CLI::from_arg_matches(&m).expect("ok");
+        assert_eq!(c.certs.designators.len(), 0);
+
+        // Make sure mixing is allowed.
+        let m = command.clone().try_get_matches_from(vec![
+            "prog",
+            "--cert", "C2B819056C652598",
+            "--email", "localpart@example.org",
+        ]);
+        let m = m.expect("valid arguments");
+        let c = CLI::from_arg_matches(&m).expect("ok");
+        assert_eq!(c.certs.designators.len(), 2);
     }
 }

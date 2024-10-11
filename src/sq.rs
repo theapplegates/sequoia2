@@ -1698,9 +1698,9 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// general, designator-specific errors are returned as `Err`s in
     /// the `Vec`.  General errors, like the certificate store is
     /// disabled, are returned using the outer `Result`.
-    pub fn resolve_certs<Options, Prefix>(
+    pub fn resolve_certs<Arguments, Prefix, Options>(
         &self,
-        designators: &CertDesignators<Options, Prefix>,
+        designators: &CertDesignators<Arguments, Prefix, Options>,
         trust_amount: usize,
     )
         -> Result<(Vec<Cert>, Vec<anyhow::Error>)>

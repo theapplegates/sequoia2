@@ -1,5 +1,3 @@
-use std::fmt;
-
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 use openpgp::packet::UserID;
@@ -10,27 +8,9 @@ use crate::Sq;
 use crate::cli::pki::certify;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileStdinOrKeyHandle;
+use crate::cli::types::cert_designator::CertDesignator;
 use crate::commands::FileOrStdout;
 use crate::parse_notations;
-
-/// How to match on user IDs.
-#[derive(Debug)]
-enum UserIDQuery {
-    /// Exact match.
-    Exact(String),
-
-    /// Match on the email address.
-    Email(String),
-}
-
-impl fmt::Display for UserIDQuery {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            UserIDQuery::Exact(q) => f.write_str(q),
-            UserIDQuery::Email(q) => write!(f, "<{}>", q),
-        }
-    }
-}
 
 pub fn certify(sq: Sq, mut c: certify::Command)
     -> Result<()>
@@ -67,63 +47,111 @@ pub fn certify(sq: Sq, mut c: certify::Command)
     let vc = cert.with_policy(sq.policy, Some(sq.time))?;
 
     // Find the matching User ID.
-    let query = if c.email {
-        UserIDQuery::Email(c.userid)
-    } else {
-        UserIDQuery::Exact(c.userid)
-    };
-
     let mut userids = Vec::new();
-    for ua in vc.userids() {
-        match &query {
-            UserIDQuery::Exact(q) => {
-                if ua.userid().value() == q.as_bytes() {
-                    userids.push(ua.userid().clone());
-                    break;
-                }
-            },
-            UserIDQuery::Email(q) => {
-                if ua.userid().email2().map(|u| u == Some(q.as_str()))
-                    .unwrap_or(false)
+
+    // Don't stop at the first error.
+    let mut missing = false;
+    let mut bad = None;
+
+    for designator in c.userids.iter() {
+        match designator {
+            CertDesignator::UserID(userid) => {
+                let userid = UserID::from(&userid[..]);
+
+                // If --add-userid is specified, we use the user ID as
+                // is.  Otherwise, we make sure there is a matching
+                // self-signed user ID.
+                if c.add_userid {
+                    userids.push(userid.clone());
+                } else if let Some(_) = vc.userids()
+                    .find(|ua| {
+                        ua.userid() == &userid
+                    })
                 {
-                    userids.push(ua.userid().clone());
+                    userids.push(userid.clone());
+                } else {
+                    wprintln!("{:?} is not a self-signed user ID.",
+                              String::from_utf8_lossy(userid.value()));
+                    missing = true;
                 }
-            },
+            }
+            CertDesignator::Email(email) => {
+                // Validate the email address.
+                let userid = match UserID::from_address(None, None, email) {
+                    Ok(userid) => userid,
+                    Err(err) => {
+                        wprintln!("{:?} is not a valid email address: {}",
+                                  email, err);
+                        bad = Some(err);
+                        continue;
+                    }
+                };
+
+                // Extract a normalized version for comparison
+                // purposes.
+                let email_normalized = match userid.email_normalized() {
+                    Ok(Some(email)) => email,
+                    Ok(None) => {
+                        wprintln!("{:?} is not a valid email address", email);
+                        bad = Some(anyhow::anyhow!(format!(
+                            "{:?} is not a valid email address", email)));
+                        continue;
+                    }
+                    Err(err) => {
+                        wprintln!("{:?} is not a valid email address: {}",
+                                  email, err);
+                        bad = Some(err);
+                        continue;
+                    }
+                };
+
+                // Find any the matching self-signed user IDs.
+                let mut found = false;
+                for ua in vc.userids() {
+                    if Some(&email_normalized)
+                        == ua.email_normalized().unwrap_or(None).as_ref()
+                    {
+                        userids.push(ua.userid().clone());
+                        found = true;
+                    }
+                }
+
+                if ! found {
+                    if c.add_userid {
+                        // Add the bare email address.
+                        userids.push(userid);
+                    } else {
+                        eprintln!("The email address {:?} does not match any \
+                                   user IDs.",
+                                  email);
+                        missing = true;
+                    }
+                }
+            }
+            _ => unreachable!("enforced by clap"),
         }
     }
 
-    if userids.is_empty() && c.add_userid {
-        userids.push(match &query {
-            UserIDQuery::Exact(q) => UserID::from(q.as_str()),
-            UserIDQuery::Email(q) => {
-                // XXX: Ideally, we could just use the following
-                // expression, but currently this returns the bare
-                // email address without brackets, so currently we
-                // only use it to validate the address...
-                UserID::from_address(None, None, q.as_str())?;
-
-                // ... and construct the value by foot:
-                UserID::from(format!("<{}>", q))
-
-                // See https://gitlab.com/sequoia-pgp/sequoia/-/issues/1076
-            },
-        });
-    }
-
-    if userids.is_empty() {
-        wprintln!("User ID: '{}' not found.\nValid User IDs:", query);
+    if missing {
+        wprintln!("{}'s self-signed user IDs:", vc.fingerprint());
         let mut have_valid = false;
         for ua in vc.userids() {
             if let Ok(u) = std::str::from_utf8(ua.userid().value()) {
                 have_valid = true;
-                wprintln!("  - {}", u);
+                wprintln!("  - {:?}", u);
             }
         }
         if ! have_valid {
-            wprintln!("  - Certificate has no valid User IDs.");
+            wprintln!("  - Certificate has no valid user IDs.");
         }
-        return Err(anyhow::format_err!("No matching User ID found"));
+        wprintln!("Pass `--add-userid` to certify a user ID even if it \
+                   isn't self signed.");
+        return Err(anyhow::anyhow!("Not a self-signed user ID"));
     };
+
+    if let Some(err) = bad {
+        return Err(err);
+    }
 
     let notations = parse_notations(&c.notation)?;
 

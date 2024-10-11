@@ -1316,7 +1316,7 @@ impl Sq {
                 cmd.arg("--certifier").arg(s);
             }
         }
-        cmd.arg(&cert).arg(userid);
+        cmd.arg(&cert).arg("--userid").arg(userid);
 
         if let Some(output_file) = output_file {
             cmd.arg("--overwrite").arg("--output").arg(output_file);

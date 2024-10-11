@@ -131,26 +131,28 @@ fn sq_retract(sq: &Sq, cert: &str, userids: &[&str])
 //
 // The certification is imported into the cert store.
 fn sq_certify(sq: &Sq,
-              key: &str, cert: &str, userid: &str,
+              certifier: &str, cert: &str, userid: &str,
               trust_amount: Option<usize>, depth: Option<usize>)
 {
-    let mut cmd = sq.command();
-    cmd.args(&["pki", "certify", "--time", &tick(),
-               "--certifier-file", key, cert, userid]);
+    let mut extra_args = Vec::new();
+    let trust_amount_;
     if let Some(trust_amount) = trust_amount {
-        cmd.args(&["--amount", &trust_amount.to_string()[..]]);
+        extra_args.push("--amount");
+        trust_amount_ = format!("{}", trust_amount);
+        extra_args.push(&trust_amount_);
     }
+    let depth_;
     if let Some(depth) = depth {
-        cmd.args(&["--depth", &depth.to_string()[..]]);
+        extra_args.push("--depth");
+        depth_ = format!("{}", depth);
+        extra_args.push(&depth_);
     }
-    eprintln!("{:?}", cmd);
-    let output = cmd.output().expect("can run");
 
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-    assert!(output.status.success(),
-            "sq pki certify\nstdout:\n{}\nstderr:\n{}",
-            stdout, stderr);
+    let certification = sq.scratch_file(Some(&format!(
+        "certification {} {} by {}", cert, userid, certifier)[..]));
+    sq.pki_certify(&extra_args, certifier, cert, userid,
+                   Some(certification.as_path()));
+    sq.cert_import(&certification);
 }
 
 // Verify signatures using the acceptance machinery.

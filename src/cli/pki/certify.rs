@@ -9,11 +9,14 @@ use openpgp::KeyHandle;
 use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION;
 use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS;
 
+use crate::cli::types::CertDesignators;
 use crate::cli::types::ClapData;
 use crate::cli::types::Expiration;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::TrustAmount;
+use crate::cli::types::cert_designator::NoPrefix;
+use crate::cli::types::cert_designator::UserIDEmailArgs;
 
 use crate::cli::examples::*;
 
@@ -188,22 +191,6 @@ pub struct Command {
             The special keyword `never` sets an unlimited expiry.",
     )]
     pub expiration: Expiration,
-    #[clap(
-        long,
-        help = "Treat the given user ID as an email address.",
-        long_help =
-            "Treat the given user ID as an email address.  \
-             If more than one user ID contain the given email \
-             address, all are certified.",
-    )]
-    pub email: bool,
-    #[clap(
-        long,
-        help = "Add the given user ID if it doesn't exist.",
-        long_help =
-            "Add the given user ID if it doesn't exist in the certificate.",
-    )]
-    pub add_userid: bool,
 
     #[clap(
         long,
@@ -226,11 +213,14 @@ pub struct Command {
         help = "Certify CERTIFICATE.",
     )]
     pub certificate: String,
+
+    #[command(flatten)]
+    pub userids: CertDesignators<UserIDEmailArgs, NoPrefix>,
     #[clap(
-        value_name = "USERID",
-        required = true,
-        index = 2,
-        help = "Certify USERID for CERTIFICATE.",
+        long,
+        help = "Add the given user ID if it doesn't exist.",
+        long_help =
+            "Add the given user ID if it doesn't exist in the certificate.",
     )]
-    pub userid: String,
+    pub add_userid: bool,
 }

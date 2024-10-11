@@ -1046,19 +1046,21 @@ fn sq_verify_wot() -> Result<()> {
     //
     // The certification is imported into the cert store.
     let sq_certify = |sq: &Sq,
-                      key: &str, cert: &str, userid: &str,
+                      certifier: &str, cert: &str, userid: &str,
                       trust_amount: Option<usize>|
     {
-        let mut cmd = sq.command();
-        cmd.args(&["pki", "certify", "--certifier-file", key, cert, userid]);
+        let mut extra_args = Vec::new();
+        let trust_amount_;
         if let Some(trust_amount) = trust_amount {
-            cmd.args(&["--amount", &trust_amount.to_string()[..]]);
+            extra_args.push("--amount");
+            trust_amount_ = format!("{}", trust_amount);
+            extra_args.push(&trust_amount_);
         }
-        let output = sq.run(cmd, true);
 
-        // Import the certification.
-        let certification = sq.base().join("certification");
-        std::fs::write(&certification, &output.stdout).unwrap();
+        let certification = sq.scratch_file(Some(&format!(
+            "certification {} {} by {}", cert, userid, certifier)[..]));
+        sq.pki_certify(&extra_args, certifier, cert, userid,
+                       Some(certification.as_path()));
         sq.cert_import(&certification);
     };
 

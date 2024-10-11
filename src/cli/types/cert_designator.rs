@@ -79,6 +79,11 @@ pub type CertUserIDEmailFileArgs
         as std::ops::BitOr<EmailArg>>::Output
        as std::ops::BitOr<FileArg>>::Output;
 
+/// Enables --userid, and --email (i.e., not --cert, --file, --domain,
+/// or --grep).
+pub type UserIDEmailArgs
+    = <UserIDArg as std::ops::BitOr<EmailArg>>::Output;
+
 /// A certificate designator.
 #[derive(Debug)]
 pub enum CertDesignator {
@@ -222,6 +227,11 @@ impl<Options, Prefix> CertDesignators<Options, Prefix> {
     /// Like `Vec::is_empty`.
     pub fn is_empty(&mut self) -> bool {
         self.designators.is_empty()
+    }
+
+    /// Iterates over the certificate designators.
+    pub fn iter(&self) -> impl Iterator<Item=&CertDesignator> {
+        self.designators.iter()
     }
 }
 

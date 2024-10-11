@@ -56,6 +56,12 @@
      emphasize that this is key discovery, and may return related or
      even wrong results.  Likewise for the key server, WKD, and DANE
      methods.
+   - `sq pki certify`'s positional argument for specifying the user ID
+     to certify must now be specified using a named argument,
+     `--userid`, or `--email`.  The `--email` argument no longer
+     changes the meaning of how `--userid` is interpreted, but takes
+     an email address.  The `--userid` and `--email` arguments may be
+     given multiple times to certify multiple user IDs at once.
 
 * Changes in 0.38.0
 ** Notable changes

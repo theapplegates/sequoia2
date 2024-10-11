@@ -1017,10 +1017,9 @@ pub fn dispatch_keyserver(mut sq: Sq,
                                  encryption-capable."));
                         }
 
+                        wprintln!("{}: {}", url, e);
                         if result.is_ok() {
                             result = Err((url, e));
-                        } else {
-                            wprintln!("{}: {}", url, e);
                         }
                     },
                 }

@@ -56,6 +56,10 @@ By using static data, we can use known fingerprints in the examples.
 
     - NOT imported into the key store.
 
+- ca-secret.pgp: A key with the user ID <ca@example.org>.
+
+    - NOT imported into the cert store.
+
 - bare.pgp: A bare key.
 
   A bare key is a public key without any components or signatures.

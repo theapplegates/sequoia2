@@ -115,6 +115,22 @@ fn sq_pki_authorize_then_authenticate() {
         true,  // bob@example.org
         false);// bob@other.org
 
+    // Otto authorizes to the CA with the domain contraint "example.org".
+    let certification = sq.scratch_file(None);
+    sq.tick(1);
+    sq.pki_authorize(&["--domain", "example.org"],
+                     otto.key_handle(), ca.key_handle(),
+                     &[],
+                     certification.as_path());
+    sq.cert_import(certification);
+
+    println!("CA: authorized for \"example.org\"");
+    check(
+        &sq,
+        true,  // alice@example.org
+        true,  // bob@example.org
+        false);// bob@other.org
+
     // Otto authorizes to the CA with the regex contraint "other".
     let certification = sq.scratch_file(None);
     sq.tick(1);
@@ -164,10 +180,60 @@ fn sq_pki_authorize_then_authenticate() {
         true);// bob@other.org
 
 
+    // Otto authorizes to the CA for the domains example.org and other.org.
+    let certification = sq.scratch_file(None);
+    sq.tick(1);
+    sq.pki_authorize(&["--domain", "example.org", "--domain", "other.org"],
+                     otto.key_handle(), ca.key_handle(),
+                     &[],
+                     certification.as_path());
+    sq.cert_import(certification);
+
+    println!("CA: authorized for the domains example.org and other.org");
+    check(
+        &sq,
+        true, // alice@example.org
+        true, // bob@example.org
+        true);// bob@other.org
+
+
+    // Otto authorizes to the CA for the domain example.com and the regex alice.
+    let certification = sq.scratch_file(None);
+    sq.tick(1);
+    sq.pki_authorize(&["--domain", "other.org", "--regex", "alice"],
+                     otto.key_handle(), ca.key_handle(),
+                     &[],
+                     certification.as_path());
+    sq.cert_import(certification);
+
+    println!("CA: authorized for the domains example.org and other.org");
+    check(
+        &sq,
+        true,  // alice@example.org
+        false, // bob@example.org
+        true); // bob@other.org
+
+
     // Otto authorizes to the CA with the regex contraint "zoo".
     let certification = sq.scratch_file(None);
     sq.tick(1);
     sq.pki_authorize(&["--regex", "zoo"],
+                     otto.key_handle(), ca.key_handle(),
+                     &[],
+                     certification.as_path());
+    sq.cert_import(certification);
+
+    println!("CA: authorized for \"zoo\"");
+    check(
+        &sq,
+        false, // alice@example.org
+        false, // bob@example.org
+        false);// bob@other.org
+
+    // Otto authorizes to the CA with the domain contraint "example".
+    let certification = sq.scratch_file(None);
+    sq.tick(1);
+    sq.pki_authorize(&["--domain", "example"],
                      otto.key_handle(), ca.key_handle(),
                      &[],
                      certification.as_path());

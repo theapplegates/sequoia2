@@ -26,6 +26,30 @@ use crate::cli::examples::*;
 
 const AUTHORIZE_EXAMPLES: Actions = Actions {
     actions: &[
+        Action::Setup(Setup {
+            command: &[
+                "sq", "key", "import",
+                "alice-secret.pgp",
+            ],
+        }),
+        Action::Setup(Setup {
+            command: &[
+                "sq", "cert", "import",
+                "ca-secret.pgp",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
+Certify that E7FC51AD886BBB5C4F44C3D7A9DA14F3E740F63F is a trusted introducer \
+for example.org and example.com.",
+            command: &[
+                "sq", "pki", "authorize",
+                "--certifier", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "E7FC51AD886BBB5C4F44C3D7A9DA14F3E740F63F",
+                "--domain", "example.org",
+                "--domain", "example.com",
+            ],
+        }),
     ],
 };
 test_examples!(sq_pki_authorize, AUTHORIZE_EXAMPLES);
@@ -54,7 +78,8 @@ using the `--depth` parameter.
 the `--amount` parameter.
 
   - The user IDs that an introducer can certify can be constrained by \
-a regular expression using the `--regex` parameter.
+domain using the `--domain` parameter or a regular expression using \
+the `--regex` parameter.
 
 These mechanisms allow Alice to say that she is willing to rely on the \
 CA for example.org, but only for user IDs that have an email address \
@@ -72,7 +97,7 @@ reference time.
     after_help = AUTHORIZE_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("certifier_input").args(&["certifier_file", "certifier"]).required(true)))]
-#[clap(group(ArgGroup::new("constraint").args(&["regex", "unconstrained"]).required(true)))]
+#[clap(group(ArgGroup::new("constraint").args(&["regex", "domain", "unconstrained"]).required(true).multiple(true)))]
 pub struct Command {
     #[clap(
         long,
@@ -125,6 +150,19 @@ pub struct Command {
     )]
     pub depth: u8,
 
+    #[clap(
+        long = "domain",
+        value_name = "DOMAIN",
+        help = "Add a domain constraint to the introducer",
+        long_help = "\
+Add a domain constraint to the introducer.
+
+Add a domain to constrain what certifications are respected.  A \
+certification made by the certificate is only respected if it is over \
+a user ID with an email address in the specified domain.  Multiple \
+domains may be specified.  In that case, one must match.",
+    )]
+    pub domain: Vec<String>,
     #[clap(
         long = "regex",
         value_name = "REGEX",

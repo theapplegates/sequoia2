@@ -1291,7 +1291,7 @@ impl Sq {
     pub fn pki_certify_p<'a, H, C, Q>(&self, extra_args: &[&str],
                                       certifier: H,
                                       cert: C,
-                                      userid: &str,
+                                      userids: &[&str],
                                       output_file: Q,
                                       success: bool)
         -> Result<Cert>
@@ -1324,7 +1324,9 @@ impl Sq {
                 cmd.arg("--cert").arg(s);
             }
         }
-        cmd.arg("--userid").arg(userid);
+        for userid in userids {
+            cmd.arg("--userid").arg(userid);
+        }
 
         if let Some(output_file) = output_file {
             cmd.arg("--overwrite").arg("--output").arg(output_file);
@@ -1372,7 +1374,7 @@ impl Sq {
     pub fn pki_certify<'a, H, C, Q>(&self, extra_args: &[&str],
                                     certifier: H,
                                     cert: C,
-                                    userid: &str,
+                                    userids: &[&str],
                                     output_file: Q)
         -> Cert
     where H: Into<FileOrKeyHandle>,
@@ -1380,7 +1382,7 @@ impl Sq {
           Q: Into<Option<&'a Path>>,
     {
         self.pki_certify_p(
-            extra_args, certifier, cert, userid, output_file, true)
+            extra_args, certifier, cert, userids, output_file, true)
             .expect("success")
     }
 

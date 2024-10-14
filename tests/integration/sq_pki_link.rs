@@ -161,7 +161,7 @@ fn sq_certify(sq: &Sq,
         FileOrKeyHandle::FileOrStdin(cert.into())
     };
 
-    sq.pki_certify(&extra_args, certifier, cert, userid,
+    sq.pki_certify(&extra_args, certifier, cert, &[userid],
                    Some(certification.as_path()));
     sq.cert_import(&certification);
 }

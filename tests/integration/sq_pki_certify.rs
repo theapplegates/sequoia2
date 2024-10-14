@@ -47,7 +47,7 @@ fn sq_pki_certify() -> Result<()> {
         sq.tick(1);
         let bob_pgp_new = sq.scratch_file("bob");
         let cert = sq.pki_certify(
-            &[], &alice_handle, bob_pgp.last().unwrap(), "<bob@example.org>",
+            &[], &alice_handle, bob_pgp.last().unwrap(), &["<bob@example.org>"],
             Some(&*bob_pgp_new));
         bob_pgp.push(bob_pgp_new);
         certification_count += 1;
@@ -83,7 +83,7 @@ fn sq_pki_certify() -> Result<()> {
         let bob_pgp_new = sq.scratch_file(None);
         let cert = sq.pki_certify(
             &["--expiration", "never"],
-            &alice_handle, bob_pgp.last().unwrap(), "<bob@example.org>",
+            &alice_handle, bob_pgp.last().unwrap(), &["<bob@example.org>"],
             Some(&*bob_pgp_new));
         bob_pgp.push(bob_pgp_new);
         certification_count += 1;
@@ -126,7 +126,7 @@ fn sq_pki_certify() -> Result<()> {
               "--non-revocable",
               "--expiration", "1d",
             ],
-            &alice_handle, bob_pgp.last().unwrap(), "<bob@example.org>",
+            &alice_handle, bob_pgp.last().unwrap(), &["<bob@example.org>"],
             Some(&*bob_pgp_new));
         bob_pgp.push(bob_pgp_new);
         certification_count += 1;
@@ -160,7 +160,7 @@ fn sq_pki_certify() -> Result<()> {
 
         // It should fail if the User ID doesn't exist.
         assert!(sq.pki_certify_p(
-            &[], &alice_handle, bob_pgp.last().unwrap(), "bob",
+            &[], &alice_handle, bob_pgp.last().unwrap(), &["bob"],
             None, false).is_err());
 
         // With a notation.
@@ -172,7 +172,7 @@ fn sq_pki_certify() -> Result<()> {
                 "--notation", "!foo", "xyzzy",
                 "--notation", "hello@example.org", "1234567890",
             ],
-            &alice_handle, bob_pgp.last().unwrap(), "<bob@example.org>",
+            &alice_handle, bob_pgp.last().unwrap(), &["<bob@example.org>"],
             Some(&*bob_pgp_new));
         bob_pgp.push(bob_pgp_new);
         certification_count += 1;
@@ -284,7 +284,7 @@ fn sq_pki_certify_creation_time() -> Result<()>
         };
 
         // Alice certifies bob's key.
-        let cert = sq.pki_certify(&[], &alice_handle, &bob_pgp, bob, None);
+        let cert = sq.pki_certify(&[], &alice_handle, &bob_pgp, &[bob], None);
 
         assert_eq!(cert.bad_signatures().count(), 0,
                    "Bad signatures in cert\n\n{}",
@@ -357,7 +357,7 @@ fn sq_pki_certify_with_expired_key() -> Result<()>
 
         // Make sure using an expired key fails by default.
         assert!(sq.pki_certify_p(
-            &[], &alice_handle, &bob_pgp, bob, Some(&*bob_pgp), false).is_err());
+            &[], &alice_handle, &bob_pgp, &[bob], Some(&*bob_pgp), false).is_err());
     }
 
     Ok(())
@@ -418,7 +418,7 @@ fn sq_pki_certify_with_revoked_key() -> Result<()>
 
         // Make sure using an expired key fails by default.
         assert!(sq.pki_certify_p(
-            &[], &alice_handle, &bob_pgp, bob, None, false).is_err());
+            &[], &alice_handle, &bob_pgp, &[bob], None, false).is_err());
     }
 
     Ok(())
@@ -455,7 +455,7 @@ fn sq_pki_certify_using_cert_store() -> Result<()>
         // Have alice certify bob.
         let found = sq.pki_certify(
             &[], &alice_handle,
-            bob_key.key_handle(), "<bob@example.org>",
+            bob_key.key_handle(), &["<bob@example.org>"],
             None);
         certification_count += 1;
 

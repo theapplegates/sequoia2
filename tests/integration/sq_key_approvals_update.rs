@@ -61,7 +61,7 @@ fn update_files() -> Result<()> {
     let alice2 = sq.pki_certify(&[],
                                 &bob_pgp,
                                 &alice_pgp,
-                                alice_userid,
+                                &[alice_userid],
                                 &*alice2_pub_pgp);
     assert_eq!(alice2.fingerprint(), alice.fingerprint());
 
@@ -110,7 +110,7 @@ fn update_all() -> Result<()> {
     let alice2 = sq.pki_certify(&[],
                                 bob.key_handle(),
                                 alice.key_handle(),
-                                ALICE_USERID,
+                                &[ALICE_USERID],
                                 None);
     assert_eq!(alice2.fingerprint(), alice.fingerprint());
 
@@ -161,7 +161,7 @@ fn update_by() -> Result<()> {
     let alice2 = sq.pki_certify(&[],
                                 bob.key_handle(),
                                 alice.key_handle(),
-                                ALICE_USERID,
+                                &[ALICE_USERID],
                                 None);
     assert_eq!(alice2.fingerprint(), alice.fingerprint());
 
@@ -203,7 +203,7 @@ fn update_authenticated() -> Result<()> {
     let alice2 = sq.pki_certify(&[],
                                 bob.key_handle(),
                                 alice.key_handle(),
-                                ALICE_USERID,
+                                &[ALICE_USERID],
                                 None);
     assert_eq!(alice2.fingerprint(), alice.fingerprint());
 

@@ -260,7 +260,7 @@ fn sq_encrypt_recipient_userid() -> Result<()>
     for userid in bob_certified_userids {
         let certification
             = sq.scratch_file(Some(&format!("alice-certifies-{}", userid)[..]));
-        sq.pki_certify(&[], alice_pgp, bob_pgp, userid,
+        sq.pki_certify(&[], alice_pgp, bob_pgp, &[userid],
                        Some(certification.as_path()));
         sq.cert_import(certification);
     }

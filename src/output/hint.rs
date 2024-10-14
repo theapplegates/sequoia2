@@ -97,6 +97,13 @@ impl Command {
                 &self.args, width, width));
         }
 
+        if cfg!(debug_assertions) && self.args[0] == "sq" {
+            let cli = crate::cli::build(false);
+            if let Err(e) = cli.try_get_matches_from(self.args.iter()) {
+                panic!("bad hint, parsing {}", e);
+            }
+        }
+
         self.hint
     }
 }

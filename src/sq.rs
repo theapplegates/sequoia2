@@ -49,9 +49,8 @@ use crate::cli::types::cert_designator::ArgumentPrefix;
 use crate::cli::types::cert_designator::CertDesignator;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::common::password;
-use crate::ImportStatus;
 use crate::output::hint::Hint;
-use crate::output::import::ImportStats;
+use crate::output::import::{ImportStats, ImportStatus};
 use crate::PreferredUserID;
 use crate::print_error_chain;
 

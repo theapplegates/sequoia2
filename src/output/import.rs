@@ -1,6 +1,9 @@
 //! Certificate and key import stats.
 
-use std::sync::Arc;
+use std::{
+    fmt,
+    sync::Arc,
+};
 
 use anyhow::Result;
 
@@ -11,6 +14,8 @@ use sequoia_cert_store::{
         MergePublicCollectStats,
     },
 };
+
+use sequoia_keystore as keystore;
 
 use crate::output::pluralize::Pluralize;
 
@@ -88,5 +93,40 @@ impl KeyStats {
                   self.unchanged.of("key"),
                   self.errors.of("error"));
         Ok(())
+    }
+}
+
+/// Whether a cert or key was freshly imported, updated, or unchanged.
+///
+/// Returned by [`Sq::import_key`].
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ImportStatus {
+    /// The certificate or key is unchanged.
+    Unchanged,
+
+    /// The certificate or key is new.
+    New,
+
+    /// The certificate or key has been updated.
+    Updated,
+}
+
+impl From<keystore::ImportStatus> for ImportStatus {
+    fn from(status: keystore::ImportStatus) -> ImportStatus {
+        match status {
+            keystore::ImportStatus::Unchanged => ImportStatus::Unchanged,
+            keystore::ImportStatus::New => ImportStatus::New,
+            keystore::ImportStatus::Updated => ImportStatus::Updated,
+        }
+    }
+}
+
+impl fmt::Display for ImportStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ImportStatus::Unchanged => f.write_str("unchanged"),
+            ImportStatus::New => f.write_str("new"),
+            ImportStatus::Updated => f.write_str("updated"),
+        }
     }
 }

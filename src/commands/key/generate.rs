@@ -18,8 +18,8 @@ use crate::common::userid::{lint_userids, lint_names, lint_emails};
 use crate::Sq;
 use crate::cli::types::FileOrStdout;
 use crate::cli;
-use crate::ImportStatus;
 use crate::commands::inspect::inspect;
+use crate::output::import::ImportStatus;
 
 pub fn generate(
     mut sq: Sq,

@@ -10,7 +10,6 @@ use anyhow::Context as _;
 
 use std::borrow::Borrow;
 use std::collections::btree_map::{BTreeMap, Entry};
-use std::fmt;
 use std::io;
 use std::path::Path;
 use std::time::SystemTime;
@@ -27,8 +26,6 @@ use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::packet::signature::subpacket::NotationDataFlags;
 use openpgp::serialize::Serialize;
 use openpgp::cert::prelude::*;
-
-use sequoia_keystore as keystore;
 
 use clap::FromArgMatches;
 
@@ -78,41 +75,6 @@ impl Convert<chrono::DateTime<chrono::offset::Utc>> for std::time::SystemTime {
 impl Convert<chrono::DateTime<chrono::offset::Utc>> for openpgp::types::Timestamp {
     fn convert(self) -> chrono::DateTime<chrono::offset::Utc> {
         std::time::SystemTime::from(self).convert()
-    }
-}
-
-/// Whether a cert or key was freshly imported, updated, or unchanged.
-///
-/// Returned by [`Sq::import_key`].
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum ImportStatus {
-    /// The certificate or key is unchanged.
-    Unchanged,
-
-    /// The certificate or key is new.
-    New,
-
-    /// The certificate or key has been updated.
-    Updated,
-}
-
-impl From<keystore::ImportStatus> for ImportStatus {
-    fn from(status: keystore::ImportStatus) -> ImportStatus {
-        match status {
-            keystore::ImportStatus::Unchanged => ImportStatus::Unchanged,
-            keystore::ImportStatus::New => ImportStatus::New,
-            keystore::ImportStatus::Updated => ImportStatus::Updated,
-        }
-    }
-}
-
-impl fmt::Display for ImportStatus {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ImportStatus::Unchanged => f.write_str("unchanged"),
-            ImportStatus::New => f.write_str("new"),
-            ImportStatus::Updated => f.write_str("updated"),
-        }
     }
 }
 

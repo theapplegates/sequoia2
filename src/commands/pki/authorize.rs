@@ -152,6 +152,7 @@ pub fn authorize(sq: Sq, mut c: authorize::Command)
         true, // User supplied user IDs.
         &[(c.amount, c.expiration)],
         c.depth,
+        &[], // Domain.
         &c.regex[..],
         c.local,
         c.non_revocable,

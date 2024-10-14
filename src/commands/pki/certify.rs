@@ -155,7 +155,7 @@ pub fn certify(sq: Sq, mut c: certify::Command)
         true, // User supplied user IDs.
         &[(c.amount, c.expiration)],
         0,
-        &[][..],
+        &[][..], &[][..], // Domain, regex.
         c.local,
         c.non_revocable,
         &notations[..],

@@ -268,39 +268,12 @@ pub fn add(sq: Sq, c: link::AddCommand)
         if domain == "*" {
             star = true;
         }
-
-        if let Err(err) = UserIDQueryParams::is_domain(&domain) {
-            return Err(err).context(format!(
-                "{:?} is not a valid domain", domain));
-        }
     }
 
     // If there's a catch all, we don't need to add any regular
     // expressions.
     if star {
         regex = Vec::new();
-    } else {
-        for mut domain in c.ca.into_iter() {
-            // Escape any control characters.
-            const CONTROL: &[(&str, &str)] = &[
-                (".", "\\."),
-                ("|", "\\|"),
-                ("(", "\\("),
-                (")", "\\)"),
-                ("*", "\\*"),
-                ("+", "\\+"),
-                ("?", "\\?"),
-                ("^", "\\^"),
-                ("$", "\\$"),
-                ("[", "\\["),
-                ("]", "\\]"),
-            ];
-            for (c, e) in CONTROL.iter() {
-                domain = domain.replace(c, e);
-            }
-
-            regex.push(format!("<[^>]+[@.]{}>$", domain));
-        }
     }
 
     let notations = parse_notations(c.notation)?;
@@ -333,6 +306,11 @@ pub fn add(sq: Sq, c: link::AddCommand)
         user_supplied_userids,
         &templates,
         trust_depth,
+        if star {
+            &[][..]
+        } else {
+            &c.ca[..]
+        },
         &regex[..],
         true, // Local.
         false, // Non-revocable.
@@ -375,7 +353,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
         user_supplied_userids,
         &[(TrustAmount::None, Expiration::Never)],
         0,
-        &[][..],
+        &[][..], &[][..], // Domain, regex.
         true, // Local.
         false, // Non-revocable.
         &notations[..],

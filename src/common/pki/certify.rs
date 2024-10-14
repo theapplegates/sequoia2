@@ -20,6 +20,7 @@ use openpgp::types::SignatureType;
 
 use sequoia_cert_store as cert_store;
 use cert_store::StoreUpdate;
+use cert_store::store::UserIDQueryParams;
 
 use crate::Sq;
 use crate::cli::types::Expiration;
@@ -166,6 +167,7 @@ pub fn certify(sq: &Sq,
                user_supplied_userids: bool,
                templates: &[(TrustAmount<u8>, Expiration)],
                trust_depth: u8,
+               domain: &[String],
                regex: &[String],
                local: bool,
                non_revocable: bool,
@@ -192,6 +194,34 @@ pub fn certify(sq: &Sq,
     let mut base
         = SignatureBuilder::new(SignatureType::GenericCertification);
 
+    for domain in domain {
+        if let Err(err) = UserIDQueryParams::is_domain(domain) {
+            return Err(err).context(format!(
+                "{:?} is not a valid domain", domain));
+        }
+
+        // Escape any control characters.
+        const CONTROL: &[(&str, &str)] = &[
+            (".", "\\."),
+            ("|", "\\|"),
+            ("(", "\\("),
+            (")", "\\)"),
+            ("*", "\\*"),
+            ("+", "\\+"),
+            ("?", "\\?"),
+            ("^", "\\^"),
+            ("$", "\\$"),
+            ("[", "\\["),
+            ("]", "\\]"),
+        ];
+
+        let mut domain = domain.to_string();
+        for (c, e) in CONTROL.iter() {
+            domain = domain.replace(c, e);
+        }
+
+        base = base.add_regular_expression(format!("<[^>]+[@.]{}>$", domain))?;
+    }
     for regex in regex {
         base = base.add_regular_expression(regex)?;
     }

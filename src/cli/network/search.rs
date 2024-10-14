@@ -7,7 +7,7 @@ use super::keyserver::DEFAULT_KEYSERVERS;
 
 #[derive(Parser, Debug)]
 #[clap(
-    name = "fetch",
+    name = "search",
     about = "Retrieve certificates using all supported network services",
     long_about =
 "Retrieve certificates using all supported network services

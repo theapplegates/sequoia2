@@ -76,8 +76,8 @@ pub fn dispatch(sq: Sq, c: cli::network::Command)
 {
     use cli::network::Subcommands;
     match c.subcommand {
-        Subcommands::Fetch(command) =>
-            dispatch_fetch(sq, command),
+        Subcommands::Search(command) =>
+            dispatch_search(sq, command),
 
         Subcommands::Keyserver(command) =>
             dispatch_keyserver(sq, command),
@@ -746,9 +746,9 @@ impl Response {
 }
 
 /// How many times to iterate to discover related certificates.
-const FETCH_MAX_QUERY_ITERATIONS: usize = 3;
+const SEARCH_MAX_QUERY_ITERATIONS: usize = 3;
 
-pub fn dispatch_fetch(mut sq: Sq, c: cli::network::fetch::Command)
+pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
                       -> Result<()>
 {
     let default_servers = default_keyservers_p(&c.servers);
@@ -773,7 +773,7 @@ pub fn dispatch_fetch(mut sq: Sq, c: cli::network::fetch::Command)
 
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async {
-      for _ in 0..FETCH_MAX_QUERY_ITERATIONS {
+      for _ in 0..SEARCH_MAX_QUERY_ITERATIONS {
         let mut requests = JoinSet::new();
         let mut converged = true;
         std::mem::take(&mut queries).into_iter().for_each(|query| {
@@ -947,7 +947,7 @@ pub fn dispatch_keyserver(mut sq: Sq,
 
     use crate::cli::network::keyserver::Subcommands::*;
     match c.subcommand {
-        Fetch(c) => rt.block_on(async {
+        Search(c) => rt.block_on(async {
             let mut pb = Response::progress_bar(&sq);
             let queries = if c.all {
                 Query::all_certs(&sq)?
@@ -1063,7 +1063,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
 
     use crate::cli::network::wkd::Subcommands::*;
     match c.subcommand {
-        Fetch(c) => rt.block_on(async {
+        Search(c) => rt.block_on(async {
             let mut pb = Response::progress_bar(&sq);
             let http_client = http_client()?;
             let queries = if c.all {
@@ -1309,7 +1309,7 @@ pub fn dispatch_dane(mut sq: Sq, c: cli::network::dane::Command)
                 }
             }
         },
-        Fetch(c) => rt.block_on(async {
+        Search(c) => rt.block_on(async {
             let mut pb = Response::progress_bar(&sq);
             let queries = if c.all {
                 Query::all_addresses(&sq)?

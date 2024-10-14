@@ -52,6 +52,10 @@
      default now and has been removed.
    - The argument `sq key generate --rev-cert ...` is now mandatory if
      `--output` has been given.
+   - `sq network fetch` has been renamed to `sq network search` to
+     emphasize that this is key discovery, and may return related or
+     even wrong results.  Likewise for the key server, WKD, and DANE
+     methods.
 
 * Changes in 0.38.0
 ** Notable changes

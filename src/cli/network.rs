@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand};
 
 pub mod dane;
 pub mod keyserver;
-pub mod fetch;
+pub mod search;
 pub mod wkd;
 
 #[derive(Parser, Debug)]
@@ -28,7 +28,7 @@ pub struct Command {
 
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
-    Fetch(fetch::Command),
+    Search(search::Command),
     Keyserver(keyserver::Command),
     Wkd(wkd::Command),
     Dane(dane::Command),

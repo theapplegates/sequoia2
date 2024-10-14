@@ -48,7 +48,7 @@ pub struct Command {
 
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
-    Fetch(FetchCommand),
+    Search(SearchCommand),
     Publish(PublishCommand),
 }
 
@@ -73,7 +73,7 @@ trusted can be tuned using `sq pki link add` or `sq pki link retract` in \
 the usual way.
 "
 )]
-pub struct FetchCommand {
+pub struct SearchCommand {
     #[clap(
         help = FileOrCertStore::HELP_OPTIONAL,
         long,

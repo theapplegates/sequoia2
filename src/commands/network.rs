@@ -108,8 +108,6 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
     let mut stats
         = cert_store::store::MergePublicCollectStats::new();
 
-    qprintln!("\nImporting {} into the certificate store:\n",
-              certs.len().of("certificate"));
     for cert in certs.iter() {
         cert_store.update_by(Arc::new(cert.clone().into()), &mut stats)
             .with_context(|| {
@@ -120,20 +118,6 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
             })?;
     }
 
-    let mut certs = certs.into_iter()
-        .map(|cert| {
-            let userid = sq.best_userid(&cert, true);
-            (userid, cert)
-        })
-        .collect::<Vec<_>>();
-
-    // Reverse sort, i.e., most authenticated first.
-    certs.sort_unstable_by_key(|cert| usize::MAX - cert.0.trust_amount());
-
-    for (i, (userid, cert)) in certs.iter().enumerate() {
-        qprintln!("  {}. {} {}", i + 1, cert.fingerprint(), userid);
-    }
-
     qprintln!("\nImported {}, updated {}, {} unchanged, {}.",
               stats.new_certs().of("new certificate"),
               stats.updated_certs().of("certificate"),
@@ -141,7 +125,7 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
               stats.errors().of("error"));
 
     for vcert in certs.iter()
-        .filter_map(|(_, cert)| cert.with_policy(sq.policy, sq.time).ok())
+        .filter_map(|cert| cert.with_policy(sq.policy, sq.time).ok())
     {
         let mut hint = sq.hint(format_args!(
             "After checking that the certificate {} really belongs to the \
@@ -733,7 +717,27 @@ impl Response {
                       certs: BTreeMap<Fingerprint, Cert>)
                       -> Result<()>
     {
-        let certs = certs.into_values().collect();
+        make_qprintln!(sq.quiet);
+
+        qprintln!("\nFound {} related to the query:\n",
+                  certs.len().of("certificate"));
+
+        let mut certs = certs.into_values()
+            .map(|cert| {
+                let userid = sq.best_userid(&cert, true);
+                (userid, cert)
+            })
+            .collect::<Vec<_>>();
+
+        // Reverse sort, i.e., most authenticated first.
+        certs.sort_unstable_by_key(|cert| usize::MAX - cert.0.trust_amount());
+
+        for (i, (userid, cert)) in certs.iter().enumerate() {
+            qprintln!("  {}. {} {}", i + 1, cert.fingerprint(), userid);
+        }
+
+        let certs = certs.into_iter().map(|(_, cert)| cert).collect();
+
         if let Some(file) = &output {
             let mut output = file.create_safe(&sq)?;
             serialize_keyring(&mut output, certs, binary)?;

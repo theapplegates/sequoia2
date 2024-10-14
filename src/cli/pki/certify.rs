@@ -95,7 +95,6 @@ pub struct Command {
         long,
         value_name = "KEY",
         help = "Create the certification using KEY.",
-        value_name = FileOrStdin::VALUE_NAME,
     )]
     pub certifier: Option<KeyHandle>,
     #[clap(

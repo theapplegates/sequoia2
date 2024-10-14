@@ -9,7 +9,6 @@
 use anyhow::Context as _;
 
 use std::borrow::Borrow;
-use std::io;
 use std::path::Path;
 use std::time::SystemTime;
 
@@ -18,11 +17,10 @@ use once_cell::sync::OnceCell;
 use sequoia_openpgp as openpgp;
 
 use openpgp::Result;
-use openpgp::{armor, Cert};
+use openpgp::Cert;
 use openpgp::parse::Parse;
 use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::packet::signature::subpacket::NotationDataFlags;
-use openpgp::serialize::Serialize;
 use openpgp::cert::prelude::*;
 
 use clap::FromArgMatches;
@@ -108,44 +106,6 @@ fn load_certs<'a, I>(files: I) -> openpgp::Result<Vec<Cert>>
         }
     }
     Ok(certs)
-}
-
-/// Serializes a keyring, adding descriptive headers if armored.
-#[allow(dead_code)]
-fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
-                     binary: bool)
-                     -> openpgp::Result<()> {
-    // Handle the easy options first.  No armor no cry:
-    if binary {
-        for cert in certs {
-            cert.serialize(&mut output)?;
-        }
-        return Ok(());
-    }
-
-    // Just one Cert?  Ez:
-    if certs.len() == 1 {
-        return certs[0].armored().serialize(&mut output);
-    }
-
-    // Then, collect the headers.
-    let mut headers = Vec::new();
-    for (i, cert) in certs.iter().enumerate() {
-        headers.push(format!("Key #{}", i));
-        headers.append(&mut cert.armor_headers());
-    }
-
-    let headers: Vec<_> = headers.iter()
-        .map(|value| ("Comment", value.as_str()))
-        .collect();
-    let mut output = armor::Writer::with_headers(&mut output,
-                                                 armor::Kind::PublicKey,
-                                                 headers)?;
-    for cert in certs {
-        cert.serialize(&mut output)?;
-    }
-    output.finalize()?;
-    Ok(())
 }
 
 /// Prints a warning if the user supplied "help" or "-help" to an

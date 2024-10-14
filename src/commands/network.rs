@@ -3,6 +3,7 @@
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 use std::fs::{self, DirEntry};
+use std::io;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
@@ -16,6 +17,7 @@ use openpgp::{
     Fingerprint,
     Result,
     KeyHandle,
+    armor,
     cert::{
         Cert,
         CertParser,
@@ -27,6 +29,7 @@ use openpgp::{
         UserID,
     },
     parse::Parse,
+    serialize::Serialize,
     types::{
         KeyFlags,
         SignatureType,
@@ -55,7 +58,6 @@ use crate::{
         pluralize::Pluralize,
     },
     Sq,
-    serialize_keyring,
     print_error_chain,
     utils::cert_exportable,
 };
@@ -153,6 +155,43 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+/// Serializes a keyring, adding descriptive headers if armored.
+fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
+                     binary: bool)
+                     -> openpgp::Result<()> {
+    // Handle the easy options first.  No armor no cry:
+    if binary {
+        for cert in certs {
+            cert.serialize(&mut output)?;
+        }
+        return Ok(());
+    }
+
+    // Just one Cert?  Ez:
+    if certs.len() == 1 {
+        return certs[0].armored().serialize(&mut output);
+    }
+
+    // Then, collect the headers.
+    let mut headers = Vec::new();
+    for (i, cert) in certs.iter().enumerate() {
+        headers.push(format!("Key #{}", i));
+        headers.append(&mut cert.armor_headers());
+    }
+
+    let headers: Vec<_> = headers.iter()
+        .map(|value| ("Comment", value.as_str()))
+        .collect();
+    let mut output = armor::Writer::with_headers(&mut output,
+                                                 armor::Kind::PublicKey,
+                                                 headers)?;
+    for cert in certs {
+        cert.serialize(&mut output)?;
+    }
+    output.finalize()?;
     Ok(())
 }
 

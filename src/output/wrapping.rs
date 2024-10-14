@@ -41,14 +41,15 @@ fn options() -> textwrap::Options<'static> {
         // It is better to use terminal_size instead of letting
         // textwrap do it, because textwrap uses an older version,
         // leading to duplicate crates.
-        let width =
-            terminal_size::terminal_size().map(|(w, _h)| w.0)
-            .unwrap_or(80)
-            // To improve readability limit the width of the text
-            // columns.
-            .min(100)
-            .into();
-
-        textwrap::Options::new(width)
+        textwrap::Options::new(terminal_width())
     }).clone()
+}
+
+/// Returns the terminal width we assume for wrapping.
+pub fn terminal_width() -> usize {
+    terminal_size::terminal_size().map(|(w, _h)| w.0)
+        .unwrap_or(80)
+    // To improve readability limit the width of the text columns.
+        .min(100)
+        .into()
 }

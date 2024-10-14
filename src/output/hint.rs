@@ -37,7 +37,12 @@ impl Hint {
         self
     }
 
-    /// Suggests a command to the user.
+    /// Suggests an `sq` command to the user.
+    pub fn sq(self) -> Command {
+        Command::new(self, "sq")
+    }
+
+    /// Suggests a free-form command to the user.
     pub fn command(self, cmd: fmt::Arguments) -> Self {
         if ! self.quiet {
             wprintln!();
@@ -51,5 +56,47 @@ impl Hint {
             eprintln!("  {}", cmd);
         }
         self
+    }
+}
+
+/// A structured command hint.
+pub struct Command {
+    hint: Hint,
+    args: Vec<String>,
+}
+
+impl Command {
+    fn new(hint: Hint, argv0: &str) -> Self {
+        Command {
+            hint,
+            args: vec![argv0.into()],
+        }
+    }
+
+    /// Adds `arg` to the command.
+    pub fn arg<S: ToString>(mut self, arg: S) -> Self {
+        self.args.push(arg.to_string());
+        self
+    }
+
+    /// Adds an argument `arg` with value to the command.
+    pub fn arg_value<S: ToString, V: ToString>(mut self, arg: S, value: V)
+                                               -> Self
+    {
+        self.args.push(format!("{}={}", arg.to_string(), value.to_string()));
+        self
+    }
+
+    /// Emits the command hint.
+    pub fn done(self) -> Hint {
+        if ! self.hint.quiet {
+            let width = crate::output::wrapping::terminal_width();
+
+            eprintln!();
+            eprintln!("{}", crate::cli::examples::wrap_command(
+                &self.args, width, width));
+        }
+
+        self.hint
     }
 }

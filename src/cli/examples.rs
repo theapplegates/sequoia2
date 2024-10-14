@@ -88,58 +88,16 @@ impl<'a> IntoResettable<clap::builder::StyledStr> for Actions<'a> {
                     &textwrap::wrap(example.comment, width).join("\n"),
                     "# ");
 
-                let command = example.command.iter()
-                    .fold(vec!["$".to_string()], |mut s, arg| {
-                        let first = s.len() == 1;
-
-                        if *arg == "|" {
-                            let last = s.last_mut().expect("have one");
-                            *last = format!("{} \\", last);
-                            s.push(format!("  {}", arg));
-                            return s;
-                        }
-
-                        // Quote the argument, if necessary.
-                        let arg = if arg.contains(&[
-                            '\"',
-                        ]) {
-                            format!("'{}'", arg)
-                        } else if arg.chars().any(char::is_whitespace)
-                            || arg.contains(&[
-                                '`', '#', '$', '&', '*', '(', ')',
-                                '\\', '|', '[', ']', '{', '}',
-                                ';', '\'', '<', '>', '?', '!',
-                            ])
-                        {
-                            format!("\"{}\"", arg)
-                        } else {
-                            arg.to_string()
-                        };
-
-                        let last = s.last_mut().expect("have one");
-
-                        let last_chars = last.chars().count();
-                        let arg_chars = arg.chars().count();
-
-                        // Our manpage generate complains if an
-                        // example is too long:
-                        //
-                        //   warning: Command in example exceeds 64 chars:
-                        //
-                        // or
-                        //
-                        //   warning: Continuation in example exceeds 57 chars:
-                        let max_width = if first { 64 } else { 57 };
-                        if last_chars + 1 + arg_chars <= width.min(max_width) {
-                            *last = format!("{} {}", last, arg);
-                        } else {
-                            *last = format!("{} \\", last);
-                            s.push(format!("  {}", arg));
-                        }
-
-                        s
-                    })
-                    .join("\n");
+                // Our manpage generate complains if an
+                // example is too long:
+                //
+                //   warning: Command in example exceeds 64 chars:
+                //
+                // or
+                //
+                //   warning: Continuation in example exceeds 57 chars:
+                let command = wrap_command(&example.command,
+                                           width.min(64), width.min(57));
 
                 Some(format!("{}\n{}", comment, command))
             }));
@@ -148,6 +106,58 @@ impl<'a> IntoResettable<clap::builder::StyledStr> for Actions<'a> {
 
         Resettable::Value(text)
     }
+}
+
+pub fn wrap_command<S: AsRef<str>>(command: &[S],
+                                   to_width: usize,
+                                   continuation_width: usize)
+                                   -> String
+{
+    command.iter()
+        .fold(vec!["$".to_string()], |mut s, arg| {
+            let first = s.len() == 1;
+
+            let arg = arg.as_ref();
+            if arg == "|" {
+                let last = s.last_mut().expect("have one");
+                *last = format!("{} \\", last);
+                s.push(format!("  {}", arg));
+                return s;
+            }
+
+            // Quote the argument, if necessary.
+            let arg = if arg.contains(&[
+                '\"',
+            ]) {
+                format!("'{}'", arg)
+            } else if arg.chars().any(char::is_whitespace)
+                || arg.contains(&[
+                    '`', '#', '$', '&', '*', '(', ')',
+                    '\\', '|', '[', ']', '{', '}',
+                    ';', '\'', '<', '>', '?', '!',
+                ])
+            {
+                format!("\"{}\"", arg)
+            } else {
+                arg.to_string()
+            };
+
+            let last = s.last_mut().expect("have one");
+
+            let last_chars = last.chars().count();
+            let arg_chars = arg.chars().count();
+
+            let max_width = if first { to_width } else { continuation_width };
+            if last_chars + 1 + arg_chars <= max_width {
+                *last = format!("{} {}", last, arg);
+            } else {
+                *last = format!("{} \\", last);
+                s.push(format!("  {}", arg));
+            }
+
+            s
+        })
+        .join("\n")
 }
 
 macro_rules! test_examples {

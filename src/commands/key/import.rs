@@ -59,8 +59,9 @@ fn import_internal(sq: Sq, command: cli::key::ImportCommand,
                     if ! cert_is_tsk {
                         sq.hint(format_args!(
                             "To import certificates, do:"))
-                            .command(format_args!(
-                                "sq cert import {}", file.display()));
+                            .sq().arg("cert").arg("import")
+                            .arg(file.display())
+                            .done();
                     }
 
                     if ret.is_ok() {

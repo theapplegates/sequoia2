@@ -390,15 +390,31 @@ pub fn bind(sq: Sq, mut command: cli::key::subkey::BindCommand) -> Result<()>
     }
 
     if let Some(output) = command.output {
+        let path = output.path().map(Clone::clone);
         let mut sink = output.for_secrets().create_safe(&sq)?;
         if command.binary {
             cert.as_tsk().serialize(&mut sink)?;
         } else {
             cert.as_tsk().armored().serialize(&mut sink)?;
         }
-    } else {
+
+        if let Some(path) = path {
+            sq.hint(format_args!(
+                "Updated key written to {}.  \
+                 To make the update effective, it has to be published \
+                 so that others can find it, for example using:",
+                path.display()))
+                .sq().arg("network").arg("keyserver").arg("publish")
+                .arg_value("--file", path.display())
+                .done();
+        } else {
+            sq.hint(format_args!(
+                "To make the update effective, it has to be published \
+                 so that others can find it."));
+        }
+   } else {
         // Import it into the key store.
-        let keyid = cert.keyid();
+        let fipr = cert.fingerprint();
         let result = if cert.is_tsk() {
             sq.import_key(cert, &mut Default::default()).err()
         } else {
@@ -412,9 +428,9 @@ pub fn bind(sq: Sq, mut command: cli::key::subkey::BindCommand) -> Result<()>
                 "Imported updated cert into the cert store.  \
                  To make the update effective, it has to be published \
                  so that others can find it, for example using:"))
-                .command(format_args!(
-                    "sq network keyserver publish --cert {}",
-                    keyid));
+                .sq().arg("network").arg("keyserver").arg("publish")
+                .arg_value("--cert", fipr)
+                .done();
         }
     }
 

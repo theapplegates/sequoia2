@@ -140,8 +140,11 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
                         .map(ToString::to_string).ok())
         {
             hint = hint
-                .command(format_args!("sq pki link add {} --userid {:?}",
-                                      vcert.fingerprint(), uid));
+                .sq().arg("pki").arg("link").arg("add")
+                .arg(vcert.fingerprint())
+                .arg_value("--userid", uid)
+                .done();
+
             count += 1;
         }
 
@@ -149,8 +152,10 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
             hint.hint(format_args!(
                 "Alternatively, all user IDs can be marked as authenticated \
                  using:"))
-                .command(format_args!("sq pki link add {} --all",
-                                      vcert.fingerprint()));
+                .sq().arg("pki").arg("link").arg("add")
+                .arg(vcert.fingerprint())
+                .arg("--all")
+                .done();
         }
     }
 
@@ -172,9 +177,11 @@ fn serialize_keyring(sq: &Sq, file: &FileOrStdout, certs: Vec<Cert>,
         let path = file.path().map(|p| p.display().to_string())
                 .unwrap_or_else(|| "...".into());
         for cert in &certs {
-            hint = hint.command(format_args!(
-                "sq cert expert --keyring {} --cert {}",
-                path, cert.fingerprint()));
+            hint = hint.sq()
+                .arg("cert").arg("expert")
+                .arg_value("--keyring", &path)
+                .arg_value("--cert", cert.fingerprint())
+                .done();
         }
     }
 

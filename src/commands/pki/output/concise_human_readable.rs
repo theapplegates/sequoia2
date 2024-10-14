@@ -144,13 +144,18 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
             return Ok(());
         }
 
+        let cert =
+            self.current_cert.as_ref().expect("have at least one");
+
         self.sq.hint(format_args!(
             "\nTo view why a user ID is considered valid, pass \
              `--show-paths`\n\
              \n\
-             To see more details about a certificate, run:"))
-            .command(format_args!(
-                "sq inspect --cert FINGERPRINT"));
+             To see more details about a certificate, for example {}, run:",
+            cert.fingerprint()))
+            .sq().arg("inspect")
+            .arg_value("--cert", cert.fingerprint())
+            .done();
 
         Ok(())
     }

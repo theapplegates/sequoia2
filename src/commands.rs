@@ -328,7 +328,9 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                     self.sq.hint(format_args!(
                         "Consider trying to retrieve the key from the network \
                          using:"))
-                        .command(format_args!("sq network fetch {}", issuer));
+                        .sq().arg("network").arg("search")
+                        .arg(issuer)
+                        .done();
 
                     self.unknown_checksums += 1;
                     continue;
@@ -512,8 +514,10 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                         "\nAfter checking that {} belongs to {:?}, \
                          you can authenticate the binding using:",
                         cert_fpr, signer_userid))
-                        .command(format_args!("sq pki link add {} {:?}",
-                                              cert_fpr, signer_userid));
+                        .sq().arg("pki").arg("link").arg("add")
+                        .arg(cert_fpr)
+                        .arg(signer_userid)
+                        .done();
                 }
                 (false, false) => {
                     wprintln!(indent=prefix,
@@ -525,8 +529,10 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                         "\nAfter checking that {} belongs to {:?}, \
                          you can authenticate the binding using:",
                         cert_fpr, signer_userid))
-                        .command(format_args!("sq pki link add {} {:?}",
-                                              cert_fpr, signer_userid));
+                        .sq().arg("pki").arg("link").arg("add")
+                        .arg(cert_fpr)
+                        .arg(signer_userid)
+                        .done();
                 }
             };
 

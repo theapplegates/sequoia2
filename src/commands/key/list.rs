@@ -274,19 +274,21 @@ pub fn list(sq: Sq, _command: cli::key::ListCommand) -> Result<()> {
 
         hint.hint(format_args!(
             "Consider generating a new key like so:"))
-            .command(format_args!(
-                "sq key generate --name 'Juliet Capulet' \
-                 --email juliet@example.org"))
+            .sq().arg("key").arg("generate")
+            .arg_value("--name", "Juliet Capulet")
+            .arg_value("--email", "juliet@example.org")
+            .done()
             .hint(format_args!(
             "Or, you can import an existing key:"))
-            .command(format_args!(
-                "sq key import juliets-secret-key.pgp"));
+            .sq().arg("key").arg("import")
+            .arg("juliets-secret-key.pgp")
+            .done();
 
         sq.hint(format_args!(
             "Sequoia calls public keys 'certificates'.  \
              Perhaps you meant to list known certificates, \
              which can be done using:"))
-            .command(format_args!("sq pki list"));
+            .sq().arg("pki").arg("list").done();
     }
 
     Ok(())

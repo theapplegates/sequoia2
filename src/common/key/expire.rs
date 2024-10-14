@@ -301,9 +301,9 @@ pub fn expire(sq: Sq,
                  To make the update effective, it has to be published \
                  so that others can find it, for example using:",
                 path.display()))
-                .command(format_args!(
-                    "sq network keyserver publish {}",
-                    path.display()));
+                .sq().arg("network").arg("keyserver").arg("publish")
+                .arg_value("--file", path.display())
+                .done();
         } else {
             sq.hint(format_args!(
                 "To make the update effective, it has to be published \
@@ -312,7 +312,7 @@ pub fn expire(sq: Sq,
     } else {
         let cert_store = sq.cert_store_or_else()?;
 
-        let keyid = cert.keyid();
+        let fipr = cert.fingerprint();
         if let Err(err) = cert_store.update(Arc::new(cert.into())) {
             wprintln!("Error importing updated cert: {}", err);
             return Err(err);
@@ -321,9 +321,9 @@ pub fn expire(sq: Sq,
                 "Imported updated cert into the cert store.  \
                  To make the update effective, it has to be published \
                  so that others can find it, for example using:"))
-                .command(format_args!(
-                    "sq network keyserver publish --cert {}",
-                    keyid));
+                .sq().arg("network").arg("keyserver").arg("publish")
+                .arg_value("--cert", fipr)
+                .done();
         }
     }
 

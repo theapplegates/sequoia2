@@ -256,29 +256,37 @@ pub fn generate(
         // Writing to key store.  Provide some guidance.
         sq.hint(format_args!("If this is your key, you should mark it as a \
                               fully trusted introducer:"))
-            .command(format_args!("sq pki link add --ca \\* {} --all",
-                                  cert.fingerprint()));
+            .sq().arg("pki").arg("link").arg("add")
+            .arg_value("--ca", "*")
+            .arg(cert.fingerprint())
+            .arg("--all")
+            .done();
 
         sq.hint(format_args!("Otherwise, you should mark it as authenticated:"))
-            .command(format_args!("sq pki link add {} --all",
-                                  cert.fingerprint()));
+            .sq().arg("pki").arg("link").arg("add")
+            .arg(cert.fingerprint())
+            .arg("--all")
+            .done();
 
         sq.hint(format_args!("You can export your certificate as follows:"))
-            .command(format_args!("sq cert export --cert {}",
-                                  cert.fingerprint()));
+            .sq().arg("cert").arg("export")
+            .arg_value("--cert", cert.fingerprint())
+            .done();
 
         sq.hint(format_args!("Once you are happy you can upload it to public \
                               directories using:"))
-            .command(format_args!("sq network keyserver publish --cert {}",
-                                  cert.fingerprint()));
+            .sq().arg("network").arg("keyserver").arg("publish")
+            .arg_value("--cert", cert.fingerprint())
+            .done();
     } else {
         let mut shown = false;
         if let Some(ref output) = command.output {
             if let Some(output_path) = output.path() {
                 sq.hint(format_args!("You can extract the certificate from the \
                                       generated key by running:"))
-                    .command(format_args!("sq toolbox extract-cert {}",
-                                          output_path.display()));
+                    .sq().arg("toolbox").arg("extract-cert")
+                    .arg(output_path.display())
+                    .done();
                 shown = true;
             }
         }
@@ -286,7 +294,7 @@ pub fn generate(
         if ! shown {
             sq.hint(format_args!("You can extract the certificate from the \
                                   generated key using:"))
-                .command(format_args!("sq toolbox extract-cert"));
+                .sq().arg("toolbox").arg("extract-cert").done();
         }
     }
 

@@ -4,13 +4,13 @@ use openpgp::Result;
 use openpgp::types::KeyFlags;
 
 use crate::Sq;
-use crate::cli::pki::certify;
+use crate::cli::pki::authorize;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::cli::types::cert_designator::CertDesignator;
 use crate::commands::FileOrStdout;
 use crate::parse_notations;
 
-pub fn certify(sq: Sq, mut c: certify::Command)
+pub fn authorize(sq: Sq, mut c: authorize::Command)
     -> Result<()>
 {
     let certifier: FileStdinOrKeyHandle = if let Some(file) = c.certifier_file {
@@ -122,21 +122,18 @@ pub fn certify(sq: Sq, mut c: certify::Command)
         }
     }
 
-    if missing {
-        wprintln!("{}'s self-signed user IDs:", vc.fingerprint());
-        let mut have_valid = false;
-        for ua in vc.userids() {
-            if let Ok(u) = std::str::from_utf8(ua.userid().value()) {
-                have_valid = true;
-                wprintln!("  - {:?}", u);
-            }
+    if missing || userids.is_empty() {
+        // Use all self-signed User IDs.
+        userids = vc.userids()
+            .map(|ua| ua.userid().clone())
+            .collect::<Vec<_>>();
+
+        if userids.is_empty() {
+            return Err(anyhow::anyhow!(
+                "{} has no self-signed user IDs, and you didn't provide \
+                 an alternate user ID",
+                vc.fingerprint()));
         }
-        if ! have_valid {
-            wprintln!("  - Certificate has no valid user IDs.");
-        }
-        wprintln!("Pass `--add-userid` to certify a user ID even if it \
-                   isn't self signed.");
-        return Err(anyhow::anyhow!("Not a self-signed user ID"));
     };
 
     if let Some(err) = bad {
@@ -154,8 +151,8 @@ pub fn certify(sq: Sq, mut c: certify::Command)
         c.add_userid,
         true, // User supplied user IDs.
         &[(c.amount, c.expiration)],
-        0,
-        &[][..],
+        c.depth,
+        &c.regex[..],
         c.local,
         c.non_revocable,
         &notations[..],

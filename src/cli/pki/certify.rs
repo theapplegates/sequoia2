@@ -132,37 +132,6 @@ pub struct Command {
     pub amount: TrustAmount<u8>,
 
     #[clap(
-        long = "depth",
-        value_name = "TRUST_DEPTH",
-        default_value = "0",
-        help = "Set the trust depth",
-        long_help =
-            "Set the trust depth (sometimes referred to as the trust level).  \
-            0 means a normal certification of <CERTIFICATE, USERID>.  \
-            1 means CERTIFICATE is also a trusted introducer, 2 means \
-            CERTIFICATE is a meta-trusted introducer, etc.",
-    )]
-    pub depth: u8,
-
-    #[clap(
-        long = "regex",
-        value_name = "REGEX",
-        requires = "depth",
-        help = "Add a regular expression to constrain \
-            what a trusted introducer can certify",
-        long_help =
-            "Add a regular expression to constrain \
-            what a trusted introducer can certify.  \
-            The regular expression must match \
-            the certified User ID in all intermediate \
-            introducers, and the certified certificate. \
-            Multiple regular expressions may be \
-            specified.  In that case, at least \
-            one must match.",
-    )]
-    pub regex: Vec<String>,
-
-    #[clap(
         long = "expiration",
         value_name = "EXPIRATION",
         default_value_t =

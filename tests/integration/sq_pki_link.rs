@@ -136,9 +136,35 @@ fn sq_retract(sq: &Sq, cert: &str, userids: &[&str])
 // The certification is imported into the cert store.
 fn sq_certify(sq: &Sq,
               certifier: &str, cert: &str, userid: &str,
-              trust_amount: Option<usize>, depth: Option<usize>)
+              trust_amount: Option<usize>)
 {
     let mut extra_args = Vec::new();
+    let trust_amount_;
+    if let Some(trust_amount) = trust_amount {
+        extra_args.push("--amount");
+        trust_amount_ = format!("{}", trust_amount);
+        extra_args.push(&trust_amount_);
+    }
+
+    let certification = sq.scratch_file(Some(&format!(
+        "certification {} {} by {}", cert, userid, certifier)[..]));
+
+    let cert = if let Ok(kh) = cert.parse::<KeyHandle>() {
+        kh.into()
+    } else {
+        FileOrKeyHandle::FileOrStdin(cert.into())
+    };
+
+    sq.pki_certify(&extra_args, certifier, cert, &[userid],
+                   Some(certification.as_path()));
+    sq.cert_import(&certification);
+}
+
+fn sq_authorize(sq: &Sq,
+                certifier: &str, cert: &str, userid: &str,
+                trust_amount: Option<usize>, depth: Option<usize>)
+{
+    let mut extra_args = vec![ "--unconstrained" ];
     let trust_amount_;
     if let Some(trust_amount) = trust_amount {
         extra_args.push("--amount");
@@ -161,8 +187,8 @@ fn sq_certify(sq: &Sq,
         FileOrKeyHandle::FileOrStdin(cert.into())
     };
 
-    sq.pki_certify(&extra_args, certifier, cert, &[userid],
-                   Some(certification.as_path()));
+    sq.pki_authorize(&extra_args, certifier, cert, &[userid],
+                     Some(certification.as_path()));
     sq.cert_import(&certification);
 }
 
@@ -244,12 +270,12 @@ fn sq_pki_link_add_retract() -> Result<()> {
 
     // Have Alice certify Bob as a trusted introducer and have Bob
     // certify Carol.
-    sq_certify(&sq, &alice.key_file,
-               &bob.cert.fingerprint().to_string(), bob_userid,
-               None, Some(1));
+    sq_authorize(&sq, &alice.key_file,
+                 &bob.cert.fingerprint().to_string(), bob_userid,
+                 None, Some(1));
     sq_certify(&sq, &bob.key_file,
                &carol.cert.fingerprint().to_string(), carol_userid,
-               None, None);
+               None);
 
     // We should be able to verify Alice's, Bob's and Carol's
     // signatures Alice as the trust root.  And Bob's and Carols' with
@@ -312,7 +338,7 @@ fn sq_pki_link_add_retract() -> Result<()> {
     // verify.
     sq_certify(&sq, &bob.key_file,
                &dave.cert.fingerprint().to_string(), dave_userid,
-               None, None);
+               None);
 
     sq_verify(&sq, None, &[], &[], &alice.sig_file, 1, 0);
     sq_verify(&sq, None, &[], &[], &bob.sig_file, 1, 0);

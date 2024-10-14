@@ -65,6 +65,10 @@
    - `sq pki certify`'s positional argument for specifying the
      certificate to certify must now be specified using a named
      argument, `--cert` or `--cert-file`.
+   - Previously `sq pki certify` could create certifications, and mark
+     a certificate as a trusted introducer (when the user set
+     `--depth` to be greater than zero).  The latter functionality has
+     been split off to the new subcommand `sq pki authorize`.
 
 * Changes in 0.38.0
 ** Notable changes

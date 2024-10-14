@@ -14,6 +14,7 @@ use sequoia_wot as wot;
 use wot::store::Backend;
 use wot::store::Store;
 
+pub mod authorize;
 pub mod certify;
 pub mod link;
 pub mod output;
@@ -655,6 +656,9 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
 
         Subcommands::Certify(command) =>
             self::certify::certify(sq, command)?,
+
+        Subcommands::Authorize(command) =>
+            self::authorize::authorize(sq, command)?,
 
         Subcommands::Link(command) =>
             self::link::link(sq, command)?,

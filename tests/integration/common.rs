@@ -1386,6 +1386,108 @@ impl Sq {
             .expect("success")
     }
 
+    /// Try to make an authorization.
+    ///
+    /// If `output_file` is `Some`, then the output is written to that
+    /// file.  Otherwise, the default behavior is followed.
+    pub fn pki_authorize_p<'a, H, C, Q>(&self, extra_args: &[&str],
+                                        certifier: H,
+                                        cert: C,
+                                        userids: &[&str],
+                                        output_file: Q,
+                                        success: bool)
+        -> Result<Cert>
+    where H: Into<FileOrKeyHandle>,
+          C: Into<FileOrKeyHandle>,
+          Q: Into<Option<&'a Path>>,
+    {
+        let certifier = certifier.into();
+        let cert = cert.into();
+        let output_file = output_file.into();
+
+        let mut cmd = self.command();
+        cmd.args([ "pki", "authorize" ]);
+        for arg in extra_args {
+            cmd.arg(arg);
+        }
+        match &certifier {
+            FileOrKeyHandle::FileOrStdin(file) => {
+                cmd.arg("--certifier-file").arg(file);
+            }
+            FileOrKeyHandle::KeyHandle((_kh, s)) => {
+                cmd.arg("--certifier").arg(s);
+            }
+        }
+        match &cert {
+            FileOrKeyHandle::FileOrStdin(file) => {
+                cmd.arg("--cert-file").arg(file);
+            }
+            FileOrKeyHandle::KeyHandle((_kh, s)) => {
+                cmd.arg("--cert").arg(s);
+            }
+        }
+        for userid in userids {
+            cmd.arg("--userid").arg(userid);
+        }
+
+        if let Some(output_file) = output_file {
+            cmd.arg("--overwrite").arg("--output").arg(output_file);
+        }
+
+        let output = self.run(cmd, Some(success));
+        if output.status.success() {
+            if let Some(output_file) = output_file {
+                // The output was explicitly written to a file.
+                if output_file == &PathBuf::from("-") {
+                    Ok(Cert::from_bytes(&output.stdout)
+                       .expect("can parse certificate"))
+                } else {
+                    Ok(Cert::from_file(&output_file)
+                       .expect("can parse certificate"))
+                }
+            } else {
+                match cert {
+                    FileOrKeyHandle::FileOrStdin(_) => {
+                        // When the cert is from a file, the output is
+                        // written to stdout by default.
+                        Ok(Cert::from_bytes(&output.stdout)
+                           .with_context(|| {
+                               format!("Importing result from the file {:?}",
+                                       cert)
+                           })
+                           .expect("can parse certificate"))
+                    }
+                    FileOrKeyHandle::KeyHandle((kh, _s)) => {
+                        // When the cert is from the cert store, the
+                        // output is written to the cert store by
+                        // default.
+                        Ok(self.cert_export(kh.clone()))
+                    }
+                }
+            }
+        } else {
+            Err(anyhow::anyhow!(format!(
+                "Failed (expected):\n{}",
+                String::from_utf8_lossy(&output.stderr))))
+        }
+    }
+
+    /// Authorize a certificate.
+    pub fn pki_authorize<'a, H, C, Q>(&self, extra_args: &[&str],
+                                      certifier: H,
+                                      cert: C,
+                                      userids: &[&str],
+                                      output_file: Q)
+        -> Cert
+    where H: Into<FileOrKeyHandle>,
+          C: Into<FileOrKeyHandle>,
+          Q: Into<Option<&'a Path>>,
+    {
+        self.pki_authorize_p(
+            extra_args, certifier, cert, userids, output_file, true)
+            .expect("success")
+    }
+
     /// Add a link for the binding.
     pub fn pki_link_add_maybe(&self, extra_args: &[&str],
                               cert: KeyHandle, userid: &str)
@@ -1414,6 +1516,29 @@ impl Sq {
                         cert: KeyHandle, userid: &str)
     {
         self.pki_link_add_maybe(args, cert, userid).expect("success")
+    }
+
+    /// Authenticate a binding.
+    pub fn pki_authenticate(&self, extra_args: &[&str],
+                            cert: &str, userid: &str)
+        -> Result<()>
+    {
+        let mut cmd = self.command();
+        cmd.args([ "pki", "authenticate" ]);
+        for arg in extra_args {
+            cmd.arg(arg);
+        }
+        cmd.arg(cert);
+        cmd.arg(userid);
+
+        let output = self.run(cmd, None);
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!(format!(
+                "Command failed:\n{}",
+                String::from_utf8_lossy(&output.stderr))))
+        }
     }
 
     pub fn sign<'a, H, Q>(&self,

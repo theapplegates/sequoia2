@@ -175,6 +175,7 @@ pub fn certify(sq: &Sq,
     -> Result<()>
 {
     assert!(templates.len() > 0);
+    assert!(userids.len() > 0);
     make_qprintln!(sq.quiet);
 
     if trust_depth == 0 && !regex.is_empty() {

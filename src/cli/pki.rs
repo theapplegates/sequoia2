@@ -11,6 +11,7 @@ use openpgp::packet::UserID;
 
 use crate::cli::types::TrustAmount;
 
+pub mod authorize;
 pub mod certify;
 pub mod link;
 
@@ -55,6 +56,7 @@ pub enum Subcommands {
     Lookup(LookupCommand),
     Identify(IdentifyCommand),
     Certify(certify::Command),
+    Authorize(authorize::Command),
     Link(link::Command),
     List(ListCommand),
     Path(PathCommand),

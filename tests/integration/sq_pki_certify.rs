@@ -117,7 +117,7 @@ fn sq_pki_certify() -> Result<()> {
         // Have alice certify <bob@example.org> for 0xB0B.
         sq.tick(1);
         let bob_pgp_new = sq.scratch_file(None);
-        let cert = sq.pki_certify(
+        let cert = sq.pki_authorize(
             &["--depth", "10",
               "--amount", "5",
               "--regex", "a",

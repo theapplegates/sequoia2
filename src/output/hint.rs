@@ -43,19 +43,11 @@ impl Hint {
     }
 
     /// Suggests a free-form command to the user.
-    pub fn command(self, cmd: fmt::Arguments) -> Self {
-        if ! self.quiet {
-            wprintln!();
-
-            // XXX: Don't wrap the command, so that if it wraps hard,
-            // at least users can still copy and paste it.  It'd be
-            // nice to wrap it nicely, but that would either require
-            // parsing the command, or changing the hint framework to
-            // hand in an argument vectors, and doing some smarter
-            // line wrapping.
-            eprintln!("  {}", cmd);
-        }
-        self
+    ///
+    /// Note: if you want to suggest an `sq` invocation, use
+    /// [`Hint::sq`] instead.
+    pub fn command(self, argv0: &str) -> Command {
+        Command::new(self, argv0)
     }
 }
 

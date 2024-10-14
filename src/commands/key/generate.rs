@@ -206,7 +206,9 @@ pub fn generate(
             }
             None => {
                 // write the key to the key store
-                match sq.import_key(cert.clone()) {
+                match sq.import_key(cert.clone(), &mut Default::default())
+                    .map(|(key_status, _cert_status)| key_status)
+                {
                     Ok(ImportStatus::New) => { /* success */ }
                     Ok(ImportStatus::Unchanged) => {
                         panic!(

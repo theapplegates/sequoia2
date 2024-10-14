@@ -51,6 +51,7 @@ use crate::cli::types::FileStdinOrKeyHandle;
 use crate::common::password;
 use crate::ImportStatus;
 use crate::output::hint::Hint;
+use crate::output::import::ImportStats;
 use crate::PreferredUserID;
 use crate::print_error_chain;
 
@@ -904,8 +905,11 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// Imports the TSK into the soft key backend.
     ///
     /// On success, returns whether the key was imported, updated, or
+    /// unchanged and whether the cert was imported, updated, or
     /// unchanged.
-    pub fn import_key(&self, cert: Cert) -> Result<ImportStatus> {
+    pub fn import_key(&self, cert: Cert, stats: &mut ImportStats)
+                      -> Result<(ImportStatus, ImportStatus)>
+    {
         if ! cert.is_tsk() {
             return Err(anyhow::anyhow!(
                 "Nothing to import: certificate does not contain \
@@ -931,27 +935,48 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             return Err(anyhow::anyhow!("softkeys backend is not configured."));
         };
 
-        let mut import_status = ImportStatus::Unchanged;
-        for (s, key) in softkeys.import(&cert)? {
+        let mut key_import_status = ImportStatus::Unchanged;
+        for (s, key) in softkeys.import(&cert)
+            .map_err(|e| {
+                stats.keys.errors += 1;
+                e
+            })?
+        {
             self.info(format_args!(
                 "Importing {} into key store: {:?}",
                 key.fingerprint(), s));
 
-            import_status = import_status.max(s.into());
+            key_import_status = key_import_status.max(s.into());
+        }
+
+        match key_import_status {
+            ImportStatus::New => stats.keys.new += 1,
+            ImportStatus::Unchanged => stats.keys.unchanged += 1,
+            ImportStatus::Updated => stats.keys.updated += 1,
         }
 
         // Also insert the certificate into the certificate store.
         // If we can't, we don't fail.  This allows, in
         // particular, `sq --no-cert-store key import` to work.
         let fpr = cert.fingerprint();
+        let mut cert_import_status = ImportStatus::Unchanged;
         match self.cert_store_or_else() {
             Ok(cert_store) => {
-                if let Err(err) = cert_store.update(
-                    Arc::new(LazyCert::from(cert)))
+                let new_certs = stats.certs.new_certs();
+                let updated_certs = stats.certs.updated_certs();
+
+                if let Err(err) = cert_store.update_by(
+                    Arc::new(LazyCert::from(cert)), stats)
                 {
                     self.info(format_args!(
                         "While importing {} into cert store: {}",
                         fpr, err));
+                }
+
+                if stats.certs.new_certs() > new_certs {
+                    cert_import_status = ImportStatus::New;
+                } else if stats.certs.updated_certs() > updated_certs {
+                    cert_import_status = ImportStatus::Updated;
                 }
             }
             Err(err) => {
@@ -961,7 +986,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             }
         }
 
-        Ok(import_status)
+        Ok((key_import_status, cert_import_status))
     }
 
     /// Imports the certificate into the certificate store.

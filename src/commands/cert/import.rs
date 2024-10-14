@@ -28,7 +28,7 @@ where 'store: 'rstore
         cmd.input
     };
 
-    let mut stats = cert_store::store::MergePublicCollectStats::new();
+    let mut stats = crate::output::import::ImportStats::default();
 
     let inner = || -> Result<()> {
         for input in inputs.into_iter() {
@@ -42,7 +42,7 @@ where 'store: 'rstore
                     Ok(raw_cert) => LazyCert::from(raw_cert),
                     Err(err) => {
                         wprintln!("Error parsing input: {}", err);
-                        stats.inc_errors();
+                        stats.certs.inc_errors();
                         continue;
                     }
                 };
@@ -52,7 +52,7 @@ where 'store: 'rstore
                 if let Err(err) = cert_store.update_by(Arc::new(cert), &mut stats) {
                     wprintln!("Error importing {}, {}: {}",
                               fingerprint, sanitized_userid, err);
-                    stats.inc_errors();
+                    stats.certs.inc_errors();
                     continue;
                 } else {
                     wprintln!("Imported {}, {}", fingerprint, sanitized_userid);
@@ -65,10 +65,7 @@ where 'store: 'rstore
 
     let result = inner();
 
-    wprintln!("Imported {} new certificates, updated {} certificates, \
-               {} certificates unchanged, {} errors.",
-              stats.new_certs(), stats.updated_certs(),
-              stats.unchanged_certs(), stats.errors());
+    stats.print_summary()?;
 
     Ok(result?)
 }

@@ -2,12 +2,23 @@ use sequoia_openpgp as openpgp;
 use openpgp::cert::CertParser;
 use openpgp::parse::Parse;
 
+use crate::output::import::ImportStats;
+
 use crate::cli;
 use crate::Sq;
-use crate::ImportStatus;
 use crate::Result;
 
 pub fn import(sq: Sq, command: cli::key::ImportCommand) -> Result<()> {
+    let mut stats = Default::default();
+    let r = import_internal(sq, command, &mut stats);
+    stats.print_summary()?;
+    r
+}
+
+fn import_internal(sq: Sq, command: cli::key::ImportCommand,
+                   stats: &mut ImportStats)
+                   -> Result<()>
+{
     // Return the first error.
     let mut ret = Ok(());
 
@@ -29,19 +40,18 @@ pub fn import(sq: Sq, command: cli::key::ImportCommand) -> Result<()> {
                              sq.best_userid(&cert, true));
 
             let cert_is_tsk = cert.is_tsk();
-            match sq.import_key(cert) {
-                Ok(ImportStatus::New) => {
-                    wprintln!("Imported {} from {}: new",
-                              id, file.display());
+            match sq.import_key(cert, stats) {
+                Ok((key, cert)) => {
+                    wprintln!("Imported {} from {}: {}",
+                              id, file.display(),
+                              if key == cert {
+                                  key.to_string()
+                              } else {
+                                  format!("key {}, cert {}", key, cert)
+                              });
+
                 }
-                Ok(ImportStatus::Unchanged) => {
-                    wprintln!("Imported {} from {}: unchanged",
-                              id, file.display());
-                }
-                Ok(ImportStatus::Updated) => {
-                    wprintln!("Imported {} from {}: updated",
-                              id, file.display());
-                }
+
                 Err(err) => {
                     wprintln!("Error importing {} from {}: {}",
                               id, file.display(), err);

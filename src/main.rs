@@ -10,6 +10,7 @@ use anyhow::Context as _;
 
 use std::borrow::Borrow;
 use std::collections::btree_map::{BTreeMap, Entry};
+use std::fmt;
 use std::io;
 use std::path::Path;
 use std::time::SystemTime;
@@ -101,6 +102,16 @@ impl From<keystore::ImportStatus> for ImportStatus {
             keystore::ImportStatus::Unchanged => ImportStatus::Unchanged,
             keystore::ImportStatus::New => ImportStatus::New,
             keystore::ImportStatus::Updated => ImportStatus::Updated,
+        }
+    }
+}
+
+impl fmt::Display for ImportStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ImportStatus::Unchanged => f.write_str("unchanged"),
+            ImportStatus::New => f.write_str("new"),
+            ImportStatus::Updated => f.write_str("updated"),
         }
     }
 }

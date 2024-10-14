@@ -400,11 +400,11 @@ pub fn bind(sq: Sq, mut command: cli::key::subkey::BindCommand) -> Result<()>
         // Import it into the key store.
         let keyid = cert.keyid();
         let result = if cert.is_tsk() {
-            sq.import_key(cert)
+            sq.import_key(cert, &mut Default::default()).err()
         } else {
-            sq.import_cert(cert)
+            sq.import_cert(cert).err()
         };
-        if let Err(err) = result {
+        if let Some(err) = result {
             wprintln!("Error importing updated cert: {}", err);
             return Err(err);
         } else {

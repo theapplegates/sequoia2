@@ -327,7 +327,7 @@ fn subkey_add(
             new_cert.as_tsk().armored().serialize(&mut sink)?;
         }
     } else {
-        sq.import_key(new_cert)?;
+        sq.import_key(new_cert, &mut Default::default())?;
     }
 
     Ok(())

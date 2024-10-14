@@ -3,7 +3,6 @@
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 use std::fs::{self, DirEntry};
-use std::io;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
@@ -159,9 +158,26 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
 }
 
 /// Serializes a keyring, adding descriptive headers if armored.
-fn serialize_keyring(mut output: &mut dyn io::Write, certs: Vec<Cert>,
+fn serialize_keyring(sq: &Sq, file: &FileOrStdout, certs: Vec<Cert>,
                      binary: bool)
                      -> openpgp::Result<()> {
+    let mut output = file.create_safe(&sq)?;
+
+    if certs.len() > 1 {
+        let mut hint = sq.hint(format_args!(
+            "To extract a particular certificate from {}, use any of:",
+            file.path().map(|p| p.display().to_string())
+                .unwrap_or_else(|| "the stream".into())));
+
+        let path = file.path().map(|p| p.display().to_string())
+                .unwrap_or_else(|| "...".into());
+        for cert in &certs {
+            hint = hint.command(format_args!(
+                "sq cert expert --keyring {} --cert {}",
+                path, cert.fingerprint()));
+        }
+    }
+
     // Handle the easy options first.  No armor no cry:
     if binary {
         for cert in certs {
@@ -778,8 +794,7 @@ impl Response {
         let certs = certs.into_iter().map(|(_, cert)| cert).collect();
 
         if let Some(file) = &output {
-            let mut output = file.create_safe(&sq)?;
-            serialize_keyring(&mut output, certs, binary)?;
+            serialize_keyring(&sq, file, certs, binary)?;
         } else {
             import_certs(&mut sq, certs)?;
         }

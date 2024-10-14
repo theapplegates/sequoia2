@@ -123,6 +123,11 @@ impl FileOrStdin {
                 Generic::with_cookie(stdin(), None, Default::default())))
         }
     }
+
+    /// Return a reference to the optional PathBuf.
+    pub fn path(&self) -> Option<&PathBuf> {
+        self.0.as_ref()
+    }
 }
 
 impl Default for FileOrStdin {

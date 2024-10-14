@@ -32,8 +32,9 @@ where 'store: 'rstore
 
     let inner = || -> Result<()> {
         for input in inputs.into_iter() {
-            let input = FileOrStdin::from(input).open()?;
-            let raw_certs = RawCertParser::from_buffered_reader(input)?;
+            let input = FileOrStdin::from(input);
+            let raw_certs =
+                RawCertParser::from_buffered_reader(input.open()?)?;
 
             let cert_store = sq.cert_store_or_else()?;
 
@@ -46,6 +47,20 @@ where 'store: 'rstore
                         continue;
                     }
                 };
+
+                if cert.is_tsk() {
+                    let mut cmd = sq.hint(format_args!(
+                        "Certificate {} contains secret key material.  \
+                         To import keys, do:", cert.fingerprint()))
+                        .sq().arg("key").arg("import");
+
+                    if let Some(file) = input.path() {
+                        cmd = cmd.arg(file.display());
+                    }
+
+                    cmd.done();
+                }
+
 
                 let fingerprint = cert.fingerprint();
                 let sanitized_userid = sq.best_userid(cert.to_cert()?, true);

@@ -180,6 +180,21 @@ pub fn certify(sq: &Sq,
     assert!(userids.len() > 0);
     make_qprintln!(sq.quiet);
 
+    if certifier.fingerprint() == cert.fingerprint() {
+        sq.hint(
+            format_args!("\
+The certificate to certify is the same as the certificate being certified. \
+If you are trying to add a user ID, try:"))
+            .sq().arg("key").arg("userid").arg("add")
+            .arg("--cert").arg(cert.fingerprint())
+            .arg("--userid").arg(&userids[0])
+            .done();
+
+        return Err(
+            anyhow::format_err!("\
+The certifier is the same as the certificate to certify."));
+    }
+
     if trust_depth == 0 && !regex.is_empty() {
         return Err(
             anyhow::format_err!("A regex constraint only makes sense \

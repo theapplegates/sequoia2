@@ -480,3 +480,24 @@ fn sq_pki_certify_using_cert_store() -> Result<()>
 
     Ok(())
 }
+
+// Make sure we reject making self signatures.
+#[test]
+fn sq_pki_certify_no_self_signatures() -> Result<()>
+{
+    let sq = Sq::new();
+
+    let alice_userid = "<alice@example.org>";
+    let (alice, alice_pgp, _alice_rev)
+        = sq.key_generate(&[], &[alice_userid]);
+    sq.key_import(&alice_pgp);
+
+    let r = sq.pki_certify_p(
+        &[], &alice.key_handle(),
+        alice.key_handle(), &[alice_userid],
+        None,
+        false);
+    assert!(r.is_err());
+
+    Ok(())
+}

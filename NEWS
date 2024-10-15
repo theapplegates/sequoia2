@@ -75,6 +75,9 @@
    - `sq pki link add`'s positional argument for specifying the
      certificate to link must now be specified using a named
      argument, `--cert`.
+   - `sq pki link retract`'s positional argument for specifying the
+     certificate to unlink must now be specified using a named
+     argument, `--cert`.
 
 * Changes in 0.38.0
 ** Notable changes

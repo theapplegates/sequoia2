@@ -326,7 +326,8 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
     let trust_root = sq.local_trust_root()?;
     let trust_root = trust_root.to_cert()?;
 
-    let cert = sq.lookup_one(&c.certificate, None, true)?;
+    let (cert, _from_file)
+        = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
 
     let mut userids =
         check_userids(&sq, &cert, false, &c.userid, &c.email, &c.pattern)

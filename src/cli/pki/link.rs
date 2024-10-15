@@ -2,9 +2,6 @@
 
 use clap::{ArgGroup, Parser, Subcommand};
 
-use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
-
 use crate::cli::examples::*;
 use crate::cli::types::CertDesignators;
 use crate::cli::types::cert_designator;
@@ -115,7 +112,7 @@ Retract the acceptance of certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 and any associated user IDs.  This effectively invalidates all links.",
             command: &[
                 "sq", "pki", "link", "retract",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
     ],
@@ -483,13 +480,11 @@ to force the signature to be re-created anyway.",
     )]
     pub recreate: bool,
 
-    #[clap(
-        value_name = "FINGERPRINT|KEYID",
-        required = true,
-        help = "The certificate whose acceptance is being retracted.",
-    )]
-    pub certificate: KeyHandle,
-
+    #[command(flatten)]
+    pub cert: CertDesignators<
+        cert_designator::CertArg,
+        cert_designator::CertPrefix,
+        cert_designator::OneValue>,
 
     #[clap(
         long = "userid",
@@ -544,7 +539,7 @@ Retract the acceptance of certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 and the email address alice@example.org.",
             command: &[
                 "sq", "pki", "link", "retract",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
             ],
         }),
@@ -555,7 +550,7 @@ Retract the acceptance of certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 and any associated user IDs.  This effectively invalidates all links.",
             command: &[
                 "sq", "pki", "link", "retract",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
     ],

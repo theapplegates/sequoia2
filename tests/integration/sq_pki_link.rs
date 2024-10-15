@@ -121,7 +121,7 @@ fn sq_retract(sq: &Sq, cert: &str, userids: &[&str])
     -> (ExitStatus, String, String)
 {
     let mut cmd = sq.command();
-    cmd.args(&["pki", "link", "retract", "--time", &tick(), cert]);
+    cmd.args(&["pki", "link", "retract", "--time", &tick(), "--cert", cert]);
     cmd.args(userids);
     eprintln!("{:?}", cmd);
     let output = sq.run(cmd, true);

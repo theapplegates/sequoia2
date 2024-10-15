@@ -10,7 +10,6 @@ use chrono::Utc;
 use sequoia_openpgp as openpgp;
 use openpgp::Cert;
 use openpgp::Result;
-use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::packet::prelude::*;
 use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::packet::signature::subpacket::NotationDataFlags;
@@ -201,8 +200,6 @@ The certifier is the same as the certificate to certify."));
                                  if the trust depth is greater than 0"));
     }
 
-    let vc = cert.with_policy(sq.policy, sq.time)?;
-
     // Get the signer to certify with.
     let mut signer = sq.get_certification_key(certifier, None)?;
 
@@ -299,7 +296,7 @@ The certifier is the same as the certificate to certify."));
         .map(|(userid, active_certification)| {
             let userid_str = || String::from_utf8_lossy(userid.value());
 
-            if let Some(ua) = vc.userids().find(|ua| ua.userid() == &userid) {
+            if let Some(ua) = cert.userids().find(|ua| ua.userid() == &userid) {
                 if retract {
                     // Check if we certified it.
                     if ! ua.certifications().any(|c| {
@@ -313,7 +310,9 @@ The certifier is the same as the certificate to certify."));
                         return Ok(vec![ Packet::from(userid.clone()) ]);
                     }
                 } else {
-                    if let RevocationStatus::Revoked(_) = ua.revocation_status() {
+                    if let RevocationStatus::Revoked(_)
+                        = ua.revocation_status(sq.policy, sq.time)
+                    {
                         // It's revoked.
                         if user_supplied_userids {
                             // It was explicitly mentioned.  Return an

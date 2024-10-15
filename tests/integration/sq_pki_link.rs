@@ -651,3 +651,38 @@ fn sq_pki_link_add_temporary() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn retract_non_self_signed() {
+    // Make sure we can retract non-self signed user IDs.
+    let mut sq = Sq::new();
+
+    let alice_userid = "Alice <alice@example.org>";
+    let (alice, alice_pgp, _) = sq.key_generate(&[], &[alice_userid]);
+    sq.key_import(&alice_pgp);
+
+    let petname = "Mon chouchou";
+
+    let msg = artifact("messages/a-cypherpunks-manifesto.txt");
+    let sig_msg = sq.scratch_file(None);
+    let sig_msg = sig_msg.as_path();
+    let sig_msg_str = sig_msg.display().to_string();
+    sq.sign(alice.key_handle(), None, &msg, sig_msg);
+
+    // Verifying should fail: alice's certificate is not linked at all.
+    sq_verify(&sq, None, &[], &[], &sig_msg_str, 0, 1);
+
+    // Link a non-self-signed user ID.
+    sq.tick(1);
+    sq.pki_link_add(&["--add-userid"], alice.key_handle(), petname);
+
+    // Now it should work.
+    sq_verify(&sq, None, &[], &[], &sig_msg_str, 1, 0);
+
+    // Retract the link.
+    sq.tick(1);
+    sq_retract(&sq, &alice.fingerprint().to_string(), &[petname], &[]);
+
+    // Now it should fail.
+    sq_verify(&sq, None, &[], &[], &sig_msg_str, 0, 1);
+}

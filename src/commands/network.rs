@@ -31,6 +31,7 @@ use openpgp::{
     serialize::Serialize,
     types::{
         KeyFlags,
+        RevocationStatus,
         SignatureType,
     },
 };
@@ -49,6 +50,7 @@ use cert_store::StoreUpdate;
 use cert_store::store::UserIDQueryParams;
 
 use crate::{
+    Convert,
     commands::{
         FileOrStdout,
         active_certification,
@@ -795,7 +797,69 @@ impl Response {
         certs.sort_unstable_by_key(|cert| usize::MAX - cert.0.trust_amount());
 
         for (i, (userid, cert)) in certs.iter().enumerate() {
-            qprintln!("  {}. {} {}", i + 1, cert.fingerprint(), userid);
+            if i > 0 {
+                qprintln!();
+            }
+
+            // Emit metadata.
+            qprintln!(initial_indent = " - ", "{}",
+                      cert.fingerprint());
+            qprintln!(initial_indent = "   - ", "{}", userid);
+            qprintln!(initial_indent = "   - ", "created {}",
+                      cert.primary_key().key().creation_time().convert());
+
+            match cert.with_policy(sq.policy, sq.time) {
+                Ok(vcert) => {
+                    if let Err(e) = vcert.alive() {
+                        qprintln!(initial_indent = "   - ", "not live: {}", e);
+                    }
+                    match vcert.revocation_status() {
+                        RevocationStatus::Revoked(sigs) => for s in sigs {
+                            if let Some((reason, message)) =
+                                s.reason_for_revocation()
+                            {
+                                qprintln!(initial_indent = "   - ",
+                                          "revoked: {}, {}", reason,
+                                          String::from_utf8_lossy(message));
+                            } else {
+                                qprintln!(initial_indent = "   - ",
+                                          "revoked");
+                            }
+                        },
+
+                        RevocationStatus::CouldBe(sigs) => for s in sigs {
+                            if let Some((reason, message)) =
+                                s.reason_for_revocation()
+                            {
+                                qprintln!(initial_indent = "   - ",
+                                          "possibly revoked: {}, {}", reason,
+                                          String::from_utf8_lossy(message));
+                            } else {
+                                qprintln!(initial_indent = "   - ",
+                                          "possibly revoked");
+                            }
+
+                            match sq.lookup(s.get_issuers(),
+                                            None, false, true)
+                            {
+                                Ok(issuers) => for issuer in issuers {
+                                    qprintln!(initial_indent = "     - ",
+                                              "by {}, {}",
+                                              issuer.fingerprint(),
+                                              sq.best_userid(&issuer, true));
+                                },
+                                Err(_) =>
+                                    qprintln!(initial_indent = "     - ",
+                                              "by {}", s.get_issuers()[0]),
+                            }
+                        },
+
+                        RevocationStatus::NotAsFarAsWeKnow => (),
+                    }
+                },
+                Err(e) =>
+                    qprintln!(initial_indent = "   - ", "not valid: {}", e),
+            }
         }
 
         let certs = certs.into_iter().map(|(_, cert)| cert).collect();

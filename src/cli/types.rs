@@ -37,6 +37,8 @@ use crate::cli::SECONDS_IN_YEAR;
 pub mod cert_designator;
 pub use cert_designator::CertDesignators;
 pub mod paths;
+pub mod userid_designator;
+pub use userid_designator::UserIDDesignators;
 
 /// A trait to provide const &str for clap annotations for custom structs
 pub trait ClapData {

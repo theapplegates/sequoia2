@@ -6,7 +6,7 @@ use openpgp::types::KeyFlags;
 use crate::Sq;
 use crate::cli::pki::certify;
 use crate::cli::types::FileStdinOrKeyHandle;
-use crate::cli::types::cert_designator::CertDesignator;
+use crate::cli::types::userid_designator::UserIDDesignator;
 use crate::commands::FileOrStdout;
 use crate::parse_notations;
 
@@ -45,13 +45,13 @@ pub fn certify(sq: Sq, mut c: certify::Command)
 
     for designator in c.userids.iter() {
         match designator {
-            CertDesignator::UserID(userid) => {
+            UserIDDesignator::UserID(userid) => {
                 let userid = UserID::from(&userid[..]);
 
                 // If --add-userid is specified, we use the user ID as
                 // is.  Otherwise, we make sure there is a matching
                 // self-signed user ID.
-                if c.add_userid {
+                if c.userids.add_userid().unwrap_or(false) {
                     userids.push(userid.clone());
                 } else if let Some(_) = vc.userids()
                     .find(|ua| {
@@ -65,7 +65,7 @@ pub fn certify(sq: Sq, mut c: certify::Command)
                     missing = true;
                 }
             }
-            CertDesignator::Email(email) => {
+            UserIDDesignator::Email(email) => {
                 // Validate the email address.
                 let userid = match UserID::from_address(None, None, email) {
                     Ok(userid) => userid,
@@ -107,7 +107,7 @@ pub fn certify(sq: Sq, mut c: certify::Command)
                 }
 
                 if ! found {
-                    if c.add_userid {
+                    if c.userids.add_userid().unwrap_or(false) {
                         // Add the bare email address.
                         userids.push(userid);
                     } else {
@@ -118,7 +118,6 @@ pub fn certify(sq: Sq, mut c: certify::Command)
                     }
                 }
             }
-            _ => unreachable!("enforced by clap"),
         }
     }
 
@@ -151,7 +150,7 @@ pub fn certify(sq: Sq, mut c: certify::Command)
         &certifier,
         &cert,
         &userids[..],
-        c.add_userid,
+        c.userids.add_userid().unwrap_or(false),
         true, // User supplied user IDs.
         &[(c.amount, c.expiration)],
         0,

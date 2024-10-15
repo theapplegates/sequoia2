@@ -94,11 +94,6 @@ pub type CertUserIDEmailFileArgs
         as std::ops::BitOr<EmailArg>>::Output
        as std::ops::BitOr<FileArg>>::Output;
 
-/// Enables --userid, and --email (i.e., not --cert, --file, --domain,
-/// or --grep).
-pub type UserIDEmailArgs
-    = <UserIDArg as std::ops::BitOr<EmailArg>>::Output;
-
 /// Enables --cert, and --file (i.e., not --userid, --email, --domain,
 /// or --grep).
 pub type CertFileArgs = <CertArg as std::ops::BitOr<FileArg>>::Output;

@@ -15,12 +15,9 @@ use crate::cli::types::Expiration;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::TrustAmount;
-use crate::cli::types::cert_designator::CertFileArgs;
-use crate::cli::types::cert_designator::CertPrefix;
-use crate::cli::types::cert_designator::NoPrefix;
-use crate::cli::types::cert_designator::OneValue;
-use crate::cli::types::cert_designator::OptionalValue;
-use crate::cli::types::cert_designator::UserIDEmailArgs;
+use crate::cli::types::UserIDDesignators;
+use crate::cli::types::cert_designator;
+use crate::cli::types::userid_designator;
 
 use crate::cli::examples::*;
 
@@ -113,17 +110,15 @@ pub struct Command {
     pub certifier_file: Option<FileOrStdin>,
 
     #[command(flatten)]
-    pub cert: CertDesignators<CertFileArgs, CertPrefix, OneValue>,
+    pub cert: CertDesignators<
+        cert_designator::CertFileArgs,
+        cert_designator::CertPrefix,
+        cert_designator::OneValue>,
 
     #[command(flatten)]
-    pub userids: CertDesignators<UserIDEmailArgs, NoPrefix, OptionalValue>,
-    #[clap(
-        long,
-        help = "Add the given user ID if it doesn't exist.",
-        long_help =
-            "Add the given user ID if it doesn't exist in the certificate.",
-    )]
-    pub add_userid: bool,
+    pub userids: UserIDDesignators<
+        userid_designator::MaybeSelfSignedUserIDEmailArgs,
+        userid_designator::OptionalValue>,
 
     #[clap(
         long = "amount",

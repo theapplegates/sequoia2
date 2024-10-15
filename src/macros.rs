@@ -55,6 +55,136 @@ macro_rules! wprintln {
 macro_rules! make_qprintln {
     ($quiet: expr) => {
         macro_rules! qprintln {
+            // XXX: Lot's of repetition due to the fact that nested
+            // macros still cannot have repetitions:
+            // https://github.com/rust-lang/rust/issues/83527
+
+            // First, with `indent`.
+            { indent=$i: expr } => {
+                if ! $quiet {
+                    wprintln!(indent=$i);
+                }
+            };
+            { indent=$i: expr, $a0: expr } => {
+                if ! $quiet {
+                    wprintln!(indent=$i, $a0);
+                }
+            };
+            { indent=$i: expr, $a0: expr, $a1: expr } => {
+                if ! $quiet {
+                    wprintln!(indent=$i, $a0, $a1);
+                }
+            };
+            { indent=$i: expr, $a0: expr, $a1: expr, $a2: expr } => {
+                if ! $quiet {
+                    wprintln!(indent=$i, $a0, $a1, $a2);
+                }
+            };
+            { indent=$i: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr } => {
+                if ! $quiet {
+                    wprintln!(indent=$i, $a0, $a1, $a2, $a3);
+                }
+            };
+            { indent=$i: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr } => {
+                if ! $quiet {
+                    wprintln!(indent=$i, $a0, $a1, $a2, $a3, $a4);
+                }
+            };
+            { indent=$i: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr, $a5: expr } => {
+                if ! $quiet {
+                    wprintln!(indent=$i, $a0, $a1, $a2, $a3, $a4, $a5);
+                }
+            };
+            { indent=$i: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr, $a5: expr, $a6: expr } => {
+                if ! $quiet {
+                    wprintln!(indent=$i, $a0, $a1, $a2, $a3, $a4, $a5, $a6);
+                }
+            };
+            // Again, with `initial_indent` and `subsequent_indent`.
+            { initial_indent=$ii: expr, subsequent_indent=$si: expr } => {
+                if ! $quiet {
+                    wprintln!(initial_indent=$ii, subsequent_indent=$si);
+                }
+            };
+            { initial_indent=$ii: expr, subsequent_indent=$si: expr, $a0: expr } => {
+                if ! $quiet {
+                    wprintln!(initial_indent=$ii, subsequent_indent=$si, $a0);
+                }
+            };
+            { initial_indent=$ii: expr, subsequent_indent=$si: expr, $a0: expr, $a1: expr } => {
+                if ! $quiet {
+                    wprintln!(initial_indent=$ii, subsequent_indent=$si, $a0, $a1);
+                }
+            };
+            { initial_indent=$ii: expr, subsequent_indent=$si: expr, $a0: expr, $a1: expr, $a2: expr } => {
+                if ! $quiet {
+                    wprintln!(initial_indent=$ii, subsequent_indent=$si, $a0, $a1, $a2);
+                }
+            };
+            { initial_indent=$ii: expr, subsequent_indent=$si: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr } => {
+                if ! $quiet {
+                    wprintln!(initial_indent=$ii, subsequent_indent=$si, $a0, $a1, $a2, $a3);
+                }
+            };
+            { initial_indent=$ii: expr, subsequent_indent=$si: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr } => {
+                if ! $quiet {
+                    wprintln!(initial_indent=$ii, subsequent_indent=$si, $a0, $a1, $a2, $a3, $a4);
+                }
+            };
+            { initial_indent=$ii: expr, subsequent_indent=$si: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr, $a5: expr } => {
+                if ! $quiet {
+                    wprintln!(initial_indent=$ii, subsequent_indent=$si, $a0, $a1, $a2, $a3, $a4, $a5);
+                }
+            };
+            { initial_indent=$ii: expr, subsequent_indent=$si: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr, $a5: expr, $a6: expr } => {
+                if ! $quiet {
+                    wprintln!(initial_indent=$ii, subsequent_indent=$si, $a0, $a1, $a2, $a3, $a4, $a5, $a6);
+                }
+            };
+
+            // Again, with `initial_indent`.
+            { initial_indent=$ii: expr } => {
+                if ! $quiet {
+                    wprintln!(initial_indent=$ii);
+                }
+            };
+            { initial_indent=$ii: expr, $a0: expr } => {
+                if ! $quiet {
+                    wprintln!(initial_indent=$ii, $a0);
+                }
+            };
+            { initial_indent=$ii: expr, $a0: expr, $a1: expr } => {
+                if ! $quiet {
+                    wprintln!(initial_indent=$ii, $a0, $a1);
+                }
+            };
+            { initial_indent=$ii: expr, $a0: expr, $a1: expr, $a2: expr } => {
+                if ! $quiet {
+                    wprintln!(initial_indent=$ii, $a0, $a1, $a2);
+                }
+            };
+            { initial_indent=$ii: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr } => {
+                if ! $quiet {
+                    wprintln!(initial_indent=$ii, $a0, $a1, $a2, $a3);
+                }
+            };
+            { initial_indent=$ii: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr } => {
+                if ! $quiet {
+                    wprintln!(initial_indent=$ii, $a0, $a1, $a2, $a3, $a4);
+                }
+            };
+            { initial_indent=$ii: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr, $a5: expr } => {
+                if ! $quiet {
+                    wprintln!(initial_indent=$ii, $a0, $a1, $a2, $a3, $a4, $a5);
+                }
+            };
+            { initial_indent=$ii: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr, $a5: expr, $a6: expr } => {
+                if ! $quiet {
+                    wprintln!(initial_indent=$ii, $a0, $a1, $a2, $a3, $a4, $a5, $a6);
+                }
+            };
+
+            // Again, without any indent.
             {} => {
                 if ! $quiet {
                     wprintln!();

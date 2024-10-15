@@ -283,7 +283,7 @@ to force the signature to be re-created anyway.",
 
     #[clap(
         long = "all",
-        conflicts_with_all = &[ "userid", "email", "petname", "pattern" ],
+        conflicts_with_all = &[ "userid", "email", "petname" ],
         required = false,
         help = "Link all valid self-signed User ID to the certificate.",
         long_help = "Link all valid self-signed User ID to the certificate.",
@@ -327,19 +327,6 @@ to force the signature to be re-created anyway.",
                      silently converted to `<alice@example.org>`.",
     )]
     pub petname: Vec<String>,
-
-    #[clap(
-        value_name = "USERID|EMAIL",
-        required = false,
-        help = "A User ID or email address to accept.",
-        long_help = "A User ID or email address to link to the certificate.  \
-                     This must match a self-signed User ID.  To link a User ID \
-                     to the certificate that does not have a self-signature, \
-                     use `--petname`.  Scripts should prefer to use \
-                     `--email` or `--userid`, as `sq` does not need to \
-                     guess if a value is a User ID or an email address.",
-    )]
-    pub pattern: Vec<String>,
 }
 
 const ADD_EXAMPLES: Actions = Actions {

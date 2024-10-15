@@ -88,14 +88,19 @@ fn sq_verify(sq: &Sq,
 
 // Links a User ID and a certificate.
 fn sq_link(sq: &Sq,
-           cert: &str, userids: &[&str], more_args: &[&str],
+           cert: &str, userids: &[&str], emails: &[&str], more_args: &[&str],
            success: bool)
     -> (ExitStatus, String, String)
 {
     let mut cmd = sq.command();
     cmd.args(&["pki", "link", "add", "--time", &tick()]);
     cmd.arg("--cert").arg(cert);
-    cmd.args(userids);
+    for userid in userids {
+        cmd.arg("--userid").arg(userid);
+    }
+    for email in emails {
+        cmd.arg("--email").arg(email);
+    }
     cmd.args(more_args);
     let output = sq.run(cmd, None);
 
@@ -304,14 +309,14 @@ fn sq_pki_link_add_retract() -> Result<()> {
 
     // Let's accept Alice, but not (yet) as a trusted introducer.  We
     // should now be able to verify Alice's signature, but not Bob's.
-    sq_link(&sq, &alice_fpr, &[ &alice_userid ], &[], true);
+    sq_link(&sq, &alice_fpr, &[ &alice_userid ], &[], &[], true);
 
     sq_verify(&sq, None, &[], &[], &alice.sig_file, 1, 0);
     sq_verify(&sq, None, &[], &[], &bob.sig_file, 0, 1);
 
     // Accept Alice as a trusted introducer.  We should be able to
     // verify Alice, Bob, and Carol's signatures.
-    sq_link(&sq, &alice_fpr, &[ &alice_userid ], &["--ca", "*"], true);
+    sq_link(&sq, &alice_fpr, &[ &alice_userid ], &[], &["--ca", "*"], true);
 
     sq_verify(&sq, None, &[], &[], &alice.sig_file, 1, 0);
     sq_verify(&sq, None, &[], &[], &bob.sig_file, 1, 0);
@@ -328,7 +333,7 @@ fn sq_pki_link_add_retract() -> Result<()> {
 
     // Accept Alice as a trusted introducer again.  We should be able
     // to verify Alice, Bob, and Carol's signatures.
-    sq_link(&sq, &alice_fpr, &[ &alice_userid ], &["--ca", "*"], true);
+    sq_link(&sq, &alice_fpr, &[ &alice_userid ], &[], &["--ca", "*"], true);
 
     sq_verify(&sq, None, &[], &[], &alice.sig_file, 1, 0);
     sq_verify(&sq, None, &[], &[], &bob.sig_file, 1, 0);
@@ -348,7 +353,7 @@ fn sq_pki_link_add_retract() -> Result<()> {
 
     // Change Alice's acceptance to just be a normal certification.
     // We should only be able to verify her signature.
-    sq_link(&sq, &alice_fpr, &[ &alice_userid ], &[], true);
+    sq_link(&sq, &alice_fpr, &[ &alice_userid ], &[], &[], true);
 
     sq_verify(&sq, None, &[], &[], &alice.sig_file, 1, 0);
     sq_verify(&sq, None, &[], &[], &bob.sig_file, 0, 1);
@@ -357,7 +362,7 @@ fn sq_pki_link_add_retract() -> Result<()> {
 
     // Change Alice's acceptance to be a ca, but only for example.org,
     // i.e., not for Dave.
-    sq_link(&sq, &alice_fpr, &[ &alice_userid ], &["--ca", "example.org"],
+    sq_link(&sq, &alice_fpr, &[ &alice_userid ], &[], &["--ca", "example.org"],
             true);
 
     sq_verify(&sq, None, &[], &[], &alice.sig_file, 1, 0);
@@ -395,45 +400,29 @@ fn sq_pki_link_add_retract() -> Result<()> {
 
     // If we don't use --petname, than a self-signed User ID must
     // exist.
-    sq_link(&sq, &ed_fpr, &[ "--userid", "bob@example.com" ], &[], false);
+    sq_link(&sq, &ed_fpr, &[ "bob@example.com" ], &[], &[], false);
     sq_verify(&sq, None, &[], &[], &ed_sig_file, 0, 1);
 
-    sq_link(&sq, &ed_fpr, &[ "--email", "bob@example.com" ], &[], false);
-    sq_verify(&sq, None, &[], &[], &ed_sig_file, 0, 1);
-
-    sq_link(&sq, &ed_fpr, &[ "bob@example.com" ], &[], false);
+    sq_link(&sq, &ed_fpr, &[], &[ "bob@example.com" ], &[], false);
     sq_verify(&sq, None, &[], &[], &ed_sig_file, 0, 1);
 
     // We should only create links if all the supplied User IDs are
     // valid.
-    sq_link(&sq, &ed_fpr, &[
-        "--userid", "ed@some.org", "--userid", "bob@example.com"
-    ], &[], false);
+    sq_link(&sq, &ed_fpr, &["ed@some.org", "bob@example.com"], &[], &[], false);
     sq_verify(&sq, None, &[], &[], &ed_sig_file, 0, 1);
 
-    sq_link(&sq, &ed_fpr, &[
-        "--userid", "ed@some.org", "--email", "bob@example.com"
-    ], &[], false);
-    sq_verify(&sq, None, &[], &[], &ed_sig_file, 0, 1);
-
-    sq_link(&sq, &ed_fpr, &[
-        "--userid", "ed@some.org", "bob@example.com"
-    ], &[], false);
+    sq_link(&sq, &ed_fpr, &["ed@some.org"], &["bob@example.com"], &[], false);
     sq_verify(&sq, None, &[], &[], &ed_sig_file, 0, 1);
 
     // Pass an email address to --userid.  This shouldn't match
     // either.
-    sq_link(&sq, &ed_fpr, &[
-        "--userid", "ed@other.org"
-    ], &[], false);
+    sq_link(&sq, &ed_fpr, &["ed@other.org"], &[], &[], false);
     sq_verify(&sq, None, &[], &[], &ed_sig_file, 0, 1);
 
     // Link all User IDs individually.
-    sq_link(&sq, &ed_fpr, &[
-        "--email", "ed@other.org",
-        "--email", "ed@example.org",
-        "--userid", "ed@some.org",
-    ], &[], true);
+    sq_link(&sq, &ed_fpr,
+            &["ed@some.org"], &["ed@other.org", "ed@example.org"],
+            &[], true);
     sq_verify(&sq, None, &[], &[], &ed_sig_file, 1, 0);
 
     // Retract the links one at a time.
@@ -488,37 +477,37 @@ fn sq_pki_link_update_detection() -> Result<()> {
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
     // Link it.
-    sq_link(&sq, &alice_fpr, &[], &["--all"], true);
+    sq_link(&sq, &alice_fpr, &[], &[], &["--all"], true);
     let bytes = compare(bytes, &alice_cert_pgp, false);
 
     // As no parameters changed, this should succeeded, but no
     // certification should be written.
-    let output = sq_link(&sq, &alice_fpr, &[], &["--all"], true);
+    let output = sq_link(&sq, &alice_fpr, &[], &[], &["--all"], true);
     assert!(output.2.contains("Certification parameters are unchanged"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
     // Make Alice a CA.
-    let output = sq_link(&sq, &alice_fpr, &[],
+    let output = sq_link(&sq, &alice_fpr, &[], &[],
                          &["--ca", "*", "--all"], true);
     assert!(output.2.contains("was previously"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, false);
 
-    let output = sq_link(&sq, &alice_fpr, &[],
+    let output = sq_link(&sq, &alice_fpr, &[], &[],
                          &["--ca", "*", "--all"], true);
     assert!(output.2.contains("Certification parameters are unchanged"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
     // Make her a partially trusted CA.
-    let output = sq_link(&sq, &alice_fpr, &[],
+    let output = sq_link(&sq, &alice_fpr, &[], &[],
                          &["--amount", "30", "--all"], true);
     assert!(output.2.contains("was previously"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, false);
 
-    let output = sq_link(&sq, &alice_fpr, &[],
+    let output = sq_link(&sq, &alice_fpr, &[], &[],
                          &["--amount", "30", "--all"], true);
     assert!(output.2.contains("Certification parameters are unchanged"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
@@ -537,38 +526,38 @@ fn sq_pki_link_update_detection() -> Result<()> {
 
 
     // Link it again.
-    let output = sq_link(&sq, &alice_fpr, &[],
+    let output = sq_link(&sq, &alice_fpr, &[], &[],
                          &["--depth", "10", "--amount", "10", "--all"], true);
     assert!(output.2.contains("was retracted"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, false);
 
-    let output = sq_link(&sq, &alice_fpr, &[],
+    let output = sq_link(&sq, &alice_fpr, &[], &[],
                          &["--depth", "10", "--amount", "10", "--all"], true);
     assert!(output.2.contains("Certification parameters are unchanged"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
     // Use a notation.
-    let output = sq_link(&sq, &alice_fpr, &[],
+    let output = sq_link(&sq, &alice_fpr, &[], &[],
                          &["--notation", "foo", "10", "--all"], true);
     assert!(output.2.contains("was previously"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, false);
 
-    let output = sq_link(&sq, &alice_fpr, &[],
+    let output = sq_link(&sq, &alice_fpr, &[], &[],
                          &["--notation", "foo", "10", "--all"], true);
     assert!(output.2.contains("Certification parameters are unchanged"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
     // The default link again.
-    let output = sq_link(&sq, &alice_fpr, &[], &["--all"], true);
+    let output = sq_link(&sq, &alice_fpr, &[], &[], &["--all"], true);
     assert!(output.2.contains("was previously"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, false);
 
-    let output = sq_link(&sq, &alice_fpr, &[], &["--all"], true);
+    let output = sq_link(&sq, &alice_fpr, &[], &[], &["--all"], true);
     assert!(output.2.contains("Certification parameters are unchanged"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, true);
@@ -616,7 +605,7 @@ fn sq_pki_link_add_temporary() -> Result<()> {
 
     sq_verify(&sq, None, &[], &[], &alice_sig_file, 0, 1);
 
-    let output = sq_link(&sq, &alice_fpr, &[], &["--temporary", "--all"], true);
+    let output = sq_link(&sq, &alice_fpr, &[], &[], &["--temporary", "--all"], true);
     assert!(output.2.contains("Certifying "),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, false);
@@ -637,7 +626,7 @@ fn sq_pki_link_add_temporary() -> Result<()> {
 
     // Now mark it as fully trusted.  It should be trusted now, in 6
     // days and in 8 days.
-    let output = sq_link(&sq, &alice_fpr, &[], &["--all"], true);
+    let output = sq_link(&sq, &alice_fpr, &[], &[], &["--all"], true);
     assert!(output.2.contains("was previously"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     eprintln!("{:?}", output);

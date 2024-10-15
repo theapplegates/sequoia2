@@ -1499,7 +1499,7 @@ impl Sq {
             cmd.arg(arg);
         }
         cmd.arg("--cert").arg(cert.to_string());
-        cmd.arg(userid);
+        cmd.arg("--userid").arg(userid);
 
         let output = self.run(cmd, None);
         if output.status.success() {

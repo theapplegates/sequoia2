@@ -78,6 +78,9 @@
    - `sq pki link retract`'s positional argument for specifying the
      certificate to unlink must now be specified using a named
      argument, `--cert`.
+   - Removed `sq pki link add`'s positional argument for specifying a
+     user ID directly or by email address.  Use the named arguments,
+     `--userid` or `--email` instead.
 
 * Changes in 0.38.0
 ** Notable changes

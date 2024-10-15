@@ -498,7 +498,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                         cert_fpr, signer_userid))
                         .sq().arg("pki").arg("link").arg("add")
                         .arg("--cert").arg(cert_fpr)
-                        .arg(signer_userid)
+                        .arg_value("--userid", signer_userid)
                         .done();
                 }
                 (false, false) => {
@@ -513,7 +513,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                         cert_fpr, signer_userid))
                         .sq().arg("pki").arg("link").arg("add")
                         .arg("--cert").arg(cert_fpr)
-                        .arg(signer_userid)
+                        .arg_value("--userid", signer_userid)
                         .done();
                 }
             };

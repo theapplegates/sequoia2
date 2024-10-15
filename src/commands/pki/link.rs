@@ -215,7 +215,7 @@ pub fn add(sq: Sq, c: link::AddCommand)
         = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
 
     let mut userids =
-        check_userids(&sq, &cert, true, &c.userid, &c.email, &c.pattern)
+        check_userids(&sq, &cert, true, &c.userid, &c.email, &Vec::new())
             .context("sq pki link add: Invalid User IDs")?;
     userids.extend(c.petname.iter().map(|petname| {
         // If it is a bare email, we wrap it in angle brackets.

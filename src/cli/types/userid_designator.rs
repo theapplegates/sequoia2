@@ -18,6 +18,10 @@ pub type AllUserIDsArg = typenum::U4;
 /// Adds a `--add-userid` argument.
 pub type AddUserIDArg = typenum::U8;
 
+/// Enables --userid, and --email.
+pub type UserIDEmailArgs
+    = <UserIDArg as std::ops::BitOr<EmailArg>>::Output;
+
 /// Enables --userid, --email, and --add-userid.
 pub type MaybeSelfSignedUserIDEmailArgs
     = <<UserIDArg as std::ops::BitOr<EmailArg>>::Output

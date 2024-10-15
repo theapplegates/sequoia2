@@ -432,25 +432,10 @@ to force the signature to be re-created anyway.",
         cert_designator::CertPrefix,
         cert_designator::OneValue>,
 
-    #[clap(
-        long = "userid",
-        value_name = "USERID",
-        required = false,
-        help = "A User ID to unlink from the certificate.",
-        long_help = "A User ID to unlink from the certificate.  This must match \
-                     a known User ID, although it need not be linked.",
-    )]
-    pub userid: Vec<String>,
-    #[clap(
-        long = "email",
-        value_name = "email",
-        required = false,
-        help = "An email address to unlink from the certificate.",
-        long_help = "An email address to unlink from the certificate.  The email \
-                     address must match a User ID with the email, although, \
-                     it need not be linked.",
-    )]
-    pub email: Vec<String>,
+    #[command(flatten)]
+    pub userids: UserIDDesignators<
+        userid_designator::UserIDEmailArgs,
+        userid_designator::OptionalValue>,
 }
 
 const RETRACT_EXAMPLES: Actions = Actions {

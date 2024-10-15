@@ -1,188 +1,18 @@
 use std::time::Duration;
 
-use anyhow::Context;
-
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
-use openpgp::cert::prelude::*;
-use openpgp::packet::prelude::*;
 
 use sequoia_cert_store as cert_store;
 use cert_store::Store;
-use cert_store::store::UserIDQueryParams;
 
 use crate::Sq;
 use crate::commands::active_certification;
 use crate::commands::pki::TrustAmount;
 use crate::parse_notations;
-use crate::print_error_chain;
 
 use crate::cli::pki::link;
 use crate::cli::types::Expiration;
-
-/// Checks that the search terms provided to --userid, and --email
-/// match known User IDs.
-///
-/// If `self_signed` is true, then only self-signed User IDs are
-/// considered.
-///
-/// On success, returns the matching User IDs.  This includes mapping
-/// email addresses to their matching User IDs.  If an email address
-/// matches multiple User IDs, they are all returned.
-pub fn check_userids(sq: &Sq, cert: &Cert, self_signed: bool,
-                     userids: &Vec<String>, emails: &Vec<String>)
-    -> Result<Vec<UserID>>
-{
-    if userids.is_empty() && emails.is_empty() {
-        // Nothing to do.
-        return Ok(vec![]);
-    }
-
-    let userids = userids.iter()
-        .map(|u| UserID::from(&u[..]))
-        .collect::<Vec<UserID>>();
-
-    let emails = emails.iter()
-        .map(|email| {
-            match UserIDQueryParams::is_email(email) {
-                Ok(email) => {
-                    // We have the normalized email address.
-                    Ok(email)
-                }
-                Err(err) => {
-                    let err = anyhow::Error::from(err).context(format!(
-                        "{:?} is not a valid email address", email));
-                    print_error_chain(&err);
-                    Err(err)
-                }
-            }
-        })
-        .collect::<Result<Vec<String>>>()?;
-
-    let self_signed_userids = || -> Result<Vec<UserID>> {
-        let vc = cert.with_policy(sq.policy, sq.time)
-            .with_context(|| {
-                format!("{} is not valid according to the current policy",
-                        cert.fingerprint())
-            })?;
-        Ok(vc.userids().map(|ua| ua.userid().clone()).collect())
-    };
-
-    let known_userids: Vec<UserID> = if self_signed {
-        // Only consider User IDs that have a valid self signature.
-        self_signed_userids()?
-    } else {
-        // Consider any known UserID.
-        cert.userids().map(|ua| ua.userid().clone()).collect()
-    };
-
-    let mut results = Vec::new();
-    let mut error = None;
-
-    for userid in userids.into_iter() {
-        if known_userids.iter().any(|known_userid| known_userid == &userid) {
-            results.push(userid);
-        } else {
-            let err = anyhow::anyhow!(
-                "{:?} does not match any self-signed User IDs.  If you want \
-                 to use a User ID that is not endorsed by the key's owner, \
-                 use \"--petname\"",
-                String::from_utf8_lossy(userid.value()));
-            print_error_chain(&err);
-            if error.is_none() {
-                error = Some(err);
-            }
-        }
-    }
-
-    if ! emails.is_empty() {
-        let known_emails = known_userids.iter()
-            .filter_map(|known_userid| {
-                if let Ok(Some(email)) = known_userid.email_normalized() {
-                    Some((known_userid.clone(), email))
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<(UserID, String)>>();
-
-        for email in emails.into_iter() {
-            let mut matches = known_emails.iter()
-                .filter_map(|(known_userid, known_email)| {
-                    if known_email == &email {
-                        Some(known_userid.clone())
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<UserID>>();
-
-            if matches.is_empty() {
-                let err = anyhow::anyhow!(
-                    "{:?} does not match any valid, self-signed email \
-                     addresses.  If you want to use an email address that \
-                     is not endorsed by the key's owner, use \"--petname\"",
-                    email);
-                print_error_chain(&err);
-                if error.is_none() {
-                    error = Some(err);
-                }
-            } else {
-                results.append(&mut matches);
-            }
-        }
-    }
-
-    if let Some(err) = error {
-        // Some of the search terms did not match, print some
-        // diagnostics, and bail.
-
-        if known_userids.is_empty() {
-            if self_signed {
-                wprintln!("{} has no self-signed User IDs.",
-                          cert.fingerprint());
-            } else {
-                wprintln!("{} has no known User IDs.",
-                          cert.fingerprint());
-            }
-        } else {
-            if self_signed {
-                wprintln!("{} has the following self-signed User IDs:",
-                          cert.fingerprint());
-            } else {
-                wprintln!("{} has the following known User IDs:",
-                          cert.fingerprint());
-            }
-
-            // Show whether a User ID is self-signed or not, unless we
-            // are only interested in self-signed User IDs, in which
-            // don't bother; it's redundant.
-            let self_signed_userids = if self_signed {
-                vec![]
-            } else {
-                self_signed_userids().unwrap_or(vec![])
-            };
-
-            for (i, userid) in known_userids.iter().enumerate() {
-                wprintln!(
-                    "  {}. {:?}{}",
-                    i + 1, String::from_utf8_lossy(userid.value()),
-                    if self_signed_userids.contains(userid) {
-                        " (self signed)"
-                    } else {
-                        ""
-                    });
-            }
-        }
-
-        Err(err)
-    } else {
-        results.sort();
-        results.dedup();
-
-        Ok(results)
-    }
-}
 
 pub fn link(sq: Sq, c: link::Command) -> Result<()> {
     use link::Subcommands::*;
@@ -286,9 +116,8 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
     let (cert, _from_file)
         = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
 
-    let mut userids =
-        check_userids(&sq, &cert, false, &c.userid, &c.email)
-        .context("sq pki link retract: Invalid User IDs")?;
+    let vc = cert.with_policy(sq.policy, Some(sq.time))?;
+    let mut userids = c.userids.resolve(&vc)?;
 
     let user_supplied_userids = if userids.is_empty() {
         // Nothing was specified.  Retract all known User IDs.

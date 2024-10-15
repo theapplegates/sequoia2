@@ -178,7 +178,7 @@ fn serialize_keyring(sq: &Sq, file: &FileOrStdout, certs: Vec<Cert>,
                 .unwrap_or_else(|| "...".into());
         for cert in &certs {
             hint = hint.sq()
-                .arg("cert").arg("expert")
+                .arg("cert").arg("export")
                 .arg_value("--keyring", &path)
                 .arg_value("--cert", cert.fingerprint())
                 .done();

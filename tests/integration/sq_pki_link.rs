@@ -122,12 +122,17 @@ fn sq_link(sq: &Sq,
     (output.status, stdout, stderr)
 }
 
-fn sq_retract(sq: &Sq, cert: &str, userids: &[&str])
+fn sq_retract(sq: &Sq, cert: &str, userids: &[&str], emails: &[&str])
     -> (ExitStatus, String, String)
 {
     let mut cmd = sq.command();
     cmd.args(&["pki", "link", "retract", "--time", &tick(), "--cert", cert]);
-    cmd.args(userids);
+    for userid in userids {
+        cmd.arg("--userid").arg(userid);
+    }
+    for email in emails {
+        cmd.arg("--email").arg(email);
+    }
     eprintln!("{:?}", cmd);
     let output = sq.run(cmd, true);
 
@@ -325,7 +330,7 @@ fn sq_pki_link_add_retract() -> Result<()> {
 
     // Retract the acceptance for Alice.  If we don't specify a trust
     // root, none of the signatures should verify.
-    sq_retract(&sq, &alice_fpr, &[ &alice_userid ]);
+    sq_retract(&sq, &alice_fpr, &[ &alice_userid ], &[]);
 
     for data in data.iter() {
         sq_verify(&sq, None, &[], &[], &data.sig_file, 0, 1);
@@ -426,16 +431,16 @@ fn sq_pki_link_add_retract() -> Result<()> {
     sq_verify(&sq, None, &[], &[], &ed_sig_file, 1, 0);
 
     // Retract the links one at a time.
-    sq_retract(&sq, &ed_fpr, &[ "ed@other.org" ]);
+    sq_retract(&sq, &ed_fpr, &[], &[ "ed@other.org" ]);
     sq_verify(&sq, None, &[], &[], &ed_sig_file, 1, 0);
 
-    sq_retract(&sq, &ed_fpr, &[ "Ed <ed@example.org>" ]);
+    sq_retract(&sq, &ed_fpr, &[ "Ed <ed@example.org>" ], &[]);
     sq_verify(&sq, None, &[], &[], &ed_sig_file, 1, 0);
 
-    sq_retract(&sq, &ed_fpr, &[ "Eddie <ed@example.org>" ]);
+    sq_retract(&sq, &ed_fpr, &[ "Eddie <ed@example.org>" ], &[]);
     sq_verify(&sq, None, &[], &[], &ed_sig_file, 1, 0);
 
-    sq_retract(&sq, &ed_fpr, &[ "ed@some.org" ]);
+    sq_retract(&sq, &ed_fpr, &[ "ed@some.org" ], &[]);
     // Now the certificate should no longer be authenticated.
     sq_verify(&sq, None, &[], &[], &ed_sig_file, 0, 1);
 
@@ -471,7 +476,7 @@ fn sq_pki_link_update_detection() -> Result<()> {
     let bytes = std::fs::read(&alice_cert_pgp).unwrap();
 
     // Retract it.  There is nothing to retract (but this doesn't fail).
-    let output = sq_retract(&sq, &alice_fpr, &[]);
+    let output = sq_retract(&sq, &alice_fpr, &[], &[]);
     assert!(output.2.contains("You never certified"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, true);
@@ -514,12 +519,12 @@ fn sq_pki_link_update_detection() -> Result<()> {
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
     // Retract the link.
-    let output = sq_retract(&sq, &alice_fpr, &[]);
+    let output = sq_retract(&sq, &alice_fpr, &[], &[]);
     assert!(output.2.contains("was previously"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, false);
 
-    let output = sq_retract(&sq, &alice_fpr, &[]);
+    let output = sq_retract(&sq, &alice_fpr, &[], &[]);
     assert!(output.2.contains("Certification parameters are unchanged"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, true);

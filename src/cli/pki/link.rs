@@ -492,19 +492,6 @@ to force the signature to be re-created anyway.",
                      it need not be linked.",
     )]
     pub email: Vec<String>,
-
-    #[clap(
-        value_name = "USERID|EMAIL",
-        required = false,
-        help = "A User ID or email address to unlink from the certificate.",
-        long_help = "A User ID or email address to unlink from the certificate.  \
-                     This must match a known User ID.  Scripts should prefer to \
-                     use `--email` or `--userid`, as `sq` does not need to \
-                     guess if a value is a User ID or an email address. \
-                     If no User IDs, or email addresses are provided, \
-                     then all known User IDs are unlinked.",
-    )]
-    pub pattern: Vec<String>,
 }
 
 const RETRACT_EXAMPLES: Actions = Actions {

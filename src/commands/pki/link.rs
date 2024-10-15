@@ -20,8 +20,8 @@ use crate::print_error_chain;
 use crate::cli::pki::link;
 use crate::cli::types::Expiration;
 
-/// Checks that the search terms provided to --userid, --email, and
-/// patterns match known User IDs.
+/// Checks that the search terms provided to --userid, and --email
+/// match known User IDs.
 ///
 /// If `self_signed` is true, then only self-signed User IDs are
 /// considered.
@@ -30,20 +30,19 @@ use crate::cli::types::Expiration;
 /// email addresses to their matching User IDs.  If an email address
 /// matches multiple User IDs, they are all returned.
 pub fn check_userids(sq: &Sq, cert: &Cert, self_signed: bool,
-                     userids: &Vec<String>, emails: &Vec<String>,
-                     patterns: &Vec<String>)
+                     userids: &Vec<String>, emails: &Vec<String>)
     -> Result<Vec<UserID>>
 {
-    if userids.is_empty() && emails.is_empty() && patterns.is_empty() {
+    if userids.is_empty() && emails.is_empty() {
         // Nothing to do.
         return Ok(vec![]);
     }
 
-    let mut userids = userids.iter()
+    let userids = userids.iter()
         .map(|u| UserID::from(&u[..]))
         .collect::<Vec<UserID>>();
 
-    let mut emails = emails.iter()
+    let emails = emails.iter()
         .map(|email| {
             match UserIDQueryParams::is_email(email) {
                 Ok(email) => {
@@ -59,16 +58,6 @@ pub fn check_userids(sq: &Sq, cert: &Cert, self_signed: bool,
             }
         })
         .collect::<Result<Vec<String>>>()?;
-
-    // If it looks like an email address, add it to email.  Otherwise,
-    // add it to User ID.
-    for pattern in patterns.iter() {
-        if let Ok(email) = UserIDQueryParams::is_email(pattern) {
-            emails.push(email);
-        } else {
-            userids.push(UserID::from(&pattern[..]));
-        }
-    }
 
     let self_signed_userids = || -> Result<Vec<UserID>> {
         let vc = cert.with_policy(sq.policy, sq.time)
@@ -215,7 +204,7 @@ pub fn add(sq: Sq, c: link::AddCommand)
         = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
 
     let mut userids =
-        check_userids(&sq, &cert, true, &c.userid, &c.email, &Vec::new())
+        check_userids(&sq, &cert, true, &c.userid, &c.email)
             .context("sq pki link add: Invalid User IDs")?;
     userids.extend(c.petname.iter().map(|petname| {
         // If it is a bare email, we wrap it in angle brackets.
@@ -330,7 +319,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
         = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
 
     let mut userids =
-        check_userids(&sq, &cert, false, &c.userid, &c.email, &c.pattern)
+        check_userids(&sq, &cert, false, &c.userid, &c.email)
         .context("sq pki link retract: Invalid User IDs")?;
 
     let user_supplied_userids = if userids.is_empty() {

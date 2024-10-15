@@ -42,7 +42,8 @@ pub fn dispatch(sq: Sq, mut cmd: export::Command) -> Result<()> {
     if cmd.all {
         // Export everything.
         for cert in cert_store.certs()
-            .filter(|c| c.to_cert().map(cert_exportable).unwrap_or(false))
+            .filter(|c| cmd.local
+                    || c.to_cert().map(cert_exportable).unwrap_or(false))
         {
             // Turn parse errors into warnings: we want users to be
             // able to recover as much of their data as possible.
@@ -52,7 +53,11 @@ pub fn dispatch(sq: Sq, mut cmd: export::Command) -> Result<()> {
                             cert.fingerprint())
                 });
             match result {
-                Ok(cert) => cert.export(&mut sink)?,
+                Ok(cert) => if cmd.local {
+                    cert.serialize(&mut sink)?;
+                } else {
+                    cert.export(&mut sink)?;
+                },
                 Err(err) => {
                     print_error_chain(&err);
                     continue;
@@ -86,7 +91,11 @@ pub fn dispatch(sq: Sq, mut cmd: export::Command) -> Result<()> {
         }
 
         for cert in certs.into_iter() {
-            cert.export(&mut sink)?;
+            if cmd.local {
+                cert.serialize(&mut sink)?;
+            } else {
+                cert.export(&mut sink)?;
+            }
             exported_something = true;
         }
     }

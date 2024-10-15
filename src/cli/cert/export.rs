@@ -91,6 +91,23 @@ pub struct Command {
     pub binary: bool,
 
     #[clap(
+        long = "local",
+        help = "Export local (non-exportable) signatures",
+        long_help = "\
+Export local (non-exportable) signatures
+
+By default, non-exportable signatures are not emitted when exporting \
+certificates, certificate components that are only bound by \
+non-exportable signatures are not emitted, and certificates consisting \
+of only non-exportable components are not emitted.
+
+This flag enables exporting of non-exportable signatures, components, \
+and certs.  This is useful for synchronization between ones devices, \
+for example.",
+    )]
+    pub local: bool,
+
+    #[clap(
         long,
         conflicts_with_all = [
             "cert", "userid", "email", "domain", "grep", "query",

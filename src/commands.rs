@@ -497,7 +497,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                          you can authenticate the binding using:",
                         cert_fpr, signer_userid))
                         .sq().arg("pki").arg("link").arg("add")
-                        .arg(cert_fpr)
+                        .arg("--cert").arg(cert_fpr)
                         .arg(signer_userid)
                         .done();
                 }
@@ -512,7 +512,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                          you can authenticate the binding using:",
                         cert_fpr, signer_userid))
                         .sq().arg("pki").arg("link").arg("add")
-                        .arg(cert_fpr)
+                        .arg("--cert").arg(cert_fpr)
                         .arg(signer_userid)
                         .done();
                 }

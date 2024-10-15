@@ -219,7 +219,7 @@ fn update_authenticated() -> Result<()> {
 
     // Link Bob's cert to his user ID.
     let mut link = sq.command();
-    link.args(&["pki", "link", "add", &bob_fp, BOB_USERID]);
+    link.args(&["pki", "link", "add", "--cert", &bob_fp, BOB_USERID]);
     sq.run(link, true);
 
     // Attest Bob's certification.

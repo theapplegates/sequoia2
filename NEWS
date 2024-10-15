@@ -72,6 +72,9 @@
    - Add the `--domain` argument to `sq pki authorize` so the user
      doesn't have to manually convert a domain to a regular
      expression.
+   - `sq pki link add`'s positional argument for specifying the
+     certificate to link must now be specified using a named
+     argument, `--cert`.
 
 * Changes in 0.38.0
 ** Notable changes

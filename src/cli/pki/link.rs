@@ -6,6 +6,8 @@ use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
 use crate::cli::examples::*;
+use crate::cli::types::CertDesignators;
+use crate::cli::types::cert_designator;
 use crate::cli::types::Expiration;
 use crate::cli::types::TrustAmount;
 
@@ -68,7 +70,7 @@ Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 with the email address alice@example.org.",
             command: &[
                 "sq", "pki", "link", "add",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
             ],
         }),
@@ -81,7 +83,7 @@ user IDs for a week.",
             command: &[
                 "sq", "pki", "link", "add",
                 "--expiration=1w",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
         }),
@@ -95,7 +97,7 @@ certificate is considered a trusted introducer for example.org.",
             command: &[
                 "sq", "pki", "link", "add",
                 "--ca=example.org",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
         }),
@@ -275,12 +277,12 @@ to force the signature to be re-created anyway.",
             The special keyword `never` sets an unlimited expiry.",
     )]
     pub expiration: Expiration,
-    #[clap(
-        value_name = "FINGERPRINT|KEYID",
-        required = true,
-        help = "The certificate to accept.",
-    )]
-    pub certificate: KeyHandle,
+
+    #[command(flatten)]
+    pub cert: CertDesignators<
+        cert_designator::CertArg,
+        cert_designator::CertPrefix,
+        cert_designator::OneValue>,
 
     #[clap(
         long = "all",
@@ -351,7 +353,7 @@ Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 with the email address alice@example.org.",
             command: &[
                 "sq", "pki", "link", "add",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
             ],
         }),
@@ -373,7 +375,7 @@ user IDs for a week.",
             command: &[
                 "sq", "pki", "link", "add",
                 "--expiration=1w",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
         }),
@@ -385,7 +387,7 @@ EB28F26E2739A4870ECC47726F0073F60FD0CBF0 with all of its self-signed \
 user IDs.",
             command: &[
                 "sq", "pki", "link", "add",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
         }),
@@ -398,7 +400,7 @@ authority.  That is, the certificate is considered a trust root.",
             command: &[
                 "sq", "pki", "link", "add",
                 "--ca=*",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
         }),
@@ -412,7 +414,7 @@ certificate is considered a trusted introducer for example.org.",
             command: &[
                 "sq", "pki", "link", "add",
                 "--ca=example.org",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
         }),
@@ -426,7 +428,7 @@ certification authority.",
                 "sq", "pki", "link", "add",
                 "--ca=*",
                 "--amount=60",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
         }),
@@ -531,7 +533,7 @@ Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 with the email address alice@example.org.",
             command: &[
                 "sq", "pki", "link", "add",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
             ],
         }),
@@ -591,7 +593,7 @@ Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 with the email address alice@example.org.",
             command: &[
                 "sq", "pki", "link", "add",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
             ],
         }),

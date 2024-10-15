@@ -93,7 +93,8 @@ fn sq_link(sq: &Sq,
     -> (ExitStatus, String, String)
 {
     let mut cmd = sq.command();
-    cmd.args(&["pki", "link", "add", "--time", &tick(), cert]);
+    cmd.args(&["pki", "link", "add", "--time", &tick()]);
+    cmd.arg("--cert").arg(cert);
     cmd.args(userids);
     cmd.args(more_args);
     let output = sq.run(cmd, None);

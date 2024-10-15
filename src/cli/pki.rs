@@ -68,7 +68,8 @@ const AUTHENTICATE_EXAMPLES: Actions = Actions {
         Action::Setup(Setup {
             command: &[
                 "sq", "pki", "link", "add",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0", "--all",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
             ],
         }),
         Action::Example(Example {
@@ -143,7 +144,8 @@ const LOOKUP_EXAMPLES: Actions = Actions {
         Action::Setup(Setup {
             command: &[
                 "sq", "pki", "link", "add",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0", "--all",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
             ],
         }),
         Action::Example(Example {
@@ -208,7 +210,8 @@ const IDENTIFY_EXAMPLES: Actions = Actions {
         Action::Setup(Setup {
             command: &[
                 "sq", "pki", "link", "add",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0", "--all",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
             ],
         }),
         Action::Example(Example {
@@ -270,7 +273,8 @@ const LIST_EXAMPLES: Actions = Actions {
         Action::Setup(Setup {
             command: &[
                 "sq", "pki", "link", "add",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0", "--all",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
             ],
         }),
         Action::Example(Example {

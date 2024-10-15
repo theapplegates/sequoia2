@@ -211,7 +211,8 @@ pub fn add(sq: Sq, c: link::AddCommand)
     let trust_root = sq.local_trust_root()?;
     let trust_root = trust_root.to_cert()?;
 
-    let cert = sq.lookup_one(&c.certificate, None, true)?;
+    let (cert, _from_file)
+        = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
 
     let mut userids =
         check_userids(&sq, &cert, true, &c.userid, &c.email, &c.pattern)

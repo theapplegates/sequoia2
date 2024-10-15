@@ -258,13 +258,13 @@ pub fn generate(
                               fully trusted introducer:"))
             .sq().arg("pki").arg("link").arg("add")
             .arg_value("--ca", "*")
-            .arg(cert.fingerprint())
+            .arg("--cert").arg(cert.fingerprint())
             .arg("--all")
             .done();
 
         sq.hint(format_args!("Otherwise, you should mark it as authenticated:"))
             .sq().arg("pki").arg("link").arg("add")
-            .arg(cert.fingerprint())
+            .arg("--cert").arg(cert.fingerprint())
             .arg("--all")
             .done();
 

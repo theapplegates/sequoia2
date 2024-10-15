@@ -143,7 +143,7 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
         {
             hint = hint
                 .sq().arg("pki").arg("link").arg("add")
-                .arg(vcert.fingerprint())
+                .arg("--cert").arg(vcert.fingerprint())
                 .arg_value("--userid", uid)
                 .done();
 
@@ -155,7 +155,7 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
                 "Alternatively, all user IDs can be marked as authenticated \
                  using:"))
                 .sq().arg("pki").arg("link").arg("add")
-                .arg(vcert.fingerprint())
+                .arg("--cert").arg(vcert.fingerprint())
                 .arg("--all")
                 .done();
         }

@@ -148,7 +148,7 @@ const UPDATE_EXAMPLES: Actions = Actions {
         Action::Setup(Setup {
             command: &[
                 "sq", "pki", "link", "add",
-                "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+                "--cert", "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
                 "--email", "bob@example.org",
             ],
         }),

@@ -20,6 +20,8 @@ pub mod password;
 pub mod pki;
 pub mod userid;
 
+pub mod types;
+
 pub const NULL_POLICY: &NullPolicy = &NullPolicy::new();
 
 /// Something like a User ID.

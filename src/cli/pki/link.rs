@@ -5,6 +5,8 @@ use clap::{ArgGroup, Parser, Subcommand};
 use crate::cli::examples::*;
 use crate::cli::types::CertDesignators;
 use crate::cli::types::cert_designator;
+use crate::cli::types::UserIDDesignators;
+use crate::cli::types::userid_designator;
 use crate::cli::types::Expiration;
 use crate::cli::types::TrustAmount;
 
@@ -281,52 +283,9 @@ to force the signature to be re-created anyway.",
         cert_designator::CertPrefix,
         cert_designator::OneValue>,
 
-    #[clap(
-        long = "all",
-        conflicts_with_all = &[ "userid", "email", "petname" ],
-        required = false,
-        help = "Link all valid self-signed User ID to the certificate.",
-        long_help = "Link all valid self-signed User ID to the certificate.",
-    )]
-    pub all: bool,
-
-    #[clap(
-        long = "userid",
-        value_name = "USERID",
-        required = false,
-        help = "A User ID to link to the certificate.",
-        long_help = "A User ID to link to the certificate.  This must match \
-                     a self-signed User ID.  To link a User ID to the \
-                     certificate that does not have a self-signature, use \
-                     `--petname`.",
-    )]
-    pub userid: Vec<String>,
-    #[clap(
-        long = "email",
-        value_name = "EMAIL",
-        required = false,
-        help = "An email address to link to the certificate.",
-        long_help = "An email address to link to the certificate.  The email \
-                     address must match the email address of a \
-                     self-signed User ID.  To link an email address to the \
-                     certificate that does not appear in a self-signed \
-                     User ID, use `--petname`.  If the specified email \
-                     appears in multiple self-signed User IDs, then all of \
-                     them are linked.",
-    )]
-    pub email: Vec<String>,
-    #[clap(
-        long = "petname",
-        value_name = "PETNAME",
-        required = false,
-        help = "A User ID to link to the certificate.",
-        long_help = "A User ID to link to the certificate.  Unlike `--userid`, \
-                     this does not need to match a self-signed User ID.  Bare \
-                     email address are automatically wrapped in angle brackets. \
-                     That is if `alice@example.org` is provided, it is \
-                     silently converted to `<alice@example.org>`.",
-    )]
-    pub petname: Vec<String>,
+    #[command(flatten)]
+    pub userids: UserIDDesignators<
+        userid_designator::MaybeSelfSignedUserIDEmailAllArgs>,
 }
 
 const ADD_EXAMPLES: Actions = Actions {

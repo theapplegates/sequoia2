@@ -203,40 +203,8 @@ pub fn add(sq: Sq, c: link::AddCommand)
     let (cert, _from_file)
         = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
 
-    let mut userids =
-        check_userids(&sq, &cert, true, &c.userid, &c.email)
-            .context("sq pki link add: Invalid User IDs")?;
-    userids.extend(c.petname.iter().map(|petname| {
-        // If it is a bare email, we wrap it in angle brackets.
-        if UserIDQueryParams::is_email(petname).is_ok() {
-            UserID::from(&format!("<{}>", petname)[..])
-        } else {
-            UserID::from(&petname[..])
-        }
-    }));
-
     let vc = cert.with_policy(sq.policy, Some(sq.time))?;
-
-    let user_supplied_userids = if userids.is_empty() {
-        if c.all {
-            userids = vc.userids().map(|ua| ua.userid().clone()).collect();
-        } else {
-            wprintln!("No User IDs specified.  \
-                       Pass \"--all\" or one or more User IDs.  \
-                       {}'s self-signed User IDs are:",
-                      cert.fingerprint());
-            for (i, userid) in vc.userids().enumerate() {
-                wprintln!("  {}. {:?}",
-                          i + 1,
-                          String::from_utf8_lossy(userid.value()));
-            }
-            return Err(anyhow::anyhow!("No User IDs specified"));
-        }
-
-        false
-    } else {
-        true
-    };
+    let userids = c.userids.resolve(&vc)?;
 
     let trust_depth: u8 = if let Some(depth) = c.depth {
         depth
@@ -293,7 +261,7 @@ pub fn add(sq: Sq, c: link::AddCommand)
         &cert,
         &userids[..],
         true, // Add userid.
-        user_supplied_userids,
+        true, // User-supplied user IDs.
         &templates,
         trust_depth,
         if star {

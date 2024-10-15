@@ -81,6 +81,10 @@
    - Removed `sq pki link add`'s positional argument for specifying a
      user ID directly or by email address.  Use the named arguments,
      `--userid` or `--email` instead.
+   - Add `--add-userid` to `sq pki link add`.  This aligns it with `sq
+     pki certify`.
+   - Removed `sq pki link add`'s `--petname` argument.  Use `--userid`
+     in conjunction with `--add-userid` instead.
 
 * Changes in 0.38.0
 ** Notable changes

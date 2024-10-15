@@ -1,6 +1,8 @@
 use sequoia_openpgp as openpgp;
+use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::cert::ValidCert;
 use openpgp::packet::UserID;
+use openpgp::types::RevocationStatus;
 
 use crate::Result;
 use crate::cli::types::UserIDDesignators;
@@ -15,6 +17,26 @@ impl<Arguments, Options> UserIDDesignators<Arguments, Options> {
         // Don't stop at the first error.
         let mut missing = false;
         let mut bad = None;
+
+        if let Some(true) = self.all() {
+            let all_userids = vc.userids()
+                .filter_map(|ua| {
+                    if let RevocationStatus::Revoked(_) = ua.revocation_status() {
+                        None
+                    } else {
+                        Some(ua.userid().clone())
+                    }
+                })
+                .collect::<Vec<_>>();
+
+            if all_userids.is_empty() {
+                return Err(anyhow::anyhow!(
+                    "{} has no valid self-signed user IDs",
+                    vc.fingerprint()));
+            }
+
+            userids.extend(all_userids);
+        }
 
         for designator in self.iter() {
             match designator {

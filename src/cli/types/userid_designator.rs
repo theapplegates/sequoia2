@@ -12,12 +12,21 @@ pub type UserIDArg = typenum::U1;
 /// Adds a `--email` argument.
 pub type EmailArg = typenum::U2;
 
+/// Adds a `--all` argument.
+pub type AllUserIDsArg = typenum::U4;
+
 /// Adds a `--add-userid` argument.
-pub type AddUserIDArg = typenum::U4;
+pub type AddUserIDArg = typenum::U8;
 
 /// Enables --userid, --email, and --add-userid.
 pub type MaybeSelfSignedUserIDEmailArgs
     = <<UserIDArg as std::ops::BitOr<EmailArg>>::Output
+       as std::ops::BitOr<AddUserIDArg>>::Output;
+
+/// Enables --userid, --email, --all, and --add-userid.
+pub type MaybeSelfSignedUserIDEmailAllArgs
+    = <<<UserIDArg as std::ops::BitOr<EmailArg>>::Output
+        as std::ops::BitOr<AllUserIDsArg>>::Output
        as std::ops::BitOr<AddUserIDArg>>::Output;
 
 /// Argument parser options.
@@ -81,6 +90,9 @@ pub struct UserIDDesignators<Arguments, Options=typenum::U0>
     /// The set of certificate designators.
     pub designators: Vec<UserIDDesignator>,
 
+    /// Use all self-signed user IDs.
+    pub all: Option<bool>,
+
     pub add_userid: Option<bool>,
 
     arguments: std::marker::PhantomData<(Arguments, Options)>,
@@ -92,6 +104,8 @@ impl<Arguments, Options> std::fmt::Debug
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("UserIDDesignators")
             .field("designators", &self.designators)
+            .field("all", &self.all)
+            .field("add_userid", &self.add_userid)
             .finish()
     }
 }
@@ -113,6 +127,13 @@ impl<Arguments, Options> UserIDDesignators<Arguments, Options> {
         self.designators.iter()
     }
 
+    /// Returns whether the all flag was set.
+    ///
+    /// If the flag was not enabled, returns `None`.
+    pub fn all(&self) -> Option<bool> {
+        self.all
+    }
+
     /// Returns whether the add user ID flag was set.
     ///
     /// If the flag was not enabled, returns `None`.
@@ -132,6 +153,7 @@ where
         let arguments = Arguments::to_usize();
         let userid_arg = (arguments & UserIDArg::to_usize()) > 0;
         let email_arg = (arguments & EmailArg::to_usize()) > 0;
+        let all_arg = (arguments & AllUserIDsArg::to_usize()) > 0;
         let add_userid_arg = (arguments & AddUserIDArg::to_usize()) > 0;
 
         let options = Options::to_usize();
@@ -200,6 +222,18 @@ where
             arg_group = arg_group.arg(full_name);
         }
 
+        if all_arg {
+            let full_name = "all";
+            cmd = cmd.arg(
+                clap::Arg::new(&full_name)
+                    .long(&full_name)
+                    .requires(&group)
+                    .action(clap::ArgAction::SetTrue)
+                    .help("\
+Uses all self-signed user IDs"));
+            arg_group = arg_group.arg(full_name);
+        }
+
         if add_userid_arg {
             let full_name = "add-userid";
             cmd = cmd.arg(
@@ -245,6 +279,7 @@ where
         let arguments = Arguments::to_usize();
         let userid_arg = (arguments & UserIDArg::to_usize()) > 0;
         let email_arg = (arguments & EmailArg::to_usize()) > 0;
+        let all_arg = (arguments & AllUserIDsArg::to_usize()) > 0;
         let add_userid_arg = (arguments & AddUserIDArg::to_usize()) > 0;
 
         let mut designators = Vec::new();
@@ -278,6 +313,16 @@ where
             None
         };
 
+        self.all = if all_arg {
+            if matches.get_flag("all") {
+                Some(true)
+            } else {
+                Some(false)
+            }
+        } else {
+            None
+        };
+
         self.designators = designators;
         Ok(())
     }
@@ -288,6 +333,7 @@ where
         let mut designators = Self {
             designators: Vec::new(),
             arguments: std::marker::PhantomData,
+            all: None,
             add_userid: None,
         };
 
@@ -500,5 +546,50 @@ mod test {
             "--add-userid",
         ]);
         assert!(m.is_err());
+    }
+
+    #[test]
+    fn userid_designators_all() {
+        use clap::Parser;
+        use clap::CommandFactory;
+        use clap::FromArgMatches;
+
+        #[derive(Parser, Debug)]
+        #[clap(name = "prog")]
+        struct CLI {
+            #[command(flatten)]
+            pub userids: UserIDDesignators<MaybeSelfSignedUserIDEmailAllArgs>,
+        }
+
+        let command = CLI::command();
+
+        // Check if --all is recognized.
+        let m = command.clone().try_get_matches_from(vec![
+            "prog",
+            "--userid", "alice",
+        ]);
+        let m = m.expect("valid arguments");
+        let c = CLI::from_arg_matches(&m).expect("ok");
+        assert_eq!(c.userids.designators.len(), 1);
+        assert_eq!(c.userids.all(), Some(false));
+
+        let m = command.clone().try_get_matches_from(vec![
+            "prog",
+            "--all"
+        ]);
+        let m = m.expect("valid arguments");
+        let c = CLI::from_arg_matches(&m).expect("ok");
+        assert_eq!(c.userids.designators.len(), 0);
+        assert_eq!(c.userids.all(), Some(true));
+
+        let m = command.clone().try_get_matches_from(vec![
+            "prog",
+            "--userid", "alice",
+            "--all",
+        ]);
+        let m = m.expect("valid arguments");
+        let c = CLI::from_arg_matches(&m).expect("ok");
+        assert_eq!(c.userids.designators.len(), 1);
+        assert_eq!(c.userids.all(), Some(true));
     }
 }

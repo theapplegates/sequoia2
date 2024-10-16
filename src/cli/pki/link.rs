@@ -165,6 +165,28 @@ argument. It sets the link's creation time to the reference time.
 #[clap(group(ArgGroup::new("expiration-group")
              .args(&["expiration", "temporary"])))]
 pub struct AddCommand {
+    #[command(flatten)]
+    pub cert: CertDesignators<
+        cert_designator::CertArg,
+        cert_designator::CertPrefix,
+        cert_designator::OneValue>,
+
+    #[command(flatten)]
+    pub userids: UserIDDesignators<
+        userid_designator::MaybeSelfSignedUserIDEmailAllArgs>,
+
+    #[clap(
+        long = "amount",
+        value_name = "AMOUNT",
+        default_value = "full",
+        help = "Set the amount of trust",
+        long_help =
+            "Set the amount of trust.  Values between 1 and 120 are meaningful. \
+            120 means fully trusted.  Values less than 120 indicate the degree \
+            of trust.  60 is usually used for partially trusted.",
+    )]
+    pub amount: TrustAmount<u8>,
+
     #[clap(
         long = "depth",
         value_name = "TRUST_DEPTH",
@@ -192,17 +214,6 @@ pub struct AddCommand {
     )]
     pub ca: Vec<String>,
     #[clap(
-        long = "amount",
-        value_name = "AMOUNT",
-        default_value = "full",
-        help = "Set the amount of trust",
-        long_help =
-            "Set the amount of trust.  Values between 1 and 120 are meaningful. \
-            120 means fully trusted.  Values less than 120 indicate the degree \
-            of trust.  60 is usually used for partially trusted.",
-    )]
-    pub amount: TrustAmount<u8>,
-    #[clap(
         long = "regex",
         value_name = "REGEX",
         help = "Add a regular expression to constrain \
@@ -218,32 +229,6 @@ pub struct AddCommand {
             one must match.",
     )]
     pub regex: Vec<String>,
-    #[clap(
-        long,
-        value_names = &["NAME", "VALUE"],
-        number_of_values = 2,
-        help = "Add a notation to the certification.",
-        long_help = "Add a notation to the certification.  \
-            A user-defined notation's name must be of the form \
-            `name@a.domain.you.control.org`. If the notation's name starts \
-            with a `!`, then the notation is marked as being critical.  If a \
-            consumer of a signature doesn't understand a critical notation, \
-            then it will ignore the signature.  The notation is marked as \
-            being human readable."
-    )]
-    pub notation: Vec<String>,
-
-    #[clap(
-        long = "recreate",
-        help = "Recreate signature even if the parameters did not change",
-        long_help = "\
-Recreate signature even if the parameters did not change
-
-If the link parameters did not change, and thus creating a signature \
-should not be necessary, we omit the operation.  This flag can be given \
-to force the signature to be re-created anyway.",
-    )]
-    pub recreate: bool,
 
     #[clap(
         long = "temporary",
@@ -277,15 +262,32 @@ to force the signature to be re-created anyway.",
     )]
     pub expiration: Expiration,
 
-    #[command(flatten)]
-    pub cert: CertDesignators<
-        cert_designator::CertArg,
-        cert_designator::CertPrefix,
-        cert_designator::OneValue>,
+    #[clap(
+        long = "recreate",
+        help = "Recreate signature even if the parameters did not change",
+        long_help = "\
+Recreate signature even if the parameters did not change
 
-    #[command(flatten)]
-    pub userids: UserIDDesignators<
-        userid_designator::MaybeSelfSignedUserIDEmailAllArgs>,
+If the link parameters did not change, and thus creating a signature \
+should not be necessary, we omit the operation.  This flag can be given \
+to force the signature to be re-created anyway.",
+    )]
+    pub recreate: bool,
+
+    #[clap(
+        long,
+        value_names = &["NAME", "VALUE"],
+        number_of_values = 2,
+        help = "Add a notation to the certification.",
+        long_help = "Add a notation to the certification.  \
+            A user-defined notation's name must be of the form \
+            `name@a.domain.you.control.org`. If the notation's name starts \
+            with a `!`, then the notation is marked as being critical.  If a \
+            consumer of a signature doesn't understand a critical notation, \
+            then it will ignore the signature.  The notation is marked as \
+            being human readable."
+    )]
+    pub notation: Vec<String>,
 }
 
 const ADD_EXAMPLES: Actions = Actions {

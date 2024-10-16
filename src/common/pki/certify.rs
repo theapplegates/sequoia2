@@ -382,8 +382,13 @@ The certifier is the same as the certificate to certify."));
                 }
             }
 
-            qprintln!("Certifying {:?} for {}.",
-                      userid_str(), cert.fingerprint());
+            if retract {
+                qprintln!("Retracting {:?} for {}.",
+                          userid_str(), cert.fingerprint());
+            } else {
+                qprintln!("Certifying {:?} for {}.",
+                          userid_str(), cert.fingerprint());
+            }
 
             let mut sigs = builders.iter()
                 .map(|builder| {

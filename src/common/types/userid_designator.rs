@@ -1,3 +1,5 @@
+use typenum::Unsigned;
+
 use sequoia_openpgp as openpgp;
 use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::cert::ValidCert;
@@ -6,11 +8,21 @@ use openpgp::types::RevocationStatus;
 
 use crate::Result;
 use crate::cli::types::UserIDDesignators;
+use crate::cli::types::userid_designator::AddUserIDArg;
 use crate::cli::types::userid_designator::UserIDDesignator;
 
-impl<Arguments, Options> UserIDDesignators<Arguments, Options> {
+impl<Arguments, Options> UserIDDesignators<Arguments, Options>
+where
+    Arguments: typenum::Unsigned,
+{
     /// Resolve the user ID designators.
+    ///
+    /// If `--add-userid` is enabled, then this will return an error
+    /// if a user ID that is not self-signed is designated.
     pub fn resolve(&self, vc: &ValidCert) -> Result<Vec<UserID>> {
+        let arguments = Arguments::to_usize();
+        let add_userid_arg = (arguments & AddUserIDArg::to_usize()) > 0;
+
         // Find the matching User ID.
         let mut userids = Vec::new();
 
@@ -46,7 +58,7 @@ impl<Arguments, Options> UserIDDesignators<Arguments, Options> {
                     // If --add-userid is specified, we use the user ID as
                     // is.  Otherwise, we make sure there is a matching
                     // self-signed user ID.
-                    if self.add_userid().unwrap_or(false) {
+                    if ! add_userid_arg || self.add_userid().unwrap_or(false){
                         userids.push(userid.clone());
                     } else if let Some(_) = vc.userids()
                         .find(|ua| {
@@ -102,7 +114,7 @@ impl<Arguments, Options> UserIDDesignators<Arguments, Options> {
                     }
 
                     if ! found {
-                        if self.add_userid().unwrap_or(false) {
+                        if ! add_userid_arg || self.add_userid().unwrap_or(false) {
                             // Add the bare email address.
                             userids.push(userid);
                         } else {

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use typenum::Unsigned;
 
 use sequoia_openpgp as openpgp;
@@ -148,6 +150,10 @@ where
         if let Some(err) = bad {
             return Err(err);
         }
+
+        // Dedup while preserving order.
+        let mut seen = HashSet::new();
+        userids.retain(|userid| seen.insert(userid.clone()));
 
         Ok(userids)
     }

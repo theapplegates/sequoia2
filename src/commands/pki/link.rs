@@ -292,8 +292,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
 
     let user_supplied_userids = if userids.is_empty() {
         // Nothing was specified.  Retract all known User IDs.
-        let vc = cert.with_policy(sq.policy, Some(sq.time))?;
-        userids = vc.userids().map(|ua| ua.userid().clone()).collect();
+        userids = cert.userids().map(|ua| ua.userid().clone()).collect();
 
         false
     } else {

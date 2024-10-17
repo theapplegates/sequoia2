@@ -457,7 +457,7 @@ fn sq_encrypt_cert_designators() -> Result<()>
     let (alice, alice_enc) = gen_key(&[&alice_userid]);
     let alice_fpr = alice.fingerprint();
 
-    sq.pki_link_add(&[], alice.key_handle(), &alice_userid);
+    sq.pki_link_add(&[], alice.key_handle(), &[&alice_userid]);
 
     let bob_email1 = "bob@example.org";
     let bob_userid1 = format!("Bob <{}>", bob_email1);
@@ -466,8 +466,8 @@ fn sq_encrypt_cert_designators() -> Result<()>
     let (bob, bob_enc) = gen_key(&[&bob_userid1, &bob_userid2]);
     let bob_fpr = bob.fingerprint();
 
-    sq.pki_link_add(&[], bob.key_handle(), &bob_userid1);
-    sq.pki_link_add(&[], bob.key_handle(), &bob_userid2);
+    sq.pki_link_add(&[], bob.key_handle(), &[&bob_userid1]);
+    sq.pki_link_add(&[], bob.key_handle(), &[&bob_userid2]);
 
     // Mallory's certificate includes Alice's and Bob's user IDs.
     // Since Mallory's certificate is not authenticated, it shouldn't

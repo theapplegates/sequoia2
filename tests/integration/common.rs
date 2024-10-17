@@ -1490,7 +1490,7 @@ impl Sq {
 
     /// Add a link for the binding.
     pub fn pki_link_add_maybe(&self, extra_args: &[&str],
-                              cert: KeyHandle, userid: &str)
+                              cert: KeyHandle, userids: &[&str])
         -> Result<()>
     {
         let mut cmd = self.command();
@@ -1499,7 +1499,9 @@ impl Sq {
             cmd.arg(arg);
         }
         cmd.arg("--cert").arg(cert.to_string());
-        cmd.arg("--userid").arg(userid);
+        for userid in userids {
+            cmd.arg("--userid").arg(userid);
+        }
 
         let output = self.run(cmd, None);
         if output.status.success() {
@@ -1513,9 +1515,9 @@ impl Sq {
 
     /// Add a link for the binding.
     pub fn pki_link_add(&self, args: &[&str],
-                        cert: KeyHandle, userid: &str)
+                        cert: KeyHandle, userids: &[&str])
     {
-        self.pki_link_add_maybe(args, cert, userid).expect("success")
+        self.pki_link_add_maybe(args, cert, userids).expect("success")
     }
 
     /// Authenticate a binding.

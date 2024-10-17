@@ -256,8 +256,8 @@ pub fn generate(
         // Writing to key store.  Provide some guidance.
         sq.hint(format_args!("If this is your key, you should mark it as a \
                               fully trusted introducer:"))
-            .sq().arg("pki").arg("link").arg("add")
-            .arg_value("--ca", "*")
+            .sq().arg("pki").arg("link").arg("authorize")
+            .arg("--unconstrained")
             .arg("--cert").arg(cert.fingerprint())
             .arg("--all")
             .done();

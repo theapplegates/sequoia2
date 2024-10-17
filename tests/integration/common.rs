@@ -1520,6 +1520,74 @@ impl Sq {
         self.pki_link_add_maybe(args, cert, userids).expect("success")
     }
 
+    /// Add a link for the binding.
+    pub fn pki_link_retract_maybe(&self, extra_args: &[&str],
+                                  cert: KeyHandle,
+                                  userids: &[&str])
+        -> Result<()>
+    {
+        let mut cmd = self.command();
+        cmd.args([ "pki", "link", "retract" ]);
+        for arg in extra_args {
+            cmd.arg(arg);
+        }
+        cmd.arg("--cert").arg(cert.to_string());
+        for userid in userids {
+            cmd.arg("--userid").arg(userid);
+        }
+
+        let output = self.run(cmd, None);
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!(format!(
+                "Command failed:\n{}",
+                String::from_utf8_lossy(&output.stderr))))
+        }
+    }
+
+    /// Add a link for the binding.
+    pub fn pki_link_retract(&self, args: &[&str],
+                            cert: KeyHandle, userids: &[&str])
+    {
+        self.pki_link_retract_maybe(args, cert, userids)
+            .expect("success")
+    }
+
+    /// Add a link for the binding.
+    pub fn pki_link_authorize_maybe(&self, extra_args: &[&str],
+                                    cert: KeyHandle,
+                                    userids: &[&str])
+        -> Result<()>
+    {
+        let mut cmd = self.command();
+        cmd.args([ "pki", "link", "authorize" ]);
+        for arg in extra_args {
+            cmd.arg(arg);
+        }
+        cmd.arg("--cert").arg(cert.to_string());
+        for userid in userids {
+            cmd.arg("--userid").arg(userid);
+        }
+
+        let output = self.run(cmd, None);
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!(format!(
+                "Command failed:\n{}",
+                String::from_utf8_lossy(&output.stderr))))
+        }
+    }
+
+    /// Add a link for the binding.
+    pub fn pki_link_authorize(&self, args: &[&str],
+                              cert: KeyHandle, userids: &[&str])
+    {
+        self.pki_link_authorize_maybe(args, cert, userids)
+            .expect("success")
+    }
+
     /// Authenticate a binding.
     pub fn pki_authenticate(&self, extra_args: &[&str],
                             cert: &str, userid: &str)

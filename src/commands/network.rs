@@ -639,7 +639,7 @@ impl Method {
             wprintln!(
                 "Created the local CA {} for certifying \
                  certificates downloaded from this service.  \
-                 Use `sq pki link add --ca '*' --amount N {}` \
+                 Use `sq pki link authorize --unconstrained --amount N {}` \
                  to change how much it is trusted.  Or \
                  `sq pki link retract {}` to disable it.",
                 if let Ok(cert) = cert.to_cert() {

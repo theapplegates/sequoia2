@@ -17,7 +17,7 @@ use crate::cli::types::TrustAmount;
     long_about =
 "Manage authenticated certificate and User ID links
 
-Link a certificate and User ID is one way of making `sq` consider a \
+Linking a certificate and User ID is one way of making `sq` consider a \
 binding to be authentic.  Another way is to use `sq pki certify` to \
 certify the binding with an explicitly configured trust root.  The \
 linking functionality is often easier to work with, and the \
@@ -35,8 +35,7 @@ authenticated certificate to be authentic.
 
 Users can create a link using `sq pki link add`.  That link can later be \
 retracted using `sq pki link retract`.  A certificate can also be \
-accepted as a trusted introducer by passing the `--ca` option to \
-`sq pki link add`.
+accepted as a trusted introducer by using `sq pki link authorize`.
 
 `sq` implements linking using non-exportable certifications, and an \
 implicit trust root.  An OpenPGP certificate directory, the default \
@@ -94,10 +93,9 @@ with all of its self-signed user IDs as a trusted certification \
 authority constrained to the domain example.org.  That is, the \
 certificate is considered a trusted introducer for example.org.",
             command: &[
-                "sq", "pki", "link", "add",
-                "--ca=example.org",
+                "sq", "pki", "link", "authorize",
+                "--domain=example.org",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
             ],
         }),
 
@@ -124,6 +122,7 @@ test_examples!(sq_pki_link, LINK_EXAMPLES);
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
     Add(AddCommand),
+    Authorize(AuthorizeCommand),
     Retract(RetractCommand),
     List(ListCommand),
 }
@@ -131,16 +130,16 @@ pub enum Subcommands {
 #[derive(Parser, Debug)]
 #[clap(
     name = "add",
-    about = "Link a certificate and a User ID",
+    about = "Link a certificate and a user ID",
     long_about =
-"Link a certificate and a User ID
+"Link a certificate and a user ID
 
-This cause `sq` to considers the certificate and User ID binding to be \
-authentic.
-
-A certificate can also be accepted as a certification authority, which \
-is also known as a trusted introducer, by using the `--ca` or \
-`--depth` option.
+This causes `sq` to consider the certificate and user ID binding to be \
+authentic.  You would do this if you are confident that a particular \
+certificate should be associated with Alice, for example.  Note: this \
+does not consider the certificate to be a trusted introducer; it only \
+considers the binding to be authentic.  To authorize a certificate to \
+be a trusted introducer use `sq pki link authorize`.
 
 A link can be retracted using `sq pki link retract`.
 
@@ -152,13 +151,12 @@ especially when the user's certification key is offline.  And the \
 latter improves the user's privacy, by reducing the chance that parts \
 of the user's social graph is leaked when a certificate is shared.
 
-By default a link never expires. \
-Using the `--expiration` argument specific validity periods may be defined. \
-It allows for providing a point in time for validity to end or a validity \
-duration.
+By default a link never expires.  This can be overridden using \
+`--expiration` argument.
 
-`sq pki link` respects the reference time set by the top-level `--time` \
-argument. It sets the link's creation time to the reference time.
+`sq pki link add` respects the reference time set by the top-level \
+`--time` argument. It sets the link's creation time to the reference \
+time.
 ",
     after_help = ADD_EXAMPLES,
 )]
@@ -186,49 +184,6 @@ pub struct AddCommand {
             of trust.  60 is usually used for partially trusted.",
     )]
     pub amount: TrustAmount<u8>,
-
-    #[clap(
-        long = "depth",
-        value_name = "TRUST_DEPTH",
-        help = "Set the trust depth",
-        long_help =
-            "Set the trust depth (sometimes referred to as the trust level).  \
-            0 means a normal certification of <CERTIFICATE, USERID>.  \
-            1 means CERTIFICATE is also a trusted introducer, 2 means \
-            CERTIFICATE is a meta-trusted introducer, etc.",
-    )]
-    pub depth: Option<u8>,
-    #[clap(
-        long = "ca",
-        value_name = "*|DOMAIN",
-        help = "Mark the certificate as a certification authority for a domain",
-        long_help =
-            "Mark the certificate as a certification authority for a  \
-             domain.  Use `*` to make the certificate a certification
-             authority for any User ID.
-
-             A certification authority is also referred to as a trusted \
-             introducer.  This command is equivalent to making the trust \
-             depth unconstrained, i.e., setting the depth to 255.  See \
-             `--depth` for more information.",
-    )]
-    pub ca: Vec<String>,
-    #[clap(
-        long = "regex",
-        value_name = "REGEX",
-        help = "Add a regular expression to constrain \
-            what a trusted introducer can certify",
-        long_help =
-            "Add a regular expression to constrain \
-            what a trusted introducer can certify.  \
-            The regular expression must match \
-            the certified User ID in all intermediate \
-            introducers, and the certified certificate. \
-            Multiple regular expressions may be \
-            specified.  In that case, at least \
-            one must match.",
-    )]
-    pub regex: Vec<String>,
 
     #[clap(
         long = "temporary",
@@ -336,50 +291,224 @@ user IDs.",
                 "--all",
             ],
         }),
+    ],
+};
+test_examples!(sq_pki_link_add, ADD_EXAMPLES);
 
+#[derive(Parser, Debug)]
+#[clap(
+    name = "authorize",
+    about = "Make a certificate a trusted introducer",
+    long_about = "\
+Make a certificate a trusted introducer.
+
+This causes `sq` to consider the certificate to be a be a trusted \
+introducer.  Trusted introducer is another word for certification \
+authority (CA).  When you link a trusted introducer, you consider \
+certifications made by the trusted introducer to be valid.  A trusted \
+introducer can also designate further trusted introducers.
+
+As is, a trusted introducer has a lot of power.  This power can be \
+limited in several ways.
+
+  - The ability to specify further introducers can be constrained \
+using the `--depth` parameter.
+
+  - The degree to which an introducer is trusted can be changed using \
+the `--amount` parameter.
+
+  - The user IDs that an introducer can certify can be constrained by \
+domain using the `--domain` parameter or a regular expression using \
+the `--regex` parameter.
+
+These mechanisms allow you to say that you are willing to rely on the \
+CA for example.org, but only for user IDs that have an email address \
+for example.org, for instance.
+
+A link can be retracted using `sq pki link retract`.
+
+This command is similar to `sq pki authorize`, but the certifications \
+it makes are done using the certificate directory's trust root, not an \
+arbitrary key.  Further, the certificates are marked as \
+non-exportable.  The former makes it easier to manage certifications, \
+especially when your certification key is offline.  And the latter \
+improves your privacy, by reducing the chance that parts of your \
+social graph are leaked when a certificate is shared.
+
+By default a link never expires.  Using the `--expiration` argument \
+specific validity periods may be defined.  It allows for providing a \
+point in time for validity to end or a validity duration.
+
+`sq pki link authorize` respects the reference time set by the \
+top-level `--time` argument. It sets the link's creation time to the \
+reference time.
+",
+    after_help = AUTHORIZE_EXAMPLES,
+)]
+#[clap(group(ArgGroup::new("constraint").args(&["regex", "domain", "unconstrained"]).required(true).multiple(true)))]
+pub struct AuthorizeCommand {
+    #[command(flatten)]
+    pub cert: CertDesignators<
+        cert_designator::CertArg,
+        cert_designator::CertPrefix,
+        cert_designator::OneValue>,
+
+    #[command(flatten)]
+    pub userids: UserIDDesignators<
+        userid_designator::MaybeSelfSignedUserIDEmailAllArgs,
+        userid_designator::OptionalValue>,
+
+    #[clap(
+        long = "amount",
+        value_name = "AMOUNT",
+        default_value = "full",
+        help = "Set the amount of trust",
+        long_help =
+            "Set the amount of trust.  Values between 1 and 120 are meaningful. \
+            120 means fully trusted.  Values less than 120 indicate the degree \
+            of trust.  60 is usually used for partially trusted.",
+    )]
+    pub amount: TrustAmount<u8>,
+
+    #[clap(
+        long = "depth",
+        value_name = "TRUST_DEPTH",
+        default_value = "255",
+        help = "Set the trust depth",
+        long_help = "\
+Set the trust depth (sometimes referred to as the trust level).  1 \
+means CERTIFICATE is a trusted introducer (default), 2 means \
+CERTIFICATE is a meta-trusted introducer and can authorize another \
+trusted introducer, etc.",
+    )]
+    pub depth: u8,
+
+    #[clap(
+        long = "domain",
+        value_name = "DOMAIN",
+        help = "Add a domain constraint to the introducer",
+        long_help = "\
+Add a domain constraint to the introducer.
+
+Add a domain to constrain what certifications are respected.  A \
+certification made by the certificate is only respected if it is over \
+a user ID with an email address in the specified domain.  Multiple \
+domains may be specified.  In that case, one must match.",
+    )]
+    pub domain: Vec<String>,
+    #[clap(
+        long = "regex",
+        value_name = "REGEX",
+        help = "Add a regular expression to constrain the introducer",
+        long_help = "\
+Add a regular expression to constrain the introducer.
+
+Add a regular expression to constrain what certifications are \
+respected.  A certification made by the certificate is only respected \
+if it is over a user ID that matches one of the specified regular \
+expression.  Multiple regular expressions may be specified.  In that \
+case, at least one must match.",
+    )]
+    pub regex: Vec<String>,
+    #[clap(
+        long,
+        conflicts_with = "regex",
+        help = "Don't constrain the introducer",
+        long_help = "\
+Don't constrain the introducer.
+
+Normally an introducer is constrained so that only certain user IDs \
+are respected, e.g., those that have an email address for a certain \
+domain name.  This option authorizes an introducer without \
+constraining it in this way.  Because this grants the introducer a lot \
+of power, you have to opt in to this behavior explicitly.",
+    )]
+    pub unconstrained: bool,
+
+    #[clap(
+        long = "expiration",
+        value_name = "EXPIRATION",
+        default_value_t =
+            Expiration::Never,
+        help =
+            "Define EXPIRATION for the acceptance as ISO 8601 formatted string or \
+            custom duration.",
+        long_help =
+            "Define EXPIRATION for the acceptance as ISO 8601 formatted string or \
+            custom duration. \
+            If an ISO 8601 formatted string is provided, the validity period \
+            reaches from the reference time (may be set using `--time`) to \
+            the provided time. \
+            Custom durations starting from the reference time may be set using \
+            `N[ymwds]`, for N years, months, weeks, days, or seconds. \
+            The special keyword `never` sets an unlimited expiry.",
+    )]
+    pub expiration: Expiration,
+
+    #[clap(
+        long = "recreate",
+        help = "Recreate the signature even if the parameters did not change",
+        long_help = "\
+Recreate the signature even if the parameters did not change
+
+If the link parameters did not change, and thus creating a signature \
+should not be necessary, we omit the operation.  This flag can be given \
+to force the signature to be recreated anyway.",
+    )]
+    pub recreate: bool,
+
+    #[clap(
+        long,
+        value_names = &["NAME", "VALUE"],
+        number_of_values = 2,
+        help = "Add a notation to the certification.",
+        long_help = "Add a notation to the certification.  \
+            A user-defined notation's name must be of the form \
+            `name@a.domain.you.control.org`. If the notation's name starts \
+            with a `!`, then the notation is marked as being critical.  If a \
+            consumer of a signature doesn't understand a critical notation, \
+            then it will ignore the signature.  The notation is marked as \
+            being human readable."
+    )]
+    pub notation: Vec<String>,
+}
+
+const AUTHORIZE_EXAMPLES: Actions = Actions {
+    actions: &[
         Action::Example(Example {
             comment: "\
-Accept the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
-with all of its self-signed user IDs as a trusted certification \
-authority.  That is, the certificate is considered a trust root.",
+Add an unconstrained trusted introducer.",
             command: &[
-                "sq", "pki", "link", "add",
-                "--ca=*",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
+                "sq", "pki", "link", "authorize",
+                "--unconstrained",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0"
             ],
         }),
 
         Action::Example(Example {
             comment: "\
-Accept the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
-with all of its self-signed user IDs as a trusted certification \
-authority constrained to the domain example.org.  That is, the \
-certificate is considered a trusted introducer for example.org.",
+Add a trusted introducer for example.org and example.com.",
             command: &[
-                "sq", "pki", "link", "add",
-                "--ca=example.org",
+                "sq", "pki", "link", "authorize",
+                "--domain=example.org",
+                "--domain=example.com",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
             ],
         }),
 
         Action::Example(Example {
             comment: "\
-Accept the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
-with all of its self-signed user IDs as a partially trusted \
-certification authority.",
+Add a partially trusted introducer.",
             command: &[
-                "sq", "pki", "link", "add",
-                "--ca=*",
+                "sq", "pki", "link", "authorize",
+                "--unconstrained",
                 "--amount=60",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
             ],
         }),
     ],
 };
-test_examples!(sq_pki_link_add, ADD_EXAMPLES);
+test_examples!(sq_pki_link_authorize, AUTHORIZE_EXAMPLES);
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -389,7 +518,8 @@ test_examples!(sq_pki_link_add, ADD_EXAMPLES);
 "Retract links
 
 This command retracts links that were previously created using `sq \
-pki link add`.  See that subcommand's documentation for more details. \
+pki link add` or `sq pki link authorize`.  See that subcommand's \
+documentation for more details. \
 Note: this is called `retract` and not `remove`, because the \
 certifications are not removed.  Instead a new certification is added, \
 which says that the binding has not been authenticated.

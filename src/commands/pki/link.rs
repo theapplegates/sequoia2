@@ -18,6 +18,7 @@ pub fn link(sq: Sq, c: link::Command) -> Result<()> {
     use link::Subcommands::*;
     match c.subcommand {
         Add(c) => add(sq, c)?,
+        Authorize(c) => authorize(sq, c)?,
         Retract(c) => retract(sq, c)?,
         List(c) => list(sq, c)?,
     }
@@ -35,34 +36,6 @@ pub fn add(sq: Sq, c: link::AddCommand)
 
     let vc = cert.with_policy(sq.policy, Some(sq.time))?;
     let userids = c.userids.resolve(&vc)?;
-
-    let trust_depth: u8 = if let Some(depth) = c.depth {
-        depth
-    } else if ! c.ca.is_empty() {
-        255
-    } else {
-        0
-    };
-
-    let mut regex = c.regex;
-    if trust_depth == 0 && !regex.is_empty() {
-        return Err(
-            anyhow::format_err!("A regex only makes sense \
-                                 if the trust depth is greater than 0"));
-    }
-
-    let mut star = false;
-    for domain in c.ca.iter() {
-        if domain == "*" {
-            star = true;
-        }
-    }
-
-    // If there's a catch all, we don't need to add any regular
-    // expressions.
-    if star {
-        regex = Vec::new();
-    }
 
     let notations = parse_notations(c.notation)?;
 
@@ -93,13 +66,59 @@ pub fn add(sq: Sq, c: link::AddCommand)
         true, // Add userid.
         true, // User-supplied user IDs.
         &templates,
-        trust_depth,
-        if star {
-            &[][..]
-        } else {
-            &c.ca[..]
-        },
-        &regex[..],
+        0, // Trust depth.
+        &[][..], // Domain.
+        &[][..], // Regex.
+        true, // Local.
+        false, // Non-revocable.
+        &notations[..],
+        None, // Output.
+        false) // Binary.
+}
+
+pub fn authorize(sq: Sq, c: link::AuthorizeCommand)
+    -> Result<()>
+{
+    let trust_root = sq.local_trust_root()?;
+    let trust_root = trust_root.to_cert()?;
+
+    let (cert, _from_file)
+        = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
+
+    let vc = cert.with_policy(sq.policy, Some(sq.time))?;
+    let mut userids = c.userids.resolve(&vc)?;
+    let user_supplied_userids = if userids.is_empty() {
+        // Use all self-signed User IDs.
+        userids = vc.userids()
+            .map(|ua| ua.userid().clone())
+            .collect::<Vec<_>>();
+
+        if userids.is_empty() {
+            return Err(anyhow::anyhow!(
+                "{} has no self-signed user IDs, and you didn't provide \
+                 an alternate user ID",
+                vc.fingerprint()));
+        }
+
+        false
+    } else {
+        true
+    };
+
+    let notations = parse_notations(c.notation)?;
+
+    crate::common::pki::certify::certify(
+        &sq,
+        c.recreate, // Recreate.
+        &trust_root,
+        &cert,
+        &userids[..],
+        c.userids.add_userid().unwrap_or(false),
+        user_supplied_userids,
+        &[(c.amount, c.expiration)][..],
+        c.depth,
+        &c.domain[..],
+        &c.regex[..],
         true, // Local.
         false, // Non-revocable.
         &notations[..],

@@ -85,6 +85,10 @@
      pki certify`.
    - Removed `sq pki link add`'s `--petname` argument.  Use `--userid`
      in conjunction with `--add-userid` instead.
+   - Previously `sq pki link certify` could create certifications, and
+     mark a certificate as a trusted introducer (when the user set
+     `--depth` to be greater than zero).  The latter functionality has
+     been split off to the new subcommand `sq pki link authorize`.
 
 * Changes in 0.38.0
 ** Notable changes

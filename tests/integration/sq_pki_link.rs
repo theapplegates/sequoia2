@@ -321,7 +321,9 @@ fn sq_pki_link_add_retract() -> Result<()> {
 
     // Accept Alice as a trusted introducer.  We should be able to
     // verify Alice, Bob, and Carol's signatures.
-    sq_link(&sq, &alice_fpr, &[ &alice_userid ], &[], &["--ca", "*"], true);
+    sq.pki_link_authorize(&["--time", &tick(), "--unconstrained"],
+                          alice.cert.key_handle(),
+                          &[ &alice_userid ]);
 
     sq_verify(&sq, None, &[], &[], &alice.sig_file, 1, 0);
     sq_verify(&sq, None, &[], &[], &bob.sig_file, 1, 0);
@@ -338,7 +340,9 @@ fn sq_pki_link_add_retract() -> Result<()> {
 
     // Accept Alice as a trusted introducer again.  We should be able
     // to verify Alice, Bob, and Carol's signatures.
-    sq_link(&sq, &alice_fpr, &[ &alice_userid ], &[], &["--ca", "*"], true);
+    sq.pki_link_authorize(&["--time", &tick(), "--unconstrained"],
+                          alice.cert.key_handle(),
+                          &[ &alice_userid ]);
 
     sq_verify(&sq, None, &[], &[], &alice.sig_file, 1, 0);
     sq_verify(&sq, None, &[], &[], &bob.sig_file, 1, 0);
@@ -367,8 +371,9 @@ fn sq_pki_link_add_retract() -> Result<()> {
 
     // Change Alice's acceptance to be a ca, but only for example.org,
     // i.e., not for Dave.
-    sq_link(&sq, &alice_fpr, &[ &alice_userid ], &[], &["--ca", "example.org"],
-            true);
+    sq.pki_link_authorize(&["--time", &tick(), "--domain", "example.org"],
+                          alice.cert.key_handle(),
+                          &[ &alice_userid ]);
 
     sq_verify(&sq, None, &[], &[], &alice.sig_file, 1, 0);
     sq_verify(&sq, None, &[], &[], &bob.sig_file, 1, 0);
@@ -493,16 +498,14 @@ fn sq_pki_link_update_detection() -> Result<()> {
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
     // Make Alice a CA.
-    let output = sq_link(&sq, &alice_fpr, &[], &[],
-                         &["--ca", "*", "--all"], true);
-    assert!(output.2.contains("was previously"),
-            "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+    sq.pki_link_authorize(&["--time", &tick(), "--unconstrained"],
+                          alice.key_handle(),
+                          &[]);
     let bytes = compare(bytes, &alice_cert_pgp, false);
 
-    let output = sq_link(&sq, &alice_fpr, &[], &[],
-                         &["--ca", "*", "--all"], true);
-    assert!(output.2.contains("Certification parameters are unchanged"),
-            "stdout:\n{}\nstderr:\n{}", output.1, output.2);
+    sq.pki_link_authorize(&["--time", &tick(), "--unconstrained", "--all"],
+                          alice.key_handle(),
+                          &[]);
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
     // Make her a partially trusted CA.
@@ -532,13 +535,13 @@ fn sq_pki_link_update_detection() -> Result<()> {
 
     // Link it again.
     let output = sq_link(&sq, &alice_fpr, &[], &[],
-                         &["--depth", "10", "--amount", "10", "--all"], true);
+                         &["--amount", "10", "--all"], true);
     assert!(output.2.contains("was retracted"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, false);
 
     let output = sq_link(&sq, &alice_fpr, &[], &[],
-                         &["--depth", "10", "--amount", "10", "--all"], true);
+                         &["--amount", "10", "--all"], true);
     assert!(output.2.contains("Certification parameters are unchanged"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, true);

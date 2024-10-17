@@ -1,4 +1,5 @@
 use std::convert::TryFrom;
+use std::fmt;
 use std::io::{self, Read};
 use std::time::Duration;
 
@@ -67,7 +68,7 @@ pub fn dispatch(mut sq: Sq, c: inspect::Command)
 
         inspect(&mut sq, input.open()?,
                 Some(&input.to_string()), output,
-                print_certifications, dump_bad_signatures)
+                print_certifications, dump_bad_signatures)?;
     } else {
         let cert_store = sq.cert_store_or_else()?;
         for cert in c.cert.into_iter() {
@@ -84,8 +85,10 @@ pub fn dispatch(mut sq: Sq, c: inspect::Command)
         let br = buffered_reader::Memory::with_cookie(
             &bytes, sequoia_openpgp::parse::Cookie::default());
         inspect(&mut sq, br, None, output,
-                print_certifications, dump_bad_signatures)
+                print_certifications, dump_bad_signatures)?;
     }
+
+    Ok(())
 }
 
 /// Inspects OpenPGP data.
@@ -102,17 +105,17 @@ pub fn inspect<'a, R>(sq: &mut Sq,
                       output: &mut Box<dyn std::io::Write + Send + Sync>,
                       print_certifications: bool,
                       dump_bad_signatures: bool)
-    -> Result<()>
+    -> Result<Kind>
 where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
 {
     let mut ppr = openpgp::parse::PacketParser::from_buffered_reader(input)?;
+    let mut type_called = None;   // Did we print the type yet?
 
   loop {
     if let Some(input_filename) = input_filename {
         write!(output, "{}: ", input_filename)?;
     }
 
-    let mut type_called = false;  // Did we print the type yet?
     let mut encrypted = false;    // Is it an encrypted message?
     let mut packets = Vec::new(); // Accumulator for packets.
     let mut pkesks = Vec::new();  // Accumulator for PKESKs.
@@ -126,10 +129,10 @@ where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
                 if pp.possible_cert().is_err()
                     && pp.possible_keyring().is_ok()
                 {
-                    if ! type_called {
+                    if type_called.is_none() {
                         writeln!(output, "OpenPGP Keyring.")?;
                         writeln!(output)?;
-                        type_called = true;
+                        type_called = Some(Kind::Keyring);
                     }
                     let pp = openpgp::PacketPile::from(
                         std::mem::take(&mut packets));
@@ -185,6 +188,12 @@ where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
                     .build());
 
         if is_message.is_ok() {
+            type_called = if encrypted {
+                Some(Kind::EncryptedMessage)
+            } else {
+                Some(Kind::SignedMessage)
+            };
+
             writeln!(output, "{}OpenPGP Message.",
                      match (encrypted, ! sigs.is_empty()) {
                          (false, false) => "",
@@ -209,10 +218,22 @@ where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
         } else if is_cert.is_ok() || is_keyring.is_ok() {
             let pp = openpgp::PacketPile::from(packets);
             let cert = openpgp::Cert::try_from(pp)?;
+
+            type_called = if is_cert.is_ok() {
+                if cert.is_tsk() {
+                    Some(Kind::Key)
+                } else {
+                    Some(Kind::Cert)
+                }
+            } else {
+                Some(Kind::Keyring)
+            };
+
             inspect_cert(sq, output, &cert, print_certifications,
                          dump_bad_signatures)?;
         } else if packets.is_empty() && ! sigs.is_empty() {
             if sigs.iter().all(is_revocation_sig) {
+                type_called = Some(Kind::RevocationCert);
                 writeln!(output, "Revocation Certificate{}.",
                          if sigs.len() > 1 { "s" } else { "" })?;
                 writeln!(output)?;
@@ -222,14 +243,17 @@ where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
                 writeln!(output, "           Note: \
                                   Signatures have NOT been verified!")?;
             } else {
+                type_called = Some(Kind::DetachedSig);
                 writeln!(output, "Detached signature{}.",
                          if sigs.len() > 1 { "s" } else { "" })?;
                 writeln!(output)?;
                 inspect_signatures(sq, output, &sigs)?;
             }
         } else if packets.is_empty() {
+            type_called = Some(Kind::NotOpenPGP);
             writeln!(output, "No OpenPGP data.")?;
         } else {
+            type_called = Some(Kind::Unknown);
             writeln!(output, "Unknown sequence of OpenPGP packets.")?;
             writeln!(output, "  Message: {}", is_message.as_ref().unwrap_err())?;
             writeln!(output, "  Cert: {}", is_cert.as_ref().unwrap_err())?;
@@ -248,9 +272,11 @@ where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
                                   OpenPGP data.")?;
 
                 if is_message.is_ok() {
+                    type_called = Some(Kind::NotOpenPGP);
                     writeln!(output, "Note: Data concatenated to a message is \
                                       likely an error.")?;
                 } else if is_cert.is_ok() || is_keyring.is_ok() {
+                    type_called = Some(Kind::Keyring);
                     writeln!(output, "Note: This is a non-standard extension \
                                       to OpenPGP.")?;
                 }
@@ -266,7 +292,7 @@ where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
     }
   }
 
-    Ok(())
+    Ok(type_called.unwrap_or(Kind::Unknown))
 }
 
 /// Returns true iff all signatures in the cert are revocation
@@ -758,4 +784,68 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
     }
 
     Ok(())
+}
+
+/// Describes the data that `inspect` inspected.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Kind {
+    /// A certificate.
+    Cert,
+
+    /// A key.
+    Key,
+
+    /// A keyring.
+    Keyring,
+
+    /// A signed message.
+    SignedMessage,
+
+    /// An encrypted message.
+    EncryptedMessage,
+
+    /// A detached signature.
+    DetachedSig,
+
+    /// A revocation certificate.
+    RevocationCert,
+
+    /// Unknown packet sequence.
+    Unknown,
+
+    /// Data that could not be parsed as OpenPGP packets.
+    NotOpenPGP,
+}
+
+impl fmt::Display for Kind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Kind::Cert =>
+                f.write_str("a certificate"),
+
+            Kind::Key =>
+                f.write_str("a key"),
+
+            Kind::Keyring =>
+                f.write_str("a keyring"),
+
+            Kind::SignedMessage =>
+                f.write_str("a signed message"),
+
+            Kind::EncryptedMessage =>
+                f.write_str("an encrypted message"),
+
+            Kind::DetachedSig =>
+                f.write_str("a detached signature"),
+
+            Kind::RevocationCert =>
+                f.write_str("a revocation certificate"),
+
+            Kind::Unknown =>
+                f.write_str("an unknown packet sequence"),
+
+            Kind::NotOpenPGP =>
+                f.write_str("non-OpenPGP data"),
+        }
+    }
 }

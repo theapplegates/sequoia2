@@ -193,6 +193,8 @@ macro_rules! test_examples {
             let cert_store = tmp_dir.path().join("cert-store");
             let key_store = tmp_dir.path().join("key-store");
 
+            eprintln!("Testing example from {}:{}", file!(), line!());
+
             for action in $actions.actions {
                 let command = if let Some(command) = action.command() {
                     command

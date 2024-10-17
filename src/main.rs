@@ -223,8 +223,14 @@ fn main() -> Result<()> {
         policy: &policy,
         time,
         time_is_now,
-        home: sequoia_directories::Home::new(
-            c.home.as_ref().and_then(|a| a.path()))?,
+        home: if let Some(p) = c.home.as_ref().and_then(|a| a.path()) {
+            sequoia_directories::Home::new(p)?
+        } else {
+            sequoia_directories::Home::default()
+                .ok_or(anyhow::anyhow!("no default SEQUOIA_HOME \
+                                        on this platform"))?
+                .clone()
+        },
         no_rw_cert_store: c.no_cert_store,
         cert_store_path: c.cert_store.as_ref().and_then(|a| a.path()),
         pep_cert_store_path: c.pep_cert_store.clone(),

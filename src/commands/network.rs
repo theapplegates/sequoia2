@@ -1409,33 +1409,18 @@ pub fn dispatch_dane(mut sq: Sq, c: cli::network::dane::Command)
             }
 
             for cert in certs {
-                let vc = match cert.with_policy(sq.policy, sq.time) {
-                    Ok(vc) => vc,
-                    e @ Err(_) if ! c.skip => e?,
-                    _ => continue,
-                };
+                let vc = cert.with_policy(sq.policy, sq.time)?;
 
                 use cli::network::dane::ResourceRecordType;
-                let r = match c.typ {
+                let records = match c.typ {
                     ResourceRecordType::OpenPGP =>
-                        dane::generate(&vc, &c.domain, c.ttl, c.size_limit),
+                        dane::generate(&vc, &c.domain, c.ttl, c.size_limit)?,
                     ResourceRecordType::Generic =>
                         dane::generate_generic(&vc, &c.domain, c.ttl,
-                                               c.size_limit),
+                                               c.size_limit)?,
                 };
 
-                match r {
-                    Ok(records) =>
-                        records.iter().for_each(|r| println!("{}", r)),
-                    Err(e) =>
-                        match e.downcast::<openpgp::Error>() {
-                            // Ignore cert with no user ID in domain.
-                            Ok(openpgp::Error::InvalidArgument(_))
-                                if c.skip => (),
-                            Ok(e) => Err(e)?,
-                            Err(e) => Err(e)?,
-                        },
-                }
+                records.iter().for_each(|r| println!("{}", r));
             }
         },
         Search(c) => rt.block_on(async {

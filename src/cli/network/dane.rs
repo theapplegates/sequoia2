@@ -108,13 +108,6 @@ pub struct GenerateCommand {
         help = "Change the emitted resource record type",
     )]
     pub typ: ResourceRecordType,
-
-    #[clap(
-        long = "skip",
-        help = "Skip expired certificates and those that do not have \
-                User IDs for given domain.",
-    )]
-    pub skip: bool,
 }
 
 #[derive(clap::ValueEnum, Clone, Copy, Debug, Default, PartialEq, Eq)]

@@ -382,7 +382,7 @@ where
                     .value_name("FINGERPRINT|KEYID")
                     .value_parser(parse_as_key_handle)
                     .action(action.clone())
-                    .help("Uses certificates with the specified \
+                    .help("Use certificates with the specified \
                            fingerprint or key ID"));
             arg_group = arg_group.arg(full_name);
         }
@@ -394,7 +394,7 @@ where
                     .long(&full_name)
                     .value_name("USERID")
                     .action(action.clone())
-                    .help("Uses certificates with the specified user ID"));
+                    .help("Use certificates with the specified user ID"));
             arg_group = arg_group.arg(full_name);
         }
 
@@ -406,7 +406,7 @@ where
                     .value_name("EMAIL")
                     .value_parser(parse_as_email)
                     .action(action.clone())
-                    .help("Uses certificates where a user ID includes \
+                    .help("Use certificates where a user ID includes \
                            the specified email address"));
             arg_group = arg_group.arg(full_name);
         }
@@ -419,7 +419,7 @@ where
                     .value_name("DOMAIN")
                     .value_parser(parse_as_domain)
                     .action(action.clone())
-                    .help("Uses certificates where a user ID includes \
+                    .help("Use certificates where a user ID includes \
                            an email address for the specified domain"));
             arg_group = arg_group.arg(full_name);
         }
@@ -431,7 +431,7 @@ where
                     .long(&full_name)
                     .value_name("PATTERN")
                     .action(action.clone())
-                    .help("Uses certificates with a user ID that \
+                    .help("Use certificates with a user ID that \
                            matches the pattern, case insensitively"));
             arg_group = arg_group.arg(full_name);
         }
@@ -445,7 +445,7 @@ where
                     .value_name("PATH")
                     .value_parser(clap::value_parser!(PathBuf))
                     .action(action.clone())
-                    .help("Reads certificates from PATH"));
+                    .help("Read certificates from PATH"));
             arg_group = arg_group.arg(full_name);
         }
 

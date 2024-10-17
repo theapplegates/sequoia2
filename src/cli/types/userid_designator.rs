@@ -210,7 +210,7 @@ where
                     .long(&full_name)
                     .value_name("USERID")
                     .action(action.clone())
-                    .help("Uses the specified user ID"));
+                    .help("Use the specified user ID"));
             arg_group = arg_group.arg(full_name);
         }
 
@@ -222,7 +222,7 @@ where
                     .value_name("EMAIL")
                     .value_parser(parse_as_email)
                     .action(action.clone())
-                    .help("Uses the specified email address"));
+                    .help("Use the specified email address"));
             arg_group = arg_group.arg(full_name);
         }
 
@@ -234,7 +234,7 @@ where
                     .requires(&group)
                     .action(clap::ArgAction::SetTrue)
                     .help("\
-Uses all self-signed user IDs"));
+Use all self-signed user IDs"));
             arg_group = arg_group.arg(full_name);
         }
 
@@ -246,9 +246,9 @@ Uses all self-signed user IDs"));
                     .requires(&group)
                     .action(clap::ArgAction::SetTrue)
                     .help("\
-Uses the given user ID even if it isn't a self-signed user ID")
+Use the given user ID even if it isn't a self-signed user ID")
                     .long_help("\
-Uses the given user ID even if it isn't a self-signed user ID.
+Use the given user ID even if it isn't a self-signed user ID.
 
 Because certifying a user ID that is not self-signed is often a \
 mistake, you need to use this option to explicitly opt in.  That said, \

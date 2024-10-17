@@ -1,7 +1,9 @@
 use std::io;
-use std::fs::File;
+use std::path::PathBuf;
 
 use anyhow::Context;
+
+use buffered_reader::File;
 
 use sequoia_openpgp as openpgp;
 use openpgp::Cert;
@@ -14,6 +16,7 @@ use crate::Sq;
 use crate::Result;
 use crate::cli;
 use crate::commands::VHelper;
+use crate::commands::inspect::Kind;
 use crate::load_certs;
 
 pub fn dispatch(sq: Sq, command: cli::verify::Command)
@@ -23,11 +26,6 @@ pub fn dispatch(sq: Sq, command: cli::verify::Command)
 
     let mut input = command.input.open()?;
     let mut output = command.output.create_safe(&sq)?;
-    let mut detached = if let Some(f) = command.detached {
-        Some(File::open(f)?)
-    } else {
-        None
-    };
     let signatures = command.signatures;
     // TODO ugly adaptation to load_certs' signature, fix later
     let mut certs = load_certs(
@@ -39,18 +37,30 @@ pub fn dispatch(sq: Sq, command: cli::verify::Command)
                       false)
             .context("--sender-cert")?);
     verify(sq, &mut input,
-           detached.as_mut().map(|r| r as &mut (dyn io::Read + Sync + Send)),
+           command.detached,
            &mut output, signatures, certs)?;
 
     Ok(())
 }
 
-pub fn verify(sq: Sq,
+pub fn verify(mut sq: Sq,
               input: &mut (dyn io::Read + Sync + Send),
-              detached: Option<&mut (dyn io::Read + Sync + Send)>,
+              detached: Option<PathBuf>,
               output: &mut dyn io::Write,
               signatures: usize, certs: Vec<Cert>)
               -> Result<()> {
+    let detached = if let Some(sig_path) = detached {
+        let sig = File::with_cookie(&sig_path, Default::default())?;
+
+        let (kind, sig) = Kind::identify(&mut sq, sig)?;
+        kind.expect_or_else(&sq, "verify", Kind::DetachedSig,
+                            "--signature-file", Some(&sig_path))?;
+
+        Some(sig)
+    } else {
+        None
+    };
+
     let helper = VHelper::new(&sq, signatures, certs);
     let helper = if let Some(dsig) = detached {
         let mut v = DetachedVerifierBuilder::from_reader(dsig)?

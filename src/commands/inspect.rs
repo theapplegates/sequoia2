@@ -1,11 +1,12 @@
 use std::convert::TryFrom;
 use std::fmt;
 use std::io::{self, Read};
+use std::path::Path;
 use std::time::Duration;
 
 use anyhow::Context;
 
-use buffered_reader::BufferedReader;
+use buffered_reader::{BufferedReader, Dup};
 
 use sequoia_openpgp as openpgp;
 use openpgp::{Fingerprint, KeyHandle, Packet, Result};
@@ -15,7 +16,13 @@ use openpgp::packet::{
     Signature,
     key::PublicParts,
 };
-use openpgp::parse::{Dearmor, Parse, PacketParserBuilder, PacketParserResult};
+use openpgp::parse::{
+    Cookie,
+    Dearmor,
+    Parse,
+    PacketParserBuilder,
+    PacketParserResult,
+};
 use openpgp::policy::{Policy, HashAlgoSecurity};
 use openpgp::packet::key::SecretKeyMaterial;
 use openpgp::types::{
@@ -106,7 +113,8 @@ pub fn inspect<'a, R>(sq: &mut Sq,
                       print_certifications: bool,
                       dump_bad_signatures: bool)
     -> Result<Kind>
-where R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
+where
+    R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
 {
     let mut ppr = openpgp::parse::PacketParser::from_buffered_reader(input)?;
     let mut type_called = None;   // Did we print the type yet?
@@ -846,6 +854,179 @@ impl fmt::Display for Kind {
 
             Kind::NotOpenPGP =>
                 f.write_str("non-OpenPGP data"),
+        }
+    }
+}
+
+impl Kind {
+    /// Identifies OpenPGP data.
+    ///
+    /// Returns the kind and the original reader without any data
+    /// consumed.
+    pub fn identify<'a, T>(sq: &mut Sq, input: T)
+                           -> Result<(Kind, Box<dyn BufferedReader<Cookie> + 'a>)>
+    where
+        T: BufferedReader<Cookie> + 'a,
+    {
+        let mut sink: Box<dyn io::Write + Send + Sync> =
+            Box::new(io::Sink::default());
+        let mut dup = Dup::with_cookie(input, Default::default());
+        let kind = inspect(sq, &mut dup, None, &mut sink, false, false)?;
+        Ok((kind, dup.into_boxed().into_inner().unwrap()))
+    }
+
+    /// Checks that `self` matches `expected`, or prints hints on what
+    /// to do instead and returns an error.
+    pub fn expect_or_else(&self,
+                          sq: &Sq,
+                          command: &str,
+                          expected: Kind,
+                          input_arg: &str,
+                          input_path: Option<&Path>)
+                          -> Result<()>
+    {
+        if self != &expected {
+            let input_path_text =
+                input_path.as_ref().map(|p| p.display().to_string())
+                .unwrap_or_else(|| "stdin".into());
+            let input_path_arg =
+                input_path.map(|p| p.display().to_string())
+                .unwrap_or_else(|| "-".into());
+
+            let msg = format!(
+                "Expected {} for {}, but {} is {}.",
+                expected, input_arg, input_path_text, self);
+            let mut hint = sq.hint(format_args!("{}", msg));
+
+            match self {
+                Kind::Cert => {
+                    if command == "verify" {
+                        hint = hint.hint(format_args!(
+                            "To verify a message or signature using {}:",
+                            input_path_text))
+                            .sq().arg("verify")
+                            .arg_value("--signer-file", &input_path_arg)
+                        .done();
+                    }
+
+                    if command == "decrypt" {
+                        hint = hint.hint(format_args!(
+                            "To verify a message using {}:",
+                            input_path_text))
+                            .sq().arg("decrypt")
+                            .arg_value("--signer-file", &input_path_arg)
+                        .done();
+                    }
+
+                    hint.hint(format_args!(
+                        "To import the cert {}:", input_path_text))
+                        .sq().arg("cert").arg("import")
+                        .arg(&input_path_arg)
+                        .done();
+                },
+
+                Kind::Key => {
+                    if command == "verify" {
+                        hint = hint.hint(format_args!(
+                            "To verify a message or signature using {}:",
+                            input_path_text))
+                            .sq().arg("verify")
+                            .arg_value("--signer-file", &input_path_arg)
+                        .done();
+                    }
+
+                    if command == "decrypt" {
+                        hint = hint.hint(format_args!(
+                            "To verify the signature on an encrypted message \
+                             using {}:",
+                            input_path_text))
+                            .sq().arg("decrypt")
+                            .arg_value("--signer-file", &input_path_arg)
+                        .done();
+
+                        hint = hint.hint(format_args!(
+                            "To decrypt an encrypted message using {}:",
+                            input_path_text))
+                            .sq().arg("decrypt")
+                            .arg_value("--recipient-file", &input_path_arg)
+                        .done();
+                    }
+
+                    hint.hint(format_args!(
+                        "To import the key {}:", input_path_text))
+                        .sq().arg("key").arg("import")
+                        .arg(&input_path_arg)
+                        .done();
+                },
+
+                Kind::Keyring => {
+                    hint.hint(format_args!(
+                        "To import the certificates in {}:", input_path_text))
+                        .sq().arg("cert").arg("import")
+                        .arg(&input_path_arg)
+                        .done();
+                },
+
+                Kind::SignedMessage => {
+                    hint.hint(format_args!(
+                        "To verify a signed message:"))
+                        .sq().arg("verify")
+                        .arg(&input_path_arg)
+                        .done();
+                },
+
+                Kind::EncryptedMessage => {
+                    hint.hint(format_args!(
+                        "To decrypt an encrypted message:"))
+                        .sq().arg("decrypt")
+                        .arg(input_path_arg)
+                        .done();
+                },
+
+                Kind::DetachedSig => {
+                    hint.hint(format_args!(
+                        "To verify the detached signature {}:",
+                        input_path_text))
+                        .sq().arg("verify")
+                        .arg("--signature-file").arg(&input_path_arg)
+                        .arg("the-data-file")
+                        .done();
+                },
+
+                Kind::RevocationCert => {
+                    hint.hint(format_args!(
+                        "To import the revocation certificate {}:",
+                        input_path_text))
+                        .sq().arg("cert").arg("import")
+                        .arg(&input_path_arg)
+                        .done();
+                },
+
+                Kind::Unknown => {
+                    hint.hint(format_args!(
+                        "To inspect the packet sequence in {}:",
+                        input_path_text))
+                        .sq().arg("toolbox").arg("packet").arg("dump")
+                        .arg(&input_path_arg)
+                        .done();
+                },
+
+                Kind::NotOpenPGP => {
+                    if command == "verify" {
+                        hint.hint(format_args!(
+                            "To verify the detached signature \
+                             over the data in {}:", input_path_text))
+                            .sq().arg("verify")
+                            .arg("--signature-file").arg("the-signature-file")
+                            .arg(&input_path_arg)
+                            .done();
+                    }
+                },
+            }
+
+            Err(anyhow::anyhow!("{}", msg))
+        } else {
+            Ok(())
         }
     }
 }

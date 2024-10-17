@@ -36,13 +36,15 @@ Verify a signed message.",
                 "sq", "verify", "document.pgp",
             ],
         }),
+
         Action::Example(Example {
             comment: "\
-Verify a detached message.",
+Verify a detached signature.",
             command: &[
                 "sq", "verify", "--signature-file", "document.sig", "document.txt",
             ],
         }),
+
         Action::Example(Example {
             comment: "\
 Verify a message as of June 19, 2024 at midnight UTC.",

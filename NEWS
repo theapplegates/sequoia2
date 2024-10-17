@@ -89,6 +89,8 @@
      mark a certificate as a trusted introducer (when the user set
      `--depth` to be greater than zero).  The latter functionality has
      been split off to the new subcommand `sq pki link authorize`.
+   - Move `sq pki certify` to `sq pki vouch certify`.
+   - Move `sq pki authorize` to `sq pki vouch authorize`.
 
 * Changes in 0.38.0
 ** Notable changes

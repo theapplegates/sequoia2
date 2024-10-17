@@ -33,17 +33,19 @@ fn sq_pki_link_authorize_then_authenticate() {
         // The ca certifies alice's and bob's certificates for each of
         // their user IDs.
         let certification = sq.scratch_file(None);
-        sq.pki_certify(&[],
-                       ca.key_handle(), alice.key_handle(),
-                       &[ alice_example_org ],
-                       certification.as_path());
+        sq.pki_vouch_certify(
+            &[],
+            ca.key_handle(), alice.key_handle(),
+            &[ alice_example_org ],
+            certification.as_path());
         sq.cert_import(&certification);
 
         let certification = sq.scratch_file(None);
-        sq.pki_certify(&[],
-                       ca.key_handle(), bob.key_handle(),
-                       &[ bob_example_org, bob_other_org ],
-                       certification.as_path());
+        sq.pki_vouch_certify(
+            &[],
+            ca.key_handle(), bob.key_handle(),
+            &[ bob_example_org, bob_other_org ],
+            certification.as_path());
         sq.cert_import(certification);
 
         // Check whether we can authenticate alice's and bob's
@@ -265,10 +267,10 @@ fn retract_explicit() {
 
         // The ca certifies alice's certificate
         let certification = sq.scratch_file(None);
-        sq.pki_certify(&[],
-                       ca.key_handle(), alice.key_handle(),
-                       &[ alice_example_org ],
-                       certification.as_path());
+        sq.pki_vouch_certify(&[],
+                             ca.key_handle(), alice.key_handle(),
+                             &[ alice_example_org ],
+                             certification.as_path());
         sq.cert_import(&certification);
 
         let check = |sq: &Sq, can_authenticate: bool| {
@@ -344,10 +346,10 @@ fn retract_non_self_signed() {
 
     // The ca certifies alice's certificate
     let certification = sq.scratch_file(None);
-    sq.pki_certify(&[],
-                   ca.key_handle(), alice.key_handle(),
-                   &[ alice_example_org ],
-                   certification.as_path());
+    sq.pki_vouch_certify(&[],
+                         ca.key_handle(), alice.key_handle(),
+                         &[ alice_example_org ],
+                         certification.as_path());
     sq.cert_import(&certification);
 
     let check = |sq: &Sq, can_authenticate: bool| {
@@ -410,10 +412,10 @@ fn retract_all() {
 
     // The ca certifies alice's certificate
     let certification = sq.scratch_file(None);
-    sq.pki_certify(&[],
-                   ca.key_handle(), alice.key_handle(),
-                   &[ alice_example_org ],
-                   certification.as_path());
+    sq.pki_vouch_certify(&[],
+                         ca.key_handle(), alice.key_handle(),
+                         &[ alice_example_org ],
+                         certification.as_path());
     sq.cert_import(&certification);
 
     let check = |sq: &Sq, can_authenticate: bool| {

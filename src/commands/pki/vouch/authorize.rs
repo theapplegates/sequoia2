@@ -3,7 +3,7 @@ use openpgp::Result;
 use openpgp::types::KeyFlags;
 
 use crate::Sq;
-use crate::cli::pki::authorize;
+use crate::cli::pki::vouch::authorize;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::commands::FileOrStdout;
 use crate::parse_notations;

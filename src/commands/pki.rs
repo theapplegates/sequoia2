@@ -14,10 +14,9 @@ use sequoia_wot as wot;
 use wot::store::Backend;
 use wot::store::Store;
 
-pub mod authorize;
-pub mod certify;
 pub mod link;
 pub mod output;
+pub mod vouch;
 
 use crate::cli;
 use cli::types::TrustAmount;
@@ -654,11 +653,8 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
             &sq, *gossip, *certification_network, *trust_amount,
             path)?,
 
-        Subcommands::Certify(command) =>
-            self::certify::certify(sq, command)?,
-
-        Subcommands::Authorize(command) =>
-            self::authorize::authorize(sq, command)?,
+        Subcommands::Vouch(command) =>
+            self::vouch::vouch(sq, command)?,
 
         Subcommands::Link(command) =>
             self::link::link(sq, command)?,

@@ -58,11 +58,11 @@ fn update_files() -> Result<()> {
 
     // Have Bob certify Alice.
     let alice2_pub_pgp = sq.scratch_file("alice2_pub");
-    let alice2 = sq.pki_certify(&[],
-                                &bob_pgp,
-                                &alice_pgp,
-                                &[alice_userid],
-                                &*alice2_pub_pgp);
+    let alice2 = sq.pki_vouch_certify(&[],
+                                      &bob_pgp,
+                                      &alice_pgp,
+                                      &[alice_userid],
+                                      &*alice2_pub_pgp);
     assert_eq!(alice2.fingerprint(), alice.fingerprint());
 
     // Attest Bob's certification.
@@ -107,11 +107,11 @@ fn update_all() -> Result<()> {
                .attested_certifications().count(), 0);
 
     // Have Bob certify Alice.
-    let alice2 = sq.pki_certify(&[],
-                                bob.key_handle(),
-                                alice.key_handle(),
-                                &[ALICE_USERID],
-                                None);
+    let alice2 = sq.pki_vouch_certify(&[],
+                                      bob.key_handle(),
+                                      alice.key_handle(),
+                                      &[ALICE_USERID],
+                                      None);
     assert_eq!(alice2.fingerprint(), alice.fingerprint());
 
     // Attest Bob's certification.
@@ -158,11 +158,11 @@ fn update_by() -> Result<()> {
                .attested_certifications().count(), 0);
 
     // Have Bob certify Alice.
-    let alice2 = sq.pki_certify(&[],
-                                bob.key_handle(),
-                                alice.key_handle(),
-                                &[ALICE_USERID],
-                                None);
+    let alice2 = sq.pki_vouch_certify(&[],
+                                      bob.key_handle(),
+                                      alice.key_handle(),
+                                      &[ALICE_USERID],
+                                      None);
     assert_eq!(alice2.fingerprint(), alice.fingerprint());
 
     // Attest Bob's certification.
@@ -200,11 +200,11 @@ fn update_authenticated() -> Result<()> {
     let bob_fp = bob.fingerprint().to_string();
 
     // Have Bob certify Alice.
-    let alice2 = sq.pki_certify(&[],
-                                bob.key_handle(),
-                                alice.key_handle(),
-                                &[ALICE_USERID],
-                                None);
+    let alice2 = sq.pki_vouch_certify(&[],
+                                      bob.key_handle(),
+                                      alice.key_handle(),
+                                      &[ALICE_USERID],
+                                      None);
     assert_eq!(alice2.fingerprint(), alice.fingerprint());
 
     // Attest the zero certifications.

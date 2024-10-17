@@ -1,4 +1,4 @@
-//! Command-line parser for `sq pki authorize`.
+//! Command-line parser for `sq pki vouch authorize`.
 
 use clap::ArgGroup;
 use clap::Parser;
@@ -40,7 +40,7 @@ const AUTHORIZE_EXAMPLES: Actions = Actions {
 Certify that E7FC51AD886BBB5C4F44C3D7A9DA14F3E740F63F is a trusted introducer \
 for example.org and example.com.",
             command: &[
-                "sq", "pki", "authorize",
+                "sq", "pki", "vouch", "authorize",
                 "--certifier", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--cert", "E7FC51AD886BBB5C4F44C3D7A9DA14F3E740F63F",
                 "--domain", "example.org",
@@ -49,7 +49,7 @@ for example.org and example.com.",
         }),
     ],
 };
-test_examples!(sq_pki_authorize, AUTHORIZE_EXAMPLES);
+test_examples!(sq_pki_vouch_authorize, AUTHORIZE_EXAMPLES);
 
 #[derive(Parser, Debug)]
 #[clap(

@@ -1068,8 +1068,8 @@ fn sq_verify_wot() -> Result<()> {
             FileOrKeyHandle::FileOrStdin(cert.into())
         };
 
-        sq.pki_certify(&extra_args, certifier, cert, &[userid],
-                       Some(certification.as_path()));
+        sq.pki_vouch_certify(&extra_args, certifier, cert, &[userid],
+                             Some(certification.as_path()));
         sq.cert_import(&certification);
     };
 

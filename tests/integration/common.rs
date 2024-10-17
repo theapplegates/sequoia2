@@ -1288,12 +1288,12 @@ impl Sq {
     ///
     /// If `output_file` is `Some`, then the output is written to that
     /// file.  Otherwise, the default behavior is followed.
-    pub fn pki_certify_p<'a, H, C, Q>(&self, extra_args: &[&str],
-                                      certifier: H,
-                                      cert: C,
-                                      userids: &[&str],
-                                      output_file: Q,
-                                      success: bool)
+    pub fn pki_vouch_certify_p<'a, H, C, Q>(&self, extra_args: &[&str],
+                                            certifier: H,
+                                            cert: C,
+                                            userids: &[&str],
+                                            output_file: Q,
+                                            success: bool)
         -> Result<Cert>
     where H: Into<FileOrKeyHandle>,
           C: Into<FileOrKeyHandle>,
@@ -1304,7 +1304,7 @@ impl Sq {
         let output_file = output_file.into();
 
         let mut cmd = self.command();
-        cmd.args([ "pki", "certify" ]);
+        cmd.args([ "pki", "vouch", "certify" ]);
         for arg in extra_args {
             cmd.arg(arg);
         }
@@ -1371,17 +1371,17 @@ impl Sq {
     }
 
     /// Certify the user ID binding.
-    pub fn pki_certify<'a, H, C, Q>(&self, extra_args: &[&str],
-                                    certifier: H,
-                                    cert: C,
-                                    userids: &[&str],
-                                    output_file: Q)
+    pub fn pki_vouch_certify<'a, H, C, Q>(&self, extra_args: &[&str],
+                                          certifier: H,
+                                          cert: C,
+                                          userids: &[&str],
+                                          output_file: Q)
         -> Cert
     where H: Into<FileOrKeyHandle>,
           C: Into<FileOrKeyHandle>,
           Q: Into<Option<&'a Path>>,
     {
-        self.pki_certify_p(
+        self.pki_vouch_certify_p(
             extra_args, certifier, cert, userids, output_file, true)
             .expect("success")
     }
@@ -1390,12 +1390,12 @@ impl Sq {
     ///
     /// If `output_file` is `Some`, then the output is written to that
     /// file.  Otherwise, the default behavior is followed.
-    pub fn pki_authorize_p<'a, H, C, Q>(&self, extra_args: &[&str],
-                                        certifier: H,
-                                        cert: C,
-                                        userids: &[&str],
-                                        output_file: Q,
-                                        success: bool)
+    pub fn pki_vouch_authorize_p<'a, H, C, Q>(&self, extra_args: &[&str],
+                                              certifier: H,
+                                              cert: C,
+                                              userids: &[&str],
+                                              output_file: Q,
+                                              success: bool)
         -> Result<Cert>
     where H: Into<FileOrKeyHandle>,
           C: Into<FileOrKeyHandle>,
@@ -1406,7 +1406,7 @@ impl Sq {
         let output_file = output_file.into();
 
         let mut cmd = self.command();
-        cmd.args([ "pki", "authorize" ]);
+        cmd.args([ "pki", "vouch", "authorize" ]);
         for arg in extra_args {
             cmd.arg(arg);
         }
@@ -1473,17 +1473,17 @@ impl Sq {
     }
 
     /// Authorize a certificate.
-    pub fn pki_authorize<'a, H, C, Q>(&self, extra_args: &[&str],
-                                      certifier: H,
-                                      cert: C,
-                                      userids: &[&str],
-                                      output_file: Q)
+    pub fn pki_vouch_authorize<'a, H, C, Q>(&self, extra_args: &[&str],
+                                            certifier: H,
+                                            cert: C,
+                                            userids: &[&str],
+                                            output_file: Q)
         -> Cert
     where H: Into<FileOrKeyHandle>,
           C: Into<FileOrKeyHandle>,
           Q: Into<Option<&'a Path>>,
     {
-        self.pki_authorize_p(
+        self.pki_vouch_authorize_p(
             extra_args, certifier, cert, userids, output_file, true)
             .expect("success")
     }

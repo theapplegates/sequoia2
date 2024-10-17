@@ -139,7 +139,7 @@ const UPDATE_EXAMPLES: Actions = Actions {
         }),
         Action::Setup(Setup {
             command: &[
-                "sq", "pki", "certify",
+                "sq", "pki", "vouch", "certify",
                 "--certifier", "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email", "alice@example.org",

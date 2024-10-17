@@ -166,8 +166,8 @@ fn sq_certify(sq: &Sq,
         FileOrKeyHandle::FileOrStdin(cert.into())
     };
 
-    sq.pki_certify(&extra_args, certifier, cert, &[userid],
-                   Some(certification.as_path()));
+    sq.pki_vouch_certify(&extra_args, certifier, cert, &[userid],
+                         Some(certification.as_path()));
     sq.cert_import(&certification);
 }
 
@@ -198,8 +198,8 @@ fn sq_authorize(sq: &Sq,
         FileOrKeyHandle::FileOrStdin(cert.into())
     };
 
-    sq.pki_authorize(&extra_args, certifier, cert, &[userid],
-                     Some(certification.as_path()));
+    sq.pki_vouch_authorize(&extra_args, certifier, cert, &[userid],
+                           Some(certification.as_path()));
     sq.cert_import(&certification);
 }
 

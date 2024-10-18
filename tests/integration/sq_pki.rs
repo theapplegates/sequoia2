@@ -1668,7 +1668,6 @@ fn path_simple() -> Result<()> {
     // Alice certifies Bob at trust amount = 100. (120 required).
     let human_output =
         [(1, format!("{} {} {}", HR_NOT_OK_EMPTY, &bob_fpr, &bob_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -1687,7 +1686,6 @@ fn path_simple() -> Result<()> {
     );
 
     let human_output = [(1, format!("{} {} {}", HR_OK, bob_fpr, bob_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     // As above, but we only require 100.
     test(
         keyring,
@@ -1710,7 +1708,6 @@ fn path_simple() -> Result<()> {
     // Bob certificates Carol, but for Bob.
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &carol_fpr, &bob_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -1731,7 +1728,6 @@ fn path_simple() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}", HR_OK, carol_fpr, carol_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     // Alice makes Bob a level 2 trusted introducer.
     // Bob certificates Carol.
     test(
@@ -1754,7 +1750,6 @@ fn path_simple() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}", HR_OK, dave_fpr, dave_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     // Alice makes Bob a level 2 trusted introducer.
     // Bob makes Carol a level 1 trust introducer.
     // Carol certifies Dave.
@@ -1783,7 +1778,6 @@ fn path_simple() -> Result<()> {
     // Dave certifies Ellen.
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &ellen_fpr, &ellen_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -1809,7 +1803,6 @@ fn path_simple() -> Result<()> {
     // Dave certifies Ellen.
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &ellen_fpr, &ellen_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -1887,7 +1880,6 @@ fn path_missing_certs() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}", HR_OK, carol_fpr, carol_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     // Alice tsigns Bob at depth = 2, trust amount = 100.
     // Bob certifies Carol, trust amount = 100.
     test(
@@ -1910,7 +1902,6 @@ fn path_missing_certs() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &carol_fpr, &carol_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -1931,7 +1922,6 @@ fn path_missing_certs() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &carol_fpr, &carol_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -1952,7 +1942,6 @@ fn path_missing_certs() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &missing_fpr, &carol_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -2029,7 +2018,6 @@ fn path_singleton() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     // A self signed User ID.
     test(
         keyring,
@@ -2050,7 +2038,6 @@ fn path_singleton() -> Result<()> {
     // A User ID that is not self signed.
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &alice_fpr, &bob_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -2116,7 +2103,6 @@ fn path_multiple_userids_1() -> Result<()> {
     // Carol certifies Dave
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &dave_fpr, &dave_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -2138,7 +2124,6 @@ fn path_multiple_userids_1() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}", HR_OK, dave_fpr, dave_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     // As above, but
     test(
         keyring,
@@ -2218,7 +2203,6 @@ fn path_multiple_users_2() -> Result<()> {
     let command = "path";
 
     let human_output = [(1, format!("{} {}", HR_OK, frank_fpr))];
-    // TODO: add output to check against once sq-wot graph is supported
     // Alice certifies Bob as:
     //   a level 255 trusted introducer, amount = 70 for other.org
     //   a level 1 trusted introducer, amount = 50
@@ -2247,7 +2231,6 @@ fn path_multiple_users_2() -> Result<()> {
     // Bob certifies Carol@example.org
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &carol_fpr, &carol_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -2268,7 +2251,6 @@ fn path_multiple_users_2() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}", HR_OK, carol_fpr, carol_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     // As above, but reduce the required trust amount to 50.
     test(
         keyring,
@@ -2290,7 +2272,6 @@ fn path_multiple_users_2() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}", HR_OK, dave_fpr, dave_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     // Alice certifies Bob as:
     //   a level 255 trusted introducer, amount = 70 for other.org
     //   a level 1 trusted introducer, amount = 50
@@ -2322,7 +2303,6 @@ fn path_multiple_users_2() -> Result<()> {
     // Carol certifies ed@example.org
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &ed_fpr, &ed_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -2387,7 +2367,6 @@ fn path_sha1() -> Result<()> {
     // the future (after the reference time).
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &carol_fpr, &carol_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -2409,7 +2388,6 @@ fn path_sha1() -> Result<()> {
     // Again, but this time only require a trust amount of 60.
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &carol_fpr, &carol_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -2435,7 +2413,6 @@ fn path_sha1() -> Result<()> {
     // trust amount of 120.
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &carol_fpr, &carol_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -2456,7 +2433,6 @@ fn path_sha1() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}", HR_OK, carol_fpr, carol_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -2840,7 +2816,6 @@ fn path_certification_network() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     // Alice does not make Bob a trusted introducer.  So without
     // --certificate-network, she can only authenticate Bob, but
     // not Carol or Dave.
@@ -2863,7 +2838,6 @@ fn path_certification_network() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}:", HR_NOT_OK_EMPTY, &carol_fpr, &carol_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -2884,7 +2858,6 @@ fn path_certification_network() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &dave_fpr, &dave_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -2909,7 +2882,6 @@ fn path_certification_network() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     // With --certification-network, she can authenticate them all.
     test(
         keyring,
@@ -2930,7 +2902,6 @@ fn path_certification_network() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}: ", HR_OK, &carol_fpr, &carol_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -2951,7 +2922,6 @@ fn path_certification_network() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}: ", HR_OK, &dave_fpr, &dave_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -2973,7 +2943,6 @@ fn path_certification_network() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &carol_fpr, &carol_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     // But invalid paths should stay invalid.
     test(
         keyring,
@@ -2998,7 +2967,6 @@ fn path_certification_network() -> Result<()> {
     let sqwot_args = &[];
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &alice_fpr, &alice_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     // dave authenticates alice for 60 of 120.
     test(
         keyring,
@@ -3019,7 +2987,6 @@ fn path_certification_network() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -3041,7 +3008,6 @@ fn path_certification_network() -> Result<()> {
     let sqwot_args = &["--certification-network"];
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &alice_fpr, &alice_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -3061,7 +3027,6 @@ fn path_certification_network() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -3085,7 +3050,6 @@ fn path_certification_network() -> Result<()> {
     let sqwot_args = &[];
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &alice_fpr, &alice_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -3109,7 +3073,6 @@ fn path_certification_network() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -3130,7 +3093,6 @@ fn path_certification_network() -> Result<()> {
 
     let human_output =
         [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -3291,7 +3253,6 @@ fn target_cert_expired() -> Result<()> {
     let command = "path";
     let human_output =
         [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -3331,7 +3292,6 @@ fn target_cert_expired() -> Result<()> {
     let command = "path";
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &bob_fpr, &bob_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -3411,7 +3371,6 @@ fn target_cert_hard_revoked() -> Result<()> {
     let command = "path";
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &bob_fpr, &bob_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -3493,7 +3452,6 @@ fn target_cert_soft_revoked() -> Result<()> {
     let command = "path";
     let human_output =
         [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -3531,7 +3489,6 @@ fn target_cert_soft_revoked() -> Result<()> {
     let command = "path";
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &bob_fpr, &bob_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -3605,7 +3562,6 @@ fn target_userid_revoked() -> Result<()> {
     let command = "path";
     let human_output =
         [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,
@@ -3643,7 +3599,6 @@ fn target_userid_revoked() -> Result<()> {
     let command = "path";
     let human_output =
         [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &bob_fpr, &bob_uid))];
-    // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
         trust_root,

@@ -332,7 +332,13 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
         if self.paths {
             wprintln!();
 
-            for (i, (path, amount)) in paths.iter().enumerate() {
+            for (i, (path, amount)) in paths.iter()
+                .filter(|(p, _)|
+                        // Filter out self-signatures.
+                        p.root().fingerprint() != p.target().fingerprint()
+                        || p.len() != 2)
+                .enumerate()
+            {
                 if !self.gossip && paths.len() > 1 {
                     wprintln!(
                         initial_indent="     ",

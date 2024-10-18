@@ -14,6 +14,7 @@ use cert_store::Store;
 use sequoia_wot as wot;
 use wot::Path;
 
+use crate::Convert;
 use crate::Sq;
 use crate::commands::pki::output::OutputType;
 use crate::Time;
@@ -76,30 +77,37 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
         });
 
         if show_cert {
-            let expired = vc
+            let expiration_info = vc
                 .as_ref()
-                .map(|vc| {
+                .and_then(|vc| {
                     if let Some(t) = vc.primary_key().key_expiration_time() {
                         if t < SystemTime::now() {
-                            format!(" expired on {}",
-                                    Time::try_from(t)
-                                    .expect("is an OpenPGP timestamp"))
+                            Some(format!("expired on {}",
+                                         Time::try_from(t)
+                                         .expect("is an OpenPGP timestamp")))
                         } else {
-                            format!(" will expire on {}",
-                                    Time::try_from(t)
-                                    .expect("is an OpenPGP timestamp"))
+                            Some(format!("will expire on {}",
+                                         Time::try_from(t)
+                                         .expect("is an OpenPGP timestamp")))
                         }
                     } else {
-                        "".to_string()
+                        None
                     }
-                })
-                .unwrap_or("".to_string());
+                });
 
             if ! first_shown {
                 wprintln!();
             }
 
-            wprintln!("{}{}", fingerprint, expired);
+            wprintln!(initial_indent = " - ", "{}", fingerprint);
+            wprintln!(initial_indent = "   - ", "created {}",
+                      self.current_cert.as_ref()
+                      .expect("show_cert is true, there is a current cert")
+                      .primary_key().key().creation_time().convert());
+            if let Some(info) = expiration_info {
+                wprintln!(initial_indent = "   - ", "{}", info);
+            }
+            wprintln!();
         }
 
         let revoked = vc
@@ -120,7 +128,7 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
                     .next()
             });
 
-        wprintln!(initial_indent = "  ", "[ {} ] {}",
+        wprintln!(initial_indent = "   - ", "[ {} ] {}",
                   if revoked.is_some() {
                       "revoked".to_string()
                   } else if aggregated_amount >= self.required_amount {

@@ -1,7 +1,7 @@
 use super::common::Sq;
 
 #[test]
-fn sq_pki_authorize_then_authenticate() {
+fn sq_pki_vouch_authorize_then_authenticate() {
     let mut sq = Sq::new();
 
     let otto_somewhere_com = "<otto@somewhere.com>";
@@ -252,7 +252,7 @@ fn sq_pki_authorize_then_authenticate() {
 }
 
 #[test]
-fn sq_pki_authorize_all_revoked() {
+fn sq_pki_vouch_authorize_all_revoked() {
     // When we don't provide any user IDs, `sq pki vouch authorize`
     // certifies all of the self signed user IDs.  Make sure this
     // works in the presence of a revoked user ID, which should be

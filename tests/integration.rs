@@ -20,10 +20,10 @@ mod integration {
     mod sq_key_subkey_password;
     mod sq_key_userid;
     mod sq_pki;
-    mod sq_pki_certify;
-    mod sq_pki_authorize;
     mod sq_pki_link;
     mod sq_pki_link_authorize;
+    mod sq_pki_vouch_certify;
+    mod sq_pki_vouch_authorize;
     mod sq_sign;
     mod sq_toolbox_keyring_filter;
     mod sq_toolbox_packet_decrypt;

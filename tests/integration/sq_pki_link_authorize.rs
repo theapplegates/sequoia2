@@ -455,3 +455,78 @@ fn retract_all() {
     sq.pki_link_retract(&[], ca.key_handle(), &[]);
     check(&sq, false);
 }
+
+#[test]
+fn sq_pki_link_all_revoked() {
+    // When we don't provide any user IDs, `sq pki link authorize`
+    // certifies all of the self signed user IDs.  Make sure this
+    // works in the presence of a revoked user ID, which should be
+    // ignored.
+
+    let mut sq = Sq::new();
+
+    let ca_example_org = "<ca@example.org>";
+    let ca_example_com = "<ca@example.com>";
+    let (ca, ca_pgp, _ca_rev)
+        = sq.key_generate(&[], &[ca_example_org, ca_example_com]);
+    sq.key_import(&ca_pgp);
+
+    // Revoke ca@example.com.
+    sq.tick(1);
+    let revocation = sq.scratch_file("revocation");
+    sq.key_userid_revoke(&[], ca.fingerprint(), ca_example_com,
+                         "retired", "bye", Some(revocation.as_path()));
+    sq.cert_import(&revocation);
+
+    let alice_example_org = "<alice@example.org>";
+    let (alice, alice_pgp, _alice_rev)
+        = sq.key_generate(&[], &[alice_example_org]);
+    sq.key_import(&alice_pgp);
+
+    sq.tick(1);
+
+    // The ca certifies alice's certificate.
+    let certification = sq.scratch_file(None);
+    sq.pki_vouch_certify(
+        &[],
+        ca.key_handle(), alice.key_handle(),
+        &[ alice_example_org ],
+        certification.as_path());
+    sq.cert_import(&certification);
+
+    // Check whether we can authenticate alice's and bob's
+    // certificates for their user ID using otto as the trust root.
+    let check = |sq: &Sq, can_authenticate|
+    {
+        let r = sq.pki_authenticate(
+            &[],
+            &alice.fingerprint().to_string(),
+            alice_example_org);
+
+        match (can_authenticate, r.is_ok()) {
+            (true, false) => {
+                panic!("Expected to authenticated {}, but didn't.",
+                       alice_example_org);
+            }
+            (false, true) => {
+                panic!("Expected to NOT authenticated {}, but did.",
+                       alice_example_org);
+            }
+            _ => (),
+        }
+    };
+
+    // No delegation yet.
+    println!("CA: not authorized");
+    check(&sq, false);
+
+    // The user completely authorizes the CA.  Note: we don't specify
+    // any user IDs so only valid self-signed user IDs should be used.
+    // That means the revoked user ID should be skipped.
+    sq.tick(1);
+    sq.pki_link_authorize(&["--unconstrained"],
+                          ca.key_handle(), &[]);
+
+    println!("CA: authorized, and unconstrained");
+    check(&sq, true);
+}

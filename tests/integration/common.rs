@@ -1241,6 +1241,86 @@ impl Sq {
         Ok(out_key)
     }
 
+    /// Revokes a user ID.
+    pub fn key_userid_revoke_maybe<'a, C, O>(&self, args: &[&str], cert: C, userid: &str,
+                                             reason: &str, message: &str,
+                                             output_file: O)
+        -> Result<Cert>
+    where C: Into<FileOrKeyHandle>,
+          O: Into<Option<&'a Path>>,
+    {
+        let cert = cert.into();
+        let output_file = output_file.into();
+
+        let mut cmd = self.command();
+        cmd.args(["key", "userid", "revoke", reason, message]);
+        for arg in args {
+            cmd.arg(arg);
+        }
+
+        match &cert {
+            FileOrKeyHandle::FileOrStdin(file) => {
+                cmd.arg("--cert-file").arg(file);
+            }
+            FileOrKeyHandle::KeyHandle((_kh, s)) => {
+                cmd.arg("--cert").arg(s);
+            }
+        }
+        cmd.arg("--userid").arg(userid);
+
+        if let Some(output_file) = output_file {
+            cmd.arg("--overwrite").arg("--output").arg(output_file);
+        }
+
+        let output = self.run(cmd, None);
+        if output.status.success() {
+            if let Some(output_file) = output_file {
+                // The output was explicitly written to a file.
+                if output_file == &PathBuf::from("-") {
+                    Ok(Cert::from_bytes(&output.stdout)
+                       .expect("can parse certificate"))
+                } else {
+                    Ok(Cert::from_file(&output_file)
+                       .expect("can parse certificate"))
+                }
+            } else {
+                match cert {
+                    FileOrKeyHandle::FileOrStdin(_) => {
+                        // When the cert is from a file, the output is
+                        // written to stdout by default.
+                        Ok(Cert::from_bytes(&output.stdout)
+                           .with_context(|| {
+                               format!("Importing result from the file {:?}",
+                                       cert)
+                           })
+                           .expect("can parse certificate"))
+                    }
+                    FileOrKeyHandle::KeyHandle((kh, _s)) => {
+                        // When the cert is from the cert store, the
+                        // output is written to the cert store by
+                        // default.
+                        Ok(self.cert_export(kh.clone()))
+                    }
+                }
+            }
+        } else {
+            Err(anyhow::anyhow!(format!(
+                "Failed (expected):\n{}",
+                String::from_utf8_lossy(&output.stderr))))
+        }
+    }
+
+    pub fn key_userid_revoke<'a, C, O>(&self, args: &[&str], cert: C, userid: &str,
+                                       reason: &str, message: &str,
+                                       output_file: O)
+        -> Cert
+    where C: Into<FileOrKeyHandle>,
+          O: Into<Option<&'a Path>>,
+    {
+        self.key_userid_revoke_maybe(args, cert, userid, reason, message, output_file)
+            .expect("succeeds")
+    }
+
     /// Strips user IDs to the given key.
     pub fn toolbox_strip_userid(&self, key: Cert, args: &[&str]) -> Result<Cert> {
         let mut cmd = self.command();

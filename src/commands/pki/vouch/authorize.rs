@@ -34,7 +34,7 @@ pub fn authorize(sq: Sq, mut c: authorize::Command)
 
     let vc = cert.with_policy(sq.policy, Some(sq.time))?;
     let mut userids = c.userids.resolve(&vc)?;
-    if userids.is_empty() {
+    let user_supplied_userids = if userids.is_empty() {
         // Use all self-signed User IDs.
         userids = vc.userids()
             .map(|ua| ua.userid().clone())
@@ -46,6 +46,10 @@ pub fn authorize(sq: Sq, mut c: authorize::Command)
                  an alternate user ID",
                 vc.fingerprint()));
         }
+
+        false
+    } else {
+        true
     };
 
     let notations = parse_notations(&c.notation)?;
@@ -57,7 +61,7 @@ pub fn authorize(sq: Sq, mut c: authorize::Command)
         &cert,
         &userids[..],
         c.userids.add_userid().unwrap_or(false),
-        true, // User supplied user IDs.
+        user_supplied_userids,
         &[(c.amount, c.expiration)],
         c.depth,
         &c.domain[..],

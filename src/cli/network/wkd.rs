@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use clap::{Args, Parser, Subcommand};
 
 use sequoia_net::wkd;
@@ -201,12 +202,17 @@ to the `--domain` parameter that can be fully authenticated.",
 
     #[clap(
         long = "rsync",
-        value_name = "RSYNC",
-        default_missing_value = "rsync",
-        num_args = 0..=1,
-        help = "Path to the local rsync command to use",
+        help = "Use rsync(1) to access DEST",
     )]
-    pub rsync: Option<String>,
+    pub rsync: bool,
+
+    #[clap(
+        long = "rsync-path",
+        value_name = "RSYNC",
+        help = "Path to the local rsync command to use, implies --rsync",
+    )]
+    pub rsync_path: Option<PathBuf>,
+
     #[clap(
         long = "domain",
         value_name = "FQDN",

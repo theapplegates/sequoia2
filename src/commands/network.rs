@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 use std::fs::{self, DirEntry};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
@@ -1245,6 +1245,10 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                 return Err(anyhow::anyhow!("Failed to resolve certificates"));
             }
 
+            // Make `--rsync-path` imply `--rsync`.
+            let rsync = c.rsync_path.take()
+                .or_else(|| c.rsync.then_some("rsync".into()));
+
             // Strategy: We transfer the WKD to a temporary directory,
             // read all the certs, update them from the local cert
             // store, re-create the WKD hierarchy, then transfer it
@@ -1254,7 +1258,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             // First, fetch the WKD.
             let fetch = wd.path().join("fetch");
             fs::create_dir(&fetch)?;
-            let r = transfer(&c.rsync,
+            let r = transfer(&rsync,
                   &format!("{}/.well-known/openpgpkey", c.destination),
                   &fetch.display().to_string())
                 .context("failed to copy the remote WKD hierarchy \
@@ -1337,7 +1341,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             }
 
             // Finally, transfer the WKD hierarchy back.
-            transfer(&c.rsync, &push_wk.display().to_string(),
+            transfer(&rsync, &push_wk.display().to_string(),
                      &format!("{}", c.destination))
                 .context("failed to copy the local WKD hierarchy \
                           to the remote system")?;
@@ -1347,7 +1351,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
     Ok(())
 }
 
-fn transfer(rsync_bin: &Option<String>, source: &str, destination: &str)
+fn transfer(rsync_bin: &Option<PathBuf>, source: &str, destination: &str)
             -> Result<()>
 {
     if let Some(r) = rsync_bin {
@@ -1366,7 +1370,7 @@ fn copy(source: &str, destination: &str) -> Result<()> {
     Ok(())
 }
 
-fn rsync(rsync: &str, source: &str, destination: &str) -> Result<()> {
+fn rsync(rsync: &Path, source: &str, destination: &str) -> Result<()> {
     use std::process::Command;
 
     let status = Command::new(rsync)

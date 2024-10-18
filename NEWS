@@ -96,6 +96,11 @@
      network dane generate` that adds all certificates with a user ID
      in the target domain that can be authenticated.
    - The argument `sq verify --signer-cert` is now called `--signer`.
+   - The argument `sq network wkd --rsync` which previously had an
+     optional value argument has been split into two arguments, a
+     boolean `--rsync` to enable the use of rsync, and `--rsync-path`,
+     which implies `--rsync`, to specify a path to the local rsync
+     executable.
 
 * Changes in 0.38.0
 ** Notable changes

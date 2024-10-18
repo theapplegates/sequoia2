@@ -47,7 +47,7 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
     }
 
     let mut secrets =
-        load_certs(command.secret_key_file.iter().map(|s| s.as_ref()))?;
+        load_certs(command.secret_key_file.iter())?;
 
     for kh in command.signer_key {
         let cert = sq.lookup_one(

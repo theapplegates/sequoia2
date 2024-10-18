@@ -92,16 +92,19 @@ fn load_keys<'a, I>(files: I) -> openpgp::Result<Vec<Cert>>
 }
 
 /// Loads one or more certs from every given file.
-fn load_certs<'a, I>(files: I) -> openpgp::Result<Vec<Cert>>
-    where I: Iterator<Item=&'a Path>
+fn load_certs<I, II>(files: I) -> openpgp::Result<Vec<Cert>>
+where
+    I: Iterator<Item=II>,
+    II: AsRef<Path>,
 {
     let mut certs = vec![];
     for f in files {
+        let f = f.as_ref();
         for maybe_cert in CertParser::from_file(f)
-            .context(format!("Failed to load certs from file {:?}", f))?
+            .context(format!("Failed to load certs from file {}", f.display()))?
         {
             certs.push(maybe_cert.context(
-                format!("A cert from file {:?} is bad", f)
+                format!("A cert from file {} is bad", f.display())
             )?);
         }
     }

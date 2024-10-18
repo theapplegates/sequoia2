@@ -43,8 +43,7 @@ pub fn dispatch(sq: Sq, command: cli::decrypt::Command) -> Result<()> {
     let mut output = command.output.create_safe(&sq)?;
 
     let certs = load_certs(
-        command.sender_cert_file.iter().map(|s| s.as_ref()),
-    )?;
+        command.sender_cert_file.iter())?;
     // Fancy default for --signatures.  If you change this,
     // also change the description in the CLI definition.
     let signatures = command.signatures.unwrap_or_else(|| {

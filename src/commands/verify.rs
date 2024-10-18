@@ -27,9 +27,8 @@ pub fn dispatch(sq: Sq, command: cli::verify::Command)
     let mut input = command.input.open()?;
     let mut output = command.output.create_safe(&sq)?;
     let signatures = command.signatures;
-    // TODO ugly adaptation to load_certs' signature, fix later
     let mut certs = load_certs(
-        command.sender_file.iter().map(|s| s.as_ref()))?;
+        command.sender_file.iter())?;
     certs.extend(
         sq.lookup(command.sender_certs,
                       Some(KeyFlags::empty().set_signing()),

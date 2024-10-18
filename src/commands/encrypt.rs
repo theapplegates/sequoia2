@@ -59,7 +59,7 @@ pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
     )?;
 
     let additional_secrets =
-        load_certs(command.signer_key_file.iter().map(|s| s.as_ref()))?;
+        load_certs(command.signer_key_file.iter())?;
     let signer_keys = &command.signer_key[..];
 
     encrypt(

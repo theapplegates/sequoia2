@@ -150,7 +150,9 @@ pub fn print_path(path: &PathLints, target_userid: &UserID, prefix: &str)
             write!(&mut line, " No adequate certification found.")?;
         }
 
+        wprintln!(indent=prefix, "│");
         wprintln!(indent=format!("{}│   ", prefix), "{}", line);
+        wprintln!(indent=prefix, "│");
 
         for err in cert.errors().iter().chain(cert.lints()) {
             for (i, msg) in error_chain(err).into_iter().enumerate() {

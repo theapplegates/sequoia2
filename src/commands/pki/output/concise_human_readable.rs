@@ -128,14 +128,6 @@ pub fn print_path(path: &PathLints, target_userid: &UserID, prefix: &str)
             }
             if certification.depth() > 0.into() {
                 write!(&mut line, " as a")?;
-                if certification.amount() != FULLY_TRUSTED {
-                    write!(&mut line,
-                        " partially trusted ({}{}of{}120)",
-                        certification.amount(), NBSP, NBSP,
-                    )?;
-                } else {
-                    write!(&mut line, " fully trusted")?;
-                }
                 if certification.depth() == 1.into() {
                     write!(&mut line, " introducer (depth: {})",
                            certification.depth())?;

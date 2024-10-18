@@ -95,6 +95,7 @@
    - Add a new flag `--all` to `sq network wkd publish` and `sq
      network dane generate` that adds all certificates with a user ID
      in the target domain that can be authenticated.
+   - The argument `sq verify --signer-cert` is now called `--signer`.
 
 * Changes in 0.38.0
 ** Notable changes

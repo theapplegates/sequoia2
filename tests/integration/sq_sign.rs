@@ -975,7 +975,7 @@ fn sq_sign_using_cert_store() -> Result<()> {
     let mut cmd = sq.command();
     cmd.arg("--cert-store").arg(&certd)
         .arg("verify")
-        .arg("--signer-cert").arg(&alice.fingerprint().to_string())
+        .arg("--signer").arg(&alice.fingerprint().to_string())
         .arg(&msg_pgp);
     let output = cmd.output().expect("success");
     let stdout = String::from_utf8_lossy(&output.stdout);

@@ -126,14 +126,16 @@ pub struct Command {
                             will not be considered verified."
     )]
     pub signatures: usize,
+
     #[clap(
         long = "signer-file",
         value_name = "CERT_FILE",
         help = "Verify signatures using the certificate in CERT_FILE",
     )]
-    pub sender_file: Vec<PathBuf>,
+    pub signer_files: Vec<PathBuf>,
+
     #[clap(
-        long = "signer-cert",
+        long = "signer",
         value_name = "FINGERPRINT|KEYID",
         help = "Verify signatures using the specified certificate",
         long_help = "\
@@ -143,6 +145,6 @@ authenticated.  When this option is not provided, the certificate is
 still read from the certificate store, if it exists, but it is not
 considered authenticated."
     )]
-    pub sender_certs: Vec<KeyHandle>,
+    pub signer_certs: Vec<KeyHandle>,
 }
 

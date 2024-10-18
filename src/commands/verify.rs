@@ -27,14 +27,13 @@ pub fn dispatch(sq: Sq, command: cli::verify::Command)
     let mut input = command.input.open()?;
     let mut output = command.output.create_safe(&sq)?;
     let signatures = command.signatures;
-    let mut certs = load_certs(
-        command.sender_file.iter())?;
+    let mut certs = load_certs(command.signer_files.iter())?;
     certs.extend(
-        sq.lookup(command.sender_certs,
+        sq.lookup(command.signer_certs,
                       Some(KeyFlags::empty().set_signing()),
                       true,
                       false)
-            .context("--sender-cert")?);
+            .context("loading a --signer certificate")?);
     verify(sq, &mut input,
            command.detached,
            &mut output, signatures, certs)?;

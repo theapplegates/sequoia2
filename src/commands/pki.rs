@@ -285,17 +285,8 @@ pub fn authenticate<'store, 'rstore>(
     let mut authenticated = 0;
     let mut lint_input = true;
 
-    let mut output = if show_paths {
-        Box::new(
-            output::HumanReadableOutputNetwork::new(
-                required_amount, gossip))
-            as Box<dyn output::OutputType>
-    } else {
-        Box::new(
-            output::ConciseHumanReadableOutputNetwork::new(
-                &sq, required_amount))
-            as Box<dyn output::OutputType>
-    };
+    let mut output = output::ConciseHumanReadableOutputNetwork::new(
+        &sq, required_amount, show_paths, gossip);
 
     for (fingerprint, userid) in bindings.iter() {
         let mut aggregated_amount = 0;

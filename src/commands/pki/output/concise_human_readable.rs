@@ -1,8 +1,14 @@
-use std::time::SystemTime;
+use std::{
+    fmt::Write,
+    time::SystemTime,
+};
+
+use anyhow::Error;
 
 use sequoia_openpgp as openpgp;
 use openpgp::Cert;
 use openpgp::Fingerprint;
+use openpgp::KeyHandle;
 use openpgp::Result;
 use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::packet::UserID;
@@ -13,16 +19,197 @@ use cert_store::Store;
 
 use sequoia_wot as wot;
 use wot::Path;
+use wot::PathLints;
+use wot::FULLY_TRUSTED;
+use wot::PARTIALLY_TRUSTED;
 
 use crate::Convert;
 use crate::Sq;
 use crate::commands::pki::output::OutputType;
+use crate::output::wrapping::NBSP;
 use crate::Time;
+use crate::error_chain;
+
+/// Prints a Path Error
+pub fn print_path_error(err: Error) {
+    wprintln!(initial_indent = "└   ", "Checking path: {}", err);
+}
+
+/// Prints information of a Path for a target UserID associated with a KeyHandle
+pub fn print_path_header(
+    target_kh: &KeyHandle,
+    target_userid: &UserID,
+    amount: usize,
+    required_amount: usize,
+) {
+    wprintln!(
+        initial_indent="",
+        subsequent_indent="    ",
+        "[{}] {} {}: {} authenticated ({}%)",
+        if amount >= required_amount {
+            "✓"
+        } else {
+            " "
+        },
+        target_kh,
+        String::from_utf8_lossy(target_userid.value()),
+        if amount >= 2 * FULLY_TRUSTED {
+            "doubly"
+        } else if amount >= FULLY_TRUSTED {
+            "fully"
+        } else if amount >= PARTIALLY_TRUSTED {
+            "partially"
+        } else if amount > 0 {
+            "marginally"
+        } else {
+            "not"
+        },
+        (amount * 100) / FULLY_TRUSTED
+    );
+}
+
+/// Prints information on a Path for a UserID
+pub fn print_path(path: &PathLints, target_userid: &UserID, prefix: &str)
+                  -> Result<()>
+{
+    let certification_count = path.certifications().count();
+    wprintln!(indent=prefix,
+              "◯ {}{}",
+              path.root().key_handle(),
+              if certification_count == 0 {
+                  format!(" {:?}", String::from_utf8_lossy(target_userid.value()))
+              } else if let Some(userid) = path.root().primary_userid() {
+                  format!(" ({:?})", String::from_utf8_lossy(userid.value()))
+              } else {
+                  format!("")
+              });
+
+    for (last, (cert, certification)) in path
+        .certs()
+        .zip(path.certifications())
+        .enumerate()
+        .map(|(j, c)| {
+            if j + 1 == certification_count {
+                (true, c)
+            } else {
+                (false, c)
+            }
+        })
+    {
+        let mut line = String::new();
+        if let Some(certification) = certification.certification() {
+            if certification.amount() < FULLY_TRUSTED {
+                write!(&mut line,
+                   "partially certified (amount: {}{}of{}120)",
+                    certification.amount(), NBSP, NBSP,
+                )?;
+            } else {
+                write!(&mut line, "certified")?;
+            }
+
+            if last {
+                write!(&mut line, " the following binding")?;
+            } else {
+                write!(&mut line, " the following certificate")?;
+            }
+
+            write!(&mut line,
+                " on {}",
+                chrono::DateTime::<chrono::Utc>::from(
+                    certification.creation_time()
+                )
+                .format("%Y-%m-%d")
+            )?;
+            if let Some(e) = certification.expiration_time() {
+                write!(&mut line,
+                    " (expiry: {})",
+                    chrono::DateTime::<chrono::Utc>::from(e).format("%Y-%m-%d")
+                )?;
+            }
+            if certification.depth() > 0.into() {
+                write!(&mut line, " as a")?;
+                if certification.amount() != FULLY_TRUSTED {
+                    write!(&mut line,
+                        " partially trusted ({}{}of{}120)",
+                        certification.amount(), NBSP, NBSP,
+                    )?;
+                } else {
+                    write!(&mut line, " fully trusted")?;
+                }
+                if certification.depth() == 1.into() {
+                    write!(&mut line, " introducer (depth: {})",
+                           certification.depth())?;
+                } else {
+                    write!(&mut line,
+                        " meta-introducer (depth: {})",
+                        certification.depth()
+                    )?;
+                }
+            }
+        } else {
+            write!(&mut line, " No adequate certification found.")?;
+        }
+
+        wprintln!(indent=format!("{}│   ", prefix), "{}", line);
+
+        for err in cert.errors().iter().chain(cert.lints()) {
+            for (i, msg) in error_chain(err).into_iter().enumerate() {
+                wprintln!(
+                    indent=format!(
+                        "{}│   {}", prefix, if i == 0 { "" } else { "  " }),
+                    "{}", msg);
+            }
+        }
+        for err in certification.errors().iter().chain(certification.lints()) {
+            for (i, msg) in error_chain(err).into_iter().enumerate() {
+                wprintln!(
+                    indent=format!(
+                        "{}│   {}", prefix, if i == 0 { "" } else { "  " }),
+                    "{}", msg);
+            }
+        }
+
+        wprintln!(
+            initial_indent=format!("{}{} ", prefix,
+                                   if last { "└" } else { "├" }),
+            subsequent_indent=format!("{}{} ", prefix,
+                                   if last { " " } else { "│" }),
+            "{}{}",
+            certification.target(),
+            if last {
+                format!(" {:?}", String::from_utf8_lossy(target_userid.value()))
+            } else if let Some(userid) =
+                certification.target_cert().and_then(|c| c.primary_userid())
+            {
+                format!(" ({:?})", String::from_utf8_lossy(userid.value()))
+            } else {
+                "".into()
+            }
+        );
+
+        if last {
+            let target = path.certs().last().expect("have one");
+            for err in target.errors().iter().chain(target.lints()) {
+                for (i, msg) in error_chain(err).into_iter().enumerate() {
+                    wprintln!(
+                        indent=format!(
+                            "{}│   {}", prefix, if i == 0 { "" } else { "  " }),
+                        "{}", msg);
+                }
+            }
+        }
+    }
+
+    wprintln!("");
+    Ok(())
+}
 
 /// The concise human-readable specific implementation of an
 /// OutputNetwork
 pub struct ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore> {
     sq: &'a Sq<'store, 'rstore>,
+    paths: bool,
+    gossip: bool,
     required_amount: usize,
     current_cert: Option<Cert>,
     bindings_shown: usize,
@@ -31,11 +218,13 @@ pub struct ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore> {
 impl<'a, 'store, 'rstore> ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore> {
     /// Creates a new ConciseHumanReadableOutputNetwork
     pub fn new(sq: &'a Sq<'store, 'rstore>,
-               required_amount: usize)
+               required_amount: usize, paths: bool, gossip: bool)
         -> Self
     {
         Self {
             sq,
+            paths,
+            gossip,
             required_amount,
             current_cert: None,
             bindings_shown: 0,
@@ -46,7 +235,7 @@ impl<'a, 'store, 'rstore> ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore>
 impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
     fn add_paths(
         &mut self,
-        _paths: Vec<(Path, usize)>,
+        paths: Vec<(Path, usize)>,
         fingerprint: &Fingerprint,
         userid: &UserID,
         aggregated_amount: usize,
@@ -138,6 +327,24 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
                   },
                   String::from_utf8_lossy(userid.value()));
 
+        if self.paths {
+            wprintln!();
+
+            for (i, (path, amount)) in paths.iter().enumerate() {
+                if !self.gossip && paths.len() > 1 {
+                    wprintln!(
+                        initial_indent="     ",
+                        "Path #{}{}of{}{}, trust amount {}:",
+                        i + 1, NBSP, NBSP,
+                        paths.len(),
+                        amount
+                    );
+                }
+
+                print_path(&path.into(), userid, "     ")?;
+            }
+        }
+
         self.bindings_shown += 1;
 
         Ok(())
@@ -155,11 +362,14 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
         let cert =
             self.current_cert.as_ref().expect("have at least one");
 
+        if ! self.paths {
+            self.sq.hint(format_args!(
+                "To view why a user ID is considered valid, pass \
+                 `--show-paths`."));
+        }
+
         self.sq.hint(format_args!(
-            "To view why a user ID is considered valid, pass \
-             `--show-paths`.\n\
-             \n\
-             To see more details about a certificate, for example {}, run:",
+            "To see more details about a certificate, for example {}, run:",
             cert.fingerprint()))
             .sq().arg("inspect")
             .arg_value("--cert", cert.fingerprint())

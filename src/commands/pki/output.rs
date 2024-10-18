@@ -7,10 +7,9 @@ use sequoia_wot as wot;
 use wot::Path;
 
 mod human_readable;
-pub use human_readable::print_path;
-pub use human_readable::print_path_error;
-pub use human_readable::print_path_header;
-pub use human_readable::HumanReadableOutputNetwork;
+pub use concise_human_readable::print_path;
+pub use concise_human_readable::print_path_error;
+pub use concise_human_readable::print_path_header;
 
 mod concise_human_readable;
 pub use concise_human_readable::ConciseHumanReadableOutputNetwork;

@@ -15,8 +15,9 @@ use openpgp::packet::UserID;
 
 use super::common::Sq;
 
-const HR_OK: &'static str = "[✓]";
-const HR_NOT_OK: &'static str = "[ ]";
+const HR_OK: &'static str = "[ ✓ ]";
+const HR_NOT_OK: &'static str = "[ 0/120 ]";
+const HR_NOT_OK_EMPTY: &'static str = "[ ]";
 const HR_PATH: &'static str = "◯ ";
 
 fn no_output() -> &'static HashMap::<OutputFormat, Vec<(usize, Regex)>> {
@@ -209,7 +210,7 @@ fn authenticate() -> Result<()> {
     let args = &[];
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &dave_fpr, &dave_uid))];
+        [(1, format!("- {} {}", HR_OK, &dave_uid))];
     test(
         keyring,
         trust_root,
@@ -339,7 +340,7 @@ fn authenticate_email() -> Result<()> {
     );
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &dave_fpr, &dave_uid))];
+        [(1, format!("- {} {}", HR_OK, &dave_uid))];
     test(
         keyring,
         trust_root,
@@ -546,7 +547,7 @@ fn authenticate_email() -> Result<()> {
     let args = &["--email"];
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
+        [(1, format!("- {} {}", HR_OK, &alice_uid))];
     test(
         keyring,
         trust_root,
@@ -561,7 +562,7 @@ fn authenticate_email() -> Result<()> {
     );
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &hans_fpr, &hans_uid))];
+        [(1, format!("- {} {}", HR_OK, &hans_uid))];
     test(
         keyring,
         trust_root,
@@ -614,7 +615,7 @@ fn authenticate_email() -> Result<()> {
     );
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &carol_fpr, &carol_uid))];
+        [(1, format!("- {} {}", HR_OK, &carol_uid))];
     test(
         keyring,
         trust_root,
@@ -664,7 +665,7 @@ fn lookup() -> Result<()> {
     let args = &[];
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
+        [(1, format!("- {} {}", HR_OK, &alice_uid))];
     test(
         keyring,
         trust_root,
@@ -691,7 +692,7 @@ fn lookup() -> Result<()> {
     );
 
     let human_output = [
-        (1, format!("{} {} {}: ", HR_OK, &dave_fpr, &dave_uid)),
+        (1, format!("- {} {}", HR_OK, &dave_uid)),
         (1, format!("{}{} (\"{}\")", HR_PATH, &alice_fpr, &alice_uid)),
     ];
     test(
@@ -845,7 +846,7 @@ fn lookup_email() -> Result<()> {
     let target = None;
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, alice_fpr, alice_uid))];
+        [(1, format!("- {} {}", HR_OK, &alice_uid))];
     test(
         keyring,
         trust_root,
@@ -872,7 +873,7 @@ fn lookup_email() -> Result<()> {
     );
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, dave_fpr, dave_uid))];
+        [(1, format!("- {} {}", HR_OK, dave_uid))];
     test(
         keyring,
         trust_root,
@@ -989,7 +990,7 @@ fn identify() -> Result<()> {
         .map(|userid| {
             (
                 1,
-                format!("{} {} {}: ", HR_OK, &alice_fpr, userid)
+                format!("- {} {}", HR_OK, userid)
                     .to_string(),
             )
         })
@@ -1026,7 +1027,7 @@ fn identify() -> Result<()> {
         .map(|userid| {
             (
                 1,
-                format!("{} {} {}: ", HR_OK, &dave_fpr, userid).to_string(),
+                format!("- {} {}", HR_OK, userid).to_string(),
             )
         })
         .chain(vec![(userids.len(), HR_OK.to_string())].into_iter())
@@ -1063,7 +1064,7 @@ fn identify() -> Result<()> {
         .map(|userid| {
             (
                 1,
-                format!("{} {} {}: ", HR_OK, &bob_fpr, userid).to_string(),
+                format!("- {} {}", HR_OK, userid).to_string(),
             )
         })
         .chain(vec![(userids.len(), HR_OK.to_string())].into_iter())
@@ -1153,7 +1154,7 @@ fn list() -> Result<()> {
     let human_output = bindings
         .iter()
         .map(|(userid, target)| {
-            (1, format!("{} {} {}: ", HR_OK, target, userid).to_string())
+            (1, format!("- {} {}", HR_OK, userid).to_string())
         })
         .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
         .collect::<Vec<_>>();
@@ -1179,7 +1180,7 @@ fn list() -> Result<()> {
     let human_output = bindings
         .iter()
         .map(|(userid, target)| {
-            (1, format!("{} {} {}: ", HR_OK, target, userid).to_string())
+            (1, format!("- {} {}", HR_OK, userid).to_string())
         })
         .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
         .collect::<Vec<_>>();
@@ -1243,7 +1244,7 @@ fn list_pattern() -> Result<()> {
     let human_output = bindings
         .iter()
         .map(|(userid, target)| {
-            (1, format!("{} {} {}: ", HR_OK, target, userid).to_string())
+            (1, format!("- {} {}", HR_OK, userid).to_string())
         })
         .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
         .collect::<Vec<_>>();
@@ -1278,7 +1279,7 @@ fn list_pattern() -> Result<()> {
     let human_output = bindings
         .iter()
         .map(|(userid, target)| {
-            (1, format!("{} {} {}: ", HR_OK, target, userid).to_string())
+            (1, format!("- {} {}", HR_OK, userid).to_string())
         })
         .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
         .collect::<Vec<_>>();
@@ -1313,7 +1314,7 @@ fn list_pattern() -> Result<()> {
     let human_output = bindings
         .iter()
         .map(|(userid, target)| {
-            (1, format!("{} {} {}: ", HR_OK, target, userid).to_string())
+            (1, format!("- {} {}", HR_OK, userid).to_string())
         })
         .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
         .collect::<Vec<_>>();
@@ -1341,7 +1342,7 @@ fn list_pattern() -> Result<()> {
     let human_output = bindings
         .iter()
         .map(|(userid, target)| {
-            (1, format!("{} {} {}: ", HR_OK, target, userid).to_string())
+            (1, format!("- {} {}", HR_OK, userid).to_string())
         })
         .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
         .collect::<Vec<_>>();
@@ -1395,7 +1396,7 @@ fn list_pattern() -> Result<()> {
     let human_output = bindings
         .iter()
         .map(|(userid, target)| {
-            (1, format!("{} {} {}: ", HR_OK, target, userid).to_string())
+            (1, format!("- {} {}", HR_OK, userid).to_string())
         })
         .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
         .collect::<Vec<_>>();
@@ -1529,7 +1530,7 @@ fn list_email_pattern() -> Result<()> {
     let human_output = bindings
         .iter()
         .map(|(userid, target)| {
-            (1, format!("{} {} {}: ", HR_OK, target, userid).to_string())
+            (1, format!("- {} {}", HR_OK, userid).to_string())
         })
         .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
         .collect::<Vec<_>>();
@@ -1666,7 +1667,7 @@ fn path_simple() -> Result<()> {
 
     // Alice certifies Bob at trust amount = 100. (120 required).
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
+        [(1, format!("{} {} {}", HR_NOT_OK_EMPTY, &bob_fpr, &bob_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -1708,7 +1709,7 @@ fn path_simple() -> Result<()> {
     // Alice makes Bob a level 2 trusted introducer.
     // Bob certificates Carol, but for Bob.
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &bob_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &carol_fpr, &bob_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -1781,7 +1782,7 @@ fn path_simple() -> Result<()> {
     // Carol makes Dave a level 1 trusted introducer.
     // Dave certifies Ellen.
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &ellen_fpr, &ellen_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &ellen_fpr, &ellen_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -1807,7 +1808,7 @@ fn path_simple() -> Result<()> {
     // Bob does *not* certify Dave.
     // Dave certifies Ellen.
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &ellen_fpr, &ellen_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &ellen_fpr, &ellen_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -1908,7 +1909,7 @@ fn path_missing_certs() -> Result<()> {
     );
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &carol_fpr, &carol_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -1929,7 +1930,7 @@ fn path_missing_certs() -> Result<()> {
     );
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &carol_fpr, &carol_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -1950,7 +1951,7 @@ fn path_missing_certs() -> Result<()> {
     );
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &missing_fpr, &carol_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &missing_fpr, &carol_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -2048,7 +2049,7 @@ fn path_singleton() -> Result<()> {
 
     // A User ID that is not self signed.
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &alice_fpr, &bob_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &alice_fpr, &bob_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -2114,7 +2115,7 @@ fn path_multiple_userids_1() -> Result<()> {
     // Bob certifies Carol as a level 2 trusted introducer
     // Carol certifies Dave
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &dave_fpr, &dave_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &dave_fpr, &dave_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -2245,7 +2246,7 @@ fn path_multiple_users_2() -> Result<()> {
     //   a level 1 trusted introducer, amount = 50
     // Bob certifies Carol@example.org
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &carol_fpr, &carol_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -2320,7 +2321,7 @@ fn path_multiple_users_2() -> Result<()> {
     // Bob certifies carol as a level 2 trusted introducer
     // Carol certifies ed@example.org
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &ed_fpr, &ed_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &ed_fpr, &ed_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -2385,7 +2386,7 @@ fn path_sha1() -> Result<()> {
     // The valid signatures won't be used because they are from
     // the future (after the reference time).
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &carol_fpr, &carol_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -2407,7 +2408,7 @@ fn path_sha1() -> Result<()> {
 
     // Again, but this time only require a trust amount of 60.
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &carol_fpr, &carol_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -2433,7 +2434,7 @@ fn path_sha1() -> Result<()> {
     // Again, after the SHA256 certificates are valid.  But with a
     // trust amount of 120.
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &carol_fpr, &carol_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -2542,7 +2543,7 @@ fn authenticate_certification_network_simple() -> Result<()> {
 
     let sqwot_args = &["--certification-network"];
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &ellen_fpr, &ellen_uid))];
+        [(1, format!("- {} {}", HR_OK, &ellen_uid))];
     test(
         keyring,
         trust_root,
@@ -2598,7 +2599,7 @@ fn authenticate_certification_network() -> Result<()> {
     let args = &[];
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        [(1, format!("- {} {}", HR_OK, &bob_uid))];
     // Alice does not make Bob a trusted introducer.  So without
     // --certificate-network, she can only authenticate Bob, but
     // not Carol or Dave.
@@ -2644,7 +2645,7 @@ fn authenticate_certification_network() -> Result<()> {
     // With --certification-network, she can authenticate them all.
     let sqwot_args = &["--certification-network"];
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        [(1, format!("- {} {}", HR_OK, &bob_uid))];
     test(
         keyring,
         trust_root,
@@ -2659,7 +2660,7 @@ fn authenticate_certification_network() -> Result<()> {
     );
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &carol_fpr, &carol_uid))];
+        [(1, format!("- {} {}", HR_OK, &carol_uid))];
     test(
         keyring,
         trust_root,
@@ -2674,7 +2675,7 @@ fn authenticate_certification_network() -> Result<()> {
     );
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &dave_fpr, &dave_uid))];
+        [(1, format!("- {} {}", HR_OK, &dave_uid))];
     test(
         keyring,
         trust_root,
@@ -2705,7 +2706,7 @@ fn authenticate_certification_network() -> Result<()> {
     );
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
+        [(1, format!("- {} {}", HR_OK, &alice_uid))];
     test(
         keyring,
         trust_root,
@@ -2735,7 +2736,7 @@ fn authenticate_certification_network() -> Result<()> {
     );
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
+        [(1, format!("- {} {}", HR_OK, &alice_uid))];
     test(
         keyring,
         trust_root,
@@ -2768,7 +2769,7 @@ fn authenticate_certification_network() -> Result<()> {
     // use --certification-network
     let sqwot_args = &["--certification-network"];
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &alice_fpr, &alice_uid))];
+        [(1, format!("- {} {}", HR_OK, &alice_uid))];
     test(
         keyring,
         trust_root,
@@ -2783,7 +2784,7 @@ fn authenticate_certification_network() -> Result<()> {
     );
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        [(1, format!("- {} {}", HR_OK, &bob_uid))];
     test(
         keyring,
         trust_root,
@@ -2861,7 +2862,7 @@ fn path_certification_network() -> Result<()> {
     );
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
+        [(1, format!("{} {} {}:", HR_NOT_OK_EMPTY, &carol_fpr, &carol_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -2882,7 +2883,7 @@ fn path_certification_network() -> Result<()> {
     );
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &dave_fpr, &dave_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &dave_fpr, &dave_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -2971,7 +2972,7 @@ fn path_certification_network() -> Result<()> {
     );
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &carol_fpr, &carol_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &carol_fpr, &carol_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     // But invalid paths should stay invalid.
     test(
@@ -2996,7 +2997,7 @@ fn path_certification_network() -> Result<()> {
     // reset sq-wot args again
     let sqwot_args = &[];
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &alice_fpr, &alice_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &alice_fpr, &alice_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     // dave authenticates alice for 60 of 120.
     test(
@@ -3039,7 +3040,7 @@ fn path_certification_network() -> Result<()> {
     // set sq-wot args to use certification network
     let sqwot_args = &["--certification-network"];
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &alice_fpr, &alice_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &alice_fpr, &alice_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -3083,7 +3084,7 @@ fn path_certification_network() -> Result<()> {
     // reset sq-wot args again
     let sqwot_args = &[];
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &alice_fpr, &alice_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &alice_fpr, &alice_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -3191,7 +3192,7 @@ fn gossip_certification_network() -> Result<()> {
     let args = &[];
 
     let human_output =
-        [(2, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
+        [(1, format!("- {} {}", HR_NOT_OK, &bob_uid))];
     // Alice certified Bob.  We should print the path, but it
     // should be unauthenticated (this is gossip).
     test(
@@ -3209,7 +3210,7 @@ fn gossip_certification_network() -> Result<()> {
 
     let trust_root = &alice_fpr;
     let human_output =
-        [(2, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
+        [(1, format!("- {} {}", HR_NOT_OK, &bob_uid))];
     // Make sure we don't authenticate when we specify a root
     // (which is ignored when --gossip is provided).
     test(
@@ -3271,7 +3272,7 @@ fn target_cert_expired() -> Result<()> {
     let command = "authenticate";
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        [(1, format!("- {} {}", HR_OK, &bob_uid))];
     // Bob's certificate is not yet expired.
     test(
         keyring,
@@ -3329,7 +3330,7 @@ fn target_cert_expired() -> Result<()> {
     let trust_root = None;
     let command = "path";
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &bob_fpr, &bob_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -3409,7 +3410,7 @@ fn target_cert_hard_revoked() -> Result<()> {
     let trust_root: Option<&Fingerprint> = None;
     let command = "path";
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &bob_fpr, &bob_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -3471,7 +3472,7 @@ fn target_cert_soft_revoked() -> Result<()> {
     let args = &[];
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        [(1, format!("- {} {}", HR_OK, &bob_uid))];
     // Bob's certificate is soft revoked on 20200301.  If the
     // reference time is before that, we should be able to
     // authenticate Bob.  After that and we should fail to do so.
@@ -3529,7 +3530,7 @@ fn target_cert_soft_revoked() -> Result<()> {
 
     let command = "path";
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &bob_fpr, &bob_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,
@@ -3583,7 +3584,7 @@ fn target_userid_revoked() -> Result<()> {
     let command = "authenticate";
 
     let human_output =
-        [(1, format!("{} {} {}: ", HR_OK, &bob_fpr, &bob_uid))];
+        [(1, format!("- {} {}", HR_OK, &bob_uid))];
     // Bob's User ID is soft revoked on 20200301.  If the
     // reference time is before that, we should be able to
     // authenticate Bob.  After that and we should fail to do so.
@@ -3641,7 +3642,7 @@ fn target_userid_revoked() -> Result<()> {
     let trust_root = None;
     let command = "path";
     let human_output =
-        [(1, format!("{} {} {}: ", HR_NOT_OK, &bob_fpr, &bob_uid))];
+        [(1, format!("{} {} {}: ", HR_NOT_OK_EMPTY, &bob_fpr, &bob_uid))];
     // TODO: add output to check against once sq-wot graph is supported
     test(
         keyring,

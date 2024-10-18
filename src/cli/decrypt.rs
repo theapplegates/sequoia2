@@ -62,7 +62,7 @@ Decrypt a message using either supplied keys, or by prompting for a \
 password.  If message tampering is detected, an error is returned. \
 See below for details.
 
-If certificates are supplied using the `--signer-cert` option, any \
+If certificates are supplied using the `--signer-file` option, any \
 signatures that are found are checked using these certificates. \
 Verification is only successful if there is no bad signature, and the \
 number of successfully verified signatures reaches the threshold \

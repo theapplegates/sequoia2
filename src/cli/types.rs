@@ -928,7 +928,9 @@ impl Time {
 
 impl Display for Time {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.time)
+        write!(f, "{}",
+               chrono::DateTime::<chrono::offset::Utc>::from(
+                   SystemTime::from(self.time)))
     }
 }
 

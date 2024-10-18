@@ -1,6 +1,6 @@
 use std::{
     fmt::Write,
-    time::SystemTime,
+    time::{Duration, SystemTime},
 };
 
 use anyhow::Error;
@@ -113,13 +113,16 @@ pub fn print_path(path: &PathLints, target_userid: &UserID, prefix: &str)
                 write!(&mut line, " the following certificate")?;
             }
 
-            write!(&mut line,
-                " on {}",
-                chrono::DateTime::<chrono::Utc>::from(
-                    certification.creation_time()
-                )
-                .format("%Y‑%m‑%d")
-            )?;
+            if certification.creation_time() != ca_creation_time() {
+                write!(&mut line,
+                       " on {}",
+                       chrono::DateTime::<chrono::Utc>::from(
+                           certification.creation_time()
+                       )
+                       .format("%Y‑%m‑%d")
+                )?;
+            }
+
             if let Some(e) = certification.expiration_time() {
                 write!(&mut line,
                     " (expiry: {})",
@@ -260,6 +263,9 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
         });
 
         if show_cert {
+            let cert = self.current_cert.as_ref()
+                .expect("show_cert is true, there is a current cert");
+
             let expiration_info = vc
                 .as_ref()
                 .and_then(|vc| {
@@ -283,10 +289,12 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
             }
 
             wprintln!(initial_indent = " - ", "{}", fingerprint);
-            wprintln!(initial_indent = "   - ", "created {}",
-                      self.current_cert.as_ref()
-                      .expect("show_cert is true, there is a current cert")
-                      .primary_key().key().creation_time().convert());
+
+            if cert.primary_key().key().creation_time() != ca_creation_time() {
+                wprintln!(initial_indent = "   - ", "created {}",
+                          cert.primary_key().key().creation_time().convert());
+            }
+
             if let Some(info) = expiration_info {
                 wprintln!(initial_indent = "   - ", "{}", info);
             }
@@ -377,4 +385,14 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
 
         Ok(())
     }
+}
+
+/// The creation time for the trust root and intermediate CAs.
+///
+/// We use a creation time in the past (Feb 2002) so that it is still
+/// possible to use the CA when the reference time is in the past.
+// XXX: This is copied from sequoia-cert-store.  It would be nice to
+// import it, but it is private.
+fn ca_creation_time() -> SystemTime {
+    SystemTime::UNIX_EPOCH + Duration::new(1014235320, 0)
 }

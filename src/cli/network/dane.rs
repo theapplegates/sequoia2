@@ -42,6 +42,20 @@ pub enum Subcommands {
 
 const GENERATE_EXAMPLES: Actions = Actions {
     actions: &[
+        Action::Setup(Setup {
+            command: &[
+                "sq", "cert", "import", "juliet.pgp",
+            ],
+        }),
+
+        Action::Setup(Setup {
+            command: &[
+                "sq", "pki", "link", "add",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--userid=Alice <alice@example.org>",
+            ],
+        }),
+
         Action::Example(Example {
             comment: "\
 Generate DANE records from juliet.pgp for example.org.",
@@ -49,6 +63,17 @@ Generate DANE records from juliet.pgp for example.org.",
                 "sq", "network", "dane", "generate",
                 "--domain=example.org",
                 "--file=juliet.pgp",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Generate DANE records for all certs with an authenticated \
+user ID in example.org.",
+            command: &[
+                "sq", "network", "dane", "generate",
+                "--domain=example.org",
+                "--all",
             ],
         }),
     ],
@@ -76,6 +101,17 @@ pub struct GenerateCommand {
     pub certs: CertDesignators<CertUserIDEmailFileArgs,
                                NoPrefix,
                                OptionalValue>,
+
+    #[clap(
+        long = "all",
+        help = "Publish authenticated certs with a user ID matching domain",
+        long_help = "\
+Use all authenticated certificates with a user ID in the given domain
+
+Use all certificates that have a user ID matching the domain given \
+to the `--domain` parameter that can be fully authenticated.",
+    )]
+    pub all: bool,
 
     #[clap(
         long = "domain",

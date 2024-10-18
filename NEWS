@@ -92,6 +92,9 @@
    - Move `sq pki certify` to `sq pki vouch certify`.
    - Move `sq pki authorize` to `sq pki vouch authorize`.
    - Move `sq pki list` to `sq cert list`.
+   - Add a new flag `--all` to `sq network wkd publish` and `sq
+     network dane generate` that adds all certificates with a user ID
+     in the target domain that can be authenticated.
 
 * Changes in 0.38.0
 ** Notable changes

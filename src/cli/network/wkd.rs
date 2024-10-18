@@ -12,10 +12,7 @@ use crate::cli::types::cert_designator::{
     OptionalValue,
 };
 
-use crate::cli::examples;
-use examples::Action;
-use examples::Actions;
-use examples::Example;
+use crate::cli::examples::*;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -90,6 +87,20 @@ pub struct SearchCommand {
 
 const PUBLISH_EXAMPLES: Actions = Actions {
     actions: &[
+        Action::Setup(Setup {
+            command: &[
+                "sq", "cert", "import", "juliet.pgp",
+            ],
+        }),
+
+        Action::Setup(Setup {
+            command: &[
+                "sq", "pki", "link", "add",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--userid=Alice <alice@example.org>",
+            ],
+        }),
+
         Action::Example(Example {
             comment: "Create a new WKD hierarchy in the local directory \
                       `public_html`, and insert Alice's cert.",
@@ -107,6 +118,18 @@ const PUBLISH_EXAMPLES: Actions = Actions {
                 "sq", "network", "wkd", "publish",
                 "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
                 "--domain=example.org", "public_html",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "\
+Add all certs with an authenticated user ID \
+in example.org to the existing WKD hierarchy.",
+            command: &[
+                "sq", "network", "wkd", "publish",
+                "--domain=example.org",
+                "--all",
+                "public_html",
             ],
         }),
 
@@ -155,6 +178,17 @@ pub struct PublishCommand {
     pub certs: CertDesignators<CertUserIDEmailFileArgs,
                                NoPrefix,
                                OptionalValue>,
+
+    #[clap(
+        long = "all",
+        help = "Publish authenticated certs with a user ID matching domain",
+        long_help = "\
+Use all authenticated certificates with a user ID in the given domain
+
+Use all certificates that have a user ID matching the domain given \
+to the `--domain` parameter that can be fully authenticated.",
+    )]
+    pub all: bool,
 
     #[clap(
         long = "create",

@@ -1225,9 +1225,16 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             Result::Ok(())
         })?,
 
-        Publish(c) => {
+        Publish(mut c) => {
             use wkd::Variant;
             let cert_store = sq.cert_store_or_else()?;
+
+            // Make `--all` implicitly select all certs with a user ID
+            // matching `--domain` that can be authenticated.
+            if c.all {
+                use cli::types::cert_designator::CertDesignator;
+                c.certs.push(CertDesignator::Domain(c.domain.clone()));
+            }
 
             let (insert, errors) = sq.resolve_certs(
                 &c.certs, sequoia_wot::FULLY_TRUSTED)?;
@@ -1398,7 +1405,14 @@ pub fn dispatch_dane(mut sq: Sq, c: cli::network::dane::Command)
 
     use crate::cli::network::dane::Subcommands::*;
     match c.subcommand {
-        Generate(c) => {
+        Generate(mut c) => {
+            // Make `--all` implicitly select all certs with a user ID
+            // matching `--domain` that can be authenticated.
+            if c.all {
+                use cli::types::cert_designator::CertDesignator;
+                c.certs.push(CertDesignator::Domain(c.domain.clone()));
+            }
+
             let (certs, errors) = sq.resolve_certs(
                 &c.certs, sequoia_wot::FULLY_TRUSTED)?;
             for error in errors.iter() {

@@ -59,7 +59,7 @@ pub fn dispatch(sq: Sq, command: cli::decrypt::Command) -> Result<()> {
         }
     });
     let secrets =
-        load_keys(command.secret_key_file.iter().map(|s| s.as_ref()))?;
+        load_keys(command.secret_key_file.iter())?;
     let session_keys = command.session_key;
     decrypt(sq, &mut input, &mut output,
             signatures, certs, secrets,

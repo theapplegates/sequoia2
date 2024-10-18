@@ -75,16 +75,19 @@ impl Convert<chrono::DateTime<chrono::offset::Utc>> for openpgp::types::Timestam
 }
 
 /// Loads one TSK from every given file.
-fn load_keys<'a, I>(files: I) -> openpgp::Result<Vec<Cert>>
-    where I: Iterator<Item=&'a Path>
+fn load_keys<I, II>(files: I) -> openpgp::Result<Vec<Cert>>
+where
+    I: Iterator<Item=II>,
+    II: AsRef<Path>,
 {
     let mut certs = vec![];
     for f in files {
+        let f = f.as_ref();
         let cert = Cert::from_file(f)
-            .context(format!("Failed to load key from file {:?}", f))?;
+            .context(format!("Failed to load key from file {}", f.display()))?;
         if ! cert.is_tsk() {
             return Err(anyhow::anyhow!(
-                "Cert in file {:?} does not contain secret keys", f));
+                "Cert in file {} does not contain secret keys", f.display()));
         }
         certs.push(cert);
     }

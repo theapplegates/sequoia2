@@ -89,7 +89,7 @@ fn import<'store, 'rstore>(mut sq: Sq<'store, 'rstore>,
     // Then, try to decrypt the message, and look for gossip headers.
     use crate::{load_keys, commands::decrypt::Helper};
     let secrets =
-        load_keys(command.secret_key_file.iter().map(|s| s.as_ref()))?;
+        load_keys(command.secret_key_file.iter())?;
 
     let mut helper = Helper::new(
         &sq,

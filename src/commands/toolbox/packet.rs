@@ -54,7 +54,7 @@ pub fn dispatch(sq: Sq, command: Command)
                 None
             };
             let secrets =
-                load_keys(command.recipient_file.iter().map(|s| s.as_ref()))?;
+                load_keys(command.recipient_file.iter())?;
             dump::dump(&sq,
                        secrets,
                        &mut input, &mut output,
@@ -71,7 +71,7 @@ pub fn dispatch(sq: Sq, command: Command)
             )?;
 
             let secrets =
-                load_keys(command.secret_key_file.iter().map(|s| s.as_ref()))?;
+                load_keys(command.secret_key_file.iter())?;
             let session_keys = command.session_key;
             commands::decrypt::decrypt_unwrap(
                 sq,

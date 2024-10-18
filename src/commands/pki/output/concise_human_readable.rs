@@ -118,12 +118,12 @@ pub fn print_path(path: &PathLints, target_userid: &UserID, prefix: &str)
                 chrono::DateTime::<chrono::Utc>::from(
                     certification.creation_time()
                 )
-                .format("%Y-%m-%d")
+                .format("%Y‑%m‑%d")
             )?;
             if let Some(e) = certification.expiration_time() {
                 write!(&mut line,
                     " (expiry: {})",
-                    chrono::DateTime::<chrono::Utc>::from(e).format("%Y-%m-%d")
+                    chrono::DateTime::<chrono::Utc>::from(e).format("%Y‑%m‑%d")
                 )?;
             }
             if certification.depth() > 0.into() {

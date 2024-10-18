@@ -219,7 +219,7 @@ pub fn list(sq: Sq, c: link::ListCommand)
                     params.push(format!(
                         "expiration: {}",
                         chrono::DateTime::<chrono::Utc>::from(e)
-                            .format("%Y-%m-%d")));
+                            .format("%Y‑%m‑%d")));
                 }
 
                 if depth != 0 && depth != 255 {

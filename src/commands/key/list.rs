@@ -288,7 +288,7 @@ pub fn list(sq: Sq, _command: cli::key::ListCommand) -> Result<()> {
             "Sequoia calls public keys 'certificates'.  \
              Perhaps you meant to list known certificates, \
              which can be done using:"))
-            .sq().arg("pki").arg("list").done();
+            .sq().arg("cert").arg("list").done();
     }
 
     Ok(())

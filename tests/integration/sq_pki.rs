@@ -103,7 +103,7 @@ where
             cmd.args(&["--trust-root", &trust_root.to_string()]);
         }
         cmd
-            .arg("pki")
+            .arg(if command == "list" { "cert" } else { "pki" })
             .arg(command)
             .args(sqwot_args);
         // We test the verbose output.  Enable it (when appropriate).

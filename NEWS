@@ -91,6 +91,7 @@
      been split off to the new subcommand `sq pki link authorize`.
    - Move `sq pki certify` to `sq pki vouch certify`.
    - Move `sq pki authorize` to `sq pki vouch authorize`.
+   - Move `sq pki list` to `sq cert list`.
 
 * Changes in 0.38.0
 ** Notable changes

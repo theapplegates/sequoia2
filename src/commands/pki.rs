@@ -72,7 +72,7 @@ fn have_self_signed_userid(cert: &wot::CertSynopsis,
 }
 
 /// Authenticate bindings defined by a Query on a Network
-fn authenticate<'store, 'rstore>(
+pub fn authenticate<'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
     precompute: bool,
     list_pattern: Option<String>,
@@ -623,27 +623,6 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
             sq, false, None,
             false, *gossip, *certification_network, *trust_amount,
             None, Some(&cert), *show_paths)?,
-
-        // List all authenticated bindings.
-        Subcommands::List(ListCommand {
-            email, gossip, certification_network, trust_amount,
-            pattern, show_paths,
-        }) => if let Some(handle) = pattern.as_ref()
-            .and_then(|p| p.parse().ok())
-            .iter().filter(|_| ! *email).next()
-        {
-            // A key handle was given as pattern and --email was not
-            // given.  Act like `sq pki identify`.
-            authenticate(
-                sq, false, None,
-                false, *gossip, *certification_network, *trust_amount,
-                None, Some(&handle), *show_paths)?;
-        } else {
-            authenticate(
-                sq, pattern.is_none(), pattern,
-                *email, *gossip, *certification_network, *trust_amount,
-                None, None, *show_paths)?;
-        },
 
         // Authenticates a given path.
         Subcommands::Path(PathCommand {

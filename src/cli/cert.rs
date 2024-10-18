@@ -5,6 +5,7 @@ use clap::{Parser, Subcommand};
 pub mod export;
 pub mod import;
 pub mod lint;
+pub mod list;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -32,5 +33,6 @@ pub struct Command {
 pub enum Subcommands {
     Import(import::Command),
     Export(export::Command),
+    List(list::Command),
     Lint(lint::Command),
 }

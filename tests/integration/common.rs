@@ -400,6 +400,90 @@ impl Sq {
         output
     }
 
+    // A helper function that handles a command's output when the
+    // output is a certificate.
+    //
+    // If the command fails, returns an error.
+    //
+    // If `output_file` is `Some`, then reads the key or certificate
+    // from stdin or the specified file, and returns it.  Otherwise,
+    // exports the key or certificate, and returns it.
+    //
+    // `is_key` is whether the returned certificate is expected to
+    // include secret key material.  If `is_key` is `None`, then it
+    // may or may not (e.g., `sq key subkey delete`, which may delete
+    // the last bit of secret key material, or not).
+    fn handle_cert_output<'a, O, K>(&self, output: Output,
+                                    cert: FileOrKeyHandle, output_file: O,
+                                    is_key: K)
+        -> Result<Cert>
+    where
+        O: Into<Option<&'a Path>>,
+        K: Into<Option<bool>>
+    {
+        let output_file = output_file.into();
+        let is_key = is_key.into();
+
+        if output.status.success() {
+            let cert = match (output_file, cert) {
+                (Some(output_file), _) => {
+                    // An output file was specified.
+                    if output_file == &PathBuf::from("-") {
+                        Cert::from_bytes(&output.stdout)
+                            .with_context(|| {
+                                format!("Importing result from stdout")
+                            })
+                            .expect("can parse certificate")
+                    } else {
+                        Cert::from_file(output_file)
+                            .with_context(|| {
+                                format!("Importing result from the file {}",
+                                        output_file.display())
+                            })
+                            .expect("can parse certificate")
+                    }
+                }
+                (None, FileOrKeyHandle::KeyHandle((kh, _s))) => {
+                    // No output file was specified, input was read
+                    // from the certificate store => the updated
+                    // certificate is written to the certificate
+                    // store.
+                    match is_key {
+                        None => {
+                            // Try the key store, and then fallback to
+                            // the cert store.
+                            self.key_export_maybe(kh.clone())
+                                .unwrap_or_else(|_| self.cert_export(kh))
+                        }
+                        Some(true) => self.key_export(kh),
+                        Some(false) => self.cert_export(kh),
+                    }
+                }
+                (None, FileOrKeyHandle::FileOrStdin(_path)) => {
+                    // No output file was specified, input was read
+                    // from a file => the certificate is written to
+                    // stdout.
+                    Cert::from_bytes(&output.stdout)
+                        .with_context(|| {
+                            format!("Importing result from stdout")
+                        })
+                        .expect("can parse certificate")
+                }
+            };
+
+            if let Some(is_key) = is_key {
+                assert_eq!(cert.is_tsk(), is_key);
+            }
+
+            Ok(cert)
+        } else {
+            Err(anyhow::anyhow!(format!(
+                "Failed (expected):\n{}",
+                String::from_utf8_lossy(&output.stderr))))
+        }
+    }
+
+
     /// Decrypts a message.
     pub fn decrypt<M>(&self, args: &[&str], msg: M) -> Vec<u8>
     where M: AsRef<[u8]>,
@@ -553,19 +637,7 @@ impl Sq {
         }
 
         let output = self.run(cmd, Some(true));
-        assert!(output.status.success());
-
-        if let Some(output_file) = output_file {
-            if output_file != &PathBuf::from("-") {
-                return Cert::from_file(output_file)
-                    .expect("can parse certificate");
-            }
-        } else if output_file.is_none() {
-            if let FileOrKeyHandle::KeyHandle((kh, _s)) = cert_handle {
-                return self.cert_export(kh);
-            }
-        }
-        Cert::from_bytes(&output.stdout)
+        self.handle_cert_output(output, cert_handle, output_file, None)
             .expect("can parse certificate")
     }
 
@@ -628,18 +700,7 @@ impl Sq {
 
         let output = self.run(cmd, Some(true));
         assert!(output.status.success());
-
-        if let Some(output_file) = output_file {
-            if output_file != &PathBuf::from("-") {
-                return Cert::from_file(output_file)
-                    .expect("can parse certificate");
-            }
-        } else if output_file.is_none() {
-            if let FileOrKeyHandle::KeyHandle((kh, _s)) = cert_handle {
-                return self.cert_export(kh);
-            }
-        }
-        Cert::from_bytes(&output.stdout)
+        self.handle_cert_output(output, cert_handle, output_file, false)
             .expect("can parse certificate")
     }
 
@@ -715,24 +776,7 @@ impl Sq {
         }
 
         let output = self.run(cmd, Some(success));
-        if output.status.success() {
-            if let Some(output_file) = output_file {
-                if output_file != &PathBuf::from("-") {
-                    return Ok(Cert::from_file(output_file)
-                        .expect("can parse certificate"));
-                }
-            } else if output_file.is_none() {
-                if let FileOrKeyHandle::KeyHandle((kh, _s)) = cert_handle {
-                    return Ok(self.key_export(kh));
-                }
-            }
-            Ok(Cert::from_bytes(&output.stdout)
-                .expect("can parse certificate"))
-        } else {
-            Err(anyhow::anyhow!(format!(
-                "Failed (expected):\n{}",
-                String::from_utf8_lossy(&output.stderr))))
-        }
+        self.handle_cert_output(output, cert_handle, output_file, true)
     }
 
     /// Calls `sq key bind`.
@@ -774,9 +818,9 @@ impl Sq {
         }
 
         if target.is_file() {
-            cmd.arg("--file").arg(target);
+            cmd.arg("--file").arg(&target);
         } else {
-            cmd.arg("--cert").arg(target);
+            cmd.arg("--cert").arg(&target);
         };
 
         assert!(! keys.is_empty());
@@ -788,21 +832,7 @@ impl Sq {
         cmd.arg("--output").arg(&output_file);
 
         let output = self.run(cmd, None);
-        if output.status.success() {
-            let cert = if output_file == PathBuf::from("-") {
-                Cert::from_bytes(&output.stdout)
-                    .expect("can parse certificate")
-            } else {
-                Cert::from_file(output_file)
-                    .expect("can parse certificate")
-            };
-
-            Ok(cert)
-        } else {
-            Err(anyhow::anyhow!(format!(
-                "Failed:\n{}",
-                String::from_utf8_lossy(&output.stderr))))
-        }
+        self.handle_cert_output(output, target, output_file, None)
     }
 
     /// Calls `sq key bind`.
@@ -867,18 +897,7 @@ impl Sq {
         }
 
         let output = self.run(cmd, Some(true));
-
-        if let Some(output_file) = output_file {
-            if output_file != &PathBuf::from("-") {
-                return Cert::from_file(output_file)
-                    .expect("can parse certificate");
-            }
-        } else if output_file.is_none() {
-            if let FileOrKeyHandle::KeyHandle((kh, _s)) = cert {
-                return self.cert_export(kh);
-            }
-        }
-        Cert::from_bytes(&output.stdout)
+        self.handle_cert_output(output, cert, output_file, None)
             .expect("can parse certificate")
     }
 
@@ -916,24 +935,7 @@ impl Sq {
         }
 
         let output = self.run(cmd, Some(success));
-        if output.status.success() {
-            if let Some(output_file) = output_file {
-                if output_file != &PathBuf::from("-") {
-                    return Ok(Cert::from_file(output_file)
-                        .expect("can parse certificate"));
-                }
-            } else if output_file.is_none() {
-                if let FileOrKeyHandle::KeyHandle((kh, _s)) = cert_handle {
-                    return Ok(self.key_export(kh));
-                }
-            }
-            Ok(Cert::from_bytes(&output.stdout)
-                .expect("can parse certificate"))
-        } else {
-            Err(anyhow::anyhow!(format!(
-                "Failed (expected):\n{}",
-                String::from_utf8_lossy(&output.stderr))))
-        }
+        self.handle_cert_output(output, cert_handle, output_file, None)
     }
 
     /// Exports the specified keys.
@@ -1032,19 +1034,7 @@ impl Sq {
         }
 
         let output = self.run(cmd, Some(true));
-        assert!(output.status.success());
-
-        if let Some(output_file) = output_file {
-            if output_file != &PathBuf::from("-") {
-                return Cert::from_file(output_file)
-                    .expect("can parse certificate");
-            }
-        } else if output_file.is_none() {
-            if let FileOrKeyHandle::KeyHandle((kh, _s)) = cert_handle {
-                return self.cert_export(kh);
-            }
-        }
-        Cert::from_bytes(&output.stdout)
+        self.handle_cert_output(output, cert_handle, output_file, false)
             .expect("can parse certificate")
     }
 
@@ -1083,25 +1073,7 @@ impl Sq {
 
         let output = self.run(cmd, Some(true));
         assert!(output.status.success());
-
-        if let Some(output_file) = output_file {
-            if output_file != &PathBuf::from("-") {
-                return Cert::from_file(output_file)
-                    .expect("can parse certificate");
-            }
-        } else if output_file.is_none() {
-            if let FileOrKeyHandle::KeyHandle((kh, _s)) = cert_handle {
-                // This will fail if the key no longer has any secret
-                // key material.  If it fails, fall back to `sq cert
-                // export`.
-                if let Ok(cert) = self.key_export_maybe(kh.clone()) {
-                    return cert;
-                } else {
-                    return self.cert_export(kh.clone());
-                }
-            }
-        }
-        Cert::from_bytes(&output.stdout)
+        self.handle_cert_output(output, cert_handle, output_file, None)
             .expect("can parse certificate")
     }
 
@@ -1150,24 +1122,7 @@ impl Sq {
         }
 
         let output = self.run(cmd, Some(success));
-        if output.status.success() {
-            if let Some(output_file) = output_file {
-                if output_file != &PathBuf::from("-") {
-                    return Ok(Cert::from_file(output_file)
-                        .expect("can parse certificate"));
-                }
-            } else if output_file.is_none() {
-                if let FileOrKeyHandle::KeyHandle((kh, _s)) = cert_handle {
-                    return Ok(self.key_export(kh));
-                }
-            }
-            Ok(Cert::from_bytes(&output.stdout)
-                .expect("can parse certificate"))
-        } else {
-            Err(anyhow::anyhow!(format!(
-                "Failed (expected):\n{}",
-                String::from_utf8_lossy(&output.stderr))))
-        }
+        self.handle_cert_output(output, cert_handle, output_file, None)
     }
 
     /// Change the key's expiration.
@@ -1209,24 +1164,7 @@ impl Sq {
         }
 
         let output = self.run(cmd, Some(success));
-        if output.status.success() {
-            if let Some(output_file) = output_file {
-                if output_file != &PathBuf::from("-") {
-                    return Ok(Cert::from_file(output_file)
-                        .expect("can parse certificate"));
-                }
-            } else if output_file.is_none() {
-                if let FileOrKeyHandle::KeyHandle((kh, _s)) = cert_handle {
-                    return Ok(self.key_export(kh));
-                }
-            }
-            Ok(Cert::from_bytes(&output.stdout)
-                .expect("can parse certificate"))
-        } else {
-            Err(anyhow::anyhow!(format!(
-                "Failed (expected):\n{}",
-                String::from_utf8_lossy(&output.stderr))))
-        }
+        self.handle_cert_output(output, cert_handle, output_file, None)
     }
 
     /// Adds user IDs to the given key.
@@ -1282,41 +1220,7 @@ impl Sq {
         }
 
         let output = self.run(cmd, None);
-        if output.status.success() {
-            if let Some(output_file) = output_file {
-                // The output was explicitly written to a file.
-                if output_file == &PathBuf::from("-") {
-                    Ok(Cert::from_bytes(&output.stdout)
-                       .expect("can parse certificate"))
-                } else {
-                    Ok(Cert::from_file(&output_file)
-                       .expect("can parse certificate"))
-                }
-            } else {
-                match cert {
-                    FileOrKeyHandle::FileOrStdin(_) => {
-                        // When the cert is from a file, the output is
-                        // written to stdout by default.
-                        Ok(Cert::from_bytes(&output.stdout)
-                           .with_context(|| {
-                               format!("Importing result from the file {:?}",
-                                       cert)
-                           })
-                           .expect("can parse certificate"))
-                    }
-                    FileOrKeyHandle::KeyHandle((kh, _s)) => {
-                        // When the cert is from the cert store, the
-                        // output is written to the cert store by
-                        // default.
-                        Ok(self.cert_export(kh.clone()))
-                    }
-                }
-            }
-        } else {
-            Err(anyhow::anyhow!(format!(
-                "Failed (expected):\n{}",
-                String::from_utf8_lossy(&output.stderr))))
-        }
+        self.handle_cert_output(output, cert, output_file, false)
     }
 
     pub fn key_userid_revoke<'a, C, O>(&self, args: &[&str], cert: C, userid: &str,
@@ -1422,41 +1326,7 @@ impl Sq {
         }
 
         let output = self.run(cmd, Some(success));
-        if output.status.success() {
-            if let Some(output_file) = output_file {
-                // The output was explicitly written to a file.
-                if output_file == &PathBuf::from("-") {
-                    Ok(Cert::from_bytes(&output.stdout)
-                       .expect("can parse certificate"))
-                } else {
-                    Ok(Cert::from_file(&output_file)
-                       .expect("can parse certificate"))
-                }
-            } else {
-                match cert {
-                    FileOrKeyHandle::FileOrStdin(_) => {
-                        // When the cert is from a file, the output is
-                        // written to stdout by default.
-                        Ok(Cert::from_bytes(&output.stdout)
-                           .with_context(|| {
-                               format!("Importing result from the file {:?}",
-                                       cert)
-                           })
-                           .expect("can parse certificate"))
-                    }
-                    FileOrKeyHandle::KeyHandle((kh, _s)) => {
-                        // When the cert is from the cert store, the
-                        // output is written to the cert store by
-                        // default.
-                        Ok(self.cert_export(kh.clone()))
-                    }
-                }
-            }
-        } else {
-            Err(anyhow::anyhow!(format!(
-                "Failed (expected):\n{}",
-                String::from_utf8_lossy(&output.stderr))))
-        }
+        self.handle_cert_output(output, cert, output_file, false)
     }
 
     /// Certify the user ID binding.
@@ -1524,41 +1394,7 @@ impl Sq {
         }
 
         let output = self.run(cmd, Some(success));
-        if output.status.success() {
-            if let Some(output_file) = output_file {
-                // The output was explicitly written to a file.
-                if output_file == &PathBuf::from("-") {
-                    Ok(Cert::from_bytes(&output.stdout)
-                       .expect("can parse certificate"))
-                } else {
-                    Ok(Cert::from_file(&output_file)
-                       .expect("can parse certificate"))
-                }
-            } else {
-                match cert {
-                    FileOrKeyHandle::FileOrStdin(_) => {
-                        // When the cert is from a file, the output is
-                        // written to stdout by default.
-                        Ok(Cert::from_bytes(&output.stdout)
-                           .with_context(|| {
-                               format!("Importing result from the file {:?}",
-                                       cert)
-                           })
-                           .expect("can parse certificate"))
-                    }
-                    FileOrKeyHandle::KeyHandle((kh, _s)) => {
-                        // When the cert is from the cert store, the
-                        // output is written to the cert store by
-                        // default.
-                        Ok(self.cert_export(kh.clone()))
-                    }
-                }
-            }
-        } else {
-            Err(anyhow::anyhow!(format!(
-                "Failed (expected):\n{}",
-                String::from_utf8_lossy(&output.stderr))))
-        }
+        self.handle_cert_output(output, cert, output_file, false)
     }
 
     /// Authorize a certificate.

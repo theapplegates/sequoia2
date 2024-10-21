@@ -1,13 +1,15 @@
 // Rust support for running sq-subplot.md scenarios.
 
 use subplotlib::file::SubplotDataFile;
+use subplotlib::steplibrary::datadir::Datadir;
 use subplotlib::steplibrary::runcmd::Runcmd;
 
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[step]
 #[context(Runcmd)]
+#[context(Datadir)]
 fn install_sq(context: &ScenarioContext) {
     // The SQ_DIR variable can be set to test an installed sq rather
     // than the one built from the source tree.
@@ -33,6 +35,22 @@ fn install_sq(context: &ScenarioContext) {
             false,
         )?;
     }
+
+    // Create a state directory and set SEQUOIA_HOME so that sq will
+    // use it.
+    let home = PathBuf::from(".sequoia-home");
+    let mut absolute_home = Default::default();
+    context.with_mut(
+        |datadir: &mut Datadir| {
+            datadir.create_dir_all(&home)?;
+            absolute_home = datadir.base_path().join(home);
+            Ok(())
+        }, false)?;
+    context.with_mut(
+        |runcmd: &mut Runcmd| {
+            runcmd.setenv("SEQUOIA_HOME", absolute_home);
+            Ok(())
+        }, false)?;
 }
 
 /// Remember values between steps.

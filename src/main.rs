@@ -127,7 +127,14 @@ fn help_warning(arg: &str) {
     }
 }
 
-fn main() -> Result<()> {
+fn main() {
+    if let Err(e) = real_main() {
+        print_error_chain(&e);
+        std::process::exit(1);
+    }
+}
+
+fn real_main() -> Result<()> {
     let mut cli = cli::build(true);
     let matches = cli.clone().try_get_matches();
     let c = match matches {

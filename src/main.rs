@@ -127,8 +127,6 @@ fn help_warning(arg: &str) {
     }
 }
 
-// TODO: Use `derive`d command structs. No more values_of
-// TODO: Handling (and cli position) of global arguments
 fn main() -> Result<()> {
     let mut cli = cli::build(true);
     let matches = cli.clone().try_get_matches();

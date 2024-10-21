@@ -493,7 +493,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                               label, signer_userid);
 
                     self.sq.hint(format_args!(
-                        "\nAfter checking that {} belongs to {:?}, \
+                        "After checking that {} belongs to {:?}, \
                          you can authenticate the binding using:",
                         cert_fpr, signer_userid))
                         .sq().arg("pki").arg("link").arg("add")
@@ -508,7 +508,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                               level, label, signer_userid);
 
                     self.sq.hint(format_args!(
-                        "\nAfter checking that {} belongs to {:?}, \
+                        "After checking that {} belongs to {:?}, \
                          you can authenticate the binding using:",
                         cert_fpr, signer_userid))
                         .sq().arg("pki").arg("link").arg("add")

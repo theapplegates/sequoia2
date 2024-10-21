@@ -263,7 +263,7 @@ impl<Arguments, Prefix, Options> CertDesignators<Arguments, Prefix, Options> {
     }
 
     /// Like `Vec::is_empty`.
-    pub fn is_empty(&mut self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.designators.is_empty()
     }
 

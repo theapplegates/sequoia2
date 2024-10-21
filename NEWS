@@ -104,6 +104,8 @@
    - When exporting certificates selected by user IDs (i.e. --email,
      --userid, --domain, or --grep), the bindings are authenticated and
      only those certificates that can be authenticated are exported.
+   - The do-what-I-mean query parameter has been removed from `sq cert
+     export`.
 
 * Changes in 0.38.0
 ** Notable changes

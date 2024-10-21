@@ -9,9 +9,7 @@ use openpgp::{
 
 use sequoia_cert_store as cert_store;
 use cert_store::Store;
-use cert_store::store::UserIDQueryParams;
 
-use crate::cli::types::cert_designator::CertDesignator;
 use crate::cli::types::FileOrStdout;
 use crate::{
     Sq,
@@ -21,10 +19,10 @@ use crate::{
 
 use crate::cli::cert::export;
 
-pub fn dispatch(sq: Sq, mut cmd: export::Command) -> Result<()> {
+pub fn dispatch(sq: Sq, cmd: export::Command) -> Result<()> {
     let cert_store = sq.cert_store_or_else()?;
 
-    if cmd.certs.is_empty() && cmd.query.is_empty() && ! cmd.all {
+    if cmd.certs.is_empty() && ! cmd.all {
         sq.hint(format_args!(
             "Use --all to export all certs, or give a query."));
         return Err(anyhow::anyhow!("no query given"));
@@ -69,20 +67,8 @@ pub fn dispatch(sq: Sq, mut cmd: export::Command) -> Result<()> {
         // nothing, that is fine.
         exported_something = true;
     } else {
-        let mut designators = cmd.certs;
-
-        for query in cmd.query {
-            if let Ok(h) = query.parse() {
-                designators.push(CertDesignator::Cert(h));
-            } else if let Ok(email) = UserIDQueryParams::is_email(&query) {
-                designators.push(CertDesignator::Email(email));
-            } else {
-                designators.push(CertDesignator::Grep(query));
-            }
-        }
-
         let (certs, errors)
-            = sq.resolve_certs(&designators, sequoia_wot::FULLY_TRUSTED)?;
+            = sq.resolve_certs(&cmd.certs, sequoia_wot::FULLY_TRUSTED)?;
         for error in errors.iter() {
             print_error_chain(error);
         }

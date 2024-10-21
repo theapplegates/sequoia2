@@ -123,7 +123,7 @@ for example.",
     #[clap(
         long,
         conflicts_with_all = [
-            "cert", "userid", "email", "domain", "grep", "query",
+            "cert", "userid", "email", "domain", "grep",
         ],
         help = "Export all certificates",
     )]
@@ -133,12 +133,4 @@ for example.",
     pub certs: CertDesignators<CertUserIDEmailDomainGrepArgs,
                                NoPrefix,
                                OptionalValue>,
-
-    #[clap(
-        value_name = "QUERY",
-        help = "Return certificates matching QUERY. \
-                This may be a subkey fingerprint or key ID, \
-                an email address, or an User ID fragment.",
-    )]
-    pub query: Vec<String>,
 }

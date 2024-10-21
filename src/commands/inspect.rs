@@ -116,7 +116,25 @@ pub fn inspect<'a, R>(sq: &mut Sq,
 where
     R: BufferedReader<sequoia_openpgp::parse::Cookie> + 'a,
 {
-    let mut ppr = openpgp::parse::PacketParser::from_buffered_reader(input)?;
+    let mut ppr =
+        match openpgp::parse::PacketParser::from_buffered_reader(input)
+    {
+        Ok(pp) => pp,
+        Err(e) => if e.downcast_ref()
+            .map(|e: &io::Error| e.kind() == io::ErrorKind::UnexpectedEof)
+            .unwrap_or(false)
+        {
+            if let Some(input_filename) = input_filename {
+                write!(output, "{}: ", input_filename)?;
+            }
+
+            writeln!(output, "No OpenPGP data.")?;
+            return Ok(Kind::NotOpenPGP);
+        } else {
+            return Err(e);
+        }
+    };
+
     let mut type_called = None;   // Did we print the type yet?
 
   loop {

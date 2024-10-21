@@ -307,8 +307,10 @@ fn error_chain(err: &anyhow::Error) -> Vec<String> {
 
 /// Prints the error and causes, if any.
 pub fn print_error_chain(err: &anyhow::Error) {
-    wprintln!("           {}", err);
-    err.chain().skip(1).for_each(|cause| wprintln!("  because: {}", cause));
+    wprintln!();
+    wprintln!(initial_indent="  Error: ", "{}", err);
+    err.chain().skip(1).for_each(
+        |cause| wprintln!(initial_indent="because: ", "{}", cause));
 }
 
 /// Returns the error chain as a string.

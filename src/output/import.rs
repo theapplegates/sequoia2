@@ -34,6 +34,20 @@ impl Default for ImportStats {
     }
 }
 
+impl std::ops::AddAssign for ImportStats {
+    fn add_assign(&mut self, other: Self) {
+        // XXX: Not ideal.
+        (0..self.certs.new_certs())
+            .for_each(|_| other.certs.inc_new_certs());
+        (0..self.certs.unchanged_certs())
+            .for_each(|_| other.certs.inc_unchanged_certs());
+        (0..self.certs.updated_certs())
+            .for_each(|_| other.certs.inc_updated_certs());
+        (0..self.certs.errors())
+            .for_each(|_| other.certs.inc_errors());
+    }
+}
+
 impl<'a> MergeCerts<'a> for ImportStats {
     fn merge_public<'b>(
         &self,
@@ -74,6 +88,15 @@ pub struct KeyStats {
 
     /// Number of errors.
     pub errors: usize,
+}
+
+impl std::ops::AddAssign for KeyStats {
+    fn add_assign(&mut self, other: Self) {
+        self.new += other.new;
+        self.unchanged += other.unchanged;
+        self.updated += other.updated;
+        self.errors += other.errors;
+    }
 }
 
 impl KeyStats {

@@ -61,8 +61,6 @@ pub fn dispatch(sq: Sq, command: SqCommand) -> Result<()>
         SqSubcommands::Pki(command) =>
             pki::dispatch(sq, command),
 
-        SqSubcommands::Autocrypt(command) =>
-            autocrypt::dispatch(sq, &command),
         SqSubcommands::Network(command) =>
             network::dispatch(sq, command),
         SqSubcommands::Toolbox(command) =>

@@ -1,49 +1,35 @@
-use anyhow::Context;
+use std::sync::Arc;
 
-use buffered_reader::Dup;
+use anyhow::{Context, Result};
+
+use buffered_reader::{BufferedReader, Dup};
 use sequoia_openpgp as openpgp;
 use openpgp::{
-    Cert,
-    Result,
-    armor,
     packet::UserID,
     parse::{Cookie, Parse, stream::DecryptorBuilder},
-    serialize::Serialize,
 };
 use sequoia_autocrypt as autocrypt;
+use sequoia_cert_store::{LazyCert, StoreUpdate};
 
 use crate::{
     Sq,
-    cli,
     commands::network::{
         certify_downloads,
-        import_certs,
     },
+    output::import::ImportStats,
 };
 
-pub fn dispatch(sq: Sq, c: &cli::autocrypt::Command) -> Result<()> {
-    use cli::autocrypt::Subcommands::*;
-
-    match &c.subcommand {
-        Import(c) => import(sq, c),
-        Decode(c) => decode(sq, c),
-        EncodeSender(c) => encode_sender(sq, c),
-    }
-}
-
-fn import<'store, 'rstore>(mut sq: Sq<'store, 'rstore>,
-                   command: &cli::autocrypt::ImportCommand)
-          -> Result<()>
-    where 'store: 'rstore
+/// Imports certs encoded as Autocrypt headers.
+///
+/// We also try to decrypt the message, and collect the gossip headers.
+pub fn import_certs(sq: &mut Sq, source: &mut Box<dyn BufferedReader<Cookie>>,
+                    stats: &mut ImportStats)
+                    -> Result<()>
 {
-    let mut input = command.input.open()?;
-
-    // Accumulate certs and do one import so that we generate one
-    // report.
     let mut acc = Vec::new();
 
     // First, get the Autocrypt headers from the outside.
-    let mut dup = Dup::with_cookie(&mut input, Cookie::default());
+    let mut dup = Dup::with_cookie(&mut *source, Cookie::default());
     let ac = autocrypt::AutocryptHeaders::from_reader(&mut dup)?;
     let from = UserID::from(
         ac.from.as_ref().ok_or(anyhow::anyhow!("no From: header"))?
@@ -66,7 +52,7 @@ fn import<'store, 'rstore>(mut sq: Sq<'store, 'rstore>,
                     .and_then(|certd| certd.shadow_ca_autocrypt())
                 {
                     acc.append(&mut certify_downloads(
-                        &mut sq, ca,
+                        sq, ca,
                         vec![cert], Some(&addr[..])));
                 } else {
                     acc.push(cert);
@@ -75,31 +61,30 @@ fn import<'store, 'rstore>(mut sq: Sq<'store, 'rstore>,
         }
     }
 
+    let cert_store = sq.cert_store_or_else()?;
+    for cert in acc.drain(..) {
+        cert_store.update_by(Arc::new(LazyCert::from(cert)), stats)?;
+    }
+
     // If there is no Autocrypt header, don't bother looking for
     // gossip.
     let sender_cert = match sender_cert {
         Some(c) => c,
-        None => {
-            // Import what we got.
-            import_certs(&mut sq, acc)?;
-            return Ok(());
-        },
+        None => return Ok(()),
     };
 
     // Then, try to decrypt the message, and look for gossip headers.
-    use crate::{load_keys, commands::decrypt::Helper};
-    let secrets =
-        load_keys(command.secret_key_file.iter())?;
-
+    use crate::commands::decrypt::Helper;
     let mut helper = Helper::new(
         &sq,
         1, // Require one trusted signature...
         vec![sender_cert.clone()], // ... from this cert.
-        secrets, command.session_key.clone(), false);
+        vec![], vec![], false);
     helper.quiet(true);
 
     let policy = sq.policy.clone();
-    let mut decryptor = match DecryptorBuilder::from_buffered_reader(input)?
+    let dup = Dup::with_cookie(source, Cookie::default());
+    let mut decryptor = match DecryptorBuilder::from_buffered_reader(dup)?
         .with_policy(&policy, None, helper)
         .context("Decryption failed")
     {
@@ -108,7 +93,6 @@ fn import<'store, 'rstore>(mut sq: Sq<'store, 'rstore>,
             // The decryption failed, but we should still import the
             // Autocrypt header.
             wprintln!("Note: Decryption of message failed: {}", e);
-            import_certs(&mut sq, acc)?;
             return Ok(());
         },
     };
@@ -134,53 +118,9 @@ fn import<'store, 'rstore>(mut sq: Sq<'store, 'rstore>,
         }
     }
 
-    // Finally, do one import.
-    import_certs(&mut sq, acc)?;
-
-    Ok(())
-}
-
-fn decode(sq: Sq, command: &cli::autocrypt::DecodeCommand)
-          -> Result<()>
-{
-    let input = command.input.open()?;
-    let mut output = command.output.create_pgp_safe(
-        &sq,
-        command.binary,
-        armor::Kind::PublicKey,
-    )?;
-    let ac = autocrypt::AutocryptHeaders::from_reader(input)?;
-    for h in &ac.headers {
-        if let Some(ref cert) = h.key {
-            cert.serialize(&mut output)?;
-        }
+    for cert in acc {
+        cert_store.update_by(Arc::new(LazyCert::from(cert)), stats)?;
     }
-    output.finalize()?;
-
-    Ok(())
-}
-
-fn encode_sender(sq: Sq, command: &cli::autocrypt::EncodeSenderCommand)
-                 -> Result<()>
-{
-    let input = command.input.open()?;
-    let mut output = command.output.create_safe(&sq)?;
-    let cert = Cert::from_buffered_reader(input)?;
-    let addr = command.address.clone()
-        .or_else(|| {
-            cert.with_policy(sq.policy, None)
-                .and_then(|vcert| vcert.primary_userid()).ok()
-                .map(|ca| ca.userid().to_string())
-        });
-    let ac = autocrypt::AutocryptHeader::new_sender(
-        sq.policy,
-        &cert,
-        &addr.ok_or_else(|| anyhow::anyhow!(
-            "No well-formed primary userid found, use \
-             --address to specify one"))?,
-        Some(command.prefer_encrypt.to_string().as_str()))?;
-    write!(&mut output, "Autocrypt: ")?;
-    ac.serialize(&mut output)?;
 
     Ok(())
 }

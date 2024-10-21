@@ -9,7 +9,7 @@ use openpgp::{
 use chrono::Utc;
 use chrono::DateTime;
 
-use super::common::Sq;
+use super::common::{Sq, artifact};
 
 /// Returns the time formatted as an ISO 8106 string.
 pub fn time_as_string(t: DateTime<Utc>) -> String {
@@ -29,7 +29,7 @@ fn sq_autocrypt_import() -> Result<()>
 
     // Import the message, first without being able to decrypt it.
     let mut cmd = sq.command();
-    cmd.arg("autocrypt").arg("import")
+    cmd.arg("cert").arg("import")
         .arg(&eml);
     sq.run(cmd, true);
 
@@ -47,11 +47,10 @@ fn sq_autocrypt_import() -> Result<()>
     sq.run(cmd, true);
     eprintln!("post: {}", time_as_string(std::time::SystemTime::now().into()));
 
-    // Import the message with the decryption key.
+    // Import the message again, now with one of the recipient keys.
+    sq.key_import(artifact("examples/alice-secret.pgp"));
     let mut cmd = sq.command();
-    cmd.arg("autocrypt").arg("import")
-        .arg("--session-key")
-        .arg("9:770BFC3442DDE8DA263973474D6487DE8F6940FC0AED5EC632E9D53CAA28CC95")
+    cmd.arg("cert").arg("import")
         .arg(&eml);
     sq.run(cmd, true);
 

@@ -92,7 +92,6 @@ use openpgp::Fingerprint;
 #[macro_use]
 pub mod examples;
 
-pub mod autocrypt;
 pub mod cert;
 pub mod decrypt;
 pub mod encrypt;
@@ -516,7 +515,6 @@ pub enum SqSubcommands {
     Key(key::Command),
     Pki(pki::Command),
 
-    Autocrypt(autocrypt::Command),
     Network(network::Command),
 
     Toolbox(toolbox::Command),

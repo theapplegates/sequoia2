@@ -106,6 +106,9 @@
      only those certificates that can be authenticated are exported.
    - The do-what-I-mean query parameter has been removed from `sq cert
      export`.
+   - `sq autocrypt import` has been merged into `sq cert import`.
+   - `sq autocrypt decode` and `sq autocrypt encode-sender` are
+     removed without substitute.
 
 * Changes in 0.38.0
 ** Notable changes

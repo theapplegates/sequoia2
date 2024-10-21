@@ -58,14 +58,14 @@ fn sq_autocrypt_import() -> Result<()>
     // We can now weakly authenticate the peers.
     let mut cmd = sq.command();
     cmd.arg("pki").arg("authenticate")
-        .arg("--amount=1")
+        .arg("--gossip")
         .arg("CBCD8F030588653EEDD7E2659B7DD433F254904A")
         .arg("--email").arg("justus@sequoia-pgp.org");
     sq.run(cmd, true);
 
     let mut cmd = sq.command();
     cmd.arg("pki").arg("authenticate")
-        .arg("--amount=1")
+        .arg("--gossip")
         .arg("BB6B7E5F8343B2BE990EB7A7F3AF066F267892C1")
         .arg("--email").arg("hilal-maria@probier.email");
     sq.run(cmd, true);

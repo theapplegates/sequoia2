@@ -125,20 +125,11 @@ fn import<'store, 'rstore>(mut sq: Sq<'store, 'rstore>,
     }
 
     for h in ac.headers.into_iter().filter(|h| h.header_type == Gossip) {
-        if let Some(addr) = h.attributes.iter()
+        if let Some(_addr) = h.attributes.iter()
             .find_map(|a| (&a.key == "addr").then(|| a.value.clone()))
         {
             if let Some(cert) = h.key {
-                if let Ok((ca, _)) = sq.certd_or_else()
-                    .and_then(|certd| certd.shadow_ca_autocrypt_gossip_for(
-                        &sender_cert, from_addr))
-                {
-                    acc.append(&mut certify_downloads(
-                        &mut sq, ca,
-                        vec![cert], Some(&addr[..])));
-                } else {
-                    acc.push(cert);
-                }
+                acc.push(cert);
             }
         }
     }

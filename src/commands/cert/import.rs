@@ -1,6 +1,8 @@
 use std::sync::Arc;
 use std::path::PathBuf;
 
+use buffered_reader::Dup;
+
 use sequoia_openpgp as openpgp;
 use openpgp::{
     cert::raw::RawCertParser,
@@ -33,14 +35,19 @@ where 'store: 'rstore
     let inner = || -> Result<()> {
         for input in inputs.into_iter() {
             let input = FileOrStdin::from(input);
+            let mut input_reader = input.open()?;
+            let dup =
+                Dup::with_cookie(&mut input_reader, Default::default());
             let raw_certs =
-                RawCertParser::from_buffered_reader(input.open()?)?;
+                RawCertParser::from_buffered_reader(dup)?;
 
             let cert_store = sq.cert_store_or_else()?;
 
             for raw_cert in raw_certs {
-                let cert = match raw_cert {
-                    Ok(raw_cert) => LazyCert::from(raw_cert),
+                let cert = match raw_cert
+                    .and_then(|raw| LazyCert::from(raw).to_cert().cloned())
+                {
+                    Ok(cert) => cert,
                     Err(err) => {
                         wprintln!("Error parsing input: {}", err);
                         stats.certs.inc_errors();
@@ -63,8 +70,10 @@ where 'store: 'rstore
 
 
                 let fingerprint = cert.fingerprint();
-                let sanitized_userid = sq.best_userid(cert.to_cert()?, true);
-                if let Err(err) = cert_store.update_by(Arc::new(cert), &mut stats) {
+                let sanitized_userid = sq.best_userid(&cert, true);
+                if let Err(err) = cert_store.update_by(Arc::new(cert.into()),
+                                                       &mut stats)
+                {
                     wprintln!("Error importing {}, {}: {}",
                               fingerprint, sanitized_userid, err);
                     stats.certs.inc_errors();

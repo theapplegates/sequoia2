@@ -82,7 +82,7 @@ pub fn dispatch(sq: Sq, mut cmd: export::Command) -> Result<()> {
         }
 
         let (certs, errors)
-            = sq.resolve_certs(&designators, 0)?;
+            = sq.resolve_certs(&designators, sequoia_wot::FULLY_TRUSTED)?;
         for error in errors.iter() {
             print_error_chain(error);
         }

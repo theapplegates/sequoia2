@@ -153,32 +153,43 @@ fn sq_cert_export() -> Result<()>
         }
 
         for ua in cert.userids() {
-            // Export by user id.
-            let userid = String::from_utf8_lossy(
-                ua.userid().value()).into_owned();
-            let email = ua.userid().email2().unwrap().unwrap();
+            // Only certs selected by authenticated user ID bindings
+            // are exported.
+            for authenticated in [false, true] {
+                if authenticated {
+                    sq.pki_link_add(
+                        &[], cert.key_handle(),
+                        &[std::str::from_utf8(ua.value()).unwrap()]);
+                }
 
-            call(&["--userid", &userid], true, &[data]);
-            call(&["--userid", &email], false, &[]);
-            // Should be case sensitive.
-            call(&["--userid", &userid.deref().to_uppercase()], false, &[]);
-            // Substring should fail.
-            call(&["--userid", &userid[1..]], false, &[]);
+                // Export by user id.
+                let userid = String::from_utf8_lossy(
+                    ua.userid().value()).into_owned();
+                let email = ua.userid().email2().unwrap().unwrap();
 
-            call(&["--email", &userid], false, &[]);
-            call(&["--email", &email], true, &[data]);
-            // Email is case insensitive.
-            call(&["--email", &email.to_uppercase()], true, &[data]);
-            // Substring should fail.
-            call(&["--email", &email[1..]], false, &[]);
+                call(&["--userid", &userid], true && authenticated, &[data]);
+                call(&["--userid", &email], false, &[]);
+                // Should be case sensitive.
+                call(&["--userid", &userid.deref().to_uppercase()], false, &[]);
+                // Substring should fail.
+                call(&["--userid", &userid[1..]], false, &[]);
 
-            call(&["--grep", &userid], true, &[data]);
-            call(&["--grep", &email], true, &[data]);
-            // Should be case insensitive.
-            call(&["--grep", &userid.deref().to_uppercase()], true, &[data]);
-            // Substring should succeed.
-            call(&["--grep", &userid[1..]], true, &[data]);
+                call(&["--email", &userid], false, &[]);
+                call(&["--email", &email], true && authenticated, &[data]);
+                // Email is case insensitive.
+                call(&["--email", &email.to_uppercase()], true && authenticated,
+                     &[data]);
+                // Substring should fail.
+                call(&["--email", &email[1..]], false, &[]);
 
+                call(&["--grep", &userid], true && authenticated, &[data]);
+                call(&["--grep", &email], true && authenticated, &[data]);
+                // Should be case insensitive.
+                call(&["--grep", &userid.deref().to_uppercase()],
+                     true && authenticated, &[data]);
+                // Substring should succeed.
+                call(&["--grep", &userid[1..]], true && authenticated, &[data]);
+            }
         }
     }
 

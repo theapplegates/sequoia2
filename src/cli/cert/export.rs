@@ -4,13 +4,26 @@ use crate::cli::types::CertDesignators;
 use crate::cli::types::cert_designator::CertUserIDEmailDomainGrepArgs;
 use crate::cli::types::cert_designator::NoPrefix;
 use crate::cli::types::cert_designator::OptionalValue;
-use crate::cli::examples;
-use examples::Action;
-use examples::Actions;
-use examples::Example;
+use crate::cli::examples::*;
 
 const EXAMPLES: Actions = Actions {
     actions: &[
+        Action::Setup(Setup {
+            command: &[
+                "sq", "pki", "link", "add",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--userid=Alice <alice@example.org>",
+            ],
+        }),
+
+        Action::Setup(Setup {
+            command: &[
+                "sq", "pki", "link", "add",
+                "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+                "--userid=Bob <bob@example.org>",
+            ],
+        }),
+
         Action::Example(Example {
             comment: "Export all certificates.",
             command: &[
@@ -20,7 +33,7 @@ const EXAMPLES: Actions = Actions {
         Action::Example(Example {
             comment: "\
 Export certificates with a matching User ID packet.  The binding \
-signatures are checked, but the User IDs are not authenticated. \
+signatures are checked, and the User IDs are authenticated. \
 Note: this check is case sensitive.",
             command: &[
                 "sq", "cert", "export",
@@ -30,7 +43,7 @@ Note: this check is case sensitive.",
         Action::Example(Example {
             comment: "\
 Export certificates with a User ID containing the email address. \
-The binding signatures are checked, but the User IDs are not \
+The binding signatures are checked, and the User IDs are \
 authenticated.  Note: this check is case insensitive.",
             command: &[
                 "sq", "cert", "export", "--email", "alice@example.org",

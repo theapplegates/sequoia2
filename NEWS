@@ -101,6 +101,9 @@
      boolean `--rsync` to enable the use of rsync, and `--rsync-path`,
      which implies `--rsync`, to specify a path to the local rsync
      executable.
+   - When exporting certificates selected by user IDs (i.e. --email,
+     --userid, --domain, or --grep), the bindings are authenticated and
+     only those certificates that can be authenticated are exported.
 
 * Changes in 0.38.0
 ** Notable changes

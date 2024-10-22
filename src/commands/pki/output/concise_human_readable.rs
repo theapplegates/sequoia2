@@ -149,14 +149,14 @@ pub fn print_path(path: &PathLints, target_userid: &UserID, prefix: &str)
         }
 
         wprintln!(indent=prefix, "│");
-        wprintln!(indent=format!("{}│   ", prefix), "{}", line);
+        wprintln!(indent=format!("{}│  ", prefix), "{}", line);
         wprintln!(indent=prefix, "│");
 
         for err in cert.errors().iter().chain(cert.lints()) {
             for (i, msg) in error_chain(err).into_iter().enumerate() {
                 wprintln!(
                     indent=format!(
-                        "{}│   {}", prefix, if i == 0 { "" } else { "  " }),
+                        "{}│  {}", prefix, if i == 0 { "" } else { "  " }),
                     "{}", msg);
             }
         }
@@ -164,7 +164,7 @@ pub fn print_path(path: &PathLints, target_userid: &UserID, prefix: &str)
             for (i, msg) in error_chain(err).into_iter().enumerate() {
                 wprintln!(
                     indent=format!(
-                        "{}│   {}", prefix, if i == 0 { "" } else { "  " }),
+                        "{}│  {}", prefix, if i == 0 { "" } else { "  " }),
                     "{}", msg);
             }
         }
@@ -195,7 +195,7 @@ pub fn print_path(path: &PathLints, target_userid: &UserID, prefix: &str)
                 for (i, msg) in error_chain(err).into_iter().enumerate() {
                     wprintln!(
                         indent=format!(
-                            "{}│   {}", prefix, if i == 0 { "" } else { "  " }),
+                            "{}│  {}", prefix, if i == 0 { "" } else { "  " }),
                         "{}", msg);
                 }
             }

@@ -23,8 +23,8 @@ pub fn certify(sq: Sq, mut c: certify::Command)
     let certifier = sq.lookup_one(
         certifier, Some(KeyFlags::empty().set_certification()), true)?;
 
-    let (cert, from_file) = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
-    if from_file {
+    let (cert, source) = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
+    if source.is_file() {
         // If the cert is read from a file, we default to stdout.
         // (None means write to the cert store.)
         if c.output.is_none() {

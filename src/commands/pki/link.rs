@@ -34,7 +34,7 @@ pub fn add(sq: Sq, c: link::AddCommand)
     let trust_root = sq.local_trust_root()?;
     let trust_root = trust_root.to_cert()?;
 
-    let (cert, _from_file)
+    let (cert, _source)
         = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
 
     let vc = cert.with_policy(sq.policy, Some(sq.time))?;
@@ -85,7 +85,7 @@ pub fn authorize(sq: Sq, c: link::AuthorizeCommand)
     let trust_root = sq.local_trust_root()?;
     let trust_root = trust_root.to_cert()?;
 
-    let (cert, _from_file)
+    let (cert, _source)
         = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
 
     let vc = cert.with_policy(sq.policy, Some(sq.time))?;
@@ -135,7 +135,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
     let trust_root = sq.local_trust_root()?;
     let trust_root = trust_root.to_cert()?;
 
-    let (cert, _from_file)
+    let (cert, _source)
         = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
 
     let vc = cert.with_policy(sq.policy, Some(sq.time))?;

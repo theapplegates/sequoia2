@@ -2132,7 +2132,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         designators: &CertDesignators<Arguments, Prefix, OneValue, Doc>,
         trust_amount: usize,
     )
-        -> Result<(Cert, bool)>
+        -> Result<(Cert, FileStdinOrKeyHandle)>
     where
         Prefix: ArgumentPrefix
     {
@@ -2167,7 +2167,15 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             return Err(errors);
         }
 
-        Ok((certs.into_iter().next().unwrap(),
-            designators.designators[0].from_file()))
+        let cert = certs.into_iter().next().unwrap();
+        let handle = cert.key_handle();
+        Ok((cert,
+            match &designators.designators[0] {
+                CertDesignator::Stdin =>
+                    FileStdinOrKeyHandle::FileOrStdin(Default::default()),
+                CertDesignator::File(p) =>
+                    FileStdinOrKeyHandle::FileOrStdin(p.as_path().into()),
+                _ => handle.into()
+            }))
     }
 }

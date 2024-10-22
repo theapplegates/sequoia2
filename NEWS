@@ -110,6 +110,8 @@
    - `sq autocrypt decode` and `sq autocrypt encode-sender` are
      removed without substitute.
    - `--cert` now only looks up by primary key fingerprint.
+   - The argument `sq key delete --cert-file` has been renamed to
+     `--file`.
 
 * Changes in 0.38.0
 ** Notable changes

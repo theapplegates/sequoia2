@@ -4,12 +4,10 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
-
 use super::types::ClapData;
 use super::types::FileOrStdin;
 use super::types::FileOrStdout;
+use super::types::cert_designator::*;
 
 use crate::cli::examples;
 use examples::*;
@@ -127,24 +125,9 @@ pub struct Command {
     )]
     pub signatures: usize,
 
-    #[clap(
-        long = "signer-file",
-        value_name = "CERT_FILE",
-        help = "Verify signatures using the certificate in CERT_FILE",
-    )]
-    pub signer_files: Vec<PathBuf>,
-
-    #[clap(
-        long = "signer",
-        value_name = "FINGERPRINT|KEYID",
-        help = "Verify signatures using the specified certificate",
-        long_help = "\
-Verify signatures using the specified certificate.  This reads the
-certificate from the certificate store, and considers it to be
-authenticated.  When this option is not provided, the certificate is
-still read from the certificate store, if it exists, but it is not
-considered authenticated."
-    )]
-    pub signer_certs: Vec<KeyHandle>,
+    #[command(flatten)]
+    pub signers: CertDesignators<CertFileArgs,
+                                 SignerPrefix,
+                                 OptionalValue,
+                                 ToVerifyDoc>,
 }
-

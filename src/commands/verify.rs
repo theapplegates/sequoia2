@@ -1,13 +1,10 @@
 use std::io;
 use std::path::PathBuf;
 
-use anyhow::Context;
-
 use buffered_reader::File;
 
 use sequoia_openpgp as openpgp;
 use openpgp::Cert;
-use openpgp::types::KeyFlags;
 use openpgp::parse::stream::DetachedVerifierBuilder;
 use openpgp::parse::stream::VerifierBuilder;
 use openpgp::parse::Parse;
@@ -17,7 +14,6 @@ use crate::Result;
 use crate::cli;
 use crate::commands::VHelper;
 use crate::commands::inspect::Kind;
-use crate::load_certs;
 
 pub fn dispatch(sq: Sq, command: cli::verify::Command)
     -> Result<()>
@@ -27,16 +23,13 @@ pub fn dispatch(sq: Sq, command: cli::verify::Command)
     let mut input = command.input.open()?;
     let mut output = command.output.create_safe(&sq)?;
     let signatures = command.signatures;
-    let mut certs = load_certs(command.signer_files.iter())?;
-    certs.extend(
-        sq.lookup(command.signer_certs,
-                      Some(KeyFlags::empty().set_signing()),
-                      true,
-                      false)
-            .context("loading a --signer certificate")?);
+
+    let signers =
+        sq.resolve_certs_or_fail(&command.signers, sequoia_wot::FULLY_TRUSTED)?;
+
     verify(sq, &mut input,
            command.detached,
-           &mut output, signatures, certs)?;
+           &mut output, signatures, signers)?;
 
     Ok(())
 }

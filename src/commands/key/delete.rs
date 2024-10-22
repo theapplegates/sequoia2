@@ -5,7 +5,7 @@ use crate::cli;
 use crate::common::key::delete;
 use crate::Result;
 
-pub fn dispatch(sq: Sq, command: cli::key::DeleteCommand)
+pub fn dispatch(sq: Sq, command: cli::key::delete::Command)
                 -> Result<()>
 {
     let handle = if let Some(file) = command.cert_file {

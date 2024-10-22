@@ -2,9 +2,8 @@
 
 use clap::Args;
 
-use sequoia_openpgp::KeyHandle;
-
 use crate::cli::examples::*;
+use crate::cli::types::cert_designator::*;
 
 #[derive(Debug, Args)]
 #[clap(
@@ -17,25 +16,22 @@ that even if secret key material is available, it may not be \
 exportable.  For instance, secret key material stored on a hardware \
 security module usually cannot be exported from the device.
 
+Iterate over all of the specified certificates and export \
+any keys (primary key and subkeys) with secret key material.  \
+An error is returned if any specified certificate does not \
+contain any secret key material.
+
 If you only want to export a particular key and not all keys associate \
 with a certificate, use `sq key subkey export`.
 ",
     after_help = EXAMPLES,
 )]
 pub struct Command {
-    #[clap(
-        long,
-        value_name = "FINGERPRINT|KEYID",
-        required = true,
-        help = "Export the specified certificate with its secret key material",
-        long_help = "\
-Export the specified certificate with its secret key material.
-
-Iterate over the specified certificate's primary key and subkeys and \
-export any keys with secret key material.  An error is returned if \
-the certificate does not contain any secret key material.",
-    )]
-    pub cert: Vec<KeyHandle>,
+    #[command(flatten)]
+    pub certs: CertDesignators<CertUserIDEmailDomainGrepArgs,
+                               NoPrefix,
+                               NoOptions,
+                               ExportKeyDoc>,
 }
 
 const EXAMPLES: Actions = Actions {
@@ -45,6 +41,15 @@ const EXAMPLES: Actions = Actions {
                 "sq", "key", "import", "alice-secret.pgp",
             ],
         }),
+
+        Action::Setup(Setup {
+            command: &[
+                "sq", "pki", "link", "add",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--userid=Alice <alice@example.org>",
+            ],
+        }),
+
         Action::Example(Example {
             comment: "\
 Export Alice's certificate with all available secret key material.",
@@ -53,6 +58,26 @@ Export Alice's certificate with all available secret key material.",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
+
+        Action::Example(Example {
+            comment: "\
+Export Alice's certificate with all available secret key material \
+identified by email address.",
+            command: &[
+                "sq", "key", "export",
+                "--email", "alice@example.org",
+            ],
+        }),
     ]
 };
 test_examples!(sq_key_export, EXAMPLES);
+
+/// Documentation for the cert designators for the key export.
+pub struct ExportKeyDoc {}
+
+impl AdditionalDocs for ExportKeyDoc {
+    fn help(_arg: &'static str, help: &'static str) -> String {
+        debug_assert!(help.starts_with("Use certificates"));
+        help.replace("Use certificates", "Export keys")
+    }
+}

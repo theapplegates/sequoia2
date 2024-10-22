@@ -6,5 +6,11 @@ use crate::Result;
 pub fn dispatch(sq: Sq, command: cli::key::export::Command)
                 -> Result<()>
 {
-    export::export(sq, command.cert, Vec::new())
+    let certs =
+        sq.resolve_certs_or_fail(&command.certs, sequoia_wot::FULLY_TRUSTED)?
+        .into_iter()
+        .map(|c| c.key_handle())
+        .collect();
+
+    export::export(sq, certs, Vec::new())
 }

@@ -1,10 +1,13 @@
-use std::time::Duration;
+use std::{
+    sync::Arc,
+    time::Duration,
+};
 
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
 
 use sequoia_cert_store as cert_store;
-use cert_store::Store;
+use cert_store::{LazyCert, Store};
 
 use crate::Sq;
 use crate::commands::active_certification;
@@ -179,7 +182,24 @@ pub fn list(sq: Sq, c: link::ListCommand)
 
     let cert_store = sq.cert_store_or_else()?;
     let mut dirty = false;
-    for cert in cert_store.certs() {
+
+    let (certs, errors) = if c.certs.is_empty() {
+        (cert_store.certs(), Vec::new())
+    } else {
+        let (c, e) = sq.resolve_certs(&c.certs, 0)?;
+        (Box::new(c.into_iter().map(|c| Arc::new(LazyCert::from(c))))
+         as Box<dyn Iterator<Item=Arc<LazyCert<'_>>>>,
+         e)
+    };
+
+    for error in errors.iter() {
+        crate::print_error_chain(error);
+    }
+    if ! errors.is_empty() {
+        return Err(anyhow::anyhow!("Failed to resolve certificates"));
+    }
+
+    for cert in certs {
         let cert = if let Ok(cert) = cert.to_cert() {
             cert
         } else {
@@ -206,6 +226,7 @@ pub fn list(sq: Sq, c: link::ListCommand)
                 .unwrap_or((0, sequoia_wot::FULLY_TRUSTED as u8));
 
             if c.ca && depth == 0 {
+                // Only show CAs.
                 continue;
             }
 

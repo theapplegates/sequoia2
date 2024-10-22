@@ -9,6 +9,7 @@ use crate::cli::types::UserIDDesignators;
 use crate::cli::types::userid_designator;
 use crate::cli::types::Expiration;
 use crate::cli::types::TrustAmount;
+use crate::cli::types::cert_designator::*;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -620,6 +621,11 @@ retracted.
     after_help = LIST_EXAMPLES,
 )]
 pub struct ListCommand {
+    #[command(flatten)]
+    pub certs: CertDesignators<CertUserIDEmailDomainGrepArgs,
+                               NoPrefix,
+                               OptionalValue>,
+
     #[clap(
         long = "ca",
         required = false,
@@ -647,6 +653,14 @@ with the email address alice@example.org.",
             comment: "List all links.",
             command: &[
                 "sq", "pki", "link", "list",
+            ],
+        }),
+
+        Action::Example(Example {
+            comment: "List all links in the example.org domain.",
+            command: &[
+                "sq", "pki", "link", "list",
+                "--domain=example.org",
             ],
         }),
     ],

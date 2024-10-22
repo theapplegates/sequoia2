@@ -359,7 +359,7 @@ impl Sq {
                 eprintln!("Exit status:");
 
                 let dump = |id, stream| {
-                    let limit = 70;
+                    let limit = 4096;
 
                     let data = String::from_utf8_lossy(stream)
                         .chars()

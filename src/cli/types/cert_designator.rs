@@ -135,6 +135,9 @@ pub type CertFileArgs = <CertArg as std::ops::BitOr<FileArg>>::Output;
 
 /// Argument parser options.
 
+/// Default options, no flag selected.
+pub type NoOptions = typenum::U0;
+
 /// Normally it is possible to designate multiple certificates.  This
 /// errors out if there is more than one value.
 pub type OneValue = typenum::U1;
@@ -317,7 +320,7 @@ impl CertDesignator {
 /// change, e.g., `--email` to `--for-email`.
 ///
 /// `Options` are the set of options to the argument parser.
-pub struct CertDesignators<Arguments, Prefix=NoPrefix, Options=typenum::U0,
+pub struct CertDesignators<Arguments, Prefix=NoPrefix, Options=NoOptions,
                            Doc=NoDoc>
 {
     /// The set of certificate designators.

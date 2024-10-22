@@ -178,6 +178,7 @@ pub fn list(sq: Sq, c: link::ListCommand)
     let trust_root_key = trust_root.primary_key().key().role_as_unspecified();
 
     let cert_store = sq.cert_store_or_else()?;
+    let mut dirty = false;
     for cert in cert_store.certs() {
         let cert = if let Ok(cert) = cert.to_cert() {
             cert
@@ -208,61 +209,60 @@ pub fn list(sq: Sq, c: link::ListCommand)
                 continue;
             }
 
+            if dirty {
+                wprintln!();
+            }
+            dirty = true;
+
+            wprintln!(initial_indent=" - ┌ ", subsequent_indent="   │ ",
+                      "{}", cert.fingerprint());
+            wprintln!(initial_indent="   └ ",
+                      "{:?}", String::from_utf8_lossy(userid.value()));
+
+            const INDENT: &'static str = "     - ";
+
             if amount == 0 {
-                wprintln!("{}, {:?}'s link was retracted.",
-                          cert.fingerprint(),
-                          String::from_utf8_lossy(userid.value()));
+                wprintln!(initial_indent=INDENT, "link was retracted");
             } else {
-                let mut params = Vec::new();
-
-                if let Some(e) = certification.signature_expiration_time() {
-                    params.push(format!(
-                        "expiration: {}",
-                        chrono::DateTime::<chrono::Utc>::from(e)
-                            .format("%Y‑%m‑%d")));
-                }
-
-                if depth != 0 && depth != 255 {
-                    params.push(format!("trust depth: {}", depth));
-                }
-
-                if amount != sequoia_wot::FULLY_TRUSTED as u8 {
-                    params.push(format!("trust amount: {}", amount));
-                }
-
                 let mut regex: Vec<_> = certification.regular_expressions()
                     .map(|re| String::from_utf8_lossy(re))
                     .collect();
                 regex.sort();
                 regex.dedup();
 
-                if depth > 0 {
+                let summary = if depth > 0 {
                     if amount == sequoia_wot::FULLY_TRUSTED as u8
                         && regex.is_empty()
                     {
-                        eprint!("{}, {:?} is linked as a fully trusted CA",
-                                cert.fingerprint(),
-                                String::from_utf8_lossy(userid.value()));
+                        "is linked as a fully trusted CA"
                     } else {
-                        eprint!("{}, {:?} is linked as a partially trusted CA",
-                                cert.fingerprint(),
-                                String::from_utf8_lossy(userid.value()));
+                        "is linked as a partially trusted CA"
                     }
                 } else {
-                    eprint!("{}, {:?} is linked",
-                            cert.fingerprint(),
-                            String::from_utf8_lossy(userid.value()));
+                    "is linked"
+                };
+                wprintln!(initial_indent=INDENT, "{}", summary);
+
+                if let Some(e) = certification.signature_expiration_time() {
+                    wprintln!(initial_indent=INDENT,
+                              "expiration: {}",
+                              chrono::DateTime::<chrono::Utc>::from(e)
+                              .format("%Y‑%m‑%d"));
+                }
+
+                if depth != 0 && depth != 255 {
+                    wprintln!(initial_indent=INDENT,
+                              "trust depth: {}", depth);
+                }
+
+                if amount != sequoia_wot::FULLY_TRUSTED as u8 {
+                    wprintln!(initial_indent=INDENT,
+                              "trust amount: {}", amount);
                 }
 
                 if ! regex.is_empty() {
-                    params.push(format!("regular expressions: {}",
-                                        regex.join("; ")));
-                }
-
-                if ! params.is_empty() {
-                    wprintln!(": {}.", params.join(", "));
-                } else {
-                    wprintln!(".");
+                    wprintln!(initial_indent=INDENT,
+                              "regular expressions: {}", regex.join("; "));
                 }
             }
         }

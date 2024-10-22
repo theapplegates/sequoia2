@@ -73,13 +73,16 @@ pub fn print_path(path: &PathLints, target_userid: &UserID, prefix: &str)
                   -> Result<()>
 {
     let certification_count = path.certifications().count();
-    wprintln!(indent=prefix,
-              "◯ {}{}",
-              path.root().key_handle(),
+    wprintln!(initial_indent=format!("{}◯─┬ ", prefix),
+              subsequent_indent=format!("{}│ │ ", prefix),
+              "{}", path.root().key_handle());
+    wprintln!(initial_indent=format!("{}│ └ ", prefix),
+              subsequent_indent=format!("{}│   ", prefix),
+              "{}",
               if certification_count == 0 {
-                  format!(" {:?}", String::from_utf8_lossy(target_userid.value()))
+                  format!("{:?}", String::from_utf8_lossy(target_userid.value()))
               } else if let Some(userid) = path.root().primary_userid() {
-                  format!(" ({:?})", String::from_utf8_lossy(userid.value()))
+                  format!("({:?})", String::from_utf8_lossy(userid.value()))
               } else {
                   format!("")
               });
@@ -166,23 +169,25 @@ pub fn print_path(path: &PathLints, target_userid: &UserID, prefix: &str)
             }
         }
 
-        wprintln!(
-            initial_indent=format!("{}{} ", prefix,
-                                   if last { "└" } else { "├" }),
-            subsequent_indent=format!("{}{} ", prefix,
-                                   if last { " " } else { "│" }),
-            "{}{}",
-            certification.target(),
-            if last {
-                format!(" {:?}", String::from_utf8_lossy(target_userid.value()))
-            } else if let Some(userid) =
-                certification.target_cert().and_then(|c| c.primary_userid())
-            {
-                format!(" ({:?})", String::from_utf8_lossy(userid.value()))
-            } else {
-                "".into()
-            }
-        );
+        wprintln!(initial_indent=format!("{}{}─┬ ", prefix,
+                                         if last { "└" } else { "├" }),
+                  subsequent_indent=format!("{}{} │ ", prefix,
+                                            if last { " " } else { "│" }),
+                  "{}", certification.target());
+        wprintln!(initial_indent=format!("{}{} └ ", prefix,
+                                         if last { " " } else { "│" }),
+                  subsequent_indent=format!("{}{}   ", prefix,
+                                            if last { " " } else { "│" }),
+                  "{}",
+                  if last {
+                      format!("{:?}", String::from_utf8_lossy(target_userid.value()))
+                  } else if let Some(userid) =
+                  certification.target_cert().and_then(|c| c.primary_userid())
+                  {
+                      format!("({:?})", String::from_utf8_lossy(userid.value()))
+                  } else {
+                      "".into()
+                  });
 
         if last {
             let target = path.certs().last().expect("have one");

@@ -61,7 +61,8 @@ fn dir() -> path::PathBuf {
 }
 
 fn regexify(needle: &str) -> Regex {
-    Regex::new(&regex::escape(needle).replace(char::is_whitespace, "\\s*"))
+    Regex::new(
+        &regex::escape(needle).replace(char::is_whitespace, "[\\s\\n─┬│└]*"))
         .unwrap()
 }
 

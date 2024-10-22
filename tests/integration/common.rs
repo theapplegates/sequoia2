@@ -541,6 +541,7 @@ impl Sq {
         match &cert_handle {
             FileOrKeyHandle::FileOrStdin(path) => {
                 cmd.arg("--file").arg(path);
+                assert!(output_file.is_some());
             }
             FileOrKeyHandle::KeyHandle((_kh, s)) => {
                 cmd.arg("--cert").arg(&s);

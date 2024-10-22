@@ -12,7 +12,8 @@ fn sq_key_delete() -> Result<()> {
 
     // Delete all the secret key material from a certificate stored in
     // a file.  Make sure the result contains no secret key material.
-    let updated = sq.key_delete(&cert_file, None);
+    let updated = sq.key_delete(&cert_file,
+                                std::path::PathBuf::from("-").as_path());
     assert!(! updated.is_tsk());
 
     // Do the same for a certificate whose secret key material is

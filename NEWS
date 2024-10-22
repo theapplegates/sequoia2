@@ -112,6 +112,7 @@
    - `--cert` now only looks up by primary key fingerprint.
    - The argument `sq key delete --cert-file` has been renamed to
      `--file`.
+   - The argument `sq key delete --file` now requires `--output`.
 
 * Changes in 0.38.0
 ** Notable changes

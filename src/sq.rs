@@ -47,7 +47,6 @@ use keystore::Protection;
 use crate::cli::types::CertDesignators;
 use crate::cli::types::cert_designator::ArgumentPrefix;
 use crate::cli::types::cert_designator::CertDesignator;
-use crate::cli::types::cert_designator::OneValue;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::common::password;
 use crate::output::hint::Hint;
@@ -2127,9 +2126,9 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// certificates.
     ///
     /// Returns whether the certificate was read from a file.
-    pub fn resolve_cert<Arguments, Prefix, Doc>(
+    pub fn resolve_cert<Arguments, Prefix, Options, Doc>(
         &self,
-        designators: &CertDesignators<Arguments, Prefix, OneValue, Doc>,
+        designators: &CertDesignators<Arguments, Prefix, Options, Doc>,
         trust_amount: usize,
     )
         -> Result<(Cert, FileStdinOrKeyHandle)>

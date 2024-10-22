@@ -147,6 +147,10 @@ pub type OneValue = typenum::U1;
 /// completely optional.
 pub type OptionalValue = typenum::U2;
 
+/// Normally it is possible to designate multiple certificates.  This
+/// errors out if there is more than one value.
+pub type FileRequiresOutput = typenum::U4;
+
 // Additional documentation.
 
 /// The prefix for the designators.
@@ -378,6 +382,8 @@ where
         let options = Options::to_usize();
         let one_value = (options & OneValue::to_usize()) > 0;
         let optional_value = (options & OptionalValue::to_usize()) > 0;
+        let file_requires_output =
+            (options & FileRequiresOutput::to_usize()) > 0;
 
         let group = format!("cert-designator-{}-{:X}-{:X}",
                             Prefix::name(),
@@ -534,15 +540,20 @@ where
         // Add all of the variants that are enabled.
         if file_arg {
             let full_name = full_name("file");
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("PATH")
-                    .value_parser(clap::value_parser!(PathBuf))
-                    .action(action.clone())
-                    .help(Doc::help(
-                        "file",
-                        "Read certificates from PATH")));
+            let mut arg = clap::Arg::new(&full_name)
+                .long(&full_name)
+                .value_name("PATH")
+                .value_parser(clap::value_parser!(PathBuf))
+                .action(action.clone())
+                .help(Doc::help(
+                    "file",
+                    "Read certificates from PATH"));
+
+            if file_requires_output {
+                arg = arg.requires("output");
+            }
+
+            cmd = cmd.arg(arg);
             arg_group = arg_group.arg(full_name);
         }
 

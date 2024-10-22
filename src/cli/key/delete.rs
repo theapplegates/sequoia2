@@ -1,5 +1,7 @@
 //! Command-line parser for `sq key delete`.
 
+use std::ops::BitOr;
+
 use clap::Args;
 
 use crate::cli::types::*;
@@ -16,7 +18,7 @@ pub struct Command {
     #[command(flatten)]
     pub cert: CertDesignators<FileCertUserIDEmailDomainGrepArgs,
                               NoPrefix,
-                              OneValue,
+                              <OneValue as BitOr<FileRequiresOutput>>::Output,
                               DeleteKeyDoc>,
 
     #[clap(

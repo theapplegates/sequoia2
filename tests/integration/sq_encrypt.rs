@@ -138,8 +138,8 @@ fn sq_encrypt_using_cert_store() -> Result<()>
 
     // Try to encrypt a message.  This should fail, because we
     // haven't imported the key.
-    for kh in cert.keys().map(|ka| KeyHandle::from(ka.fingerprint()))
-        .chain(cert.keys().map(|ka| KeyHandle::from(ka.keyid())))
+    for kh in [KeyHandle::from(cert.fingerprint()),
+               KeyHandle::from(cert.keyid())]
     {
         assert!(
             sq.encrypt_maybe(&["--for", &kh.to_string()], b"")
@@ -153,8 +153,8 @@ fn sq_encrypt_using_cert_store() -> Result<()>
 
     // Now we should be able to encrypt a message to it, and
     // decrypt it.
-    for kh in cert.keys().map(|ka| KeyHandle::from(ka.fingerprint()))
-        .chain(cert.keys().map(|ka| KeyHandle::from(ka.keyid())))
+    for kh in [KeyHandle::from(cert.fingerprint()),
+               KeyHandle::from(cert.keyid())]
     {
         let ciphertext = sq.encrypt(
             &["--for", &kh.to_string()], MESSAGE);
@@ -525,10 +525,6 @@ fn sq_encrypt_cert_designators() -> Result<()>
         (&[-1, 0, 2][..], (&alice_enc, Some(&alice_fpr), None, None)),
         (&[-1, 2], (&bob_enc, Some(&bob_fpr), None, None)),
         (&[-1, 0, 1, 4], (&mallory_enc, Some(&mallory_fpr), None, None)),
-        // Subkey fingerprint.
-        (&[-2, 1, 2], (&alice_enc, Some(&alice_enc), None, None)),
-        (&[-2, 0], (&bob_enc, Some(&bob_enc), None, None)),
-        (&[-2, 1, 2, 3], (&mallory_enc, Some(&mallory_enc), None, None)),
         // User ID.
         (&[-3, 0, 3], (&alice_enc, None, Some(&alice_userid[..]), None)),
         (&[-3, 2, 3], (&bob_enc, None, Some(&bob_userid1[..]), None)),

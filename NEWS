@@ -109,6 +109,7 @@
    - `sq autocrypt import` has been merged into `sq cert import`.
    - `sq autocrypt decode` and `sq autocrypt encode-sender` are
      removed without substitute.
+   - `--cert` now only looks up by primary key fingerprint.
 
 * Changes in 0.38.0
 ** Notable changes

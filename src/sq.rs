@@ -1673,11 +1673,6 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
     /// Resolve cert designators to certificates.
     ///
-    /// When matching on a subkey via `--cert`, the subkey must be
-    /// bound to the certificate, but a back signature is not
-    /// required.  If a subkey is bound to multiple certificates, all
-    /// of the certificates are returned.
-    ///
     /// When matching on a user ID, a certificate is only returned if
     /// the matching user ID can be authenticated at the specified
     /// amount (`trust_amount`).  Note: when `trust_amount` is 0,
@@ -1828,7 +1823,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 CertDesignator::Cert(kh) => {
                     t!("Looking up certificate by handle {}", kh);
 
-                    match cert_store()?.lookup_by_cert_or_subkey(kh) {
+                    match cert_store()?.lookup_by_cert(kh) {
                         Ok(matches) => {
                             // If the designator doesn't match
                             // anything, we can sometimes provide a

@@ -137,17 +137,8 @@ fn sq_cert_export() -> Result<()>
         let cert = data.cert.as_ref().unwrap();
 
         // Export them by the cert's fingerprint and keyid.
-        for ka in cert.keys() {
-            for kh in [ KeyHandle::from(ka.fingerprint()),
-                        KeyHandle::from(ka.keyid()) ]
-            {
-                call(&["--cert", &kh.to_string()], true, &[data]);
-            }
-        }
-
-        // Export them by fingerprint and keyid.
-        for kh in cert.keys().map(|ka| KeyHandle::from(ka.fingerprint()))
-            .chain(cert.keys().map(|ka| KeyHandle::from(ka.keyid())))
+        for kh in [KeyHandle::from(cert.fingerprint()),
+                   KeyHandle::from(cert.keyid())]
         {
             call(&["--cert", &kh.to_string()], true, &[data]);
         }
@@ -210,8 +201,6 @@ fn sq_cert_export() -> Result<()>
     // Match a cert in many ways.  It should only be exported
     // once.
     call(&["--cert", &carol.cert().fingerprint().to_string(),
-           "--cert",
-           &carol.cert().keys().nth(1).unwrap().fingerprint().to_string(),
            "--userid", carol.userids[0],
            "--email", "carol@sub.example.org",
            "--domain", "other.org"

@@ -24,6 +24,7 @@ use examples::Setup;
 pub mod approvals;
 pub mod expire;
 pub mod generate;
+pub mod list;
 pub mod revoke;
 pub mod subkey;
 pub mod userid;
@@ -88,7 +89,7 @@ pub struct Command {
 
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
-    List(ListCommand),
+    List(list::Command),
     Generate(generate::Command),
     Import(ImportCommand),
     Export(ExportCommand),
@@ -102,27 +103,6 @@ pub enum Subcommands {
     Subkey(subkey::Command),
     #[clap(subcommand)]
     Approvals(approvals::Command),
-}
-
-const LIST_EXAMPLES: Actions = Actions {
-    actions: &[
-        Action::Example(Example {
-            comment: "\
-List the keys managed by the keystore server.",
-            command: &[
-                "sq", "key", "list",
-            ],
-        }),
-    ]
-};
-test_examples!(sq_key_list, LIST_EXAMPLES);
-
-#[derive(Debug, Args)]
-#[clap(
-    about = "List keys managed by the key store",
-    after_help = LIST_EXAMPLES,
-)]
-pub struct ListCommand {
 }
 
 #[derive(ValueEnum, Clone, Debug, Default)]

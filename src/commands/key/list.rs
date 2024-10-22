@@ -128,7 +128,7 @@ impl KeyInfo {
     }
 }
 
-pub fn list(sq: Sq, _command: cli::key::ListCommand) -> Result<()> {
+pub fn list(sq: Sq, _command: cli::key::list::Command) -> Result<()> {
     // Start and connect to the keystore.
     let ks = if let Some(ks) = sq.key_store()? {
         ks

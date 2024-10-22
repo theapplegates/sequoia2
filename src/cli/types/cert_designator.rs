@@ -23,9 +23,9 @@ pub trait ArgumentPrefix {
 pub struct ConcreteArgumentPrefix<T>(std::marker::PhantomData<T>)
 where T: typenum::Unsigned;
 
-// "--cert", "--userid", "--file", etc.
+/// "--cert", "--userid", "--file", etc.
 pub type NoPrefix = ConcreteArgumentPrefix<typenum::U0>;
-// "--cert", "--cert-userid", "--cert-file", etc.
+/// "--cert", "--cert-userid", "--cert-file", etc.
 pub type CertPrefix = ConcreteArgumentPrefix<typenum::U1>;
 
 /// "--for", "--for-userid", "--for-file", etc.
@@ -61,6 +61,19 @@ impl ArgumentPrefix for RecipientPrefix {
     }
 }
 
+/// "--signer", "--signer-userid", "--signer-file", etc.
+pub type SignerPrefix = ConcreteArgumentPrefix<typenum::U3>;
+
+impl ArgumentPrefix for SignerPrefix {
+    fn prefix() -> &'static str {
+        "signer-"
+    }
+
+    fn name() -> &'static str {
+        "signer"
+    }
+}
+
 /// Adds a `--file` argument.
 pub type FileArg = typenum::U1;
 
@@ -78,6 +91,16 @@ pub type DomainArg = typenum::U32;
 
 /// Adds a `--grep` argument.
 pub type GrepArg = typenum::U64;
+
+/// Enables --file, --cert, --userid, --email, and --domain, (i.e.,
+/// not --grep).
+#[allow(dead_code)]
+pub type FileCertUserIDEmailDomainArgs
+    = <<<<FileArg
+          as std::ops::BitOr<CertArg>>::Output
+         as std::ops::BitOr<UserIDArg>>::Output
+        as std::ops::BitOr<EmailArg>>::Output
+       as std::ops::BitOr<DomainArg>>::Output;
 
 /// Enables --cert, --userid, --email, --domain, and --grep (i.e., not
 /// --file).
@@ -109,6 +132,51 @@ pub type OneValue = typenum::U1;
 /// there isn't at least one value.  This makes the cert designator
 /// completely optional.
 pub type OptionalValue = typenum::U2;
+
+// Additional documentation.
+
+/// The prefix for the designators.
+///
+/// See [`NoPrefix`], [`CertPrefix`], etc.
+pub trait AdditionalDocs {
+    /// Text to be added to the help text.
+    // XXX: This should return a Cow<'static, str>, but there is no
+    // implementation of From<Cow<'static, str>> for StyledStr,
+    // see https://github.com/clap-rs/clap/issues/5785
+    fn help(_arg: &'static str, help: &'static str) -> String {
+        help.into()
+    }
+}
+
+/// No additional documentation.
+pub struct NoDoc(());
+impl AdditionalDocs for NoDoc {}
+
+
+/// Documentation for signer arguments.
+pub struct ToVerifyDoc {}
+impl AdditionalDocs for ToVerifyDoc {
+    fn help(arg: &'static str, help: &'static str) -> String {
+        match arg {
+            "cert" | "file" => format!(
+                "{} to verify the signatures with.  \
+                 Note: signatures verified with a certificate \
+                 given here are considered authenticated.{}",
+                help,
+                if arg == "cert" {
+                    "  When this option is not provided, the certificate \
+                     is still read from the certificate store, if it \
+                     exists, but it is not implicitly considered \
+                     authenticated."
+                } else {
+                    ""
+                }),
+            _ => format!(
+                "{} to verify the signatures with",
+                help),
+        }
+    }
+}
 
 /// A certificate designator.
 #[derive(Debug)]
@@ -238,16 +306,18 @@ impl CertDesignator {
 /// change, e.g., `--email` to `--for-email`.
 ///
 /// `Options` are the set of options to the argument parser.
-pub struct CertDesignators<Arguments, Prefix=NoPrefix, Options=typenum::U0>
+pub struct CertDesignators<Arguments, Prefix=NoPrefix, Options=typenum::U0,
+                           Doc=NoDoc>
 {
     /// The set of certificate designators.
     pub designators: Vec<CertDesignator>,
 
-    arguments: std::marker::PhantomData<(Arguments, Prefix, Options)>,
+    arguments: std::marker::PhantomData<(Arguments, Prefix, Options,
+                                         Doc)>,
 }
 
-impl<Arguments, Prefix, Options> std::fmt::Debug
-    for CertDesignators<Arguments, Prefix, Options>
+impl<Arguments, Prefix, Options, Doc> std::fmt::Debug
+    for CertDesignators<Arguments, Prefix, Options, Doc>
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CertDesignators")
@@ -256,7 +326,7 @@ impl<Arguments, Prefix, Options> std::fmt::Debug
     }
 }
 
-impl<Arguments, Prefix, Options> CertDesignators<Arguments, Prefix, Options> {
+impl<Arguments, Prefix, Options, Doc> CertDesignators<Arguments, Prefix, Options, Doc> {
     /// Like `Vec::push`.
     pub fn push(&mut self, designator: CertDesignator) {
         self.designators.push(designator)
@@ -273,12 +343,13 @@ impl<Arguments, Prefix, Options> CertDesignators<Arguments, Prefix, Options> {
     }
 }
 
-impl<Arguments, Prefix, Options> clap::Args
-    for CertDesignators<Arguments, Prefix, Options>
+impl<Arguments, Prefix, Options, Doc> clap::Args
+    for CertDesignators<Arguments, Prefix, Options, Doc>
 where
     Arguments: typenum::Unsigned,
     Prefix: ArgumentPrefix,
     Options: typenum::Unsigned,
+    Doc: AdditionalDocs,
 {
     fn augment_args(mut cmd: clap::Command) -> clap::Command
     {
@@ -382,8 +453,10 @@ where
                     .value_name("FINGERPRINT|KEYID")
                     .value_parser(parse_as_key_handle)
                     .action(action.clone())
-                    .help("Use certificates with the specified \
-                           fingerprint or key ID"));
+                    .help(Doc::help(
+                        "cert",
+                        "Use certificates with the specified \
+                         fingerprint or key ID")));
             arg_group = arg_group.arg(full_name);
         }
 
@@ -394,7 +467,9 @@ where
                     .long(&full_name)
                     .value_name("USERID")
                     .action(action.clone())
-                    .help("Use certificates with the specified user ID"));
+                    .help(Doc::help(
+                        "userid",
+                        "Use certificates with the specified user ID")));
             arg_group = arg_group.arg(full_name);
         }
 
@@ -406,8 +481,10 @@ where
                     .value_name("EMAIL")
                     .value_parser(parse_as_email)
                     .action(action.clone())
-                    .help("Use certificates where a user ID includes \
-                           the specified email address"));
+                    .help(Doc::help(
+                        "email",
+                        "Use certificates where a user ID includes \
+                         the specified email address")));
             arg_group = arg_group.arg(full_name);
         }
 
@@ -419,8 +496,10 @@ where
                     .value_name("DOMAIN")
                     .value_parser(parse_as_domain)
                     .action(action.clone())
-                    .help("Use certificates where a user ID includes \
-                           an email address for the specified domain"));
+                    .help(Doc::help(
+                        "domain",
+                        "Use certificates where a user ID includes \
+                         an email address for the specified domain")));
             arg_group = arg_group.arg(full_name);
         }
 
@@ -431,8 +510,10 @@ where
                     .long(&full_name)
                     .value_name("PATTERN")
                     .action(action.clone())
-                    .help("Use certificates with a user ID that \
-                           matches the pattern, case insensitively"));
+                    .help(Doc::help(
+                        "grep",
+                        "Use certificates with a user ID that \
+                         matches the pattern, case insensitively")));
             arg_group = arg_group.arg(full_name);
         }
 
@@ -445,7 +526,9 @@ where
                     .value_name("PATH")
                     .value_parser(clap::value_parser!(PathBuf))
                     .action(action.clone())
-                    .help("Read certificates from PATH"));
+                    .help(Doc::help(
+                        "file",
+                        "Read certificates from PATH")));
             arg_group = arg_group.arg(full_name);
         }
 
@@ -460,12 +543,13 @@ where
     }
 }
 
-impl<Arguments, Prefix, Options> clap::FromArgMatches
-    for CertDesignators<Arguments, Prefix, Options>
+impl<Arguments, Prefix, Options, Doc> clap::FromArgMatches
+    for CertDesignators<Arguments, Prefix, Options, Doc>
 where
     Arguments: typenum::Unsigned,
     Prefix: ArgumentPrefix,
     Options: typenum::Unsigned,
+    Doc: AdditionalDocs,
 {
     fn update_from_arg_matches(&mut self, matches: &clap::ArgMatches)
         -> Result<(), clap::Error>

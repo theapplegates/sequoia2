@@ -1694,9 +1694,9 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// general, designator-specific errors are returned as `Err`s in
     /// the `Vec`.  General errors, like the certificate store is
     /// disabled, are returned using the outer `Result`.
-    pub fn resolve_certs<Arguments, Prefix, Options>(
+    pub fn resolve_certs<Arguments, Prefix, Options, Doc>(
         &self,
-        designators: &CertDesignators<Arguments, Prefix, Options>,
+        designators: &CertDesignators<Arguments, Prefix, Options, Doc>,
         trust_amount: usize,
     )
         -> Result<(Vec<Cert>, Vec<anyhow::Error>)>
@@ -2099,14 +2099,37 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         Ok((results, errors))
     }
 
+    /// Like `Sq::resolve_certs`, but bails if there is an error
+    /// resolving a certificate.
+    pub fn resolve_certs_or_fail<Arguments, Prefix, Options, Doc>(
+        &self,
+        designators: &CertDesignators<Arguments, Prefix, Options, Doc>,
+        trust_amount: usize,
+    )
+        -> Result<Vec<Cert>>
+    where
+        Prefix: ArgumentPrefix,
+    {
+        let (certs, errors) = self.resolve_certs(designators, trust_amount)?;
+
+        for error in errors.iter() {
+            print_error_chain(error);
+        }
+        if ! errors.is_empty() {
+            return Err(anyhow::anyhow!("Failed to resolve certificates"));
+        }
+
+        Ok(certs)
+    }
+
     /// Like `Sq::resolve_certs`, but bails if there is not exactly
     /// one designator, or the designator resolves to multiple
     /// certificates.
     ///
     /// Returns whether the certificate was read from a file.
-    pub fn resolve_cert<Arguments, Prefix>(
+    pub fn resolve_cert<Arguments, Prefix, Doc>(
         &self,
-        designators: &CertDesignators<Arguments, Prefix, OneValue>,
+        designators: &CertDesignators<Arguments, Prefix, OneValue, Doc>,
         trust_amount: usize,
     )
         -> Result<(Cert, bool)>

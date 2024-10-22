@@ -8,6 +8,7 @@ use super::types::ClapData;
 use super::types::FileOrStdin;
 use super::types::FileOrStdout;
 use super::types::SessionKey;
+use super::types::cert_designator::*;
 
 use crate::cli::examples;
 use examples::Action;
@@ -105,12 +106,13 @@ pub struct Command {
                               is given, 0 otherwise]",
     )]
     pub signatures: Option<usize>,
-    #[clap(
-        long = "signer-file",
-        value_name = "CERT_FILE",
-        help = "Verify signatures using the certificates in CERT_FILE",
-    )]
-    pub sender_cert_file: Vec<PathBuf>,
+
+    #[command(flatten)]
+    pub signers: CertDesignators<CertFileArgs,
+                                 SignerPrefix,
+                                 OptionalValue,
+                                 ToVerifyDoc>,
+
     #[clap(
         long = "recipient-file",
         value_name = "KEY_FILE",

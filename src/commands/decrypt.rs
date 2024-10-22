@@ -32,7 +32,6 @@ use crate::{
     },
     common::password,
     Sq,
-    load_certs,
     load_keys,
 };
 
@@ -42,12 +41,13 @@ pub fn dispatch(sq: Sq, command: cli::decrypt::Command) -> Result<()> {
     let mut input = command.input.open()?;
     let mut output = command.output.create_safe(&sq)?;
 
-    let certs = load_certs(
-        command.sender_cert_file.iter())?;
+    let signers =
+        sq.resolve_certs_or_fail(&command.signers, sequoia_wot::FULLY_TRUSTED)?;
+
     // Fancy default for --signatures.  If you change this,
     // also change the description in the CLI definition.
     let signatures = command.signatures.unwrap_or_else(|| {
-        if certs.is_empty() {
+        if signers.is_empty() {
             // No certs are given for verification, use 0 as
             // threshold so we handle only-encrypted messages
             // gracefully.
@@ -62,7 +62,7 @@ pub fn dispatch(sq: Sq, command: cli::decrypt::Command) -> Result<()> {
         load_keys(command.secret_key_file.iter())?;
     let session_keys = command.session_key;
     decrypt(sq, &mut input, &mut output,
-            signatures, certs, secrets,
+            signatures, signers, secrets,
             command.dump_session_key,
             session_keys)?;
 

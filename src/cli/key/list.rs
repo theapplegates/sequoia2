@@ -3,6 +3,7 @@
 use clap::Args;
 
 use crate::cli::examples::*;
+use crate::cli::types::cert_designator::*;
 
 #[derive(Debug, Args)]
 #[clap(
@@ -10,10 +11,23 @@ use crate::cli::examples::*;
     after_help = EXAMPLES,
 )]
 pub struct Command {
+    #[command(flatten)]
+    pub certs: CertDesignators<CertUserIDEmailDomainGrepArgs,
+                               NoPrefix,
+                               OptionalValue,
+                               ListKeyDoc>,
 }
 
 const EXAMPLES: Actions = Actions {
     actions: &[
+        Action::Setup(Setup {
+            command: &[
+                "sq", "pki", "link", "add",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--userid=Alice <alice@example.org>",
+            ],
+        }),
+
         Action::Example(Example {
             comment: "\
 List the keys managed by the keystore server.",
@@ -21,6 +35,26 @@ List the keys managed by the keystore server.",
                 "sq", "key", "list",
             ],
         }),
+
+        Action::Example(Example {
+            comment: "\
+List the keys managed by the keystore server \
+with a user ID in example.org.",
+            command: &[
+                "sq", "key", "list",
+                "--domain=example.org",
+            ],
+        }),
     ]
 };
 test_examples!(sq_key_list, EXAMPLES);
+
+/// Documentation for the cert designators for the key list.
+pub struct ListKeyDoc {}
+
+impl AdditionalDocs for ListKeyDoc {
+    fn help(_arg: &'static str, help: &'static str) -> String {
+        debug_assert!(help.starts_with("Use certificates"));
+        help.replace("Use certificates", "List keys")
+    }
+}

@@ -1,6 +1,6 @@
 use std::{
     cmp::Ordering,
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     fmt,
 };
 
@@ -128,7 +128,7 @@ impl KeyInfo {
     }
 }
 
-pub fn list(sq: Sq, _command: cli::key::list::Command) -> Result<()> {
+pub fn list(sq: Sq, cmd: cli::key::list::Command) -> Result<()> {
     // Start and connect to the keystore.
     let ks = if let Some(ks) = sq.key_store()? {
         ks
@@ -140,6 +140,15 @@ pub fn list(sq: Sq, _command: cli::key::list::Command) -> Result<()> {
         return Ok(());
     };
     let mut ks = ks.lock().unwrap();
+
+    let certs = if cmd.certs.is_empty() {
+        None
+    } else {
+        Some(sq.resolve_certs_or_fail(&cmd.certs, sequoia_wot::FULLY_TRUSTED)?
+             .into_iter()
+             .map(|c| c.fingerprint())
+             .collect::<BTreeSet<_>>())
+    };
 
     // First, collect information by iterating over the device tree.
     //
@@ -214,6 +223,13 @@ pub fn list(sq: Sq, _command: cli::key::list::Command) -> Result<()> {
 
     // Now display the keys grouped by OpenPGP certificates.
     for (association, keys) in the_keys.iter() {
+        if let Some(c) = &certs {
+            // Skip the keys the user is not interested in.
+            if ! c.contains(&association.key().fingerprint()) {
+                continue;
+            }
+        }
+
         if dirty {
             wprintln!();
         }

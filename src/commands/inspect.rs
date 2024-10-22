@@ -30,9 +30,7 @@ use openpgp::types::{
     ReasonForRevocation,
     SignatureType,
 };
-
-use sequoia_cert_store as cert_store;
-use cert_store::Store;
+use openpgp::serialize::Serialize;
 
 use crate::Convert;
 
@@ -63,7 +61,7 @@ pub fn dispatch(mut sq: Sq, c: inspect::Command)
     let dump_bad_signatures = c.dump_bad_signatures;
 
     let mut bytes: Vec<u8> = Vec::new();
-    if c.cert.is_empty() {
+    if c.certs.is_empty() {
         if let Some(path) = input.inner() {
             if ! path.exists() &&
                 format!("{}", input).parse::<KeyHandle>().is_ok() {
@@ -77,16 +75,9 @@ pub fn dispatch(mut sq: Sq, c: inspect::Command)
                 Some(&input.to_string()), output,
                 print_certifications, dump_bad_signatures)?;
     } else {
-        let cert_store = sq.cert_store_or_else()?;
-        for cert in c.cert.into_iter() {
-            let certs = cert_store.lookup_by_cert_or_subkey(&cert)
-                .with_context(|| format!("Looking up {}", cert))?;
-
+        for cert in sq.resolve_certs_or_fail(&c.certs, 0)? {
             // Include non-exportable signatures, etc.
-            for cert in certs.into_iter() {
-                let b = cert.to_vec().context("Serializing certificate")?;
-                bytes.extend(b);
-            }
+            cert.serialize(&mut bytes).context("Serializing certificate")?;
         }
 
         let br = buffered_reader::Memory::with_cookie(

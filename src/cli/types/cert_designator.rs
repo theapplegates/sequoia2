@@ -92,6 +92,17 @@ pub type DomainArg = typenum::U32;
 /// Adds a `--grep` argument.
 pub type GrepArg = typenum::U64;
 
+/// Enables --file, --cert, --userid, --email, --domain, and --grep
+/// (i.e., all of them).
+#[allow(dead_code)]
+pub type FileCertUserIDEmailDomainGrepArgs
+    = <<<<<FileArg
+           as std::ops::BitOr<CertArg>>::Output
+          as std::ops::BitOr<UserIDArg>>::Output
+         as std::ops::BitOr<EmailArg>>::Output
+        as std::ops::BitOr<DomainArg>>::Output
+       as std::ops::BitOr<GrepArg>>::Output;
+
 /// Enables --file, --cert, --userid, --email, and --domain, (i.e.,
 /// not --grep).
 #[allow(dead_code)]

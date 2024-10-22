@@ -2,11 +2,9 @@
 
 use clap::Parser;
 
-use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
-
 use super::types::ClapData;
 use super::types::FileOrStdin;
+use super::types::cert_designator::*;
 
 use crate::cli::examples;
 use examples::Action;
@@ -70,15 +68,15 @@ pub struct Command {
         default_value_t = FileOrStdin::default(),
         help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
+        conflicts_with_all = ["file", "cert", "userid", "email", "domain", "grep"],
     )]
     pub input: FileOrStdin,
-    #[clap(
-        long = "cert",
-        value_name = "FINGERPRINT|KEYID",
-        conflicts_with = "input",
-        help = "Read the specified certificate from the certificate store",
-    )]
-    pub cert: Vec<KeyHandle>,
+
+    #[command(flatten)]
+    pub certs: CertDesignators<FileCertUserIDEmailDomainGrepArgs,
+                               NoPrefix,
+                               OptionalValue,
+                               ToInspectDoc>,
 
     #[clap(
         long = "certifications",
@@ -91,4 +89,19 @@ pub struct Command {
         help = "Dump signatures that are definitively bad",
     )]
     pub dump_bad_signatures: bool,
+}
+
+/// Documentation for the cert designators for `--inspect`.
+pub struct ToInspectDoc {}
+
+impl AdditionalDocs for ToInspectDoc {
+    fn help(arg: &'static str, help: &'static str) -> String {
+        let help = help.replace("Use", "Inspect");
+        match arg {
+            "cert" | "file" => help,
+            _ => format!(
+                "{}.  Note: User IDs are not authenticated.",
+                help),
+        }
+    }
 }

@@ -1702,6 +1702,22 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     where
         Prefix: ArgumentPrefix
     {
+        self.resolve_certs_with_policy(designators, trust_amount,
+                                       self.policy, self.time)
+    }
+
+    /// Like [`Sq::resolve_certs`] but with explicit policy.
+    pub fn resolve_certs_with_policy<Arguments, Prefix, Options, Doc>(
+        &self,
+        designators: &CertDesignators<Arguments, Prefix, Options, Doc>,
+        trust_amount: usize,
+        policy: &dyn Policy,
+        time: SystemTime,
+    )
+        -> Result<(Vec<Cert>, Vec<anyhow::Error>)>
+    where
+        Prefix: ArgumentPrefix,
+    {
         tracer!(TRACE, "Sq::resolve_certs");
         t!("{:?}", designators);
 
@@ -1850,7 +1866,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
                                     for ka in cert.keys().subkeys() {
                                         if ka.key_handle().aliases(kh) {
-                                            match ka.with_policy(self.policy, None) {
+                                            match ka.with_policy(policy, time) {
                                                 Ok(_ka) => {
                                                     ret(designator,
                                                         Ok(Arc::new(cert.into())),
@@ -2135,6 +2151,22 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     where
         Prefix: ArgumentPrefix
     {
+        self.resolve_cert_with_policy(designators, trust_amount,
+                                      self.policy, self.time)
+    }
+
+    /// Like [`Sq::resolve_cert`], but with explicit policy.
+    pub fn resolve_cert_with_policy<Arguments, Prefix, Options, Doc>(
+        &self,
+        designators: &CertDesignators<Arguments, Prefix, Options, Doc>,
+        trust_amount: usize,
+        policy: &dyn Policy,
+        time: SystemTime,
+    )
+        -> Result<(Cert, FileStdinOrKeyHandle)>
+    where
+        Prefix: ArgumentPrefix,
+    {
         // Assuming this is only called with OneValue, then the
         // following are not required.
         if designators.designators.len() == 0 {
@@ -2147,7 +2179,9 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                    Prefix::name());
         }
 
-        let (certs, errors) = self.resolve_certs(designators, trust_amount)?;
+        let (certs, errors) =
+            self.resolve_certs_with_policy(designators, trust_amount,
+                                           policy, time)?;
         if certs.len() > 1 {
             wprintln!("{} is ambiguous.  It resolves to multiple certificates.",
                       designators.designators[0].argument::<Prefix>());

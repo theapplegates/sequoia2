@@ -75,6 +75,19 @@ impl ArgumentPrefix for SignerPrefix {
     }
 }
 
+/// "--revoker", "--revoker-userid", "--revoker-file", etc.
+pub type RevokerPrefix = ConcreteArgumentPrefix<typenum::U4>;
+
+impl ArgumentPrefix for RevokerPrefix {
+    fn prefix() -> &'static str {
+        "revoker-"
+    }
+
+    fn name() -> &'static str {
+        "revoker"
+    }
+}
+
 /// Adds a `--file` argument.
 pub type FileArg = typenum::U1;
 
@@ -147,6 +160,10 @@ pub type OneValue = typenum::U1;
 /// there isn't at least one value.  This makes the cert designator
 /// completely optional.
 pub type OptionalValue = typenum::U2;
+
+/// Combines OneValue and OptionalValue.
+pub type OneOptionalValue
+    = <OneValue as BitOr<OptionalValue>>::Output;
 
 /// Normally it is possible to designate multiple certificates.  This
 /// errors out if there is more than one value.

@@ -1,17 +1,13 @@
 //! Command-line parser for `sq key revoke`.
 
 use clap::Args;
-use clap::ArgGroup;
-
-use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
 
 use crate::cli::types::ClapData;
-use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 
 use crate::cli::examples::*;
 use crate::cli::key::KeyReasonForRevocation;
+use crate::cli::types::cert_designator::*;
 
 const REVOKE_EXAMPLES: Actions = Actions {
     actions: &[
@@ -67,56 +63,18 @@ instead of the current time.
 ",
     after_help = REVOKE_EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
-#[clap(group(ArgGroup::new("revoker_input").args(&["revoker_file", "revoker"])))]
 pub struct Command {
-    #[clap(
-        long,
-        value_name = "FINGERPRINT|KEYID",
-        help = "The certificate to revoke",
-    )]
-    pub cert: Option<KeyHandle>,
-    #[clap(
-        long,
-        value_name = "CERT_FILE",
-        conflicts_with = "cert",
-        help = "The certificate to revoke",
-        long_help = "\
-The certificate to revoke.
+    #[command(flatten)]
+    pub cert: CertDesignators<CertUserIDEmailFileArgs,
+                              NoPrefix,
+                              OneValueAndFileRequiresOutput,
+                              KeyRevokeCertDoc>,
 
-Read the certificate to revoke from FILE or stdin, if `-`.  It is \
-an error for the file to contain more than one certificate.",
-    )]
-    pub cert_file: Option<FileOrStdin>,
-
-    #[clap(
-        long,
-        value_name = "FINGERPRINT|KEYID",
-        help = "The certificate that issues the revocation",
-        long_help = "\
-The certificate that issues the revocation.
-
-Sign the revocation certificate using the specified key.  By default, \
-the certificate being revoked is used.  Using this option, it is \
-possible to create a third-party revocation.",
-    )]
-    pub revoker: Option<KeyHandle>,
-    #[clap(
-        long,
-        value_name = "KEY_FILE",
-        conflicts_with = "revoker",
-        help = "The certificate that issues the revocation",
-        long_help = "\
-The certificate that issues the revocation.
-
-Sign the revocation certificate using the specified key.  By default, \
-the certificate being revoked is used.  Using this option, it is \
-possible to create a third-party revocation.
-
-Read the certificate from KEY_FILE or stdin, if `-`.  It is an error \
-for the file to contain more than one certificate.",
-    )]
-    pub revoker_file: Option<FileOrStdin>,
+    #[command(flatten)]
+    pub revoker: CertDesignators<CertUserIDEmailFileArgs,
+                                 RevokerPrefix,
+                                 OneOptionalValue,
+                                 KeyRevokeRevokerDoc>,
 
     #[clap(
         value_name = "REASON",
@@ -184,4 +142,36 @@ modified certificate to stdout.",
         help = "Emit binary data",
     )]
     pub binary: bool,
+}
+
+/// Documentation for the cert designators for the key revoke.
+pub struct KeyRevokeCertDoc {}
+
+impl AdditionalDocs for KeyRevokeCertDoc {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        match arg {
+            "file" =>
+                "Revoke the key read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Revoke the key")
+            },
+        }.into()
+    }
+}
+
+/// Documentation for the revoker designators for the key revoke.
+pub struct KeyRevokeRevokerDoc {}
+
+impl AdditionalDocs for KeyRevokeRevokerDoc {
+    fn help(_: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        format!("{} to create the revocation certificate.
+
+Sign the revocation certificate using the specified key.  By default, \
+the certificate being revoked is used.  Using this option, it is \
+possible to create a third-party revocation.",
+                help.replace("certificates", "key")).into()
+    }
 }

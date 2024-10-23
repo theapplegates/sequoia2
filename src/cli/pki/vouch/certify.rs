@@ -34,9 +34,9 @@ const CERTIFY_EXAMPLES: Actions = Actions {
 Alice certifies that Bob controls 3F68CB84CE537C9A and bob@example.org.",
             command: &[
                 "sq", "pki", "vouch", "certify",
-                "--certifier", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--cert", "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "--email", "bob@example.org",
+                "--certifier=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+                "--email=bob@example.org",
             ],
         }),
 
@@ -46,10 +46,10 @@ Alice certifies that Bob controls 3F68CB84CE537C9A and bob@bobs.lair.net, \
 which is not a self-signed user ID.",
             command: &[
                 "sq", "pki", "vouch", "certify",
-                "--certifier", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--cert", "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+                "--certifier=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
                 "--add-userid",
-                "--email", "bob@bobs.lair.net",
+                "--email=bob@bobs.lair.net",
             ],
         }),
     ],

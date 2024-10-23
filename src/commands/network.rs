@@ -56,6 +56,7 @@ use crate::{
         active_certification,
     },
     output::{
+        import::ImportStats,
         pluralize::Pluralize,
     },
     Sq,
@@ -98,8 +99,6 @@ pub fn dispatch(sq: Sq, c: cli::network::Command)
 ///
 /// This does not certify the certificates.
 pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
-    make_qprintln!(sq.quiet);
-
     if certs.is_empty() {
         // No need to do and say anything.
         return Ok(());
@@ -108,8 +107,7 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
     let cert_store = sq.cert_store_or_else()
         .context("Inserting results")?;
 
-    let mut stats
-        = cert_store::store::MergePublicCollectStats::new();
+    let mut stats = ImportStats::default();
 
     for cert in certs.iter() {
         cert_store.update_by(Arc::new(cert.clone().into()), &mut stats)
@@ -121,11 +119,7 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
             })?;
     }
 
-    qprintln!("\nImported {}, updated {}, {} unchanged, {}.",
-              stats.new_certs().of("new certificate"),
-              stats.updated_certs().of("certificate"),
-              stats.unchanged_certs().of("certificate"),
-              stats.errors().of("error"));
+    stats.print_summary(sq)?;
 
     for vcert in certs.iter()
         .filter_map(|cert| cert.with_policy(sq.policy, sq.time).ok())

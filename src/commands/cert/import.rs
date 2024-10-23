@@ -67,7 +67,8 @@ where 'store: 'rstore
 
     let result = inner();
 
-    stats.print_summary()?;
+    wprintln!();
+    stats.print_summary(&sq)?;
 
     Ok(result?)
 }

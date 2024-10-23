@@ -61,7 +61,11 @@ impl<'a> MergeCerts<'a> for ImportStats {
 
 impl ImportStats {
     /// Print key and certificate import summary.
-    pub fn print_summary(&self) -> Result<()> {
+    pub fn print_summary(&self, sq: &crate::Sq) -> Result<()> {
+        if sq.quiet {
+            return Ok(());
+        }
+
         if ! self.keys.is_empty() {
             self.keys.print_summary()?;
         }

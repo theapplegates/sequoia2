@@ -54,7 +54,7 @@ fn sq_key_subkey() -> Result<()> {
                     "--overwrite",
                     "--output",
                     &modified_cert_path.to_string_lossy(),
-                    "--cert-file", &cert_path.to_string_lossy(),
+                    "--file", &cert_path.to_string_lossy(),
                 ]);
             }
             cmd.assert().success();
@@ -110,7 +110,7 @@ fn sq_key_subkey_add_with_password() -> Result<()> {
         "subkey",
         "add",
         "--can-authenticate",
-        "--cert-file", &cert_path.display().to_string(),
+        "--file", &cert_path.display().to_string(),
         "--password-file", &path2.display().to_string(),
         "--new-password-file", &path3.display().to_string(),
         "--output", &output.display().to_string(),

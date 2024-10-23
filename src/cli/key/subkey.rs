@@ -23,6 +23,7 @@ use examples::Action;
 use examples::Actions;
 use examples::Example;
 use examples::Setup;
+use crate::cli::types::cert_designator::*;
 
 #[derive(Debug, Subcommand)]
 #[clap(
@@ -109,24 +110,15 @@ time.
 ",
     after_help = SUBKEY_ADD_EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 #[clap(group(ArgGroup::new("authentication-group").args(&["can_authenticate", "can_encrypt"])))]
 #[clap(group(ArgGroup::new("sign-group").args(&["can_sign", "can_encrypt"])))]
 #[clap(group(ArgGroup::new("required-group").args(&["can_authenticate", "can_sign", "can_encrypt"]).required(true)))]
 pub struct AddCommand {
-    #[clap(
-        long,
-        value_name = "FINGERPRINT|KEYID",
-        help = "Add a subkey to the specified certificate",
-    )]
-    pub cert: Option<KeyHandle>,
-    #[clap(
-        long,
-        value_name = "CERT_FILE",
-        conflicts_with = "cert",
-        help = "Add a subkey to the specified certificate",
-    )]
-    pub cert_file: Option<FileOrStdin>,
+    #[command(flatten)]
+    pub cert: CertDesignators<CertUserIDEmailFileArgs,
+                              NoPrefix,
+                              OneValueAndFileRequiresOutput,
+                              SubkeyAddDoc>,
 
     #[clap(
         long,
@@ -219,6 +211,26 @@ modified certificate to stdout.",
     pub binary: bool,
 }
 
+
+/// Documentation for the cert designators for the key subkey add
+/// command.
+pub struct SubkeyAddDoc {}
+
+impl AdditionalDocs for SubkeyAddDoc {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        match arg {
+            "file" =>
+                "Add a subkey to the key read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Add a subkey to the key")
+                    .into()
+            },
+        }
+    }
+}
 
 const SUBKEY_EXPORT_EXAMPLES: Actions = Actions {
     actions: &[

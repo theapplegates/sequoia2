@@ -176,20 +176,8 @@ fn userid_add(
     sq: Sq,
     mut command: cli::key::userid::AddCommand,
 ) -> Result<()> {
-    let cert = if let Some(file) = command.cert_file {
-        // If `--output` is not specified, default to writing to
-        // stdout, not to the certificate store.
-        if command.output.is_none() {
-            command.output = Some(FileOrStdout::new(None));
-        }
-
-        let input = file.open()?;
-        Cert::from_buffered_reader(input)?
-    } else if let Some(kh) = command.cert {
-        sq.lookup_one(&kh, None, false)?
-    } else {
-        panic!("--cert or --cert-file is required");
-    };
+    let cert =
+        sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.0;
 
     let mut signer = sq.get_primary_key(&cert, None)?;
 

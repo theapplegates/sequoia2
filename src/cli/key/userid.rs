@@ -9,6 +9,7 @@ use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
+use crate::cli::types::cert_designator::*;
 
 use crate::cli::examples;
 use examples::Action;
@@ -73,22 +74,13 @@ binding signature to the specified time.
 ",
     after_help = USERID_ADD_EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
-#[clap(group(ArgGroup::new("cert-userid").args(&["names", "emails", "userid"]).required(true).multiple(true)))]
+#[clap(group(ArgGroup::new("new-userid").args(&["names", "emails", "userid"]).required(true).multiple(true)))]
 pub struct AddCommand {
-    #[clap(
-        long,
-        value_name = "FINGERPRINT|KEYID",
-        help = "Add the user ID to the specified certificate",
-    )]
-    pub cert: Option<KeyHandle>,
-    #[clap(
-        long,
-        value_name = "CERT_FILE",
-        conflicts_with = "cert",
-        help = "Add the user ID to the specified certificate",
-    )]
-    pub cert_file: Option<FileOrStdin>,
+    #[command(flatten)]
+    pub cert: CertDesignators<CertUserIDEmailFileArgs,
+                              CertPrefix,
+                              OneValueAndFileRequiresOutput,
+                              UserIDAddDoc>,
 
     #[clap(
         long = "name",
@@ -151,6 +143,26 @@ modified certificate to stdout.",
         help = "Emit binary data",
     )]
     pub binary: bool,
+}
+
+/// Documentation for the cert designators for the key expire.
+pub struct UserIDAddDoc {}
+
+impl AdditionalDocs for UserIDAddDoc {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        match arg {
+            "file" =>
+                "Add the user ID to the key \
+                 read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Add the user ID to the key")
+                    .into()
+            },
+        }
+    }
 }
 
 const USERID_REVOKE_EXAMPLES: Actions = Actions {

@@ -1,7 +1,5 @@
 //! Command-line parser for `sq key delete`.
 
-use std::ops::BitOr;
-
 use clap::Args;
 
 use crate::cli::types::*;
@@ -16,9 +14,9 @@ use crate::cli::types::cert_designator::*;
 )]
 pub struct Command {
     #[command(flatten)]
-    pub cert: CertDesignators<FileCertUserIDEmailDomainGrepArgs,
+    pub cert: CertDesignators<CertUserIDEmailFileArgs,
                               NoPrefix,
-                              <OneValue as BitOr<FileRequiresOutput>>::Output,
+                              OneValueAndFileRequiresOutput,
                               DeleteKeyDoc>,
 
     #[clap(
@@ -93,7 +91,7 @@ impl AdditionalDocs for DeleteKeyDoc {
             _ => {
                 debug_assert!(help.starts_with("Use certificates"));
                 help.replace("Use certificates",
-                             "Delete secret key material from the certificate")
+                             "Delete secret key material from the key")
             },
         }
     }

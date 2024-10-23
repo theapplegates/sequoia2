@@ -168,7 +168,7 @@ pub trait AdditionalDocs {
     // XXX: This should return a Cow<'static, str>, but there is no
     // implementation of From<Cow<'static, str>> for StyledStr,
     // see https://github.com/clap-rs/clap/issues/5785
-    fn help(_arg: &'static str, help: &'static str) -> String {
+    fn help(_arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         help.into()
     }
 }
@@ -181,7 +181,7 @@ impl AdditionalDocs for NoDoc {}
 /// Documentation for signer arguments.
 pub struct ToVerifyDoc {}
 impl AdditionalDocs for ToVerifyDoc {
-    fn help(arg: &'static str, help: &'static str) -> String {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         match arg {
             "cert" | "file" => format!(
                 "{} to verify the signatures with.  \
@@ -199,7 +199,7 @@ impl AdditionalDocs for ToVerifyDoc {
             _ => format!(
                 "{} to verify the signatures with",
                 help),
-        }
+        }.into()
     }
 }
 

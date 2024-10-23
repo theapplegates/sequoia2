@@ -92,7 +92,7 @@ pub struct Command {
 pub struct KeyExpireDoc {}
 
 impl AdditionalDocs for KeyExpireDoc {
-    fn help(arg: &'static str, help: &'static str) -> String {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         match arg {
             "file" =>
                 "Change the expiration of the key \
@@ -103,6 +103,6 @@ impl AdditionalDocs for KeyExpireDoc {
                 help.replace("Use certificates",
                              "Change the expiration of the key")
             },
-        }
+        }.into()
     }
 }

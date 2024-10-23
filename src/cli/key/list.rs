@@ -53,8 +53,8 @@ test_examples!(sq_key_list, EXAMPLES);
 pub struct ListKeyDoc {}
 
 impl AdditionalDocs for ListKeyDoc {
-    fn help(_arg: &'static str, help: &'static str) -> String {
+    fn help(_: &'static str, help: &'static str) -> clap::builder::StyledStr {
         debug_assert!(help.starts_with("Use certificates"));
-        help.replace("Use certificates", "List keys")
+        help.replace("Use certificates", "List keys").into()
     }
 }

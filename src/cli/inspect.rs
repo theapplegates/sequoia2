@@ -95,13 +95,13 @@ pub struct Command {
 pub struct ToInspectDoc {}
 
 impl AdditionalDocs for ToInspectDoc {
-    fn help(arg: &'static str, help: &'static str) -> String {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         let help = help.replace("Use", "Inspect");
         match arg {
             "cert" | "file" => help,
             _ => format!(
                 "{}.  Note: User IDs are not authenticated.",
                 help),
-        }
+        }.into()
     }
 }

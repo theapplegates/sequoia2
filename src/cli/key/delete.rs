@@ -83,7 +83,7 @@ test_examples!(sq_key_delete, EXAMPLES);
 pub struct DeleteKeyDoc {}
 
 impl AdditionalDocs for DeleteKeyDoc {
-    fn help(arg: &'static str, help: &'static str) -> String {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         match arg {
             "file" =>
                 "Delete the secret key material from the key read from PATH"
@@ -93,6 +93,6 @@ impl AdditionalDocs for DeleteKeyDoc {
                 help.replace("Use certificates",
                              "Delete secret key material from the key")
             },
-        }
+        }.into()
     }
 }

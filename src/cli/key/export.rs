@@ -76,8 +76,8 @@ test_examples!(sq_key_export, EXAMPLES);
 pub struct ExportKeyDoc {}
 
 impl AdditionalDocs for ExportKeyDoc {
-    fn help(_arg: &'static str, help: &'static str) -> String {
+    fn help(_arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         debug_assert!(help.starts_with("Use certificates"));
-        help.replace("Use certificates", "Export keys")
+        help.replace("Use certificates", "Export keys").into()
     }
 }

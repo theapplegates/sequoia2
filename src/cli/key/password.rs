@@ -103,7 +103,7 @@ test_examples!(sq_key_password, EXAMPLES);
 pub struct KeyPasswordDoc {}
 
 impl AdditionalDocs for KeyPasswordDoc {
-    fn help(arg: &'static str, help: &'static str) -> String {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         match arg {
             "file" =>
                 "Change the password for the secret key material from the key \
@@ -115,6 +115,6 @@ impl AdditionalDocs for KeyPasswordDoc {
                              "Change the password for the secret key material \
                               from the key")
             },
-        }
+        }.into()
     }
 }

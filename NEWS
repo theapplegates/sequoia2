@@ -113,6 +113,8 @@
    - The argument `sq key delete --cert-file` has been renamed to
      `--file`.
    - The argument `sq key delete --file` now requires `--output`.
+   - The argument `sq cert lint --cert-file` has been renamed to
+     `--file`.
 
 * Changes in 0.38.0
 ** Notable changes

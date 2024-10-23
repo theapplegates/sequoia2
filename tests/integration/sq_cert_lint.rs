@@ -89,7 +89,7 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
             if keystore {
                 cmd.arg("--cert").arg(&cert.fingerprint().to_string());
             } else {
-                cmd.arg("--cert-file").arg(filename);
+                cmd.arg("--file").arg(filename);
             }
 
             cmd
@@ -135,7 +135,7 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
                 ]);
             } else {
                 cmd.args([
-                    "--cert-file", &format!("{}-{}.pgp", base, suffix),
+                    "--file", &format!("{}-{}.pgp", base, suffix),
                 ]);
             }
             for p in passwords.iter() {
@@ -159,7 +159,7 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
                             cmd.arg("--cert")
                                 .arg(&cert.fingerprint().to_string());
                         } else {
-                            cmd.arg("--cert-file").arg("-")
+                            cmd.arg("--file").arg("-")
                                 .write_stdin(output);
                         }
 
@@ -485,9 +485,9 @@ fn list_keys() {
             "--time", FROZEN_TIME,
             "--list-keys",
             // 94F19D3CB5656E0BC3977C09A8AC5ACC2FB87104
-            "--cert-file", "sha1-userid-pub.pgp",
+            "--file", "sha1-userid-pub.pgp",
             // 55EF7181C288067AE189FF12F5A5CD01D8070917
-            "--cert-file", "gnupg-rsa-normal-pub.pgp"
+            "--file", "gnupg-rsa-normal-pub.pgp"
         ])
         .assert()
         // If there are issues, the command fails.
@@ -503,7 +503,7 @@ fn signature() {
         .args(&[
             "cert", "lint",
             "--time", FROZEN_TIME,
-            "--cert-file", "msg.sig",
+            "--file", "msg.sig",
         ])
         .assert()
         // If there are issues, the command fails.

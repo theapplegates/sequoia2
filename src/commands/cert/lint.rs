@@ -13,7 +13,6 @@ use openpgp::Result;
 use openpgp::armor;
 use openpgp::cert::prelude::*;
 use openpgp::crypto::Signer;
-use openpgp::parse::Parse;
 use openpgp::packet::prelude::*;
 use openpgp::policy::Policy;
 use openpgp::policy::StandardPolicy;
@@ -191,9 +190,6 @@ fn update_subkey_binding<P>(sq: &Sq,
 }
 
 pub fn lint(mut sq: Sq, args: Command) -> Result<()> {
-    // If there were any errors reading the input.
-    let mut bad_input = false;
-
     // Number of certs that have issues.
     let mut certs_with_issues = 0;
     // Whether we were unable to fix at least one issue.
@@ -237,7 +233,9 @@ pub fn lint(mut sq: Sq, args: Command) -> Result<()> {
 
     let reference_time = sq.time;
 
-    let mut out = if args.output.is_some() || ! args.cert_file.is_empty() {
+    let mut out = if args.output.is_some()
+        || args.certs.iter().any(|d| d.from_file() || d.from_stdin())
+    {
         let output = if let Some(output) = args.output {
             output
         } else {
@@ -255,46 +253,8 @@ pub fn lint(mut sq: Sq, args: Command) -> Result<()> {
         None
     };
 
-    'next_input: for input in args.cert.into_iter().map(Ok)
-        .chain(args.cert_file.into_iter().map(Err))
     {
-        let certs = match input {
-            Ok(kh) => {
-                let cert = sq.lookup_one(&kh, None, true)?;
-                vec![cert]
-            }
-            Err(input) => {
-                let filename = match input.inner() {
-                    Some(path) => path.display().to_string(),
-                    None => "/dev/stdin".to_string(),
-                };
-
-                let mut input_reader = input.open()?;
-                let mut certs = Vec::new();
-                let certp = CertParser::from_buffered_reader(&mut input_reader)?;
-                for (certi, certo) in certp.enumerate() {
-                    match certo {
-                        Err(err) => {
-                            if ! sq.quiet {
-                                if certi == 0 {
-                                    wprintln!("{:?} does not appear to be a keyring: {}",
-                                              filename, err);
-                                } else {
-                                    wprintln!("Encountered an error parsing {:?}: {}",
-                                              filename, err);
-                                }
-                            }
-                            bad_input = true;
-                            continue 'next_input;
-                        }
-                        Ok(cert) => certs.push(cert)
-                    }
-                }
-                certs
-            }
-        };
-
-        'next_cert: for cert in certs.into_iter() {
+        'next_cert: for cert in sq.resolve_certs_or_fail(&args.certs, 0)? {
             // Whether we found at least one issue.
             let mut found_issue = false;
 
@@ -877,10 +837,6 @@ pub fn lint(mut sq: Sq, args: Command) -> Result<()> {
                                        pl(certs_with_issues,
                                           "certificate", "certificates")));
         }
-    }
-
-    if bad_input {
-        return Err(anyhow::anyhow!("Error reading input"));
     }
 
     Ok(())

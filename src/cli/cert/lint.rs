@@ -1,15 +1,11 @@
 //! Command-line parser for `sq cert lint`.
 
 use clap::Args;
-use clap::ArgGroup;
-
-use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
 
 use crate::cli::examples::*;
 use crate::cli::types::ClapData;
-use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
+use crate::cli::types::cert_designator::*;
 
 /// Checks for and optionally repairs OpenPGP certificates that use
 /// SHA-1.
@@ -46,7 +42,6 @@ primary key binding signatures for any signing-capable subkeys.
 ",
     after_help = EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct Command {
     /// Attempts to fix certificates, when possible.
     #[arg(long)]
@@ -68,19 +63,10 @@ pub struct Command {
     #[arg(long)]
     pub list_keys: bool,
 
-    #[clap(
-        long,
-        value_name = "CERT_FILE",
-        help = "Lint the certificates in the specified file",
-    )]
-    pub cert_file: Vec<FileOrStdin>,
-    #[clap(
-        long,
-        value_name = "FINGERPRINT|KEYID",
-        help = "Lint the specified certificate",
-        conflicts_with = "cert_file",
-    )]
-    pub cert: Vec<KeyHandle>,
+    #[command(flatten)]
+    pub certs: CertDesignators<FileCertUserIDEmailDomainGrepArgs,
+                               NoPrefix,
+                               NoOptions>,
 
     #[clap(
         long,
@@ -120,7 +106,7 @@ const EXAMPLES: Actions = Actions {
 Gather statistics on the certificates in a keyring.",
             command: &[
                 "sq", "cert", "lint",
-                "--cert-file", "certs.pgp",
+                "--file", "certs.pgp",
             ],
         }),
 
@@ -130,7 +116,7 @@ Get a list of certificates with issues.",
             command: &[
                 "sq", "cert", "lint",
                 "--list-keys",
-                "--cert-file", "certs.pgp",
+                "--file", "certs.pgp",
             ],
         }),
 
@@ -140,7 +126,7 @@ Fix a key with known problems.",
             command: &[
                 "sq", "key", "export",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "|", "sq", "cert", "lint", "--fix", "--cert-file=-",
+                "|", "sq", "cert", "lint", "--fix", "--file=-",
                 "|", "sq", "cert", "import"
             ],
         }),

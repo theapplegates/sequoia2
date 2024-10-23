@@ -303,13 +303,13 @@ impl CertDesignator {
     }
 
     /// Whether the argument reads from a file.
-    pub fn from_file(&self) -> bool
-    {
-        if let CertDesignator::File(_) = self {
-            true
-        } else {
-            false
-        }
+    pub fn from_file(&self) -> bool {
+        matches!(self, CertDesignator::File(_))
+    }
+
+    /// Whether the argument reads from stdin.
+    pub fn from_stdin(&self) -> bool {
+        matches!(self, CertDesignator::Stdin)
     }
 }
 

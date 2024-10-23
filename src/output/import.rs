@@ -20,6 +20,7 @@ use sequoia_keystore as keystore;
 use crate::output::pluralize::Pluralize;
 
 /// Certificate and key import stats.
+#[derive(Debug)]
 pub struct ImportStats {
     pub certs: MergePublicCollectStats,
     pub keys: KeyStats,
@@ -37,14 +38,14 @@ impl Default for ImportStats {
 impl std::ops::AddAssign for ImportStats {
     fn add_assign(&mut self, other: Self) {
         // XXX: Not ideal.
-        (0..self.certs.new_certs())
-            .for_each(|_| other.certs.inc_new_certs());
-        (0..self.certs.unchanged_certs())
-            .for_each(|_| other.certs.inc_unchanged_certs());
-        (0..self.certs.updated_certs())
-            .for_each(|_| other.certs.inc_updated_certs());
-        (0..self.certs.errors())
-            .for_each(|_| other.certs.inc_errors());
+        (0..other.certs.new_certs())
+            .for_each(|_| self.certs.inc_new_certs());
+        (0..other.certs.unchanged_certs())
+            .for_each(|_| self.certs.inc_unchanged_certs());
+        (0..other.certs.updated_certs())
+            .for_each(|_| self.certs.inc_updated_certs());
+        (0..other.certs.errors())
+            .for_each(|_| self.certs.inc_errors());
     }
 }
 

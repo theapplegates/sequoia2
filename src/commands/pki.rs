@@ -457,13 +457,36 @@ pub fn authenticate<'store, 'rstore>(
         // There are no matching bindings.  Tell the user about `sq
         // network fetch`.
         if let Some(pattern) = pattern() {
-            wprintln!("No bindings match.  Try using \
-                       `sq network fetch {:?}` to search public directories \
-                       for matching certificates.",
-                      pattern);
+            wprintln!("No bindings match.");
+
+            sq.hint(format_args!(
+                "Try searching public directories:"))
+                .sq().arg("network").arg("search")
+                .arg(pattern)
+                .done();
         } else {
             wprintln!("The certificate store does not contain any \
                        certificates.");
+
+            sq.hint(format_args!(
+                "Consider creating a key for yourself:"))
+                .sq().arg("key").arg("generate")
+                .arg_value("--name", "your-name")
+                .arg_value("--email", "your-email-address")
+                .done();
+
+            sq.hint(format_args!(
+                "Consider importing other peoples' certificates:"))
+                .sq().arg("cert").arg("import")
+                .arg("a-cert-file.pgp")
+                .done();
+
+            sq.hint(format_args!(
+                "Try searching public directories for other peoples' \
+                 certificates:"))
+                .sq().arg("network").arg("search")
+                .arg("some-mail-address")
+                .done();
         }
     } else if bindings.len() - authenticated > 0 {
         // Some of the matching bindings are unauthenticated.  Tell

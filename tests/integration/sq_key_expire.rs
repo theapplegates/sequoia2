@@ -38,7 +38,7 @@ fn sq_key_expire() -> Result<()> {
         } else {
             cmd
                 .arg("--overwrite")
-                .arg("--cert-file").arg(&cert_path)
+                .arg("--file").arg(&cert_path)
                 .arg("--output").arg(&updated_path);
         }
         sq.run(cmd, true);
@@ -80,7 +80,7 @@ fn sq_key_expire() -> Result<()> {
             cmd.args([ "--cert", &fpr ]);
         } else {
             cmd.args([
-                "--cert-file", &updated_path.to_string_lossy(),
+                "--file", &updated_path.to_string_lossy(),
                 "--output", &updated2_path.to_string_lossy(),
             ]);
         }

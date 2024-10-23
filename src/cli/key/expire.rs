@@ -1,17 +1,13 @@
 //! Command-line parser for `sq key expire`.
 
 use clap::Args;
-use clap::ArgGroup;
-
-use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
 
 use crate::cli::types::ClapData;
 use crate::cli::types::Expiration;
-use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 
 use crate::cli::examples::*;
+use crate::cli::types::cert_designator::*;
 
 const EXAMPLES: Actions = Actions {
     actions: &[
@@ -54,8 +50,13 @@ expire` subcommand.
 ",
     after_help = EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct Command {
+    #[command(flatten)]
+    pub cert: CertDesignators<CertUserIDEmailFileArgs,
+                              NoPrefix,
+                              OneValueAndFileRequiresOutput,
+                              KeyExpireDoc>,
+
     #[clap(
         help = FileOrStdout::HELP_OPTIONAL,
         long,
@@ -85,17 +86,23 @@ pub struct Command {
             The special keyword `never` sets an unlimited expiry.",
     )]
     pub expiration: Expiration,
+}
 
-    #[clap(
-        long,
-        value_name = "FINGERPRINT|KEYID",
-        help = "Change the certificate's expiration time",
-    )]
-    pub cert: Option<KeyHandle>,
-    #[clap(
-        long,
-        value_name = "CERT_FILE",
-        help = "Change the certificate's expiration time",
-    )]
-    pub cert_file: Option<FileOrStdin>,
+/// Documentation for the cert designators for the key expire.
+pub struct KeyExpireDoc {}
+
+impl AdditionalDocs for KeyExpireDoc {
+    fn help(arg: &'static str, help: &'static str) -> String {
+        match arg {
+            "file" =>
+                "Change the expiration of the key \
+                 read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Change the expiration of the key")
+            },
+        }
+    }
 }

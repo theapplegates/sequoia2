@@ -5,7 +5,7 @@ use crate::cli;
 use crate::common::key::password;
 use crate::Result;
 
-pub fn dispatch(sq: Sq, command: cli::key::PasswordCommand)
+pub fn dispatch(sq: Sq, command: cli::key::password::Command)
                 -> Result<()>
 {
     let handle = if let Some(file) = command.cert_file {

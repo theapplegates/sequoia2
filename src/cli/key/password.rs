@@ -2,13 +2,11 @@
 
 use std::path::PathBuf;
 
-use clap::{ArgGroup, Args};
-
-use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
+use clap::Args;
 
 use crate::cli::types::*;
 use crate::cli::examples::*;
+use crate::cli::types::cert_designator::*;
 
 #[derive(Debug, Args)]
 #[clap(
@@ -30,25 +28,12 @@ provided, the user is prompted.
 ",
     after_help = EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct Command {
-    #[clap(
-        long,
-        help = "Change the password of the specified certificate's keys",
-        value_name = FileOrStdin::VALUE_NAME,
-    )]
-    pub cert: Option<KeyHandle>,
-    #[clap(
-        long,
-        value_name = "CERT_FILE",
-        help = "Change the password of the specified certificate's keys",
-        long_help = "\
-Change the password of the specified certificate's keys.
-
-Read the certificate from FILE or stdin, if `-`.  It is an error \
-for the file to contain more than one certificate.",
-    )]
-    pub cert_file: Option<FileOrStdin>,
+    #[command(flatten)]
+    pub cert: CertDesignators<CertUserIDEmailFileArgs,
+                              NoPrefix,
+                              OneValueAndFileRequiresOutput,
+                              KeyPasswordDoc>,
 
     #[clap(
         long,
@@ -72,9 +57,9 @@ any surrounding whitespace like a trailing newline."
         help = FileOrStdout::HELP_OPTIONAL,
         long,
         value_name = FileOrStdout::VALUE_NAME,
-        conflicts_with = "cert",
     )]
     pub output: Option<FileOrStdout>,
+
     #[clap(
         long,
         requires = "output",
@@ -113,3 +98,23 @@ Clear the password protection for all of Alice's keys.",
     ]
 };
 test_examples!(sq_key_password, EXAMPLES);
+
+/// Documentation for the cert designators for the key password.
+pub struct KeyPasswordDoc {}
+
+impl AdditionalDocs for KeyPasswordDoc {
+    fn help(arg: &'static str, help: &'static str) -> String {
+        match arg {
+            "file" =>
+                "Change the password for the secret key material from the key \
+                 read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Change the password for the secret key material \
+                              from the key")
+            },
+        }
+    }
+}

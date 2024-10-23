@@ -126,6 +126,8 @@
    - The argument `sq key revoke --file` now requires `--output`.
    - The argument `sq key userid add --cert-file` now requires
      `--output`.
+   - The argument `sq key userid revoke --cert-file` now requires
+     `--output`.
 
 * Changes in 0.38.0
 ** Notable changes

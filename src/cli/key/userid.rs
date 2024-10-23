@@ -1,13 +1,11 @@
 use clap::{ValueEnum, ArgGroup, Args, Subcommand};
 
 use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
 use openpgp::packet::UserID;
 use openpgp::types::ReasonForRevocation;
 
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
-use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::cert_designator::*;
 
@@ -145,7 +143,7 @@ modified certificate to stdout.",
     pub binary: bool,
 }
 
-/// Documentation for the cert designators for the key expire.
+/// Documentation for the cert designators for the key userid add.
 pub struct UserIDAddDoc {}
 
 impl AdditionalDocs for UserIDAddDoc {
@@ -208,59 +206,18 @@ instead of the current time.
 ",
     after_help = USERID_REVOKE_EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
-#[clap(group(ArgGroup::new("revoker_input").args(&["revoker_file", "revoker"])))]
-#[clap(group(ArgGroup::new("cert-userid").args(&["name", "email", "userid"]).required(true)))]
 pub struct RevokeCommand {
-    #[clap(
-        long,
-        value_name = "FINGERPRINT|KEYID",
-        help = "Revoke the user ID on the specified certificate",
-    )]
-    pub cert: Option<KeyHandle>,
-    #[clap(
-        long,
-        help = FileOrStdin::HELP_OPTIONAL,
-        value_name = "CERT_FILE",
-        conflicts_with = "cert",
-        help = "Revoke the user ID on the specified certificate",
-        long_help = "\
-Revoke the user ID on the specified certificate.
+    #[command(flatten)]
+    pub cert: CertDesignators<CertUserIDEmailFileArgs,
+                              CertPrefix,
+                              OneValueAndFileRequiresOutput,
+                              UserIDRevokeCertDoc>,
 
-Read the certificate whose user ID should be revoked from FILE or \
-stdin, if `-`.  It is an error for the file to contain more than one \
-certificate.",
-    )]
-    pub cert_file: Option<FileOrStdin>,
-
-    #[clap(
-        long,
-        value_name = "FINGERPRINT|KEYID",
-        help = "The certificate that issues the revocation",
-        long_help = "\
-The certificate that issues the revocation.
-
-Sign the revocation certificate using the specified key.  By default, \
-the certificate being revoked is used.  Using this option, it is \
-possible to create a third-party revocation.",
-    )]
-    pub revoker: Option<KeyHandle>,
-    #[clap(
-        long,
-        value_name = "KEY_FILE",
-        conflicts_with = "revoker",
-        help = "The certificate that issues the revocation",
-        long_help = "\
-The certificate that issues the revocation.
-
-Sign the revocation certificate using the specified key.  By default, \
-the certificate being revoked is used.  Using this option, it is \
-possible to create a third-party revocation.
-
-Read the certificate from KEY_FILE or stdin, if `-`.  It is an error \
-for the file to contain more than one certificate.",
-    )]
-    pub revoker_file: Option<FileOrStdin>,
+    #[command(flatten)]
+    pub revoker: CertDesignators<CertUserIDEmailFileArgs,
+                                 RevokerPrefix,
+                                 OneOptionalValue,
+                                 UserIDRevokeRevokerDoc>,
 
     #[clap(
         long = "name",
@@ -366,6 +323,40 @@ modified certificate to stdout.",
         help = "Emit binary data",
     )]
     pub binary: bool,
+}
+
+/// Documentation for the cert designators for the key userid revoke.
+pub struct UserIDRevokeCertDoc {}
+
+impl AdditionalDocs for UserIDRevokeCertDoc {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        match arg {
+            "file" =>
+                "Revoke the user ID from the key \
+                 read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Revoke the user ID from the key")
+                    .into()
+            },
+        }
+    }
+}
+
+/// Documentation for the revoker designators for the key userid revoke revoker.
+pub struct UserIDRevokeRevokerDoc {}
+
+impl AdditionalDocs for UserIDRevokeRevokerDoc {
+    fn help(_: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        format!("{} to create the revocation certificate.
+
+Sign the revocation certificate using the specified key.  By default, \
+the certificate being revoked is used.  Using this option, it is \
+possible to create a third-party revocation.",
+                help.replace("certificates", "key")).into()
+    }
 }
 
 /// The revocation reason for a user ID

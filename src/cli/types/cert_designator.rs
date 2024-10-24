@@ -88,6 +88,19 @@ impl ArgumentPrefix for RevokerPrefix {
     }
 }
 
+/// "--certifier", "--certifier-userid", "--certifier-file", etc.
+pub type CertifierPrefix = ConcreteArgumentPrefix<typenum::U5>;
+
+impl ArgumentPrefix for CertifierPrefix {
+    fn prefix() -> &'static str {
+        "certifier-"
+    }
+
+    fn name() -> &'static str {
+        "certifier"
+    }
+}
+
 /// Adds a `--file` argument.
 pub type FileArg = typenum::U1;
 
@@ -217,6 +230,24 @@ impl AdditionalDocs for ToVerifyDoc {
                 "{} to verify the signatures with",
                 help),
         }.into()
+    }
+}
+
+/// Documentation for certifier arguments.
+pub struct CertifierDoc {}
+impl AdditionalDocs for CertifierDoc {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        match arg {
+            "file" =>
+                "Create the certification using the key read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Create the certification using the key")
+                    .into()
+            },
+        }
     }
 }
 

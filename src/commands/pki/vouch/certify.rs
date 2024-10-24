@@ -1,27 +1,16 @@
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
-use openpgp::types::KeyFlags;
 
 use crate::Sq;
 use crate::cli::pki::vouch::certify;
-use crate::cli::types::FileStdinOrKeyHandle;
 use crate::commands::FileOrStdout;
 use crate::parse_notations;
 
 pub fn certify(sq: Sq, mut c: certify::Command)
     -> Result<()>
 {
-    let certifier: FileStdinOrKeyHandle = if let Some(file) = c.certifier_file {
-        assert!(c.certifier.is_none());
-        file.into()
-    } else if let Some(kh) = c.certifier {
-        kh.into()
-    } else {
-        panic!("clap enforces --certifier or --certifier-file is set");
-    };
-
-    let certifier = sq.lookup_one(
-        certifier, Some(KeyFlags::empty().set_certification()), true)?;
+    let certifier =
+        sq.resolve_cert(&c.certifier, sequoia_wot::FULLY_TRUSTED)?.0;
 
     let (cert, source) = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
     if source.is_file() {

@@ -3,11 +3,7 @@ use clap::{Args, Parser, Subcommand};
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
 use crate::cli::types::FileOrStdout;
-use crate::cli::types::cert_designator::{
-    CertDesignators,
-    CertUserIDEmailFileArgs,
-    NoPrefix,
-};
+use crate::cli::types::cert_designator::*;
 
 /// The default key servers to query.
 pub const DEFAULT_KEYSERVERS: &[&'static str] = &[
@@ -119,7 +115,7 @@ default, the certificates are sent to {}.  This can be tweaked using \
 )]
 pub struct PublishCommand {
     #[command(flatten)]
-    pub certs: CertDesignators<CertUserIDEmailFileArgs,
+    pub certs: CertDesignators<FileCertUserIDEmailDomainArgs,
                                NoPrefix>,
 }
 

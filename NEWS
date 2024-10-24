@@ -131,6 +131,10 @@
    - The argument `sq key subkey add --cert-file` has been renamed to
      `--file`.
    - The argument `sq key subkey add --file` now requires `--output`.
+   - The argument `sq key subkey delete --cert-file` has been renamed
+     to `--file`.
+   - The argument `sq key subkey delete --file` now requires
+     `--output`.
 
 * Changes in 0.38.0
 ** Notable changes

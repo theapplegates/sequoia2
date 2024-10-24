@@ -322,25 +322,13 @@ revoke the keys using `sq key subkey revoke`.
 ",
     after_help = SQ_KEY_SUBKEY_DELETE_EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct DeleteCommand {
-    #[clap(
-        long,
-        help = "Delete secret key material from the specified certificate",
-        value_name = FileOrStdin::VALUE_NAME,
-    )]
-    pub cert: Option<KeyHandle>,
-    #[clap(
-        long,
-        value_name = "CERT_FILE",
-        help = "Delete secret key material from the specified certificate",
-        long_help = "\
-Delete secret key material from the specified certificate.
+    #[command(flatten)]
+    pub cert: CertDesignators<CertUserIDEmailFileArgs,
+                              NoPrefix,
+                              OneValueAndFileRequiresOutput,
+                              SubkeyDeleteDoc>,
 
-Read the certificate from FILE or stdin, if `-`.  It is an error \
-for the file to contain more than one certificate.",
-    )]
-    pub cert_file: Option<FileOrStdin>,
     #[clap(
         long,
         value_name = "FINGERPRINT|KEYID",
@@ -376,6 +364,25 @@ file.  When deleting secret key material managed by the key store using \
         help = "Emit binary data",
     )]
     pub binary: bool,
+}
+
+/// Documentation for the cert designators for the key subkey delete
+/// command.
+pub struct SubkeyDeleteDoc {}
+
+impl AdditionalDocs for SubkeyDeleteDoc {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        match arg {
+            "file" =>
+                "Delete the secret key material from the key read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Delete secret key material from the key")
+            },
+        }.into()
+    }
 }
 
 const SQ_KEY_SUBKEY_PASSWORD_EXAMPLES: Actions = Actions {

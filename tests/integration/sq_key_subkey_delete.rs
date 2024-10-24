@@ -68,7 +68,8 @@ fn sq_key_subkey_delete() -> Result<()>
                 cert.key_handle(), &to_delete_kh, None)
         } else {
             sq.key_subkey_delete(
-                &cert_file, &to_delete_kh, None)
+                &cert_file, &to_delete_kh,
+                std::path::PathBuf::from("-").as_path())
         };
 
         // Make sure we got exactly what we asked for; no

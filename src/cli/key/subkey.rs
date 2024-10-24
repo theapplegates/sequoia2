@@ -283,6 +283,20 @@ secret key material is exported.  An error is returned if the secret \
 key material for the specified key is not available.",
     )]
     pub key: Vec<KeyHandle>,
+
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP_OPTIONAL,
+        long,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
+
+    #[clap(
+        long,
+        help = "Emit binary data",
+    )]
+    pub binary: bool,
 }
 
 const SQ_KEY_SUBKEY_DELETE_EXAMPLES: Actions = Actions {

@@ -1,15 +1,14 @@
 use clap::{ArgGroup, Args};
 
 use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
 use openpgp::packet::UserID;
 
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
-use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 
 use crate::cli::examples::*;
+use crate::cli::types::cert_designator::*;
 
 #[derive(Debug, Args)]
 #[clap(
@@ -39,29 +38,13 @@ signature.
 ",
     after_help = USERID_STRIP_EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
-#[clap(group(ArgGroup::new("cert-userid").args(&["names", "emails", "userid"]).required(true).multiple(true)))]
+#[clap(group(ArgGroup::new("strip-userid").args(&["names", "emails", "userid"]).required(true).multiple(true)))]
 pub struct Command {
-    #[clap(
-        long,
-        value_name = "FINGERPRINT|KEYID",
-        help = "Strip the user ID on the specified certificate",
-    )]
-    pub cert: Option<KeyHandle>,
-    #[clap(
-        long,
-        help = FileOrStdin::HELP_OPTIONAL,
-        value_name = "CERT_FILE",
-        conflicts_with = "cert",
-        help = "Strip the user ID on the specified certificate",
-        long_help = "\
-Strip the user ID on the specified certificate.
-
-Read the certificate whose user ID should be stripped from FILE or \
-stdin, if `-`.  It is an error for the file to contain more than one \
-certificate.",
-    )]
-    pub cert_file: Option<FileOrStdin>,
+    #[command(flatten)]
+    pub cert: CertDesignators<CertUserIDEmailFileArgs,
+                              CertPrefix,
+                              OneValue,
+                              StripUserIDDoc>,
 
     #[clap(
         long,
@@ -127,3 +110,23 @@ const USERID_STRIP_EXAMPLES: Actions = Actions {
     ]
 };
 test_examples!(sq_key_userid_strip, USERID_STRIP_EXAMPLES);
+
+/// Documentation for the cert designators for the toolbox
+/// strip-userid command.
+pub struct StripUserIDDoc {}
+
+impl AdditionalDocs for StripUserIDDoc {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        match arg {
+            "file" =>
+                "Strip the user ID from the cert read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Strip the user ID of the certificate")
+                    .into()
+            },
+        }
+    }
+}

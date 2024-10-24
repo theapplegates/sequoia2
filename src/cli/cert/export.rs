@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use crate::cli::types::CertDesignators;
+use crate::cli::types::*;
 use crate::cli::types::cert_designator::CertUserIDEmailDomainGrepArgs;
 use crate::cli::types::cert_designator::NoPrefix;
 use crate::cli::types::cert_designator::OptionalValue;
@@ -97,6 +97,14 @@ no search criteria are specified, then this will return success.
     after_help = EXAMPLES,
 )]
 pub struct Command {
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP_OPTIONAL,
+        long,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
+
     #[clap(
         long,
         help = "Emit binary data",

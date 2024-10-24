@@ -10,7 +10,6 @@ use openpgp::{
 use sequoia_cert_store as cert_store;
 use cert_store::Store;
 
-use crate::cli::types::FileOrStdout;
 use crate::{
     Sq,
     print_error_chain,
@@ -28,8 +27,7 @@ pub fn dispatch(sq: Sq, cmd: export::Command) -> Result<()> {
         return Err(anyhow::anyhow!("no query given"));
     }
 
-    let output = FileOrStdout::default();
-    let mut sink = output.create_pgp_safe(
+    let mut sink = cmd.output.create_pgp_safe(
         &sq,
         cmd.binary,
         armor::Kind::PublicKey,

@@ -548,22 +548,12 @@ of a subkey is bound by the expiration of the certificate.
 ",
     after_help = SQ_KEY_SUBKEY_EXPIRE_EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct ExpireCommand {
-    #[clap(
-        long,
-        value_name = "FINGERPRINT|KEYID",
-        help = "Change the expiration time of keys on the specified \
-                certificate",
-    )]
-    pub cert: Option<KeyHandle>,
-    #[clap(
-        long,
-        value_name = "CERT_FILE",
-        help = "Change the expiration time of keys on the specified \
-                certificate",
-    )]
-    pub cert_file: Option<FileOrStdin>,
+    #[command(flatten)]
+    pub cert: CertDesignators<CertUserIDEmailFileArgs,
+                              NoPrefix,
+                              OneValueAndFileRequiresOutput,
+                              SubkeyExpireDoc>,
 
     #[clap(
         long,
@@ -609,6 +599,28 @@ modified certificate to stdout.",
         help = "Emit binary data",
     )]
     pub binary: bool,
+}
+
+/// Documentation for the cert designators for the key subkey expire
+/// command.
+pub struct SubkeyExpireDoc {}
+
+impl AdditionalDocs for SubkeyExpireDoc {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        match arg {
+            "file" =>
+                "Change the expiration of the specified (sub)keys on the key \
+                 read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Change the expiration of the specified (sub)keys \
+                              on the key")
+                    .into()
+            },
+        }
+    }
 }
 
 const SUBKEY_REVOKE_EXAMPLES: Actions = Actions {

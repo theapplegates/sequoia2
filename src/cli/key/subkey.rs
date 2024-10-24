@@ -438,25 +438,12 @@ provided, the user is prompted.
 ",
     after_help = SQ_KEY_SUBKEY_PASSWORD_EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct PasswordCommand {
-    #[clap(
-        long,
-        help = "Change the password of the specified certificate's keys",
-        value_name = FileOrStdin::VALUE_NAME,
-    )]
-    pub cert: Option<KeyHandle>,
-    #[clap(
-        long,
-        value_name = "CERT_FILE",
-        help = "Change the password of the specified certificate's keys",
-        long_help = "\
-Change the password of the specified certificate's keys.
-
-Read the certificate from FILE or stdin, if `-`.  It is an error \
-for the file to contain more than one certificate.",
-    )]
-    pub cert_file: Option<FileOrStdin>,
+    #[command(flatten)]
+    pub cert: CertDesignators<CertUserIDEmailFileArgs,
+                              NoPrefix,
+                              OneValueAndFileRequiresOutput,
+                              SubkeyPasswordDoc>,
 
     #[clap(
         long,
@@ -522,6 +509,27 @@ Change Alice's authentication subkey to expire in 6 months.",
     ],
 };
 test_examples!(sq_key_subkey_expire, SQ_KEY_SUBKEY_EXPIRE_EXAMPLES);
+
+/// Documentation for the cert designators for the key password.
+pub struct SubkeyPasswordDoc {}
+
+impl AdditionalDocs for SubkeyPasswordDoc {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        match arg {
+            "file" =>
+                "Change the password for the secret key material of the \
+                 specified (sub)keys from the key read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Change the password for the secret key material \
+                              of the specified (sub)keys from the key")
+                   .into()
+            },
+        }
+    }
+}
 
 #[derive(Debug, Args)]
 #[clap(

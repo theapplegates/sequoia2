@@ -96,7 +96,7 @@ fn sq_key_subkey_password_mod(modulus: usize) -> Result<()>
             sq.key_subkey_password(
                 &cert_file, &to_change_kh,
                 None, Some(&password_txt),
-                None, true)
+                std::path::PathBuf::from("-").as_path(), true)
                 .expect("can change password")
         };
 

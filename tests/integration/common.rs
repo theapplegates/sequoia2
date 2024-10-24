@@ -1123,7 +1123,8 @@ impl Sq {
         cmd.arg("key").arg("subkey").arg("password");
 
         if cert_handle.is_file() {
-            cmd.arg("--cert-file").arg(&cert_handle);
+            cmd.arg("--file").arg(&cert_handle);
+            assert!(output_file.is_some());
         } else {
             cmd.arg("--cert").arg(&cert_handle);
         };

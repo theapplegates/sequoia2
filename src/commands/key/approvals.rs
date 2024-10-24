@@ -27,7 +27,9 @@ pub fn dispatch(sq: Sq, command: approvals::Command)
 }
 
 fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
-    let cert = sq.lookup_one(&cmd.cert, None, true)?;
+    let cert =
+        sq.resolve_cert(&cmd.cert, sequoia_wot::FULLY_TRUSTED)?.0;
+
     let vcert = cert.with_policy(sq.policy, sq.time)?;
     let store = sq.cert_store_or_else()?;
 

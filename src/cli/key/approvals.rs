@@ -14,6 +14,7 @@ use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 
 use crate::cli::examples::*;
+use crate::cli::types::cert_designator::*;
 
 #[derive(Debug, Subcommand)]
 #[clap(
@@ -93,6 +94,12 @@ approved.
     after_help = LIST_EXAMPLES,
 )]
 pub struct ListCommand {
+    #[command(flatten)]
+    pub cert: CertDesignators<CertUserIDEmailFileArgs,
+                              CertPrefix,
+                              OneValue,
+                              ApprovalsListDoc>,
+
     #[clap(
         long = "pending",
         help = "List unapproved certifications",
@@ -116,13 +123,26 @@ pub struct ListCommand {
         help = "List certifications on this user ID",
     )]
     pub userids: Vec<String>,
+}
 
-    #[clap(
-        long,
-        value_name = "CERT",
-        help = "Lists attestations on the specified certificate",
-    )]
-    pub cert: KeyHandle,
+/// Documentation for the cert designators for the key approvals list
+/// command.
+pub struct ApprovalsListDoc {}
+
+impl AdditionalDocs for ApprovalsListDoc {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        match arg {
+            "file" =>
+                "List the approvals on the certificate read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "List the approvals on the certificate")
+                    .into()
+            },
+        }
+    }
 }
 
 const UPDATE_EXAMPLES: Actions = Actions {

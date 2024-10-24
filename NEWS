@@ -152,6 +152,7 @@
    - The argument `sq key subkey bind --file` now requires `--output`.
    - The argument `sq key approvals update --cert-file` now requires
      `--output`.
+   - The pEp store integration has been removed.
 
 * Changes in 0.38.0
 ** Notable changes

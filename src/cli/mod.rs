@@ -357,21 +357,6 @@ environment variable.",
     #[clap(
         long,
         value_name = "PATH",
-        env = "PEP_CERT_STORE",
-        global = true,
-        help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Specify the location of a pEp certificate store",
-        long_help = "\
-Specify the location of a pEp certificate store.  sq does not use a \
-pEp certificate store by default; it must be explicitly enabled \
-using this argument or the corresponding environment variable, \
-PEP_CERT_STORE.  The pEp Engine's default certificate store is at \
-`$HOME/.pEp/keys.db`."
-    )]
-    pub pep_cert_store: Option<PathBuf>,
-    #[clap(
-        long,
-        value_name = "PATH",
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Specify the location of a keyring to use",

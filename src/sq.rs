@@ -101,7 +101,6 @@ pub struct Sq<'store, 'rstore>
     // --no-cert-store
     pub no_rw_cert_store: bool,
     pub cert_store_path: Option<PathBuf>,
-    pub pep_cert_store_path: Option<PathBuf>,
     pub keyrings: Vec<PathBuf>,
     // Map from key fingerprint to cert fingerprint and the key.
     pub keyring_tsks: OnceCell<BTreeMap<
@@ -152,7 +151,6 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     pub fn cert_store(&self) -> Result<Option<&WotStore<'store, 'rstore>>> {
         if self.no_rw_cert_store
             && self.keyrings.is_empty()
-            && self.pep_cert_store_path.is_none()
         {
             // The cert store is disabled.
             return Ok(None);
@@ -256,32 +254,6 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         cert_store.add_backend(
             Box::new(keyring),
             cert_store::AccessMode::Always);
-
-        if let Some(ref pep_cert_store) = self.pep_cert_store_path {
-            let pep_cert_store = if pep_cert_store.is_dir() {
-                pep_cert_store.join("keys.db")
-            } else {
-                match pep_cert_store.try_exists() {
-                    Ok(true) => {
-                        PathBuf::from(pep_cert_store)
-                    }
-                    Ok(false) => {
-                        return Err(anyhow::anyhow!(
-                            "{:?} does not exist", pep_cert_store));
-                    }
-                    Err(err) => {
-                        return Err(anyhow::anyhow!(
-                            "Accessing {:?}: {}", pep_cert_store, err));
-                    }
-                }
-            };
-
-            let pep = cert_store::store::pep::Pep::open(Some(&pep_cert_store))?;
-
-            cert_store.add_backend(
-                Box::new(pep),
-                cert_store::AccessMode::Always);
-        }
 
         let cert_store = WotStore::from_store(
             cert_store, self.policy, self.time);

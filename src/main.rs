@@ -244,7 +244,6 @@ fn real_main() -> Result<()> {
         },
         no_rw_cert_store: c.no_cert_store,
         cert_store_path: c.cert_store.as_ref().and_then(|a| a.path()),
-        pep_cert_store_path: c.pep_cert_store.clone(),
         keyrings: c.keyring.clone(),
         keyring_tsks: Default::default(),
         cert_store: OnceCell::new(),

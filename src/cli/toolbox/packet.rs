@@ -13,6 +13,7 @@ use crate::cli::types::ClapData;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::SessionKey;
+use crate::cli::types::cert_designator::*;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -60,12 +61,20 @@ To inspect encrypted messages, either supply the session key, or see \
     after_help = DUMP_EXAMPLES,
 )]
 pub struct DumpCommand {
+    #[command(flatten)]
+    pub cert: CertDesignators<CertUserIDEmailFileArgs,
+                              CertPrefix,
+                              OneOptionalValue,
+                              PacketDumpDoc>,
+
     #[clap(
         default_value_t = FileOrStdin::default(),
         help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
+        conflicts_with_all = ["cert", "cert-userid", "cert-email", "cert-file"],
     )]
     pub input: FileOrStdin,
+
     #[clap(
         default_value_t = FileOrStdout::default(),
         help = FileOrStdout::HELP_OPTIONAL,
@@ -141,6 +150,26 @@ secret key file.",
     ],
 };
 test_examples!(sq_toolbox_packet_dump, DUMP_EXAMPLES);
+
+/// Documentation for the cert designators for the toolbox packet dump
+/// command.
+pub struct PacketDumpDoc {}
+
+impl AdditionalDocs for PacketDumpDoc {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        match arg {
+            "file" =>
+                "Dump the packets of the cert read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Dump the packets of the certificate")
+                    .into()
+            },
+        }
+    }
+}
 
 #[derive(Debug, Args)]
 #[clap(

@@ -8,6 +8,7 @@ use terminal_size::terminal_size;
 
 use sequoia_openpgp as openpgp;
 use openpgp::{
+    KeyHandle,
     armor::{
         Kind,
         ReaderMode,
@@ -20,6 +21,7 @@ use openpgp::{
         PacketParserBuilder,
         PacketParserResult,
     },
+    serialize::SerializeInto,
 };
 use openpgp::serialize::stream::Message;
 
@@ -44,7 +46,27 @@ pub fn dispatch(sq: Sq, command: Command)
     tracer!(TRACE, "packet::dispatch");
     match command.subcommand {
         Subcommands::Dump(command) => {
-            let mut input = command.input.open()?;
+            let mut input = if command.cert.is_empty() {
+                if let Some(path) = command.input.inner() {
+                    if ! path.exists() &&
+                        format!("{}", command.input).parse::<KeyHandle>().is_ok() {
+                            wprintln!("The file {} does not exist, \
+                                       did you mean \"sq toolbox packet dump \
+                                       --cert {}\"?",
+                                      path.display(), path.display());
+                        }
+                }
+
+                Box::new(command.input.open()?)
+                    as Box<dyn io::Read + Send + Sync>
+            } else {
+                let cert = sq.resolve_cert(&command.cert, 0)?.0;
+                let bytes = cert.as_tsk().to_vec()
+                    .context("Serializing certificate")?;
+
+                Box::new(io::Cursor::new(bytes))
+            };
+
             let output_type = command.output;
             let mut output = output_type.create_unsafe(&sq)?;
 

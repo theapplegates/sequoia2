@@ -774,7 +774,7 @@ impl Sq {
         }
 
         if target.is_file() {
-            cmd.arg("--cert-file").arg(target);
+            cmd.arg("--file").arg(target);
         } else {
             cmd.arg("--cert").arg(target);
         };

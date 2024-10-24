@@ -7,7 +7,6 @@ use openpgp::KeyHandle;
 
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
-use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::Time;
 
@@ -829,8 +828,13 @@ respectively.
 #[clap(group(ArgGroup::new("cap-sign").args(&["can_sign", "cannot_sign"])))]
 #[clap(group(ArgGroup::new("cap-authenticate").args(&["can_authenticate", "cannot_authenticate"])))]
 #[clap(group(ArgGroup::new("cap-encrypt").args(&["can_encrypt", "cannot_encrypt"])))]
-#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct BindCommand {
+    #[command(flatten)]
+    pub cert: CertDesignators<CertUserIDEmailFileArgs,
+                              NoPrefix,
+                              OneValueAndFileRequiresOutput,
+                              SubkeyBindDoc>,
+
     #[clap(
         long,
         value_name = "KEY",
@@ -867,18 +871,6 @@ the purpose of signature verification, for example.",
             using broken cryptography",
     )]
     pub allow_broken_crypto: bool,
-    #[clap(
-        long,
-        help = "Add keys to the specified certificate",
-        value_name = "CERT_FILE",
-    )]
-    pub cert: Option<KeyHandle>,
-    #[clap(
-        long,
-        value_name = "CERT_FILE",
-        help = "Add keys to the specified certificate",
-    )]
-    pub cert_file: Option<FileOrStdin>,
 
     #[clap(
         long = "can-sign",
@@ -970,3 +962,23 @@ keys, e.g., keys generated on an OpenPGP card, a TPM device, etc.",
     ]
 };
 test_examples!(sq_key_bind, BIND_EXAMPLES);
+
+/// Documentation for the cert argument of the key subkey bind
+/// command.
+pub struct SubkeyBindDoc {}
+
+impl AdditionalDocs for SubkeyBindDoc {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        match arg {
+            "file" =>
+                "Add the specified subkeys to the key read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Add the specified subkeys on the key")
+                    .into()
+            },
+        }
+    }
+}

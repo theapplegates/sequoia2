@@ -18,28 +18,12 @@ use sequoia_openpgp as openpgp;
 use crate::Sq;
 use crate::cli;
 use cli::types::EncryptPurpose;
-use crate::cli::types::FileOrStdout;
-use crate::cli::types::FileStdinOrKeyHandle;
 use crate::common::password;
 
-pub fn bind(sq: Sq, mut command: cli::key::subkey::BindCommand) -> Result<()>
+pub fn bind(sq: Sq, command: cli::key::subkey::BindCommand) -> Result<()>
 {
-    let handle: FileStdinOrKeyHandle = if let Some(file) = command.cert_file {
-        assert!(command.cert.is_none());
-        file.into()
-    } else if let Some(kh) = command.cert {
-        kh.into()
-    } else {
-        panic!("clap enforces --cert or --cert-file is set");
-    };
-
-    if handle.is_file() {
-        if command.output.is_none() {
-            // None means to write to the cert store.  When reading
-            // from a file, we want to write to stdout by default.
-            command.output = Some(FileOrStdout::new(None));
-        }
-    }
+    let handle =
+        sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.1;
 
     let cert = sq.lookup_one(handle, None, true)?;
 

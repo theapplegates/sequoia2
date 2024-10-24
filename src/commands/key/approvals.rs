@@ -13,8 +13,6 @@ use sequoia_wot as wot;
 use crate::Sq;
 use crate::cli;
 use crate::cli::key::approvals;
-use crate::cli::types::FileStdinOrKeyHandle;
-use crate::cli::types::FileOrStdout;
 use crate::common::userid::make_userid_filter;
 
 pub fn dispatch(sq: Sq, command: approvals::Command)
@@ -97,25 +95,13 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
 
 fn update(
     sq: Sq,
-    mut command: cli::key::approvals::UpdateCommand,
+    command: cli::key::approvals::UpdateCommand,
 ) -> Result<()> {
     let store = sq.cert_store_or_else()?;
 
-    let handle: FileStdinOrKeyHandle = if let Some(file) = command.cert_file {
-        assert!(command.cert.is_none());
+    let handle =
+        sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.1;
 
-        if command.output.is_none() {
-            // None means to write to the cert store.  When reading
-            // from a file, we want to write to stdout by default.
-            command.output = Some(FileOrStdout::new(None));
-        }
-
-        file.into()
-    } else if let Some(kh) = command.cert {
-        kh.into()
-    } else {
-        panic!("clap enforces --cert or --cert-file is set");
-    };
     let key = sq.lookup_one(handle, None, true)?;
     let vcert = key.with_policy(sq.policy, sq.time)?;
 

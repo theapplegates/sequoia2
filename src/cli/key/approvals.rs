@@ -2,7 +2,6 @@
 
 use clap::{
     Args,
-    ArgGroup,
     Subcommand,
 };
 
@@ -10,7 +9,6 @@ use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
 use crate::cli::types::ClapData;
-use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 
 use crate::cli::examples::*;
@@ -244,8 +242,13 @@ distributed, e.g. by uploading it to a key server.
 ",
     after_help = UPDATE_EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
 pub struct UpdateCommand {
+    #[command(flatten)]
+    pub cert: CertDesignators<CertUserIDEmailFileArgs,
+                              CertPrefix,
+                              OneValueAndFileRequiresOutput,
+                              ApprovalsListDoc>,
+
     #[clap(
         long = "name",
         help = "Change approvals on this name user ID",
@@ -317,20 +320,6 @@ amount, approve of the certification.",
         conflicts_with = "add_all",
     )]
     pub add_authenticated: Option<u8>,
-
-    #[clap(
-        long,
-        value_name = "CERT",
-        help = "Change attestations on the specified certificate",
-    )]
-    pub cert: Option<KeyHandle>,
-
-    #[clap(
-        long,
-        value_name = "CERT_FILE",
-        help = "Change attestations on the specified certificate",
-    )]
-    pub cert_file: Option<FileOrStdin>,
 
     #[clap(
         long,

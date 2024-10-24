@@ -48,7 +48,7 @@ const LIST_EXAMPLES: Actions = Actions {
 Lists the approved certifications on all the user IDs.",
             command: &[
                 "sq", "key", "approvals", "list",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
 
@@ -58,7 +58,7 @@ Lists the unapproved certifications on all the user IDs.",
             command: &[
                 "sq", "key", "approvals", "list",
                 "--pending",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
 
@@ -68,8 +68,8 @@ Lists all unapproved certifications on a given user ID.",
             command: &[
                 "sq", "key", "approvals", "list",
                 "--pending",
-                "--email", "alice@example.org",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--email=alice@example.org",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
     ]
@@ -140,16 +140,16 @@ const UPDATE_EXAMPLES: Actions = Actions {
         Action::Setup(Setup {
             command: &[
                 "sq", "pki", "vouch", "certify",
-                "--certifier", "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--email", "alice@example.org",
+                "--certifier=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--email=alice@example.org",
             ],
         }),
         Action::Setup(Setup {
             command: &[
                 "sq", "pki", "link", "add",
-                "--cert", "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "--email", "bob@example.org",
+                "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+                "--email=bob@example.org",
             ],
         }),
 
@@ -159,7 +159,7 @@ Approve of all of the certifications on all of Alice's user IDs.",
             command: &[
                 "sq", "key", "approvals", "update",
                 "--add-all",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
 
@@ -170,8 +170,8 @@ discarding all prior approvals first.",
             command: &[
                 "sq", "key", "approvals", "update",
                 "--remove-all",
-                "--add-by", "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--add-by=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
 
@@ -183,8 +183,8 @@ can be authenticated, discarding all prior approvals first.",
                 "sq", "key", "approvals", "update",
                 "--remove-all",
                 "--add-authenticated",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--userid", "Alice <alice@example.org>",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--userid=Alice <alice@example.org>",
             ],
         }),
 
@@ -193,8 +193,8 @@ can be authenticated, discarding all prior approvals first.",
 Remove the approval of Bob's certification on all of Alice's user IDs.",
             command: &[
                 "sq", "key", "approvals", "update",
-                "--remove-by", "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--remove-by=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
     ]

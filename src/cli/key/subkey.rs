@@ -63,7 +63,7 @@ Add a new signing-capable subkey to Alice's key.",
                 "sq", "key", "subkey", "add",
                 "--without-password",
                 "--can-sign",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
     ]
@@ -245,8 +245,8 @@ Export Alice's signing-capable and encryption-capable subkeys, but not \
 her primary key or her authentication-capable subkey.",
             command: &[
                 "sq", "key", "subkey", "export",
-                "--key", "42020B87D51877E5AF8D272124F3955B0B8DECC8",
-                "--key", "74DCDEAF17D9B995679EB52BA6E65EA2C8497728",
+                "--key=42020B87D51877E5AF8D272124F3955B0B8DECC8",
+                "--key=74DCDEAF17D9B995679EB52BA6E65EA2C8497728",
             ],
         }),
     ]
@@ -298,8 +298,8 @@ const SQ_KEY_SUBKEY_DELETE_EXAMPLES: Actions = Actions {
 Delete Alice's signing subkey.",
             command: &[
                 "sq", "key", "subkey", "delete",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--key", "42020B87D51877E5AF8D272124F3955B0B8DECC8",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--key=42020B87D51877E5AF8D272124F3955B0B8DECC8",
             ],
         }),
     ]
@@ -391,9 +391,9 @@ Change the password for Alice's signing key to the password in the \
 specified file.",
             command: &[
                 "sq", "key", "subkey", "password",
-                "--new-password-file", "password-file.txt",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--key", "42020B87D51877E5AF8D272124F3955B0B8DECC8",
+                "--new-password-file=password-file.txt",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--key=42020B87D51877E5AF8D272124F3955B0B8DECC8",
             ],
         }),
         Action::Example(Example {
@@ -401,10 +401,10 @@ specified file.",
 Clear the password protection for Alice's signing key.",
             command: &[
                 "sq", "key", "subkey", "password",
-                "--password-file", "password-file.txt",
+                "--password-file=password-file.txt",
                 "--clear-password",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--key", "42020B87D51877E5AF8D272124F3955B0B8DECC8",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--key=42020B87D51877E5AF8D272124F3955B0B8DECC8",
             ],
         }),
     ]
@@ -508,8 +508,8 @@ const SQ_KEY_SUBKEY_EXPIRE_EXAMPLES: Actions = Actions {
 Change Alice's authentication subkey to expire in 6 months.",
             command: &[
                 "sq", "key", "subkey", "expire", "6m",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--key", "0D45C6A756A038670FDFD85CB1C82E8D27DB23A1",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--key=0D45C6A756A038670FDFD85CB1C82E8D27DB23A1",
             ],
         }),
     ],
@@ -610,8 +610,8 @@ const SUBKEY_REVOKE_EXAMPLES: Actions = Actions {
 Revoke Alice's signing subkey.",
             command: &[
                 "sq", "key", "subkey", "revoke",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--key", "42020B87D51877E5AF8D272124F3955B0B8DECC8",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--key=42020B87D51877E5AF8D272124F3955B0B8DECC8",
                 "retired",
                 "Subkey rotation.",
             ],
@@ -622,9 +622,9 @@ Revoke Alice's signing subkey.",
 Revoke Alice's signing subkey and encryption subkeys.",
             command: &[
                 "sq", "key", "subkey", "revoke",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--key", "42020B87D51877E5AF8D272124F3955B0B8DECC8",
-                "--key", "74DCDEAF17D9B995679EB52BA6E65EA2C8497728",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--key=42020B87D51877E5AF8D272124F3955B0B8DECC8",
+                "--key=74DCDEAF17D9B995679EB52BA6E65EA2C8497728",
                 "retired",
                 "Subkey rotation.",
             ],
@@ -928,8 +928,8 @@ const BIND_EXAMPLES: Actions = Actions {
 Bind Alice's old authentication subkey to Alice's new certificate.",
             command: &[
                 "sq", "key", "subkey", "bind",
-                "--cert", "C5999E8191BF7B503653BE958B1F7910D01F86E5",
-                "--key", "0D45C6A756A038670FDFD85CB1C82E8D27DB23A1",
+                "--cert=C5999E8191BF7B503653BE958B1F7910D01F86E5",
+                "--key=0D45C6A756A038670FDFD85CB1C82E8D27DB23A1",
             ],
         }),
         Action::Example(Example {
@@ -939,10 +939,10 @@ without any components or signatures.  This simplifies working with raw \
 keys, e.g., keys generated on an OpenPGP card, a TPM device, etc.",
             command: &[
                 "sq", "key", "subkey", "bind",
-                "--keyring", "bare.pgp",
-                "--cert", "C5999E8191BF7B503653BE958B1F7910D01F86E5",
-                "--key", "B321BA8F650CB16443E06826DBFA98A78CF6562F",
-                "--can-encrypt", "universal",
+                "--keyring=bare.pgp",
+                "--cert=C5999E8191BF7B503653BE958B1F7910D01F86E5",
+                "--key=B321BA8F650CB16443E06826DBFA98A78CF6562F",
+                "--can-encrypt=universal",
             ],
         }),
     ]

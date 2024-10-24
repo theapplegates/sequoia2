@@ -69,7 +69,7 @@ Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 with the email address alice@example.org.",
             command: &[
                 "sq", "pki", "link", "add",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
             ],
         }),
@@ -82,7 +82,7 @@ user IDs for a week.",
             command: &[
                 "sq", "pki", "link", "add",
                 "--expiration=1w",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
         }),
@@ -96,7 +96,7 @@ certificate is considered a trusted introducer for example.org.",
             command: &[
                 "sq", "pki", "link", "authorize",
                 "--domain=example.org",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
 
@@ -113,7 +113,7 @@ Retract the acceptance of certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 and any associated user IDs.  This effectively invalidates all links.",
             command: &[
                 "sq", "pki", "link", "retract",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
     ],
@@ -254,7 +254,7 @@ Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 with the email address alice@example.org.",
             command: &[
                 "sq", "pki", "link", "add",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
             ],
         }),
@@ -264,7 +264,7 @@ with the email address alice@example.org.",
 First, examine the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0.",
             command: &[
                 "sq", "inspect",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
 
@@ -276,7 +276,7 @@ user IDs for a week.",
             command: &[
                 "sq", "pki", "link", "add",
                 "--expiration=1w",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
         }),
@@ -288,7 +288,7 @@ EB28F26E2739A4870ECC47726F0073F60FD0CBF0 with all of its self-signed \
 user IDs.",
             command: &[
                 "sq", "pki", "link", "add",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
         }),
@@ -482,7 +482,7 @@ Add an unconstrained trusted introducer.",
             command: &[
                 "sq", "pki", "link", "authorize",
                 "--unconstrained",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0"
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0"
             ],
         }),
 
@@ -493,7 +493,7 @@ Add a trusted introducer for example.org and example.com.",
                 "sq", "pki", "link", "authorize",
                 "--domain=example.org",
                 "--domain=example.com",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
 
@@ -504,7 +504,7 @@ Add a partially trusted introducer.",
                 "sq", "pki", "link", "authorize",
                 "--unconstrained",
                 "--amount=60",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
     ],
@@ -579,7 +579,7 @@ Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 with the email address alice@example.org.",
             command: &[
                 "sq", "pki", "link", "add",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
             ],
         }),
@@ -590,7 +590,7 @@ Retract the acceptance of certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 and the email address alice@example.org.",
             command: &[
                 "sq", "pki", "link", "retract",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
             ],
         }),
@@ -601,7 +601,7 @@ Retract the acceptance of certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 and any associated user IDs.  This effectively invalidates all links.",
             command: &[
                 "sq", "pki", "link", "retract",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
     ],
@@ -644,7 +644,7 @@ Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 with the email address alice@example.org.",
             command: &[
                 "sq", "pki", "link", "add",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
             ],
         }),

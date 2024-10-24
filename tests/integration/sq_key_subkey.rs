@@ -262,7 +262,7 @@ fn sq_key_subkey_revoke() -> Result<()> {
                 ]);
             } else {
                 cmd.arg("--output").arg(&revocation)
-                    .arg("--cert-file").arg(&cert_path);
+                    .arg("--file").arg(&cert_path);
             }
 
             for (k, v) in notations {
@@ -516,7 +516,7 @@ fn sq_key_subkey_revoke_thirdparty() -> Result<()> {
                 ]);
             } else {
                 cmd.arg("--output").arg(&revocation)
-                    .arg("--cert-file").arg(&cert_path)
+                    .arg("--file").arg(&cert_path)
                     .arg("--revoker-file").arg(&thirdparty_path);
             }
 

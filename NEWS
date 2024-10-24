@@ -143,6 +143,10 @@
      to `--file`.
    - The argument `sq key subkey expire --file` now requires
      `--output`.
+   - The argument `sq key subkey revoke --cert-file` has been renamed
+     to `--file`.
+   - The argument `sq key subkey revoke --file` now requires
+     `--output`.
 
 * Changes in 0.38.0
 ** Notable changes

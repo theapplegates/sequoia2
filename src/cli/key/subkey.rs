@@ -682,58 +682,18 @@ instead of the current time.
 ",
     after_help = SUBKEY_REVOKE_EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("cert_input").args(&["cert_file", "cert"]).required(true)))]
-#[clap(group(ArgGroup::new("revoker_input").args(&["revoker_file", "revoker"])))]
 pub struct RevokeCommand {
-    #[clap(
-        long,
-        value_name = "FINGERPRINT|KEYID",
-        help = "Revoke the subkey on the specified certificate",
-    )]
-    pub cert: Option<KeyHandle>,
-    #[clap(
-        long,
-        help = FileOrStdin::HELP_OPTIONAL,
-        value_name = "CERT_FILE",
-        conflicts_with = "cert",
-        help = "Revoke the subkey on the specified certificate",
-        long_help = "\
-Revoke the subkey on the specified certificate.
+    #[command(flatten)]
+    pub cert: CertDesignators<CertUserIDEmailFileArgs,
+                              NoPrefix,
+                              OneValueAndFileRequiresOutput,
+                              SubkeyRevokeCertDoc>,
 
-Read the certificate whose subkey should be revoked from FILE or \
-stdin, if `-`.  It is an error for the file to contain more than one \
-certificate.",
-    )]
-    pub cert_file: Option<FileOrStdin>,
-
-    #[clap(
-        long,
-        value_name = "FINGERPRINT|KEYID",
-        help = "The certificate that issues the revocation",
-        long_help = "\
-The certificate that issues the revocation.
-
-Sign the revocation certificate using the specified key.  By default, \
-the certificate being revoked is used.  Using this option, it is \
-possible to create a third-party revocation.",
-    )]
-    pub revoker: Option<KeyHandle>,
-    #[clap(
-        long,
-        value_name = "KEY_FILE",
-        conflicts_with = "revoker",
-        help = "The certificate that issues the revocation",
-        long_help = "\
-The certificate that issues the revocation.
-
-Sign the revocation certificate using the specified key.  By default, \
-the certificate being revoked is used.  Using this option, it is \
-possible to create a third-party revocation.
-
-Read the certificate from KEY_FILE or stdin, if `-`.  It is an error \
-for the file to contain more than one certificate.",
-    )]
-    pub revoker_file: Option<FileOrStdin>,
+    #[command(flatten)]
+    pub revoker: CertDesignators<CertUserIDEmailFileArgs,
+                                 RevokerPrefix,
+                                 OneOptionalValue,
+                                 SubkeyRevokeRevokerDoc>,
 
     #[clap(
         long = "key",
@@ -807,6 +767,41 @@ modified certificate to stdout.",
         help = "Emit binary data",
     )]
     pub binary: bool,
+}
+
+/// Documentation for the cert designators for the cert argument of
+/// the key subkey revoke command.
+pub struct SubkeyRevokeCertDoc {}
+
+impl AdditionalDocs for SubkeyRevokeCertDoc {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        match arg {
+            "file" =>
+                "Revoke the specified (sub)keys on the key read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Revoke the specified (sub)keys on the key")
+                    .into()
+            },
+        }
+    }
+}
+
+/// Documentation for the revoker designators for revoker argument of
+/// the key subkey revoke command .
+pub struct SubkeyRevokeRevokerDoc {}
+
+impl AdditionalDocs for SubkeyRevokeRevokerDoc {
+    fn help(_: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        format!("{} to create the revocation certificate.
+
+Sign the revocation certificate using the specified key.  By default, \
+the certificate being revoked is used.  Using this option, it is \
+possible to create a third-party revocation.",
+                help.replace("certificates", "key")).into()
+    }
 }
 
 #[derive(Debug, Args)]

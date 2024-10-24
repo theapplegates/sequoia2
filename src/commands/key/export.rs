@@ -12,5 +12,5 @@ pub fn dispatch(sq: Sq, command: cli::key::export::Command)
         .map(|c| c.key_handle())
         .collect();
 
-    export::export(sq, certs, Vec::new())
+    export::export(sq, certs, Vec::new(), command.output, command.binary)
 }

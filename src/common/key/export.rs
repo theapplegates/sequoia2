@@ -12,13 +12,16 @@ use anyhow::Context;
 
 use crate::Sq;
 use crate::Result;
+use crate::cli::types::FileOrStdout;
 
 const NULL: openpgp::policy::NullPolicy =
     openpgp::policy::NullPolicy::new();
 
 pub fn export(sq: Sq,
               certs: Vec<KeyHandle>,
-              keys: Vec<KeyHandle>)
+              keys: Vec<KeyHandle>,
+              output: FileOrStdout,
+              binary: bool)
     -> Result<()>
 {
     let ks = sq.key_store_or_else()?;
@@ -102,18 +105,29 @@ pub fn export(sq: Sq,
         results.insert(cert.fingerprint(), cert);
     }
 
-    let mut output = openpgp::armor::Writer::new(
-        std::io::stdout(),
-        openpgp::armor::Kind::SecretKey)?;
+    let mut output = output.for_secrets().create_safe(&sq)?;
 
-    for (_fpr, cert) in results.into_iter() {
-        cert.as_tsk().serialize(&mut output)
-            .with_context(|| {
-                format!("Serializing {}", cert.fingerprint())
-            })?;
+    if binary {
+        for (_fpr, cert) in results.into_iter() {
+            cert.as_tsk().serialize(&mut output)
+                .with_context(|| {
+                    format!("Serializing {}", cert.fingerprint())
+                })?;
+        }
+    } else {
+        let mut output = openpgp::armor::Writer::new(
+            output,
+            openpgp::armor::Kind::SecretKey)?;
+
+        for (_fpr, cert) in results.into_iter() {
+            cert.as_tsk().serialize(&mut output)
+                .with_context(|| {
+                    format!("Serializing {}", cert.fingerprint())
+                })?;
+        }
+
+        output.finalize()?;
     }
-
-    output.finalize()?;
 
     Ok(())
 }

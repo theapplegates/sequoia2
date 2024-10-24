@@ -3,6 +3,7 @@
 use clap::Args;
 
 use crate::cli::examples::*;
+use crate::cli::types::*;
 use crate::cli::types::cert_designator::*;
 
 #[derive(Debug, Args)]
@@ -32,6 +33,20 @@ pub struct Command {
                                NoPrefix,
                                NoOptions,
                                ExportKeyDoc>,
+
+    #[clap(
+        default_value_t = FileOrStdout::default(),
+        help = FileOrStdout::HELP_OPTIONAL,
+        long,
+        value_name = FileOrStdout::VALUE_NAME,
+    )]
+    pub output: FileOrStdout,
+
+    #[clap(
+        long,
+        help = "Emit binary data",
+    )]
+    pub binary: bool,
 }
 
 const EXAMPLES: Actions = Actions {

@@ -57,7 +57,7 @@ fn subkey_export(sq: Sq, command: ExportCommand)
 {
     assert!(! command.key.is_empty());
 
-    export(sq, vec![], command.key)
+    export(sq, vec![], command.key, Default::default(), true)
 }
 
 fn subkey_delete(sq: Sq, command: DeleteCommand)

@@ -3,20 +3,15 @@
 use clap::ArgGroup;
 use clap::Parser;
 
-use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
-
 use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION;
 use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS;
 
-use crate::cli::types::CertDesignators;
 use crate::cli::types::ClapData;
 use crate::cli::types::Expiration;
-use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::TrustAmount;
 use crate::cli::types::UserIDDesignators;
-use crate::cli::types::cert_designator;
+use crate::cli::types::cert_designator::{self, *};
 use crate::cli::types::userid_designator;
 
 use crate::cli::examples::*;
@@ -93,21 +88,13 @@ reference time.
     ),
     after_help = AUTHORIZE_EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("certifier_input").args(&["certifier_file", "certifier"]).required(true)))]
 #[clap(group(ArgGroup::new("constraint").args(&["regex", "domain", "unconstrained"]).required(true).multiple(true)))]
 pub struct Command {
-    #[clap(
-        long,
-        value_name = "KEY",
-        help = "Create the certification using KEY.",
-    )]
-    pub certifier: Option<KeyHandle>,
-    #[clap(
-        long,
-        value_name = "KEY-FILE",
-        help = "Create the certification using KEY-FILE.",
-    )]
-    pub certifier_file: Option<FileOrStdin>,
+    #[command(flatten)]
+    pub certifier: CertDesignators<CertUserIDEmailFileArgs,
+                                   CertifierPrefix,
+                                   OneValue,
+                                   CertifierDoc>,
 
     #[command(flatten)]
     pub cert: CertDesignators<

@@ -298,7 +298,7 @@ pub fn authenticate<'store, 'rstore>(
 
             // Sort so the shortest paths come first.
             let mut paths: Vec<_> = paths
-                .into_values()
+                .iter()
                 .map(|(path, _amount)| path)
                 .collect();
             paths.sort_by_key(|path| path.len());
@@ -311,7 +311,7 @@ pub fn authenticate<'store, 'rstore>(
             }
 
             paths.into_iter()
-                .map(|p| (p, 0))
+                .map(|p| (p.clone(), 0))
                 .collect::<Vec<(wot::Path, usize)>>()
         } else {
             let paths = n.authenticate(

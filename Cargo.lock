@@ -1079,16 +1079,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enumber"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e94171909dd76d846c1ee9d14704de157cf77d01560c883f74ddd1f74c5bdbf"
-dependencies = [
- "quote",
- "syn 2.0.66",
-]
-
-[[package]]
 name = "env_logger"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3598,18 +3588,16 @@ dependencies = [
 
 [[package]]
 name = "sequoia-wot"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "486e5d22de6407e3f8b57104da7d1e34d60fc4101c2af0c49d1435542c0b3ddb"
+checksum = "80ee318a58109d3bc3ce267fe4dcb3bfdf22d64b2fded73573a5ad75acc03ba8"
 dependencies = [
  "anyhow",
  "chrono",
  "crossbeam",
- "enumber",
  "num_cpus",
  "sequoia-cert-store",
  "sequoia-openpgp",
- "sequoia-policy-config",
  "thiserror",
 ]
 

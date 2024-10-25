@@ -153,6 +153,8 @@
    - The argument `sq key approvals update --cert-file` now requires
      `--output`.
    - The pEp store integration has been removed.
+   - Remove `sq pki path`'s `--gossip` argument, it didn't actually do
+     anything.
 
 * Changes in 0.38.0
 ** Notable changes

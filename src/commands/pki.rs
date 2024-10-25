@@ -526,7 +526,6 @@ pub fn authenticate<'store, 'rstore>(
 
 // For `sq-wot path`.
 fn check_path(sq: &Sq,
-              gossip: bool,
               certification_network: bool,
               trust_amount: Option<TrustAmount<usize>>,
               path: cli::pki::PathArg)
@@ -545,12 +544,7 @@ fn check_path(sq: &Sq,
         }
     };
 
-    let mut n = if gossip {
-        wot::NetworkBuilder::rootless(cert_store)
-    } else {
-        wot::NetworkBuilder::rooted(cert_store,
-                                    &*sq.trust_roots())
-    };
+    let mut n = wot::NetworkBuilder::rooted(cert_store, &*sq.trust_roots());
     if certification_network {
         n = n.certification_network();
     }
@@ -640,11 +634,9 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
 
         // Authenticates a given path.
         Subcommands::Path(PathCommand {
-            gossip, certification_network, trust_amount,
-            path,
+            certification_network, trust_amount, path,
         }) => check_path(
-            &sq, *gossip, *certification_network, *trust_amount,
-            path)?,
+            &sq, *certification_network, *trust_amount, path)?,
 
         Subcommands::Vouch(command) =>
             self::vouch::vouch(sq, command)?,

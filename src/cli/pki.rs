@@ -300,9 +300,6 @@ test_examples!(sq_pki_path, PATH_EXAMPLES);
 )]
 pub struct PathCommand {
     #[command(flatten)]
-    pub gossip: GossipArg,
-
-    #[command(flatten)]
     pub certification_network: CertificationNetworkArg,
 
     #[command(flatten)]

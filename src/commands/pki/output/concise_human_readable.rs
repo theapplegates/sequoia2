@@ -219,7 +219,6 @@ pub fn print_path(path: &PathLints, target_userid: &UserID, prefix: &str)
 pub struct ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore> {
     sq: &'a Sq<'store, 'rstore>,
     paths: bool,
-    gossip: bool,
     required_amount: usize,
     current_cert: Option<Cert>,
     bindings_shown: usize,
@@ -228,13 +227,12 @@ pub struct ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore> {
 impl<'a, 'store, 'rstore> ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore> {
     /// Creates a new ConciseHumanReadableOutputNetwork
     pub fn new(sq: &'a Sq<'store, 'rstore>,
-               required_amount: usize, paths: bool, gossip: bool)
+               required_amount: usize, paths: bool)
         -> Self
     {
         Self {
             sq,
             paths,
-            gossip,
             required_amount,
             current_cert: None,
             bindings_shown: 0,
@@ -346,7 +344,7 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
             wprintln!();
 
             for (i, (path, amount)) in paths.iter().enumerate() {
-                if !self.gossip && paths.len() > 1 {
+                if paths.len() > 1 {
                     wprintln!(
                         initial_indent="     ",
                         "Path #{}{}of{}{}, trust amount {}:",

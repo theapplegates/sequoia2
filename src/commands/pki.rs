@@ -284,7 +284,7 @@ pub fn authenticate<'store, 'rstore>(
     let mut lint_input = true;
 
     let mut output = output::ConciseHumanReadableOutputNetwork::new(
-        &sq, required_amount, show_paths, gossip);
+        &sq, required_amount, show_paths);
 
     for (fingerprint, userid) in bindings.iter() {
         let paths = if gossip {

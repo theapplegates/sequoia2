@@ -72,6 +72,9 @@ fn have_self_signed_userid(cert: &wot::CertSynopsis,
 }
 
 /// Authenticate bindings defined by a Query on a Network
+///
+/// If `gossip` is specified, paths that are not rooted are still
+/// shown (with a trust amount of 0, of course).
 pub fn authenticate<'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
     precompute: bool,
@@ -101,12 +104,7 @@ pub fn authenticate<'store, 'rstore>(
         cert_store.precompute();
     }
 
-    let mut n = if gossip {
-        wot::NetworkBuilder::rootless(cert_store)
-    } else {
-        wot::NetworkBuilder::rooted(cert_store,
-                                    &*sq.trust_roots())
-    };
+    let mut n = wot::NetworkBuilder::rooted(cert_store, &*sq.trust_roots());
     if certification_network {
         n = n.certification_network();
     }
@@ -289,45 +287,25 @@ pub fn authenticate<'store, 'rstore>(
         &sq, required_amount, show_paths, gossip);
 
     for (fingerprint, userid) in bindings.iter() {
-        let mut aggregated_amount = 0;
-
         let paths = if gossip {
-            // Gossip.
-            let paths = n.gossip(
-                fingerprint.clone(), userid.clone());
-
-            // Sort so the shortest paths come first.
-            let mut paths: Vec<_> = paths
-                .iter()
-                .map(|(path, _amount)| path)
-                .collect();
-            paths.sort_by_key(|path| path.len());
-
-            // This means: exit code is 0, which is what we want when
-            // we've found at least one path.
-            if paths.len() > 0 {
-                authenticated += 1;
-                lint_input = false;
-            }
-
-            paths.into_iter()
-                .map(|p| (p.clone(), 0))
-                .collect::<Vec<(wot::Path, usize)>>()
+            n.gossip(fingerprint.clone(), userid.clone())
         } else {
-            let paths = n.authenticate(
-                userid.clone(), fingerprint.clone(), required_amount);
-
-            aggregated_amount = paths.amount();
-            if aggregated_amount == 0 {
-                continue;
-            }
-            lint_input = false;
-            if aggregated_amount >= required_amount {
-                authenticated += 1;
-            }
-
-            paths.into_iter().collect::<Vec<(wot::Path, usize)>>()
+            n.authenticate(
+                userid.clone(), fingerprint.clone(), required_amount)
         };
+
+        let aggregated_amount = paths.amount();
+        if aggregated_amount == 0 && ! gossip {
+            continue;
+        }
+        lint_input = false;
+        if gossip {
+            authenticated += 1;
+        } else if aggregated_amount >= required_amount {
+            authenticated += 1;
+        }
+
+        let paths = paths.into_iter().collect::<Vec<(wot::Path, usize)>>();
 
         output.add_paths(paths, fingerprint, userid, aggregated_amount)?;
     }

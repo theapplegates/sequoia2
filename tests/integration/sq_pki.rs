@@ -3156,8 +3156,9 @@ fn gossip_certification_network() -> Result<()> {
 
     let human_output =
         [(1, format!("- {} {}", HR_NOT_OK, &bob_uid))];
-    // Alice certified Bob.  We should print the path, but it
-    // should be unauthenticated (this is gossip).
+    // Alice certified Bob.  Although the path is unauthenticated (the
+    // path is not from a trust root), we should print it: the user
+    // asked for gossip.
     test(
         keyring,
         trust_root,
@@ -3172,10 +3173,10 @@ fn gossip_certification_network() -> Result<()> {
     );
 
     let trust_root = &alice_fpr;
+    // Even when we specify --gossip, paths are authenticated as much
+    // as possible.
     let human_output =
-        [(1, format!("- {} {}", HR_NOT_OK, &bob_uid))];
-    // Make sure we don't authenticate when we specify a root
-    // (which is ignored when --gossip is provided).
+        [(1, format!("- {} {}", HR_OK, &bob_uid))];
     test(
         keyring,
         trust_root,

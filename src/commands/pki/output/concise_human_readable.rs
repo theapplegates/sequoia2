@@ -87,6 +87,14 @@ pub fn print_path(path: &PathLints, target_userid: &UserID, prefix: &str)
                   format!("")
               });
 
+    if path.certifications().count() == 0 {
+        wprintln!(indent=prefix, "│");
+        wprintln!(initial_indent=format!("{}└── ", prefix),
+                  subsequent_indent=format!("{}    ", prefix),
+                  "Self-signed user ID.");
+        return Ok(());
+    }
+
     for (last, (cert, certification)) in path
         .certs()
         .zip(path.certifications())

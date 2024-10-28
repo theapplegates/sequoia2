@@ -15,7 +15,7 @@ pub enum UserIDLint {
     /// Canonical form is: `Display Name (Comment)
     /// <email@example.org>` where either the display name, comment or
     /// email address is required.
-    #[error("{:?} is not in canonical form{}",
+    #[error("The user ID {:?} is not in canonical form{}",
             String::from_utf8_lossy(.0.value()),
             .1.as_ref()
                 .map(|u| {
@@ -31,19 +31,20 @@ pub enum UserIDLint {
     /// Bare emails are problematic, because regular expressions that
     /// match on email addresses usually assume the email address is
     /// in angle brackets.
-    #[error("\"{}\" is a bare email address, try \"<{}>\"",
+    #[error("{:?} is a bare email address, try \"<{}>\"",
             String::from_utf8_lossy(.0.value()),
             String::from_utf8_lossy(.0.value()))]
     BareEmail(UserID),
 
     /// The name has excessive space characters at the beginning or
     /// end.
-    #[error("{:?} has spaces at beginning or end, try {:?}",
+    #[error("{:?} has spaces at the beginning or the end, try {:?}",
             .0, .0.trim())]
     NameHasExcessSpaces(String),
 
     /// The name contains a comment.
-    #[error("{:?} contains a comment {:?}, remove it", .0, .1)]
+    #[error("{:?} contains a comment {:?}, remove it or use --userid",
+            .0, .1)]
     NameContainsComment(String, String),
 
     /// The name contains an email address.
@@ -57,16 +58,19 @@ pub enum UserIDLint {
 
     /// The email has excessive space characters at the beginning or
     /// end.
-    #[error("{:?} has spaces at beginning or end, try {:?}",
+    #[error("{:?} is not a bare email address; it has spaces at the \
+             beginning or the end, try {:?}",
             .0, .0.trim())]
     EmailHasExcessSpaces(String),
 
     /// The email contains a comment.
-    #[error("{:?} contains a comment {:?}, remove it", .0, .1)]
+    #[error("{:?} is not a bare email address: it contains a comment {:?}; \
+             remove it or use --userid", .0, .1)]
     EmailContainsComment(String, String),
 
     /// The email contains a name.
-    #[error("{:?} contains a name {:?}, remove it or use --userid",
+    #[error("{:?} is not a bare email address: it contains a name {:?}; \
+             remove it or use --userid",
             .0, .1)]
     EmailContainsName(String, String),
 

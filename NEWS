@@ -155,6 +155,8 @@
    - The pEp store integration has been removed.
    - Remove `sq pki path`'s `--gossip` argument, it didn't actually do
      anything.
+   - Change `sq key subkey expire`'s expiration argument from a
+     positional argument to a named argument, `--expiration`.
 
 * Changes in 0.38.0
 ** Notable changes

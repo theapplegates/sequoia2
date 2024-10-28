@@ -514,7 +514,7 @@ const SQ_KEY_SUBKEY_EXPIRE_EXAMPLES: Actions = Actions {
             comment: "\
 Change Alice's authentication subkey to expire in 6 months.",
             command: &[
-                "sq", "key", "subkey", "expire", "6m",
+                "sq", "key", "subkey", "expire", "--expiration", "6m",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--key=0D45C6A756A038670FDFD85CB1C82E8D27DB23A1",
             ],
@@ -577,7 +577,9 @@ pub struct ExpireCommand {
     pub key: Vec<KeyHandle>,
 
     #[clap(
+        long,
         value_name = "EXPIRATION",
+        required = true,
         help = "Sets the key's expiration time",
         long_help = "\
 Sets the key's expiration time.

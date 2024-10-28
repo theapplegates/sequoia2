@@ -50,7 +50,7 @@ fn sq_key_subkey_expire() -> Result<()> {
             // Change the key to expire in one day.
             let mut cmd = sq.command();
             cmd.args([
-                "key", "subkey", "expire", "1d",
+                "key", "subkey", "expire", "--expiration", "1d",
             ]);
             if keystore {
                 cmd.args(["--cert", &fpr ]);
@@ -112,7 +112,7 @@ fn sq_key_subkey_expire() -> Result<()> {
             sq.tick(12 * 60 * 60);
 
             let mut cmd = sq.command();
-            cmd.args([ "key", "subkey", "expire", "never" ]);
+            cmd.args([ "key", "subkey", "expire", "--expiration", "never" ]);
             if keystore {
                 cmd.args([ "--cert", &fpr ]);
             } else {

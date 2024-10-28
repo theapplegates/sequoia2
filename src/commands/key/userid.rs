@@ -207,7 +207,7 @@ fn userid_add(
     if !exists.is_empty() {
         return Err(anyhow::anyhow!(
             "The certificate already contains the User ID(s) {}.",
-            exists.iter().map(|s| format!("{:?}", s)).collect::<Vec<_>>()
+            exists.iter().map(|s| format!("{:?}", String::from_utf8_lossy(s.value()))).collect::<Vec<_>>()
                 .join(", "),
         ));
     }

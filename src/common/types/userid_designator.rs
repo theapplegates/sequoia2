@@ -140,7 +140,7 @@ where
                 }
             }
             if ! have_valid {
-                wprintln!("  - Certificate has no valid user IDs.");
+                wprintln!("  - Certificate has no valid self-signed user IDs.");
             }
             wprintln!("Pass `--add-userid` to certify a user ID even if it \
                        isn't self signed.");

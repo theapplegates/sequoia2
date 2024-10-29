@@ -252,8 +252,8 @@ fn sq_key_subkey_revoke() -> Result<()> {
                 "subkey",
                 "revoke",
                 "--key", &subkey_fingerprint.to_string(),
-                reason_str,
-                message,
+                "--reason", reason_str,
+                "--message", message,
             ]);
 
             if keystore {
@@ -367,7 +367,7 @@ fn sq_key_subkey_revoke_multiple() -> Result<()> {
         cmd.args(["--key", &subkey.key().fingerprint().to_string(),]);
     }
 
-    cmd.args(["retired", "rotation"]);
+    cmd.args(["--reason", "retired", "--message", "rotation"]);
     sq.run(cmd, Some(true));
 
     let revoked = sq.cert_export(cert.key_handle());
@@ -505,8 +505,8 @@ fn sq_key_subkey_revoke_thirdparty() -> Result<()> {
                 "subkey",
                 "revoke",
                 "--key", &subkey_fingerprint.to_string(),
-                reason_str,
-                message,
+                "--reason", reason_str,
+                "--message", message,
             ]);
 
             if keystore {

@@ -993,8 +993,8 @@ impl Sq {
 
         let mut cmd = self.command();
         cmd.arg("key").arg("subkey").arg("revoke")
-            .arg(reason)
-            .arg(message);
+            .arg("--reason").arg(reason)
+            .arg("--message").arg(message);
 
         for key in key_handles {
             cmd.arg("--key").arg(key.to_string());

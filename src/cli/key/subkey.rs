@@ -625,8 +625,8 @@ Revoke Alice's signing subkey.",
                 "sq", "key", "subkey", "revoke",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--key=42020B87D51877E5AF8D272124F3955B0B8DECC8",
-                "retired",
-                "Subkey rotation.",
+                "--reason", "retired",
+                "--message", "Subkey rotation.",
             ],
         }),
 
@@ -638,8 +638,8 @@ Revoke Alice's signing subkey and encryption subkeys.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--key=42020B87D51877E5AF8D272124F3955B0B8DECC8",
                 "--key=74DCDEAF17D9B995679EB52BA6E65EA2C8497728",
-                "retired",
-                "Subkey rotation.",
+                "--reason", "retired",
+                "--message", "Subkey rotation.",
             ],
         }),
     ],
@@ -690,7 +690,9 @@ pub struct RevokeCommand {
     pub keys: Vec<KeyHandle>,
 
     #[clap(
+        long,
         value_name = "REASON",
+        required = true,
         help = "The reason for the revocation",
         long_help = "\
 The reason for the revocation.
@@ -704,7 +706,9 @@ of the user ID.",
     pub reason: KeyReasonForRevocation,
 
     #[clap(
+        long,
         value_name = "MESSAGE",
+        required = true,
         help = "A short, explanatory text",
         long_help = "\
 A short, explanatory text.

@@ -7,6 +7,7 @@ use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS;
 
 use crate::cli::types::ClapData;
 use crate::cli::types::Expiration;
+use crate::cli::types::ExpirationArg;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::TrustAmount;
 use crate::cli::types::UserIDDesignators;
@@ -81,6 +82,9 @@ reference time.
     ),
     after_help = CERTIFY_EXAMPLES,
 )]
+#[clap(mut_arg("expiration", |arg| {
+    arg.default_value(Expiration::Duration(THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION))
+}))]
 pub struct Command {
     #[command(flatten)]
     pub certifier: CertDesignators<CertUserIDEmailFileArgs,
@@ -110,25 +114,8 @@ pub struct Command {
     )]
     pub amount: TrustAmount<u8>,
 
-    #[clap(
-        long = "expiration",
-        value_name = "EXPIRATION",
-        default_value_t =
-            Expiration::Duration(THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION),
-        help =
-            "Define EXPIRATION for the certification as ISO 8601 formatted string or \
-            custom duration.",
-        long_help =
-            "Define EXPIRATION for the certification as ISO 8601 formatted string or \
-            custom duration. \
-            If an ISO 8601 formatted string is provided, the validity period \
-            reaches from the reference time (may be set using `--time`) to \
-            the provided time. \
-            Custom durations starting from the reference time may be set using \
-            `N[ymwds]`, for N years, months, weeks, days, or seconds. \
-            The special keyword `never` sets an unlimited expiry.",
-    )]
-    pub expiration: Expiration,
+    #[command(flatten)]
+    pub expiration: ExpirationArg,
 
     #[clap(
         long = "local",

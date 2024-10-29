@@ -1,5 +1,6 @@
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::ops::Deref;
 use std::str::FromStr;
 use std::time::Duration;
 use std::time::SystemTime;
@@ -9,10 +10,48 @@ use anyhow::Context;
 use chrono::DateTime;
 use chrono::Utc;
 
+use clap::builder::IntoResettable;
+use clap::builder::OsStr;
+use clap::builder::Resettable;
+
 use crate::cli::types::SECONDS_IN_DAY;
 use crate::cli::types::SECONDS_IN_YEAR;
 use crate::cli::types::Time;
 use crate::Result;
+
+#[derive(clap::Args, Debug)]
+pub struct ExpirationArg {
+    #[clap(
+        long = "expiration",
+        value_name = "EXPIRATION",
+        default_value_t = Expiration::Never,
+        help =
+            "Sets the expiration time",
+        long_help = "\
+Sets the expiration time.
+
+EXPIRATION is either an ISO 8601 formatted string or a custom duration, \
+which takes the form `N[ymwds]`, where the letters stand for years, \
+months, weeks, days, and seconds, respectively.  Alternatively, the \
+keyword `never` does not set an expiration time.",
+    )]
+    expiration: Expiration,
+}
+
+impl Deref for ExpirationArg {
+    type Target = Expiration;
+
+    fn deref(&self) -> &Self::Target {
+        &self.expiration
+    }
+}
+
+impl ExpirationArg {
+    /// Returns the expiration time.
+    pub fn value(&self) -> Expiration {
+        self.expiration.clone()
+    }
+}
 
 /// Expiration information
 ///
@@ -178,6 +217,12 @@ impl Display for Expiration {
             },
             Expiration::Never => write!(f, "never"),
         }
+    }
+}
+
+impl IntoResettable<OsStr> for Expiration {
+    fn into_resettable(self) -> Resettable<OsStr> {
+        Resettable::Value(format!("{}", self).into()).into()
     }
 }
 

@@ -7,7 +7,7 @@ use crate::cli::types::CertDesignators;
 use crate::cli::types::cert_designator;
 use crate::cli::types::UserIDDesignators;
 use crate::cli::types::userid_designator;
-use crate::cli::types::Expiration;
+use crate::cli::types::ExpirationArg;
 use crate::cli::types::TrustAmount;
 use crate::cli::types::cert_designator::*;
 
@@ -198,25 +198,9 @@ pub struct AddCommand {
             (trust = 40).",
     )]
     pub temporary: bool,
-    #[clap(
-        long = "expiration",
-        value_name = "EXPIRATION",
-        default_value_t =
-            Expiration::Never,
-        help =
-            "Define EXPIRATION for the acceptance as ISO 8601 formatted string or \
-            custom duration.",
-        long_help =
-            "Define EXPIRATION for the acceptance as ISO 8601 formatted string or \
-            custom duration. \
-            If an ISO 8601 formatted string is provided, the validity period \
-            reaches from the reference time (may be set using `--time`) to \
-            the provided time. \
-            Custom durations starting from the reference time may be set using \
-            `N[ymwds]`, for N years, months, weeks, days, or seconds. \
-            The special keyword `never` sets an unlimited expiry.",
-    )]
-    pub expiration: Expiration,
+    #[command(flatten)]
+    pub expiration: ExpirationArg,
+
 
     #[clap(
         long = "recreate",
@@ -426,25 +410,8 @@ of power, you have to opt in to this behavior explicitly.",
     )]
     pub unconstrained: bool,
 
-    #[clap(
-        long = "expiration",
-        value_name = "EXPIRATION",
-        default_value_t =
-            Expiration::Never,
-        help =
-            "Define EXPIRATION for the acceptance as ISO 8601 formatted string or \
-            custom duration.",
-        long_help =
-            "Define EXPIRATION for the acceptance as ISO 8601 formatted string or \
-            custom duration. \
-            If an ISO 8601 formatted string is provided, the validity period \
-            reaches from the reference time (may be set using `--time`) to \
-            the provided time. \
-            Custom durations starting from the reference time may be set using \
-            `N[ymwds]`, for N years, months, weeks, days, or seconds. \
-            The special keyword `never` sets an unlimited expiry.",
-    )]
-    pub expiration: Expiration,
+    #[command(flatten)]
+    pub expiration: ExpirationArg,
 
     #[clap(
         long = "recreate",

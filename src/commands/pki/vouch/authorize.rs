@@ -51,7 +51,7 @@ pub fn authorize(sq: Sq, mut c: authorize::Command)
         &userids[..],
         c.userids.add_userid().unwrap_or(false),
         user_supplied_userids,
-        &[(c.amount, c.expiration)],
+        &[(c.amount, c.expiration.value())],
         c.depth,
         &c.domain[..],
         &c.regex[..],

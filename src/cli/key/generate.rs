@@ -10,6 +10,7 @@ use crate::cli::KEY_VALIDITY_IN_YEARS;
 use crate::cli::types::ClapData;
 use crate::cli::types::EncryptPurpose;
 use crate::cli::types::Expiration;
+use crate::cli::types::ExpirationArg;
 use crate::cli::types::FileOrStdout;
 
 use crate::cli::examples::*;
@@ -45,6 +46,9 @@ subkeys, and the binding signatures to the reference time.
 #[clap(group(ArgGroup::new("cap-authenticate").args(&["can_authenticate", "cannot_authenticate"])))]
 #[clap(group(ArgGroup::new("cap-encrypt").args(&["can_encrypt", "cannot_encrypt"])))]
 #[clap(group(ArgGroup::new("cert-userid").args(&["names", "emails", "userid", "no_userids"]).required(true).multiple(true)))]
+#[clap(mut_arg("expiration", |arg| {
+    arg.default_value(Expiration::Duration(KEY_VALIDITY_DURATION))
+}))]
 pub struct Command {
     #[clap(
         long = "name",
@@ -127,26 +131,8 @@ any surrounding whitespace like a trailing newline.",
     )]
     pub without_password: bool,
 
-    #[clap(
-        long = "expiration",
-        value_name = "EXPIRATION",
-        default_value_t = Expiration::Duration(KEY_VALIDITY_DURATION),
-        help =
-            "Sets the certificate's expiration time",
-        long_help = "\
-Sets the certificate's expiration time.
-
-EXPIRATION is either an ISO 8601 formatted string or a custom duration, \
-which takes the form `N[ymwds]`, where the letters stand for years, \
-months, weeks, days, and seconds, respectively.  Alternatively, the \
-keyword `never` does not set an expiration time.
-
-When using an ISO 8601 formatted string, the validity period is from \
-the certificate's creation time to the specified time.  When using a \
-duration, the validity period is from the certificate's creation time \
-for the specified duration.",
-    )]
-    pub expiration: Expiration,
+    #[command(flatten)]
+    pub expiration: ExpirationArg,
 
     #[clap(
         long = "can-sign",

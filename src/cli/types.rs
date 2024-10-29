@@ -38,8 +38,9 @@ pub use cert_designator::CertDesignators;
 pub mod paths;
 pub mod userid_designator;
 pub use userid_designator::UserIDDesignators;
-mod expiration;
+pub mod expiration;
 pub use expiration::Expiration;
+pub use expiration::ExpirationArg;
 
 /// A trait to provide const &str for clap annotations for custom structs
 pub trait ClapData {

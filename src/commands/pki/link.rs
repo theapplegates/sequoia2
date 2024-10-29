@@ -42,7 +42,7 @@ pub fn add(sq: Sq, c: link::AddCommand)
 
     let notations = parse_notations(c.notation)?;
 
-    let templates = if c.temporary {
+    let templates: Vec<(TrustAmount<_>, Expiration)> = if c.temporary {
         // Make the partially trusted link one second younger.  When
         // the fully trusted link expired, then this link will come
         // into effect.  If the user has fully linked the binding in
@@ -51,12 +51,12 @@ pub fn add(sq: Sq, c: link::AddCommand)
         let week = Duration::new(7 * 24 * 60 * 60, 0);
 
         vec![
-            (TrustAmount::Other(40), c.expiration),
+            (TrustAmount::Other(40), c.expiration.value()),
             (c.amount, Expiration::Duration(week)),
         ]
     } else {
         vec![
-            (c.amount, c.expiration),
+            (c.amount, c.expiration.value()),
         ]
     };
 
@@ -118,7 +118,7 @@ pub fn authorize(sq: Sq, c: link::AuthorizeCommand)
         &userids[..],
         c.userids.add_userid().unwrap_or(false),
         user_supplied_userids,
-        &[(c.amount, c.expiration)][..],
+        &[(c.amount, c.expiration.value())][..],
         c.depth,
         &c.domain[..],
         &c.regex[..],

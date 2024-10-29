@@ -6,6 +6,7 @@ use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 
 use crate::cli::types::ClapData;
+use crate::cli::types::ExpirationArg;
 use crate::cli::types::FileOrCertStore;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::Time;
@@ -13,7 +14,6 @@ use crate::cli::types::Time;
 use crate::cli::key::{
     CipherSuite,
     EncryptPurpose,
-    Expiration,
     KeyReasonForRevocation,
 };
 
@@ -127,25 +127,10 @@ pub struct AddCommand {
         value_enum,
     )]
     pub cipher_suite: CipherSuite,
-    #[clap(
-        long,
-        value_name = "EXPIRATION",
-        default_value_t = Expiration::Never,
-        help = "Sets the key's expiration time",
-        long_help = "\
-Sets the key's expiration time.
 
-EXPIRATION is either an ISO 8601 formatted string or a custom duration, \
-which takes the form `N[ymwds]`, where the letters stand for years, \
-months, weeks, days, and seconds, respectively.  Alternatively, the \
-keyword `never` does not set an expiration time.
+    #[command(flatten)]
+    pub expiration: ExpirationArg,
 
-When using an ISO 8601 formatted string, the validity period is from \
-the key's creation time to the specified time.  When using a \
-duration, the validity period is from the key's creation time \
-for the specified duration.",
-    )]
-    pub expiration: Expiration,
     #[clap(
         long,
         help = "Add a signing-capable subkey",
@@ -561,6 +546,9 @@ of a subkey is bound by the expiration of the certificate.
 ",
     after_help = SQ_KEY_SUBKEY_EXPIRE_EXAMPLES,
 )]
+#[clap(mut_arg("expiration", |arg| {
+    arg.required(true)
+}))]
 pub struct ExpireCommand {
     #[command(flatten)]
     pub cert: CertDesignators<CertUserIDEmailFileArgs,
@@ -576,25 +564,8 @@ pub struct ExpireCommand {
     )]
     pub key: Vec<KeyHandle>,
 
-    #[clap(
-        long,
-        value_name = "EXPIRATION",
-        required = true,
-        help = "Sets the key's expiration time",
-        long_help = "\
-Sets the key's expiration time.
-
-EXPIRATION is either an ISO 8601 formatted string or a custom duration, \
-which takes the form `N[ymwds]`, where the letters stand for years, \
-months, weeks, days, and seconds, respectively.  Alternatively, the \
-keyword `never` does not set an expiration time.
-
-When using an ISO 8601 formatted string, the validity period is from \
-the key's creation time to the specified time.  When using a \
-duration, the validity period is from the key's creation time \
-for the specified duration.",
-    )]
-    pub expiration: Expiration,
+    #[command(flatten)]
+    pub expiration: ExpirationArg,
 
     #[clap(
         long,

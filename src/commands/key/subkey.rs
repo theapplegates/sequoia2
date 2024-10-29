@@ -92,7 +92,7 @@ fn subkey_expire(sq: Sq, command: ExpireCommand)
 
     assert!(! command.key.is_empty());
 
-    expire(sq, handle, &command.key[..], command.expiration,
+    expire(sq, handle, &command.key[..], command.expiration.value(),
            command.output, command.binary)
 }
 

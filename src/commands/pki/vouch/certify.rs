@@ -34,7 +34,7 @@ pub fn certify(sq: Sq, mut c: certify::Command)
         &userids[..],
         c.userids.add_userid().unwrap_or(false),
         true, // User supplied user IDs.
-        &[(c.amount, c.expiration)],
+        &[(c.amount, c.expiration.value())],
         0,
         &[][..], &[][..], // Domain, regex.
         c.local,

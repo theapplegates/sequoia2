@@ -95,8 +95,8 @@ fn sq_key_userid_revoke() -> Result<()> {
                 "userid",
                 "revoke",
                 "--userid", userid_revoke,
-                reason_str,
-                message,
+                "--reason", reason_str,
+                "--message", message,
             ]);
 
             if keystore {
@@ -264,8 +264,8 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
                 "userid",
                 "revoke",
                 "--userid", userid_revoke,
-                reason_str,
-                message,
+                "--reason", reason_str,
+                "--message", message,
             ]);
 
             if keystore {

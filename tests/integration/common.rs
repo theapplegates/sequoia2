@@ -1202,7 +1202,11 @@ impl Sq {
         let output_file = output_file.into();
 
         let mut cmd = self.command();
-        cmd.args(["key", "userid", "revoke", reason, message]);
+        cmd.args([
+            "key", "userid", "revoke",
+            "--reason", reason,
+            "--message", message,
+        ]);
         for arg in args {
             cmd.arg(arg);
         }

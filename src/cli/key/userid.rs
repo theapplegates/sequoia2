@@ -177,7 +177,8 @@ Retire a user ID on Alice's key.",
                 "sq", "key", "userid", "revoke",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--userid", "Alice <alice@example.org>",
-                "retired", "No longer at example.org.",
+                "--reason", "retired",
+                "--message", "No longer at example.org.",
             ],
         }),
     ]
@@ -262,8 +263,10 @@ not self signed."
     pub add_userid: bool,
 
     #[clap(
+        long,
         value_enum,
         value_name = "REASON",
+        required = true,
         help = "The reason for the revocation",
         long_help = "\
 The reason for the revocation.
@@ -276,7 +279,9 @@ of the user ID."
     pub reason: UserIDReasonForRevocation,
 
     #[clap(
+        long,
         value_name = "MESSAGE",
+        required = true,
         help = "A short, explanatory text",
         long_help = "\
 A short, explanatory text.

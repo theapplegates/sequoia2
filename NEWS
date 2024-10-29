@@ -165,6 +165,9 @@
    - Change `sq key subkey revoke`'s reason and message arguments from
      positional arguments to named arguments, `--reason`, and
      `--message`, respectively.
+   - Change `sq key userid revoke`'s reason and message arguments from
+     positional arguments to named arguments, `--reason`, and
+     `--message`, respectively.
 
 * Changes in 0.38.0
 ** Notable changes

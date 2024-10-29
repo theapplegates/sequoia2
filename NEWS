@@ -157,6 +157,8 @@
      anything.
    - Change `sq key subkey expire`'s expiration argument from a
      positional argument to a named argument, `--expiration`.
+   - Change `sq key expire`'s expiration argument from a positional
+     argument to a named argument, `--expiration`.
 
 * Changes in 0.38.0
 ** Notable changes

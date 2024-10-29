@@ -20,7 +20,7 @@ const EXAMPLES: Actions = Actions {
         Action::Example(Example {
             comment: "Change Alice's certificate to expire in a year.",
             command: &[
-                "sq", "key", "expire", "1y",
+                "sq", "key", "expire", "--expiration", "1y",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
@@ -28,7 +28,7 @@ const EXAMPLES: Actions = Actions {
         Action::Example(Example {
             comment: "Change Alice's certificate to never expire.",
             command: &[
-                "sq", "key", "expire", "never",
+                "sq", "key", "expire", "--expiration", "never",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
         }),
@@ -71,6 +71,8 @@ pub struct Command {
     pub binary: bool,
 
     #[clap(
+        long,
+        required = true,
         value_name = "EXPIRATION",
         help =
             "Define EXPIRATION for the key as ISO 8601 formatted string or \

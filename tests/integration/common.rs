@@ -917,7 +917,8 @@ impl Sq {
         let output_file = output_file.into();
 
         let mut cmd = self.command();
-        cmd.arg("key").arg("expire").arg(expire);
+        cmd.arg("key").arg("expire")
+            .arg("--expiration").arg(expire);
 
         if cert_handle.is_file() {
             cmd.arg("--file").arg(&cert_handle);

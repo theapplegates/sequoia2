@@ -32,7 +32,7 @@ fn sq_key_expire() -> Result<()> {
 
         // Change the key to expire in one day.
         let mut cmd = sq.command();
-        cmd.args(["key", "expire", "1d"]);
+        cmd.args(["key", "expire", "--expiration", "1d"]);
         if keystore {
             cmd.args(["--cert", &fpr ]);
         } else {
@@ -75,7 +75,7 @@ fn sq_key_expire() -> Result<()> {
         sq.tick(12 * 60 * 60);
 
         let mut cmd = sq.command();
-        cmd.args([ "key", "expire", "never" ]);
+        cmd.args([ "key", "expire", "--expiration", "never" ]);
         if keystore {
             cmd.args([ "--cert", &fpr ]);
         } else {
@@ -155,7 +155,7 @@ fn sq_key_expire_no_direct_key_sig() -> Result<()> {
 
     // Change the key to expire in one day.
     let mut cmd = sq.command();
-    cmd.args(["key", "expire", "1d", "--cert", &fipr]);
+    cmd.args(["key", "expire", "--expiration", "1d", "--cert", &fipr]);
     sq.run(cmd, true);
 
     eprintln!("Updated certificate to expire in one day:\n{}",
@@ -182,7 +182,7 @@ fn sq_key_expire_no_direct_key_sig() -> Result<()> {
     sq.tick(12 * 60 * 60);
 
     let mut cmd = sq.command();
-    cmd.args(["key", "expire", "never", "--cert", &fipr]);
+    cmd.args(["key", "expire", "--expiration", "never", "--cert", &fipr]);
     sq.run(cmd, true);
 
     eprintln!("Updated certificate to expire in one day:\n{}",

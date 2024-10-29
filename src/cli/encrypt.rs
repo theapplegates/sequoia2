@@ -31,26 +31,19 @@ const ENCRYPT_EXAMPLES: Actions = Actions {
         }),
         Action::Example(Example {
             comment: "\
+Encrypt a file for a recipient given by fingerprint.",
+            command: &[
+                "sq", "encrypt",
+                "--for", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "document.txt",
+            ],
+        }),
+        Action::Example(Example {
+            comment: "\
 Encrypt a file for a recipient given by email.",
             command: &[
                 "sq", "encrypt", "--for-email", "alice@example.org",
                 "document.txt",
-            ],
-        }),
-
-        Action::Example(Example {
-            comment: "\
-Encrypt a file using a certificate.",
-            command: &[
-                "sq", "encrypt", "--for-file", "romeo.pgp", "document.txt",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Encrypt a file creating a signature in the process.",
-            command: &[
-                "sq", "encrypt", "--for-file", "romeo.pgp",
-                "--signer-file", "juliet-secret.pgp", "document.txt",
             ],
         }),
     ]

@@ -35,6 +35,7 @@ use crate::cli::toolbox::packet::{
     JoinCommand,
 };
 use crate::cli::types::FileOrStdout;
+use crate::cli::types::StdinWarning;
 use crate::commands;
 use crate::load_keys;
 
@@ -355,7 +356,7 @@ pub fn join(sq: Sq, c: JoinCommand) -> Result<()> {
         }
     } else {
         let ppr =
-            openpgp::parse::PacketParserBuilder::from_reader(io::stdin())?
+            openpgp::parse::PacketParserBuilder::from_reader(StdinWarning::openpgp())?
             .buffer_unread_content()
             .map(true).build()?;
         copy_all(&sq, ppr, &output, &mut sink)?;

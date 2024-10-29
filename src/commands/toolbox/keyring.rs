@@ -35,6 +35,7 @@ use crate::{
 };
 
 use crate::cli::toolbox::keyring;
+use crate::cli::types::StdinWarning;
 
 pub fn dispatch(sq: Sq, c: keyring::Command) -> Result<()> {
     use keyring::Subcommands::*;
@@ -192,7 +193,7 @@ fn filter<F>(sq: &Sq, inputs: Vec<PathBuf>, output: FileOrStdout,
             }
         }
     } else {
-        for cert in CertParser::from_reader(io::stdin())? {
+        for cert in CertParser::from_reader(StdinWarning::certs())? {
             let cert = cert.context("Malformed certificate in keyring")?;
             certs.push(cert);
         }
@@ -350,7 +351,7 @@ fn merge(sq: &Sq, inputs: Vec<PathBuf>, output: FileOrStdout,
             }
         }
     } else {
-        for cert in CertParser::from_reader(io::stdin())? {
+        for cert in CertParser::from_reader(StdinWarning::certs())? {
             let cert = cert.context("Malformed certificate in keyring")?;
             match certs.entry(cert.fingerprint()) {
                 e @ Entry::Vacant(_) => {

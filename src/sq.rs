@@ -48,6 +48,7 @@ use crate::cli::types::CertDesignators;
 use crate::cli::types::cert_designator::ArgumentPrefix;
 use crate::cli::types::cert_designator::CertDesignator;
 use crate::cli::types::FileStdinOrKeyHandle;
+use crate::cli::types::StdinWarning;
 use crate::common::password;
 use crate::output::hint::Hint;
 use crate::output::import::{ImportStats, ImportStatus};
@@ -1959,7 +1960,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
                 CertDesignator::Stdin => {
                     t!("Reading certificates from stdin");
-                    let parser = CertParser::from_reader(std::io::stdin())
+                    let parser = CertParser::from_reader(StdinWarning::certs())
                         .with_context(|| {
                             format!("Failed to load certs from stdin")
                         })?;

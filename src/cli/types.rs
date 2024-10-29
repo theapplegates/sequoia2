@@ -2,10 +2,14 @@
 
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::io::Read;
 use std::io::stdin;
 use std::path::Path;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::sync::mpsc;
+use std::thread;
+use std::time::Duration;
 use std::time::SystemTime;
 
 use anyhow::Context;
@@ -60,6 +64,83 @@ pub trait ClapData {
     ///   - there is a default value, or
     ///   - the type is an `Option<T>`.
     const HELP_OPTIONAL: &'static str;
+}
+
+/// Reads from stdin, and prints a warning to stderr if no input is
+/// read within a certain amount of time.
+pub struct StdinWarning {
+    do_warn: bool,
+    warning: &'static str,
+}
+
+/// Print a warning if we don't get any input after this amount of
+/// time.
+const STDIN_TIMEOUT: Duration = std::time::Duration::new(2, 0);
+
+impl StdinWarning {
+    /// Emit a custom warning if no input is received.
+    pub fn warn(warning: &'static str) -> Self {
+        Self {
+            do_warn: true,
+            warning,
+        }
+    }
+
+    /// Emit a standard warning if no input is received.
+    pub fn new() -> Self {
+        Self::warn("Waiting for input on stdin...")
+    }
+
+    /// Emit a warning that a certificate is expected if no input is
+    /// received.
+    pub fn openpgp() -> Self {
+        Self::warn("Waiting for OpenPGP data on stdin...")
+    }
+
+    /// Emit a warning that certificates are expected if no input is
+    /// received.
+    pub fn certs() -> Self {
+        Self::warn("Waiting for certificates on stdin...")
+    }
+}
+
+impl Read for StdinWarning {
+    fn read(&mut self, mut buf: &mut [u8]) -> std::io::Result<usize> {
+        if self.do_warn {
+            if buf.len() == 0 {
+                return Ok(0);
+            }
+
+            // We may warn the user.  We don't want to print the
+            // warning if we read anything.  If we try to read two
+            // bytes, we might read one byte, block, print the
+            // warning, and then later read a second byte.  That's not
+            // great.  Thus, we don't read more than a single byte.
+            buf = &mut buf[..1];
+
+            // Don't warn again.
+            self.do_warn = false;
+
+            thread::scope(|s| {
+                let (sender, receiver) = mpsc::channel::<()>();
+
+                s.spawn(move || {
+                    if let Err(mpsc::RecvTimeoutError::Timeout)
+                        = receiver.recv_timeout(STDIN_TIMEOUT)
+                    {
+                        eprintln!("{}", self.warning);
+                    }
+                });
+
+                let result = stdin().read(buf);
+                // Force the thread to exit now.
+                drop(sender);
+                result
+            })
+        } else {
+            stdin().read(buf)
+        }
+    }
 }
 
 /// A type wrapping an optional PathBuf to use as stdin or file input
@@ -124,7 +205,7 @@ impl FileOrStdin {
                 .with_context(|| format!("Failed to open {}", self))?))
         } else {
             Ok(Box::new(
-                Generic::with_cookie(stdin(), None, Default::default())))
+                Generic::with_cookie(StdinWarning::new(), None, Default::default())))
         }
     }
 

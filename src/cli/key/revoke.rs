@@ -22,8 +22,8 @@ Revoke Alice's key, indicating that there is a new certificate.",
             command: &[
                 "sq", "key", "revoke",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "superseded",
-                "My new cert is C5999E8191BF7B503653BE958B1F7910D01F86E5",
+                "--reason", "superseded",
+                "--message", "My new cert is C5999E8191BF7B503653BE958B1F7910D01F86E5",
             ],
         }),
         Action::Example(Example {
@@ -33,8 +33,8 @@ compromised.",
             command: &[
                 "sq", "key", "revoke",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "compromised",
-                "Computer attacked, secret key material compromised",
+                "--reason", "compromised",
+                "--message", "Computer attacked, secret key material compromised",
             ],
         }),
     ]
@@ -77,6 +77,7 @@ pub struct Command {
                                  KeyRevokeRevokerDoc>,
 
     #[clap(
+        long,
         value_name = "REASON",
         required = true,
         help = "The reason for the revocation",
@@ -92,7 +93,9 @@ of the certificate.",
     pub reason: KeyReasonForRevocation,
 
     #[clap(
+        long,
         value_name = "MESSAGE",
+        required = true,
         help = "A short, explanatory text",
         long_help = "\
 A short, explanatory text.

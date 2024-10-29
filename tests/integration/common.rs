@@ -661,8 +661,8 @@ impl Sq {
 
         let mut cmd = self.command();
         cmd.arg("key").arg("revoke")
-            .arg(reason)
-            .arg(message);
+            .arg("--reason").arg(reason)
+            .arg("--message").arg(message);
 
         match &cert_handle {
             FileOrKeyHandle::FileOrStdin(path) => {

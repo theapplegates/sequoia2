@@ -159,6 +159,9 @@
      positional argument to a named argument, `--expiration`.
    - Change `sq key expire`'s expiration argument from a positional
      argument to a named argument, `--expiration`.
+   - Change `sq key revoke`'s reason and message arguments from
+     positional arguments to named arguments, `--reason`, and
+     `--message`, respectively.
 
 * Changes in 0.38.0
 ** Notable changes

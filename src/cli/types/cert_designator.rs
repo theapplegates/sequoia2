@@ -119,8 +119,13 @@ pub type DomainArg = typenum::U32;
 /// Adds a `--grep` argument.
 pub type GrepArg = typenum::U64;
 
+/// Adds `--with-password`, and `--with-password-file` arguments.
+///
+/// This is only used for `sq encrypt`.
+pub type WithPasswordArgs = typenum::U128;
+
 /// Enables --file, --cert, --userid, --email, --domain, and --grep
-/// (i.e., all of them).
+/// (i.e., not --with-password, or --with-password-file).
 #[allow(dead_code)]
 pub type FileCertUserIDEmailDomainGrepArgs
     = <<<<<FileArg
@@ -131,7 +136,7 @@ pub type FileCertUserIDEmailDomainGrepArgs
        as std::ops::BitOr<GrepArg>>::Output;
 
 /// Enables --file, --cert, --userid, --email, and --domain, (i.e.,
-/// not --grep).
+/// not --grep, --with-password, or --with-password-file).
 #[allow(dead_code)]
 pub type FileCertUserIDEmailDomainArgs
     = <<<<FileArg
@@ -141,7 +146,7 @@ pub type FileCertUserIDEmailDomainArgs
        as std::ops::BitOr<DomainArg>>::Output;
 
 /// Enables --cert, --userid, --email, --domain, and --grep (i.e., not
-/// --file).
+/// --file, --with-password, or --with-password-file).
 pub type CertUserIDEmailDomainGrepArgs
     = <<<<CertArg as std::ops::BitOr<UserIDArg>>::Output
          as std::ops::BitOr<EmailArg>>::Output
@@ -149,14 +154,22 @@ pub type CertUserIDEmailDomainGrepArgs
        as std::ops::BitOr<GrepArg>>::Output;
 
 /// Enables --cert, --userid, --email, and --file (i.e., not --domain,
-/// or --grep).
+/// --grep, --with-password, or --with-password-file).
 pub type CertUserIDEmailFileArgs
     = <<<CertArg as std::ops::BitOr<UserIDArg>>::Output
         as std::ops::BitOr<EmailArg>>::Output
        as std::ops::BitOr<FileArg>>::Output;
 
+/// Enables --cert, --userid, --email, --file, --with-password and
+/// --with-password-file (i.e., not --domain, or --grep).
+pub type CertUserIDEmailFileWithPasswordArgs
+    = <<<<CertArg as std::ops::BitOr<UserIDArg>>::Output
+         as std::ops::BitOr<EmailArg>>::Output
+        as std::ops::BitOr<FileArg>>::Output
+       as std::ops::BitOr<WithPasswordArgs>>::Output;
+
 /// Enables --cert, and --file (i.e., not --userid, --email, --domain,
-/// or --grep).
+/// --grep, --with-password, or --with-password-file).
 pub type CertFileArgs = <CertArg as std::ops::BitOr<FileArg>>::Output;
 
 
@@ -385,6 +398,11 @@ pub struct CertDesignators<Arguments, Prefix=NoPrefix, Options=NoOptions,
     /// The set of certificate designators.
     pub designators: Vec<CertDesignator>,
 
+    /// --with-password
+    with_passwords: usize,
+    /// --with-password-file
+    with_password_files: Vec<PathBuf>,
+
     arguments: std::marker::PhantomData<(Arguments, Prefix, Options,
                                          Doc)>,
 }
@@ -414,6 +432,16 @@ impl<Arguments, Prefix, Options, Doc> CertDesignators<Arguments, Prefix, Options
     pub fn iter(&self) -> impl Iterator<Item=&CertDesignator> {
         self.designators.iter()
     }
+
+    /// Returns the number of times `--with-password` was given.
+    pub fn with_passwords(&self) -> usize {
+        self.with_passwords
+    }
+
+    /// Returns the `--with-password-file` arguments.
+    pub fn with_password_files(&self) -> &[PathBuf] {
+        &self.with_password_files[..]
+    }
 }
 
 impl<Arguments, Prefix, Options, Doc> clap::Args
@@ -433,6 +461,7 @@ where
         let email_arg = (arguments & EmailArg::to_usize()) > 0;
         let domain_arg = (arguments & DomainArg::to_usize()) > 0;
         let grep_arg = (arguments & GrepArg::to_usize()) > 0;
+        let with_password_args = (arguments & WithPasswordArgs::to_usize()) > 0;
 
         let options = Options::to_usize();
         let one_value = (options & OneValue::to_usize()) > 0;
@@ -612,6 +641,50 @@ where
             arg_group = arg_group.arg(full_name);
         }
 
+        if with_password_args {
+            let full_name = "with-password";
+            let arg = clap::Arg::new(full_name)
+                .long(full_name)
+                .action(clap::ArgAction::Count)
+                .help(Doc::help(
+                    "with-password-file",
+                    "Prompt to add a password to encrypt with"))
+                .long_help("\
+Prompt to add a password to encrypt with.  \
+When using this option, the user is asked to provide a password, \
+which is used to encrypt the message. \
+This option can be provided more than once to provide more than \
+one password. \
+The encrypted data can afterwards be decrypted with either one of \
+the recipient's keys, or one of the provided passwords.");
+
+            cmd = cmd.arg(arg);
+            arg_group = arg_group.arg(full_name);
+
+            let full_name = "with-password-file";
+            let arg = clap::Arg::new(full_name)
+                .long(full_name)
+                .value_name("PATH")
+                .value_parser(clap::value_parser!(PathBuf))
+                .action(action.clone())
+                .help(Doc::help(
+                    "with-password-file",
+                    "File containing password to encrypt the message"))
+                .long_help("\
+File containing password to encrypt the message.
+
+Note that the entire key file will be used as the password including \
+any surrounding whitespace like a trailing newline.
+
+This option can be provided more than once to provide more than \
+one password. \
+The encrypted data can afterwards be decrypted with either one of \
+the recipient's keys, or one of the provided passwords.");
+
+            cmd = cmd.arg(arg);
+            arg_group = arg_group.arg(full_name);
+        }
+
         cmd = cmd.group(arg_group);
 
         cmd
@@ -643,6 +716,7 @@ where
         let email_arg = (arguments & EmailArg::to_usize()) > 0;
         let domain_arg = (arguments & DomainArg::to_usize()) > 0;
         let grep_arg = (arguments & GrepArg::to_usize()) > 0;
+        let with_password_args = (arguments & WithPasswordArgs::to_usize()) > 0;
 
         let mut designators = Vec::new();
 
@@ -712,6 +786,16 @@ where
             }
         }
 
+        if with_password_args {
+            self.with_passwords = matches.get_count("with-password") as usize;
+
+            if let Some(Some(paths))
+                = matches.try_get_many::<PathBuf>("with-password-file").ok()
+            {
+                self.with_password_files.extend(paths.cloned());
+            }
+        }
+
         self.designators = designators;
         Ok(())
     }
@@ -721,6 +805,8 @@ where
     {
         let mut designators = Self {
             designators: Vec::new(),
+            with_passwords: 0,
+            with_password_files: Vec::new(),
             arguments: std::marker::PhantomData,
         };
 
@@ -744,7 +830,8 @@ mod test {
         macro_rules! check {
             ($t:ty,
              $cert:expr, $userid:expr, $email:expr,
-             $domain:expr, $grep:expr, $file:expr) =>
+             $domain:expr, $grep:expr, $file:expr,
+             $with_password:expr) =>
             {{
                 #[derive(Parser, Debug)]
                 #[clap(name = "prog")]
@@ -886,21 +973,53 @@ mod test {
                 } else {
                     assert!(m.is_err());
                 }
+
+                // Check if --with-password is recognized.
+                let m = command.clone().try_get_matches_from(vec![
+                    "prog",
+                    "--with-password",
+                    "--with-password",
+                ]);
+                if $with_password {
+                    let m = m.expect("valid arguments");
+                    let c = CLI::from_arg_matches(&m).expect("ok");
+                    assert_eq!(c.certs.with_passwords(), 2);
+                } else {
+                    assert!(m.is_err());
+                }
+
+                // Check if --with-password-file is recognized.
+                let m = command.clone().try_get_matches_from(vec![
+                    "prog",
+                    "--with-password-file", "a",
+                    "--with-password-file", "b",
+                ]);
+                if $with_password {
+                    let m = m.expect("valid arguments");
+                    let c = CLI::from_arg_matches(&m).expect("ok");
+                    assert_eq!(c.certs.with_password_files().len(), 2);
+                } else {
+                    assert!(m.is_err());
+                }
             }}
         }
 
         check!(CertUserIDEmailDomainGrepArgs,
-               true,  true,  true,  true,  true,  false);
+               true,  true,  true,  true,  true,  false, false);
         check!(CertUserIDEmailFileArgs,
-               true,  true,  true, false, false, true);
+               true,  true,  true, false, false, true, false);
+        check!(CertUserIDEmailFileWithPasswordArgs,
+               true,  true,  true, false, false, true, true);
         // No Args.
-        check!(typenum::U0,false, false, false, false, false, false);
-        check!(CertArg,     true, false, false, false, false, false);
-        check!(UserIDArg,  false,  true, false, false, false, false);
-        check!(EmailArg,   false, false,  true, false, false, false);
-        check!(DomainArg,  false, false, false,  true, false, false);
-        check!(GrepArg,    false, false, false, false,  true, false);
-        check!(FileArg,    false, false, false, false, false,  true);
+        check!(typenum::U0,false, false, false, false, false, false, false);
+        check!(CertArg,     true, false, false, false, false, false, false);
+        check!(UserIDArg,  false,  true, false, false, false, false, false);
+        check!(EmailArg,   false, false,  true, false, false, false, false);
+        check!(DomainArg,  false, false, false,  true, false, false, false);
+        check!(GrepArg,    false, false, false, false,  true, false, false);
+        check!(FileArg,    false, false, false, false, false,  true, false);
+        check!(WithPasswordArgs,
+                           false, false, false, false, false,  false, true);
     }
 
     #[test]

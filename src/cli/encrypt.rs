@@ -2,7 +2,6 @@
 
 use std::path::PathBuf;
 
-use clap::ArgAction::Count;
 use clap::{ValueEnum, Parser};
 
 use sequoia_openpgp as openpgp;
@@ -15,8 +14,7 @@ use super::types::FileOrStdin;
 use super::types::FileOrStdout;
 
 use crate::cli::types::CertDesignators;
-use crate::cli::types::cert_designator::CertUserIDEmailFileArgs;
-use crate::cli::types::cert_designator::OptionalValue;
+use crate::cli::types::cert_designator::CertUserIDEmailFileWithPasswordArgs;
 use crate::cli::types::cert_designator::RecipientPrefix;
 
 use crate::cli::examples;
@@ -99,9 +97,8 @@ pub struct Command {
     pub binary: bool,
 
     #[command(flatten)]
-    pub recipients: CertDesignators<CertUserIDEmailFileArgs,
-                                    RecipientPrefix,
-                                    OptionalValue>,
+    pub recipients: CertDesignators<CertUserIDEmailFileWithPasswordArgs,
+                                    RecipientPrefix>,
 
     #[clap(
         help = "Set the filename of the encrypted file as metadata",
@@ -152,40 +149,6 @@ pub struct Command {
         help = "Sign the message using the specified key on the key store",
     )]
     pub signer_key: Vec<KeyHandle>,
-
-    #[clap(
-        long = "with-password",
-        help = "Prompt to add a password to encrypt with",
-        long_help =
-            "Prompt to add a password to encrypt with.  \
-            When using this option, the user is asked to provide a password, \
-            which is used to encrypt the message. \
-            This option can be provided more than once to provide more than \
-            one password. \
-            The encrypted data can afterwards be decrypted with either one of \
-            the recipient's keys, or one of the provided passwords.",
-        action = Count,
-    )]
-    pub symmetric: u8,
-
-    #[clap(
-        long = "with-password-file",
-        value_name = "PASSWORD_FILE",
-        help = "\
-File containing password to encrypt the secret key material",
-        long_help = "\
-File containing password to encrypt the secret key material.
-
-Note that the entire key file will be used as the password including \
-any surrounding whitespace like a trailing newline.
-
-This option can be provided more than once to provide more than \
-one password. \
-The encrypted data can afterwards be decrypted with either one of \
-the recipient's keys, or one of the provided passwords.",
-    )]
-    pub symmetric_password_file: Vec<PathBuf>,
-
 
     #[clap(
         long = "encrypt-for",

@@ -8,10 +8,10 @@
      strip-userid`.
    - `sq key adopt` supports adopting bare keys (i.e., a primary key
      without any signatures).
-   - `sq key adopt` add options (`--can-`--can-sign`, `--cannot-sign`,
+   - `sq key adopt` add options (`--can-sign`, `--cannot-sign`,
      `--can-authenticate`, `--cannot-authenticate`, `--can-encrypt`,
      `--cannot-encrypt`) to allow overriding the key flags.
-   - `sq key adopt` now accepts the options `--creation-time` to allow
+   - `sq key adopt` now accepts the option `--creation-time` to allow
      the user to override the key's creation time.
    - `sq key adopt` sets the key's creation time to the current time
      (while respecting `--time`) if `--creation-time` is not
@@ -40,7 +40,8 @@
      key store location have been renamed from SQ_CERT_STORE to
      SEQUOIA_CERT_STORE, and SQ_KEY_STORE to SEQUOIA_KEY_STORE,
      respectively.
-   - `sq toolbox packet split` now requires an explicit output parameter.
+   - `sq toolbox packet split` now requires an explicit output
+     parameter.
    - `sq pki certify` no longer supports using expired or revoked
      certificates; the options `--allow-not-alive-certifier` and
      `--allow-revoked-certifier` have been removed.
@@ -153,19 +154,19 @@
    - The argument `sq key approvals update --cert-file` now requires
      `--output`.
    - The pEp store integration has been removed.
-   - Remove `sq pki path`'s `--gossip` argument, it didn't actually do
+   - Removed `sq pki path`'s `--gossip` argument, it didn't actually do
      anything.
-   - Change `sq key subkey expire`'s expiration argument from a
+   - Changed `sq key subkey expire`'s expiration argument from a
      positional argument to a named argument, `--expiration`.
-   - Change `sq key expire`'s expiration argument from a positional
+   - Changed `sq key expire`'s expiration argument from a positional
      argument to a named argument, `--expiration`.
-   - Change `sq key revoke`'s reason and message arguments from
+   - Changed `sq key revoke`'s reason and message arguments from
      positional arguments to named arguments, `--reason`, and
      `--message`, respectively.
-   - Change `sq key subkey revoke`'s reason and message arguments from
+   - Changed `sq key subkey revoke`'s reason and message arguments from
      positional arguments to named arguments, `--reason`, and
      `--message`, respectively.
-   - Change `sq key userid revoke`'s reason and message arguments from
+   - Changed `sq key userid revoke`'s reason and message arguments from
      positional arguments to named arguments, `--reason`, and
      `--message`, respectively.
    - `sq cert import` now supports importing bare revocation

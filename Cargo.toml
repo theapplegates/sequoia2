@@ -53,7 +53,7 @@ tokio = { version = "1.13.1" }
 rpassword = "7.0"
 serde = { version = "1.0.137", features = ["derive"] }
 subplotlib = { version = ">=0.7, <0.10", optional = true }
-terminal_size = ">=0.2.6, <0.4"
+terminal_size = ">=0.2.6, <0.5"
 termcolor = "1.2.0"
 textwrap = ">=0.15, <0.17"
 typenum = "1"
@@ -74,7 +74,7 @@ subplot-build = { version = ">=0.7, <0.10", optional = true }
 textwrap = ">=0.15, <0.17"
 typenum = "1"
 cfg-if = "1"
-terminal_size = ">=0.2.6, <0.4"
+terminal_size = ">=0.2.6, <0.5"
 
 [dev-dependencies]
 fehler = "1.0.0"

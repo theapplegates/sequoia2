@@ -604,8 +604,7 @@ impl<'c, 'store, 'rstore> VerificationHelper for VHelper<'c, 'store, 'rstore>
             }
         }
 
-        if self.good_signatures >= self.signatures
-            && self.bad_signatures + self.bad_checksums == 0 {
+        if self.good_signatures >= self.signatures {
             Ok(())
         } else {
             if ! self.quiet {

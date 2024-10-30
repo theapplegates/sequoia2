@@ -52,7 +52,7 @@ thiserror = "1"
 tokio = { version = "1.13.1" }
 rpassword = "7.0"
 serde = { version = "1.0.137", features = ["derive"] }
-subplotlib = { version = ">=0.7, <0.10", optional = true }
+subplotlib = { version = ">=0.7, <0.12", optional = true }
 terminal_size = ">=0.2.6, <0.5"
 termcolor = "1.2.0"
 textwrap = ">=0.15, <0.17"
@@ -70,7 +70,7 @@ serde = { version = "1.0.137", features = ["derive"] }
 sequoia-directories = "0.1"
 sequoia-openpgp = { version = "1.21.1", default-features = false }
 sequoia-net = { version = "0.28", default-features = false }
-subplot-build = { version = ">=0.7, <0.10", optional = true }
+subplot-build = { version = ">=0.7, <0.12", optional = true }
 textwrap = ">=0.15, <0.17"
 typenum = "1"
 cfg-if = "1"

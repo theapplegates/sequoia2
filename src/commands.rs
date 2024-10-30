@@ -215,11 +215,11 @@ pub struct VHelper<'c, 'store, 'rstore>
     aead_algo: Option<AEADAlgorithm>,
 
     // Tracks the signatures encountered.
-    good_signatures: usize,
-    good_checksums: usize,
-    unknown_checksums: usize,
+    authenticated_signatures: usize,
+    unauthenticated_signatures: usize,
+    uncheckable_signatures: usize,
     bad_signatures: usize,
-    bad_checksums: usize,
+    broken_keys: usize,
     broken_signatures: usize,
     quiet: bool,
 }
@@ -236,11 +236,11 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
             trusted: HashSet::new(),
             sym_algo: None,
             aead_algo: None,
-            good_signatures: 0,
-            good_checksums: 0,
-            unknown_checksums: 0,
+            authenticated_signatures: 0,
+            unauthenticated_signatures: 0,
+            uncheckable_signatures: 0,
+            broken_keys: 0,
             bad_signatures: 0,
-            bad_checksums: 0,
             broken_signatures: 0,
             quiet: sq.quiet,
         }
@@ -254,8 +254,8 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
     }
 
     fn print_status(&self) {
-        fn p(s: &mut String, what: &str, quantity: usize) {
-            if quantity > 0 {
+        fn p(s: &mut String, what: &str, threshold: usize, quantity: usize) {
+            if quantity >= threshold {
                 use std::fmt::Write;
                 use crate::output::pluralize::Pluralize;
                 let dirty = ! s.is_empty();
@@ -267,12 +267,12 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
         }
 
         let mut status = String::new();
-        p(&mut status, "good signature", self.good_signatures);
-        p(&mut status, "unauthenticated checksum", self.good_checksums);
-        p(&mut status, "unknown checksum", self.unknown_checksums);
-        p(&mut status, "bad signature", self.bad_signatures);
-        p(&mut status, "bad checksum", self.bad_checksums);
-        p(&mut status, "broken signatures", self.broken_signatures);
+        p(&mut status, "authenticated signature", 0, self.authenticated_signatures);
+        p(&mut status, "unauthenticated signature", 1, self.unauthenticated_signatures);
+        p(&mut status, "uncheckable signature", 1, self.uncheckable_signatures);
+        p(&mut status, "bad signature", 1, self.bad_signatures);
+        p(&mut status, "bad key", 1, self.broken_keys);
+        p(&mut status, "broken signatures", 1, self.broken_signatures);
         if ! status.is_empty() {
             wprintln!("{}.", status);
         }
@@ -300,45 +300,46 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                         .expect("missing key checksum has an issuer")
                         .to_string();
                     let what = match sig.level() {
-                        0 => "checksum".into(),
-                        n => format!("level {} notarizing checksum", n),
+                        0 => "signature".into(),
+                        n => format!("level {} notarization", n),
                     };
-                    wprintln!("No cert to check {} from {}", what, issuer);
+                    wprintln!("Can't authenticate {} allegedly made by {}: \
+                               missing certificate.",
+                              what, issuer);
 
                     self.sq.hint(format_args!(
-                        "Consider trying to retrieve the key from the network \
-                         using:"))
+                        "Consider searching for the certificate using:"))
                         .sq().arg("network").arg("search")
                         .arg(issuer)
                         .done();
 
-                    self.unknown_checksums += 1;
+                    self.uncheckable_signatures += 1;
                     continue;
                 },
                 Err(UnboundKey { cert, error, .. }) => {
                     wprintln!("Signing key on {} is not bound:",
                               cert.fingerprint());
                     print_error_chain(error);
-                    self.bad_checksums += 1;
+                    self.broken_keys += 1;
                     continue;
                 },
                 Err(BadKey { ka, error, .. }) => {
                     wprintln!("Signing key on {} is bad:",
                               ka.cert().fingerprint());
                     print_error_chain(error);
-                    self.bad_checksums += 1;
+                    self.broken_keys += 1;
                     continue;
                 },
                 Err(BadSignature { sig, ka, error }) => {
                     let issuer = ka.fingerprint().to_string();
                     let what = match sig.level() {
-                        0 => "checksum".into(),
-                        n => format!("level {} notarizing checksum", n),
+                        0 => "signature".into(),
+                        n => format!("level {} notarizing signature", n),
                     };
-                    wprintln!("Error verifying {} from {}:",
+                    wprintln!("Error verifying {} made by {}:",
                               what, issuer);
                     print_error_chain(error);
-                    self.bad_checksums += 1;
+                    self.bad_signatures += 1;
                     continue;
                 }
             };
@@ -351,10 +352,10 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                 .unwrap_or_else(|_| "<unknown>".to_string());
 
             // Direct trust.
-            let mut trusted = self.trusted.contains(&issuer);
+            let mut authenticated = self.trusted.contains(&issuer);
             let mut prefix = "";
             let trust_roots = self.sq.trust_roots();
-            if ! trusted && ! trust_roots.is_empty() {
+            if ! authenticated && ! trust_roots.is_empty() {
                 prefix = "  ";
 
                 // Web of trust.
@@ -439,9 +440,9 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                             .collect::<Vec<UserID>>();
 
                         if authenticated_userids.is_empty() {
-                            trusted = false;
+                            authenticated = false;
                         } else {
-                            trusted = true;
+                            authenticated = true;
 
                             // If we managed to authenticate the
                             // signers user ID, prefer that one.
@@ -474,25 +475,27 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
             });
 
             let level = sig.level();
-            match (level == 0, trusted) {
+            match (level == 0, authenticated) {
                 (true,  true)  => {
                     wprintln!(indent=prefix,
-                              "Good signature from {} ({:?})",
+                              "Authenticated signature made by {} ({:?})",
                               label, signer_userid);
                 }
                 (false, true)  => {
                     wprintln!(indent=prefix,
-                              "Good level {} notarization from {} ({:?})",
+                              "Authenticated level {} notarization \
+                               made by {} ({:?})",
                               level, label, signer_userid);
                 }
                 (true,  false) => {
                     wprintln!(indent=prefix,
-                              "Unauthenticated checksum from {} ({:?})",
+                              "Can't authenticate signature made by {} ({:?}): \
+                               the certificate can't be authenticated.",
                               label, signer_userid);
 
                     self.sq.hint(format_args!(
                         "After checking that {} belongs to {:?}, \
-                         you can authenticate the binding using:",
+                         you can mark it as authenticated using:",
                         cert_fpr, signer_userid))
                         .sq().arg("pki").arg("link").arg("add")
                         .arg("--cert").arg(cert_fpr)
@@ -501,13 +504,14 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                 }
                 (false, false) => {
                     wprintln!(indent=prefix,
-                              "Unauthenticated level {} notarizing \
-                               checksum from {} ({:?})",
+                              "Can't authenticate level {} notarization \
+                               made by {} ({:?}): the certificate \
+                               can't be authenticated.",
                               level, label, signer_userid);
 
                     self.sq.hint(format_args!(
                         "After checking that {} belongs to {:?}, \
-                         you can authenticate the binding using:",
+                         you can mark it as authenticated using:",
                         cert_fpr, signer_userid))
                         .sq().arg("pki").arg("link").arg("add")
                         .arg("--cert").arg(cert_fpr)
@@ -516,10 +520,10 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                 }
             };
 
-            if trusted {
-                self.good_signatures += 1;
+            if authenticated {
+                self.authenticated_signatures += 1;
             } else {
-                self.good_checksums += 1;
+                self.unauthenticated_signatures += 1;
             }
 
             qprintln!("");
@@ -604,13 +608,13 @@ impl<'c, 'store, 'rstore> VerificationHelper for VHelper<'c, 'store, 'rstore>
             }
         }
 
-        if self.good_signatures >= self.signatures {
+        if self.authenticated_signatures >= self.signatures {
             Ok(())
         } else {
             if ! self.quiet {
                 self.print_status();
             }
-            Err(anyhow::anyhow!("Verification failed: could not fully \
+            Err(anyhow::anyhow!("Verification failed: could not \
                                  authenticate any signatures"))
         }
     }

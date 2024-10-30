@@ -1371,7 +1371,7 @@ when I run sq sign --signer-file alice.pgp hello.txt --output signed1.txt
 when I run sq sign --signer-file bob.pgp --append signed1.txt --output signed2.txt
 when I run sq verify signed2.txt --signer-file alice-cert.pgp --signer-file bob-cert.pgp
 then stdout contains "hello, world"
-then stderr matches regex 2.good signatures
+then stderr matches regex 2.authenticated signatures
 ~~~
 
 ## Merge signed files
@@ -1392,7 +1392,7 @@ when I run sq sign --signer-file bob.pgp hello.txt --output signed2.txt
 when I run sq sign --merge=signed2.txt signed1.txt --output merged.txt
 when I run sq verify merged.txt --signer-file alice-cert.pgp --signer-file bob-cert.pgp
 then stdout contains "hello, world"
-then stderr matches regex 2.good signatures
+then stderr matches regex 2.authenticated signatures
 ~~~
 
 

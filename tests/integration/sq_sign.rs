@@ -948,7 +948,7 @@ fn sq_sign_using_cert_store() -> Result<()> {
     assert!(! output.status.success(),
             "stdout:\n{}\nstderr: {}", stdout, stderr);
 
-    assert!(stderr.contains("No cert to check checksum from "),
+    assert!(stderr.contains("missing certificate."),
             "stdout:\n{}\nstderr: {}", stdout, stderr);
     assert!(stderr.contains("Error: Verification failed"),
             "stdout:\n{}\nstderr: {}", stdout, stderr);
@@ -966,7 +966,7 @@ fn sq_sign_using_cert_store() -> Result<()> {
 
     // The default trust model says that certificates from the
     // certificate store are not authenticated.
-    assert!(stderr.contains("Unauthenticated checksum from "),
+    assert!(stderr.contains("the certificate can't be authenticated."),
             "stdout:\n{}\nstderr: {}", stdout, stderr);
     assert!(stderr.contains("Error: Verification failed"),
             "stdout:\n{}\nstderr: {}", stdout, stderr);
@@ -985,9 +985,9 @@ fn sq_sign_using_cert_store() -> Result<()> {
 
     // The default trust model says that certificates from the
     // certificate store are not authenticated.
-    assert!(stderr.contains("Good signature from "),
+    assert!(stderr.contains("Authenticated signature made by "),
             "stdout:\n{}\nstderr: {}", stdout, stderr);
-    assert!(stderr.contains("1 good signature."),
+    assert!(stderr.contains("1 authenticated signature."),
             "stdout:\n{}\nstderr: {}", stdout, stderr);
 
     Ok(())
@@ -1108,7 +1108,7 @@ fn sq_verify_wot() -> Result<()> {
         let output = sq_verify(&sq, &[], &[&alice_pgp], &msg_pgp);
         assert!(! output.0.success());
 
-        // But, one good signature is enough.
+        // But, one authenticated signature is enough.
         let output = sq_verify(&sq, &[], &[&alice_pgp, &bob_pgp], &msg_pgp);
         assert!(output.0.success());
     }
@@ -1120,7 +1120,7 @@ fn sq_verify_wot() -> Result<()> {
         let output = sq_verify(&sq, &[], &[], &msg_pgp);
         assert!(! output.0.success(),
                 "stdout:\n{}\nstderr:\n{}", output.1, output.2);
-        assert!(output.2.contains("Unauthenticated checksum from "),
+        assert!(output.2.contains("the certificate can't be authenticated."),
                 "stdout:\n{}\nstderr:\n{}",
                 output.1, output.2);
 
@@ -1129,7 +1129,7 @@ fn sq_verify_wot() -> Result<()> {
         let output = sq_verify(&sq, &[&alice_fpr], &[], &msg_pgp);
         assert!(! output.0.success(),
                 "stdout:\n{}\nstderr:\n{}", output.1, output.2);
-        assert!(output.2.contains("Unauthenticated checksum from "),
+        assert!(output.2.contains("the certificate can't be authenticated."),
                 "stdout:\n{}\nstderr:\n{}",
                 output.1, output.2);
     }
@@ -1139,7 +1139,7 @@ fn sq_verify_wot() -> Result<()> {
         let output = sq_verify(&sq, &[&bob_fpr], &[], &msg_pgp);
         assert!(output.0.success(),
                 "stdout:\n{}\nstderr:\n{}", output.1, output.2);
-        assert!(output.2.contains("Good signature from "),
+        assert!(output.2.contains("Authenticated signature made by "),
                 "stdout:\n{}\nstderr:\n{}",
                 output.1, output.2);
 
@@ -1147,7 +1147,7 @@ fn sq_verify_wot() -> Result<()> {
             &sq, &[&alice_fpr, &bob_fpr], &[], &msg_pgp);
         assert!(output.0.success(),
                 "stdout:\n{}\nstderr:\n{}", output.1, output.2);
-        assert!(output.2.contains("Good signature from "),
+        assert!(output.2.contains("Authenticated signature made by "),
                 "stdout:\n{}\nstderr:\n{}",
                 output.1, output.2);
     }
@@ -1161,7 +1161,7 @@ fn sq_verify_wot() -> Result<()> {
         let output = sq_verify(&sq, &[&alice_fpr], &[], &msg_pgp);
         assert!(! output.0.success(),
                 "stdout:\n{}\nstderr:\n{}", output.1, output.2);
-        assert!(output.2.contains("Unauthenticated checksum from "),
+        assert!(output.2.contains("the certificate can't be authenticated."),
                 "stdout:\n{}\nstderr:\n{}",
                 output.1, output.2);
     }
@@ -1176,10 +1176,10 @@ fn sq_verify_wot() -> Result<()> {
         let output = sq_verify(&sq, &[&alice_fpr], &[], &msg_pgp);
         assert!(! output.0.success(),
                 "stdout:\n{}\nstderr:\n{}", output.1, output.2);
-        assert!(output.2.contains("Unauthenticated checksum from "),
+        assert!(output.2.contains("the certificate can't be authenticated."),
                 "stdout:\n{}\nstderr:\n{}",
                 output.1, output.2);
-        assert!(output.2.contains("3 unauthenticated checksums"),
+        assert!(output.2.contains("3 unauthenticated signatures"),
                 "stdout:\n{}\nstderr:\n{}",
                 output.1, output.2);
     }
@@ -1193,10 +1193,10 @@ fn sq_verify_wot() -> Result<()> {
         let output = sq_verify(&sq, &[&alice_fpr], &[], &msg_pgp);
         assert!(output.0.success(),
                 "stdout:\n{}\nstderr:\n{}", output.1, output.2);
-        assert!(output.2.contains("Good signature from "),
+        assert!(output.2.contains("Authenticated signature made by "),
                 "stdout:\n{}\nstderr:\n{}",
                 output.1, output.2);
-        assert!(output.2.contains("1 good signature, 2 unauthenticated checksums"),
+        assert!(output.2.contains("1 authenticated signature, 2 unauthenticated signatures"),
                 "stdout:\n{}\nstderr:\n{}",
                 output.1, output.2);
     }

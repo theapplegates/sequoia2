@@ -42,7 +42,7 @@ fn sq_verify(sq: &Sq,
              trust_roots: &[&str],
              signer_files: &[&str],
              msg_pgp: &str,
-             good_sigs: usize, good_checksums: usize)
+             authenticated_sigs: usize, unauthenticated_sigs: usize)
 {
     let mut cmd = sq.command();
     for trust_root in trust_roots {
@@ -65,12 +65,12 @@ fn sq_verify(sq: &Sq,
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
-    if good_sigs > 0 {
+    if authenticated_sigs > 0 {
         assert!(status.success(),
                 "\nstdout:\n{}\nstderr:\n{}",
                 stdout, stderr);
-        assert!(stderr.contains(&format!("{} good signature",
-                                         good_sigs)),
+        assert!(stderr.contains(&format!("{} authenticated signature",
+                                         authenticated_sigs)),
                 "stdout:\n{}\nstderr:\n{}",
                 stdout, stderr);
     } else {
@@ -79,9 +79,9 @@ fn sq_verify(sq: &Sq,
                 stdout, stderr);
     }
 
-    if good_checksums > 0 {
-        assert!(stderr.contains(&format!("{} unauthenticated checksum",
-                                         good_checksums)),
+    if unauthenticated_sigs > 0 {
+        assert!(stderr.contains(&format!("{} unauthenticated signature",
+                                         unauthenticated_sigs)),
                 "stdout:\n{}\nstderr:\n{}", stdout, stderr);
     }
 }

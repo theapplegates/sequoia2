@@ -1262,12 +1262,25 @@ impl Sq {
     }
 
     /// Imports the specified certificate into the keystore.
-    pub fn cert_import<P>(&self, path: P)
+    pub fn cert_import_maybe<P>(&self, path: P) -> Result<()>
     where P: AsRef<Path>
     {
         let mut cmd = self.command();
         cmd.arg("cert").arg("import").arg(path.as_ref());
-        self.run(cmd, Some(true));
+        let output = self.run(cmd, None);
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("sq cert import returned an error"))
+        }
+    }
+
+    /// Imports the specified certificate into the keystore.
+    pub fn cert_import<P>(&self, path: P)
+    where P: AsRef<Path>
+    {
+        self.cert_import_maybe(path)
+            .expect("succeeds")
     }
 
     /// Exports the specified certificate.
@@ -1569,6 +1582,50 @@ impl Sq {
         if let Some(password_file) = password_file {
             cmd.arg("--password-file").arg(password_file);
         }
+
+        cmd.arg(input_file);
+
+        if let Some(output_file) = output_file {
+            cmd.arg("--output").arg(output_file);
+        };
+
+        let output = self.run(cmd, Some(true));
+        assert!(output.status.success());
+
+        if let Some(output_file) = output_file {
+            std::fs::read(output_file).expect("can read file")
+        } else {
+            output.stdout
+        }
+    }
+
+    pub fn sign_detached<'a, H, O>(&self,
+                                   args: &[&str],
+                                   signer: H,
+                                   input_file: &Path,
+                                   output_file: O)
+        -> Vec<u8>
+    where H: Into<FileOrKeyHandle>,
+          O: Into<Option<&'a Path>>,
+    {
+        let signer = signer.into();
+        let output_file = output_file.into();
+
+        let mut cmd = self.command();
+        cmd.arg("sign").arg("--detached");
+
+        for arg in args {
+            cmd.arg(arg);
+        }
+
+        match &signer {
+            FileOrKeyHandle::FileOrStdin(path) => {
+                cmd.arg("--signer-file").arg(path);
+            }
+            FileOrKeyHandle::KeyHandle((_kh, s)) => {
+                cmd.arg("--signer").arg(&s);
+            }
+        };
 
         cmd.arg(input_file);
 

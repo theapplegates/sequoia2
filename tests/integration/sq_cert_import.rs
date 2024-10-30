@@ -1,9 +1,17 @@
+use std::fs::File;
+
 use sequoia_openpgp as openpgp;
+use openpgp::Packet;
+use openpgp::PacketPile;
 use openpgp::Result;
 use openpgp::cert::prelude::*;
+use openpgp::packet::Tag;
 use openpgp::parse::Parse;
+use openpgp::serialize::Serialize;
+use openpgp::types::RevocationStatus;
 
 use super::common::Sq;
+use super::common::STANDARD_POLICY;
 
 #[test]
 fn sq_cert_import() -> Result<()>
@@ -95,6 +103,63 @@ fn sq_cert_import() -> Result<()>
 
     // Provide stdin explicitly and a file.  Both should be read.
     check(&[bob_pgp, "-"], Some(&alice_bytes[..]), 2);
+
+    Ok(())
+}
+
+#[test]
+fn sq_cert_import_rev() -> Result<()>
+{
+    let sq = Sq::new();
+
+    // Generate a key.  (We don't use sq on purpose: we want to make
+    // sure we have a bare revocation certificate.)
+    let (cert, rev) = CertBuilder::general_purpose(
+        None, Some("alice@example.org"))
+        .set_creation_time(sq.now())
+        .generate()?;
+
+    let cert_file = sq.scratch_file("cert");
+    cert.as_tsk().serialize(&mut File::create(&cert_file)?)?;
+
+    sq.key_import(&cert_file);
+
+
+    // We shouldn't be able to import a signature over a data file.
+
+    // Create a detached signature.
+    let sig_file = sq.scratch_file("sig");
+    sq.sign_detached(&[], cert.fingerprint(),
+                     cert_file.as_path(), sig_file.as_path());
+
+    // Be extra sure that it is a single packet.
+    let pp = PacketPile::from_file(&sig_file)?;
+    let packets = pp.into_children().collect::<Vec<_>>();
+    assert_eq!(packets.len(), 1);
+    assert_eq!(packets[0].tag(), Tag::Signature);
+
+    // Assert that it can't be imported.
+    assert!(sq.cert_import_maybe(&sig_file).is_err());
+
+
+    // We should be able to import a bare revocation certificate.
+
+    // Assert that the certificate is not revoked.
+    let cert = sq.cert_export(cert.key_handle());
+    assert!(! matches!(
+        cert.revocation_status(STANDARD_POLICY, sq.now()),
+        RevocationStatus::Revoked(_)));
+
+    // Import the revocation certificate.
+    let rev_file = sq.scratch_file("rev");
+    Packet::from(rev).serialize(&mut File::create(&rev_file)?)?;
+    sq.cert_import(rev_file);
+
+    // Assert that the certificate is now revoked.
+    let cert = sq.cert_export(cert.key_handle());
+    assert!(matches!(
+        cert.revocation_status(STANDARD_POLICY, sq.now()),
+        RevocationStatus::Revoked(_)));
 
     Ok(())
 }

@@ -1,14 +1,20 @@
 use std::sync::Arc;
 use std::path::PathBuf;
 
+use anyhow::Context;
+
 use buffered_reader::{BufferedReader, Dup};
 
 use sequoia_openpgp as openpgp;
-use openpgp::{
-    cert::raw::RawCertParser,
-    Result,
-    parse::{Cookie, Parse},
-};
+use openpgp::KeyHandle;
+use openpgp::Packet;
+use openpgp::Result;
+use openpgp::cert::raw::RawCertParser;
+use openpgp::parse::Cookie;
+use openpgp::parse::PacketParser;
+use openpgp::parse::PacketParserResult;
+use openpgp::parse::Parse;
+use openpgp::types::SignatureType;
 
 use sequoia_cert_store as cert_store;
 use cert_store::LazyCert;
@@ -38,28 +44,61 @@ where 'store: 'rstore
             let input = FileOrStdin::from(input);
             let mut input_reader = input.open()?;
 
-            // First, try to import certs encoded as OpenPGP keyring.
-            let mut st0 = ImportStats::default();
-            let r0 = import_certs(
-                &mut sq, &mut input_reader, input.path(), &mut st0);
-            if r0.is_ok() {
-                stats += st0;
+            if input_reader.eof() {
+                // Empty file.  Silently skip it.
                 continue;
             }
 
-            // Next, try to import certs encoded as Autocrypt headers.
-            let r1 = autocrypt::import_certs(
-                &mut sq, &mut input_reader, &mut stats);
-            if r1.is_ok() {
-                continue;
+            enum Type {
+                Signature,
+                Keyring,
+                Other,
             }
 
-            // Importing nothing used to be okay.  Preserve this.
-            if input_reader.data_eof()?.is_empty() {
-                return Ok(());
+            // See if it is OpenPGP data.
+            let dup = Dup::with_cookie(&mut input_reader, Cookie::default());
+            let mut typ = Type::Other;
+            if let Ok(ppr) = PacketParser::from_buffered_reader(dup) {
+                // See if it is a keyring, or a bare revocation
+                // certificate.
+                if let PacketParserResult::Some(ref pp) = ppr {
+                    if let Packet::Signature(_) = pp.packet {
+                        // Looks like a bare revocation.
+                        typ = Type::Signature;
+                    } else if pp.possible_keyring().is_ok() {
+                        typ = Type::Keyring;
+                    } else {
+                        // If we have a message, then it might
+                        // actually be an email with autocrypt data.
+                    }
+                }
             }
 
-            return r0;
+            let result = match typ {
+                Type::Signature => {
+                    import_rev(
+                        &mut sq, &mut input_reader, &mut stats)
+                }
+                Type::Keyring => {
+                    import_certs(
+                        &mut sq, &mut input_reader,
+                        input.path(), &mut stats)
+                }
+                Type::Other => {
+                    autocrypt::import_certs(
+                        &mut sq, &mut input_reader, &mut stats)
+                }
+            };
+
+            if result.is_err() {
+                if let Some(path) = input.path() {
+                    result.with_context(|| {
+                        format!("Reading {}", path.display())
+                    })
+                } else {
+                    result
+                }?;
+            }
         }
 
         Ok(())
@@ -139,4 +178,113 @@ fn import_certs(sq: &mut Sq,
         }
         Ok(())
     }
+}
+
+/// Import a bare revocation certificate.
+fn import_rev(sq: &mut Sq,
+              source: &mut Box<dyn BufferedReader<Cookie>>,
+              stats: &mut ImportStats)
+              -> Result<()>
+{
+    let dup = Dup::with_cookie(source, Cookie::default());
+    let cert_store = sq.cert_store_or_else()?;
+
+    let ppr = PacketParser::from_buffered_reader(dup)?;
+    let sig = if let PacketParserResult::Some(pp) = ppr {
+        let (packet, next_ppr) = pp.next()?;
+
+        let sig = if let Packet::Signature(sig) = packet {
+            sig
+        } else {
+            return Err(anyhow::anyhow!(
+                "Not a revocation certificate: got a {}.",
+                packet.tag()));
+        };
+
+        if let PacketParserResult::Some(_) = next_ppr {
+            return Err(anyhow::anyhow!(
+                "Not a revocation certificate: \
+                 got more than one packet."));
+        }
+
+        sig
+    } else {
+        return Err(anyhow::anyhow!(
+            "Not a bare revocation certificate."));
+    };
+
+    if sig.typ() != SignatureType::KeyRevocation {
+        return Err(anyhow::anyhow!(
+            "Not a revocation certificate: got a {} signature.",
+            sig.typ()));
+    }
+
+    let issuers = sig.get_issuers();
+    let mut missing = Vec::new();
+    let mut bad = Vec::new();
+    for issuer in issuers.iter() {
+        let certs = if let Ok(certs)
+            = sq.lookup(std::iter::once(issuer), None, false, true)
+        {
+            certs
+        } else {
+            missing.push(issuer);
+            continue;
+        };
+
+        for cert in certs.into_iter() {
+            if let Ok(_) = sig.clone().verify_primary_key_revocation(
+                cert.primary_key().key(),
+                cert.primary_key().key())
+            {
+                let cert = cert.insert_packets(sig.clone())?;
+
+                let fingerprint = cert.fingerprint();
+                let sanitized_userid = sq.best_userid(&cert, true);
+                if let Err(err) = cert_store.update_by(Arc::new(cert.into()),
+                                                       stats)
+                {
+                    wprintln!("Error importing revocation certificate \
+                               for {}, {}: {}",
+                              fingerprint, sanitized_userid, err);
+                    stats.certs.inc_errors();
+                    continue;
+                } else {
+                    wprintln!("Imported revocation certificate \
+                               for {}, {}",
+                              fingerprint, sanitized_userid);
+                }
+
+                return Ok(());
+            } else {
+                bad.push(issuer);
+            }
+        }
+    }
+
+    let search: Option<&KeyHandle> = if let Some(bad) = bad.first() {
+        wprintln!("Appears to be a revocation for {}, \
+                   but the certificate is not available.",
+                  bad);
+        Some(bad)
+    } else if ! missing.is_empty() {
+        wprintln!("Appears to be a revocation for {}, \
+                   but the certificate is not available.",
+                  missing.iter()
+                  .map(|issuer| issuer.to_string())
+                  .collect::<Vec<_>>()
+                  .join(" or "));
+        Some(missing[0])
+    } else {
+        None
+    };
+
+    if let Some(search) = search {
+        sq.hint(format_args!("{}", "To search for a certificate, try:"))
+            .sq().arg("network").arg("search")
+            .arg(search.to_string())
+            .done();
+    }
+
+    Err(anyhow::anyhow!("Failed to import revocation certificate."))
 }

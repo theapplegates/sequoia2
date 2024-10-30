@@ -168,6 +168,8 @@
    - Change `sq key userid revoke`'s reason and message arguments from
      positional arguments to named arguments, `--reason`, and
      `--message`, respectively.
+   - `sq cert import` now supports importing bare revocation
+     certificates.
 
 * Changes in 0.38.0
 ** Notable changes

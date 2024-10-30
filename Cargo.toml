@@ -36,7 +36,7 @@ sequoia-directories = "0.1"
 sequoia-openpgp = { version = "1.18", default-features = false, features = ["compression"] }
 sequoia-autocrypt = { version = "0.25", default-features = false }
 sequoia-net = { version = "0.28", default-features = false }
-sequoia-policy-config = "0.6"
+sequoia-policy-config = ">= 0.6, <0.8"
 anyhow = "1.0.18"
 chrono = "0.4.10"
 clap = { version = "4", features = ["derive", "env", "string", "wrap_help"] }

@@ -332,27 +332,24 @@ fn merge(sq: &Sq, inputs: Vec<PathBuf>, output: FileOrStdout,
 {
     let mut certs: BTreeMap<Fingerprint, Option<Cert>> = BTreeMap::new();
 
-    if !inputs.is_empty() {
-        for name in inputs {
-            for cert in CertParser::from_file(&name)? {
-                let cert = cert.context(
-                    format!("Malformed certificate in keyring {:?}", name))?;
-                match certs.entry(cert.fingerprint()) {
-                    e @ Entry::Vacant(_) => {
-                        e.or_insert(Some(cert));
-                    }
-                    Entry::Occupied(mut e) => {
-                        let e = e.get_mut();
-                        let curr = e.take().unwrap();
-                        *e = Some(curr.merge_public_and_secret(cert)
-                            .expect("Same certificate"));
-                    }
-                }
-            }
-        }
+    let inputs: Box<dyn Iterator<Item = _>> = if inputs.is_empty() {
+        Box::new(std::iter::once(
+            ("stdin".to_string(),
+             CertParser::from_reader(StdinWarning::certs()))))
     } else {
-        for cert in CertParser::from_reader(StdinWarning::certs())? {
-            let cert = cert.context("Malformed certificate in keyring")?;
+        Box::new(
+            inputs.into_iter()
+                .map(|name| {
+                    (name.display().to_string(),
+                     CertParser::from_file(&name))
+                }))
+    };
+
+    for (name, result) in inputs {
+        let parser = result.with_context(|| format!("Opening {}", name))?;
+        for cert in parser {
+            let cert = cert.context(
+                format!("Read a malformed certificate from {:?}", name))?;
             match certs.entry(cert.fingerprint()) {
                 e @ Entry::Vacant(_) => {
                     e.or_insert(Some(cert));

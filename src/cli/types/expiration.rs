@@ -30,10 +30,10 @@ pub struct ExpirationArg {
         long_help = "\
 Sets the expiration time.
 
-EXPIRATION is either an ISO 8601 formatted string or a custom duration, \
-which takes the form `N[ymwds]`, where the letters stand for years, \
-months, weeks, days, and seconds, respectively.  Alternatively, the \
-keyword `never` does not set an expiration time.",
+EXPIRATION is either an ISO 8601 formatted date with an optional time \
+or a custom duration.  A duration takes the form `N[ymwds]`, where the \
+letters stand for years, months, weeks, days, and seconds, respectively. \
+Alternatively, the keyword `never` does not set an expiration time.",
     )]
     expiration: Expiration,
 }

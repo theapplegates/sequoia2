@@ -155,6 +155,73 @@ impl FileOrKeyHandle {
     }
 }
 
+/// Designates data by path, or bytes (which are fed to stdin).
+#[derive(Clone, Debug)]
+pub enum FileOrBytes {
+    FileOrStdin(PathBuf),
+    Bytes(Vec<u8>),
+}
+
+impl From<&[u8]> for FileOrBytes {
+    fn from(s: &[u8]) -> Self {
+        FileOrBytes::Bytes(s.to_vec())
+    }
+}
+
+impl From<Vec<u8>> for FileOrBytes {
+    fn from(s: Vec<u8>) -> Self {
+        FileOrBytes::Bytes(s)
+    }
+}
+
+impl From<&Vec<u8>> for FileOrBytes {
+    fn from(s: &Vec<u8>) -> Self {
+        FileOrBytes::Bytes(s.clone())
+    }
+}
+
+impl From<&Path> for FileOrBytes {
+    fn from(path: &Path) -> Self {
+        path.to_path_buf().into()
+    }
+}
+
+impl From<&PathBuf> for FileOrBytes {
+    fn from(path: &PathBuf) -> Self {
+        path.clone().into()
+    }
+}
+
+impl From<PathBuf> for FileOrBytes {
+    fn from(path: PathBuf) -> Self {
+        FileOrBytes::FileOrStdin(path.into())
+    }
+}
+
+impl From<&FileOrBytes> for FileOrBytes {
+    fn from(h: &FileOrBytes) -> Self {
+        h.clone()
+    }
+}
+
+impl FileOrBytes {
+    /// Returns whether this contains a `FileOrStdin`.
+    pub fn is_file(&self) -> bool {
+        match self {
+            FileOrBytes::FileOrStdin(_) => true,
+            FileOrBytes::Bytes(_) => false,
+        }
+    }
+
+    /// Returns whether this contains bytes.
+    pub fn is_bytes(&self) -> bool {
+        match self {
+            FileOrBytes::FileOrStdin(_) => false,
+            FileOrBytes::Bytes(_) => true,
+        }
+    }
+}
+
 pub struct Sq {
     base: TempDir,
     // Whether to preserve the directory on exit.  Normally we clean
@@ -486,21 +553,30 @@ impl Sq {
 
     /// Decrypts a message.
     pub fn decrypt<M>(&self, args: &[&str], msg: M) -> Vec<u8>
-    where M: AsRef<[u8]>,
+    where M: Into<FileOrBytes>,
     {
         self.decrypt_maybe(args, msg).expect("can decrypt")
     }
 
     /// Decrypts a message.
     pub fn decrypt_maybe<M>(&self, args: &[&str], msg: M) -> Result<Vec<u8>>
-    where M: AsRef<[u8]>,
+    where M: Into<FileOrBytes>,
     {
         let mut cmd = self.command();
         cmd.args([ "decrypt" ]);
         for arg in args {
             cmd.arg(arg);
         }
-        cmd.write_stdin(msg.as_ref());
+
+        match msg.into() {
+            FileOrBytes::FileOrStdin(path) => {
+                cmd.arg(path);
+            }
+            FileOrBytes::Bytes(bytes) => {
+                cmd.write_stdin(bytes);
+            }
+        }
+
         let output = self.run(cmd, None);
 
         if output.status.success() {
@@ -513,7 +589,7 @@ impl Sq {
     /// Encrypts a message.
     pub fn encrypt<A, M>(&self, args: &[A], msg: M) -> Vec<u8>
     where A: AsRef<str>,
-          M: AsRef<[u8]>,
+          M: Into<FileOrBytes>,
     {
         self.encrypt_maybe(args, msg).expect("can encrypt")
     }
@@ -521,14 +597,23 @@ impl Sq {
     /// Encrypts a message.
     pub fn encrypt_maybe<A, M>(&self, args: &[A], msg: M) -> Result<Vec<u8>>
     where A: AsRef<str>,
-          M: AsRef<[u8]>,
+          M: Into<FileOrBytes>,
     {
         let mut cmd = self.command();
         cmd.args([ "encrypt" ]);
         for arg in args {
             cmd.arg(arg.as_ref());
         }
-        cmd.write_stdin(msg.as_ref());
+
+        match msg.into() {
+            FileOrBytes::FileOrStdin(path) => {
+                cmd.arg(path);
+            }
+            FileOrBytes::Bytes(bytes) => {
+                cmd.write_stdin(bytes);
+            }
+        }
+
         let output = self.run(cmd, None);
 
         if output.status.success() {

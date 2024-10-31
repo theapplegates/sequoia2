@@ -49,7 +49,7 @@ fn try_encrypt(sq: &Sq, extra_args: &[&str],
 
     let message = format!("{:?}", args);
 
-    let result = sq.encrypt_maybe(&args, &message);
+    let result = sq.encrypt_maybe(&args, message.as_bytes());
 
     match result {
         Err(err) => {
@@ -142,7 +142,7 @@ fn sq_encrypt_using_cert_store() -> Result<()>
                KeyHandle::from(cert.keyid())]
     {
         assert!(
-            sq.encrypt_maybe(&["--for", &kh.to_string()], b"")
+            sq.encrypt_maybe(&["--for", &kh.to_string()], &b""[..])
                 .is_err());
     }
 

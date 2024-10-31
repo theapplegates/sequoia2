@@ -11,6 +11,6 @@ pub fn dispatch(sq: Sq, command: cli::key::expire::Command)
     let handle =
         sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.1;
 
-    expire(sq, handle, &[], command.expiration,
+    expire(sq, handle, &[], command.expiration.value(),
            command.output, command.binary)
 }

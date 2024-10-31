@@ -3,7 +3,7 @@
 use clap::Args;
 
 use crate::cli::types::ClapData;
-use crate::cli::types::Expiration;
+use crate::cli::types::ExpirationArg;
 use crate::cli::types::FileOrStdout;
 
 use crate::cli::examples::*;
@@ -70,24 +70,8 @@ pub struct Command {
     )]
     pub binary: bool,
 
-    #[clap(
-        long,
-        required = true,
-        value_name = "EXPIRATION",
-        help =
-            "Define EXPIRATION for the key as ISO 8601 formatted string or \
-            custom duration.",
-        long_help =
-            "Define EXPIRATION for the key as ISO 8601 formatted string or \
-            custom duration. \
-            If an ISO 8601 formatted string is provided, the validity period \
-            reaches from the reference time (may be set using `--time`) to \
-            the provided time. \
-            Custom durations starting from the reference time may be set using \
-            `N[ymwds]`, for N years, months, weeks, days, or seconds. \
-            The special keyword `never` sets an unlimited expiry.",
-    )]
-    pub expiration: Expiration,
+    #[clap(flatten)]
+    pub expiration: ExpirationArg,
 }
 
 /// Documentation for the cert designators for the key expire.

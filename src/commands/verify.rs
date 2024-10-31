@@ -27,11 +27,19 @@ pub fn dispatch(sq: Sq, command: cli::verify::Command)
     let signers =
         sq.resolve_certs_or_fail(&command.signers, sequoia_wot::FULLY_TRUSTED)?;
 
-    verify(sq, &mut input,
-           command.detached,
-           &mut output, signatures, signers)?;
-
-    Ok(())
+    let result = verify(sq, &mut input,
+                        command.detached,
+                        &mut output, signatures, signers);
+    if result.is_err() {
+        if let Some(path) = command.output.path() {
+            if let Err(err) = std::fs::remove_file(path) {
+                wprintln!("Verification failed, failed to remove \
+                           unverified output saved to {}: {}",
+                          path.display(), err);
+            }
+        }
+    }
+    result
 }
 
 pub fn verify(mut sq: Sq,

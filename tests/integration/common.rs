@@ -1643,6 +1643,54 @@ impl Sq {
         }
     }
 
+    pub fn verify_maybe<'a, P, Q>(&self,
+                                  args: &[&str],
+                                  input: P,
+                                  output_file: Q)
+        -> Result<Vec<u8>>
+    where P: AsRef<Path>,
+          Q: Into<Option<&'a Path>>,
+    {
+        let output_file = output_file.into();
+
+        let mut cmd = self.command();
+        cmd.args([ "verify" ]);
+        for arg in args {
+            cmd.arg(arg);
+        }
+        cmd.arg(input.as_ref());
+        if let Some(output_file) = output_file {
+            cmd.arg("--output").arg(output_file);
+        }
+
+        let output = self.run(cmd, None);
+        if output.status.success() {
+            if let Some(output_file) = output_file {
+                if output_file != &PathBuf::from("-") {
+                    return Ok(std::fs::read(output_file)?);
+                }
+            }
+
+            Ok(output.stdout)
+        } else {
+            Err(anyhow::anyhow!(format!(
+                "Command failed:\n{}",
+                String::from_utf8_lossy(&output.stderr))))
+        }
+    }
+
+    pub fn verify<'a, P, Q>(&self,
+                            args: &[&str],
+                            input: P,
+                            output_file: Q)
+        -> Vec<u8>
+    where P: AsRef<Path>,
+          Q: Into<Option<&'a Path>>,
+    {
+        self.verify_maybe(args, input, output_file)
+            .expect("success")
+    }
+
     // Strips the secret key material from input.  Writes it to
     // `output_file`, if `Some`.
     pub fn toolbox_extract_cert<'a, P, Q>(&self, input: P,

@@ -6,6 +6,8 @@
 ** Notable changes
    - `sq toolbox keyring merge` now supports merging bare revocation
      certificates.
+   - `sq verify` now deletes the output file on failure.
+
 * Changes in 0.39.0
 ** Notable changes
    - Subcommand `sq key userid strip` has been moved to `sq toolbox

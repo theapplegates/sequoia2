@@ -69,10 +69,10 @@ signatures are often used to sign software packages.
 Verification is only successful if there is no bad signature, and the \
 number of successfully verified signatures reaches the threshold \
 configured with the `--signatures` parameter.  If the verification \
-fails, the program terminates with an exit status indicating failure. \
-In addition to that, the last 25 MiB of the message are withheld, \
-i.e. if the message is smaller than 25 MiB, no output is produced, and \
-if it is larger, then the output will be truncated.
+fails, the program terminates with an exit status indicating failure, \
+and the output file is deleted.  If the output was sent to stdout, \
+then the last 25 MiB of the message are withheld (consequently, if \
+the message is smaller than 25 MiB, no output is produced).
 
 A signature is considered to have been authenticated if the signer can \
 be authenticated.  If the signer is provided via `--signer-file`, \

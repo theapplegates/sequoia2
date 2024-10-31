@@ -29,4 +29,5 @@ mod integration {
     mod sq_toolbox_keyring_merge;
     mod sq_toolbox_packet_decrypt;
     mod sq_toolbox_packet_dump;
+    mod sq_verify;
 }

@@ -1,7 +1,10 @@
+use std::fs::File;
+use std::io::Write;
+
 use predicates::prelude::*;
 
-use openpgp::Result;
 use sequoia_openpgp as openpgp;
+use openpgp::Result;
 
 use super::common::{Sq, artifact};
 
@@ -61,5 +64,76 @@ fn session_key_wrong_key() -> Result<()> {
         .assert()
         .failure()
         .stderr(predicate::str::contains("Decryption failed"));
+    Ok(())
+}
+
+// Make sure verifying bad data fails, and removes the intermediate
+// file.
+#[test]
+fn sq_decrypt_bad() -> Result<()> {
+    let sq = Sq::new();
+
+    // The signer.
+    let (_cert, signer_file, _rev_file) = sq.key_generate(&[], &["alice"]);
+    let (_cert, recip_file, _rev_file) = sq.key_generate(&[], &["bob"]);
+
+    // Create a big file.  When verifying, we buffer the first ~25 MB
+    // of verified data so that we can at least withhold some data if
+    // we can't verify the message.
+    let data_file = sq.scratch_file("data");
+    let size = {
+        let mut file = File::create(&data_file)?;
+        let data = vec![42; 1024 * 1024];
+        let mut size = 0;
+        for _ in 0..100 {
+            file.write_all(&data).expect("can write");
+            size += data.len();
+        }
+
+        size as u64
+    };
+    assert_eq!(std::fs::metadata(&data_file).expect("can stat").len(),
+               size);
+
+    // Sign and encrypt the message.
+    let file = sq.scratch_file("file");
+    sq.encrypt(
+        &[
+            "--for-file", &recip_file.display().to_string(),
+            "--signer-file", &signer_file.display().to_string(),
+            "--output", &file.display().to_string(),
+        ],
+        &data_file);
+
+    // Verify the signed message.
+    let output = sq.scratch_file("output");
+    std::fs::write(&output, "xxx").expect("can write to scratch file");
+    sq.decrypt(
+        &["--overwrite",
+          "--recipient-file", &recip_file.display().to_string(),
+          "--signer-file", &signer_file.display().to_string(),
+          "--output", &output.display().to_string(),
+        ],
+        &file);
+    assert!(output.exists());
+    assert_eq!(std::fs::metadata(&output).expect("can stat").len(),
+               size);
+
+    // Making signing fail and ensure the output is deleted.
+    let output2 = sq.scratch_file("output2");
+    std::fs::write(&output2, "xxx").expect("can write to scratch file");
+    assert!(
+        sq.decrypt_maybe(
+            &["--overwrite",
+              "--recipient-file", &recip_file.display().to_string(),
+              "--signer-file", &recip_file.display().to_string(),
+              "--output", &output2.display().to_string(),
+            ],
+            &file)
+            .is_err());
+    // Since we failed to verify the message, we should have deleted
+    // the output file.
+    assert!(! output2.exists());
+
     Ok(())
 }

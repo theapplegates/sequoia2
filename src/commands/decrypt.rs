@@ -61,12 +61,21 @@ pub fn dispatch(sq: Sq, command: cli::decrypt::Command) -> Result<()> {
     let secrets =
         load_keys(command.secret_key_file.iter())?;
     let session_keys = command.session_key;
-    decrypt(sq, &mut input, &mut output,
-            signatures, signers, secrets,
-            command.dump_session_key,
-            session_keys)?;
+    let result = decrypt(sq, &mut input, &mut output,
+                         signatures, signers, secrets,
+                         command.dump_session_key,
+                         session_keys);
+    if result.is_err() {
+        if let Some(path) = command.output.path() {
+            if let Err(err) = std::fs::remove_file(path) {
+                wprintln!("Decryption failed, failed to remove \
+                           output saved to {}: {}",
+                          path.display(), err);
+            }
+        }
+    }
 
-    Ok(())
+    result
 }
 
 pub struct Helper<'c, 'store, 'rstore>

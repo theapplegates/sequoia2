@@ -7,6 +7,7 @@
    - `sq toolbox keyring merge` now supports merging bare revocation
      certificates.
    - `sq verify` now deletes the output file on failure.
+   - `sq decrypt` now deletes the output file on failure.
 
 * Changes in 0.39.0
 ** Notable changes

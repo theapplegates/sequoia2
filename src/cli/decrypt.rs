@@ -71,9 +71,10 @@ configured with the `--signatures` parameter.
 
 If the signature verification fails, or if message tampering is \
 detected, the program terminates with an exit status indicating \
-failure.  In addition to that, the last 25 MiB of the message are \
-withheld, i.e. if the message is smaller than 25 MiB, no output is \
-produced, and if it is larger, then the output will be truncated.
+failure.  and the output file is deleted.  If the output was sent \
+to stdout, then the last 25 MiB of the message are withheld \
+(consequently, if the message is smaller than 25 MiB, no output \
+is produced).
 
 The converse operation is `sq encrypt`.
 ",

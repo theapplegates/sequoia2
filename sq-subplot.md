@@ -1004,7 +1004,7 @@ then files hello.txt and alice.txt match
 ## Detect bad signature when decrypting
 
 _Requirement: When decrypting a message, if a signature check fails,
-there should be no output._
+the output file should be deleted.
 
 ~~~scenario
 given an installed sq
@@ -1019,7 +1019,7 @@ when I run sq encrypt --for-file alice-cert.pgp --signer-file alice.pgp hello.tx
 
 when I try to run sq decrypt --recipient-file alice.pgp --output alice.txt x.pgp --signer-file bob-cert.pgp
 then exit code is 1
-then files alice.txt and empty match
+then file alice.txt does not exist
 ~~~
 
 

@@ -35,7 +35,7 @@ fn update_files() -> Result<()> {
                       .to_str().unwrap_or("")));
 
         sq.toolbox_keyring_merge(
-            vec![ public, &alice_pgp ], None,
+            &[ public, &alice_pgp ][..], None,
             &*priv_file);
 
         let attestation_file = sq.scratch_file(

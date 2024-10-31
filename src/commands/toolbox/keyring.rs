@@ -16,12 +16,20 @@ use openpgp::{
         CertParser,
     },
     Fingerprint,
+    KeyHandle,
+    KeyID,
     packet::{
+        Packet,
         UserID,
         UserAttribute,
         Key,
+        Signature,
         Tag,
         key,
+    },
+    parse::{
+        PacketParser,
+        PacketParserResult,
     },
     parse::Parse,
     serialize::Serialize,
@@ -331,23 +339,65 @@ fn merge(sq: &Sq, inputs: Vec<PathBuf>, output: FileOrStdout,
          -> Result<()>
 {
     let mut certs: BTreeMap<Fingerprint, Option<Cert>> = BTreeMap::new();
+    let mut revocations: Vec<(Signature, String)> = Vec::new();
 
     let inputs: Box<dyn Iterator<Item = _>> = if inputs.is_empty() {
         Box::new(std::iter::once(
             ("stdin".to_string(),
-             CertParser::from_reader(StdinWarning::certs()))))
+             PacketParser::from_reader(StdinWarning::certs()))))
     } else {
         Box::new(
             inputs.into_iter()
                 .map(|name| {
                     (name.display().to_string(),
-                     CertParser::from_file(&name))
+                     PacketParser::from_file(&name))
                 }))
     };
 
     for (name, result) in inputs {
         let parser = result.with_context(|| format!("Opening {}", name))?;
-        for cert in parser {
+
+        // First see if we have a bare revocation certificate.
+        let mut is_sig = false;
+        if let PacketParserResult::Some(ref pp) = parser {
+            if let Packet::Signature(_) = pp.packet {
+                is_sig = true;
+            }
+        }
+        if is_sig {
+            // The first packet is a sig.  Make sure it is *only* a
+            // sig.
+            let sig = if let PacketParserResult::Some(pp) = parser {
+                let (packet, next_ppr) = pp.next()?;
+
+                let sig = if let Packet::Signature(sig) = packet {
+                    sig
+                } else {
+                    return Err(anyhow::anyhow!(
+                        "{}: Not a revocation certificate: got a {}.",
+                        name, packet.tag()));
+                };
+
+                if let PacketParserResult::Some(_) = next_ppr {
+                    return Err(anyhow::anyhow!(
+                        "{}: Not a revocation certificate: \
+                         got more than one packet.",
+                        name));
+                }
+
+                sig
+            } else {
+                return Err(anyhow::anyhow!(
+                    "{}: Not a bare revocation certificate.",
+                    name));
+            };
+
+            revocations.push((sig.clone(), name));
+            continue;
+        }
+
+        // Parse it like its a keyring.
+        for cert in CertParser::from(parser) {
             let cert = cert.context(
                 format!("Read a malformed certificate from {:?}", name))?;
             match certs.entry(cert.fingerprint()) {
@@ -361,6 +411,91 @@ fn merge(sq: &Sq, inputs: Vec<PathBuf>, output: FileOrStdout,
                               .expect("Same certificate"));
                 }
             }
+        }
+    }
+
+    if ! revocations.is_empty() {
+        // A map from key ID to fingerprint.
+        //
+        // This doesn't deal with colliding key IDs, but second
+        // pre-images are not feasible, so this isn't a problem in
+        // practice.
+        let by_keyid: BTreeMap<KeyID, Fingerprint>
+            = BTreeMap::from_iter(certs.values().filter_map(|cert| {
+                cert.as_ref().map(|cert| {
+                    (cert.keyid(), cert.fingerprint())
+                })
+            }));
+
+        let mut die = false;
+        let mut missing = Vec::new();
+
+        'next_rev: for (sig, name) in revocations {
+            let issuers = sig.get_issuers();
+
+            let mut bad = None;
+
+            for issuer in issuers.iter() {
+                let cert = match issuer {
+                    KeyHandle::Fingerprint(fpr) => {
+                        certs.get_mut(fpr)
+                    }
+                    KeyHandle::KeyID(keyid) => {
+                        by_keyid.get(&keyid)
+                            .and_then(|fpr| certs.get_mut(fpr))
+                    }
+                };
+
+                let cert = if let Some(Some(cert)) = cert {
+                    cert
+                } else {
+                    continue;
+                };
+
+                match sig.clone().verify_primary_key_revocation(
+                    cert.primary_key().key(),
+                    cert.primary_key().key())
+                {
+                    Ok(()) => {
+                        *cert = cert.clone().insert_packets(sig.clone())?;
+                        continue 'next_rev;
+                    }
+                    Err(err) => {
+                        bad = Some((issuer, name.clone(), err));
+                    }
+                }
+            }
+
+            if let Some((_sig, name, err)) = bad {
+                wprintln!("Could not add revocation certificate from {} \
+                           to certificate: {}",
+                          name, err);
+                die = true;
+            } else {
+                missing.push((issuers[0].clone(), name.clone()));
+                die = true;
+            }
+        }
+
+        match missing.as_slice() {
+            [] => (),
+            [(issuer, name)] => {
+                wprintln!("Couldn't merge revocation certificate \
+                           from {}: missing {}.",
+                          name, issuer);
+            }
+            _ => {
+                wprintln!("Couldn't some merge revocation certificates:");
+                for (issuer, name) in missing.into_iter() {
+                    wprintln!("  - {}: missing {}",
+                              name, issuer);
+                }
+            }
+        }
+
+        if die {
+            return Err(anyhow::anyhow!(
+                "Failed to merge some revocation certificates"));
         }
     }
 

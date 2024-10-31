@@ -1674,11 +1674,11 @@ impl Sq {
     }
 
     // Merges the certificates.
-    pub fn toolbox_keyring_merge<'a, P, Q>(&self,
-                                           input_files: Vec<P>,
-                                           input_bytes: Option<&[u8]>,
-                                           output_file: Q)
-        -> Vec<Cert>
+    pub fn toolbox_keyring_merge_maybe<'a, P, Q>(&self,
+                                                 input_files: &[P],
+                                                 input_bytes: Option<&[u8]>,
+                                                 output_file: Q)
+        -> Result<Vec<Cert>>
     where P: AsRef<Path>,
           Q: Into<Option<&'a Path>>,
     {
@@ -1699,25 +1699,41 @@ impl Sq {
             cmd.arg("--output").arg(output_file);
         }
 
-        let output = self.run(cmd, Some(true));
+        let output = self.run(cmd, None);
 
-        let parser = None;
-        if let Some(output_file) = output_file {
-            if PathBuf::from("-").as_path() != output_file {
-                CertParser::from_file(&output_file)
-                    .expect("can parse certificate");
-            }
-        };
-        let parser = if let Some(parser) = parser {
-            parser
+        if output.status.success() {
+            let parser = None;
+            if let Some(output_file) = output_file {
+                if PathBuf::from("-").as_path() != output_file {
+                    CertParser::from_file(&output_file)
+                        .expect("can parse certificate");
+                }
+            };
+            let parser = if let Some(parser) = parser {
+                parser
+            } else {
+                // Read from stdout.
+                CertParser::from_bytes(&output.stdout)
+                    .expect("can parse certificate")
+            };
+
+            parser.collect::<Result<Vec<_>>>()
         } else {
-            // Read from stdout.
-            CertParser::from_bytes(&output.stdout)
-                .expect("can parse certificate")
-        };
+            Err(anyhow::anyhow!("sq key export returned an error"))
+        }
+    }
 
-        parser.collect::<Result<Vec<_>>>()
-            .expect("valid certificates")
+    // Merges the certificates.
+    pub fn toolbox_keyring_merge<'a, P, Q>(&self,
+                                           input_files: &[P],
+                                           input_bytes: Option<&[u8]>,
+                                           output_file: Q)
+        -> Vec<Cert>
+    where P: AsRef<Path>,
+          Q: Into<Option<&'a Path>>,
+    {
+        self.toolbox_keyring_merge_maybe(input_files, input_bytes, output_file)
+            .expect("success")
     }
 }
 

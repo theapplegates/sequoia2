@@ -2,6 +2,10 @@
 #+TITLE: sequoia-sq NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 0.40.0
+** Notable changes
+   - `sq toolbox keyring merge` now supports merging bare revocation
+     certificates.
 * Changes in 0.39.0
 ** Notable changes
    - Subcommand `sq key userid strip` has been moved to `sq toolbox

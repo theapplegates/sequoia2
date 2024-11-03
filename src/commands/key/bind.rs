@@ -135,7 +135,9 @@ pub fn bind(sq: Sq, command: cli::key::subkey::BindCommand) -> Result<()>
             let mut key = key.key().clone().role_into_subordinate();
 
             if let Some(creation_time) = &command.creation_time {
-                match key.set_creation_time(creation_time.clone()) {
+                match creation_time.to_system_time(sq.time)
+                    .and_then(|t| key.set_creation_time(t))
+                {
                     Ok(_) => (),
                     Err(err) => return (kh, Err(err)),
                 }
@@ -187,7 +189,8 @@ pub fn bind(sq: Sq, command: cli::key::subkey::BindCommand) -> Result<()>
     for (cert, mut key, mut builder) in wanted.into_iter() {
         // Set key expiration.
         if let Some(e) = &command.expiration {
-            builder = builder.set_key_expiration_time(&key, e.timestamp())?;
+            builder = builder.set_key_expiration_time(
+                &key, e.to_system_time(sq.time)?)?;
         }
 
         let key_flags = builder.key_flags().unwrap_or(KeyFlags::empty());

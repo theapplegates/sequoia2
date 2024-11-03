@@ -5,8 +5,6 @@ use std::str::FromStr;
 use std::time::Duration;
 use std::time::SystemTime;
 
-use anyhow::Context;
-
 use chrono::DateTime;
 use chrono::Utc;
 
@@ -14,8 +12,6 @@ use clap::builder::IntoResettable;
 use clap::builder::OsStr;
 use clap::builder::Resettable;
 
-use crate::cli::types::SECONDS_IN_DAY;
-use crate::cli::types::SECONDS_IN_YEAR;
 use crate::cli::types::Time;
 use crate::Result;
 
@@ -23,6 +19,7 @@ use crate::Result;
 pub struct ExpirationArg {
     #[clap(
         long = "expiration",
+        allow_hyphen_values = true,
         value_name = "EXPIRATION",
         default_value_t = Expiration::Never,
         help =
@@ -62,8 +59,6 @@ impl ExpirationArg {
 pub enum Expiration {
     /// An expiry timestamp
     Timestamp(Time),
-    /// A validity duration
-    Duration(Duration),
     /// There is no expiry
     Never,
 }
@@ -81,77 +76,13 @@ impl Expiration {
     pub fn new(expiry: &str) -> Result<Self> {
         match expiry {
             "never" => Ok(Expiration::Never),
-            _ if expiry.ends_with("y")
-                || expiry.ends_with("m")
-                || expiry.ends_with("w")
-                || expiry.ends_with("d")
-                || expiry.ends_with("s") =>
-            {
-                Ok(Expiration::Duration(Expiration::parse_duration(expiry)?))
-            }
             _ => Ok(Expiration::Timestamp(Time::from_str(expiry)?)),
         }
     }
 
-    /// Parse a string as Duration and return it in a Result
-    ///
-    /// The `expiry` must be at least two chars long, and consist of digits and
-    /// a trailing factor identifier (one of `"y"`, `"m"`, `"w"`, `"d"`, `"s"`
-    /// for year, month, week, day or second, respectively).
-    fn parse_duration(expiry: &str) -> Result<Duration> {
-        if expiry.len() < 2 {
-            return Err(anyhow::anyhow!(
-                "Expiration must contain at least one digit and one factor."
-            ));
-        }
-
-        match expiry.strip_suffix(['y', 'm', 'w', 'd', 's']) {
-            Some(digits) => Ok(Duration::new(
-                match digits.parse::<i64>() {
-                    Ok(count) if count < 0 => {
-                        return Err(anyhow::anyhow!(
-                            "Negative expiry ('{}') detected. \
-                            Did you mean '{}'?",
-                            expiry,
-                            expiry.trim_start_matches("-")
-                        ))
-                    }
-                    Ok(count) => count as u64,
-                    Err(err) => return Err(err).context(
-                        format!("Expiration '{}' is out of range", digits)
-                    ),
-                } * match expiry.chars().last() {
-                    Some('y') => SECONDS_IN_YEAR,
-                    Some('m') => SECONDS_IN_YEAR / 12,
-                    Some('w') => 7 * SECONDS_IN_DAY,
-                    Some('d') => SECONDS_IN_DAY,
-                    Some('s') => 1,
-                    _ => unreachable!(
-                        "Expiration without 'y', 'm', 'w', 'd' or 's' \
-                                suffix impossible since checked for it."
-                    ),
-                },
-                0,
-            )),
-            None => {
-                return Err(anyhow::anyhow!(
-                    if let Some(suffix) = expiry.chars().last() {
-                        format!(
-                            "Invalid suffix '{}' in duration '{}' \
-                        (try <digits><y|m|w|d|s>, e.g. '1y')",
-                            suffix,
-                            expiry
-                        )
-                    } else {
-                        format!(
-                            "Invalid duration: {} \
-                        (try <digits><y|m|w|d|s>, e.g. '1y')",
-                            expiry
-                        )
-                    }
-                ))
-            }
-        }
+    /// Create a new Expiration from a `Duration`.
+    pub fn from_duration(duration: Duration) -> Self {
+        Expiration::Timestamp(Time::from_duration(duration))
     }
 
     /// Return the expiry as an optional Duration in a Result
@@ -168,22 +99,18 @@ impl Expiration {
         reference: DateTime<Utc>,
     ) -> Result<Option<Duration>> {
         match self {
-            Expiration::Timestamp(time) => Ok(
-                Some(
-                    SystemTime::from(time.time).duration_since(reference.into())?
-                )
-            ),
-            Expiration::Duration(duration) => Ok(Some(duration.clone())),
+            Expiration::Timestamp(time) => {
+                Ok(Some(time.duration_since(reference.into())?))
+            }
             Expiration::Never => Ok(None),
         }
     }
 
     /// Return the expiry as absolute time.
-    pub fn to_systemtime(&self, now: SystemTime) -> Option<SystemTime> {
+    pub fn to_system_time(&self, now: SystemTime) -> Result<Option<SystemTime>> {
         match self {
-            Expiration::Timestamp(t) => Some(t.clone().into()),
-            Expiration::Duration(d) => Some(now + *d),
-            Expiration::Never => None,
+            Expiration::Timestamp(t) => Ok(Some(t.to_system_time(now)?)),
+            Expiration::Never => Ok(None),
         }
     }
 }
@@ -200,21 +127,6 @@ impl Display for Expiration {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
             Expiration::Timestamp(time) => write!(f, "{}", time),
-            Expiration::Duration(duration) => {
-                let seconds = duration.as_secs();
-
-                if seconds % SECONDS_IN_YEAR == 0 {
-                    write!(f, "{}y", seconds / SECONDS_IN_YEAR)
-                } else if seconds % (SECONDS_IN_YEAR / 12) == 0 {
-                    write!(f, "{}m", seconds / (SECONDS_IN_YEAR / 12))
-                } else if seconds % (SECONDS_IN_DAY * 7) == 0 {
-                    write!(f, "{}w", seconds / (SECONDS_IN_DAY * 7))
-                } else if seconds % SECONDS_IN_DAY == 0 {
-                    write!(f, "{}d", seconds / SECONDS_IN_DAY)
-                } else {
-                    write!(f, "{}s", seconds)
-                }
-            },
             Expiration::Never => write!(f, "never"),
         }
     }
@@ -230,11 +142,13 @@ impl IntoResettable<OsStr> for Expiration {
 mod test {
     use super::*;
 
+    use crate::SECONDS_IN_YEAR;
+
     #[test]
     fn test_expiry() {
         assert_eq!(
             Expiration::new("1y").unwrap(),
-            Expiration::Duration(Duration::new(SECONDS_IN_YEAR, 0)),
+            Expiration::from_duration(Duration::new(SECONDS_IN_YEAR, 0)),
         );
         assert_eq!(
             Expiration::new("2023-05-15T20:00:00Z").unwrap(),
@@ -244,18 +158,6 @@ mod test {
             Expiration::new("never").unwrap(),
             Expiration::Never,
         );
-    }
-
-    #[test]
-    fn test_expiry_parse_duration() {
-        assert_eq!(
-            Expiration::parse_duration("1y").unwrap(),
-            Duration::new(SECONDS_IN_YEAR, 0),
-        );
-        assert!(Expiration::parse_duration("f").is_err());
-        assert!(Expiration::parse_duration("-1y").is_err());
-        assert!(Expiration::parse_duration("foo").is_err());
-        assert!(Expiration::parse_duration("1o").is_err());
     }
 
     #[test]
@@ -270,7 +172,7 @@ mod test {
             Some(Duration::new(1, 0)),
         );
 
-        let expiry = Expiration::Duration(Duration::new(2,0));
+        let expiry = Expiration::from_duration(Duration::new(2, 0));
         assert_eq!(
             expiry.as_duration(reference).unwrap(),
             Some(Duration::new(2, 0)),

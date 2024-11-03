@@ -385,6 +385,7 @@ store, and the results are merged together."
 
     #[clap(
         long = "time",
+        allow_hyphen_values = true,
         value_name = "TIME",
         help = "Set the reference time as an ISO 8601 formatted timestamp",
         global = true,
@@ -412,6 +413,7 @@ $ sq --time 20130721T0550+0200 verify msg.pgp
     pub time: Option<types::Time>,
     #[clap(
         long = "policy-as-of",
+        allow_hyphen_values = true,
         value_name = "TIME",
         help = "Select the cryptographic policy as of the specified time",
         global = true,

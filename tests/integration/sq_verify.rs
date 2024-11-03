@@ -129,3 +129,65 @@ fn sq_verify_policy_as_of() -> Result<()> {
 
     Ok(())
 }
+
+// Make sure --policy-as-of works with relative time.
+#[test]
+fn sq_verify_policy_as_of_relative_time() -> Result<()> {
+    let sq = Sq::at_str("2024-11-01");
+
+    // Creation time: 2020-11-04 18:36:04 UTC
+    let cert = artifact("keys/only-sha1-pub.pgp");
+    let msg = artifact("messages/signed-by-only-sha1.pgp");
+
+    // Signature creation time: 2024-10-31 13:40:28 UTC
+    assert!(
+        sq.verify_maybe(
+            &[
+                "--signer-file", &cert.display().to_string(),
+            ],
+            &msg,
+            None)
+            .is_err());
+
+    // Setting the reference time is not enough, because the message's
+    // creation time would be in the future.
+    assert!(
+        sq.verify_maybe(
+            &[
+                // => 2021-11-01
+                "--time", "-3y",
+                "--signer-file", &cert.display().to_string(),
+            ],
+            &msg,
+            None)
+            .is_err());
+
+    // But setting the policy time is.
+    assert!(
+        sq.verify_maybe(
+            &[
+                // => 2021-11-01
+                "--policy-as-of", "-3y",
+                "--signer-file", &cert.display().to_string(),
+            ],
+            &msg,
+            None)
+            .is_ok());
+
+    // Make sure we can set both the reference time and the policy
+    // time.
+    assert!(
+        sq.verify_maybe(
+            &[
+                // => 2025-11-01
+                "--time", "1y",
+                // => 2021-11-01
+                "--policy-as-of", "-4y",
+                "--signer-file", &cert.display().to_string(),
+            ],
+            &msg,
+            None)
+            .is_ok());
+
+    Ok(())
+}

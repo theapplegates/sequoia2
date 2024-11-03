@@ -44,7 +44,7 @@ pub fn expire(sq: Sq,
     let all_handles = cert.keys().map(|k| k.key_handle()).collect::<Vec<_>>();
 
     // Fix the new expiration time.
-    let expiration_time = expiration.to_systemtime(sq.time);
+    let expiration_time = expiration.to_system_time(sq.time)?;
 
     // We update the primary key if no subkey is given, or it is
     // explicitly listed as a key to change.

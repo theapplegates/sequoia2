@@ -52,7 +52,7 @@ pub fn add(sq: Sq, c: link::AddCommand)
 
         vec![
             (TrustAmount::Other(40), c.expiration.value()),
-            (c.amount, Expiration::Duration(week)),
+            (c.amount, Expiration::from_duration(week)),
         ]
     } else {
         vec![

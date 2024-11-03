@@ -47,7 +47,7 @@ subkeys, and the binding signatures to the reference time.
 #[clap(group(ArgGroup::new("cap-encrypt").args(&["can_encrypt", "cannot_encrypt"])))]
 #[clap(group(ArgGroup::new("cert-userid").args(&["names", "emails", "userid", "no_userids"]).required(true).multiple(true)))]
 #[clap(mut_arg("expiration", |arg| {
-    arg.default_value(Expiration::Duration(KEY_VALIDITY_DURATION))
+    arg.default_value(Expiration::from_duration(KEY_VALIDITY_DURATION))
 }))]
 pub struct Command {
     #[clap(

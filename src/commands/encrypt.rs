@@ -329,7 +329,7 @@ pub fn encrypt<'a, 'b: 'a>(
             )?;
         }
         MetadataTime::Timestamp(time) => {
-            literal_writer = literal_writer.date(SystemTime::from(time.time))?;
+            literal_writer = literal_writer.date(time.to_system_time(sq.time)?)?;
         }
     }
 

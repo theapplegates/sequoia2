@@ -91,7 +91,7 @@ reference time.
 )]
 #[clap(group(ArgGroup::new("constraint").args(&["regex", "domain", "unconstrained"]).required(true).multiple(true)))]
 #[clap(mut_arg("expiration", |arg| {
-    arg.default_value(Expiration::Duration(THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION))
+    arg.default_value(Expiration::from_duration(THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION))
 }))]
 pub struct Command {
     #[command(flatten)]

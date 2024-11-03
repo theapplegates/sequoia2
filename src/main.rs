@@ -203,13 +203,17 @@ fn real_main() -> Result<()> {
     };
 
     let time_is_now = c.time.is_none();
-    let time: SystemTime =
-        c.time.clone().unwrap_or_else(|| Time::now()).into();
+    let time: SystemTime = if let Some(t) = c.time.as_ref() {
+        t.to_system_time(std::time::SystemTime::now())?
+    } else {
+        std::time::SystemTime::now()
+    };
 
-    let policy_as_of = c.policy_as_of.clone()
-        .map(|t| SystemTime::from(t)).unwrap_or_else(|| {
-            time.clone()
-        });
+    let policy_as_of: SystemTime = if let Some(t) = c.policy_as_of.clone() {
+        t.to_system_time(time)?
+    } else {
+        time.clone()
+    };
 
     let mut policy
         = sequoia_policy_config::ConfiguredStandardPolicy::at(policy_as_of);

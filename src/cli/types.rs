@@ -28,9 +28,6 @@ use openpgp::parse::Cookie;
 use openpgp::types::KeyFlags;
 use openpgp::types::SymmetricAlgorithm;
 
-use crate::cli::SECONDS_IN_DAY;
-use crate::cli::SECONDS_IN_YEAR;
-
 pub mod cert_designator;
 pub use cert_designator::CertDesignators;
 pub mod paths;

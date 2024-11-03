@@ -835,6 +835,7 @@ pub struct BindCommand {
     pub key: Vec<KeyHandle>,
     #[clap(
         long,
+        allow_hyphen_values = true,
         value_name = "CREATION_TIME",
         help = "Make bound subkeys have the specified creation time",
         long_help = "\
@@ -852,6 +853,7 @@ the purpose of signature verification, for example.",
     pub creation_time: Option<Time>,
     #[clap(
         long,
+        allow_hyphen_values = true,
         value_name = "EXPIRATION",
         help = "Make bound subkeys expire at the given time",
     )]

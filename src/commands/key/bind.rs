@@ -188,9 +188,8 @@ pub fn bind(sq: Sq, command: cli::key::subkey::BindCommand) -> Result<()>
     let mut packets: Vec<Packet> = vec![];
     for (cert, mut key, mut builder) in wanted.into_iter() {
         // Set key expiration.
-        if let Some(e) = &command.expiration {
-            builder = builder.set_key_expiration_time(
-                &key, e.to_system_time(sq.time)?)?;
+        if let Some(e) = command.expiration.value().to_system_time(sq.time)? {
+            builder = builder.set_key_expiration_time(&key, e)?;
         }
 
         let key_flags = builder.key_flags().unwrap_or(KeyFlags::empty());

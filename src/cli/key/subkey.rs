@@ -851,13 +851,8 @@ Changing the fingerprint will make it impossible to look up the key for \
 the purpose of signature verification, for example.",
     )]
     pub creation_time: Option<Time>,
-    #[clap(
-        long,
-        allow_hyphen_values = true,
-        value_name = "EXPIRATION",
-        help = "Make bound subkeys expire at the given time",
-    )]
-    pub expiration: Option<Time>,
+    #[clap(flatten)]
+    pub expiration: ExpirationArg,
     #[clap(
         long,
         help = "Allow adopting keys from certificates \

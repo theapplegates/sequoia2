@@ -6,6 +6,8 @@ use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 use openpgp::Packet;
 use openpgp::Result;
+use openpgp::cert::amalgamation::ValidAmalgamation;
+use openpgp::cert::amalgamation::ValidateAmalgamation;
 use openpgp::packet::signature::SignatureBuilder;
 use openpgp::serialize::Serialize;
 use openpgp::types::RevocationStatus;
@@ -35,13 +37,15 @@ pub fn expire(sq: Sq,
             output = Some(FileOrStdout::new(None));
         }
     }
-    let cert = sq.lookup_one(cert_handle, None, true)?;
+    let cert = sq.lookup_one(cert_handle.clone(), None, true)?;
 
     let mut primary_signer
         = sq.get_primary_key(&cert, Some(&[GetKeysOptions::AllowNotAlive]))?;
 
+    let vc = cert.with_policy(sq.policy, sq.time)?;
+
     let primary_handle = cert.key_handle();
-    let all_handles = cert.keys().map(|k| k.key_handle()).collect::<Vec<_>>();
+    let all_handles = vc.keys().map(|k| k.key_handle()).collect::<Vec<_>>();
 
     // Fix the new expiration time.
     let expiration_time = expiration.to_system_time(sq.time)?;
@@ -53,17 +57,53 @@ pub fn expire(sq: Sq,
     // We only update subkey bindings if they are explicitly given.
     let update_subkeys = ! keys.is_empty();
 
-    let mut subkeys = cert.keys().subkeys();
+    let mut subkeys = vc.keys().subkeys();
     for h in keys {
         if ! all_handles.iter().any(|k| k.aliases(h)) {
-            wprintln!("Selected key {} does not exist in the certificate.", h);
+            let mut weak = None;
+            if let Some(ka) = cert.keys().key_handle(h.clone()).next() {
+                weak = ka.with_policy(sq.policy, sq.time).err();
+            }
+            if let Some(ref err) = weak {
+                wprintln!("Selected key {} is unusable: {}.", h, err);
+                sq.hint(format_args!(
+                    "After checking the integrity of the certificate, you \
+                     may be able to repair it using:"))
+                    .sq().arg("cert").arg("lint").arg("--fix")
+                    .arg_value(
+                        match &cert_handle {
+                            FileStdinOrKeyHandle::KeyHandle(_kh) => {
+                                "--cert"
+                            }
+                            FileStdinOrKeyHandle::FileOrStdin(_file) => {
+                                "--file"
+                            }
+                        },
+                        match &cert_handle {
+                            FileStdinOrKeyHandle::KeyHandle(kh) => {
+                                kh.to_string()
+                            }
+                            FileStdinOrKeyHandle::FileOrStdin(file) => {
+                                file.path()
+                                    .map(|p| p.display().to_string())
+                                    .unwrap_or_else(|| "".into())
+                            }
+                        })
+                    .done();
+            } else {
+                wprintln!("Selected key {} is not part of the certificate.", h);
+            }
             wprintln!();
-            wprintln!("The certificate has the following keys:");
+            wprintln!("{} has the following keys:", cert.fingerprint());
             wprintln!();
             for k in &all_handles {
                 wprintln!(" - {}", k);
             }
-            return Err(anyhow::anyhow!("Selected key not found"));
+            if weak.is_some() {
+                return Err(anyhow::anyhow!("Selected key not usable"));
+            } else {
+                return Err(anyhow::anyhow!("Selected key not found"));
+            }
         }
 
         if h.aliases(&primary_handle) {
@@ -80,19 +120,11 @@ pub fn expire(sq: Sq,
         // To update subkey expiration times, create new binding
         // signatures.
         for ka in subkeys {
-            if let RevocationStatus::Revoked(sigs)
-                = ka.revocation_status(sq.policy, sq.time)
-            {
+            if let RevocationStatus::Revoked(sigs) = ka.revocation_status() {
                 for sig in sigs {
                     let reason = sig.reason_for_revocation();
                     let bad = if let Some((reason, _)) = reason {
-                        if reason.revocation_type()
-                            == RevocationType::Hard
-                        {
-                            true
-                        } else {
-                            false
-                        }
+                        reason.revocation_type() == RevocationType::Hard
                     } else {
                         true
                     };
@@ -106,30 +138,15 @@ pub fn expire(sq: Sq,
                 }
             }
 
-            // Preferably use the binding signature under our policy.
-            let template = match ka.binding_signature(sq.policy, sq.time) {
-                Ok(sig) => {
-                    sig.clone()
-                }
-                Err(err) => {
-                    // But fall back to the most recent binding
-                    // signature, which is mathematically valid.
-                    if let Some(sig) = ka.self_signatures().next() {
-                        sig.clone()
-                    } else {
-                        return Err(err.context(format!(
-                            "Can't update {}: it is not bound to {}.",
-                            ka.fingerprint(), cert.fingerprint())));
-                    }
-                }
-            };
+            // Use the binding signature under our policy as the template.
+            let template = ka.binding_signature();
 
             // Push a copy of the key to make reordering easier.
             acc.push(Packet::from(ka.key().clone()));
             acc.push(ka.bind(
                 &mut primary_signer,
                 &cert,
-                SignatureBuilder::from(template)
+                SignatureBuilder::from(template.clone())
                     .set_signature_creation_time(sq.time)?
                     .set_key_expiration_time(ka.key(), expiration_time)?)?
                      .into());
@@ -139,29 +156,7 @@ pub fn expire(sq: Sq,
     // To change the cert's expiration time, create a new direct key
     // signature and new binding signatures for the user IDs.
     if update_primary_key {
-        use openpgp::cert::amalgamation::ValidAmalgamation;
-
-        let template =
-        // Preferably use the direct key signature under our policy,
-            cert.primary_key().binding_signature(sq.policy, sq.time).ok()
-        // fall back to the most recent direct key signature,
-            .or_else(|| cert.primary_key().self_signatures().next())
-        // fall back to the primary user ID's binding signature,
-            .or_else(|| cert.with_policy(sq.policy, sq.time)
-                     .and_then(|vcert| vcert.primary_userid())
-                     .map(|uidb| uidb.binding_signature())
-                     .ok())
-        // fall back to the newest user ID binding signature.
-            .or_else(|| {
-                let mut sigs = cert.userids()
-                    .filter_map(|uidb| uidb.self_signatures().next())
-                    .collect::<Vec<_>>();
-                sigs.sort_by_key(|s| s.signature_creation_time()
-                                 .unwrap_or(std::time::UNIX_EPOCH));
-                sigs.last().cloned()
-            })
-            .ok_or(anyhow::anyhow!("no primary key signature"))?
-            .clone();
+        let template = vc.primary_key().binding_signature().clone();
 
         // Clean the template.
         let template = SignatureBuilder::from(template)
@@ -245,30 +240,16 @@ pub fn expire(sq: Sq,
                  .sign_direct_key(&mut primary_signer, None)?
                  .into());
 
-        for uidb in cert.userids() {
-            if let RevocationStatus::Revoked(_)
-                = uidb.revocation_status(sq.policy, sq.time)
-            {
+        for uidb in vc.userids() {
+            if let RevocationStatus::Revoked(_) = uidb.revocation_status() {
                 // The user ID is revoked.  Skip it.  (Adding a new
                 // self signature would actually "unrevoke it"!)
                 continue;
             }
 
             // Use the binding signature that is valid under our
-            // policy as of the reference time.  If there is none,
-            // fall back to the most recent binding signature.
-            let template = if let Ok(sig) = uidb.binding_signature(
-                sq.policy, sq.time)
-            {
-                sig.clone()
-            } else if let Some(sig) = uidb.self_signatures().next() {
-                sig.clone()
-            } else {
-                // The user ID is not bound.  It may be certified by a
-                // third-party, but not by the user.  This is
-                // perfectly valid!  Just silently skip it.
-                continue;
-            };
+            // policy as of the reference time.
+            let template = uidb.binding_signature().clone();
 
             // Push a copy of the user ID to make reordering easier.
             acc.push(Packet::from(uidb.userid().clone()));

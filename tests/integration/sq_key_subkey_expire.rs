@@ -323,3 +323,42 @@ fn hard_revoked_subkey() {
         panic!("Updated expiration of hard revoked subkey, but shouldn't have.");
     }
 }
+
+#[test]
+fn sha1_subkey() {
+    // Make sure we can't extend the expiration time of a subkey that
+    // is bound using SHA-1.
+
+    let sq = Sq::new();
+
+    let cert_path = sq.test_data()
+        .join("keys")
+        .join("sha1-subkey-priv.pgp");
+
+    let cert = Cert::from_file(&cert_path).expect("can read");
+    let vc = cert.with_policy(STANDARD_POLICY, sq.now())
+        .expect("valid cert");
+
+    // Make sure the subkey key is there and really uses SHA-1.
+    let valid_subkeys: Vec<_> = vc.keys().subkeys()
+        .map(|ka| ka.fingerprint())
+        .collect();
+    let all_subkeys: Vec<_> = cert.keys().subkeys()
+        .map(|ka| ka.fingerprint())
+        .collect();
+
+    assert_eq!(valid_subkeys.len(), 0);
+    assert_eq!(all_subkeys.len(), 1);
+
+    let subkey = all_subkeys[0].clone();
+
+    // Set it to expire in a day.
+    let updated_path = sq.scratch_file("updated");
+    let result = sq.key_subkey_expire(cert_path,
+                                       &[ subkey.clone().into() ],
+                                       "1d",
+                                       None,
+                                       updated_path.as_path(),
+                                      false);
+    assert!(result.is_err());
+}

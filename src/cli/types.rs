@@ -312,7 +312,7 @@ impl ClapData for FileOrCertStore {
 /// Designates a certificate by path, by stdin, or by key handle.
 ///
 /// Use [`Sq::lookup_one`] to read the certificate.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum FileStdinOrKeyHandle {
     FileOrStdin(FileOrStdin),
     KeyHandle(KeyHandle),

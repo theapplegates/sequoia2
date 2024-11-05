@@ -19,8 +19,8 @@ use openpgp::Packet;
 use openpgp::Result;
 
 use crate::Sq;
-use crate::cli::key::subkey::AddCommand;
 use crate::cli::key::subkey::Command;
+use crate::cli::key::subkey::add::Command as AddCommand;
 use crate::cli::key::subkey::DeleteCommand;
 use crate::cli::key::subkey::ExpireCommand;
 use crate::cli::key::subkey::ExportCommand;

@@ -16,13 +16,11 @@ use openpgp::Result;
 
 use crate::Sq;
 use crate::cli::key::subkey::Command;
-use crate::cli::key::subkey::delete::Command as DeleteCommand;
 use crate::cli::key::subkey::expire::Command as ExpireCommand;
 use crate::cli::key::subkey::password::Command as PasswordCommand;
 use crate::cli::key::subkey::revoke::Command as RevokeCommand;
 use crate::commands::key::bind;
 use crate::common::key::expire;
-use crate::common::key::delete;
 use crate::common::key::password;
 use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
@@ -30,13 +28,14 @@ use crate::common::get_secret_signer;
 use crate::parse_notations;
 
 mod add;
+mod delete;
 mod export;
 
 pub fn dispatch(sq: Sq, command: Command) -> Result<()> {
     match command {
         Command::Add(c) => add::dispatch(sq, c)?,
         Command::Export(c) => export::dispatch(sq, c)?,
-        Command::Delete(c) => subkey_delete(sq, c)?,
+        Command::Delete(c) => delete::dispatch(sq, c)?,
         Command::Password(c) => subkey_password(sq, c)?,
         Command::Expire(c) => subkey_expire(sq, c)?,
         Command::Revoke(c) => subkey_revoke(sq, c)?,
@@ -44,17 +43,6 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()> {
     }
 
     Ok(())
-}
-
-fn subkey_delete(sq: Sq, command: DeleteCommand)
-    -> Result<()>
-{
-    let handle =
-        sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.1;
-
-    assert!(! command.key.is_empty());
-
-    delete(sq, handle, command.key, command.output, command.binary)
 }
 
 fn subkey_password(sq: Sq, command: PasswordCommand)

@@ -25,7 +25,7 @@ use crate::cli::key::subkey::delete::Command as DeleteCommand;
 use crate::cli::key::subkey::expire::Command as ExpireCommand;
 use crate::cli::key::subkey::export::Command as ExportCommand;
 use crate::cli::key::subkey::password::Command as PasswordCommand;
-use crate::cli::key::subkey::RevokeCommand;
+use crate::cli::key::subkey::revoke::Command as RevokeCommand;
 use crate::cli::types::EncryptPurpose;
 use crate::commands::key::bind;
 use crate::common;

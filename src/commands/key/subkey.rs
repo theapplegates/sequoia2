@@ -23,7 +23,7 @@ use crate::cli::key::subkey::Command;
 use crate::cli::key::subkey::add::Command as AddCommand;
 use crate::cli::key::subkey::DeleteCommand;
 use crate::cli::key::subkey::ExpireCommand;
-use crate::cli::key::subkey::ExportCommand;
+use crate::cli::key::subkey::export::Command as ExportCommand;
 use crate::cli::key::subkey::PasswordCommand;
 use crate::cli::key::subkey::RevokeCommand;
 use crate::cli::types::EncryptPurpose;

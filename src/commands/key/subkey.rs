@@ -16,10 +16,8 @@ use openpgp::Result;
 
 use crate::Sq;
 use crate::cli::key::subkey::Command;
-use crate::cli::key::subkey::expire::Command as ExpireCommand;
 use crate::cli::key::subkey::revoke::Command as RevokeCommand;
 use crate::commands::key::bind;
-use crate::common::key::expire;
 use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
@@ -27,6 +25,7 @@ use crate::parse_notations;
 
 mod add;
 mod delete;
+mod expire;
 mod export;
 mod password;
 
@@ -36,22 +35,12 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()> {
         Command::Export(c) => export::dispatch(sq, c)?,
         Command::Delete(c) => delete::dispatch(sq, c)?,
         Command::Password(c) => password::dispatch(sq, c)?,
-        Command::Expire(c) => subkey_expire(sq, c)?,
+        Command::Expire(c) => expire::dispatch(sq, c)?,
         Command::Revoke(c) => subkey_revoke(sq, c)?,
         Command::Bind(c) => bind::bind(sq, c)?,
     }
 
     Ok(())
-}
-
-fn subkey_expire(sq: Sq, command: ExpireCommand)
-    -> Result<()>
-{
-    assert!(! command.keys.is_empty());
-
-    expire(sq, command.cert, Some(command.keys),
-           command.expiration.value(),
-           command.output, command.binary)
 }
 
 /// Handle the revocation of a subkey

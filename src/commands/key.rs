@@ -4,7 +4,6 @@ use openpgp::Result;
 use crate::cli;
 use crate::Sq;
 
-mod bind;
 mod approvals;
 mod delete;
 mod expire;

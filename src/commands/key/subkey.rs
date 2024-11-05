@@ -1,9 +1,9 @@
 use crate::Result;
 use crate::Sq;
 use crate::cli::key::subkey::Command;
-use crate::commands::key::bind;
 
 mod add;
+mod bind;
 mod delete;
 mod expire;
 mod export;

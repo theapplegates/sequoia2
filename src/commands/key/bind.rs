@@ -20,7 +20,7 @@ use crate::cli;
 use cli::types::EncryptPurpose;
 use crate::common::password;
 
-pub fn bind(sq: Sq, command: cli::key::subkey::BindCommand) -> Result<()>
+pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
 {
     let handle =
         sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.1;

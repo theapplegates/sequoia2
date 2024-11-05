@@ -8,8 +8,6 @@ use sequoia_openpgp as openpgp;
 use openpgp::cert::CipherSuite as SqCipherSuite;
 use openpgp::types::ReasonForRevocation;
 
-use crate::cli::types::EncryptPurpose;
-
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;

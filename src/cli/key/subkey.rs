@@ -22,7 +22,8 @@ use examples::Action;
 use examples::Actions;
 use examples::Example;
 use examples::Setup;
-use crate::cli::types::cert_designator::*;
+use crate::cli::types::CertDesignators;
+use crate::cli::types::cert_designator;
 
 #[derive(Debug, Subcommand)]
 #[clap(
@@ -114,10 +115,11 @@ time.
 #[clap(group(ArgGroup::new("required-group").args(&["can_authenticate", "can_sign", "can_encrypt"]).required(true)))]
 pub struct AddCommand {
     #[command(flatten)]
-    pub cert: CertDesignators<CertUserIDEmailFileArgs,
-                              NoPrefix,
-                              OneValueAndFileRequiresOutput,
-                              SubkeyAddDoc>,
+    pub cert: CertDesignators<
+        cert_designator::CertUserIDEmailFileArgs,
+        cert_designator::NoPrefix,
+        cert_designator::OneValueAndFileRequiresOutput,
+        SubkeyAddDoc>,
 
     #[clap(
         long,
@@ -200,7 +202,7 @@ modified certificate to stdout.",
 /// command.
 pub struct SubkeyAddDoc {}
 
-impl AdditionalDocs for SubkeyAddDoc {
+impl cert_designator::AdditionalDocs for SubkeyAddDoc {
     fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         match arg {
             "file" =>
@@ -322,10 +324,11 @@ revoke the keys using `sq key subkey revoke`.
 )]
 pub struct DeleteCommand {
     #[command(flatten)]
-    pub cert: CertDesignators<CertUserIDEmailFileArgs,
-                              NoPrefix,
-                              OneValueAndFileRequiresOutput,
-                              SubkeyDeleteDoc>,
+    pub cert: CertDesignators<
+        cert_designator::CertUserIDEmailFileArgs,
+        cert_designator::NoPrefix,
+        cert_designator::OneValueAndFileRequiresOutput,
+        SubkeyDeleteDoc>,
 
     #[clap(
         long,
@@ -368,7 +371,7 @@ file.  When deleting secret key material managed by the key store using \
 /// command.
 pub struct SubkeyDeleteDoc {}
 
-impl AdditionalDocs for SubkeyDeleteDoc {
+impl cert_designator::AdditionalDocs for SubkeyDeleteDoc {
     fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         match arg {
             "file" =>
@@ -438,10 +441,11 @@ provided, the user is prompted.
 )]
 pub struct PasswordCommand {
     #[command(flatten)]
-    pub cert: CertDesignators<CertUserIDEmailFileArgs,
-                              NoPrefix,
-                              OneValueAndFileRequiresOutput,
-                              SubkeyPasswordDoc>,
+    pub cert: CertDesignators<
+        cert_designator::CertUserIDEmailFileArgs,
+        cert_designator::NoPrefix,
+        cert_designator::OneValueAndFileRequiresOutput,
+        SubkeyPasswordDoc>,
 
     #[clap(
         long,
@@ -511,7 +515,7 @@ test_examples!(sq_key_subkey_expire, SQ_KEY_SUBKEY_EXPIRE_EXAMPLES);
 /// Documentation for the cert designators for the key password.
 pub struct SubkeyPasswordDoc {}
 
-impl AdditionalDocs for SubkeyPasswordDoc {
+impl cert_designator::AdditionalDocs for SubkeyPasswordDoc {
     fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         match arg {
             "file" =>
@@ -551,10 +555,11 @@ of a subkey is bound by the expiration of the certificate.
 }))]
 pub struct ExpireCommand {
     #[command(flatten)]
-    pub cert: CertDesignators<CertUserIDEmailFileArgs,
-                              NoPrefix,
-                              OneValueAndFileRequiresOutput,
-                              SubkeyExpireDoc>,
+    pub cert: CertDesignators<
+        cert_designator::CertUserIDEmailFileArgs,
+        cert_designator::NoPrefix,
+        cert_designator::OneValueAndFileRequiresOutput,
+        SubkeyExpireDoc>,
 
     #[clap(
         long,
@@ -591,7 +596,7 @@ modified certificate to stdout.",
 /// command.
 pub struct SubkeyExpireDoc {}
 
-impl AdditionalDocs for SubkeyExpireDoc {
+impl cert_designator::AdditionalDocs for SubkeyExpireDoc {
     fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         match arg {
             "file" =>
@@ -670,16 +675,18 @@ instead of the current time.
 )]
 pub struct RevokeCommand {
     #[command(flatten)]
-    pub cert: CertDesignators<CertUserIDEmailFileArgs,
-                              NoPrefix,
-                              OneValueAndFileRequiresOutput,
-                              SubkeyRevokeCertDoc>,
+    pub cert: CertDesignators<
+        cert_designator::CertUserIDEmailFileArgs,
+        cert_designator::NoPrefix,
+        cert_designator::OneValueAndFileRequiresOutput,
+        SubkeyRevokeCertDoc>,
 
     #[command(flatten)]
-    pub revoker: CertDesignators<CertUserIDEmailFileArgs,
-                                 RevokerPrefix,
-                                 OneOptionalValue,
-                                 SubkeyRevokeRevokerDoc>,
+    pub revoker: CertDesignators<
+        cert_designator::CertUserIDEmailFileArgs,
+        cert_designator::RevokerPrefix,
+        cert_designator::OneOptionalValue,
+        SubkeyRevokeRevokerDoc>,
 
     #[clap(
         long = "key",
@@ -763,7 +770,7 @@ modified certificate to stdout.",
 /// the key subkey revoke command.
 pub struct SubkeyRevokeCertDoc {}
 
-impl AdditionalDocs for SubkeyRevokeCertDoc {
+impl cert_designator::AdditionalDocs for SubkeyRevokeCertDoc {
     fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         match arg {
             "file" =>
@@ -783,7 +790,7 @@ impl AdditionalDocs for SubkeyRevokeCertDoc {
 /// the key subkey revoke command .
 pub struct SubkeyRevokeRevokerDoc {}
 
-impl AdditionalDocs for SubkeyRevokeRevokerDoc {
+impl cert_designator::AdditionalDocs for SubkeyRevokeRevokerDoc {
     fn help(_: &'static str, help: &'static str) -> clap::builder::StyledStr {
         format!("{} to create the revocation certificate.
 
@@ -821,10 +828,11 @@ respectively.
 #[clap(group(ArgGroup::new("cap-encrypt").args(&["can_encrypt", "cannot_encrypt"])))]
 pub struct BindCommand {
     #[command(flatten)]
-    pub cert: CertDesignators<CertUserIDEmailFileArgs,
-                              NoPrefix,
-                              OneValueAndFileRequiresOutput,
-                              SubkeyBindDoc>,
+    pub cert: CertDesignators<
+        cert_designator::CertUserIDEmailFileArgs,
+        cert_designator::NoPrefix,
+        cert_designator::OneValueAndFileRequiresOutput,
+        SubkeyBindDoc>,
 
     #[clap(
         long,
@@ -955,7 +963,7 @@ test_examples!(sq_key_bind, BIND_EXAMPLES);
 /// command.
 pub struct SubkeyBindDoc {}
 
-impl AdditionalDocs for SubkeyBindDoc {
+impl cert_designator::AdditionalDocs for SubkeyBindDoc {
     fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         match arg {
             "file" =>

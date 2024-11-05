@@ -45,10 +45,9 @@ use sequoia_keystore as keystore;
 use keystore::Protection;
 
 use crate::cli::types::CertDesignators;
-use crate::cli::types::cert_designator::ArgumentPrefix;
-use crate::cli::types::cert_designator::CertDesignator;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::cli::types::StdinWarning;
+use crate::cli::types::cert_designator;
 use crate::common::password;
 use crate::output::hint::Hint;
 use crate::output::import::{ImportStats, ImportStatus};
@@ -1674,7 +1673,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     )
         -> Result<(Vec<Cert>, Vec<anyhow::Error>)>
     where
-        Prefix: ArgumentPrefix
+        Prefix: cert_designator::ArgumentPrefix
     {
         self.resolve_certs_with_policy(designators, trust_amount,
                                        self.policy, self.time)
@@ -1690,7 +1689,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     )
         -> Result<(Vec<Cert>, Vec<anyhow::Error>)>
     where
-        Prefix: ArgumentPrefix,
+        Prefix: cert_designator::ArgumentPrefix,
     {
         tracer!(TRACE, "Sq::resolve_certs");
         t!("{:?}", designators);
@@ -1715,7 +1714,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             = BTreeMap::new();
 
         // The list of user ID queries.
-        let mut userid_queries: Vec<(&CertDesignator, _, String)>
+        let mut userid_queries: Vec<(&cert_designator::CertDesignator, _, String)>
             = Vec::new();
 
         // Only open the cert store if we actually need it.
@@ -1733,7 +1732,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         //
         // `from_cert_store` is whether the certificate was read from
         // the certificate store or not.
-        let mut ret = |designator: &CertDesignator,
+        let mut ret = |designator: &cert_designator::CertDesignator,
                        cert: Result<Arc<LazyCert>>,
                        from_cert_store: bool|
         {
@@ -1809,7 +1808,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             *matched.borrow_mut() = false;
 
             match designator {
-                CertDesignator::Cert(kh) => {
+                cert_designator::CertDesignator::Cert(kh) => {
                     t!("Looking up certificate by handle {}", kh);
 
                     match cert_store()?.lookup_by_cert(kh) {
@@ -1880,7 +1879,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     }
                 }
 
-                CertDesignator::UserID(userid) => {
+                cert_designator::CertDesignator::UserID(userid) => {
                     t!("Looking up certificate by userid {:?}", userid);
 
                     let q = UserIDQueryParams::new();
@@ -1888,7 +1887,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                         (designator, q, userid.to_string()));
                 }
 
-                CertDesignator::Email(email) => {
+                cert_designator::CertDesignator::Email(email) => {
                     t!("Looking up certificate by email {:?}", email);
 
                     match UserIDQueryParams::is_email(&email) {
@@ -1904,7 +1903,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     }
                 }
 
-                CertDesignator::Domain(domain) => {
+                cert_designator::CertDesignator::Domain(domain) => {
                     t!("Looking up certificate by domain {:?}", domain);
 
                     match UserIDQueryParams::is_domain(&domain) {
@@ -1921,7 +1920,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     }
                 }
 
-                CertDesignator::Grep(pattern) => {
+                cert_designator::CertDesignator::Grep(pattern) => {
                     t!("Looking up certificate by pattern {:?}", pattern);
 
                     let mut q = UserIDQueryParams::new();
@@ -1931,7 +1930,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     userid_queries.push((designator, q, pattern.clone()));
                 }
 
-                CertDesignator::File(filename) => {
+                cert_designator::CertDesignator::File(filename) => {
                     t!("Reading certificates from the file {}",
                        filename.display());
 
@@ -1959,7 +1958,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     }
                 }
 
-                CertDesignator::Stdin => {
+                cert_designator::CertDesignator::Stdin => {
                     t!("Reading certificates from stdin");
                     let parser = CertParser::from_reader(StdinWarning::certs())
                         .with_context(|| {
@@ -2097,7 +2096,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     )
         -> Result<Vec<Cert>>
     where
-        Prefix: ArgumentPrefix,
+        Prefix: cert_designator::ArgumentPrefix,
     {
         let (certs, errors) = self.resolve_certs(designators, trust_amount)?;
 
@@ -2123,7 +2122,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     )
         -> Result<(Cert, FileStdinOrKeyHandle)>
     where
-        Prefix: ArgumentPrefix
+        Prefix: cert_designator::ArgumentPrefix
     {
         self.resolve_cert_with_policy(designators, trust_amount,
                                       self.policy, self.time)
@@ -2139,7 +2138,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     )
         -> Result<(Cert, FileStdinOrKeyHandle)>
     where
-        Prefix: ArgumentPrefix,
+        Prefix: cert_designator::ArgumentPrefix,
     {
         // Assuming this is only called with OneValue, then the
         // following are not required.
@@ -2178,9 +2177,9 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         let handle = cert.key_handle();
         Ok((cert,
             match &designators.designators[0] {
-                CertDesignator::Stdin =>
+                cert_designator::CertDesignator::Stdin =>
                     FileStdinOrKeyHandle::FileOrStdin(Default::default()),
-                CertDesignator::File(p) =>
+                cert_designator::CertDesignator::File(p) =>
                     FileStdinOrKeyHandle::FileOrStdin(p.as_path().into()),
                 _ => handle.into()
             }))

@@ -18,12 +18,10 @@ use crate::Sq;
 use crate::cli::key::subkey::Command;
 use crate::cli::key::subkey::delete::Command as DeleteCommand;
 use crate::cli::key::subkey::expire::Command as ExpireCommand;
-use crate::cli::key::subkey::export::Command as ExportCommand;
 use crate::cli::key::subkey::password::Command as PasswordCommand;
 use crate::cli::key::subkey::revoke::Command as RevokeCommand;
 use crate::commands::key::bind;
 use crate::common::key::expire;
-use crate::common::key::export;
 use crate::common::key::delete;
 use crate::common::key::password;
 use crate::common::NULL_POLICY;
@@ -32,11 +30,12 @@ use crate::common::get_secret_signer;
 use crate::parse_notations;
 
 mod add;
+mod export;
 
 pub fn dispatch(sq: Sq, command: Command) -> Result<()> {
     match command {
         Command::Add(c) => add::dispatch(sq, c)?,
-        Command::Export(c) => subkey_export(sq, c)?,
+        Command::Export(c) => export::dispatch(sq, c)?,
         Command::Delete(c) => subkey_delete(sq, c)?,
         Command::Password(c) => subkey_password(sq, c)?,
         Command::Expire(c) => subkey_expire(sq, c)?,
@@ -45,14 +44,6 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()> {
     }
 
     Ok(())
-}
-
-fn subkey_export(sq: Sq, command: ExportCommand)
-    -> Result<()>
-{
-    assert!(! command.key.is_empty());
-
-    export(sq, vec![], command.key, command.output, command.binary)
 }
 
 fn subkey_delete(sq: Sq, command: DeleteCommand)

@@ -87,12 +87,10 @@ fn subkey_password(sq: Sq, command: PasswordCommand)
 fn subkey_expire(sq: Sq, command: ExpireCommand)
     -> Result<()>
 {
-    let handle =
-        sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.1;
+    assert!(! command.keys.is_empty());
 
-    assert!(! command.key.is_empty());
-
-    expire(sq, handle, &command.key[..], command.expiration.value(),
+    expire(sq, command.cert, Some(command.keys),
+           command.expiration.value(),
            command.output, command.binary)
 }
 

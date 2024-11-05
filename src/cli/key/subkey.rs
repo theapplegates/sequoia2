@@ -23,6 +23,7 @@ use examples::Actions;
 use examples::Example;
 use examples::Setup;
 use crate::cli::types::CertDesignators;
+use crate::cli::types::KeyDesignators;
 use crate::cli::types::cert_designator;
 
 #[derive(Debug, Subcommand)]
@@ -561,13 +562,8 @@ pub struct ExpireCommand {
         cert_designator::OneValueAndFileRequiresOutput,
         SubkeyExpireDoc>,
 
-    #[clap(
-        long,
-        value_name = "FINGERPRINT|KEYID",
-        help = "Change the expiration of this subkey",
-        required = true,
-    )]
-    pub key: Vec<KeyHandle>,
+    #[command(flatten)]
+    pub keys: KeyDesignators,
 
     #[command(flatten)]
     pub expiration: ExpirationArg,

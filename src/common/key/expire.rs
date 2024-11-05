@@ -2,34 +2,65 @@
 
 use std::sync::Arc;
 
+use typenum::Unsigned;
+
 use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
 use openpgp::Packet;
 use openpgp::Result;
 use openpgp::cert::amalgamation::ValidAmalgamation;
-use openpgp::cert::amalgamation::ValidateAmalgamation;
+use openpgp::cert::amalgamation::key::PrimaryKey;
 use openpgp::packet::signature::SignatureBuilder;
 use openpgp::serialize::Serialize;
 use openpgp::types::RevocationStatus;
-use openpgp::types::RevocationType;
 use openpgp::types::SignatureType;
 
 use sequoia_cert_store::StoreUpdate;
 
+use sequoia_wot as wot;
+
 use crate::cli::types::Expiration;
 use crate::cli::types::FileOrStdout;
-use crate::cli::types::FileStdinOrKeyHandle;
+use crate::cli::types::CertDesignators;
+use crate::cli::types::cert_designator;
+use crate::cli::types::KeyDesignators;
 use crate::Sq;
 use crate::sq::GetKeysOptions;
 
-pub fn expire(sq: Sq,
-              cert_handle: FileStdinOrKeyHandle,
-              keys: &[KeyHandle],
-              expiration: Expiration,
-              mut output: Option<FileOrStdout>,
-              binary: bool)
+/// cert must resolve to a single certificate.
+///
+/// If `keys` is `None`, the primary key's expiration is changed.
+/// Otherwise the expiration of each of the specified keys is
+/// extended.
+pub fn expire<A, P, O, D>(sq: Sq,
+                          cert: CertDesignators<A, P, O, D>,
+                          keys: Option<KeyDesignators>,
+                          expiration: Expiration,
+                          mut output: Option<FileOrStdout>,
+                          binary: bool)
     -> Result<()>
+where P: cert_designator::ArgumentPrefix,
+      O: typenum::Unsigned,
 {
+    let options = O::to_usize();
+    let one_value
+        = (options & cert_designator::OneValue::to_usize()) > 0;
+    assert!(one_value);
+    let optional_value
+        = (options & cert_designator::OptionalValue::to_usize()) > 0;
+    assert!(! optional_value);
+
+    let (cert, cert_handle)
+        = sq.resolve_cert(&cert, wot::FULLY_TRUSTED)?;
+
+    let vc = cert.with_policy(sq.policy, sq.time)?;
+
+    let keys = if let Some(keys) = keys {
+        sq.resolve_keys(&vc, &cert_handle, &keys)?
+    } else {
+        // The primary key.
+        vec![ vc.keys().next().expect("have a primary key") ]
+    };
+
     if cert_handle.is_file() {
         if output.is_none() {
             // None means to write to the cert store.  When reading
@@ -42,121 +73,37 @@ pub fn expire(sq: Sq,
     let mut primary_signer
         = sq.get_primary_key(&cert, Some(&[GetKeysOptions::AllowNotAlive]))?;
 
-    let vc = cert.with_policy(sq.policy, sq.time)?;
-
-    let primary_handle = cert.key_handle();
-    let all_handles = vc.keys().map(|k| k.key_handle()).collect::<Vec<_>>();
-
     // Fix the new expiration time.
     let expiration_time = expiration.to_system_time(sq.time)?;
 
-    // We update the primary key if no subkey is given, or it is
-    // explicitly listed as a key to change.
-    let mut update_primary_key = keys.is_empty();
-
-    // We only update subkey bindings if they are explicitly given.
-    let update_subkeys = ! keys.is_empty();
-
-    let mut subkeys = vc.keys().subkeys();
-    for h in keys {
-        if ! all_handles.iter().any(|k| k.aliases(h)) {
-            let mut weak = None;
-            if let Some(ka) = cert.keys().key_handle(h.clone()).next() {
-                weak = ka.with_policy(sq.policy, sq.time).err();
-            }
-            if let Some(ref err) = weak {
-                wprintln!("Selected key {} is unusable: {}.", h, err);
-                sq.hint(format_args!(
-                    "After checking the integrity of the certificate, you \
-                     may be able to repair it using:"))
-                    .sq().arg("cert").arg("lint").arg("--fix")
-                    .arg_value(
-                        match &cert_handle {
-                            FileStdinOrKeyHandle::KeyHandle(_kh) => {
-                                "--cert"
-                            }
-                            FileStdinOrKeyHandle::FileOrStdin(_file) => {
-                                "--file"
-                            }
-                        },
-                        match &cert_handle {
-                            FileStdinOrKeyHandle::KeyHandle(kh) => {
-                                kh.to_string()
-                            }
-                            FileStdinOrKeyHandle::FileOrStdin(file) => {
-                                file.path()
-                                    .map(|p| p.display().to_string())
-                                    .unwrap_or_else(|| "".into())
-                            }
-                        })
-                    .done();
-            } else {
-                wprintln!("Selected key {} is not part of the certificate.", h);
-            }
-            wprintln!();
-            wprintln!("{} has the following keys:", cert.fingerprint());
-            wprintln!();
-            for k in &all_handles {
-                wprintln!(" - {}", k);
-            }
-            if weak.is_some() {
-                return Err(anyhow::anyhow!("Selected key not usable"));
-            } else {
-                return Err(anyhow::anyhow!("Selected key not found"));
-            }
-        }
-
-        if h.aliases(&primary_handle) {
-            update_primary_key = true;
-        } else {
-            subkeys = subkeys.key_handle(h.clone());
-        }
-    }
+    let (primary, subkeys): (Vec<_>, Vec<_>)
+        = keys.into_iter().partition(|ka| ka.primary());
+    assert!(primary.len() <= 1);
 
     // Collect new signatures here, then canonicalize once.
     let mut acc = Vec::<Packet>::new();
 
-    if update_subkeys {
-        // To update subkey expiration times, create new binding
-        // signatures.
-        for ka in subkeys {
-            if let RevocationStatus::Revoked(sigs) = ka.revocation_status() {
-                for sig in sigs {
-                    let reason = sig.reason_for_revocation();
-                    let bad = if let Some((reason, _)) = reason {
-                        reason.revocation_type() == RevocationType::Hard
-                    } else {
-                        true
-                    };
+    // To update subkey expiration times, create new binding
+    // signatures.
+    for ka in subkeys {
+        // Use the binding signature under our policy as the template.
+        let template = ka.binding_signature();
 
-                    if bad {
-                        return Err(anyhow::anyhow!(
-                            "Can't extend the expiration of {}, \
-                             it is hard revoked",
-                            ka.fingerprint()));
-                    }
-                }
-            }
-
-            // Use the binding signature under our policy as the template.
-            let template = ka.binding_signature();
-
-            // Push a copy of the key to make reordering easier.
-            acc.push(Packet::from(ka.key().clone()));
-            acc.push(ka.bind(
-                &mut primary_signer,
-                &cert,
-                SignatureBuilder::from(template.clone())
-                    .set_signature_creation_time(sq.time)?
-                    .set_key_expiration_time(ka.key(), expiration_time)?)?
-                     .into());
-        }
+        // Push a copy of the key to make reordering easier.
+        acc.push(Packet::from(ka.key().clone().role_into_subordinate()));
+        acc.push(ka.key().role_as_subordinate().bind(
+            &mut primary_signer,
+            &cert,
+            SignatureBuilder::from(template.clone())
+                .set_signature_creation_time(sq.time)?
+                .set_key_expiration_time(ka.key(), expiration_time)?)?
+                 .into());
     }
 
     // To change the cert's expiration time, create a new direct key
     // signature and new binding signatures for the user IDs.
-    if update_primary_key {
-        let template = vc.primary_key().binding_signature().clone();
+    if let Some(ka) = primary.get(0) {
+        let template = ka.binding_signature().clone();
 
         // Clean the template.
         let template = SignatureBuilder::from(template)

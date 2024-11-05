@@ -22,6 +22,7 @@ use openpgp::KeyHandle;
 use openpgp::Result;
 use openpgp::cert::prelude::*;
 use openpgp::cert::raw::RawCertParser;
+use openpgp::packet::key::PublicParts;
 use openpgp::packet::prelude::*;
 use openpgp::parse::Parse;
 use openpgp::policy::Policy;
@@ -29,6 +30,7 @@ use openpgp::policy::StandardPolicy as P;
 use openpgp::policy::NullPolicy;
 use openpgp::types::KeyFlags;
 use openpgp::types::RevocationStatus;
+use openpgp::types::RevocationType;
 
 use sequoia_cert_store as cert_store;
 use cert_store::LazyCert;
@@ -46,8 +48,10 @@ use keystore::Protection;
 
 use crate::cli::types::CertDesignators;
 use crate::cli::types::FileStdinOrKeyHandle;
+use crate::cli::types::KeyDesignators;
 use crate::cli::types::StdinWarning;
 use crate::cli::types::cert_designator;
+use crate::cli::types::key_designator;
 use crate::common::password;
 use crate::output::hint::Hint;
 use crate::output::import::{ImportStats, ImportStatus};
@@ -2183,5 +2187,145 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     FileStdinOrKeyHandle::FileOrStdin(p.as_path().into()),
                 _ => handle.into()
             }))
+    }
+
+    /// Resolves keys.
+    ///
+    /// Keys are resolved to valid keys (according to the current
+    /// policy) that are not hard revoked.
+    ///
+    /// `cert` and `cert_handle` are as returned by
+    /// `sq::resolve_cert`.
+    pub fn resolve_keys<'a, KOptions, KDoc>(
+        &self,
+        vc: &ValidCert<'a>, cert_handle: &FileStdinOrKeyHandle,
+        keys: &KeyDesignators<KOptions, KDoc>)
+        -> Result<Vec<ValidErasedKeyAmalgamation<'a, PublicParts>>>
+    {
+        assert!(keys.len() > 0);
+
+        let khs = keys.iter()
+            .map(|d| {
+                match d {
+                    key_designator::KeyDesignator::KeyHandle(kh) => kh,
+                }
+            })
+            .collect::<Vec<_>>();
+
+        // Don't stop at the first error.
+        let mut bad = Vec::new();
+        let mut missing = Vec::new();
+        let mut kas = Vec::new();
+        for kh in khs {
+            if let Some(ka) = vc.keys().key_handle(kh.clone()).next() {
+                // The key is bound to the certificate.
+
+                // Make sure it is not hard revoked.
+                let mut hard_revoked = false;
+                if let RevocationStatus::Revoked(sigs)
+                    = ka.revocation_status()
+                {
+                    for sig in sigs {
+                        let reason = sig.reason_for_revocation();
+                        hard_revoked = if let Some((reason, _)) = reason {
+                            reason.revocation_type() == RevocationType::Hard
+                        } else {
+                            true
+                        };
+
+                        if hard_revoked {
+                            break;
+                        }
+                    }
+                }
+
+                if hard_revoked {
+                    let err = anyhow::anyhow!(
+                        "Can't use {}, it is hard revoked",
+                        ka.fingerprint());
+                    wprintln!("{}", err);
+                    bad.push(err);
+                } else {
+                    // Looks good!
+                    kas.push(ka);
+                }
+            } else if let Some(ka)
+                = vc.cert().keys().key_handle(kh.clone()).next()
+            {
+                // See if the key is associated with the certificate
+                // in some way.  This isn't enough to return it, but
+                // we may be able to generate a better error message.
+
+                let fingerprint = ka.fingerprint();
+
+                let err = match ka.with_policy(self.policy, self.time) {
+                    Ok(_) => unreachable!("key magically became usable"),
+                    Err(err) => err,
+                };
+
+                wprintln!("Selected key {} is unusable: {}.",
+                          fingerprint, err);
+
+                bad.push(err);
+
+                self.hint(format_args!(
+                    "After checking the integrity of the certificate, you \
+                     may be able to repair it using:"))
+                    .sq().arg("cert").arg("lint").arg("--fix")
+                    .arg_value(
+                        match &cert_handle {
+                            FileStdinOrKeyHandle::KeyHandle(_kh) => {
+                                "--cert"
+                            }
+                            FileStdinOrKeyHandle::FileOrStdin(_file) => {
+                                "--file"
+                            }
+                        },
+                        match &cert_handle {
+                            FileStdinOrKeyHandle::KeyHandle(kh) => {
+                                kh.to_string()
+                            }
+                            FileStdinOrKeyHandle::FileOrStdin(file) => {
+                                file.path()
+                                    .map(|p| p.display().to_string())
+                                    .unwrap_or_else(|| "".into())
+                            }
+                        })
+                    .done();
+            } else {
+                // The key isn't bound to the certificate at all.
+                wprintln!("Selected key {} is not part of the certificate.",
+                          kh);
+                missing.push(kh);
+            }
+        }
+
+        assert_eq!(keys.len(), kas.len() + missing.len() + bad.len(),
+                   "Didn't partition {} keys: {} valid, {} missing, {} bad",
+                   keys.len(), kas.len(), missing.len(), bad.len());
+
+        if ! missing.is_empty() {
+            wprintln!();
+            wprintln!("{} has the following keys:", vc.fingerprint());
+            wprintln!();
+            for ka in vc.keys() {
+                wprintln!(" - {}", ka.fingerprint());
+            }
+        }
+
+        if let Some(err) = bad.into_iter().next() {
+            return Err(err);
+        } else if ! missing.is_empty() {
+            return Err(anyhow::anyhow!(
+                "Some keys are not associated with the certificate"));
+        }
+
+        // Dedup.
+        kas.sort_by_key(|ka| ka.fingerprint());
+        kas.dedup_by_key(|ka| ka.fingerprint());
+
+        assert!(kas.len() > 0);
+
+        Ok(kas)
     }
 }

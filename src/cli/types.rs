@@ -30,6 +30,8 @@ use openpgp::types::SymmetricAlgorithm;
 
 pub mod cert_designator;
 pub use cert_designator::CertDesignators;
+pub mod key_designator;
+pub use key_designator::KeyDesignators;
 pub mod paths;
 pub mod userid_designator;
 pub use userid_designator::UserIDDesignators;

@@ -18,12 +18,12 @@ use sequoia_cert_store::StoreUpdate;
 
 use sequoia_wot as wot;
 
+use crate::Sq;
+use crate::cli::types::CertDesignators;
 use crate::cli::types::Expiration;
 use crate::cli::types::FileOrStdout;
-use crate::cli::types::CertDesignators;
-use crate::cli::types::cert_designator;
 use crate::cli::types::KeyDesignators;
-use crate::Sq;
+use crate::cli::types::cert_designator;
 use crate::sq::GetKeysOptions;
 
 /// cert must resolve to a single certificate.
@@ -55,7 +55,7 @@ where P: cert_designator::ArgumentPrefix,
     let vc = cert.with_policy(sq.policy, sq.time)?;
 
     let keys = if let Some(keys) = keys {
-        sq.resolve_keys(&vc, &cert_handle, &keys)?
+        sq.resolve_keys(&vc, &cert_handle, &keys, false)?
     } else {
         // The primary key.
         vec![ vc.keys().next().expect("have a primary key") ]

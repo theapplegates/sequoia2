@@ -10,6 +10,10 @@
    - `sq decrypt` now deletes the output file on failure.
    - Add a global option, `--policy-as-of`, that selects the
      cryptographic policy as of the specified time.
+   - `sq key subkey export` takes an additional argument, `--cert`,
+     which is required.  The specified keys must be attached to that
+     certificate.  This ensures that if a key is attached to multiple
+     certificates, the correct certificate is exported.
 
 * Changes in 0.39.0
 ** Notable changes

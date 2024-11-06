@@ -60,7 +60,7 @@ use crate::print_error_chain;
 
 const TRACE: bool = false;
 
-static NULL_POLICY: NullPolicy = NullPolicy::new();
+pub static NULL_POLICY: NullPolicy = NullPolicy::new();
 
 /// Flags for Sq::get_keys and related functions.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -2199,7 +2199,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     pub fn resolve_keys<'a, KOptions, KDoc>(
         &self,
         vc: &ValidCert<'a>, cert_handle: &FileStdinOrKeyHandle,
-        keys: &KeyDesignators<KOptions, KDoc>)
+        keys: &KeyDesignators<KOptions, KDoc>,
+        return_hard_revoked: bool)
         -> Result<Vec<ValidErasedKeyAmalgamation<'a, PublicParts>>>
     {
         assert!(keys.len() > 0);
@@ -2222,19 +2223,21 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
                 // Make sure it is not hard revoked.
                 let mut hard_revoked = false;
-                if let RevocationStatus::Revoked(sigs)
-                    = ka.revocation_status()
-                {
-                    for sig in sigs {
-                        let reason = sig.reason_for_revocation();
-                        hard_revoked = if let Some((reason, _)) = reason {
-                            reason.revocation_type() == RevocationType::Hard
-                        } else {
-                            true
-                        };
+                if ! return_hard_revoked {
+                    if let RevocationStatus::Revoked(sigs)
+                        = ka.revocation_status()
+                    {
+                        for sig in sigs {
+                            let reason = sig.reason_for_revocation();
+                            hard_revoked = if let Some((reason, _)) = reason {
+                                reason.revocation_type() == RevocationType::Hard
+                            } else {
+                                true
+                            };
 
-                        if hard_revoked {
-                            break;
+                            if hard_revoked {
+                                break;
+                            }
                         }
                     }
                 }
@@ -2258,7 +2261,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
                 let fingerprint = ka.fingerprint();
 
-                let err = match ka.with_policy(self.policy, self.time) {
+                let err = match ka.with_policy(vc.policy(), vc.time()) {
                     Ok(_) => unreachable!("key magically became usable"),
                     Err(err) => err,
                 };

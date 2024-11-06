@@ -59,9 +59,8 @@ fn sq_key_import_export() -> Result<()>
             }
 
             // Export the selection.
-            let got = sq.key_subkey_export(selection.clone());
-            assert_eq!(got.len(), 1);
-            let got = got.into_iter().next().unwrap();
+            let got = sq.key_subkey_export(
+                cert.key_handle(), selection.clone());
 
             // Make sure we got exactly what we asked for; no
             // more, no less.

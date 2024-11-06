@@ -1039,10 +1039,12 @@ impl Sq {
     }
 
     /// Exports the specified keys.
-    pub fn key_subkey_export<H>(&self, khs: Vec<H>) -> Vec<Cert>
-    where H: Into<KeyHandle>
+    pub fn key_subkey_export<H1, H2>(&self, cert: H1, khs: Vec<H2>)
+        -> Cert
+    where H1: Into<KeyHandle>,
+          H2: Into<KeyHandle>
     {
-        self.key_subkey_export_maybe(khs)
+        self.key_subkey_export_maybe(cert, khs)
             .expect("can export key")
     }
 
@@ -1051,24 +1053,23 @@ impl Sq {
     /// Returns an error if `sq key subkey export` fails.  This
     /// happens if the key is known, but the key store doesn't manage
     /// any of its secret key material.
-    pub fn key_subkey_export_maybe<H>(&self, khs: Vec<H>) -> Result<Vec<Cert>>
-    where H: Into<KeyHandle>
+    pub fn key_subkey_export_maybe<H1, H2>(&self, cert: H1, khs: Vec<H2>)
+        -> Result<Cert>
+    where H1: Into<KeyHandle>,
+          H2: Into<KeyHandle>,
     {
+        let cert = cert.into();
+
         let mut cmd = self.command();
         cmd.args([ "key", "subkey", "export" ]);
+        cmd.arg("--cert").arg(cert.to_string());
         for kh in khs.into_iter() {
             let kh: KeyHandle = kh.into();
             cmd.arg("--key").arg(kh.to_string());
         }
         let output = self.run(cmd, None);
-
-        if output.status.success() {
-            let parser = CertParser::from_bytes(&output.stdout)
-                .expect("can parse certificate");
-            Ok(parser.collect::<Result<Vec<Cert>>>()?)
-        } else {
-            Err(anyhow::anyhow!("sq key export returned an error"))
-        }
+        self.handle_cert_output(
+            output, cert.into(), Some(PathBuf::from("-").as_path()), true)
     }
 
     /// Run `sq key subkey revoke` and return the revocation certificate.

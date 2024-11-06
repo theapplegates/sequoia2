@@ -17,6 +17,7 @@ mod integration {
     mod sq_key_subkey;
     mod sq_key_subkey_delete;
     mod sq_key_subkey_expire;
+    mod sq_key_subkey_export;
     mod sq_key_subkey_password;
     mod sq_key_userid;
     mod sq_pki;

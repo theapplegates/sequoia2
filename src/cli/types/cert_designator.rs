@@ -428,6 +428,11 @@ impl<Arguments, Prefix, Options, Doc> CertDesignators<Arguments, Prefix, Options
         self.designators.is_empty()
     }
 
+    /// Like `Vec::len`.
+    pub fn len(&self) -> usize {
+        self.designators.len()
+    }
+
     /// Iterates over the certificate designators.
     pub fn iter(&self) -> impl Iterator<Item=&CertDesignator> {
         self.designators.iter()

@@ -2,28 +2,32 @@
 use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
 use openpgp::Result;
 use openpgp::Packet;
 use openpgp::serialize::Serialize;
 
+use crate::Sq;
+use crate::cli::types::CertDesignators;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::FileStdinOrKeyHandle;
-use crate::Sq;
+use crate::cli::types::KeyDesignators;
+use crate::cli::types::cert_designator;
 
 use super::get_keys;
 
-pub fn delete(sq: Sq,
-              cert_handle: FileStdinOrKeyHandle,
-              keys: Vec<KeyHandle>,
-              output: Option<FileOrStdout>,
-              binary: bool)
+pub fn delete<CA, CP, CO, CD, KO, KD>(
+    sq: Sq,
+    cert: CertDesignators<CA, CP, CO, CD>,
+    keys: Option<KeyDesignators<KO, KD>>,
+    output: Option<FileOrStdout>,
+    binary: bool)
     -> Result<()>
+where CP: cert_designator::ArgumentPrefix,
 {
-    let ks = matches!(cert_handle, FileStdinOrKeyHandle::KeyHandle(_));
+    let (cert, cert_source, to_delete)
+        = get_keys(&sq, &cert, keys.as_ref())?;
 
-    let (cert, to_delete) = get_keys(&sq, cert_handle, keys)?;
-
+    let ks = matches!(cert_source, FileStdinOrKeyHandle::KeyHandle(_));
     if ks {
         // Delete the secret key material from the key store.
         for (key, _primary, remote_keys) in to_delete.into_iter() {

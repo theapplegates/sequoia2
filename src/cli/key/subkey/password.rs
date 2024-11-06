@@ -2,9 +2,6 @@ use std::path::PathBuf;
 
 use clap::Args;
 
-use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
-
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
@@ -14,11 +11,13 @@ use examples::Setup;
 use crate::cli::types::CertDesignators;
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrStdout;
+use crate::cli::types::KeyDesignators;
 use crate::cli::types::cert_designator;
+use crate::cli::types::key_designator;
 
-pub struct AdditionalDocs {}
+pub struct CertAdditionalDocs {}
 
-impl cert_designator::AdditionalDocs for AdditionalDocs {
+impl cert_designator::AdditionalDocs for CertAdditionalDocs {
     fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         match arg {
             "file" =>
@@ -33,6 +32,17 @@ impl cert_designator::AdditionalDocs for AdditionalDocs {
                    .into()
             },
         }
+    }
+}
+
+pub struct KeyAdditionalDocs {}
+
+impl key_designator::AdditionalDocs for KeyAdditionalDocs {
+    fn help(_arg: &'static str, _help: &'static str)
+        -> clap::builder::StyledStr
+    {
+        "Change the password protecting the specified key's secret key \
+         material".into()
     }
 }
 
@@ -62,18 +72,12 @@ pub struct Command {
         cert_designator::CertUserIDEmailFileArgs,
         cert_designator::NoPrefix,
         cert_designator::OneValueAndFileRequiresOutput,
-        AdditionalDocs>,
+        CertAdditionalDocs>,
 
-    #[clap(
-        long,
-        help = "Change the password of the specified key",
-        long_help = "\
-Change the password of the specified key.
-
-The key may be either the primary key or a subkey.",
-        required = true,
-    )]
-    pub key: Vec<KeyHandle>,
+    #[command(flatten)]
+    pub keys: KeyDesignators<
+        key_designator::DefaultOptions,
+        KeyAdditionalDocs>,
 
     #[clap(
         long,

@@ -4,7 +4,6 @@ use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
 use openpgp::crypto::Password;
-use openpgp::KeyHandle;
 use openpgp::serialize::Serialize;
 use openpgp::Packet;
 use openpgp::Result;
@@ -14,18 +13,23 @@ use keystore::Protection;
 
 use crate::common;
 use crate::Sq;
+use crate::cli::types::CertDesignators;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::FileStdinOrKeyHandle;
+use crate::cli::types::KeyDesignators;
+use crate::cli::types::cert_designator;
 use crate::common::password;
 
-pub fn password(sq: Sq,
-                cert_handle: FileStdinOrKeyHandle,
-                keys: Vec<KeyHandle>,
-                clear_password: bool,
-                new_password_file: Option<&Path>,
-                output: Option<FileOrStdout>,
-                binary: bool)
+pub fn password<CA, CP, CO, CD, KO, KD>(
+    sq: Sq,
+    cert: CertDesignators<CA, CP, CO, CD>,
+    keys: Option<KeyDesignators<KO, KD>>,
+    clear_password: bool,
+    new_password_file: Option<&Path>,
+    output: Option<FileOrStdout>,
+    binary: bool)
     -> Result<()>
+where CP: cert_designator::ArgumentPrefix,
 {
     let mut new_password_ = None;
     // Some(password) => new password
@@ -44,11 +48,11 @@ pub fn password(sq: Sq,
         Ok(new_password_.clone().unwrap())
     };
 
-    let ks = matches!(cert_handle, FileStdinOrKeyHandle::KeyHandle(_));
-
-    let (cert, mut list) = super::get_keys(&sq, cert_handle, keys)?;
+    let (cert, cert_source, mut list)
+        = super::get_keys(&sq, &cert, keys.as_ref())?;
     let uid = sq.best_userid(&cert, true);
 
+    let ks = matches!(cert_source, FileStdinOrKeyHandle::KeyHandle(_));
     if ks {
         // Change the password of the secret key material on the key
         // store.

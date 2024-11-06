@@ -1,8 +1,5 @@
 use clap::Args;
 
-use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
-
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
@@ -12,11 +9,13 @@ use examples::Setup;
 use crate::cli::types::CertDesignators;
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrStdout;
+use crate::cli::types::KeyDesignators;
 use crate::cli::types::cert_designator;
+use crate::cli::types::key_designator;
 
-pub struct AdditionalDocs {}
+pub struct CertAdditionalDocs {}
 
-impl cert_designator::AdditionalDocs for AdditionalDocs {
+impl cert_designator::AdditionalDocs for CertAdditionalDocs {
     fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         match arg {
             "file" =>
@@ -31,6 +30,16 @@ impl cert_designator::AdditionalDocs for AdditionalDocs {
     }
 }
 
+pub struct KeyAdditionalDocs {}
+
+impl key_designator::AdditionalDocs for KeyAdditionalDocs {
+    fn help(_arg: &'static str, _help: &'static str)
+        -> clap::builder::StyledStr
+    {
+        "Delete the specified key's secret key material".into()
+    }
+}
+
 #[derive(Debug, Args)]
 #[clap(
     name = "delete",
@@ -40,6 +49,9 @@ Delete a certificate's secret key material.
 
 Unlike `sq key delete`, which deletes all the secret key material, this \
 command only deletes the specified secret key material.
+
+If the secret key material is managed by multiple devices, it is \
+deleted from all of them.
 
 Although the secret key material is deleted, the public keys are \
 retained.  If you don't want the keys to be used anymore you should \
@@ -53,22 +65,12 @@ pub struct Command {
         cert_designator::CertUserIDEmailFileArgs,
         cert_designator::NoPrefix,
         cert_designator::OneValueAndFileRequiresOutput,
-        AdditionalDocs>,
+        CertAdditionalDocs>,
 
-    #[clap(
-        long,
-        value_name = "FINGERPRINT|KEYID",
-        required = true,
-        help = "The keys to delete",
-        long_help = "\
-The keys to delete.
-
-The specified keys may be either the primary key or subkeys.
-
-If the secret key material is managed by multiple devices, it is \
-deleted from all of them.",
-    )]
-    pub key: Vec<KeyHandle>,
+    #[command(flatten)]
+    pub keys: KeyDesignators<
+        key_designator::DefaultOptions,
+        KeyAdditionalDocs>,
 
     #[clap(
         long,

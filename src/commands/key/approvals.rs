@@ -121,8 +121,8 @@ fn update(
     // Get a signer.
     let mut pk_signer = sq.get_primary_key(&key, None)?;
 
-    // Now, create new attestation signatures.
-    let mut attestation_signatures = Vec::new();
+    // Now, create new approval signatures.
+    let mut approval_signatures = Vec::new();
 
     // For the selected user IDs.
     let uid_filter = make_userid_filter(
@@ -246,7 +246,7 @@ fn update(
             wprintln!("    no certifications");
         }
 
-        attestation_signatures.append(&mut uid.attest_certifications2(
+        approval_signatures.append(&mut uid.attest_certifications2(
             sq.policy,
             sq.time,
             &mut pk_signer,
@@ -255,7 +255,7 @@ fn update(
     }
 
     // Finally, add the new signatures.
-    let key = key.insert_packets(attestation_signatures)?;
+    let key = key.insert_packets(approval_signatures)?;
 
     if let Some(sink) = command.output {
         let path = sink.path().map(Clone::clone);

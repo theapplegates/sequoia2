@@ -50,6 +50,9 @@ expire` subcommand.
 ",
     after_help = EXAMPLES,
 )]
+#[clap(mut_arg("expiration", |arg| {
+    arg.required(true)
+}))]
 pub struct Command {
     #[command(flatten)]
     pub cert: CertDesignators<CertUserIDEmailFileArgs,

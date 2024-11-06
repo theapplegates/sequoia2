@@ -24,12 +24,12 @@ impl cert_designator::AdditionalDocs for CertDoc {
     fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         match arg {
             "file" =>
-                "Revoke the specified (sub)keys on the key read from PATH"
+                "Revoke the specified subkeys on the key read from PATH"
                 .into(),
             _ => {
                 debug_assert!(help.starts_with("Use certificates"));
                 help.replace("Use certificates",
-                             "Revoke the specified (sub)keys on the key")
+                             "Revoke the specified subkeys on the key")
                     .into()
             },
         }

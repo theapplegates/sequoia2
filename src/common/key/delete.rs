@@ -23,6 +23,7 @@ pub fn delete<CA, CP, CO, CD, KO, KD>(
     binary: bool)
     -> Result<()>
 where CP: cert_designator::ArgumentPrefix,
+      KO: typenum::Unsigned,
 {
     let (cert, cert_source, to_delete)
         = get_keys(&sq, &cert, keys.as_ref())?;

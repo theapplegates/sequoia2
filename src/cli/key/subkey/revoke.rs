@@ -1,6 +1,3 @@
-use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
-
 use clap::Args;
 
 use crate::cli::examples;
@@ -14,7 +11,9 @@ use crate::cli::types::CertDesignators;
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
 use crate::cli::types::FileOrStdout;
+use crate::cli::types::KeyDesignators;
 use crate::cli::types::cert_designator;
+use crate::cli::types::key_designator;
 
 /// Documentation for the cert designators for the cert argument of
 /// the key subkey revoke command.
@@ -48,6 +47,16 @@ Sign the revocation certificate using the specified key.  By default, \
 the certificate being revoked is used.  Using this option, it is \
 possible to create a third-party revocation.",
                 help.replace("certificates", "key")).into()
+    }
+}
+
+pub struct KeyAdditionalDocs {}
+
+impl key_designator::AdditionalDocs for KeyAdditionalDocs {
+    fn help(_arg: &'static str, _help: &'static str)
+        -> clap::builder::StyledStr
+    {
+        "Revoke the specified subkey".into()
     }
 }
 
@@ -88,13 +97,10 @@ pub struct Command {
         cert_designator::OneOptionalValue,
         RevokerDoc>,
 
-    #[clap(
-        long = "key",
-        value_name = "FINGERPRINT|KEYID",
-        help = "Revoke this subkey",
-        required = true,
-    )]
-    pub keys: Vec<KeyHandle>,
+    #[command(flatten)]
+    pub keys: KeyDesignators<
+        key_designator::OnlySubkeys,
+        KeyAdditionalDocs>,
 
     #[clap(
         long,

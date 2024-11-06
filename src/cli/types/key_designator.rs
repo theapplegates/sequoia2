@@ -15,6 +15,10 @@ pub type DefaultOptions = typenum::U0;
 /// out if there is more than one value.
 pub type OneValue = typenum::U1;
 
+/// Normally it is possible to designate primary keys.  This errors
+/// out if the primary key is used.
+pub type OnlySubkeys = typenum::U2;
+
 pub trait AdditionalDocs {
     /// Text to be added to the help text.
     // XXX: This should return a Cow<'static, str>, but there is no

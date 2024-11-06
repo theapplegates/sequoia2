@@ -47,6 +47,7 @@ pub fn get_keys<CA, CP, CO, CD, KO, KD>(
                     bool,
                     Option<Vec<keystore::Key>>)>)>
 where CP: cert_designator::ArgumentPrefix,
+      KO: typenum::Unsigned,
 {
     let mut ks = None;
 

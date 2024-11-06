@@ -1,16 +1,14 @@
 use std::collections::BTreeSet;
 
-use chrono::DateTime;
-use chrono::Utc;
+use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
 use openpgp::Cert;
-use openpgp::KeyHandle;
 use openpgp::Packet;
 use openpgp::cert::SubkeyRevocationBuilder;
+use openpgp::cert::amalgamation::key::ValidErasedKeyAmalgamation;
 use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::packet::{Key, Signature, key};
-use openpgp::types::KeyFlags;
 use openpgp::types::ReasonForRevocation;
 
 use crate::Result;
@@ -31,87 +29,43 @@ impl SubkeyRevocation {
     /// Create a new SubkeyRevocation
     pub fn new(
         sq: &Sq,
-        keyhandles: &[KeyHandle],
-        cert: Cert,
+        kas: &[ValidErasedKeyAmalgamation<key::PublicParts>],
+        cert: &Cert,
         revoker: Option<Cert>,
         reason: ReasonForRevocation,
         message: &str,
         notations: &[(bool, NotationData)],
     ) -> Result<Self> {
-        let valid_cert = cert.with_policy(NULL_POLICY, None)?;
         let (revoker, mut signer)
             = get_secret_signer(sq, &cert, revoker.as_ref())?;
 
         let mut revocations = Vec::new();
         let mut revoked = BTreeSet::new();
-        for keyhandle in keyhandles {
-            let keys = valid_cert.keys().subkeys()
-                .key_handle(keyhandle.clone())
-                .map(|skb| skb.key().clone())
-                .collect::<Vec<_>>();
-
-            if keys.len() == 1 {
-                let subkey = keys[0].clone();
-
-                // Did we already revoke it?
-                if revoked.contains(&subkey.fingerprint()) {
-                    continue;
-                }
-                revoked.insert(subkey.fingerprint());
-
-                let mut rev = SubkeyRevocationBuilder::new()
-                    .set_reason_for_revocation(reason, message.as_bytes())?;
-                rev = rev.set_signature_creation_time(sq.time)?;
-                for (critical, notation) in notations {
-                    rev = rev.add_notation(
-                        notation.name(),
-                        notation.value(),
-                        Some(notation.flags().clone()),
-                        *critical,
-                    )?;
-                }
-                let rev = rev.build(&mut signer, &cert, &subkey, None)?;
-                revocations.push((subkey, rev));
-            } else if keys.len() > 1 {
-                wprintln!("Key ID {} does not uniquely identify a subkey, \
-                           please use a fingerprint instead.\nValid subkeys:",
-                          keyhandle);
-                for k in keys {
-                    wprintln!(
-                        "  - {} {}",
-                        k.fingerprint(),
-                        DateTime::<Utc>::from(k.creation_time()).date_naive()
-                    );
-                }
-                return Err(anyhow::anyhow!(
-                    "Subkey is ambiguous."
-                ));
-            } else {
-                wprintln!(
-                    "Subkey {} not found.\nValid subkeys:",
-                    keyhandle
-                );
-                let mut have_valid = false;
-                for k in valid_cert.keys().subkeys() {
-                    have_valid = true;
-                    wprintln!(
-                        "  - {} {} [{:?}]",
-                        k.fingerprint().to_hex(),
-                        DateTime::<Utc>::from(k.creation_time()).date_naive(),
-                        k.key_flags().unwrap_or_else(KeyFlags::empty)
-                    );
-                }
-                if !have_valid {
-                    wprintln!("  - Certificate has no subkeys.");
-                }
-                return Err(anyhow::anyhow!(
-                    "The certificate does not contain the specified subkey."
-                ));
+        for ka in kas {
+            // Did we already revoke it?
+            if revoked.contains(&ka.fingerprint()) {
+                continue;
             }
-        };
+            revoked.insert(ka.fingerprint());
+
+            let mut rev = SubkeyRevocationBuilder::new()
+                .set_reason_for_revocation(reason, message.as_bytes())?;
+            rev = rev.set_signature_creation_time(sq.time)?;
+            for (critical, notation) in notations {
+                rev = rev.add_notation(
+                    notation.name(),
+                    notation.value(),
+                    Some(notation.flags().clone()),
+                    *critical,
+                )?;
+            }
+            let key = ka.key().clone().role_into_subordinate();
+            let rev = rev.build(&mut signer, &cert, &key, None)?;
+            revocations.push((key, rev));
+        }
 
         Ok(SubkeyRevocation {
-            cert,
+            cert: cert.clone(),
             revoker,
             revocations,
         })
@@ -159,11 +113,20 @@ impl RevocationOutput for SubkeyRevocation {
 pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::revoke::Command)
     -> Result<()>
 {
-    let cert =
+    let (cert, cert_source) =
         sq.resolve_cert_with_policy(&command.cert,
                                     sequoia_wot::FULLY_TRUSTED,
                                     NULL_POLICY,
-                                    sq.time)?.0;
+                                    sq.time)?;
+
+    let vc = Cert::with_policy(&cert, NULL_POLICY, sq.time)
+        .with_context(|| {
+            format!("The certificate {} is not valid under the \
+                     null policy.",
+                    cert.fingerprint())
+        })?;
+
+    let keys = sq.resolve_keys(&vc, &cert_source, &command.keys, true)?;
 
     let revoker = if command.revoker.is_empty() {
         None
@@ -175,8 +138,8 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::revoke::Command)
 
     let revocation = SubkeyRevocation::new(
         &sq,
-        &command.keys,
-        cert,
+        &keys[..],
+        &cert,
         revoker,
         command.reason.into(),
         &command.message,

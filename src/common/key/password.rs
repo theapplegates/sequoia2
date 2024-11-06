@@ -30,6 +30,7 @@ pub fn password<CA, CP, CO, CD, KO, KD>(
     binary: bool)
     -> Result<()>
 where CP: cert_designator::ArgumentPrefix,
+      KO: typenum::Unsigned,
 {
     let mut new_password_ = None;
     // Some(password) => new password

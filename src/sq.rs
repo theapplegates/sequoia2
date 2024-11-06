@@ -8,6 +8,8 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::SystemTime;
 
+use typenum::Unsigned;
+
 use anyhow::anyhow;
 use anyhow::Context as _;
 
@@ -2202,8 +2204,13 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         keys: &KeyDesignators<KOptions, KDoc>,
         return_hard_revoked: bool)
         -> Result<Vec<ValidErasedKeyAmalgamation<'a, PublicParts>>>
+    where
+        KOptions: typenum::Unsigned,
     {
         assert!(keys.len() > 0);
+
+        let options = KOptions::to_usize();
+        let only_subkeys = (options & key_designator::OnlySubkeys::to_usize()) > 0;
 
         let khs = keys.iter()
             .map(|d| {
@@ -2220,6 +2227,15 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         for kh in khs {
             if let Some(ka) = vc.keys().key_handle(kh.clone()).next() {
                 // The key is bound to the certificate.
+
+                if only_subkeys && ka.primary() {
+                    let err = format!(
+                        "Selected key {} is a primary key, not a subkey.",
+                        ka.fingerprint());
+                    wprintln!("{}", err);
+                    bad.push(anyhow::anyhow!(err));
+                    continue;
+                }
 
                 // Make sure it is not hard revoked.
                 let mut hard_revoked = false;
@@ -2309,9 +2325,13 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
         if ! missing.is_empty() {
             wprintln!();
-            wprintln!("{} has the following keys:", vc.fingerprint());
+            if only_subkeys {
+                wprintln!("{} has the following subkeys:", vc.fingerprint());
+            } else {
+                wprintln!("{} has the following keys:", vc.fingerprint());
+            }
             wprintln!();
-            for ka in vc.keys() {
+            for ka in vc.keys().skip(if only_subkeys { 1 } else { 0 }) {
                 wprintln!(" - {}", ka.fingerprint());
             }
         }

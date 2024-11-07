@@ -1,4 +1,5 @@
 use anyhow::Context as _;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io;
 
@@ -86,6 +87,11 @@ pub struct Helper<'c, 'store, 'rstore>
     key_identities: HashMap<KeyID, Fingerprint>,
     session_keys: Vec<cli::types::SessionKey>,
     dump_session_key: bool,
+
+    /// The fingerprint of the public key that we used to the decrypt
+    /// the message.  If None and decryption was success then we
+    /// decrypted it in some other.
+    decryptor: RefCell<Option<Fingerprint>>,
 }
 
 impl<'c, 'store, 'rstore> std::ops::Deref for Helper<'c, 'store, 'rstore>
@@ -135,12 +141,13 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
             key_identities: identities,
             session_keys,
             dump_session_key,
+            decryptor: RefCell::new(None),
         }
     }
 
     /// Checks if a session key can decrypt the packet parser using
     /// `decrypt`.
-    fn try_session_key<D>(&self, keyid: &KeyID,
+    fn try_session_key<D>(&self, fpr: &Fingerprint,
                           algo: SymmetricAlgorithm, sk: SessionKey,
                           decrypt: &mut D)
         -> Option<Option<Fingerprint>>
@@ -150,7 +157,15 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
             if self.dump_session_key {
                 wprintln!("Session key: {}", hex::encode(&sk));
             }
-            Some(self.key_identities.get(keyid).cloned())
+            let id = self.key_identities.get(&KeyID::from(fpr)).cloned();
+            if let Some(ref id) = id {
+                // Prefer the reverse-mapped identity.
+                self.decryptor.replace(Some(id.clone()));
+            } else {
+                // But fall back to the public key's fingerprint.
+                self.decryptor.replace(Some(fpr.clone()));
+            }
+            Some(id)
         } else {
             None
         }
@@ -165,9 +180,27 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
                       -> Option<Option<Fingerprint>>
         where D: FnMut(SymmetricAlgorithm, &SessionKey) -> bool
     {
-        let keyid = keypair.public().fingerprint().into();
+        let fpr = keypair.public().fingerprint();
         let (sym_algo, sk) = pkesk.decrypt(&mut *keypair, sym_algo)?;
-        self.try_session_key(&keyid, sym_algo, sk, decrypt)
+        self.try_session_key(&fpr, sym_algo, sk, decrypt)
+    }
+
+    /// Prints what certificate was used to decrypt the message.
+    fn print_status(&self) {
+        make_qprintln!(self.quiet);
+
+        let decryptor = self.decryptor.borrow();
+        if let Some(ref fpr) = *decryptor {
+            let kh = KeyHandle::from(fpr);
+
+            if let Ok(cert) = self.sq.lookup_one(kh, None, true) {
+                qprintln!("Decrypted by {}, {}",
+                          cert.fingerprint(),
+                          self.sq.best_userid(&cert, true));
+            } else {
+                qprintln!("Decrypted by {}, unknown", fpr);
+            }
+        }
     }
 }
 
@@ -287,7 +320,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                     Ok((_i, fpr, sym_algo, sk)) => {
                         if let Some(fp) =
                             self.try_session_key(
-                                &KeyID::from(fpr), sym_algo, sk, &mut decrypt)
+                                &fpr, sym_algo, sk, &mut decrypt)
                         {
                             return Ok(fp);
                         }
@@ -458,6 +491,7 @@ pub fn decrypt(sq: Sq,
     io::copy(&mut decryptor, output).context("Decryption failed")?;
 
     let helper = decryptor.into_helper();
+    helper.print_status();
     helper.vhelper.print_status();
     Ok(())
 }

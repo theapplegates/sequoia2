@@ -669,7 +669,7 @@ struct Response {
 impl Response {
     /// Creates a progress bar.
     fn progress_bar(sq: &Sq) -> ProgressBar {
-        if sq.verbose {
+        if sq.verbose || sq.batch {
             ProgressBar::hidden()
         } else {
             ProgressBar::new(0)

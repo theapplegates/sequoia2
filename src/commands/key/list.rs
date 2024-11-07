@@ -2,13 +2,17 @@ use std::{
     cmp::Ordering,
     collections::{BTreeMap, BTreeSet},
     fmt,
+    time::SystemTime,
 };
 
 use sequoia_openpgp::{
     Cert,
     Fingerprint,
     KeyHandle,
+    cert::amalgamation::ValidAmalgamation,
+    cert::amalgamation::ValidateAmalgamation,
     packet::{Key, key},
+    types::RevocationStatus,
 };
 
 use sequoia_keystore as keystore;
@@ -18,6 +22,7 @@ use crate::cli;
 use crate::Convert;
 use crate::Sq;
 use crate::Result;
+use crate::Time;
 
 /// Keys may either be grouped into a certificate or be bare.
 ///
@@ -33,6 +38,14 @@ enum Association {
 }
 
 impl Association {
+    /// Returns the associated certificate, if any.
+    pub fn cert(&self) -> Option<&Cert> {
+        match self {
+            Association::Bound(c) => Some(c),
+            Association::Bare(_) => None
+        }
+    }
+
     /// Returns the primary or bare key.
     pub fn key(&self) -> &Key<key::PublicParts, key::UnspecifiedRole> {
         match self {
@@ -126,6 +139,126 @@ impl KeyInfo {
             (false, false) => "unusable",
         }
     }
+}
+
+/// Returns information about a key.
+///
+/// If key is `None`, then returns information about the certificate.
+///
+/// The information that is returned is:
+///
+/// - If the key is revoked, that it was revoked and why
+/// - If the key is invalid, that it is invalid
+fn key_validity(sq: &Sq, cert: &Cert, key: Option<&Fingerprint>) -> Vec<String> {
+    let revoked = |rs| {
+        if let RevocationStatus::Revoked(sigs) = rs {
+            let sig = sigs[0];
+            let mut reason_;
+            let reason = if let Some((reason, message))
+                = sig.reason_for_revocation()
+            {
+                // Be careful to quote the message it is
+                // controlled by the certificate holder.
+                reason_ = reason.to_string();
+                if ! message.is_empty() {
+                    reason_.push_str(": ");
+                    reason_.push_str(&format!(
+                        "{:?}", String::from_utf8_lossy(message)));
+                }
+                &reason_
+            } else {
+                "no reason specified"
+            };
+
+            Some(format!(
+                "revoked on {}, {}",
+                sig.signature_creation_time()
+                    .unwrap_or(std::time::UNIX_EPOCH)
+                    .convert(),
+                reason))
+        } else {
+            None
+        }
+    };
+
+    let mut info = Vec::new();
+
+    if let Some(key) = key {
+        let ka = cert.keys().subkeys().find(|ka| &ka.fingerprint() == key)
+            .expect("key is associated with the certificate");
+
+        match ka.clone().with_policy(sq.policy, sq.time) {
+            Ok(ka) => {
+                if let Some(revoked) = revoked(ka.revocation_status()) {
+                    info.push(revoked)
+                }
+
+                if let Some(t) = ka.key_expiration_time() {
+                    if t < SystemTime::now() {
+                        info.push(
+                            format!("expired {}",
+                                    Time::try_from(t)
+                                    .expect("is an OpenPGP timestamp")))
+                    } else {
+                        info.push(
+                            format!("will expire {}",
+                                    Time::try_from(t)
+                                    .expect("is an OpenPGP timestamp")))
+                    }
+                }
+            }
+            Err(err) => {
+                if let Some(revoked)
+                    = revoked(ka.revocation_status(sq.policy, sq.time))
+                {
+                    info.push(revoked);
+                }
+
+                // Only print that it is invalid if the cert is valid.
+                // If the cert is invalid, then we already printed the
+                // information when showing the primary key.
+                if let Ok(_) = cert.with_policy(sq.policy, sq.time) {
+                    info.push(format!(
+                        "not valid: {}",
+                        crate::one_line_error_chain(err)));
+                }
+            }
+        }
+    } else {
+        match cert.with_policy(sq.policy, sq.time) {
+            Ok(vc) => {
+                if let Some(revoked) = revoked(vc.revocation_status()) {
+                    info.push(revoked)
+                }
+
+                if let Some(t) = vc.primary_key().key_expiration_time() {
+                    if t < SystemTime::now() {
+                        info.push(
+                            format!("expired {}",
+                                    Time::try_from(t)
+                                    .expect("is an OpenPGP timestamp")))
+                    } else {
+                        info.push(
+                            format!("will expire {}",
+                                    Time::try_from(t)
+                                    .expect("is an OpenPGP timestamp")))
+                    }
+                }
+            }
+            Err(err) => {
+                if let Some(revoked)
+                    = revoked(cert.revocation_status(sq.policy, sq.time))
+                {
+                    info.push(revoked);
+                }
+
+                info.push(format!(
+                    "not valid: {}",
+                    crate::one_line_error_chain(err)));
+            }
+        }
+    }
+    info
 }
 
 pub fn list(sq: Sq, cmd: cli::key::list::Command) -> Result<()> {
@@ -242,6 +375,12 @@ pub fn list(sq: Sq, cmd: cli::key::list::Command) -> Result<()> {
         wprintln!(initial_indent = "   - ", "created {}",
                   association.key().creation_time().convert());
 
+        if let Some(cert) = association.cert() {
+            for info in key_validity(&sq, cert, None).into_iter() {
+                wprintln!(initial_indent = "   - ", "{}", info);
+            }
+        }
+
         // Primary key information, if any.
         if let Some(primary) = keys.get(&association.key().fingerprint()) {
             wprintln!(initial_indent = "   - ", "usable {}", primary.usable_for());
@@ -262,8 +401,14 @@ pub fn list(sq: Sq, cmd: cli::key::list::Command) -> Result<()> {
             wprintln!(initial_indent = "   - ", "{}", fp);
             wprintln!(initial_indent = "     - ", "created {}",
                       key.key.creation_time().convert());
-            wprintln!(initial_indent = "     - ", "usable {}", key.usable_for());
 
+            if let Some(cert) = association.cert() {
+                for info in key_validity(&sq, cert, Some(fp)).into_iter() {
+                    wprintln!(initial_indent = "     - ", "{}", info);
+                }
+            }
+
+            wprintln!(initial_indent = "     - ", "usable {}", key.usable_for());
             for loc in &key.locations {
                 wprintln!(initial_indent = "     - ", "{}", loc);
             }

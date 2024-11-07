@@ -25,10 +25,10 @@ use wot::PARTIALLY_TRUSTED;
 
 use crate::Convert;
 use crate::Sq;
-use crate::commands::pki::output::OutputType;
-use crate::output::wrapping::NBSP;
 use crate::Time;
+use crate::commands::pki::output::OutputType;
 use crate::error_chain;
+use crate::output::wrapping::NBSP;
 
 /// Prints a Path Error
 pub fn print_path_error(err: Error) {
@@ -268,32 +268,76 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
             false
         };
 
-        let vc = self.current_cert.as_ref().and_then(|cert| {
+        let vc = self.current_cert.as_ref().map(|cert| {
             cert.with_policy(self.sq.policy, self.sq.time)
-                .ok()
         });
 
         if show_cert {
             let cert = self.current_cert.as_ref()
                 .expect("show_cert is true, there is a current cert");
 
-            let expiration_info = vc
-                .as_ref()
-                .and_then(|vc| {
+            let mut extra_info = Vec::new();
+
+            // To derive a valid cert, we need a valid binding
+            // signature.  But even if we don't have that we may still
+            // have a valid revocation certificate.  So be a bit more
+            // careful.
+            let rs = if let Some(Ok(ref vc)) = vc {
+                vc.revocation_status()
+            } else {
+                cert.revocation_status(self.sq.policy, self.sq.time)
+            };
+
+            if let RevocationStatus::Revoked(sigs) = rs {
+                let sig = sigs[0];
+                let mut reason_;
+                let reason = if let Some((reason, message))
+                    = sig.reason_for_revocation()
+                {
+                    // Be careful to quote the message it is
+                    // controlled by the certificate holder.
+                    reason_ = reason.to_string();
+                    if ! message.is_empty() {
+                        reason_.push_str(": ");
+                        reason_.push_str(&format!(
+                            "{:?}", String::from_utf8_lossy(message)));
+                    }
+                    &reason_
+                } else {
+                    "no reason specified"
+                };
+
+                extra_info.push(format!(
+                    "revoked {}, {}",
+                    sig.signature_creation_time()
+                        .unwrap_or(std::time::UNIX_EPOCH)
+                        .convert(),
+                    reason))
+            }
+
+            match &vc {
+                Some(Ok(vc)) => {
                     if let Some(t) = vc.primary_key().key_expiration_time() {
                         if t < SystemTime::now() {
-                            Some(format!("expired on {}",
-                                         Time::try_from(t)
-                                         .expect("is an OpenPGP timestamp")))
+                            extra_info.push(
+                                format!("expired on {}",
+                                        Time::try_from(t)
+                                        .expect("is an OpenPGP timestamp")))
                         } else {
-                            Some(format!("will expire on {}",
-                                         Time::try_from(t)
-                                         .expect("is an OpenPGP timestamp")))
+                            extra_info.push(
+                                format!("will expire on {}",
+                                        Time::try_from(t)
+                                        .expect("is an OpenPGP timestamp")))
                         }
-                    } else {
-                        None
                     }
-                });
+                }
+                Some(Err(err)) => {
+                    extra_info.push(
+                        format!("not valid: {}",
+                                crate::one_line_error_chain(err)));
+                }
+                None => (),
+            }
 
             if ! first_shown {
                 wprintln!();
@@ -306,29 +350,29 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
                           cert.primary_key().key().creation_time().convert());
             }
 
-            if let Some(info) = expiration_info {
+            for info in extra_info.into_iter() {
                 wprintln!(initial_indent = "   - ", "{}", info);
             }
             wprintln!();
         }
 
-        let revoked = vc
-            .as_ref()
-            .and_then(|vc| {
-                vc.userids()
-                    .filter_map(|u| {
-                        if u.userid() != userid {
-                            return None;
-                        }
+        let revoked = if let Some(Ok(ref vc)) = vc {
+            vc.userids()
+                .filter_map(|u| {
+                    if u.userid() != userid {
+                        return None;
+                    }
 
-                        if let RevocationStatus::Revoked(_) = u.revocation_status() {
-                            Some(())
-                        } else {
-                            None
-                        }
-                    })
-                    .next()
-            });
+                    if let RevocationStatus::Revoked(_) = u.revocation_status() {
+                        Some(())
+                    } else {
+                        None
+                    }
+                })
+                .next()
+        } else {
+            None
+        };
 
         wprintln!(initial_indent = "   - ", "[ {} ] {}",
                   if revoked.is_some() {

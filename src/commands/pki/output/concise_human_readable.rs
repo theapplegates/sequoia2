@@ -320,12 +320,12 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
                     if let Some(t) = vc.primary_key().key_expiration_time() {
                         if t < SystemTime::now() {
                             extra_info.push(
-                                format!("expired on {}",
+                                format!("expired {}",
                                         Time::try_from(t)
                                         .expect("is an OpenPGP timestamp")))
                         } else {
                             extra_info.push(
-                                format!("will expire on {}",
+                                format!("will expire {}",
                                         Time::try_from(t)
                                         .expect("is an OpenPGP timestamp")))
                         }

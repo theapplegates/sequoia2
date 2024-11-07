@@ -55,8 +55,8 @@ Additionally, it can print cryptographic artifacts, and print the raw \
 octet stream similar to hexdump(1), annotating specifically which \
 bytes are parsed into OpenPGP values.
 
-To inspect encrypted messages, either supply the session key, or see \
-`sq decrypt` with the `--dump` flag, or `sq toolbox packet decrypt`.
+If the packet stream includes an encryption container, `sq` will attempt \
+to decrypt it.
 ",
     after_help = DUMP_EXAMPLES,
 )]

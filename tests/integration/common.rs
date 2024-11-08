@@ -416,10 +416,20 @@ impl Sq {
     /// Returns a command that is set to run `sq`.  The home directory
     /// and time are already set.
     pub fn command(&self) -> Command {
+        self.command_args(&[])
+    }
+
+    /// Returns a command that is set to run `sq`.  The home directory
+    /// and time are already set.  The arguments in `pre` are added at
+    /// the beginning of the command line.
+    pub fn command_args(&self, pre: &[&str]) -> Command {
         let mut cmd = Command::cargo_bin("sq")
             .expect("can run sq");
         cmd.current_dir(&self.working_dir);
         cmd.env("SEQUOIA_CRYPTO_POLICY", &self.policy);
+        for arg in pre {
+            cmd.arg(arg);
+        }
         cmd.arg("--batch");
         cmd.arg("--home").arg(self.home());
         cmd.arg("--time").arg(&self.now_as_string());

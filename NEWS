@@ -14,6 +14,9 @@
      which is required.  The specified keys must be attached to that
      certificate.  This ensures that if a key is attached to multiple
      certificates, the correct certificate is exported.
+   - Add a new argument, `--cli-version`, which requests a particular
+     semver-compatible version of the CLI.  This enables breaking
+     changes to the CLI in the future.
 
 * Changes in 0.39.0
 ** Notable changes

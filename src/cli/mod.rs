@@ -107,6 +107,8 @@ pub mod version;
 
 pub mod types;
 use types::paths::{AbsolutePathOrDefault, AbsolutePathOrDefaultValueParser};
+use types::version::Version;
+use types::version::VersionInvalidPositionValueParser;
 
 /// The seconds in a day
 pub const SECONDS_IN_DAY : u64 = 24 * 60 * 60;
@@ -225,6 +227,36 @@ to refer to OpenPGP keys that do contain secrets.
     disable_version_flag = true,
 )]
 pub struct SqCommand {
+    #[clap(
+        long = "cli-version",
+        global = true,
+        value_parser = VersionInvalidPositionValueParser::default(),
+        help_heading = GLOBAL_OPTIONS_HEADER,
+        help = "Select a CLI version",
+        long_help = format!("\
+Select a CLI version.
+
+`sq`'s CLI is versioned using a semantic versioning scheme.  Setting \
+this options causes `sq` to error out if it does not implement an \
+interface that is compatible with the specified version.  For \
+instance, if you set this to 1.1.0 and `sq` only implements version
+1.0.0 of the interface, then `sq` will error out.
+
+`sq` may implement multiple interfaces (e.g., 1.1.4, and 2.0.5).  By \
+default, it selects the newest version.  As such, if you require a \
+particular interface, you need to set this option for every call to \
+`sq`.
+
+This option must be the first option on the command line.
+
+This version of `sq` implements version {}.{}.{} of the CLI interface.
+",
+                            env!("CARGO_PKG_VERSION_MAJOR"),
+                            env!("CARGO_PKG_VERSION_MINOR"),
+                            env!("CARGO_PKG_VERSION_PATCH")),
+    )]
+    pub cli_version: Option<Version>,
+
     #[clap(
         long = "overwrite",
         global = true,

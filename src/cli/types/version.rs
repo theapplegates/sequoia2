@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::fmt;
 use std::str::FromStr;
 
@@ -6,6 +7,43 @@ use anyhow::anyhow;
 use serde::Serialize;
 
 use crate::Result;
+
+/// A value parser for the version string.
+///
+/// This parser always emits an error that the argument is at the
+/// wrong place.
+#[derive(Clone, Debug, Default)]
+pub struct VersionInvalidPositionValueParser {}
+
+impl clap::builder::TypedValueParser for VersionInvalidPositionValueParser {
+    type Value = Version;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        arg: Option<&clap::Arg>,
+        value: &std::ffi::OsStr,
+    ) -> std::result::Result<Self::Value, clap::error::Error> {
+        let mut err = clap::Error::new(clap::error::ErrorKind::UnknownArgument)
+            .with_cmd(cmd);
+        if let Some(arg) = arg {
+            err.insert(
+                clap::error::ContextKind::InvalidArg,
+                clap::error::ContextValue::String(arg.to_string()));
+        }
+        err.insert(
+            clap::error::ContextKind::InvalidValue,
+            clap::error::ContextValue::String(
+                String::from_utf8_lossy(value.as_encoded_bytes()).to_string()));
+        err.insert(
+            clap::error::ContextKind::Suggested,
+            clap::error::ContextValue::StyledStrs(vec![
+                "--cli-version must be the very first argument".to_string().into()
+            ]));
+
+        Err(err)
+    }
+}
 
 /// A semver version string.
 ///
@@ -39,7 +77,11 @@ impl Version {
     }
 
     /// Does this version fulfill the needs of the version that is requested?
-    pub fn is_acceptable_for(&self, wanted: Self) -> bool {
+    pub fn is_acceptable_for<V>(&self, wanted: V) -> bool
+    where V: Borrow<Self>
+    {
+        let wanted = wanted.borrow();
+
         self.major == wanted.major &&
             (self.minor > wanted.minor ||
              (self.minor == wanted.minor && self.patch >= wanted.patch))

@@ -10,6 +10,7 @@ use anyhow::Context as _;
 
 use std::borrow::Borrow;
 use std::path::Path;
+use std::str::FromStr;
 use std::time::SystemTime;
 
 use once_cell::sync::OnceCell;
@@ -39,6 +40,7 @@ mod cli;
 use cli::SECONDS_IN_DAY;
 use cli::SECONDS_IN_YEAR;
 use cli::types::Time;
+use cli::types::Version;
 
 mod commands;
 pub mod output;
@@ -135,8 +137,61 @@ fn main() {
 }
 
 fn real_main() -> Result<()> {
+    // In the future, we want to support multiple versions of the CLI
+    // in a single binary.  To support this, we have to parse
+    // --cli-version before parsing the arguments!  To make this
+    // unambiguous, we require that --cli-version be the very first
+    // argument, and parse it by hand.
+    let mut skip_2 = false;
+    if let Some(arg1) = std::env::args_os().nth(1) {
+        if arg1.as_encoded_bytes() == &b"--cli-version"[..] {
+            if let Some(arg2) = std::env::args_os().nth(2) {
+                let version: Version
+                    = String::from_utf8(arg2.clone().into_encoded_bytes())
+                    .map_err(Into::<anyhow::Error>::into)
+                    .and_then(|s| Ok(Version::from_str(&s)?))
+                    .with_context(|| {
+                        format!("Parsing {:?}",
+                                String::from_utf8_lossy(arg2.as_encoded_bytes()))
+                    })?;
+
+                // The version of the CLI that we implement.
+                let cli_version: Version = Version::new(
+                    usize::from_str(env!("CARGO_PKG_VERSION_MAJOR")).unwrap(),
+                    usize::from_str(env!("CARGO_PKG_VERSION_MINOR")).unwrap(),
+                    usize::from_str(env!("CARGO_PKG_VERSION_PATCH")).unwrap());
+
+                if ! version.is_acceptable_for(&cli_version) {
+                    return Err(anyhow::anyhow!(
+                        "The required CLI version, {}, is not compatible with \
+                         this version of sq, which implements version {} of \
+                         the CLI",
+                        version, cli_version));
+                }
+
+                skip_2 = true;
+            } else {
+                return Err(anyhow::anyhow!(
+                    "--cli-version missing required argument"));
+            }
+        }
+    };
+
     let mut cli = cli::build(true);
-    let matches = cli.clone().try_get_matches();
+    let matches = if skip_2 {
+        // Skip --cli-version and the version string.
+        let args = std::env::args_os().enumerate().filter_map(|(i, arg)| {
+            if i == 1 || i == 2 {
+                None
+            } else {
+                Some(arg)
+            }
+        });
+        cli.clone().try_get_matches_from(args)
+    } else {
+        cli.clone().try_get_matches()
+    };
+
     let c = match matches {
         Ok(matches) => {
             cli::SqCommand::from_arg_matches(&matches)?

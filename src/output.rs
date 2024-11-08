@@ -15,10 +15,10 @@ pub mod wrapping;
 
 pub use keyring::ListItem as KeyringListItem;
 
-use crate::cli::output::OutputVersion;
+use crate::cli::types::Version;
 
-pub const DEFAULT_OUTPUT_VERSION: OutputVersion = OutputVersion::new(0, 0, 0);
-pub const OUTPUT_VERSIONS: &[OutputVersion] = &[OutputVersion::new(0, 0, 0)];
+pub const DEFAULT_OUTPUT_VERSION: Version = Version::new(0, 0, 0);
+pub const OUTPUT_VERSIONS: &[Version] = &[Version::new(0, 0, 0)];
 
 /// A model for the output of `sq` subcommands.
 ///
@@ -34,7 +34,7 @@ pub enum Model {
 
 impl Model {
 
-    fn version(v: Option<OutputVersion>) -> OutputVersion {
+    fn version(v: Option<Version>) -> Version {
         v.unwrap_or(DEFAULT_OUTPUT_VERSION)
     }
 
@@ -67,19 +67,19 @@ mod keyring {
         cert::Cert,
     };
     use crate::Sq;
-    use super::{OutputVersion, Write};
+    use super::{Version, Write};
     use serde::Serialize;
 
     #[derive(Debug, Serialize)]
     pub struct ListV0 {
         #[serde(skip)]
         all_uids: bool,
-        sq_output_version: OutputVersion,
+        sq_output_version: Version,
         keys: Vec<ListItem>,
     }
 
     impl ListV0 {
-        pub const V: OutputVersion = OutputVersion::new(0, 0, 0);
+        pub const V: Version = Version::new(0, 0, 0);
 
         pub fn new(keys: Vec<ListItem>, all_uids: bool) -> Self {
             Self {

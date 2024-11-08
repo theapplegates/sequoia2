@@ -40,6 +40,8 @@ pub use expiration::Expiration;
 pub use expiration::ExpirationArg;
 pub mod time;
 pub use time::Time;
+pub mod version;
+pub use version::Version;
 
 /// A trait to provide const &str for clap annotations for custom structs
 pub trait ClapData {

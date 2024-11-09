@@ -40,10 +40,11 @@ sequoia-policy-config = ">= 0.6, <0.8"
 anyhow = "1.0.18"
 chrono = "0.4.10"
 clap = { version = "4", features = ["derive", "env", "string", "wrap_help"] }
+futures-util = "0.3"
 humantime = "2"
 indicatif = "0.17"
 once_cell = "1.17"
-reqwest = { version = ">=0.11.27, <0.13", features = ["hickory-dns"] }
+reqwest = { version = ">=0.11.27, <0.13", features = ["hickory-dns", "stream"] }
 sequoia-cert-store = "0.6.0"
 sequoia-keystore = { version = ">=0.5, <0.7" }
 sequoia-wot = { version = "0.13", default-features = false }

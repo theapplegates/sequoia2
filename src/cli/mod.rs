@@ -94,6 +94,7 @@ pub mod examples;
 
 pub mod cert;
 pub mod decrypt;
+pub mod download;
 pub mod encrypt;
 pub mod inspect;
 pub mod key;
@@ -556,6 +557,7 @@ pub enum SqSubcommands {
 
     Sign(sign::Command),
     Verify(verify::Command),
+    Download(download::Command),
 
     Inspect(inspect::Command),
 

@@ -84,3 +84,9 @@ By using static data, we can use known fingerprints in the examples.
 - ciphertext.pgp: A document encrypted for Juliet, and signed by Romeo.
 
     - `echo 'Ti amo!' | sq encrypt --for-file juliet.pgp --signer-file romeo-secret.pgp > ciphertext.pgp`
+
+- debian/: The checksum file, the signature file, and the signing key
+  for the debian 12.7.0 release.
+
+  - https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/SHA512SUMS
+  - https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/SHA512SUMS.sign

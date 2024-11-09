@@ -1,0 +1,523 @@
+use std::collections::HashSet;
+use std::fs::File;
+use std::io::IsTerminal;
+use std::io::Seek;
+use std::io::Write;
+use std::path::Path;
+use std::path::PathBuf;
+
+use anyhow::Context;
+
+use futures_util::StreamExt;
+
+use tokio::sync::oneshot;
+use tokio::task::JoinSet;
+use tokio::task::LocalSet;
+
+use indicatif::ProgressBar;
+use indicatif::ProgressStyle;
+use indicatif::WeakProgressBar;
+
+use sequoia_net as net;
+use net::reqwest;
+
+use tempfile::NamedTempFile;
+
+use openpgp::Packet;
+use openpgp::parse::PacketParser;
+use openpgp::parse::PacketParserResult;
+use openpgp::parse::Parse;
+use openpgp::types::KeyFlags;
+use sequoia_openpgp as openpgp;
+
+use crate::Result;
+use crate::Sq;
+use crate::cli::download;
+use crate::cli::types::TrustAmount;
+use crate::commands::network::CONNECT_TIMEOUT;
+use crate::commands::network::USER_AGENT;
+use crate::commands::pki::authenticate;
+use crate::commands::verify::verify;
+
+// So we can deal with either named temp files or files.
+enum SomeFile {
+    Temp(NamedTempFile),
+    File((File, PathBuf)),
+}
+
+impl SomeFile {
+    fn as_ref(&self) -> &File {
+        match self {
+            SomeFile::Temp(t) => t.as_file(),
+            SomeFile::File((f, _)) => &f,
+        }
+    }
+
+    fn as_mut(&mut self) -> &mut File {
+        match self {
+            SomeFile::Temp(t) => t.as_file_mut(),
+            SomeFile::File((ref mut f, _)) => f,
+        }
+    }
+
+    fn path(&self) -> &Path {
+        match self {
+            SomeFile::Temp(t) => t.path(),
+            SomeFile::File((_, p)) => p.as_path(),
+        }
+    }
+}
+
+// Spawn a task to download the `$url` to `$output` using `$http_client`.
+//
+// This is a macro rather than a function due to lifetimes.
+//
+// `$rt` is uninterpreted, and is returned as is.
+//
+// `$limit` causes the download to abort after that many bytes.
+//
+// `$file_name` is `$output`'s file name.  Its purely used for
+// decorative purposes.
+//
+// `$pb` is a weak reference to a progress bar.
+macro_rules! get {
+    ($http_client:expr, $rt:expr, $url:expr, $limit:expr, $file_name:expr,
+     $output: expr, $pb:expr) => {{
+         let url: String = $url.into();
+         let http_client: reqwest::Client = $http_client.clone();
+         let limit: Option<usize> = $limit;
+         let file_name: String = $file_name.into();
+         let mut output = $output;
+         let pb: WeakProgressBar = $pb;
+
+         async move {
+             if let Some(local_file_name) = url.strip_prefix("file://") {
+                 let local_file_name = PathBuf::from(local_file_name);
+                 match File::open(&local_file_name) {
+                     Ok(file) => {
+                         Ok(($rt, SomeFile::File((file, local_file_name))))
+                     }
+                     Err(err) => Err(err.into()),
+                 }
+             } else {
+                 let mut bytes = 0;
+                 let response = http_client.get(&url).send()
+                     .await
+                     .and_then(|r| r.error_for_status())
+                     .with_context(|| format!("Fetching {}", url))?;
+
+                 let len = response.content_length();
+                 if let Some(pb) = pb.upgrade() {
+                     if let Some(len) = len {
+                         pb.inc_length(len);
+                     } else {
+                         // We don't know how much we need to download.  Switch
+                         // to a spinner.
+                         if ! pb.is_hidden() {
+                             pb.set_style(ProgressStyle::default_spinner());
+                         }
+                     }
+                 }
+
+                 let mut stream = response.bytes_stream();
+                 while let Some(item) = stream.next().await {
+                     let item = item.with_context(|| {
+                         format!("Fetching {}", url)
+                     })?;
+                     output.write_all(item.as_ref()).with_context(|| {
+                         format!("Writing to {}", file_name)
+                     })?;
+                     bytes += item.len();
+                     pb.upgrade().map(|pb| pb.inc(item.len() as u64));
+
+                     if let Some(limit) = limit {
+                         if bytes > limit {
+                             return Err(anyhow::anyhow!(
+                                 "{} exceeded download limit size ({} bytes)",
+                                 url, limit));
+                         }
+                     }
+                 }
+
+                 output.flush()?;
+
+                 Ok::<_, anyhow::Error>(($rt, SomeFile::Temp(output)))
+             }
+         }
+    }}
+}
+
+pub fn dispatch(sq: Sq, c: download::Command)
+    -> Result<()>
+{
+    let url = c.url;
+    let signature = c.signature;
+    let signatures = c.signatures;
+    let signers =
+        sq.resolve_certs_or_fail(&c.signers, sequoia_wot::FULLY_TRUSTED)?;
+    let output = c.output;
+
+    if ! sq.quiet && ! sq.batch {
+        let output_is_terminal
+            = output.path().is_none() && std::io::stdout().is_terminal();
+        if output_is_terminal {
+            wprintln!("Warning: will write the data to stdout, \
+                       which appears to be a terminal.  Use --output \
+                       to write to a file instead.");
+        }
+    }
+
+
+    // Create the progress bar.
+    let progress_bar = if sq.verbose || sq.batch {
+        ProgressBar::hidden()
+    } else {
+        ProgressBar::new(0)
+            .with_style(ProgressStyle::with_template(
+                "{wide_bar} {decimal_bytes}/{decimal_total_bytes} ({eta} left)")
+                        .expect("valid format"))
+    };
+
+    // A temporary file for the main data.  If output is not stdout,
+    // we try and put it in the same directory as where it should end
+    // up.
+    let data_file = {
+        let mut data_file = tempfile::Builder::new();
+        data_file.prefix("sq-download");
+
+        let partial;
+        if let Some(path) = output.path() {
+            if let Some(file_name) = path.file_name() {
+                partial = format!(
+                    "{}-partial",
+                    String::from_utf8_lossy(file_name.as_encoded_bytes()));
+                data_file.prefix(&partial);
+            }
+
+            if let Some(directory) = path.parent() {
+                data_file.tempfile_in(directory)
+            } else {
+                let cwd = std::env::current_dir()?;
+                data_file.tempfile_in(cwd)
+            }
+        } else {
+            data_file.tempfile()
+        }.context("Creating temporary file")?
+    };
+
+    let http_client = reqwest::Client::builder()
+        .user_agent(USER_AGENT)
+        .connect_timeout(CONNECT_TIMEOUT)
+        .build()?;
+
+    let requests = LocalSet::new();
+    let mut task_set = JoinSet::new();
+
+    // Since JoinSet::join_next has to return the same type, we use
+    // the following to discriminate the tasks.
+    enum Task {
+        Url,
+        Signature,
+    }
+
+    // Schedule the download of the file.
+    task_set.spawn_local_on(
+        get!(http_client.clone(), Task::Url, url, None,
+             data_file.path().display().to_string(), data_file,
+             progress_bar.downgrade()),
+        &requests);
+
+    // We need to do some acrobatics!!!  After we download the
+    // signature file, we want to make sure that we can authenticate a
+    // signer.  This means we need to use sq.  But, we can't move sq
+    // to an async task, because sq has a lifetime that is shorter
+    // than 'static.  Instead, we set up a scoped thread, which can
+    // use variables with lifetimes less than static, and then do the
+    // processing there.
+    let (mut data_file, signature_file) = std::thread::scope(|scope| {
+        // Schedule the download of the signature.
+        if let Some(ref url) = signature {
+            let sig_file = tempfile::NamedTempFile::new()?;
+
+            let getter = get!(
+                http_client.clone(), Task::Signature, url, None,
+                sig_file.path().display().to_string(), sig_file,
+                progress_bar.downgrade());
+
+            let (request_tx, request_rx) = oneshot::channel();
+            let (response_tx, response_rx) = oneshot::channel();
+
+            task_set.spawn_local_on(
+                async move {
+                    let (task, sig_file) = getter.await?;
+
+                    // The processing is handled by the thread below.
+                    if request_tx.send(sig_file).is_err() {
+                        return Err(anyhow::anyhow!(
+                            "internal error: protocol violation"));
+                    }
+                    let sig_file = response_rx.await??;
+                    Ok((task, sig_file))
+                },
+                &requests);
+
+            let progress_bar_ = progress_bar.downgrade();
+            let sq_ = &sq;
+            let signers_ = &signers;
+            scope.spawn(move || {
+                let result = (|| {
+                    let progress_bar = progress_bar_;
+                    let sq = sq_;
+                    let signers = signers_;
+
+                    let mut sig_file = if let Ok(sig_file)
+                        = request_rx.blocking_recv()
+                    {
+                        sig_file
+                    } else {
+                        return Err(anyhow::anyhow!(
+                            "internal error: protocol violation"));
+                    };
+
+                    // Read the signature data and make sure we can
+                    // authenticate at least one issuer's certificate.
+                    sig_file.as_mut().rewind()?;
+                    let mut ppr = PacketParser::from_reader(sig_file.as_ref())
+                        .context("Parsing detached signature: either the signature \
+                                  file does not actually contain an OpenPGP \
+                                  signature, or it is corrupted.")?;
+                    let mut signatures = Vec::new();
+                    while let PacketParserResult::Some(pp) = ppr {
+                        let (packet, next_ppr) = pp.next()?;
+                        ppr = next_ppr;
+
+                        match packet {
+                            Packet::Signature(sig) => {
+                                signatures.push(sig);
+                            }
+                            Packet::Marker(_) => (),
+                            _ => {
+                                return Err(anyhow::anyhow!(
+                                    "Signature file does not contain a detached \
+                                     signature.  It includes a {}.",
+                                    packet.tag()));
+                            }
+                        }
+                    }
+
+                    if signatures.is_empty() {
+                        return Err(anyhow::anyhow!(
+                            "Signature file does not contain any signatures."));
+                    }
+
+                    let mut seen = HashSet::new();
+                    let mut authenticated = false;
+                    for sig in signatures.iter() {
+                        for issuer in sig.get_issuers() {
+                            if let Some(cert)
+                                = signers.iter().find(|c| c.key_handle().aliases(&issuer))
+                            {
+                                if ! seen.insert(cert.fingerprint()) {
+                                    // Already saw that certificate.
+                                    continue;
+                                }
+
+                                authenticated = true;
+
+                                if let Some(pb) = progress_bar.upgrade() {
+                                    pb.suspend(|| {
+                                        eprintln!("Alleged signer {} is good listed.",
+                                                  cert.fingerprint());
+                                    })
+                                }
+                            } else if let Ok(cert)
+                                = sq.lookup_one(issuer,
+                                                Some(KeyFlags::signing()),
+                                                false)
+                            {
+                                if ! seen.insert(cert.fingerprint()) {
+                                    // Already saw that certificate.
+                                    continue;
+                                }
+
+                                let mut auth = || {
+                                    eprintln!("Alleged signer: {}, {}",
+                                              cert.fingerprint(),
+                                              sq.best_userid(&cert, true));
+
+                                    let good = authenticate(
+                                        &sq,
+                                        false, // precompute
+                                        None, // list pattern
+                                        false, // email
+                                        false, // gossip
+                                        false, // certification network
+                                        Some(TrustAmount::Full), // trust amount
+                                        None, // user ID
+                                        Some(&cert.key_handle()),
+                                        true, // show paths
+                                    ).is_ok();
+
+                                    if good {
+                                        wprintln!("Authenticated possible \
+                                                   signer: {}, {}",
+                                                  cert.fingerprint(),
+                                                  sq.best_userid(&cert, true));
+                                    } else {
+                                        wprintln!("Couldn't authenticate the \
+                                                   alleged signer: {}, {}",
+                                                  cert.fingerprint(),
+                                                  sq.best_userid(&cert, true));
+                                    }
+
+                                    if good {
+                                        authenticated = true;
+                                    }
+                                };
+
+                                if let Some(pb) = progress_bar.upgrade() {
+                                    pb.suspend(auth);
+                                } else {
+                                    auth();
+                                }
+                            }
+                        }
+                    }
+
+                    if ! authenticated {
+                        if let Some(pb) = progress_bar.upgrade() {
+                            pb.finish_and_clear();
+                        }
+
+                        if seen.is_empty() {
+                            eprintln!("Don't have certificates for any of the \
+                                       alleged signers:");
+                        } else {
+                            eprintln!("Couldn't authenticated any of the alleged \
+                                       signers:");
+                        }
+
+                        eprintln!();
+                        for sig in signatures.iter() {
+                            for issuer in sig.get_issuers() {
+                                eprintln!("  - {}", issuer);
+                            }
+                        }
+
+                        return Err(anyhow::anyhow!("\
+                            Couldn't authenticate any of the alleged signers"));
+                    }
+
+                    drop(ppr);
+
+                    Ok(sig_file)
+                })();
+
+                if let Err(result) = response_tx.send(result) {
+                    // (send returns result on failure.)  We failed to
+                    // return the result.  Don't make things worse by
+                    // swallowing any error.
+                    if let Err(err) = result.as_ref() {
+                        crate::print_error_chain(&err);
+                    }
+
+                    Err(anyhow::anyhow!("Internal error: failed to return \
+                                         result to caller"))
+                } else {
+                    Ok(())
+                }
+            });
+        }
+
+        // And GO!!!
+        let rt = tokio::runtime::Runtime::new()?;
+        let (data_file, signature_file) = requests.block_on(&rt, async move {
+            let mut data_file = None;
+            let mut signature_file = None;
+
+            while let Some(result) = task_set.join_next().await {
+                match result {
+                    Ok(Ok((Task::Signature, file))) => signature_file = Some(file),
+                    Ok(Ok((Task::Url, file))) => data_file = Some(file),
+                    Ok(Err(err)) => {
+                        if data_file.is_none() {
+                            eprintln!();
+                            eprintln!("Aborting download.");
+                        }
+                        return Err(err);
+                    }
+                    Err(err) => {
+                        return Err(err).context("While downloading data");
+                    }
+                }
+            }
+
+            let data_file = if let Some(data_file) = data_file {
+                data_file
+            } else {
+                return Err(anyhow::anyhow!(
+                    "Internal error while downloading data file"));
+            };
+
+            if signature.is_some() && signature_file.is_none() {
+                return Err(anyhow::anyhow!(
+                    "Internal error while downloading signature file"));
+            }
+
+            Ok::<_, anyhow::Error>((data_file, signature_file))
+        })?;
+
+        Ok::<_, anyhow::Error>((data_file, signature_file))
+    })?;
+
+    drop(progress_bar);
+
+    wprintln!();
+    wprintln!("Finished downloading data.  Authenticating data.");
+    wprintln!();
+
+    data_file.as_mut().rewind()?;
+
+    let mut output_file_;
+    let mut stdout_;
+    let mut output_file: &mut dyn Write = if let Some(file) = output.path() {
+        output_file_ = if sq.overwrite {
+            File::create(file)
+        } else {
+            File::options().write(true).create_new(true).open(file)
+        }.with_context(|| format!("Opening {}", file.display()))?;
+        &mut output_file_
+    } else {
+        stdout_ = std::io::stdout();
+        &mut stdout_
+    };
+
+    let result = verify(
+        sq,
+        data_file.as_mut(),
+        signature_file.as_ref().map(|f| f.path().to_path_buf()),
+        &mut output_file,
+        signatures,
+        signers);
+
+    if let Err(err) = result {
+        if let Some(path) = output.path() {
+            if let Err(err) = std::fs::remove_file(path) {
+                wprintln!("Verification failed, failed to remove \
+                           unverified output saved to {}: {}",
+                          path.display(), err);
+            }
+        }
+
+        return Err(err);
+    }
+
+    if signature_file.is_some() {
+        // Verify doesn't copy the data when checking detached
+        // signatures.  Do it now.
+        data_file.as_mut().rewind()?;
+        std::io::copy(&mut data_file.as_ref(), output_file)?;
+    }
+
+    result
+}

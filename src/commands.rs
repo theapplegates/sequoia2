@@ -27,6 +27,7 @@ use crate::cli::{SqCommand, SqSubcommands};
 pub mod autocrypt;
 pub mod cert;
 pub mod decrypt;
+pub mod download;
 pub mod encrypt;
 pub mod sign;
 pub mod inspect;
@@ -49,6 +50,8 @@ pub fn dispatch(sq: Sq, command: SqCommand) -> Result<()>
             sign::dispatch(sq, command),
         SqSubcommands::Verify(command) =>
             verify::dispatch(sq, command),
+        SqSubcommands::Download(command) =>
+            download::dispatch(sq, command),
 
         SqSubcommands::Inspect(command) =>
             inspect::dispatch(sq, command),

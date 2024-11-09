@@ -3,6 +3,9 @@
 #+STARTUP: content hidestars
 
 * Changes in 0.40.0
+** New functionality
+   - New subcommand `sq download`, which downloads a file and a
+     signature file, and then authenticates the file.
 ** Notable changes
    - `sq toolbox keyring merge` now supports merging bare revocation
      certificates.

@@ -31,12 +31,12 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
             // A key handle was given as pattern and --email was not
             // given.  Act like `sq pki identify`.
             authenticate(
-                sq, false, None,
+                &sq, false, None,
                 false, *gossip, *certification_network, *trust_amount,
                 None, Some(&handle), *show_paths)
         } else {
             authenticate(
-                sq, pattern.is_none(), pattern,
+                &sq, pattern.is_none(), pattern,
                 *email, *gossip, *certification_network, *trust_amount,
                 None, None, *show_paths)
         },

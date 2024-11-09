@@ -76,7 +76,7 @@ fn have_self_signed_userid(cert: &wot::CertSynopsis,
 /// If `gossip` is specified, paths that are not rooted are still
 /// shown (with a trust amount of 0, of course).
 pub fn authenticate<'store, 'rstore>(
-    sq: Sq<'store, 'rstore>,
+    sq: &Sq<'store, 'rstore>,
     precompute: bool,
     list_pattern: Option<String>,
     email: bool,
@@ -585,7 +585,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
             email, gossip, certification_network, trust_amount,
             cert, userid, show_paths,
         }) => authenticate(
-            sq, false, None,
+            &sq, false, None,
             *email, *gossip, *certification_network, *trust_amount,
             Some(&userid), Some(&cert), *show_paths,
         )?,
@@ -596,7 +596,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
             email, gossip, certification_network, trust_amount,
             userid, show_paths,
         }) => authenticate(
-            sq, false, None,
+            &sq, false, None,
             *email, *gossip, *certification_network, *trust_amount,
             Some(&userid), None, *show_paths)?,
 
@@ -606,7 +606,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
             gossip, certification_network, trust_amount,
             cert, show_paths,
         }) => authenticate(
-            sq, false, None,
+            &sq, false, None,
             false, *gossip, *certification_network, *trust_amount,
             None, Some(&cert), *show_paths)?,
 

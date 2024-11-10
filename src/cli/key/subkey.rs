@@ -19,6 +19,7 @@ Add new subkeys to an existing certificate, change their expiration, \
 and revoke them.",
     subcommand_required = true,
     arg_required_else_help = true,
+    disable_help_subcommand = true,
 )]
 #[non_exhaustive]
 pub enum Command {

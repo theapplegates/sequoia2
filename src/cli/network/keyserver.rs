@@ -26,6 +26,7 @@ and retrieving certificates from key servers.
 ",
     subcommand_required = true,
     arg_required_else_help = true,
+    disable_help_subcommand = true,
 )]
 pub struct Command {
     #[clap(

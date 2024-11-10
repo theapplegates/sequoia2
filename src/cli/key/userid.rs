@@ -26,6 +26,7 @@ Add User IDs to a key, or revoke them.
 ",
     subcommand_required = true,
     arg_required_else_help = true,
+    disable_help_subcommand = true,
 )]
 pub enum Command {
     Add(AddCommand),

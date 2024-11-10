@@ -47,6 +47,7 @@ certifications made by the CA.
 after_help = VOUCH_EXAMPLES,
     subcommand_required = true,
     arg_required_else_help = true,
+    disable_help_subcommand = true,
 )]
 pub struct Command {
     #[clap(subcommand)]

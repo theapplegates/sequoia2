@@ -23,6 +23,7 @@ contain secrets.  See `sq key` for operations on keys.
 ",
     subcommand_required = true,
     arg_required_else_help = true,
+    disable_help_subcommand = true,
 )]
 pub struct Command {
     #[clap(subcommand)]

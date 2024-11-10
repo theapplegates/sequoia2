@@ -226,6 +226,15 @@ to refer to OpenPGP keys that do contain secrets.
     arg_required_else_help = true,
     disable_colored_help = true,
     disable_version_flag = true,
+    // We want a top-level `help` subcommand, but we don't want
+    // subcommands groups (like `sq pki`) to have a `help` subcommand.
+    // Users get used to being able to use `help` instead of `--help`,
+    // and then are confused when `sq pki authenticate help` (i.e.,
+    // using the `help` subcommand on an action) doesn't work.
+    //
+    // Note: this option is recursive.  So if we disable it here, then
+    // we have to enable it for all of the top-level subcommands.
+    disable_help_subcommand = false,
 )]
 pub struct SqCommand {
     #[clap(

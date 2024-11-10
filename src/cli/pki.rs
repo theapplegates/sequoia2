@@ -43,7 +43,8 @@ necessarily institutions – act as trusted introducers.
 ",
     subcommand_required = true,
     arg_required_else_help = true,
-    )]
+    disable_help_subcommand = true,
+)]
 pub struct Command {
     #[command(subcommand)]
     pub subcommand: Subcommands,

@@ -20,6 +20,8 @@
    - Add a new argument, `--cli-version`, which requests a particular
      semver-compatible version of the CLI.  This enables breaking
      changes to the CLI in the future.
+   - The `help` subcommand has been removed everywhere except at the
+     top-level (`--help` still works).
 
 * Changes in 0.39.0
 ** Notable changes

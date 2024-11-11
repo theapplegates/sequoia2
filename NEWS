@@ -22,6 +22,10 @@
      changes to the CLI in the future.
    - The `help` subcommand has been removed everywhere except at the
      top-level (`--help` still works).
+   - If designated signers are specified for `sq verify`, `sq
+     decrypt`, and `sq download`, they are now the only certificates
+     that are considered when verifying signatures.  If no signers are
+     specified, the certificate store is consulted.
 
 * Changes in 0.39.0
 ** Notable changes

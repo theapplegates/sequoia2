@@ -226,23 +226,16 @@ pub struct ToVerifyDoc {}
 impl AdditionalDocs for ToVerifyDoc {
     fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         match arg {
-            "cert" | "file" => format!(
-                "{} to verify the signatures with.  \
-                 Note: signatures verified with a certificate \
-                 given here are considered authenticated.{}",
-                help,
-                if arg == "cert" {
-                    "  When this option is not provided, the certificate \
-                     is still read from the certificate store, if it \
-                     exists, but it is not implicitly considered \
-                     authenticated."
-                } else {
-                    ""
-                }),
-            _ => format!(
-                "{} to verify the signatures with",
-                help),
-        }.into()
+            "file" =>
+                "Require a signature from a certificate read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Require a signature from a certificate")
+                    .into()
+            },
+        }
     }
 }
 

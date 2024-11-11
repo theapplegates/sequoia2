@@ -95,7 +95,10 @@ pub struct VHelper<'c, 'store, 'rstore>
     #[allow(dead_code)]
     pub sq: &'c Sq<'store, 'rstore>,
     signatures: usize,
-    certs: Option<Vec<Cert>>,
+
+    /// Require signatures to be made by this set of certs.
+    designated_signers: Vec<Cert>,
+
     labels: HashMap<KeyID, String>,
     trusted: HashSet<KeyID>,
 
@@ -116,13 +119,13 @@ pub struct VHelper<'c, 'store, 'rstore>
 
 impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
     pub fn new(sq: &'c Sq<'store, 'rstore>, signatures: usize,
-               certs: Vec<Cert>)
+               designated_signers: Vec<Cert>)
                -> Self
     {
         VHelper {
             sq: sq,
             signatures,
-            certs: Some(certs),
+            designated_signers,
             labels: HashMap::new(),
             trusted: HashSet::new(),
             sym_algo: None,
@@ -428,7 +431,7 @@ impl<'c, 'store, 'rstore> VerificationHelper for VHelper<'c, 'store, 'rstore>
     fn get_certs(&mut self, ids: &[openpgp::KeyHandle]) -> Result<Vec<Cert>> {
         let mut certs = BTreeMap::new();
 
-        for c in self.certs.take().unwrap() {
+        for c in std::mem::take(&mut self.designated_signers) {
             match certs.entry(c.fingerprint()) {
                 Entry::Vacant(e) => {
                     e.insert(c);
@@ -449,7 +452,14 @@ impl<'c, 'store, 'rstore> VerificationHelper for VHelper<'c, 'store, 'rstore>
         // Explicitly provided keys are trusted.
         self.trusted = seen;
 
-        // Look up the ids in the certificate store.
+        // If we have any designated signers, we do not consider
+        // certificates in the cert store: we require all signatures
+        // to be made by the set of designated signers.
+        if ! self.trusted.is_empty() {
+            return Ok(certs.into_values().collect());
+        }
+
+        // Otherwise, look up the issuer IDs in the certificate store.
 
         // Avoid initializing the certificate store if we don't actually
         // need to.

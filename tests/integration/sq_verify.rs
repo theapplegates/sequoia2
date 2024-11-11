@@ -191,3 +191,28 @@ fn sq_verify_policy_as_of_relative_time() -> Result<()> {
 
     Ok(())
 }
+
+/// Make sure designated signers are respected.
+#[test]
+fn sq_verify_designated_signers() -> Result<()> {
+    let mut sq = Sq::new();
+    sq.preserve();
+
+    // First, import Neal's cert and make sure the message verifies
+    // ok.
+    sq.cert_import(artifact("examples/juliet.pgp"));
+    sq.pki_link_add(&["--all"],
+                    "7A58B15E3B9459483D9FFA8D40E299AC5F2B0872".parse()?,
+                    &[]);
+    assert!(sq.verify_maybe(
+        &[],
+        artifact("examples/document.pgp"), None).is_ok());
+
+    // Now repeat, but require a signature from Bob, which doesn't
+    // exist.
+    assert!(sq.verify_maybe(
+        &[&format!("--signer-file={}", artifact("examples/bob.pgp").display())],
+        artifact("examples/document.pgp"), None).is_err());
+
+    Ok(())
+}

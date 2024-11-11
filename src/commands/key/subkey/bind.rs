@@ -89,6 +89,11 @@ pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
                 _ => panic!("Unsupported binding signature: {:?}", sig),
             };
 
+            let builder = match builder.set_signature_creation_time(sq.time) {
+                Ok(b) => b,
+                Err(err) => return (kh, Err(err)),
+            };
+
             let mut key_flags = builder.key_flags()
                 .unwrap_or(KeyFlags::empty());
             if command.can_sign {
@@ -123,11 +128,6 @@ pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
             }
 
             let builder = match builder.set_key_flags(key_flags) {
-                Ok(b) => b,
-                Err(err) => return (kh, Err(err)),
-            };
-
-            let builder = match builder.set_signature_creation_time(sq.time) {
                 Ok(b) => b,
                 Err(err) => return (kh, Err(err)),
             };

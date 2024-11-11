@@ -5,7 +5,7 @@ use std::fmt;
 use std::fs::{self, DirEntry};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 use anyhow::Context;
 use indicatif::ProgressBar;
@@ -220,20 +220,18 @@ fn serialize_keyring(sq: &Sq, file: &FileOrStdout, certs: Vec<Cert>,
 /// the certificate store.
 fn certify(sq: &Sq,
            signer: &mut dyn Signer, cert: &Cert, userids: &[UserID],
-           creation_time: Option<SystemTime>, depth: u8, amount: usize)
+           depth: u8, amount: usize)
     -> Result<Cert>
 {
-    let mut builder = SignatureBuilder::new(SignatureType::GenericCertification);
+    let mut builder =
+        SignatureBuilder::new(SignatureType::GenericCertification)
+        .set_signature_creation_time(sq.time)?;
 
     if depth != 0 || amount != 120 {
         builder = builder.set_trust_signature(depth, amount.min(255) as u8)?;
     }
 
     builder = builder.set_exportable_certification(false)?;
-
-    if let Some(creation_time) = creation_time {
-        builder = builder.set_signature_creation_time(creation_time)?;
-    }
 
     let certifications = active_certification(
             sq, cert,
@@ -379,7 +377,7 @@ pub fn certify_downloads<'store, 'rstore>(sq: &mut Sq<'store, 'rstore>,
 
         match certify(
             sq, &mut ca_signer, &cert, &userids[..],
-            Some(sq.time), 0, sequoia_wot::FULLY_TRUSTED)
+            0, sequoia_wot::FULLY_TRUSTED)
         {
             Ok(cert) => cert,
             Err(err) => {

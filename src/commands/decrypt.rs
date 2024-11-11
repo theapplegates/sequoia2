@@ -29,7 +29,7 @@ use sequoia_keystore as keystore;
 use crate::{
     cli,
     commands::{
-        VHelper,
+        verify::VHelper,
     },
     common::password,
     Sq,

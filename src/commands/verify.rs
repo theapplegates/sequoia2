@@ -1,18 +1,29 @@
+use std::collections::{HashMap, HashSet, btree_map::{BTreeMap, Entry}};
 use std::io;
 use std::path::PathBuf;
 
 use buffered_reader::File;
 
-use sequoia_openpgp as openpgp;
-use openpgp::Cert;
-use openpgp::parse::stream::DetachedVerifierBuilder;
-use openpgp::parse::stream::VerifierBuilder;
-use openpgp::parse::Parse;
+use sequoia_openpgp::{
+    self as openpgp,
+    KeyID,
+    Cert,
+    cert::amalgamation::ValidAmalgamation,
+    packet::UserID,
+    parse::stream::*,
+    parse::Parse,
+    types::{
+        AEADAlgorithm,
+        SymmetricAlgorithm,
+    },
+};
+
+use sequoia_cert_store::Store;
+use sequoia_wot::store::Store as _;
 
 use crate::Sq;
 use crate::Result;
 use crate::cli;
-use crate::commands::VHelper;
 use crate::commands::inspect::Kind;
 
 pub fn dispatch(sq: Sq, command: cli::verify::Command)
@@ -75,4 +86,427 @@ pub fn verify(mut sq: Sq,
 
     helper.print_status();
     Ok(())
+}
+
+
+pub struct VHelper<'c, 'store, 'rstore>
+    where 'store: 'rstore
+{
+    #[allow(dead_code)]
+    pub sq: &'c Sq<'store, 'rstore>,
+    signatures: usize,
+    certs: Option<Vec<Cert>>,
+    labels: HashMap<KeyID, String>,
+    trusted: HashSet<KeyID>,
+
+    /// Tracks the inner-most encryption container encountered.
+    pub sym_algo: Option<SymmetricAlgorithm>,
+    /// Tracks the inner-most encryption container encountered.
+    aead_algo: Option<AEADAlgorithm>,
+
+    // Tracks the signatures encountered.
+    authenticated_signatures: usize,
+    unauthenticated_signatures: usize,
+    uncheckable_signatures: usize,
+    bad_signatures: usize,
+    broken_keys: usize,
+    broken_signatures: usize,
+    pub quiet: bool,
+}
+
+impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
+    pub fn new(sq: &'c Sq<'store, 'rstore>, signatures: usize,
+               certs: Vec<Cert>)
+               -> Self
+    {
+        VHelper {
+            sq: sq,
+            signatures,
+            certs: Some(certs),
+            labels: HashMap::new(),
+            trusted: HashSet::new(),
+            sym_algo: None,
+            aead_algo: None,
+            authenticated_signatures: 0,
+            unauthenticated_signatures: 0,
+            uncheckable_signatures: 0,
+            broken_keys: 0,
+            bad_signatures: 0,
+            broken_signatures: 0,
+            quiet: sq.quiet,
+        }
+    }
+
+    /// Enables or disables quiet operation.
+    ///
+    /// In quiet operation, only errors are emitted.
+    pub fn quiet(&mut self, v: bool) {
+        self.quiet = v;
+    }
+
+    pub fn print_status(&self) {
+        fn p(s: &mut String, what: &str, threshold: usize, quantity: usize) {
+            if quantity >= threshold {
+                use std::fmt::Write;
+                use crate::output::pluralize::Pluralize;
+                let dirty = ! s.is_empty();
+                write!(s, "{}{}",
+                       if dirty { ", " } else { "" },
+                       quantity.of(what))
+                    .expect("writing to a string is infallible");
+            }
+        }
+
+        let mut status = String::new();
+        p(&mut status, "authenticated signature", 0, self.authenticated_signatures);
+        p(&mut status, "unauthenticated signature", 1, self.unauthenticated_signatures);
+        p(&mut status, "uncheckable signature", 1, self.uncheckable_signatures);
+        p(&mut status, "bad signature", 1, self.bad_signatures);
+        p(&mut status, "bad key", 1, self.broken_keys);
+        p(&mut status, "broken signatures", 1, self.broken_signatures);
+        if ! status.is_empty() {
+            wprintln!("{}.", status);
+        }
+    }
+
+    fn print_sigs(&mut self, results: &[VerificationResult]) {
+        make_qprintln!(self.quiet);
+        use crate::commands::pki::output::print_path;
+        use crate::print_error_chain;
+
+        let reference_time = self.sq.time;
+
+        use self::VerificationError::*;
+        for result in results {
+            let (sig, ka) = match result {
+                Ok(GoodChecksum { sig, ka, .. }) => (sig, ka),
+                Err(MalformedSignature { error, .. }) => {
+                    wprintln!("Malformed signature:");
+                    print_error_chain(error);
+                    self.broken_signatures += 1;
+                    continue;
+                },
+                Err(MissingKey { sig, .. }) => {
+                    let issuer = sig.get_issuers().get(0)
+                        .expect("missing key checksum has an issuer")
+                        .to_string();
+                    let what = match sig.level() {
+                        0 => "signature".into(),
+                        n => format!("level {} notarization", n),
+                    };
+                    wprintln!("Can't authenticate {} allegedly made by {}: \
+                               missing certificate.",
+                              what, issuer);
+
+                    self.sq.hint(format_args!(
+                        "Consider searching for the certificate using:"))
+                        .sq().arg("network").arg("search")
+                        .arg(issuer)
+                        .done();
+
+                    self.uncheckable_signatures += 1;
+                    continue;
+                },
+                Err(UnboundKey { cert, error, .. }) => {
+                    wprintln!("Signing key on {} is not bound:",
+                              cert.fingerprint());
+                    print_error_chain(error);
+                    self.broken_keys += 1;
+                    continue;
+                },
+                Err(BadKey { ka, error, .. }) => {
+                    wprintln!("Signing key on {} is bad:",
+                              ka.cert().fingerprint());
+                    print_error_chain(error);
+                    self.broken_keys += 1;
+                    continue;
+                },
+                Err(BadSignature { sig, ka, error }) => {
+                    let issuer = ka.fingerprint().to_string();
+                    let what = match sig.level() {
+                        0 => "signature".into(),
+                        n => format!("level {} notarizing signature", n),
+                    };
+                    wprintln!("Error verifying {} made by {}:",
+                              what, issuer);
+                    print_error_chain(error);
+                    self.bad_signatures += 1;
+                    continue;
+                }
+            };
+
+            let cert = ka.cert();
+            let cert_fpr = cert.fingerprint();
+            let issuer = ka.key().keyid();
+            let mut signer_userid = ka.cert().primary_userid()
+                .map(|ua| String::from_utf8_lossy(ua.value()).to_string())
+                .unwrap_or_else(|_| "<unknown>".to_string());
+
+            // Direct trust.
+            let mut authenticated = self.trusted.contains(&issuer);
+            let mut prefix = "";
+            let trust_roots = self.sq.trust_roots();
+            if ! authenticated && ! trust_roots.is_empty() {
+                prefix = "  ";
+
+                // Web of trust.
+                qprintln!("Authenticating {} ({:?}) using the web of trust:",
+                          cert_fpr, signer_userid);
+
+                if let Ok(Some(cert_store)) = self.sq.cert_store() {
+                    // Build the network.
+                    let cert_store = sequoia_wot::store::CertStore::from_store(
+                        cert_store, self.sq.policy, reference_time);
+
+                    let userids =
+                        cert_store.certified_userids_of(&cert_fpr);
+
+                    if userids.is_empty() {
+                        wprintln!(indent=prefix,
+                                  "{} cannot be authenticated.  \
+                                   It has no User IDs",
+                                  cert_fpr);
+                    } else {
+                        let n = sequoia_wot::NetworkBuilder::rooted(
+                            &cert_store, &*trust_roots).build();
+
+                        let authenticated_userids
+                            = userids.into_iter().filter(|userid| {
+                                let userid_str =
+                                    String::from_utf8_lossy(userid.value());
+
+                                let paths = n.authenticate(
+                                    userid, cert.fingerprint(),
+                                    // XXX: Make this user squrable.
+                                    sequoia_wot::FULLY_TRUSTED);
+
+                                let amount = paths.amount();
+                                let authenticated = if amount >= sequoia_wot::FULLY_TRUSTED {
+                                    wprintln!(indent=prefix,
+                                              "Fully authenticated \
+                                               ({} of {}) {}, {}",
+                                              amount,
+                                              sequoia_wot::FULLY_TRUSTED,
+                                              cert_fpr,
+                                              userid_str);
+                                    true
+                                } else if amount > 0 {
+                                    wprintln!(indent=prefix,
+                                              "Partially authenticated \
+                                               ({} of {}) {}, {:?} ",
+                                              amount,
+                                              sequoia_wot::FULLY_TRUSTED,
+                                              cert_fpr,
+                                              userid_str);
+                                    false
+                                } else {
+                                    wprintln!(indent=prefix,
+                                              "{}: {:?} is unauthenticated \
+                                               and may be an impersonation!",
+                                              cert_fpr,
+                                              userid_str);
+                                    false
+                                };
+
+                                for (i, (path, amount)) in paths.iter().enumerate() {
+                                    let prefix = if paths.len() > 1 {
+                                        qprintln!("{}  Path #{} of {}, \
+                                                  trust amount {}:",
+                                                 prefix,
+                                                 i + 1, paths.len(), amount);
+                                        format!("{}    ", prefix)
+                                    } else {
+                                        format!("{}  ", prefix)
+                                    };
+
+                                    if ! self.quiet {
+                                        let _ =
+                                            print_path(&path.into(), userid,
+                                                       &prefix);
+                                    }
+                                }
+
+                                authenticated
+                            })
+                            .collect::<Vec<UserID>>();
+
+                        if authenticated_userids.is_empty() {
+                            authenticated = false;
+                        } else {
+                            authenticated = true;
+
+                            // If we managed to authenticate the
+                            // signers user ID, prefer that one.
+                            if let Some(u) = sig.signers_user_id()
+                                .and_then(|u| {
+                                    authenticated_userids.contains(
+                                        &UserID::from(u))
+                                        .then_some(u)
+                                })
+                            {
+                                signer_userid = String::from_utf8_lossy(u)
+                                    .to_string();
+                            } else {
+                                // Else just pick the first one.
+                                signer_userid = String::from_utf8_lossy(
+                                    authenticated_userids[0].value())
+                                    .to_string();
+                            }
+                        }
+                    }
+                } else {
+                    qprintln!("Skipping, certificate store has been disabled");
+                }
+            }
+
+            let mut label_store = Default::default();
+            let label = self.labels.get(&issuer).unwrap_or_else(|| {
+                label_store = cert_fpr.to_string();
+                &label_store
+            });
+
+            let level = sig.level();
+            match (level == 0, authenticated) {
+                (true,  true)  => {
+                    wprintln!(indent=prefix,
+                              "Authenticated signature made by {} ({:?})",
+                              label, signer_userid);
+                }
+                (false, true)  => {
+                    wprintln!(indent=prefix,
+                              "Authenticated level {} notarization \
+                               made by {} ({:?})",
+                              level, label, signer_userid);
+                }
+                (true,  false) => {
+                    wprintln!(indent=prefix,
+                              "Can't authenticate signature made by {} ({:?}): \
+                               the certificate can't be authenticated.",
+                              label, signer_userid);
+
+                    self.sq.hint(format_args!(
+                        "After checking that {} belongs to {:?}, \
+                         you can mark it as authenticated using:",
+                        cert_fpr, signer_userid))
+                        .sq().arg("pki").arg("link").arg("add")
+                        .arg("--cert").arg(cert_fpr)
+                        .arg_value("--userid", signer_userid)
+                        .done();
+                }
+                (false, false) => {
+                    wprintln!(indent=prefix,
+                              "Can't authenticate level {} notarization \
+                               made by {} ({:?}): the certificate \
+                               can't be authenticated.",
+                              level, label, signer_userid);
+
+                    self.sq.hint(format_args!(
+                        "After checking that {} belongs to {:?}, \
+                         you can mark it as authenticated using:",
+                        cert_fpr, signer_userid))
+                        .sq().arg("pki").arg("link").arg("add")
+                        .arg("--cert").arg(cert_fpr)
+                        .arg_value("--userid", signer_userid)
+                        .done();
+                }
+            };
+
+            if authenticated {
+                self.authenticated_signatures += 1;
+            } else {
+                self.unauthenticated_signatures += 1;
+            }
+
+            qprintln!("");
+        }
+    }
+}
+
+impl<'c, 'store, 'rstore> VerificationHelper for VHelper<'c, 'store, 'rstore>
+    where 'store: 'rstore
+{
+    fn get_certs(&mut self, ids: &[openpgp::KeyHandle]) -> Result<Vec<Cert>> {
+        let mut certs = BTreeMap::new();
+
+        for c in self.certs.take().unwrap() {
+            match certs.entry(c.fingerprint()) {
+                Entry::Vacant(e) => {
+                    e.insert(c);
+                },
+                Entry::Occupied(mut e) => {
+                    let merged = e.get().clone().merge_public(c)?;
+                    e.insert(merged);
+                },
+            }
+        }
+
+        // Get all keys.
+        let seen: HashSet<_> = certs.values()
+            .flat_map(|cert| {
+                cert.keys().map(|ka| ka.key().fingerprint().into())
+            }).collect();
+
+        // Explicitly provided keys are trusted.
+        self.trusted = seen;
+
+        // Look up the ids in the certificate store.
+
+        // Avoid initializing the certificate store if we don't actually
+        // need to.
+        if ! ids.is_empty() {
+            if let Ok(Some(cert_store)) = self.sq.cert_store() {
+                for id in ids.iter() {
+                    for c in cert_store.lookup_by_cert_or_subkey(id)
+                        .unwrap_or_default()
+                    {
+                        let c = c.to_cert()?.clone();
+                        match certs.entry(c.fingerprint()) {
+                            Entry::Vacant(e) => {
+                                e.insert(c);
+                            },
+                            Entry::Occupied(mut e) => {
+                                let merged = e.get().clone().merge_public(c)?;
+                                e.insert(merged);
+                            },
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(certs.into_values().collect())
+    }
+
+    fn check(&mut self, structure: MessageStructure) -> Result<()> {
+        make_qprintln!(self.quiet);
+        for layer in structure {
+            match layer {
+                MessageLayer::Compression { algo } =>
+                    qprintln!("Compressed using {}", algo),
+                MessageLayer::Encryption { sym_algo, aead_algo } => {
+                    self.sym_algo = Some(sym_algo);
+                    self.aead_algo = aead_algo;
+
+                    if let Some(aead_algo) = aead_algo {
+                        qprintln!("Encrypted and protected using {}/{}",
+                                  sym_algo, aead_algo);
+                    } else {
+                        qprintln!("Encrypted using {}", sym_algo);
+                    }
+                },
+                MessageLayer::SignatureGroup { ref results } =>
+                    self.print_sigs(results),
+            }
+        }
+
+        if self.authenticated_signatures >= self.signatures {
+            Ok(())
+        } else {
+            if ! self.quiet {
+                self.print_status();
+            }
+            Err(anyhow::anyhow!("Verification failed: could not \
+                                 authenticate any signatures"))
+        }
+    }
 }

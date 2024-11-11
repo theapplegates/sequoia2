@@ -189,7 +189,7 @@ fn update_subkey_binding<P>(sq: &Sq,
     Ok(sig)
 }
 
-pub fn lint(mut sq: Sq, args: Command) -> Result<()> {
+pub fn lint(sq: Sq, args: Command) -> Result<()> {
     // Number of certs that have issues.
     let mut certs_with_issues = 0;
     // Whether we were unable to fix at least one issue.
@@ -226,10 +226,6 @@ pub fn lint(mut sq: Sq, args: Command) -> Result<()> {
     let mut certs_with_a_sha1_protected_binding_sig = 0;
     let mut certs_with_signing_subkeys = 0;
     let mut certs_with_sha1_protected_backsig = 0;
-
-    if args.list_keys {
-        sq.quiet = true;
-    }
 
     let reference_time = sq.time;
 
@@ -268,10 +264,6 @@ pub fn lint(mut sq: Sq, args: Command) -> Result<()> {
                         if ! found_issue {
                             certs_with_issues += 1;
                             found_issue = true;
-                            if args.list_keys {
-                                println!("{}",
-                                         cert.fingerprint().to_hex());
-                            }
                         }
                         if ! sq.quiet {
                             wprintln!($($arg)*);

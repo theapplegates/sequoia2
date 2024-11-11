@@ -476,26 +476,6 @@ fn expired_certificates() {
 }
 
 #[test]
-fn list_keys() {
-    let sq = Sq::new();
-    sq.command()
-        .current_dir(&dir())
-        .args(&[
-            "cert", "lint",
-            "--time", FROZEN_TIME,
-            "--list-keys",
-            // 94F19D3CB5656E0BC3977C09A8AC5ACC2FB87104
-            "--file", "sha1-userid-pub.pgp",
-            // 55EF7181C288067AE189FF12F5A5CD01D8070917
-            "--file", "gnupg-rsa-normal-pub.pgp"
-        ])
-        .assert()
-        // If there are issues, the command fails.
-        .failure()
-        .stdout(predicate::eq("94F19D3CB5656E0BC3977C09A8AC5ACC2FB87104\n"));
-}
-
-#[test]
 fn signature() {
     let sq = Sq::new();
     sq.command()

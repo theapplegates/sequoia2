@@ -26,6 +26,7 @@
      decrypt`, and `sq download`, they are now the only certificates
      that are considered when verifying signatures.  If no signers are
      specified, the certificate store is consulted.
+   - The argument `sq cert lint --list-keys` has been removed.
 
 * Changes in 0.39.0
 ** Notable changes

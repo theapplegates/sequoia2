@@ -53,16 +53,6 @@ pub struct Command {
     #[arg(long)]
     pub export_secret_keys: bool,
 
-    /// If set, outputs a list of fingerprints, one per line, of
-    /// certificates that have issues.  This output is intended for
-    /// use by scripts.
-    ///
-    /// This option implies `--quiet`. If you also specify `--fix`,
-    /// errors will still be printed to stderr, and fixed certificates
-    /// will still be emitted to stdout.
-    #[arg(long)]
-    pub list_keys: bool,
-
     #[command(flatten)]
     pub certs: CertDesignators<FileCertUserIDEmailDomainGrepArgs,
                                NoPrefix,
@@ -106,16 +96,6 @@ const EXAMPLES: Actions = Actions {
 Gather statistics on the certificates in a keyring.",
             command: &[
                 "sq", "cert", "lint",
-                "--file", "certs.pgp",
-            ],
-        }),
-
-        Action::Example(Example {
-            comment: "\
-Get a list of certificates with issues.",
-            command: &[
-                "sq", "cert", "lint",
-                "--list-keys",
                 "--file", "certs.pgp",
             ],
         }),

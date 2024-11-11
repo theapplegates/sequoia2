@@ -109,7 +109,7 @@ pub struct Command {
     pub signatures: Option<usize>,
 
     #[command(flatten)]
-    pub signers: CertDesignators<CertFileArgs,
+    pub signers: CertDesignators<FileCertUserIDEmailDomainArgs,
                                  SignerPrefix,
                                  OptionalValue,
                                  ToVerifyDoc>,

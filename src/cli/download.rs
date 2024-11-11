@@ -70,7 +70,7 @@ inline.
     pub signature: Option<String>,
 
     #[command(flatten)]
-    pub signers: CertDesignators<CertFileArgs,
+    pub signers: CertDesignators<FileCertUserIDEmailDomainArgs,
                                  SignerPrefix,
                                  OptionalValue,
                                  ToVerifyDoc>,

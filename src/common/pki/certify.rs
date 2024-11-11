@@ -204,7 +204,8 @@ The certifier is the same as the certificate to certify."));
     let mut signer = sq.get_certification_key(certifier, None)?;
 
     let mut base
-        = SignatureBuilder::new(SignatureType::GenericCertification);
+        = SignatureBuilder::new(SignatureType::GenericCertification)
+        .set_signature_creation_time(sq.time)?;
 
     for domain in domain {
         if let Err(err) = UserIDQueryParams::is_domain(domain) {

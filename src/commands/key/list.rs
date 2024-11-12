@@ -304,7 +304,7 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
     let certs = if cmd.certs.is_empty() {
         None
     } else {
-        Some(sq.resolve_certs_or_fail(&cmd.certs, sequoia_wot::FULLY_TRUSTED)?
+        Some(sq.resolve_certs_or_fail(&cmd.certs, 0)?
              .into_iter()
              .map(|c| c.fingerprint())
              .collect::<BTreeSet<_>>())

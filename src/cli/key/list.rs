@@ -16,6 +16,20 @@ pub struct Command {
                                NoPrefix,
                                OptionalValue,
                                ListKeyDoc>,
+
+    #[clap(
+        value_name = "FINGERPRINT|KEYID|PATTERN",
+        help = "A pattern to filter the displayed certificates",
+        long_help = "\
+A pattern to filter the displayed certificates.
+
+If the pattern appears to be a fingerprint or key ID, it is treated as \
+if it were passed to `--cert`, and matches on the certificate's \
+fingerprint.  Otherwise, it is treated as if it were passed via \
+`--grep`, and matches on user IDs.
+",
+    )]
+    pub pattern: Option<String>,
 }
 
 const EXAMPLES: Actions = Actions {

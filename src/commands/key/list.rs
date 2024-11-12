@@ -23,6 +23,7 @@ use crate::Convert;
 use crate::Sq;
 use crate::Result;
 use crate::Time;
+use crate::cli::types::cert_designator;
 
 /// Keys may either be grouped into a certificate or be bare.
 ///
@@ -261,7 +262,7 @@ fn key_validity(sq: &Sq, cert: &Cert, key: Option<&Fingerprint>) -> Vec<String> 
     info
 }
 
-pub fn list(sq: Sq, cmd: cli::key::list::Command) -> Result<()> {
+pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
     // Start and connect to the keystore.
     let ks = if let Some(ks) = sq.key_store()? {
         ks
@@ -273,6 +274,32 @@ pub fn list(sq: Sq, cmd: cli::key::list::Command) -> Result<()> {
         return Ok(());
     };
     let mut ks = ks.lock().unwrap();
+
+    if let Some(pattern) = cmd.pattern {
+        let mut d = None;
+        if let Ok(kh) = pattern.parse::<KeyHandle>() {
+            if matches!(kh, KeyHandle::Fingerprint(Fingerprint::Invalid(_))) {
+                let hex = pattern.chars()
+                    .map(|c| {
+                        if c == ' ' { 0 } else { 1 }
+                    })
+                    .sum::<usize>();
+                eprintln!("{} hex characters", hex);
+
+                if hex >= 16 {
+                    wprintln!("Warning: {} looks like a fingerprint or key ID, \
+                               but its invalid.  Treating it as a text pattern.",
+                              pattern);
+                }
+            } else {
+                d = Some(cert_designator::CertDesignator::Cert(kh));
+            }
+        };
+
+        cmd.certs.push(d.unwrap_or_else(|| {
+            cert_designator::CertDesignator::Grep(pattern)
+        }));
+    }
 
     let certs = if cmd.certs.is_empty() {
         None

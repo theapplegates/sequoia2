@@ -27,6 +27,7 @@
      that are considered when verifying signatures.  If no signers are
      specified, the certificate store is consulted.
    - The argument `sq cert lint --list-keys` has been removed.
+   - `sq key list` now has a DWIM search parameter.
 
 * Changes in 0.39.0
 ** Notable changes

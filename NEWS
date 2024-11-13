@@ -51,6 +51,9 @@
      self-signed user IDs with the specified email address.
    - The new argument `sq sign --mode` can be used to create text
      signatures in addition to binary signatures.
+   - The argument `sq network wkd publish --create` has been split
+     into two arguments, `--create` and `--method`, avoiding an
+     ambiguity when parsing the arguments.
 
 * Changes in 0.39.0
 ** Notable changes

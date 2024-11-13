@@ -1255,7 +1255,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                   &fetch.display().to_string())
                 .context("failed to copy the remote WKD hierarchy \
                           to the local system");
-            if r.is_err() && c.create.is_none() {
+            if r.is_err() && ! c.create {
                 return r;
             }
 
@@ -1264,8 +1264,8 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             let direct_policy = fetch.join("policy");
             let advanced_policy = fetch.join(&c.domain).join("policy");
 
-            if c.create.is_some() && (direct_policy.exists()
-                                      || advanced_policy.exists())
+            if c.create && (direct_policy.exists()
+                            || advanced_policy.exists())
             {
                 return Err(anyhow::anyhow!(
                     "Cannot create WKD because {} already contains one",
@@ -1277,8 +1277,8 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             {
                 (true, false) => (Variant::Direct, Some(direct_policy)),
                 (false, true) => (Variant::Advanced, Some(advanced_policy)),
-                (false, false) => if let Some(m) = c.create {
-                    (m.into(), None)
+                (false, false) => if c.create {
+                    (c.method.unwrap_or_default().into(), None)
                 } else {
                     return Err(anyhow::anyhow!("No policy file found")
                                .context("Neither direct nor advanced \

@@ -194,12 +194,23 @@ to the `--domain` parameter that can be fully authenticated.",
 
     #[clap(
         long = "create",
-        value_name = "METHOD",
-        default_missing_value = "advanced",
-        num_args = 0..=1,
         help = "Create the WKD hierarchy if it does not exist yet",
     )]
-    pub create: Option<Method>,
+    pub create: bool,
+
+    #[clap(
+        long = "method",
+        value_name = "METHOD",
+        requires = "create",
+        help = "Select kind of WKD hierarchy to be created",
+        long_help = "Select kind of WKD hierarchy to be created
+
+The advanced method, which is the default and should be preferred, \
+is hosted on a separate domain (e.g. openpgpkey.example.org).
+
+The direct method is hosted on the same domain (e.g. example.org).",
+    )]
+    pub method: Option<Method>,
 
     #[clap(
         long = "rsync",
@@ -230,9 +241,13 @@ to the `--domain` parameter that can be fully authenticated.",
     pub destination: String,
 }
 
-#[derive(clap::ValueEnum, Debug, Clone)]
+#[derive(clap::ValueEnum, Debug, Clone, Copy, Default)]
 pub enum Method {
+    /// Create a WKD using the advanced method.
+    #[default]
     Advanced,
+
+    /// Create a WKD using the direct method.
     Direct,
 }
 

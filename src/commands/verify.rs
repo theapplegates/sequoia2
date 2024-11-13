@@ -75,6 +75,15 @@ pub fn verify(mut sq: Sq,
     let helper = if let Some(dsig) = detached {
         let mut v = DetachedVerifierBuilder::from_reader(dsig)?
             .with_policy(sq.policy, Some(sq.time), helper)?;
+
+        // XXX: This is inefficient, as input was originally a
+        // buffered reader, then we "cast it down" to a io::Reader,
+        // and this will be wrapped into a buffered_reader::Generic by
+        // sequoia-openpgp, incurring an extra copy of the data.  If
+        // it weren't for that, we could verify mmap'ed files,
+        // exceeding the speed of sha256sum(1).
+        //
+        // See https://gitlab.com/sequoia-pgp/sequoia/-/issues/1135
         v.verify_reader(input)?;
         v.into_helper()
     } else {

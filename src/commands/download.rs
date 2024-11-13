@@ -66,6 +66,26 @@ impl SomeFile {
             SomeFile::File((_, p)) => p.as_path(),
         }
     }
+
+    /// Writes a copy of the file to `new_path`.
+    ///
+    /// We optimize the case where this file is a temporary file, in
+    /// which case we simply rename it.
+    fn persist<P: AsRef<Path>>(self, new_path: P) -> Result<()> {
+        match self {
+            SomeFile::Temp(t) => {
+                t.persist(new_path)?;
+            },
+
+            SomeFile::File((_, p)) => {
+                // This was sourced from a local file, we cannot
+                // rename that, but we can copy it.
+                std::fs::copy(p, new_path)?;
+            },
+        }
+
+        Ok(())
+    }
 }
 
 // Spawn a task to download the `$url` to `$output` using `$http_client`.
@@ -529,8 +549,13 @@ pub fn dispatch(sq: Sq, c: download::Command)
     if signature_file.is_some() {
         // Verify doesn't copy the data when checking detached
         // signatures.  Do it now.
-        data_file.as_mut().rewind()?;
-        std::io::copy(&mut data_file.as_ref(), output_file)?;
+        if let Some(p) = output.path() {
+            data_file.persist(p)?;
+        } else {
+            // Copy the data to stdout.
+            data_file.as_mut().rewind()?;
+            std::io::copy(&mut data_file.as_ref(), output_file)?;
+        }
     }
 
     result

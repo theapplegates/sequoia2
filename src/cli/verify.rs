@@ -109,6 +109,7 @@ pub struct Command {
         help = FileOrStdout::HELP_OPTIONAL,
         long,
         value_name = FileOrStdout::VALUE_NAME,
+        conflicts_with = "detached",
     )]
     pub output: FileOrStdout,
 

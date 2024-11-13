@@ -13,6 +13,8 @@ use crate::cli::types::FileOrStdout;
 
 use crate::cli::examples::*;
 use crate::cli::types::cert_designator::*;
+use crate::cli::types::UserIDDesignators;
+use crate::cli::types::userid_designator;
 
 #[derive(Debug, Subcommand)]
 #[clap(
@@ -99,29 +101,16 @@ pub struct ListCommand {
                               OneValue,
                               ApprovalsListDoc>,
 
+    #[command(flatten)]
+    pub userids: UserIDDesignators<
+        userid_designator::ExistingUserIDEmailNameArgs,
+        userid_designator::OptionalValue>,
+
     #[clap(
         long = "pending",
         help = "List unapproved certifications",
     )]
     pub pending: bool,
-
-    #[clap(
-        long = "name",
-        help = "List certifications on this name user ID",
-    )]
-    pub names: Vec<String>,
-
-    #[clap(
-        long = "email",
-        help = "List certifications on this email address user ID",
-    )]
-    pub emails: Vec<String>,
-
-    #[clap(
-        long = "userid",
-        help = "List certifications on this user ID",
-    )]
-    pub userids: Vec<String>,
 }
 
 /// Documentation for the cert designators for the key approvals list

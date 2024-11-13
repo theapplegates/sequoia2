@@ -25,15 +25,23 @@ pub fn dispatch(sq: Sq, command: approvals::Command)
 }
 
 fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
-    let cert =
-        sq.resolve_cert(&cmd.cert, sequoia_wot::FULLY_TRUSTED)?.0;
-
-    let vcert = cert.with_policy(sq.policy, sq.time)?;
     let store = sq.cert_store_or_else()?;
 
-    let uid_filter = make_userid_filter(
-        &cmd.names, &cmd.emails, &cmd.userids)?;
-    for uid in vcert.userids().filter(uid_filter) {
+    let cert =
+        sq.resolve_cert(&cmd.cert, sequoia_wot::FULLY_TRUSTED)?.0;
+    let vcert = cert.with_policy(sq.policy, sq.time)?;
+    let userids = cmd.userids.resolve(&vcert)?;
+
+    // resolve returns ResolvedUserIDs, which contain UserIDs, but we
+    // need ValidUserIDAmalgamations.
+    let all = userids.is_empty();
+    let mut designated_userids = BTreeSet::from_iter(
+        userids.into_iter().map(|u| u.userid().clone()));
+    for uid in vcert.userids() {
+        if ! all && ! designated_userids.remove(uid.userid()) {
+            continue;
+        }
+
         wprintln!(initial_indent = " - ", "{}",
                   String::from_utf8_lossy(uid.value()));
 
@@ -89,6 +97,7 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
                       });
         }
     }
+    assert!(designated_userids.is_empty());
 
     Ok(())
 }

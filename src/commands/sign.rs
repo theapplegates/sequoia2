@@ -18,12 +18,10 @@ use openpgp::serialize::Serialize;
 use openpgp::serialize::stream::{
     Message, Armorer, Signer, LiteralWriter,
 };
-use openpgp::types::KeyFlags;
 use openpgp::types::SignatureType;
 
 
 use crate::Sq;
-use crate::load_certs;
 use crate::parse_notations;
 
 use crate::cli;
@@ -47,14 +45,12 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
         return Err(anyhow::anyhow!("Notarizing messages is not supported."));
     }
 
-    let mut secrets =
-        load_certs(command.secret_key_file.iter())?;
-
-    for kh in command.signer_key {
-        let cert = sq.lookup_one(
-            kh, Some(KeyFlags::empty().set_signing()), true)?;
-        secrets.push(cert);
-    };
+    let signers =
+        sq.resolve_certs_or_fail(&command.signers, sequoia_wot::FULLY_TRUSTED)?;
+    let signers = sq.get_signing_keys(&signers, None)?;
+    if signers.is_empty() && command.merge.is_none() {
+        return Err(anyhow::anyhow!("No signing keys found"));
+    }
 
     let notations = parse_notations(command.notation)?;
 
@@ -67,11 +63,6 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
         let data: FileOrStdin = merge.into();
         let mut input2 = data.open()?;
         return merge_signatures(&mut input, &mut input2, output);
-    }
-
-    let signers = sq.get_signing_keys(&secrets, None)?;
-    if signers.is_empty() {
-        return Err(anyhow::anyhow!("No signing keys found"));
     }
 
     if command.cleartext {

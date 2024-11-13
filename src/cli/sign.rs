@@ -5,7 +5,6 @@ use std::path::PathBuf;
 use clap::{ArgGroup, Parser, ValueEnum};
 
 use sequoia_openpgp::{
-    KeyHandle,
     types::SignatureType,
 };
 
@@ -15,6 +14,7 @@ use super::types::FileOrStdout;
 
 use crate::cli::examples;
 use examples::*;
+use crate::cli::types::cert_designator::*;
 
 const SIGN_EXAMPLES: Actions = Actions {
     actions: &[
@@ -148,24 +148,24 @@ may change line endings.  In doubt, create binary signatures.",
             "detached",
             "cleartext",
             "notarize",
-            "secret_key_file",
+            "signer",
+            "signer-file",
+            "signer-email",
+            "signer-userid",
         ],
         help = "Merge signatures from the input and SIGNED-MESSAGE",
     )]
     pub merge: Option<PathBuf>,
-    #[clap(
-        long = "signer-file",
-        value_name = "KEY_FILE",
-        help = "Sign the message using the key in KEY_FILE",
-    )]
-    pub secret_key_file: Vec<PathBuf>,
 
-    #[clap(
-        long = "signer",
-        value_name = "KEYID|FINGERPRINT",
-        help = "Sign the message using the specified key on the key store",
-    )]
-    pub signer_key: Vec<KeyHandle>,
+    #[command(flatten)]
+    pub signers: CertDesignators<CertUserIDEmailFileArgs,
+                                 SignerPrefix,
+                                 // XXX: should be NoOptions, but we
+                                 // cannot express that one cert
+                                 // designator must be given unless
+                                 // merge is given.
+                                 OptionalValue,
+                                 SignerDoc>,
 
     #[clap(
         long,
@@ -185,6 +185,24 @@ may change line endings.  In doubt, create binary signatures.",
     // there may be multiple notations? Like something like Vec<(String, String)>.
     // TODO: Also, no need for the Option
     pub notation: Vec<String>,
+}
+
+/// Documentation for signer arguments.
+pub struct SignerDoc {}
+impl AdditionalDocs for SignerDoc {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        match arg {
+            "file" =>
+                "Create the signature using the key read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Create the signature using the key")
+                    .into()
+            },
+        }
+    }
 }
 
 /// Signature mode, either binary or text.

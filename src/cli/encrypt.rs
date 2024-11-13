@@ -1,11 +1,6 @@
 //! Command-line parser for `sq encrypt`.
 
-use std::path::PathBuf;
-
 use clap::{ValueEnum, Parser};
-
-use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
 
 use super::types::ClapData;
 use super::types::EncryptPurpose;
@@ -14,8 +9,7 @@ use super::types::FileOrStdin;
 use super::types::FileOrStdout;
 
 use crate::cli::types::CertDesignators;
-use crate::cli::types::cert_designator::CertUserIDEmailFileWithPasswordArgs;
-use crate::cli::types::cert_designator::RecipientPrefix;
+use crate::cli::types::cert_designator::*;
 
 use crate::cli::examples;
 use examples::*;
@@ -130,18 +124,11 @@ pub struct Command {
     )]
     pub set_metadata_time: MetadataTime,
 
-    #[clap(
-        long = "signer-file",
-        value_name = "KEY_FILE",
-        help = "Sign the message using the key in KEY_FILE",
-    )]
-    pub signer_key_file: Vec<PathBuf>,
-    #[clap(
-        long = "signer",
-        value_name = "KEYID|FINGERPRINT",
-        help = "Sign the message using the specified key on the key store",
-    )]
-    pub signer_key: Vec<KeyHandle>,
+    #[command(flatten)]
+    pub signers: CertDesignators<CertUserIDEmailFileArgs,
+                                 SignerPrefix,
+                                 OptionalValue,
+                                 SignerDoc>,
 
     #[clap(
         long = "encrypt-for",
@@ -176,6 +163,24 @@ pub struct Command {
             to using the one that expired last",
     )]
     pub use_expired_subkey: bool,
+}
+
+/// Documentation for signer arguments.
+pub struct SignerDoc {}
+impl AdditionalDocs for SignerDoc {
+    fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        match arg {
+            "file" =>
+                "Sign the message using the key read from PATH"
+                .into(),
+            _ => {
+                debug_assert!(help.starts_with("Use certificates"));
+                help.replace("Use certificates",
+                             "Sign the message using the key")
+                    .into()
+            },
+        }
+    }
 }
 
 #[derive(ValueEnum, Debug, Clone)]

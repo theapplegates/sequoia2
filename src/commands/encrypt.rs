@@ -10,9 +10,6 @@ use sequoia_openpgp as openpgp;
 use openpgp::armor;
 use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::crypto;
-use openpgp::crypto::Password;
-use openpgp::KeyHandle;
-use openpgp::KeyID;
 use openpgp::policy::Policy;
 use openpgp::serialize::stream::Compressor;
 use openpgp::serialize::stream::Encryptor2 as Encryptor;
@@ -25,8 +22,6 @@ use openpgp::serialize::stream::padding::Padder;
 use openpgp::types::CompressionAlgorithm;
 use openpgp::types::KeyFlags;
 
-use sequoia_keystore::Protection;
-
 use crate::cli;
 use crate::cli::types::EncryptPurpose;
 use crate::cli::types::FileOrStdin;
@@ -34,7 +29,6 @@ use crate::cli::types::MetadataTime;
 use crate::Sq;
 use crate::Result;
 use crate::common::password;
-use crate::load_certs;
 use crate::print_error_chain;
 
 use crate::commands::CompressionMode;
@@ -58,9 +52,10 @@ pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
         armor::Kind::Message,
     )?;
 
-    let additional_secrets =
-        load_certs(command.signer_key_file.iter())?;
-    let signer_keys = &command.signer_key[..];
+    let signers =
+        sq.resolve_certs_or_fail(&command.signers,
+                                 sequoia_wot::FULLY_TRUSTED)?;
+    let signers = sq.get_signing_keys(&signers, None)?;
 
     encrypt(
         &sq,
@@ -70,8 +65,7 @@ pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
         command.recipients.with_passwords(),
         command.recipients.with_password_files(),
         &recipients,
-        additional_secrets,
-        signer_keys,
+        signers,
         command.mode,
         command.compression,
         Some(sq.time),
@@ -91,8 +85,7 @@ pub fn encrypt<'a, 'b: 'a>(
     npasswords: usize,
     password_files: &[PathBuf],
     recipients: &'b [openpgp::Cert],
-    signers: Vec<openpgp::Cert>,
-    signer_keys: &[KeyHandle],
+    mut signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
     mode: EncryptPurpose,
     compression: CompressionMode,
     time: Option<SystemTime>,
@@ -131,88 +124,6 @@ pub fn encrypt<'a, 'b: 'a>(
     }
 
     let mode = KeyFlags::from(mode);
-
-    let mut signers = sq.get_signing_keys(&signers, None)?;
-
-    let mut signer_keys = if signer_keys.is_empty() {
-        Vec::new()
-    } else {
-        let mut ks = sq.key_store_or_else()?.lock().unwrap();
-
-        signer_keys.into_iter()
-            .map(|kh| {
-                let keys = ks.find_key(kh.clone())?;
-
-                match keys.len() {
-                    0 => return Err(anyhow::anyhow!(
-                        "{} is not present on keystore", kh)),
-                    1 => (),
-                    n => {
-                        wprintln!("Warning: {} is present on multiple \
-                                   ({}) devices",
-                                  kh, n);
-                    }
-                }
-                let mut key = keys.into_iter().next().expect("checked for one");
-
-                match key.locked() {
-                    Ok(Protection::Password(msg)) => {
-                        let fpr = key.fingerprint();
-                        let cert = sq.lookup_one(
-                            &KeyHandle::from(&fpr), None, true);
-                        let display = match cert {
-                            Ok(cert) => {
-                                format!(" ({})", sq.best_userid(&cert, true))
-                            }
-                            Err(_) => {
-                                "".to_string()
-                            }
-                        };
-                        let keyid = KeyID::from(&fpr);
-
-                        if let Some(msg) = msg {
-                            wprintln!("{}", msg);
-                        }
-                        loop {
-                            let password = Password::from(rpassword::prompt_password(
-                                format!("Enter password to unlock {}{}: ",
-                                        keyid, display))?);
-                            match key.unlock(password) {
-                                Ok(()) => break,
-                                Err(err) => {
-                                    wprintln!("Unlocking {}: {}.", keyid, err);
-                                }
-                            }
-                        }
-                    }
-                    Ok(Protection::Unlocked) => {
-                        // Already unlocked, nothing to do.
-                    }
-                    Ok(Protection::UnknownProtection(msg))
-                        | Ok(Protection::ExternalPassword(msg))
-                        | Ok(Protection::ExternalTouch(msg))
-                        | Ok(Protection::ExternalOther(msg)) =>
-                    {
-                        // Locked.
-                        wprintln!("Key is locked{}",
-                                  if let Some(msg) = msg {
-                                      format!(": {}", msg)
-                                  } else {
-                                      "".into()
-                                  });
-                    }
-                    Err(err) => {
-                        // Failed to get the key's locked status.  Just print
-                        // a warning now.  We'll (probably) fail more later.
-                        wprintln!("Getting {}'s status: {}",
-                                  key.keyid(), err);
-                    }
-                }
-
-                Ok(key)
-            })
-        .collect::<Result<Vec<_>>>()?
-    };
 
     // Build a vector of recipients to hand to Encryptor.
     let mut recipient_subkeys: Vec<Recipient> = Vec::new();
@@ -277,19 +188,13 @@ pub fn encrypt<'a, 'b: 'a>(
     }
 
     // Optionally sign message.
-    if ! signers.is_empty() || ! signer_keys.is_empty() {
-        let mut signer = if ! signers.is_empty() {
-            Signer::new(sink, signers.pop().unwrap())
-        } else {
-            Signer::new(sink, signer_keys.pop().unwrap())
-        };
+    if let Some(first) = signers.pop() {
+        let mut signer = Signer::new(sink, first);
+
         if let Some(time) = time {
             signer = signer.creation_time(time);
         }
         for s in signers {
-            signer = signer.add_signer(s);
-        }
-        for s in signer_keys {
             signer = signer.add_signer(s);
         }
         for r in recipients.iter() {

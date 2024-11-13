@@ -291,6 +291,7 @@ fn real_main() -> Result<()> {
         password_cache.push(password.into());
     };
 
+    #[allow(deprecated)]
     let sq = Sq {
         verbose: c.verbose,
         quiet: c.quiet,

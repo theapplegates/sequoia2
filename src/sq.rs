@@ -106,6 +106,7 @@ pub struct Sq<'store, 'rstore>
     pub policy_as_of: SystemTime,
     pub home: sequoia_directories::Home,
     // --no-cert-store
+    #[deprecated]
     pub no_rw_cert_store: bool,
     pub cert_store_path: Option<PathBuf>,
     pub keyrings: Vec<PathBuf>,
@@ -123,6 +124,7 @@ pub struct Sq<'store, 'rstore>
     pub trust_root_local: OnceCell<Option<Fingerprint>>,
 
     // The key store.
+    #[deprecated]
     pub no_key_store: bool,
     pub key_store_path: Option<PathBuf>,
     pub key_store: OnceCell<Mutex<keystore::Keystore>>,
@@ -138,9 +140,21 @@ pub struct Sq<'store, 'rstore>
 }
 
 impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
+    /// Returns whether the cert store is disabled.
+    fn no_rw_cert_store(&self) -> bool {
+        #[allow(deprecated)]
+        self.no_rw_cert_store
+    }
+
+    /// Returns whether the key store is disabled.
+    fn no_key_store(&self) -> bool {
+        #[allow(deprecated)]
+        self.no_key_store
+    }
+
     /// Returns the cert store's base directory, if it is enabled.
     pub fn cert_store_base(&self) -> Option<PathBuf> {
-        if self.no_rw_cert_store {
+        if self.no_rw_cert_store() {
             None
         } else if let Some(path) = self.cert_store_path.as_ref() {
             Some(path.clone())
@@ -156,7 +170,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// If the cert store is disabled, returns `Ok(None)`.  If it is not yet
     /// open, opens it.
     pub fn cert_store(&self) -> Result<Option<&WotStore<'store, 'rstore>>> {
-        if self.no_rw_cert_store
+        if self.no_rw_cert_store()
             && self.keyrings.is_empty()
         {
             // The cert store is disabled.
@@ -204,7 +218,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         };
 
         // We need to initialize the cert store.
-        let mut cert_store = if ! self.no_rw_cert_store {
+        let mut cert_store = if ! self.no_rw_cert_store() {
             // Open the cert-d.
 
             let path = self.cert_store_base()
@@ -287,7 +301,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     pub fn cert_store_mut(&mut self)
         -> Result<Option<&mut WotStore<'store, 'rstore>>>
     {
-        if self.no_rw_cert_store {
+        if self.no_rw_cert_store() {
             return Err(anyhow::anyhow!(
                 "Operation requires a certificate store, \
                  but the certificate store is disabled"));
@@ -347,7 +361,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     ///
     /// If the key store is disabled, returns `Ok(None)`.
     pub fn key_store_path(&self) -> Result<Option<PathBuf>> {
-        if self.no_key_store {
+        if self.no_key_store() {
             Ok(None)
         } else if let Some(dir) = self.key_store_path.as_ref() {
             Ok(Some(dir.clone()))
@@ -364,7 +378,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             "Operation requires a key store, \
              but the key store is disabled";
 
-        if self.no_key_store {
+        if self.no_key_store() {
             Err(anyhow::anyhow!(NO_KEY_STORE_ERROR))
         } else {
             self.key_store_path()?
@@ -377,7 +391,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// If the key store is disabled, returns `Ok(None)`.  If it is not yet
     /// open, opens it.
     pub fn key_store(&self) -> Result<Option<&Mutex<keystore::Keystore>>> {
-        if self.no_key_store {
+        if self.no_key_store() {
             return Ok(None);
         }
 

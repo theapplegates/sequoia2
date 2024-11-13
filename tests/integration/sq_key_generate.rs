@@ -4,6 +4,8 @@ use sequoia_openpgp as openpgp;
 use openpgp::Result;
 
 use super::common;
+use super::common::UserIDArg;
+use super::common::NO_USERIDS;
 
 #[test]
 fn sq_key_generate_creation_time() -> Result<()>
@@ -17,7 +19,7 @@ fn sq_key_generate_creation_time() -> Result<()>
     let (result, _, _) = sq.key_generate(&[
         "--time", iso8601,
         "--expiration", "never",
-    ], &[]);
+    ], NO_USERIDS);
     let vc = result.with_policy(common::STANDARD_POLICY, None)?;
 
     assert_eq!(vc.primary_key().creation_time(),
@@ -30,11 +32,13 @@ fn sq_key_generate_creation_time() -> Result<()>
 #[test]
 fn sq_key_generate_name_email() -> Result<()> {
     let sq = common::Sq::new();
-    let (cert, _, _) = sq.key_generate(&[
-        "--name", "Joan Clarke",
-        "--name", "Joan Clarke Murray",
-        "--email", "joan@hut8.bletchley.park",
-    ], &[]);
+    let (cert, _, _) = sq.key_generate(
+        &[],
+        &[
+            UserIDArg::Name("Joan Clarke"),
+            UserIDArg::Name("Joan Clarke Murray"),
+            UserIDArg::Email("joan@hut8.bletchley.park"),
+        ]);
 
     assert_eq!(cert.userids().count(), 3);
     assert!(cert.userids().any(|u| u.value() == b"Joan Clarke"));
@@ -55,7 +59,7 @@ fn sq_key_generate_with_password() -> Result<()> {
 
     let (cert, _, _) = sq.key_generate(&[
         "--new-password-file", &path.display().to_string(),
-    ], &[]);
+    ], NO_USERIDS);
 
     assert!(cert.is_tsk());
 

@@ -211,7 +211,7 @@ fn sq_verify_designated_signers() -> Result<()> {
     sq.cert_import(artifact("examples/juliet.pgp"));
     sq.pki_link_add(&["--all"],
                     "7A58B15E3B9459483D9FFA8D40E299AC5F2B0872".parse()?,
-                    &[]);
+                    NO_USERIDS);
     assert!(sq.verify_maybe(
         &[],
         Verify::Message,

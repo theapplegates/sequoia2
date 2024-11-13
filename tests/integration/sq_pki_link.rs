@@ -9,9 +9,10 @@ use openpgp::KeyHandle;
 use openpgp::Result;
 use openpgp::Cert;
 
-use super::common::artifact;
-use super::common::Sq;
 use super::common::FileOrKeyHandle;
+use super::common::NO_USERIDS;
+use super::common::Sq;
+use super::common::artifact;
 
 
 // We are going to replace certifications, and we want to make sure
@@ -494,12 +495,12 @@ fn sq_pki_link_update_detection() -> Result<()> {
     // Make Alice a CA.
     sq.pki_link_authorize(&["--time", &tick(), "--unconstrained"],
                           alice.key_handle(),
-                          &[]);
+                          NO_USERIDS);
     let bytes = compare(bytes, &alice_cert_pgp, false);
 
     sq.pki_link_authorize(&["--time", &tick(), "--unconstrained", "--all"],
                           alice.key_handle(),
-                          &[]);
+                          NO_USERIDS);
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
     // Make her a partially trusted CA.

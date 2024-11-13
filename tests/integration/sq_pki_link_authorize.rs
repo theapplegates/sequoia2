@@ -1,3 +1,4 @@
+use super::common::NO_USERIDS;
 use super::common::Sq;
 
 #[test]
@@ -452,7 +453,7 @@ fn retract_all() {
     // Retract all authorizations.  It should no longer be considered
     // a trusted introducer.
     sq.tick(1);
-    sq.pki_link_retract(&[], ca.key_handle(), &[]);
+    sq.pki_link_retract(&[], ca.key_handle(), NO_USERIDS);
     check(&sq, false);
 }
 
@@ -525,7 +526,7 @@ fn sq_pki_link_all_revoked() {
     // That means the revoked user ID should be skipped.
     sq.tick(1);
     sq.pki_link_authorize(&["--unconstrained"],
-                          ca.key_handle(), &[]);
+                          ca.key_handle(), NO_USERIDS);
 
     println!("CA: authorized, and unconstrained");
     check(&sq, true);

@@ -1,3 +1,4 @@
+use super::common::NO_USERIDS;
 use super::common::Sq;
 
 #[test]
@@ -90,7 +91,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     sq.tick(1);
     sq.pki_vouch_authorize(&["--unconstrained"],
                            otto.key_handle(), ca.key_handle(),
-                           &[],
+                           NO_USERIDS,
                            certification.as_path());
     sq.cert_import(certification);
 
@@ -106,7 +107,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     sq.tick(1);
     sq.pki_vouch_authorize(&["--regex", "example"],
                            otto.key_handle(), ca.key_handle(),
-                           &[],
+                           NO_USERIDS,
                            certification.as_path());
     sq.cert_import(certification);
 
@@ -122,7 +123,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     sq.tick(1);
     sq.pki_vouch_authorize(&["--domain", "example.org"],
                            otto.key_handle(), ca.key_handle(),
-                           &[],
+                           NO_USERIDS,
                            certification.as_path());
     sq.cert_import(certification);
 
@@ -138,7 +139,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     sq.tick(1);
     sq.pki_vouch_authorize(&["--regex", "other"],
                            otto.key_handle(), ca.key_handle(),
-                           &[],
+                           NO_USERIDS,
                            certification.as_path());
     sq.cert_import(certification);
 
@@ -154,7 +155,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     sq.tick(1);
     sq.pki_vouch_authorize(&["--regex", "bob"],
                            otto.key_handle(), ca.key_handle(),
-                           &[],
+                           NO_USERIDS,
                            certification.as_path());
     sq.cert_import(certification);
 
@@ -170,7 +171,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     sq.tick(1);
     sq.pki_vouch_authorize(&["--regex", "bob", "--regex", "alice"],
                            otto.key_handle(), ca.key_handle(),
-                           &[],
+                           NO_USERIDS,
                            certification.as_path());
     sq.cert_import(certification);
 
@@ -188,7 +189,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     sq.pki_vouch_authorize(
         &["--domain", "example.org", "--domain", "other.org"],
         otto.key_handle(), ca.key_handle(),
-        &[],
+        NO_USERIDS,
         certification.as_path());
     sq.cert_import(certification);
 
@@ -206,7 +207,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     sq.pki_vouch_authorize(
         &["--domain", "other.org", "--regex", "alice"],
         otto.key_handle(), ca.key_handle(),
-        &[],
+        NO_USERIDS,
         certification.as_path());
     sq.cert_import(certification);
 
@@ -223,7 +224,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     sq.tick(1);
     sq.pki_vouch_authorize(&["--regex", "zoo"],
                            otto.key_handle(), ca.key_handle(),
-                           &[],
+                           NO_USERIDS,
                            certification.as_path());
     sq.cert_import(certification);
 
@@ -239,7 +240,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     sq.tick(1);
     sq.pki_vouch_authorize(&["--domain", "example"],
                            otto.key_handle(), ca.key_handle(),
-                           &[],
+                           NO_USERIDS,
                            certification.as_path());
     sq.cert_import(certification);
 
@@ -327,7 +328,7 @@ fn sq_pki_vouch_authorize_all_revoked() {
     sq.tick(1);
     sq.pki_vouch_authorize(&["--unconstrained"],
                            otto.key_handle(), ca.key_handle(),
-                           &[],
+                           NO_USERIDS,
                            certification.as_path());
     sq.cert_import(certification);
 

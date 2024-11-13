@@ -10,9 +10,11 @@ use openpgp::types::SignatureType;
 use openpgp::Cert;
 use openpgp::Result;
 
-use super::common::compare_notations;
-use super::common::Sq;
+use super::common::NO_USERIDS;
 use super::common::STANDARD_POLICY;
+use super::common::Sq;
+use super::common::UserIDArg;
+use super::common::compare_notations;
 use super::common::time_as_string;
 
 #[test]
@@ -89,7 +91,7 @@ fn sq_key_subkey_add_with_password() -> Result<()> {
         "--cannot-authenticate",
         "--cannot-encrypt",
         "--new-password-file", &path2.display().to_string(),
-    ], &[]);
+    ], NO_USERIDS);
 
     assert!(cert.is_tsk());
     assert_eq!(cert.keys().subkeys().count(), 0);
@@ -353,7 +355,7 @@ fn sq_key_subkey_revoke_multiple() -> Result<()> {
     let sq = Sq::new();
 
     let (cert, cert_path, _rev_path)
-        = sq.key_generate(&["--email", "alice@example.org"], &[]);
+        = sq.key_generate(&[], &[UserIDArg::Email("alice@example.org")]);
     assert!(cert.keys().subkeys().count() > 0);
     sq.key_import(cert_path);
 

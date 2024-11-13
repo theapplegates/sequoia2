@@ -227,6 +227,71 @@ impl FileOrBytes {
     }
 }
 
+/// An enum for user ID arguments.
+#[derive(Debug, Clone)]
+pub enum UserIDArg<'a> {
+    UserID(&'a str),
+    Email(&'a str),
+    Name(&'a str),
+    AddUserID(&'a str),
+    AddEmail(&'a str),
+}
+
+impl<'a> From<&'a str> for UserIDArg<'a> {
+    fn from(userid: &'a str) -> Self {
+        UserIDArg::UserID(userid)
+    }
+}
+
+impl<'a> From<&'a &'a str> for UserIDArg<'a> {
+    fn from(userid: &'a &'a str) -> Self {
+        UserIDArg::UserID(userid)
+    }
+}
+
+impl<'a> From<&'a String> for UserIDArg<'a> {
+    fn from(userid: &'a String) -> Self {
+        UserIDArg::UserID(&userid)
+    }
+}
+
+impl UserIDArg<'_> {
+    /// Return the raw string.
+    fn raw(&self) -> &str {
+        match self {
+            UserIDArg::UserID(s)
+                | UserIDArg::Email(s)
+                | UserIDArg::Name(s)
+                | UserIDArg::AddUserID(s)
+                | UserIDArg::AddEmail(s) =>
+            {
+                s
+            }
+        }
+    }
+
+    /// Add the argument to a `Command`.
+    fn as_arg(&self, cmd: &mut Command) {
+        match self {
+            UserIDArg::UserID(userid) =>
+                cmd.arg("--userid").arg(userid),
+            UserIDArg::Email(email) =>
+                cmd.arg("--email").arg(email),
+            UserIDArg::Name(name) =>
+                cmd.arg("--name").arg(name),
+            UserIDArg::AddUserID(userid) =>
+                cmd.arg("--add-userid").arg(userid),
+            UserIDArg::AddEmail(email) =>
+                cmd.arg("--add-email").arg(email),
+        };
+    }
+}
+
+// When calling a function like `Sq::key_generate` that has an `&[U]
+// where U: Into<UserIDArg` parameter, we can't pass `&[]`, because
+// rust can't infer a type for `U`.  Instead, we can use this.
+pub const NO_USERIDS: &[UserIDArg] = &[];
+
 pub struct Sq {
     base: TempDir,
     // Whether to preserve the directory on exit.  Normally we clean
@@ -658,11 +723,17 @@ impl Sq {
     ///
     /// Returns the certificate, the certificate's filename, and the
     /// revocation certificate's filename.
-    pub fn key_generate(&self,
-                        extra_args: &[&str],
-                        userids: &[&str])
+    pub fn key_generate<'a, U>(&self,
+                               extra_args: &[&str],
+                               userids: &[U])
         -> (Cert, PathBuf, PathBuf)
+    where U: Into<UserIDArg<'a>> + Clone
     {
+        let userids: Vec<UserIDArg> = userids.iter()
+            .cloned()
+            .map(|u| u.into())
+            .collect();
+
         let mut cmd = self.command();
         cmd.args([ "key", "generate" ]);
 
@@ -680,17 +751,17 @@ impl Sq {
         if ! any_userids {
             cmd.arg("--no-userids");
         } else {
-            for userid in userids {
-                cmd.arg("--userid").arg(userid);
+            for userid in userids.iter() {
+                userid.as_arg(&mut cmd);
             }
         }
 
         let cert_filename = self.scratch_file(
-            userids.get(0).map(|u| format!("{}-cert", u)).as_deref());
+            userids.get(0).map(|u| format!("{}-cert", u.raw())).as_deref());
         cmd.arg("--output").arg(&cert_filename);
 
         let rev_filename = self.scratch_file(
-            userids.get(0).map(|u| format!("{}-rev", u)).as_deref());
+            userids.get(0).map(|u| format!("{}-rev", u.raw())).as_deref());
         cmd.arg("--rev-cert").arg(&rev_filename);
 
         let output = self.run(cmd, Some(true));
@@ -1284,7 +1355,16 @@ impl Sq {
     }
 
     /// Adds user IDs to the given key.
-    pub fn key_userid_add(&self, key: Cert, args: &[&str]) -> Result<Cert> {
+    pub fn key_userid_add<'a, U>(&self, args: &[&str],
+                                 key: Cert, userids: &[U])
+        -> Result<Cert>
+        where U: Into<UserIDArg<'a>> + Clone
+    {
+        let userids = userids.iter()
+            .cloned()
+            .map(|u| u.into())
+            .collect::<Vec<_>>();
+
         let mut cmd = self.command();
         cmd.args(["key", "userid", "add"]);
         for arg in args {
@@ -1294,6 +1374,11 @@ impl Sq {
         let in_filename = self.scratch_file(None);
         key.as_tsk().serialize(&mut File::create(&in_filename)?)?;
         cmd.arg("--cert-file").arg(&in_filename);
+
+        for userid in userids.iter() {
+            userid.as_arg(&mut cmd);
+        }
+
         let out_filename = self.scratch_file(None);
         cmd.arg("--output").arg(&out_filename);
 
@@ -1305,12 +1390,15 @@ impl Sq {
     }
 
     /// Revokes a user ID.
-    pub fn key_userid_revoke_maybe<'a, C, O>(&self, args: &[&str], cert: C, userid: &str,
-                                             reason: &str, message: &str,
-                                             output_file: O)
+    pub fn key_userid_revoke_maybe<'a, 'b, C, O, U>(&self, args: &[&str],
+                                                    cert: C, userid: U,
+                                                    reason: &str,
+                                                    message: &str,
+                                                    output_file: O)
         -> Result<Cert>
     where C: Into<FileOrKeyHandle>,
-          O: Into<Option<&'a Path>>,
+          U: Into<UserIDArg<'a>>,
+          O: Into<Option<&'b Path>>,
     {
         let cert = cert.into();
         let output_file = output_file.into();
@@ -1333,7 +1421,7 @@ impl Sq {
                 cmd.arg("--cert").arg(s);
             }
         }
-        cmd.arg("--userid").arg(userid);
+        userid.into().as_arg(&mut cmd);
 
         if let Some(output_file) = output_file {
             cmd.arg("--overwrite").arg("--output").arg(output_file);
@@ -1343,12 +1431,15 @@ impl Sq {
         self.handle_cert_output(output, cert, output_file, false)
     }
 
-    pub fn key_userid_revoke<'a, C, O>(&self, args: &[&str], cert: C, userid: &str,
-                                       reason: &str, message: &str,
-                                       output_file: O)
+    pub fn key_userid_revoke<'a, 'b, C, O, U>(&self, args: &[&str],
+                                              cert: C, userid: U,
+                                              reason: &str,
+                                              message: &str,
+                                              output_file: O)
         -> Cert
     where C: Into<FileOrKeyHandle>,
-          O: Into<Option<&'a Path>>,
+          U: Into<UserIDArg<'a>>,
+          O: Into<Option<&'b Path>>,
     {
         self.key_userid_revoke_maybe(args, cert, userid, reason, message, output_file)
             .expect("succeeds")
@@ -1414,19 +1505,24 @@ impl Sq {
     ///
     /// If `output_file` is `Some`, then the output is written to that
     /// file.  Otherwise, the default behavior is followed.
-    pub fn pki_vouch_certify_p<'a, H, C, Q>(&self, extra_args: &[&str],
-                                            certifier: H,
-                                            cert: C,
-                                            userids: &[&str],
-                                            output_file: Q,
-                                            success: bool)
+    pub fn pki_vouch_certify_p<'a, 'b, H, C, U, Q>(
+        &self, extra_args: &[&str],
+        certifier: H,
+        cert: C, userids: &[U],
+        output_file: Q,
+        success: bool)
         -> Result<Cert>
     where H: Into<FileOrKeyHandle>,
           C: Into<FileOrKeyHandle>,
-          Q: Into<Option<&'a Path>>,
+          U: Into<UserIDArg<'a>> + Clone,
+          Q: Into<Option<&'b Path>>,
     {
         let certifier = certifier.into();
         let cert = cert.into();
+        let userids = userids.iter()
+            .cloned()
+            .map(|u| u.into())
+            .collect::<Vec<_>>();
         let output_file = output_file.into();
 
         let mut cmd = self.command();
@@ -1450,8 +1546,8 @@ impl Sq {
                 cmd.arg("--cert").arg(s);
             }
         }
-        for userid in userids {
-            cmd.arg("--userid").arg(userid);
+        for userid in userids.iter() {
+            userid.as_arg(&mut cmd);
         }
 
         if let Some(output_file) = output_file {
@@ -1463,15 +1559,16 @@ impl Sq {
     }
 
     /// Certify the user ID binding.
-    pub fn pki_vouch_certify<'a, H, C, Q>(&self, extra_args: &[&str],
-                                          certifier: H,
-                                          cert: C,
-                                          userids: &[&str],
-                                          output_file: Q)
+    pub fn pki_vouch_certify<'a, 'b, H, C, U, Q>(
+        &self, extra_args: &[&str],
+        certifier: H,
+        cert: C, userids: &[U],
+        output_file: Q)
         -> Cert
     where H: Into<FileOrKeyHandle>,
           C: Into<FileOrKeyHandle>,
-          Q: Into<Option<&'a Path>>,
+          U: Into<UserIDArg<'a>> + Clone,
+          Q: Into<Option<&'b Path>>,
     {
         self.pki_vouch_certify_p(
             extra_args, certifier, cert, userids, output_file, true)
@@ -1482,19 +1579,24 @@ impl Sq {
     ///
     /// If `output_file` is `Some`, then the output is written to that
     /// file.  Otherwise, the default behavior is followed.
-    pub fn pki_vouch_authorize_p<'a, H, C, Q>(&self, extra_args: &[&str],
-                                              certifier: H,
-                                              cert: C,
-                                              userids: &[&str],
-                                              output_file: Q,
-                                              success: bool)
+    pub fn pki_vouch_authorize_p<'a, 'b, H, C, U, Q>(
+        &self, extra_args: &[&str],
+        certifier: H,
+        cert: C, userids: &[U],
+        output_file: Q,
+        success: bool)
         -> Result<Cert>
     where H: Into<FileOrKeyHandle>,
           C: Into<FileOrKeyHandle>,
-          Q: Into<Option<&'a Path>>,
+          U: Into<UserIDArg<'a>> + Clone,
+          Q: Into<Option<&'b Path>>,
     {
         let certifier = certifier.into();
         let cert = cert.into();
+        let userids = userids.iter()
+            .cloned()
+            .map(|u| u.into())
+            .collect::<Vec<_>>();
         let output_file = output_file.into();
 
         let mut cmd = self.command();
@@ -1518,8 +1620,8 @@ impl Sq {
                 cmd.arg("--cert").arg(s);
             }
         }
-        for userid in userids {
-            cmd.arg("--userid").arg(userid);
+        for userid in userids.iter() {
+            userid.as_arg(&mut cmd);
         }
 
         if let Some(output_file) = output_file {
@@ -1531,15 +1633,16 @@ impl Sq {
     }
 
     /// Authorize a certificate.
-    pub fn pki_vouch_authorize<'a, H, C, Q>(&self, extra_args: &[&str],
-                                            certifier: H,
-                                            cert: C,
-                                            userids: &[&str],
-                                            output_file: Q)
+    pub fn pki_vouch_authorize<'a, 'b, H, C, U, Q>(
+        &self, extra_args: &[&str],
+        certifier: H,
+        cert: C, userids: &[U],
+        output_file: Q)
         -> Cert
     where H: Into<FileOrKeyHandle>,
           C: Into<FileOrKeyHandle>,
-          Q: Into<Option<&'a Path>>,
+          U: Into<UserIDArg<'a>> + Clone,
+          Q: Into<Option<&'b Path>>,
     {
         self.pki_vouch_authorize_p(
             extra_args, certifier, cert, userids, output_file, true)
@@ -1547,18 +1650,24 @@ impl Sq {
     }
 
     /// Add a link for the binding.
-    pub fn pki_link_add_maybe(&self, extra_args: &[&str],
-                              cert: KeyHandle, userids: &[&str])
+    pub fn pki_link_add_maybe<'a, U>(&self, extra_args: &[&str],
+                                     cert: KeyHandle, userids: &[U])
         -> Result<()>
+        where U: Into<UserIDArg<'a>> + Clone,
     {
+        let userids = userids.iter()
+            .cloned()
+            .map(|u| u.into())
+            .collect::<Vec<_>>();
+
         let mut cmd = self.command();
         cmd.args([ "pki", "link", "add" ]);
         for arg in extra_args {
             cmd.arg(arg);
         }
         cmd.arg("--cert").arg(cert.to_string());
-        for userid in userids {
-            cmd.arg("--userid").arg(userid);
+        for userid in userids.iter() {
+            userid.as_arg(&mut cmd);
         }
 
         let output = self.run(cmd, None);
@@ -1572,26 +1681,33 @@ impl Sq {
     }
 
     /// Add a link for the binding.
-    pub fn pki_link_add(&self, args: &[&str],
-                        cert: KeyHandle, userids: &[&str])
+    pub fn pki_link_add<'a, U>(&self, args: &[&str],
+                               cert: KeyHandle, userids: &[U])
+        where U: Into<UserIDArg<'a>> + Clone,
     {
         self.pki_link_add_maybe(args, cert, userids).expect("success")
     }
 
     /// Add a link for the binding.
-    pub fn pki_link_retract_maybe(&self, extra_args: &[&str],
-                                  cert: KeyHandle,
-                                  userids: &[&str])
+    pub fn pki_link_retract_maybe<'a, U>(&self, extra_args: &[&str],
+                                         cert: KeyHandle,
+                                         userids: &[U])
         -> Result<()>
+        where U: Into<UserIDArg<'a>> + Clone,
     {
+        let userids = userids.iter()
+            .cloned()
+            .map(|u| u.into())
+            .collect::<Vec<_>>();
+
         let mut cmd = self.command();
         cmd.args([ "pki", "link", "retract" ]);
         for arg in extra_args {
             cmd.arg(arg);
         }
         cmd.arg("--cert").arg(cert.to_string());
-        for userid in userids {
-            cmd.arg("--userid").arg(userid);
+        for userid in userids.iter() {
+            userid.as_arg(&mut cmd);
         }
 
         let output = self.run(cmd, None);
@@ -1605,27 +1721,34 @@ impl Sq {
     }
 
     /// Add a link for the binding.
-    pub fn pki_link_retract(&self, args: &[&str],
-                            cert: KeyHandle, userids: &[&str])
+    pub fn pki_link_retract<'a, U>(&self, args: &[&str],
+                                   cert: KeyHandle, userids: &[U])
+        where U: Into<UserIDArg<'a>> + Clone,
     {
         self.pki_link_retract_maybe(args, cert, userids)
             .expect("success")
     }
 
     /// Add a link for the binding.
-    pub fn pki_link_authorize_maybe(&self, extra_args: &[&str],
-                                    cert: KeyHandle,
-                                    userids: &[&str])
+    pub fn pki_link_authorize_maybe<'a, U>(&self, extra_args: &[&str],
+                                           cert: KeyHandle,
+                                           userids: &[U])
         -> Result<()>
+        where U: Into<UserIDArg<'a>> + Clone,
     {
+        let userids = userids.iter()
+            .cloned()
+            .map(|u| u.into())
+            .collect::<Vec<_>>();
+
         let mut cmd = self.command();
         cmd.args([ "pki", "link", "authorize" ]);
         for arg in extra_args {
             cmd.arg(arg);
         }
         cmd.arg("--cert").arg(cert.to_string());
-        for userid in userids {
-            cmd.arg("--userid").arg(userid);
+        for userid in userids.iter() {
+            userid.as_arg(&mut cmd);
         }
 
         let output = self.run(cmd, None);
@@ -1639,8 +1762,9 @@ impl Sq {
     }
 
     /// Add a link for the binding.
-    pub fn pki_link_authorize(&self, args: &[&str],
-                              cert: KeyHandle, userids: &[&str])
+    pub fn pki_link_authorize<'a, U>(&self, args: &[&str],
+                                     cert: KeyHandle, userids: &[U])
+        where U: Into<UserIDArg<'a>> + Clone,
     {
         self.pki_link_authorize_maybe(args, cert, userids)
             .expect("success")

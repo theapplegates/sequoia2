@@ -9,9 +9,11 @@ use openpgp::Cert;
 use openpgp::Result;
 use sequoia_openpgp as openpgp;
 
-use super::common::compare_notations;
-use super::common::Sq;
+use super::common::NO_USERIDS;
 use super::common::STANDARD_POLICY;
+use super::common::Sq;
+use super::common::UserIDArg;
+use super::common::compare_notations;
 use super::common::time_as_string;
 
 #[test]
@@ -372,14 +374,17 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
 #[test]
 fn sq_key_userid_add() -> Result<()> {
     let sq = Sq::new();
-    let (key, _, _) = sq.key_generate(&[], &[]);
+    let (key, _, _) = sq.key_generate(&[], NO_USERIDS);
     assert_eq!(key.userids().count(), 0);
 
-    let key = sq.key_userid_add(key, &[
-        "--name", "Joan Clarke",
-        "--name", "Joan Clarke Murray",
-        "--email", "joan@hut8.bletchley.park",
-    ])?;
+    let key = sq.key_userid_add(
+        &[],
+        key,
+        &[
+            UserIDArg::Name("Joan Clarke"),
+            UserIDArg::Name("Joan Clarke Murray"),
+            UserIDArg::Email("joan@hut8.bletchley.park"),
+        ])?;
 
     assert_eq!(key.userids().count(), 3);
     assert!(key.userids().any(|u| u.value() == b"Joan Clarke"));
@@ -393,11 +398,13 @@ fn sq_key_userid_add() -> Result<()> {
 #[test]
 fn sq_key_userid_strip() -> Result<()> {
     let sq = Sq::new();
-    let (key, _, _) = sq.key_generate(&[
-        "--name", "Joan Clarke",
-        "--name", "Joan Clarke Murray",
-        "--email", "joan@hut8.bletchley.park",
-    ], &[]);
+    let (key, _, _) = sq.key_generate(
+        &[],
+        &[
+            UserIDArg::Name("Joan Clarke"),
+            UserIDArg::Name("Joan Clarke Murray"),
+            UserIDArg::Email("joan@hut8.bletchley.park"),
+        ]);
     assert_eq!(key.userids().count(), 3);
 
     // Whoops, that's a secret.

@@ -10,6 +10,7 @@ use openpgp::types::RevocationStatus;
 use super::common::STANDARD_POLICY;
 use super::common::Sq;
 use super::common::time_as_string;
+use super::common::UserIDArg;
 
 #[test]
 fn sq_key_expire() -> Result<()> {
@@ -135,7 +136,7 @@ fn sq_key_expire_no_direct_key_sig() -> Result<()> {
 
     let mut sq = Sq::new();
     let (cert, _cert_path, _rev_path)
-        = sq.key_generate(&["--email", "alice@example.org"], &[]);
+        = sq.key_generate(&[], &[UserIDArg::Email("alice@example.org")]);
     let fipr = cert.fingerprint().to_string();
 
 

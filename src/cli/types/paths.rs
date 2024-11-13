@@ -2,6 +2,8 @@
 
 use std::path::PathBuf;
 
+use anyhow::{Result, anyhow};
+
 /// Either an absolute path, or a default path.
 ///
 /// Even though this type is homomorphic to [`Option<PathBuf>`], we
@@ -9,37 +11,49 @@ use std::path::PathBuf;
 /// differently, and we cannot return [`Option<PathBuf>`] from
 /// `TypedValueParser::parse_ref`.
 #[derive(Clone, Debug)]
-pub enum AbsolutePathOrDefault {
+pub enum StateDirectory {
     /// An absolute path.
     Absolute(PathBuf),
 
     /// The default path.
     Default,
+
+    /// Explicitly disable this state.
+    None,
 }
 
-impl AbsolutePathOrDefault {
+impl StateDirectory {
+    /// Returns whether this state has been disabled.
+    #[allow(dead_code)]
+    pub fn is_none(&self) -> bool {
+        matches!(self, StateDirectory::None)
+    }
+
     /// Returns the absolute path, or `None` if the default path is to
     /// be used.
-    pub fn path(&self) -> Option<PathBuf> {
+    pub fn path(&self) -> Result<Option<PathBuf>> {
         match self {
-            AbsolutePathOrDefault::Absolute(p) => Some(p.clone()),
-            AbsolutePathOrDefault::Default => None,
+            StateDirectory::Absolute(p) => Ok(Some(p.clone())),
+            StateDirectory::Default => Ok(None),
+            StateDirectory::None => Err(anyhow!("state is disabled")),
         }
     }
 }
 
 /// A value parser for absolute directories with explicit default.
 ///
-/// If `default` is given, this parses to `None`.  If an empty path is
-/// given, a hint is displayed to give `default` instead.
+/// If `default` is given, this parses to `StateDirectory::Default`.
+/// If `none` is given, this parses to `StateDirectory::None`.  If an
+/// empty path is given, a hint is displayed to give `default`
+/// instead.
 ///
 /// If a relative path is given, a hint is displayed to use an
 /// absolute path instead.
 #[derive(Clone, Default)]
-pub struct AbsolutePathOrDefaultValueParser {}
+pub struct StateDirectoryValueParser {}
 
-impl clap::builder::TypedValueParser for AbsolutePathOrDefaultValueParser {
-    type Value = AbsolutePathOrDefault;
+impl clap::builder::TypedValueParser for StateDirectoryValueParser {
+    type Value = StateDirectory;
 
     fn parse_ref(
         &self,
@@ -50,7 +64,11 @@ impl clap::builder::TypedValueParser for AbsolutePathOrDefaultValueParser {
         use clap::error::*;
 
         if value == "default" {
-            return Ok(AbsolutePathOrDefault::Default);
+            return Ok(StateDirectory::Default);
+        }
+
+        if value == "none" {
+            return Ok(StateDirectory::None);
         }
 
         if value.is_empty() {
@@ -89,6 +107,6 @@ impl clap::builder::TypedValueParser for AbsolutePathOrDefaultValueParser {
             return Err(err);
         }
 
-        Ok(AbsolutePathOrDefault::Absolute(p))
+        Ok(StateDirectory::Absolute(p))
     }
 }

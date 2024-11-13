@@ -41,6 +41,7 @@ use cli::SECONDS_IN_DAY;
 use cli::SECONDS_IN_YEAR;
 use cli::types::Time;
 use cli::types::Version;
+use cli::types::paths::StateDirectory;
 
 mod commands;
 pub mod output;
@@ -301,23 +302,23 @@ fn real_main() -> Result<()> {
         time_is_now,
         policy_as_of,
         policy: &policy,
-        home: Some(if let Some(p) = c.home.as_ref().and_then(|a| a.path()) {
-            sequoia_directories::Home::new(p)?
-        } else {
-            sequoia_directories::Home::default()
-                .ok_or(anyhow::anyhow!("no default SEQUOIA_HOME \
-                                        on this platform"))?
-                .clone()
-        }),
-        no_rw_cert_store: c.no_cert_store,
-        cert_store_path: c.cert_store.as_ref().and_then(|a| a.path()),
+        home: match &c.home {
+            Some(StateDirectory::Absolute(p)) =>
+                Some(sequoia_directories::Home::new(p.clone())?),
+            None | Some(StateDirectory::Default) =>
+                Some(sequoia_directories::Home::default()
+                     .ok_or(anyhow::anyhow!("no default SEQUOIA_HOME \
+                                             on this platform"))?
+                     .clone()),
+            Some(StateDirectory::None) => None,
+        },
+        cert_store_path: c.cert_store.clone(),
         keyrings: c.keyring.clone(),
         keyring_tsks: Default::default(),
         cert_store: OnceCell::new(),
         trust_roots: c.trust_roots.clone(),
         trust_root_local: Default::default(),
-        no_key_store: c.no_key_store,
-        key_store_path: c.key_store.as_ref().and_then(|a| a.path()),
+        key_store_path: c.key_store.clone(),
         key_store: OnceCell::new(),
         password_cache: password_cache.into(),
     };

@@ -52,6 +52,7 @@ use crate::cli::types::CertDesignators;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::cli::types::KeyDesignators;
 use crate::cli::types::StdinWarning;
+use crate::cli::types::paths::StateDirectory;
 use crate::cli::types::cert_designator;
 use crate::cli::types::key_designator;
 use crate::common::password;
@@ -105,10 +106,7 @@ pub struct Sq<'store, 'rstore>
     pub policy: &'rstore P<'rstore>,
     pub policy_as_of: SystemTime,
     pub home: Option<sequoia_directories::Home>,
-    // --no-cert-store
-    #[deprecated]
-    pub no_rw_cert_store: bool,
-    pub cert_store_path: Option<PathBuf>,
+    pub cert_store_path: Option<StateDirectory>,
     pub keyrings: Vec<PathBuf>,
     // Map from key fingerprint to cert fingerprint and the key.
     pub keyring_tsks: OnceCell<BTreeMap<
@@ -124,9 +122,7 @@ pub struct Sq<'store, 'rstore>
     pub trust_root_local: OnceCell<Option<Fingerprint>>,
 
     // The key store.
-    #[deprecated]
-    pub no_key_store: bool,
-    pub key_store_path: Option<PathBuf>,
+    pub key_store_path: Option<StateDirectory>,
     pub key_store: OnceCell<Mutex<keystore::Keystore>>,
 
     /// A password cache.  When encountering a locked key, we first
@@ -142,27 +138,35 @@ pub struct Sq<'store, 'rstore>
 impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// Returns whether the cert store is disabled.
     fn no_rw_cert_store(&self) -> bool {
-        #[allow(deprecated)]
-        self.no_rw_cert_store
+        self.cert_store_path.as_ref()
+            .map(|s| s.is_none())
+            .unwrap_or(self.home.is_none())
     }
 
     /// Returns whether the key store is disabled.
     fn no_key_store(&self) -> bool {
-        #[allow(deprecated)]
-        self.no_key_store
+        self.key_store_path.as_ref()
+            .map(|s| s.is_none())
+            .unwrap_or(self.home.is_none())
     }
 
     /// Returns the cert store's base directory, if it is enabled.
     pub fn cert_store_base(&self) -> Option<PathBuf> {
-        if self.no_rw_cert_store() {
-            None
-        } else if let Some(path) = self.cert_store_path.as_ref() {
-            Some(path.clone())
-        } else if let Ok(path) = std::env::var("PGP_CERT_D") {
+        let default = || if let Ok(path) = std::env::var("PGP_CERT_D") {
             Some(PathBuf::from(path))
         } else {
             self.home.as_ref()
                 .map(|h| h.data_dir(sequoia_directories::Component::CertD))
+        };
+
+        if let Some(state) = self.cert_store_path.as_ref() {
+            match state {
+                StateDirectory::Absolute(p) => Some(p.clone()),
+                StateDirectory::Default => default(),
+                StateDirectory::None => None,
+            }
+        } else {
+            default()
         }
     }
 
@@ -362,13 +366,19 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     ///
     /// If the key store is disabled, returns `Ok(None)`.
     pub fn key_store_path(&self) -> Result<Option<PathBuf>> {
-        if self.no_key_store() {
-            Ok(None)
-        } else if let Some(dir) = self.key_store_path.as_ref() {
-            Ok(Some(dir.clone()))
-        } else {
+        let default = || {
             Ok(self.home.as_ref()
                .map(|h| h.data_dir(sequoia_directories::Component::Keystore)))
+        };
+
+        if let Some(dir) = self.key_store_path.as_ref() {
+            match dir {
+                StateDirectory::Absolute(p) => Ok(Some(p.clone())),
+                StateDirectory::Default => default(),
+                StateDirectory::None => Ok(None),
+            }
+        } else {
+            default()
         }
     }
 

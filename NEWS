@@ -34,6 +34,12 @@
      --cleartext`.
    - Both `sq sign` and `sq verify` now require an explicit mode,
      one of `--signature-file`, `--message`, or `--cleartext`.
+   - The flag `sq --no-cert-store` has been replaced with `sq
+     --cert-store=none`.
+   - The flag `sq --no-key-store` has been replaced with `sq
+     --key-store=none`.
+   - Similarly, `sq --home=none` disables all state, unless explicitly
+     re-enabled using `--cert-store` or `--key-store`.
 
 * Changes in 0.39.0
 ** Notable changes

@@ -107,7 +107,7 @@ pub mod verify;
 pub mod version;
 
 pub mod types;
-use types::paths::{AbsolutePathOrDefault, AbsolutePathOrDefaultValueParser};
+use types::paths::{StateDirectory, StateDirectoryValueParser};
 use types::version::Version;
 use types::version::VersionInvalidPositionValueParser;
 
@@ -290,7 +290,10 @@ location, files are placed according to the local standard, \
 e.g., the XDG Base Directory Specification.  When an alternate \
 location is specified, the user data, configuration files, and \
 cache data are placed under a single, unified directory.  This is \
-a lightweight way to partially isolate `sq`.",
+a lightweight way to partially isolate `sq`.
+
+Use 'default' to explicitly use the default location, use 'none' to \
+not use a home directory.",
             sequoia_directories::Home::default_location()
                 .map(|p| {
                     let p = p.display().to_string();
@@ -303,28 +306,14 @@ a lightweight way to partially isolate `sq`.",
                     p
                 })
                 .unwrap_or("<unknown>".to_string())),
-        value_parser = AbsolutePathOrDefaultValueParser::default(),
+        value_parser = StateDirectoryValueParser::default(),
     )]
-    pub home: Option<AbsolutePathOrDefault>,
-
-    #[clap(
-        long,
-        global = true,
-        help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Disable the use of the key store.",
-        long_help = "\
-Disable the use of the key store.
-
-It is still possible to use functionality that does not require the
-key store."
-    )]
-    pub no_key_store: bool,
+    pub home: Option<StateDirectory>,
 
     #[clap(
         long,
         value_name = "PATH",
         env = "SEQUOIA_KEY_STORE",
-        conflicts_with_all = &[ "no_key_store" ],
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Override the key store server and its data",
@@ -336,7 +325,10 @@ one is started.
 
 This option causes `sq` to use an alternate key store server.  If \
 necessary, a key store server is started, and configured to look for \
-its data in the specified location.",
+its data in the specified location.
+
+Use 'default' to explicitly use the default server, use 'none' to \
+not use a key store.",
             sequoia_directories::Home::default()
                 .map(|home| {
                     let p = home.data_dir(sequoia_directories::Component::Keystore);
@@ -350,26 +342,14 @@ its data in the specified location.",
                     p
                 })
                 .unwrap_or("<unknown>".to_string())),
-        value_parser = AbsolutePathOrDefaultValueParser::default(),
+        value_parser = StateDirectoryValueParser::default(),
     )]
-    pub key_store: Option<AbsolutePathOrDefault>,
-
-    #[clap(
-        long,
-        global = true,
-        help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Disable the use of a certificate store",
-        long_help = "\
-Disable the use of a certificate store.  Normally sq uses the user's \
-standard cert-d, which is located in `$HOME/.local/share/pgp.cert.d`."
-    )]
-    pub no_cert_store: bool,
+    pub key_store: Option<StateDirectory>,
 
     #[clap(
         long,
         value_name = "PATH",
         env = "SEQUOIA_CERT_STORE",
-        conflicts_with_all = &[ "no_cert_store" ],
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Specify the location of the certificate store",
@@ -377,8 +357,10 @@ standard cert-d, which is located in `$HOME/.local/share/pgp.cert.d`."
 Specify the location of the certificate store.  By default, `sq` uses \
 the OpenPGP certificate directory in Sequoia's home directory (see `--home`), \
 {}.  This can be overridden by setting the `PGP_CERT_D` environment \
-variable.  That in turn can be overridden by setting the `SEQUOIA_CERT_STORE` \
-environment variable.",
+variable.
+
+Use 'default' to explicitly use the default cert store, use 'none' to \
+not use a cert store.",
             sequoia_directories::Home::default()
                 .map(|home| {
                     let p = home.data_dir(sequoia_directories::Component::CertD);
@@ -392,9 +374,9 @@ environment variable.",
                     p
                 })
                 .unwrap_or("<unknown>".to_string())),
-        value_parser = AbsolutePathOrDefaultValueParser::default(),
+        value_parser = StateDirectoryValueParser::default(),
     )]
-    pub cert_store: Option<AbsolutePathOrDefault>,
+    pub cert_store: Option<StateDirectory>,
 
     #[clap(
         long,

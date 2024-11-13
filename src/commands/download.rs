@@ -168,6 +168,34 @@ pub fn dispatch(sq: Sq, c: download::Command)
     }
 
 
+    // Create the output file early.  Otherwise we may download a lot
+    // of data and then fail to copy it.
+    let mut output_file_;
+    let mut stdout_;
+    let mut output_file: &mut dyn Write = if let Some(file) = output.path() {
+        output_file_ = if sq.overwrite {
+            File::create(file)
+                .with_context(|| format!("Opening {}", file.display()))?
+        } else {
+            File::options().write(true).create_new(true).open(file)
+                .map_err(|err| {
+                    if err.kind() == std::io::ErrorKind::AlreadyExists {
+                        return anyhow::anyhow!(
+                            "File {} exists, use \"sq --overwrite ...\" to overwrite",
+                            file.display(),
+                        );
+                    }
+                    err.into()
+                })
+                .with_context(|| format!("Opening {}", file.display()))?
+        };
+        &mut output_file_
+    } else {
+        stdout_ = std::io::stdout();
+        &mut stdout_
+    };
+
+
     // Create the progress bar.
     let progress_bar = if sq.verbose || sq.batch {
         ProgressBar::hidden()
@@ -477,20 +505,6 @@ pub fn dispatch(sq: Sq, c: download::Command)
     wprintln!();
 
     data_file.as_mut().rewind()?;
-
-    let mut output_file_;
-    let mut stdout_;
-    let mut output_file: &mut dyn Write = if let Some(file) = output.path() {
-        output_file_ = if sq.overwrite {
-            File::create(file)
-        } else {
-            File::options().write(true).create_new(true).open(file)
-        }.with_context(|| format!("Opening {}", file.display()))?;
-        &mut output_file_
-    } else {
-        stdout_ = std::io::stdout();
-        &mut stdout_
-    };
 
     let result = verify(
         sq,

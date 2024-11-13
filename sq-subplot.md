@@ -1089,29 +1089,6 @@ when I run sq inspect cert.pgp
 then stdout contains "Certifications: 1,"
 ~~~
 
-## Certify multiple identities matched by email address
-
-_Requirement: We can certify multiple user identities on a cert
-identified by email address._
-
-~~~scenario
-given an installed sq
-when I run sq key generate --without-password --userid "<alice@example.org>" --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq toolbox extract-cert alice.pgp --output alice-cert.pgp
-when I run sq key generate --without-password --userid "<bob@example.org>" --userid "Bob <bob@example.org>" --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox extract-cert bob.pgp --output bob-cert.pgp
-
-when I run sq pki vouch certify --certifier-file alice.pgp --cert-file bob-cert.pgp --email bob@example.org --output cert.pgp
-
-when I run sq toolbox strip-userid --cert-file cert.pgp --userid "<bob@example.org>" --output cert.0.pgp
-when I run sq inspect cert.0.pgp
-then stdout contains "Certifications: 1,"
-
-when I run sq toolbox strip-userid --cert-file cert.pgp --userid "Bob <bob@example.org>" --output cert.1.pgp
-when I run sq inspect cert.1.pgp
-then stdout contains "Certifications: 1,"
-~~~
-
 ## Certify an identity that is not self-signed
 
 _Requirement: We can certify a user identity on a cert, even if that

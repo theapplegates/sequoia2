@@ -44,6 +44,11 @@
      certify`, and `sq pki vouch authorize` have a `--add-userid`
      flag.  Replace it with an `--add-userid` argument, and an
      `--add-email` argument.
+   - The `--email` and `--add-email` arguments to `sq pki link add`,
+     etc. cannot be used to designate a self-signed user ID, if
+     multiple self-signed user IDs include the specified email
+     address.  Previously, the arguments would designate all
+     self-signed user IDs with the specified email address.
    - The new argument `sq sign --mode` can be used to create text
      signatures in addition to binary signatures.
 

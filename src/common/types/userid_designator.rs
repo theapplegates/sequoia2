@@ -33,7 +33,7 @@ where
 
         // Don't stop at the first error.
         let mut missing = false;
-        let mut ambiguous = false;
+        let mut ambiguous_email = false;
         let mut bad = None;
 
         if let Some(true) = self.all() {
@@ -123,7 +123,7 @@ where
                                 wprintln!("{} is ambiguous: it matches \
                                            multiple self-signed user IDs.",
                                           email);
-                                ambiguous = true;
+                                ambiguous_email = true;
                             }
 
                             userids.push(designator.clone()
@@ -147,7 +147,7 @@ where
             }
         }
 
-        if missing || ambiguous {
+        if missing || ambiguous_email {
             wprintln!("{}'s self-signed user IDs:", vc.fingerprint());
             let mut have_valid = false;
             for ua in vc.userids() {
@@ -168,9 +168,12 @@ where
             }
             return Err(anyhow::anyhow!("Not a self-signed user ID"));
         }
-        if ambiguous {
+        if ambiguous_email {
             wprintln!("Use `--userid` with the full user ID, or \
                        `--add-userid` to add a new user ID.");
+            return Err(anyhow::anyhow!("\
+                An email address does not unambiguously designate a \
+                self-signed user ID"));
         }
 
         if let Some(err) = bad {

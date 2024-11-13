@@ -427,7 +427,8 @@ fn sq_pki_link_add_retract() -> Result<()> {
 
     // Link all User IDs individually.
     sq_link(&sq, &ed_fpr,
-            &["ed@some.org"], &["ed@other.org", "ed@example.org"],
+            &["ed@some.org", "Ed <ed@example.org>", "Eddie <ed@example.org>"],
+            &["ed@other.org"],
             &[], true);
     sq_verify(&sq, None, &[], &[], &ed_sig_file, 1, 0);
 
@@ -718,4 +719,44 @@ fn retract_all() {
 
     // Now it should fail.
     sq_verify(&sq, None, &[], &[], &sig_msg_str, 0, 1);
+}
+
+#[test]
+fn no_ambiguous_email() {
+    // Check that we can't address self-signed user IDs by an
+    // ambiguous email address.
+    let mut sq = Sq::new();
+
+    let alice_userids = &["Alice <alice@example.org>",
+                         "Alice Lovelace <alice@example.org>"][..];
+    let (alice, alice_pgp, _) = sq.key_generate(&[], alice_userids);
+    sq.key_import(&alice_pgp);
+
+    sq.tick(1);
+
+    // Ambiguous.
+    assert!(
+        sq.pki_link_add_maybe(
+            &[], alice.key_handle(), &[UserIDArg::Email("alice@example.org")])
+            .is_err());
+    assert!(
+        sq.pki_link_add_maybe(
+            &[], alice.key_handle(), &[UserIDArg::AddEmail("alice@example.org")])
+            .is_err());
+
+    // Not a self-signed user ID.
+    assert!(
+        sq.pki_link_add_maybe(
+            &[], alice.key_handle(), &[UserIDArg::UserID("alice@example.org")])
+            .is_err());
+
+    // Fully qualified is okay.
+    sq.pki_link_add(
+        &[], alice.key_handle(),
+        &[UserIDArg::UserID("Alice <alice@example.org>")]);
+
+    // As well as adding as a user ID.
+    sq.pki_link_add(
+        &[], alice.key_handle(),
+        &[UserIDArg::AddUserID("<alice@example.org>")]);
 }

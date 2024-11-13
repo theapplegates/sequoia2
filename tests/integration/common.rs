@@ -1776,7 +1776,7 @@ impl Sq {
         -> Result<()>
     {
         let mut cmd = self.command();
-        cmd.args([ "pki", "authenticate" ]);
+        cmd.args([ "pki", "authenticate", "--show-paths" ]);
         for arg in extra_args {
             cmd.arg(arg);
         }

@@ -13,7 +13,6 @@ use sequoia_wot as wot;
 use crate::Sq;
 use crate::cli;
 use crate::cli::key::approvals;
-use crate::common::userid::make_userid_filter;
 
 pub fn dispatch(sq: Sq, command: approvals::Command)
                 -> Result<()>
@@ -108,11 +107,9 @@ fn update(
 ) -> Result<()> {
     let store = sq.cert_store_or_else()?;
 
-    let handle =
-        sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.1;
-
-    let key = sq.lookup_one(handle, None, true)?;
+    let key = sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.0;
     let vcert = key.with_policy(sq.policy, sq.time)?;
+    let userids = command.userids.resolve(&vcert)?;
 
     // Lookup any explicitly goodlisted certifiers.  We need these to
     // verify the certifications.
@@ -133,10 +130,16 @@ fn update(
     // Now, create new approval signatures.
     let mut approval_signatures = Vec::new();
 
-    // For the selected user IDs.
-    let uid_filter = make_userid_filter(
-        &command.names, &command.emails, &command.userids)?;
-    for uid in vcert.userids().filter(uid_filter) {
+    // resolve returns ResolvedUserIDs, which contain UserIDs, but we
+    // need ValidUserIDAmalgamations.
+    let all = userids.is_empty();
+    let mut designated_userids = BTreeSet::from_iter(
+        userids.into_iter().map(|u| u.userid().clone()));
+    for uid in vcert.userids() {
+        if ! all && ! designated_userids.remove(uid.userid()) {
+            continue;
+        }
+
         wprintln!(initial_indent = " - ", "{}",
                   String::from_utf8_lossy(uid.value()));
 
@@ -262,6 +265,7 @@ fn update(
             next_approved.into_iter(),
         )?);
     }
+    assert!(designated_userids.is_empty());
 
     // Finally, add the new signatures.
     let key = key.insert_packets(approval_signatures)?;

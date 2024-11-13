@@ -239,23 +239,10 @@ pub struct UpdateCommand {
                               OneValueAndFileRequiresOutput,
                               ApprovalsListDoc>,
 
-    #[clap(
-        long = "name",
-        help = "Change approvals on this name user ID",
-    )]
-    pub names: Vec<String>,
-
-    #[clap(
-        long = "email",
-        help = "Change approvals on this email address user ID",
-    )]
-    pub emails: Vec<String>,
-
-    #[clap(
-        long = "userid",
-        help = "Change approvals on this user ID",
-    )]
-    pub userids: Vec<String>,
+    #[command(flatten)]
+    pub userids: UserIDDesignators<
+        userid_designator::ExistingUserIDEmailNameArgs,
+        userid_designator::OptionalValue>,
 
     #[clap(
         long = "remove-all",

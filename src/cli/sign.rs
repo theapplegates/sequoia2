@@ -2,10 +2,12 @@
 
 use std::path::PathBuf;
 
-use clap::{ArgGroup, Parser};
+use clap::{ArgGroup, Parser, ValueEnum};
 
-use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
+use sequoia_openpgp::{
+    KeyHandle,
+    types::SignatureType,
+};
 
 use super::types::ClapData;
 use super::types::FileOrStdin;
@@ -112,6 +114,20 @@ pub struct Command {
     pub cleartext: bool,
 
     #[clap(
+        long = "mode",
+        default_value = "binary",
+        conflicts_with = "cleartext",
+        help = "Select the signature mode",
+        long_help = "Select the signature mode
+
+Signatures can be made in binary mode or in text mode.  \
+Text mode normalizes line endings, which makes signatures \
+more robust when a text is transported over a channel which \
+may change line endings.  In doubt, create binary signatures.",
+    )]
+    pub mode: Mode,
+
+    #[clap(
         long,
         conflicts_with = "notarize",
         help = "Append a signature to existing signature",
@@ -169,4 +185,24 @@ pub struct Command {
     // there may be multiple notations? Like something like Vec<(String, String)>.
     // TODO: Also, no need for the Option
     pub notation: Vec<String>,
+}
+
+/// Signature mode, either binary or text.
+#[derive(ValueEnum, Clone, Copy, Debug, Default)]
+pub enum Mode {
+    /// Create binary signatures.
+    #[default]
+    Binary,
+
+    /// Create text signatures.
+    Text,
+}
+
+impl From<Mode> for SignatureType {
+    fn from(m: Mode) -> Self {
+        match m {
+            Mode::Binary => SignatureType::Binary,
+            Mode::Text => SignatureType::Text,
+        }
+    }
 }

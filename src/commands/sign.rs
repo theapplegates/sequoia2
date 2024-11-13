@@ -27,6 +27,7 @@ use crate::load_certs;
 use crate::parse_notations;
 
 use crate::cli;
+use crate::cli::sign::Mode;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
 
@@ -81,6 +82,7 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
              &mut input,
              output,
              signers,
+             command.mode,
              detached,
              binary,
              append,
@@ -96,6 +98,7 @@ pub fn sign<'a, 'store, 'rstore>(
     input: &'a mut (dyn io::Read + Sync + Send),
     output: &'a FileOrStdout,
     signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
+    mode: Mode,
     detached: bool,
     binary: bool,
     append: bool,
@@ -109,6 +112,7 @@ pub fn sign<'a, 'store, 'rstore>(
                       input,
                       output,
                       signers,
+                      mode,
                       detached,
                       binary,
                       append,
@@ -118,6 +122,7 @@ pub fn sign<'a, 'store, 'rstore>(
                          input,
                          output,
                          signers,
+                         mode,
                          binary,
                          notarize,
                          notations),
@@ -129,6 +134,7 @@ fn sign_data<'a, 'store, 'rstore>(
     input: &'a mut (dyn io::Read + Sync + Send),
     output_path: &'a FileOrStdout,
     mut signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
+    mode: Mode,
     detached: bool,
     binary: bool,
     append: bool,
@@ -189,7 +195,7 @@ fn sign_data<'a, 'store, 'rstore>(
         Packet::Signature(sig).serialize(&mut message)?;
     }
 
-    let mut builder = SignatureBuilder::new(SignatureType::Binary);
+    let mut builder = SignatureBuilder::new(mode.into());
     for (critical, n) in notations.iter() {
         builder = builder.add_notation(
             n.name(),
@@ -243,6 +249,7 @@ fn sign_message<'a, 'store, 'rstore>(
     input: &'a mut (dyn io::Read + Sync + Send),
     output: &'a FileOrStdout,
     signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
+    mode: Mode,
     binary: bool,
     notarize: bool,
     notations: &'a [(bool, NotationData)])
@@ -256,6 +263,7 @@ fn sign_message<'a, 'store, 'rstore>(
     sign_message_(sq,
                   input,
                   signers,
+                  mode,
                   notarize,
                   notations,
                   &mut output)?;
@@ -267,6 +275,7 @@ fn sign_message_<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
     input: &'a mut (dyn io::Read + Sync + Send),
     mut signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
+    mode: Mode,
     notarize: bool,
     notations: &'a [(bool, NotationData)],
     output: &mut (dyn io::Write + Sync + Send))
@@ -336,7 +345,7 @@ fn sign_message_<'a, 'store, 'rstore>(
             State::AfterFirstSigGroup => {
                 // After the first signature group, we push the signer
                 // onto the writer stack.
-                let mut builder = SignatureBuilder::new(SignatureType::Binary);
+                let mut builder = SignatureBuilder::new(mode.into());
                 for (critical, n) in notations.iter() {
                     builder = builder.add_notation(
                         n.name(),

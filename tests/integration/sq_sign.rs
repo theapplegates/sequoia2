@@ -1093,3 +1093,28 @@ fn sq_sign_keyring() {
 
     sq.run(cmd, Some(false));
 }
+
+/// Creates a text signature.
+#[test]
+fn sq_sign_mode_text() -> Result<()> {
+    let sq = Sq::new();
+
+    let (_alice, alice_pgp, _alice_rev)
+        = sq.key_generate(&[], &["alice"]);
+
+    let data_n = sq.scratch_dir().join("data_n");
+    std::fs::write(&data_n, "Hello\n")?;
+
+    let sig = sq.scratch_dir().join("sig");
+    sq.sign_detached(&["--mode=text"], alice_pgp.as_path(),
+                     data_n.as_path(), sig.as_path());
+
+    let verify_args = ["--signer-file", &alice_pgp.display().to_string()];
+    sq.verify(&verify_args, Verify::SignatureFile(sig.clone()), &data_n, None);
+
+    let data_rn = sq.scratch_dir().join("data_rn");
+    std::fs::write(&data_rn, "Hello\r\n")?;
+    sq.verify(&verify_args, Verify::SignatureFile(sig.clone()), &data_rn, None);
+
+    Ok(())
+}

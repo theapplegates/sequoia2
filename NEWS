@@ -44,6 +44,8 @@
      certify`, and `sq pki vouch authorize` have a `--add-userid`
      flag.  Replace it with an `--add-userid` argument, and an
      `--add-email` argument.
+   - The new argument `sq sign --mode` can be used to create text
+     signatures in addition to binary signatures.
 
 * Changes in 0.39.0
 ** Notable changes

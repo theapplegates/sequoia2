@@ -301,14 +301,14 @@ fn real_main() -> Result<()> {
         time_is_now,
         policy_as_of,
         policy: &policy,
-        home: if let Some(p) = c.home.as_ref().and_then(|a| a.path()) {
+        home: Some(if let Some(p) = c.home.as_ref().and_then(|a| a.path()) {
             sequoia_directories::Home::new(p)?
         } else {
             sequoia_directories::Home::default()
                 .ok_or(anyhow::anyhow!("no default SEQUOIA_HOME \
                                         on this platform"))?
                 .clone()
-        },
+        }),
         no_rw_cert_store: c.no_cert_store,
         cert_store_path: c.cert_store.as_ref().and_then(|a| a.path()),
         keyrings: c.keyring.clone(),

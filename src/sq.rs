@@ -104,7 +104,7 @@ pub struct Sq<'store, 'rstore>
     pub time_is_now: bool,
     pub policy: &'rstore P<'rstore>,
     pub policy_as_of: SystemTime,
-    pub home: sequoia_directories::Home,
+    pub home: Option<sequoia_directories::Home>,
     // --no-cert-store
     #[deprecated]
     pub no_rw_cert_store: bool,
@@ -161,7 +161,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         } else if let Ok(path) = std::env::var("PGP_CERT_D") {
             Some(PathBuf::from(path))
         } else {
-            Some(self.home.data_dir(sequoia_directories::Component::CertD))
+            self.home.as_ref()
+                .map(|h| h.data_dir(sequoia_directories::Component::CertD))
         }
     }
 
@@ -366,7 +367,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         } else if let Some(dir) = self.key_store_path.as_ref() {
             Ok(Some(dir.clone()))
         } else {
-            Ok(Some(self.home.data_dir(sequoia_directories::Component::Keystore)))
+            Ok(self.home.as_ref()
+               .map(|h| h.data_dir(sequoia_directories::Component::Keystore)))
         }
     }
 

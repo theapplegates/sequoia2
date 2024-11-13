@@ -153,17 +153,24 @@ pub fn generate(
 
         rev_cert
     } else if on_keystore {
-        let dir = sq.home.data_dir(sequoia_directories::Component::Other(
-            "revocation-certificates".into()));
-        std::fs::create_dir_all(&dir)
-            .with_context(|| {
-                format!("While creating {}", dir.display())
-            })?;
+        if let Some(home) = &sq.home {
+            let dir = home.data_dir(sequoia_directories::Component::Other(
+                "revocation-certificates".into()));
+            std::fs::create_dir_all(&dir)
+                .with_context(|| {
+                    format!("While creating {}", dir.display())
+                })?;
 
-        (cert, rev) = gen()?;
-        FileOrStdout::new(
-            Some(dir.join(format!("{}-revocation.pgp",
-                                  cert.fingerprint()))))
+            (cert, rev) = gen()?;
+            FileOrStdout::new(
+                Some(dir.join(format!("{}-revocation.pgp",
+                                      cert.fingerprint()))))
+        } else {
+            return Err(anyhow::anyhow!(
+                "Missing arguments: --rev-cert is mandatory if --home=none is \
+                 given."
+            ));
+        }
     } else {
         return Err(anyhow::anyhow!(
             "Missing arguments: --rev-cert is mandatory if --output is \

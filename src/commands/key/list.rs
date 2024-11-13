@@ -447,7 +447,10 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
         let mut hint = sq.hint(format_args!(
             "There are no secret keys."));
 
-        if sq.key_store_path.is_some() || ! sq.home.is_default_location() {
+        if sq.key_store_path.is_some()
+            || ! sq.home.as_ref()
+            .map(|h| h.is_default_location()).unwrap_or(false)
+        {
             hint = hint.hint(format_args!(
                 "The non-default key store location {} is selected \
                  using the `{}` option.  Consider using the default \

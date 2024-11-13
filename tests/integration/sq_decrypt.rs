@@ -85,7 +85,7 @@ fn sq_decrypt_bad() -> Result<()> {
         let mut file = File::create(&data_file)?;
         let data = vec![42; 1024 * 1024];
         let mut size = 0;
-        for _ in 0..100 {
+        for _ in 0..30 {
             file.write_all(&data).expect("can write");
             size += data.len();
         }

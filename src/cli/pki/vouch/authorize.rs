@@ -108,7 +108,7 @@ pub struct Command {
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::ExistingAndAddArgs,
+        userid_designator::ExistingAndAddXUserIDEmailArgs,
         userid_designator::OptionalValue>,
 
     #[clap(

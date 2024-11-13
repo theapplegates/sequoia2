@@ -37,26 +37,28 @@ pub type AddEmailArg = typenum::U64;
 
 /// Enables --userid, and --email (but not --add-userid or
 /// --add-email).
-pub type ExistingArgs
+pub type ExistingUserIDEmailArgs
     = <ExistingUserIDArg as std::ops::BitOr<ExistingEmailArg>>::Output;
 
 /// Enables --userid, and --email (but not --add-userid or
 /// --add-email).
-pub type AnyArgs
+pub type AnyUserIDEmailArgs
     = <AnyUserIDArg as std::ops::BitOr<AnyEmailArg>>::Output;
 
 /// Enables --add-userid, and --add-email (but not --userid or
 /// --email).
-pub type AddArgs
+pub type AddUserIDEmailArgs
     = <AddUserIDArg as std::ops::BitOr<AddEmailArg>>::Output;
 
 /// Enables --userid, --email, --add-userid, and --add-email.
-pub type ExistingAndAddArgs
-    = <ExistingArgs as std::ops::BitOr<AddArgs>>::Output;
+pub type ExistingAndAddXUserIDEmailArgs
+    = <ExistingUserIDEmailArgs
+       as std::ops::BitOr<AddUserIDEmailArgs>>::Output;
 
 /// Enables --all, --userid, --email, --add-userid, and --add-email.
-pub type AllExistingAndAddArgs
-    = <AllUserIDsArg as std::ops::BitOr<ExistingAndAddArgs>>::Output;
+pub type AllExistingAndAddXUserIDEmailArgs
+    = <AllUserIDsArg
+       as std::ops::BitOr<ExistingAndAddXUserIDEmailArgs>>::Output;
 
 /// Argument parser options.
 
@@ -668,17 +670,17 @@ mod test {
         }
 
         // No Args.
-        check!(typenum::U0,        false, false, false, false, false, false);
-        check!(ExistingUserIDArg,   true, false, false, false, false, false);
-        check!(ExistingEmailArg,   false,  true, false, false, false, false);
-        check!(ExistingArgs,        true,  true, false, false, false, false);
-        check!(AnyUserIDArg,       false, false,  true, false, false, false);
-        check!(AnyEmailArg,        false, false, false,  true, false, false);
-        check!(AnyArgs,            false, false,  true,  true, false, false);
-        check!(AddUserIDArg,       false, false, false, false,  true, false);
-        check!(AddEmailArg,        false, false, false, false, false,  true);
-        check!(AddArgs,            false, false, false, false,  true,  true);
-        check!(ExistingAndAddArgs,  true,  true, false, false,  true,  true);
+        check!(typenum::U0,             false, false, false, false, false, false);
+        check!(ExistingUserIDArg,        true, false, false, false, false, false);
+        check!(ExistingEmailArg,        false,  true, false, false, false, false);
+        check!(ExistingUserIDEmailArgs,  true,  true, false, false, false, false);
+        check!(AnyUserIDArg,            false, false,  true, false, false, false);
+        check!(AnyEmailArg,             false, false, false,  true, false, false);
+        check!(AnyUserIDEmailArgs,      false, false,  true,  true, false, false);
+        check!(AddUserIDArg,            false, false, false, false,  true, false);
+        check!(AddEmailArg,             false, false, false, false, false,  true);
+        check!(AddUserIDEmailArgs,      false, false, false, false,  true,  true);
+        check!(ExistingAndAddXUserIDEmailArgs, true,  true, false, false,  true,  true);
     }
 
     #[test]
@@ -691,7 +693,7 @@ mod test {
         #[clap(name = "prog")]
         struct CLI {
             #[command(flatten)]
-            pub userids: UserIDDesignators<ExistingArgs,
+            pub userids: UserIDDesignators<ExistingUserIDEmailArgs,
                                            OneValue>,
         }
 
@@ -739,7 +741,7 @@ mod test {
         #[clap(name = "prog")]
         struct CLI {
             #[command(flatten)]
-            pub userids: UserIDDesignators<ExistingArgs,
+            pub userids: UserIDDesignators<ExistingUserIDEmailArgs,
                                            OptionalValue>,
         }
 
@@ -793,7 +795,7 @@ mod test {
         #[clap(name = "prog")]
         struct CLI {
             #[command(flatten)]
-            pub userids: UserIDDesignators<AllExistingAndAddArgs>,
+            pub userids: UserIDDesignators<AllExistingAndAddXUserIDEmailArgs>,
         }
 
         let command = CLI::command();

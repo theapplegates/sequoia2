@@ -204,8 +204,7 @@ fn sq_verify_policy_as_of_relative_time() -> Result<()> {
 /// Make sure designated signers are respected.
 #[test]
 fn sq_verify_designated_signers() -> Result<()> {
-    let mut sq = Sq::new();
-    sq.preserve();
+    let sq = Sq::new();
 
     // First, import Neal's cert and make sure the message verifies
     // ok.

@@ -11,6 +11,7 @@ use crate::Sq;
 
 use crate::cli::encrypt::CompressionMode;
 use crate::cli::types::FileOrStdout;
+use crate::cli::types::MyAsRef;
 use crate::cli::{SqCommand, SqSubcommands};
 
 pub mod autocrypt;
@@ -67,21 +68,25 @@ pub fn dispatch(sq: Sq, command: SqCommand) -> Result<()>
 ///
 /// Note: if `n` User IDs are provided, then the returned vector has
 /// `n` elements.
-pub fn active_certification(
+pub fn active_certification<U>(
     sq: &Sq,
-    cert: &Cert, userids: Vec<UserID>,
+    cert: &Cert, userids: impl Iterator<Item=U>,
     issuer: &Key<openpgp::packet::key::PublicParts,
                  openpgp::packet::key::UnspecifiedRole>)
-    -> Vec<(UserID, Option<Signature>)>
+    -> Vec<(U, Option<Signature>)>
+where
+    U: MyAsRef<UserID>
 {
     let issuer_kh = issuer.key_handle();
 
-    userids.into_iter().map(|userid| {
+    userids.map(|userid_ref| {
+        let userid = userid_ref.as_ref();
+
         let ua = match cert.userids()
-            .filter(|ua| ua.userid() == &userid).next()
+            .filter(|ua| ua.userid() == userid).next()
         {
             Some(ua) => ua,
-            None => return (userid, None),
+            None => return (userid_ref, None),
         };
 
         // Get certifications that:
@@ -123,14 +128,14 @@ pub fn active_certification(
         let certification = certifications.into_iter()
             .filter_map(|sig| {
                 let sig = sig.clone();
-                if sig.verify_userid_binding(issuer, pk, &userid).is_ok() {
+                if sig.verify_userid_binding(issuer, pk, userid).is_ok() {
                     Some(sig)
                 } else {
                     None
                 }
             })
             .next();
-        (userid, certification)
+        (userid_ref, certification)
     }).collect()
 }
 

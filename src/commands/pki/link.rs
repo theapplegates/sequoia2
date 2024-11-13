@@ -212,7 +212,7 @@ pub fn list(sq: Sq, c: link::ListCommand)
             .collect::<Vec<_>>();
 
         for (userid, certification) in active_certification(
-                &sq, &cert, userids, trust_root_key)
+                &sq, &cert, userids.iter(), trust_root_key)
             .into_iter()
             .filter_map(|(user, certification)| {
                 if let Some(certification) = certification {

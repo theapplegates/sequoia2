@@ -24,6 +24,7 @@ use clap::ValueEnum;
 use sequoia_openpgp as openpgp;
 use openpgp::fmt::hex;
 use openpgp::KeyHandle;
+use openpgp::packet::UserID;
 use openpgp::parse::Cookie;
 use openpgp::types::KeyFlags;
 use openpgp::types::SymmetricAlgorithm;
@@ -42,6 +43,25 @@ pub mod time;
 pub use time::Time;
 pub mod version;
 pub use version::Version;
+
+// A local copy of the standard library's AsRef trait.
+//
+// We need a local copy of AsRef, as we need to implement AsRef for
+// UserID, but due to the orphan rule, we can't.  Instead we have to
+// make a local copy of AsRef or UserID.  Copying AsRef is less
+// invasive.
+pub trait MyAsRef<T>
+where
+    T: ?Sized,
+{
+    fn as_ref(&self) -> &T;
+}
+
+impl MyAsRef<UserID> for &UserID {
+    fn as_ref(&self) -> &UserID {
+        self
+    }
+}
 
 /// A trait to provide const &str for clap annotations for custom structs
 pub trait ClapData {

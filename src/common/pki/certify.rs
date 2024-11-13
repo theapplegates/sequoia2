@@ -291,13 +291,13 @@ The certifier is the same as the certificate to certify."));
 
     // Get the active certification as of the reference time.
     let certifications = active_certification(
-            &sq, &cert, userids.to_vec(),
+            &sq, &cert, userids.iter(),
             certifier.primary_key().key().role_as_unspecified())
         .into_iter()
         .map(|(userid, active_certification)| {
             let userid_str = || String::from_utf8_lossy(userid.value());
 
-            if let Some(ua) = cert.userids().find(|ua| ua.userid() == &userid) {
+            if let Some(ua) = cert.userids().find(|ua| ua.userid() == userid) {
                 if retract {
                     // Check if we certified it.
                     if ! ua.certifications().any(|c| {

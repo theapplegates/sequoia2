@@ -235,7 +235,7 @@ fn certify(sq: &Sq,
 
     let certifications = active_certification(
             sq, cert,
-            userids.iter().cloned().collect(),
+            userids.iter(),
             signer.public())
         .into_iter()
         .map(|(userid, active_certification)| {

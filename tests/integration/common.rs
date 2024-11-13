@@ -42,6 +42,10 @@ pub fn artifact(filename: &str) -> PathBuf {
         .join("tests").join("data").join(filename)
 }
 
+pub fn artifact_s(filename: &str) -> String {
+    artifact(filename).display().to_string()
+}
+
 // Returns the power set excluding the empty set.
 pub fn power_set<T: Clone>(set: &[T]) -> Vec<Vec<T>> {
     let mut power_set: Vec<Vec<T>> = Vec::new();
@@ -1674,11 +1678,26 @@ impl Sq {
     where H: Into<FileOrKeyHandle>,
           Q: Into<Option<&'a Path>>,
     {
+        self.sign_args(&[], signer, password_file, input_file, output_file)
+    }
+
+    pub fn sign_args<'a, H, Q>(&self,
+                               args: &[&str],
+                               signer: H,
+                               password_file: Option<&Path>,
+                               input_file: &Path,
+                               output_file: Q)
+                               -> Vec<u8>
+    where
+        H: Into<FileOrKeyHandle>,
+        Q: Into<Option<&'a Path>>,
+    {
         let signer = signer.into();
         let output_file = output_file.into();
 
         let mut cmd = self.command();
-        cmd.arg("sign");
+        cmd.arg("sign").arg("--message");
+        cmd.args(args);
 
         match &signer {
             FileOrKeyHandle::FileOrStdin(path) => {
@@ -1718,11 +1737,25 @@ impl Sq {
     where H: Into<FileOrKeyHandle>,
           O: Into<Option<&'a Path>>,
     {
+        self.try_sign_detached(args, signer, input_file, output_file)
+            .unwrap()
+    }
+
+    pub fn try_sign_detached<'a, H, O>(&self,
+                                       args: &[&str],
+                                       signer: H,
+                                       input_file: &Path,
+                                       output_file: O)
+                                       -> Result<Vec<u8>>
+    where
+        H: Into<FileOrKeyHandle>,
+        O: Into<Option<&'a Path>>,
+    {
         let signer = signer.into();
         let output_file = output_file.into();
 
         let mut cmd = self.command();
-        cmd.arg("sign").arg("--detached");
+        cmd.arg("sign").arg("--signature-file");
 
         for arg in args {
             cmd.arg(arg);
@@ -1743,18 +1776,21 @@ impl Sq {
             cmd.arg("--output").arg(output_file);
         };
 
-        let output = self.run(cmd, Some(true));
-        assert!(output.status.success());
-
-        if let Some(output_file) = output_file {
-            std::fs::read(output_file).expect("can read file")
+        let output = self.run(cmd, None);
+        if output.status.success() {
+            if let Some(output_file) = output_file {
+                Ok(std::fs::read(output_file).expect("can read file"))
+            } else {
+                Ok(output.stdout)
+            }
         } else {
-            output.stdout
+            Err(anyhow::anyhow!("{}", String::from_utf8_lossy(&output.stderr)))
         }
     }
 
     pub fn verify_maybe<'a, P, Q>(&self,
                                   args: &[&str],
+                                  op: Verify,
                                   input: P,
                                   output_file: Q)
         -> Result<Vec<u8>>
@@ -1768,6 +1804,7 @@ impl Sq {
         for arg in args {
             cmd.arg(arg);
         }
+        op.apply(&mut cmd);
         cmd.arg(input.as_ref());
         if let Some(output_file) = output_file {
             cmd.arg("--output").arg(output_file);
@@ -1791,13 +1828,14 @@ impl Sq {
 
     pub fn verify<'a, P, Q>(&self,
                             args: &[&str],
+                            op: Verify,
                             input: P,
                             output_file: Q)
         -> Vec<u8>
     where P: AsRef<Path>,
           Q: Into<Option<&'a Path>>,
     {
-        self.verify_maybe(args, input, output_file)
+        self.verify_maybe(args, op, input, output_file)
             .expect("success")
     }
 
@@ -1892,6 +1930,22 @@ impl Sq {
     {
         self.toolbox_keyring_merge_maybe(input_files, input_bytes, output_file)
             .expect("success")
+    }
+}
+
+pub enum Verify {
+    Message,
+    SignatureFile(PathBuf),
+    Cleartext,
+}
+
+impl Verify {
+    fn apply(self, cmd: &mut Command) {
+        match self {
+            Verify::Message => cmd.arg("--message"),
+            Verify::SignatureFile(f) => cmd.arg("--signature-file").arg(f),
+            Verify::Cleartext => cmd.arg("--cleartext"),
+        };
     }
 }
 

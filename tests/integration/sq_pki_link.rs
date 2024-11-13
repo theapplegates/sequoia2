@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
 use std::sync::{Mutex, OnceLock};
 
@@ -53,7 +53,7 @@ fn sq_verify(sq: &Sq,
     } else {
         tick()
     };
-    cmd.args(["verify", "--time", &time]);
+    cmd.args(["verify", "--message", "--time", &time]);
     for signer_file in signer_files {
         cmd.args(&["--signer-file", signer_file]);
     }
@@ -263,14 +263,11 @@ fn sq_pki_link_add_retract() -> Result<()> {
 
     // Have each certificate sign a message.
     for data in data.iter() {
-        sq.command()
-            .arg("sign")
-            .args(["--signer-file", &data.key_file])
-            .args(["--output", &data.sig_file])
-            .args(["--time", &tick()])
-            .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
-            .assert()
-            .success();
+        sq.sign_args(
+            &["--time", &tick()],
+            PathBuf::from(data.key_file.as_str()), None,
+            &artifact("messages/a-cypherpunks-manifesto.txt"),
+            PathBuf::from(data.sig_file.clone()).as_path());
     }
 
     // None of the certificates can be authenticated so verifying the
@@ -395,22 +392,19 @@ fn sq_pki_link_add_retract() -> Result<()> {
             "<ed@other.org>",
         ]);
     sq.cert_import(&ed_pgp);
-    let ed_pgp = ed_pgp.display().to_string();
     let ed_fpr = ed.fingerprint().to_string();
-    let ed_sig_file = dir.path().join("ed.sig").display().to_string();
+    let ed_sig_file = dir.path().join("ed.sig");
 
-    sq.command()
-        .arg("sign")
-        .args(["--signer-file", &ed_pgp])
-        .args(["--output", &ed_sig_file])
-        .args(["--time", &tick()])
-        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
-        .assert()
-        .success();
+    sq.sign_args(
+        &["--time", &tick()],
+        &ed_pgp, None,
+        &artifact("messages/a-cypherpunks-manifesto.txt"),
+        ed_sig_file.as_path());
 
     // If we don't use --petname, than a self-signed User ID must
     // exist.
     sq_link(&sq, &ed_fpr, &[ "bob@example.com" ], &[], &[], false);
+    let ed_sig_file = ed_sig_file.display().to_string();
     sq_verify(&sq, None, &[], &[], &ed_sig_file, 0, 1);
 
     sq_link(&sq, &ed_fpr, &[], &[ "bob@example.com" ], &[], false);
@@ -582,21 +576,17 @@ fn sq_pki_link_add_temporary() -> Result<()> {
     let alice_userid = "<alice@example.org>";
     let (alice, alice_pgp, _) = sq.key_generate(&[], &[alice_userid]);
     sq.cert_import(&alice_pgp);
-    let alice_pgp = alice_pgp.display().to_string();
     let alice_fpr = alice.fingerprint().to_string();
     let alice_cert_pgp = sq.certd()
         .join(&alice_fpr[0..2].to_ascii_lowercase())
         .join(&alice_fpr[2..].to_ascii_lowercase());
 
-    let alice_sig_file = sq.base().join("alice.sig").display().to_string();
-    sq.command()
-        .arg("sign")
-        .args(["--signer-file", &alice_pgp])
-        .args(["--output", &alice_sig_file])
-        .args(["--time", &tick()])
-        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
-        .assert()
-        .success();
+    let alice_sig_file = sq.base().join("alice.sig");
+    sq.sign_args(
+        &["--time", &tick()],
+        &alice_pgp, None,
+        &artifact("messages/a-cypherpunks-manifesto.txt"),
+        alice_sig_file.as_path());
 
     // Reads and returns file.  Asserts that old and the new contexts
     // are the same (or not).
@@ -611,6 +601,7 @@ fn sq_pki_link_add_temporary() -> Result<()> {
     };
     let bytes = std::fs::read(&alice_cert_pgp).unwrap();
 
+    let alice_sig_file = alice_sig_file.display().to_string();
     sq_verify(&sq, None, &[], &[], &alice_sig_file, 0, 1);
 
     let output = sq_link(&sq, &alice_fpr, &[], &[], &["--temporary", "--all"], true);

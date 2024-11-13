@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{ArgGroup, Parser};
 
 use super::types::ClapData;
 use super::types::FileOrStdin;
@@ -31,7 +31,7 @@ const VERIFY_EXAMPLES: Actions = Actions {
             comment: "\
 Verify a signed message.",
             command: &[
-                "sq", "verify", "document.pgp",
+                "sq", "verify", "--message", "document.pgp",
             ],
         }),
 
@@ -39,7 +39,7 @@ Verify a signed message.",
             comment: "\
 Verify a detached signature.",
             command: &[
-                "sq", "verify", "--signature-file", "document.sig", "document.txt",
+                "sq", "verify", "--signature-file=document.sig", "document.txt",
             ],
         }),
 
@@ -47,7 +47,8 @@ Verify a detached signature.",
             comment: "\
 Verify a message as of June 19, 2024 at midnight UTC.",
             command: &[
-                "sq", "verify", "--time", "2024-06-19", "document.pgp",
+                "sq", "verify", "--time", "2024-06-19",
+                "--message", "document.pgp",
             ],
         }),
     ]
@@ -94,6 +95,8 @@ reference time instead of the current time.
 ",
     after_help = VERIFY_EXAMPLES,
 )]
+#[clap(group(ArgGroup::new("kind")
+             .args(&["detached", "message", "cleartext"]).required(true)))]
 pub struct Command {
     #[clap(
         default_value_t = FileOrStdin::default(),
@@ -108,12 +111,28 @@ pub struct Command {
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,
+
     #[clap(
         long = "signature-file",
         value_name = "SIG",
-        help = "Verify a detached signature"
+        help = "Verify a detached signature file"
     )]
     pub detached: Option<PathBuf>,
+
+    #[clap(
+        long = "message",
+        value_name = "SIG",
+        help = "Verify an inline signed message"
+    )]
+    pub message: bool,
+
+    #[clap(
+        long = "cleartext",
+        value_name = "SIG",
+        help = "Verify a cleartext-signed message"
+    )]
+    pub cleartext: bool,
+
     #[clap(
         long = "signatures",
         value_name = "N",

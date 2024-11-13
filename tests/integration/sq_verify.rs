@@ -6,8 +6,7 @@ use std::io;
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
 
-use super::common::artifact;
-use super::common::Sq;
+use super::common::*;
 
 // Make sure verifying bad data fails, and removes the intermediate
 // file.
@@ -46,6 +45,7 @@ fn sq_verify_bad() -> Result<()> {
     sq.verify(
         &["--overwrite",
           "--signer-file", &cert_file.display().to_string()],
+        Verify::Message,
         &sig_file,
         output.as_path());
     assert!(output.exists());
@@ -64,6 +64,7 @@ fn sq_verify_bad() -> Result<()> {
         sq.verify_maybe(
             &["--overwrite",
               "--signer-file", &cert_file.display().to_string()],
+            Verify::Message,
             &sig_file,
             output2.as_path())
             .is_err());
@@ -87,6 +88,7 @@ fn sq_verify_policy_as_of() -> Result<()> {
             &[
                 "--signer-file", &cert.display().to_string(),
             ],
+            Verify::Message,
             &msg,
             None)
             .is_err());
@@ -99,6 +101,7 @@ fn sq_verify_policy_as_of() -> Result<()> {
                 "--time", "2022-01-01",
                 "--signer-file", &cert.display().to_string(),
             ],
+            Verify::Message,
             &msg,
             None)
             .is_err());
@@ -110,6 +113,7 @@ fn sq_verify_policy_as_of() -> Result<()> {
                 "--policy-as-of", "2022-01-01",
                 "--signer-file", &cert.display().to_string(),
             ],
+            Verify::Message,
             &msg,
             None)
             .is_ok());
@@ -123,6 +127,7 @@ fn sq_verify_policy_as_of() -> Result<()> {
                 "--policy-as-of", "2022-01-01",
                 "--signer-file", &cert.display().to_string(),
             ],
+            Verify::Message,
             &msg,
             None)
             .is_ok());
@@ -145,6 +150,7 @@ fn sq_verify_policy_as_of_relative_time() -> Result<()> {
             &[
                 "--signer-file", &cert.display().to_string(),
             ],
+            Verify::Message,
             &msg,
             None)
             .is_err());
@@ -158,6 +164,7 @@ fn sq_verify_policy_as_of_relative_time() -> Result<()> {
                 "--time", "-3y",
                 "--signer-file", &cert.display().to_string(),
             ],
+            Verify::Message,
             &msg,
             None)
             .is_err());
@@ -170,6 +177,7 @@ fn sq_verify_policy_as_of_relative_time() -> Result<()> {
                 "--policy-as-of", "-3y",
                 "--signer-file", &cert.display().to_string(),
             ],
+            Verify::Message,
             &msg,
             None)
             .is_ok());
@@ -185,6 +193,7 @@ fn sq_verify_policy_as_of_relative_time() -> Result<()> {
                 "--policy-as-of", "-4y",
                 "--signer-file", &cert.display().to_string(),
             ],
+            Verify::Message,
             &msg,
             None)
             .is_ok());
@@ -206,12 +215,14 @@ fn sq_verify_designated_signers() -> Result<()> {
                     &[]);
     assert!(sq.verify_maybe(
         &[],
+        Verify::Message,
         artifact("examples/document.pgp"), None).is_ok());
 
     // Now repeat, but require a signature from Bob, which doesn't
     // exist.
     assert!(sq.verify_maybe(
         &[&format!("--signer-file={}", artifact("examples/bob.pgp").display())],
+        Verify::Message,
         artifact("examples/document.pgp"), None).is_err());
 
     Ok(())

@@ -73,7 +73,7 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
         return Err(anyhow::anyhow!("No signing keys found"));
     }
 
-    if command.clearsign {
+    if command.cleartext {
         let output = output.create_safe(&sq)?;
         clearsign(sq, input, output, signers, &notations)?;
     } else {

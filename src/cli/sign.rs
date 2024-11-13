@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{ArgGroup, Parser};
 
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
@@ -21,6 +21,7 @@ const SIGN_EXAMPLES: Actions = Actions {
 Create a signed message.",
             command: &[
                 "sq", "sign", "--signer-file", "juliet-secret.pgp",
+                "--message",
                 "document.txt",
             ],
         }),
@@ -29,7 +30,7 @@ Create a signed message.",
 Create a detached signature.",
             command: &[
                 "sq", "sign", "--signer-file", "juliet-secret.pgp",
-                "--detached", "document.txt",
+                "--signature-file", "document.txt",
             ],
         }),
         Action::Example(Example {
@@ -38,7 +39,7 @@ Create a signature with the specified creation time.",
             command: &[
                 "sq", "sign", "--signer-file", "juliet-secret.pgp",
                 "--time", "2024-02-29",
-                "--detached", "document.txt",
+                "--signature-file", "document.txt",
             ],
         }),
     ]
@@ -65,6 +66,8 @@ current time.
 ",
     after_help = SIGN_EXAMPLES,
 )]
+#[clap(group(ArgGroup::new("kind")
+             .args(&["detached", "message", "cleartext"]).required(true)))]
 pub struct Command {
     #[clap(
         default_value_t = FileOrStdin::default(),
@@ -84,22 +87,30 @@ pub struct Command {
         help = "Emit binary data",
     )]
     pub binary: bool,
+
     #[clap(
-        long,
-        help = "Create a detached signature",
+        long = "signature-file",
+        help = "Create a detached signature file",
     )]
     pub detached: bool,
+
     #[clap(
-        long = "cleartext-signature",
-        help = "Create a cleartext signature",
+        long = "message",
+        help = "Create an inline-signed message",
+    )]
+    pub message: bool,
+
+    #[clap(
+        long = "cleartext",
+        help = "Create a cleartext-signed message",
         conflicts_with_all = &[
-            "detached",
             "append",
             "notarize",
             "binary",
         ],
     )]
-    pub clearsign: bool,
+    pub cleartext: bool,
+
     #[clap(
         long,
         conflicts_with = "notarize",
@@ -119,7 +130,7 @@ pub struct Command {
         conflicts_with_all = &[
             "append",
             "detached",
-            "clearsign",
+            "cleartext",
             "notarize",
             "secret_key_file",
         ],

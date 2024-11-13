@@ -19,9 +19,7 @@ use openpgp::policy::StandardPolicy;
 use openpgp::serialize::stream::{Message, Signer, Compressor, LiteralWriter};
 use openpgp::serialize::Serialize;
 
-use super::common::artifact;
-use super::common::Sq;
-use super::common::FileOrKeyHandle;
+use super::common::*;
 
 const P: &StandardPolicy = &StandardPolicy::new();
 
@@ -32,13 +30,8 @@ fn sq_sign() {
     let sig = tmp_dir.path().join("sig0");
 
     // Sign message.
-    sq.command()
-        .arg("sign")
-        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton-private.pgp"))
-        .args(["--output", &sig.to_string_lossy()])
-        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
-        .assert()
-        .success();
+    sq.sign(artifact("keys/dennis-simon-anton-private.pgp"), None,
+            &artifact("messages/a-cypherpunks-manifesto.txt"), sig.as_path());
 
     // Check that the content is sane.
     let packets: Vec<Packet> =
@@ -65,12 +58,8 @@ fn sq_sign() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP MESSAGE-----\n\n"));
 
     // Verify signed message.
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
-        .arg(&*sig.to_string_lossy())
-        .assert()
-        .success();
+    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp")],
+              Verify::Message, &sig, None);
 }
 
 #[test]
@@ -80,16 +69,11 @@ fn sq_sign_with_notations() {
     let sig = tmp_dir.path().join("sig0");
 
     // Sign message.
-    sq.command()
-        .arg("sign")
-        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton-private.pgp"))
-        .args(["--output", &sig.to_string_lossy()])
-        .args(["--notation", "foo", "bar"])
-        .args(["--notation", "!foo", "xyzzy"])
-        .args(["--notation", "hello@example.org", "1234567890"])
-        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
-        .assert()
-        .success();
+    sq.sign_args(&["--notation", "foo", "bar",
+                   "--notation", "!foo", "xyzzy",
+                   "--notation", "hello@example.org", "1234567890"],
+                 artifact("keys/dennis-simon-anton-private.pgp"), None,
+                 &artifact("messages/a-cypherpunks-manifesto.txt"), sig.as_path());
 
     // Check that the content is sane.
     let packets: Vec<Packet> =
@@ -141,13 +125,9 @@ fn sq_sign_with_notations() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP MESSAGE-----\n\n"));
 
     // Verify signed message.
-    sq.command()
-        .args(["--known-notation", "foo"])
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
-        .arg(&*sig.to_string_lossy())
-        .assert()
-        .success();
+    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp"),
+                "--known-notation", "foo"],
+              Verify::Message, &sig, None);
 }
 
 #[test]
@@ -157,13 +137,8 @@ fn sq_sign_append() {
     let sig0 = tmp_dir.path().join("sig0");
 
     // Sign message.
-    sq.command()
-        .arg("sign")
-        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton-private.pgp"))
-        .args(["--output", &sig0.to_string_lossy()])
-        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
-        .assert()
-        .success();
+    sq.sign(artifact("keys/dennis-simon-anton-private.pgp"), None,
+            &artifact("messages/a-cypherpunks-manifesto.txt"), sig0.as_path());
 
     // Check that the content is sane.
     let packets: Vec<Packet> =
@@ -190,24 +165,15 @@ fn sq_sign_append() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP MESSAGE-----\n\n"));
 
     // Verify signed message.
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
-        .arg(&*sig0.to_string_lossy())
-        .assert()
-        .success();
+    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp")],
+              Verify::Message, &sig0, None);
 
     // Now add a second signature with --append.
     let sig1 = tmp_dir.path().join("sig1");
-    sq.command()
-        .arg("sign")
-        .arg("--append")
-        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"))
-        .arg("--output")
-        .arg(&*sig1.to_string_lossy())
-        .arg(&*sig0.to_string_lossy())
-        .assert()
-        .success();
+    sq.sign_args(
+        &["--append"],
+        artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"),
+        None, sig0.as_path(), sig1.as_path());
 
     // Check that the content is sane.
     let packets: Vec<Packet> =
@@ -247,18 +213,10 @@ fn sq_sign_append() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP MESSAGE-----\n\n"));
 
     // Verify both signatures of the signed message.
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
-        .arg(&*sig1.to_string_lossy())
-        .assert()
-        .success();
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp"))
-        .arg(&*sig1.to_string_lossy())
-        .assert()
-        .success();
+    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp")],
+              Verify::Message, &sig1, None);
+    sq.verify(&["--signer-file", &artifact_s("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")],
+              Verify::Message, &sig1, None);
 }
 
 #[test]
@@ -316,17 +274,14 @@ fn sq_sign_append_on_compress_then_sign() {
     }
 
     // Verify signed message.
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
-        .arg(&*sig0.to_string_lossy())
-        .assert()
-        .success();
+    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp")],
+              Verify::Message, &sig0, None);
 
     // Now add a second signature with --append.
     let sig1 = tmp_dir.path().join("sig1");
     sq.command()
         .arg("sign")
+        .arg("--message")
         .arg("--append")
         .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"))
         .arg("--output")
@@ -376,19 +331,10 @@ fn sq_sign_append_on_compress_then_sign() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP MESSAGE-----\n\n"));
 
     // Verify both signatures of the signed message.
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
-        .arg(&*sig0.to_string_lossy())
-        .assert()
-        .success();
-
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp"))
-        .arg(&*sig0.to_string_lossy())
-        .assert()
-        .success();
+    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp")],
+              Verify::Message, &sig0, None);
+    sq.verify(&["--signer-file", &artifact_s("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")],
+              Verify::Message, &sig0, None);
 }
 
 #[test]
@@ -398,14 +344,10 @@ fn sq_sign_detached() {
     let sig = tmp_dir.path().join("sig0");
 
     // Sign detached.
-    sq.command()
-        .arg("sign")
-        .arg("--detached")
-        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton-private.pgp"))
-        .args(["--output", &sig.to_string_lossy()])
-        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
-        .assert()
-        .success();
+    sq.sign_detached(&[],
+                     artifact("keys/dennis-simon-anton-private.pgp"),
+                     &artifact("messages/a-cypherpunks-manifesto.txt"),
+                     sig.as_path());
 
     // Check that the content is sane.
     let packets: Vec<Packet> =
@@ -421,13 +363,9 @@ fn sq_sign_detached() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP SIGNATURE-----\n\n"));
 
     // Verify detached.
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
-        .args(["--signature-file", &sig.to_string_lossy()])
-        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
-        .assert()
-        .success();
+    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp")],
+              Verify::SignatureFile(sig),
+              &artifact("messages/a-cypherpunks-manifesto.txt"), None);
 }
 
 #[test]
@@ -437,14 +375,10 @@ fn sq_sign_detached_append() {
     let sig = tmp_dir.path().join("sig0");
 
     // Sign detached.
-    sq.command()
-        .arg("sign")
-        .arg("--detached")
-        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton-private.pgp"))
-        .args(["--output", &sig.to_string_lossy()])
-        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
-        .assert()
-        .success();
+    sq.sign_detached(&[],
+                     artifact("keys/dennis-simon-anton-private.pgp"),
+                     &artifact("messages/a-cypherpunks-manifesto.txt"),
+                     sig.as_path());
 
     // Check that the content is sane.
     let packets: Vec<Packet> =
@@ -460,34 +394,24 @@ fn sq_sign_detached_append() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP SIGNATURE-----\n\n"));
 
     // Verify detached.
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
-        .args(["--signature-file", &sig.to_string_lossy()])
-        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
-        .assert()
-        .success();
+    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp")],
+              Verify::SignatureFile(sig.clone()),
+              &artifact("messages/a-cypherpunks-manifesto.txt"), None);
 
     // Check that we don't blindly overwrite signatures.
-    sq.command()
-        .arg("sign")
-        .arg("--detached")
-        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"))
-        .args(["--output", &sig.to_string_lossy()])
-        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
-        .assert()
-        .failure();
+    sq.try_sign_detached(&[],
+                         artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"),
+                         &artifact("messages/a-cypherpunks-manifesto.txt"),
+                         sig.as_path())
+        .unwrap_err();
 
     // Now add a second signature with --append.
-    sq.command()
-        .arg("sign")
-        .arg("--detached")
-        .arg("--append")
-        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"))
-        .args(["--output", &sig.to_string_lossy()])
-        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
-        .assert()
-        .success();
+    eprintln!("now");
+    sq.sign_detached(&["--append"],
+                     artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"),
+                     &artifact("messages/a-cypherpunks-manifesto.txt"),
+                     sig.as_path());
+    eprintln!("done");
 
     // Check that the content is sane.
     let packets: Vec<Packet> =
@@ -508,27 +432,18 @@ fn sq_sign_detached_append() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP SIGNATURE-----\n\n"));
 
     // Verify both detached signatures.
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/dennis-simon-anton.pgp"))
-        .args(["--signature-file", &sig.to_string_lossy()])
-        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
-        .assert()
-        .success();
-
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp"))
-        .args(["--signature-file", &sig.to_string_lossy()])
-        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
-        .assert()
-        .success();
+    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp")],
+              Verify::SignatureFile(sig.clone()),
+              &artifact("messages/a-cypherpunks-manifesto.txt"), None);
+    sq.verify(&["--signer-file", &artifact_s("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")],
+              Verify::SignatureFile(sig.clone()),
+              &artifact("messages/a-cypherpunks-manifesto.txt"), None);
 
     // Finally, check that we don't truncate the file if something
     // goes wrong.
     sq.command()
         .arg("sign")
-        .arg("--detached")
+        .arg("--signature-file")
         .arg("--append")
         .arg("--signer-file") // Not a private key => signing will fail.
         .arg(&artifact("keys/erika-corinna-daniela-simone-antonia-nistp521.pgp"))
@@ -563,14 +478,11 @@ fn sq_sign_append_a_notarization() {
     let sig0 = tmp_dir.path().join("sig0");
 
     // Now add a third signature with --append to a notarized message.
-    sq.command()
-        .arg("sign")
-        .arg("--append")
-        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"))
-        .args(["--output", &sig0.to_string_lossy()])
-        .arg(&artifact("messages/signed-1-notarized-by-ed25519.pgp"))
-        .assert()
-        .success();
+    sq.sign_detached(
+        &["--append"],
+        artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"),
+        &artifact("messages/signed-1-notarized-by-ed25519.pgp"),
+        sig0.as_path());
 
     // Check that the content is sane.
     let packets: Vec<Packet> =
@@ -622,24 +534,12 @@ fn sq_sign_append_a_notarization() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP MESSAGE-----\n\n"));
 
     // Verify both notarizations and the signature.
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/neal.pgp"))
-        .arg(&*sig0.to_string_lossy())
-        .assert()
-        .success();
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp"))
-        .arg(&*sig0.to_string_lossy())
-        .assert()
-        .success();
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp"))
-        .arg(&*sig0.to_string_lossy())
-        .assert()
-        .success();
+    sq.verify(&["--signer-file", &artifact_s("keys/neal.pgp")],
+              Verify::Message, &sig0, None);
+    sq.verify(&["--signer-file", &artifact_s("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp")],
+              Verify::Message, &sig0, None);
+    sq.verify(&["--signer-file", &artifact_s("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")],
+              Verify::Message, &sig0, None);
 }
 
 #[ignore]
@@ -650,14 +550,12 @@ fn sq_sign_notarize() {
     let sig0 = tmp_dir.path().join("sig0");
 
     // Now add a third signature with --append to a notarized message.
-    sq.command()
-        .arg("sign")
-        .arg("--notarize")
-        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"))
-        .args(["--output", &sig0.to_string_lossy()])
-        .arg(&artifact("messages/signed-1.gpg"))
-        .assert()
-        .success();
+    sq.sign_args(
+        &["--notarize"],
+        artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"),
+        None,
+        &artifact("messages/signed-1.gpg"),
+        sig0.as_path());
 
     // Check that the content is sane.
     let packets: Vec<Packet> =
@@ -697,18 +595,10 @@ fn sq_sign_notarize() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP MESSAGE-----\n\n"));
 
     // Verify both notarizations and the signature.
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/neal.pgp"))
-        .arg(&*sig0.to_string_lossy())
-        .assert()
-        .success();
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp"))
-        .arg(&*sig0.to_string_lossy())
-        .assert()
-        .success();
+    sq.verify(&["--signer-file", &artifact_s("keys/neal.pgp")],
+              Verify::Message, &sig0, None);
+    sq.verify(&["--signer-file", &artifact_s("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")],
+              Verify::Message, &sig0, None);
 }
 
 #[ignore]
@@ -719,14 +609,12 @@ fn sq_sign_notarize_a_notarization() {
     let sig0 = tmp_dir.path().join("sig0");
 
     // Now add a third signature with --append to a notarized message.
-    sq.command()
-        .arg("sign")
-        .arg("--notarize")
-        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"))
-        .args(["--output", &sig0.to_string_lossy()])
-        .arg(&artifact("messages/signed-1-notarized-by-ed25519.pgp"))
-        .assert()
-        .success();
+    sq.sign_args(
+        &["--notarize"],
+        artifact("keys/erika-corinna-daniela-simone-antonia-nistp256-private.pgp"),
+        None,
+        &artifact("messages/signed-1-notarized-by-ed25519.pgp"),
+        sig0.as_path());
 
     // Check that the content is sane.
     let packets: Vec<Packet> =
@@ -778,24 +666,12 @@ fn sq_sign_notarize_a_notarization() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP MESSAGE-----\n\n"));
 
     // Verify both notarizations and the signature.
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/neal.pgp"))
-        .arg(&*sig0.to_string_lossy())
-        .assert()
-        .success();
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp"))
-        .arg(&*sig0.to_string_lossy())
-        .assert()
-        .success();
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(artifact("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp"))
-        .arg(&*sig0.to_string_lossy())
-        .assert()
-        .success();
+    sq.verify(&["--signer-file", &artifact_s("keys/neal.pgp")],
+              Verify::Message, &sig0, None);
+    sq.verify(&["--signer-file", &artifact_s("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp")],
+              Verify::Message, &sig0, None);
+    sq.verify(&["--signer-file", &artifact_s("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")],
+              Verify::Message, &sig0, None);
 }
 
 #[test]
@@ -826,7 +702,7 @@ fn sq_multiple_signers() -> Result<()> {
             "sign",
             "--signer-file", alice_pgp.to_str().unwrap(),
             "--signer-file", &bob_pgp.to_str().unwrap(),
-            "--detached",
+            "--signature-file",
         ])
         .write_stdin(&b"foo"[..])
         .assert().try_success()?;
@@ -877,7 +753,7 @@ fn sq_sign_using_cert_store() -> Result<()> {
     let certd = dir.path().join("cert.d").display().to_string();
     std::fs::create_dir(&certd).expect("mkdir works");
 
-    let msg_pgp = dir.path().join("msg.pgp").display().to_string();
+    let msg_pgp = dir.path().join("msg.pgp");
 
     // Generate a key.
     let (alice, alice_pgp, _rev) =
@@ -891,13 +767,9 @@ fn sq_sign_using_cert_store() -> Result<()> {
     sq.run(cmd, true);
 
     // Sign a message.
-    sq.command()
-        .arg("sign")
-        .arg("--signer-file").arg(&alice_pgp)
-        .args(["--output", &msg_pgp])
-        .arg(&artifact("messages/a-cypherpunks-manifesto.txt"))
-        .assert()
-        .success();
+    sq.sign(&alice_pgp, None,
+            &artifact("messages/a-cypherpunks-manifesto.txt"),
+            msg_pgp.as_path());
 
     // Check that the content is sane.
     let packets: Vec<Packet> =
@@ -930,51 +802,34 @@ fn sq_sign_using_cert_store() -> Result<()> {
 
     // Verify the signed message.  First, we specify the certificate
     // explicitly.
-    sq.command()
-        .arg("verify")
-        .arg("--signer-file").arg(&alice_pgp)
-        .arg(&msg_pgp)
-        .assert()
-        .success();
+    sq.verify(&["--signer-file", &alice_pgp.display().to_string()],
+              Verify::Message, &msg_pgp, None);
 
     // Verify the signed message.  Now, we don't specify the
     // certificate or use a certificate store.
-    let mut cmd = sq.command();
-    cmd.arg("verify")
-        .arg(&msg_pgp);
-    let output = cmd.output().expect("success");
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(! output.status.success(),
-            "stdout:\n{}\nstderr: {}", stdout, stderr);
-
-    assert!(stderr.contains("missing certificate."),
-            "stdout:\n{}\nstderr: {}", stdout, stderr);
-    assert!(stderr.contains("Error: Verification failed"),
-            "stdout:\n{}\nstderr: {}", stdout, stderr);
+    let result = sq.verify_maybe(&[], Verify::Message, &msg_pgp, None);
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("missing certificate."), "{}", err);
+    assert!(err.contains("Error: Verification failed") , "{}", err);
 
     // Now we use the certificate store.
-    let mut cmd = sq.command();
-    cmd.arg("--cert-store").arg(&certd)
-        .arg("verify")
-        .arg(&msg_pgp);
-    let output = cmd.output().expect("success");
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(! output.status.success(),
-            "stdout:\n{}\nstderr: {}", stdout, stderr);
+    let result = sq.verify_maybe(
+        &["--cert-store", &certd], Verify::Message, &msg_pgp, None);
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
 
     // The default trust model says that certificates from the
     // certificate store are not authenticated.
-    assert!(stderr.contains("the certificate can't be authenticated."),
-            "stdout:\n{}\nstderr: {}", stdout, stderr);
-    assert!(stderr.contains("Error: Verification failed"),
-            "stdout:\n{}\nstderr: {}", stdout, stderr);
+    assert!(err.contains("the certificate can't be authenticated."),
+            "{}", err);
+    assert!(err.contains("Error: Verification failed"),
+            "{}", err);
 
     // Now we use the certificate store *and* specify the certificate.
     let mut cmd = sq.command();
     cmd.arg("--cert-store").arg(&certd)
-        .arg("verify")
+        .arg("verify").arg("--message")
         .arg("--signer").arg(&alice.fingerprint().to_string())
         .arg(&msg_pgp);
     let output = cmd.output().expect("success");
@@ -1032,7 +887,7 @@ fn sq_verify_wot() -> Result<()> {
         for trust_root in trust_roots {
             cmd.args(&["--trust-root", trust_root]);
         }
-        cmd.arg("verify");
+        cmd.arg("verify").arg("--message");
         for signer_file in signer_files {
             cmd.args(&["--signer-file", signer_file]);
         }
@@ -1086,6 +941,7 @@ fn sq_verify_wot() -> Result<()> {
     // Sign a message.
     sq.command()
         .arg("sign")
+        .arg("--message")
         .args(["--signer-file", &bob_pgp])
         .args(["--signer-file", &carol_pgp])
         .args(["--signer-file", &dave_pgp])
@@ -1224,6 +1080,7 @@ fn sq_sign_keyring() {
     let mut cmd = sq.command();
     cmd.arg("--keyring").arg(&alice_pgp)
         .arg("sign")
+        .arg("--message")
         .arg("--signer-file").arg(&alice_pub);
 
     sq.run(cmd, Some(true));
@@ -1231,6 +1088,7 @@ fn sq_sign_keyring() {
     // If we don't pass the secret key material, this should fail.
     let mut cmd = sq.command();
     cmd.arg("sign")
+        .arg("--message")
         .arg("--signer-file").arg(&alice_pub);
 
     sq.run(cmd, Some(false));

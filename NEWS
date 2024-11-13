@@ -28,6 +28,12 @@
      specified, the certificate store is consulted.
    - The argument `sq cert lint --list-keys` has been removed.
    - `sq key list` now has a DWIM search parameter.
+   - The flag `sq sign --detached` is now called `sq sign
+     --signature-file`.
+   - The flag `sq sign --clearsign` is now called `sq sign
+     --cleartext`.
+   - Both `sq sign` and `sq verify` now require an explicit mode,
+     one of `--signature-file`, `--message`, or `--cleartext`.
 
 * Changes in 0.39.0
 ** Notable changes

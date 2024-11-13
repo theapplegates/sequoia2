@@ -25,6 +25,7 @@ use crate::Sq;
 use crate::cli::types::Expiration;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::TrustAmount;
+use crate::cli::types::userid_designator::ResolvedUserID;
 use crate::commands::active_certification;
 
 // Returns whether two certifications have the same parameters.
@@ -161,8 +162,7 @@ pub fn certify(sq: &Sq,
                recreate: bool,
                certifier: &Cert,
                cert: &Cert,
-               userids: &[UserID],
-               add_userid: bool,
+               userids: &[ResolvedUserID],
                user_supplied_userids: bool,
                templates: &[(TrustAmount<u8>, Expiration)],
                trust_depth: u8,
@@ -186,7 +186,7 @@ The certificate to certify is the same as the certificate being certified. \
 If you are trying to add a user ID, try:"))
             .sq().arg("key").arg("userid").arg("add")
             .arg("--cert").arg(cert.fingerprint())
-            .arg("--userid").arg(&userids[0])
+            .arg("--userid").arg(userids[0].userid())
             .done();
 
         return Err(
@@ -295,9 +295,9 @@ The certifier is the same as the certificate to certify."));
             certifier.primary_key().key().role_as_unspecified())
         .into_iter()
         .map(|(userid, active_certification)| {
-            let userid_str = || String::from_utf8_lossy(userid.value());
+            let userid_str = || String::from_utf8_lossy(userid.userid().value());
 
-            if let Some(ua) = cert.userids().find(|ua| ua.userid() == userid) {
+            if let Some(ua) = cert.userids().find(|ua| ua.userid() == userid.userid()) {
                 if retract {
                     // Check if we certified it.
                     if ! ua.certifications().any(|c| {
@@ -308,7 +308,7 @@ The certifier is the same as the certificate to certify."));
                         qprintln!("You never certified {:?} for {}, \
                                    there is nothing to retract.",
                                   userid_str(), cert.fingerprint());
-                        return Ok(vec![ Packet::from(userid.clone()) ]);
+                        return Ok(vec![ Packet::from(userid.userid().clone()) ]);
                     }
                 } else {
                     if let RevocationStatus::Revoked(_)
@@ -328,7 +328,7 @@ The certifier is the same as the certificate to certify."));
                         }
                     }
                 }
-            } else if ! add_userid {
+            } else if userid.existing() {
                 if retract {
                     qprintln!("You never certified {:?} for {}, \
                                there is nothing to retract.",
@@ -336,11 +336,10 @@ The certifier is the same as the certificate to certify."));
                     // Return a signature packet to indicate that we
                     // processed something.  But don't return a
                     // signature.
-                    return Ok(vec![ Packet::from(userid.clone()) ]);
+                    return Ok(vec![ Packet::from(userid.userid().clone()) ]);
                 } else {
                     return Err(anyhow::anyhow!(
-                        "{:?} is NOT a self signed user ID.  \
-                         Supply \"--add-userid\" to certify it anyways.",
+                        "{:?} is NOT a self-signed user ID.",
                         userid_str()));
                 }
             }
@@ -376,7 +375,7 @@ The certifier is the same as the certificate to certify."));
                         // Return a signature packet to indicate that we
                         // processed something.  But don't return a
                         // signature.
-                        return Ok(vec![ Packet::from(userid.clone()) ]);
+                        return Ok(vec![ Packet::from(userid.userid().clone()) ]);
                     }
                 } else {
                     qprintln!("  Parameters changed, creating a new certification.");
@@ -396,7 +395,7 @@ The certifier is the same as the certificate to certify."));
                     builder.clone().sign_userid_binding(
                         &mut signer,
                         cert.primary_key().key(),
-                        &userid)
+                        userid.userid())
                         .with_context(|| {
                             format!("Creating certification for {:?}",
                                     userid_str())
@@ -407,7 +406,7 @@ The certifier is the same as the certificate to certify."));
 
             qprintln!();
 
-            let mut packets = vec![ Packet::from(userid.clone()) ];
+            let mut packets = vec![ Packet::from(userid.userid().clone()) ];
             packets.append(&mut sigs);
             Ok(packets)
         })

@@ -16,6 +16,7 @@ use crate::parse_notations;
 
 use crate::cli::pki::link;
 use crate::cli::types::Expiration;
+use crate::cli::types::userid_designator::ResolvedUserID;
 
 pub fn link(sq: Sq, c: link::Command) -> Result<()> {
     use link::Subcommands::*;
@@ -66,7 +67,6 @@ pub fn add(sq: Sq, c: link::AddCommand)
         &trust_root,
         &cert,
         &userids[..],
-        true, // Add userid.
         true, // User-supplied user IDs.
         &templates,
         0, // Trust depth.
@@ -92,10 +92,7 @@ pub fn authorize(sq: Sq, c: link::AuthorizeCommand)
     let mut userids = c.userids.resolve(&vc)?;
     let user_supplied_userids = if userids.is_empty() {
         // Use all self-signed User IDs.
-        userids = vc.userids()
-            .map(|ua| ua.userid().clone())
-            .collect::<Vec<_>>();
-
+        userids = ResolvedUserID::implicit_for_valid_cert(&vc);
         if userids.is_empty() {
             return Err(anyhow::anyhow!(
                 "{} has no self-signed user IDs, and you didn't provide \
@@ -116,7 +113,6 @@ pub fn authorize(sq: Sq, c: link::AuthorizeCommand)
         &trust_root,
         &cert,
         &userids[..],
-        c.userids.add_userid().unwrap_or(false),
         user_supplied_userids,
         &[(c.amount, c.expiration.value())][..],
         c.depth,
@@ -142,8 +138,9 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
     let mut userids = c.userids.resolve(&vc)?;
 
     let user_supplied_userids = if userids.is_empty() {
-        // Nothing was specified.  Retract all known User IDs.
-        userids = cert.userids().map(|ua| ua.userid().clone()).collect();
+        // Nothing was specified.  Retract links for all user IDs
+        // (self signed or not).
+        userids = ResolvedUserID::implicit_for_cert(&cert);
 
         false
     } else {
@@ -158,7 +155,6 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
         &trust_root,
         &cert,
         &userids[..],
-        false, // Add userid.
         user_supplied_userids,
         &[(TrustAmount::None, Expiration::Never)],
         0,

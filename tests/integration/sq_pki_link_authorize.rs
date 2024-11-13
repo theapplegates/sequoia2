@@ -1,16 +1,17 @@
 use super::common::NO_USERIDS;
 use super::common::Sq;
+use super::common::UserIDArg;
 
 #[test]
 fn sq_pki_link_authorize_then_authenticate() {
     let ca_example_org = "<ca@example.org>";
 
-    for (e, userids) in &[
-        (&[][..], &[ca_example_org][..]),
+    for userids in &[
+        &[UserIDArg::UserID(ca_example_org)][..],
         // Implicitly use all self-signed user IDs.
-        (&[], &[]),
+        NO_USERIDS,
         // Use a non-self signed user ID.
-        (&["--add-userid"], &["frank"]),
+        &[UserIDArg::AddUserID("frank")],
     ] {
         let mut sq = Sq::new();
 
@@ -81,14 +82,6 @@ fn sq_pki_link_authorize_then_authenticate() {
             }
         };
 
-        fn concat<'a>(args1: &[&'a str], args2: &[&'a str])
-            -> Vec<&'a str>
-        {
-            let mut args = args1.to_vec();
-            args.extend(args2.into_iter());
-            args
-        }
-
         // No delegation yet.
         println!("CA: not authorized");
         check(
@@ -99,7 +92,7 @@ fn sq_pki_link_authorize_then_authenticate() {
 
         // The user completely authorizes the CA.
         sq.tick(1);
-        sq.pki_link_authorize(&concat(e, &["--unconstrained"]),
+        sq.pki_link_authorize(&["--unconstrained"],
                               ca.key_handle(),
                               userids);
 
@@ -112,7 +105,7 @@ fn sq_pki_link_authorize_then_authenticate() {
 
         // The user authorizes the CA with the regex contraint "example".
         sq.tick(1);
-        sq.pki_link_authorize(&concat(e, &["--regex", "example"]),
+        sq.pki_link_authorize(&["--regex", "example"],
                               ca.key_handle(),
                               userids);
 
@@ -126,7 +119,7 @@ fn sq_pki_link_authorize_then_authenticate() {
         // The user authorizes the CA with the domain contraint
         // "example.org".
         sq.tick(1);
-        sq.pki_link_authorize(&concat(e, &["--domain", "example.org"]),
+        sq.pki_link_authorize(&["--domain", "example.org"],
                               ca.key_handle(),
                               userids);
 
@@ -139,7 +132,7 @@ fn sq_pki_link_authorize_then_authenticate() {
 
         // The user authorizes the CA with the regex contraint "other".
         sq.tick(1);
-        sq.pki_link_authorize(&concat(e, &["--regex", "other"]),
+        sq.pki_link_authorize(&["--regex", "other"],
                               ca.key_handle(),
                               userids);
 
@@ -152,7 +145,7 @@ fn sq_pki_link_authorize_then_authenticate() {
 
         // The user authorizes the CA with the regex contraint "bob".
         sq.tick(1);
-        sq.pki_link_authorize(&concat(e, &["--regex", "bob"]),
+        sq.pki_link_authorize(&["--regex", "bob"],
                               ca.key_handle(),
                               userids);
 
@@ -166,8 +159,8 @@ fn sq_pki_link_authorize_then_authenticate() {
         // The user authorizes the CA with the regex contraint "bob" or
         // "alice".
         sq.tick(1);
-        sq.pki_link_authorize(&concat(e, &["--regex", "bob",
-                                           "--regex", "alice"]),
+        sq.pki_link_authorize(&["--regex", "bob",
+                                "--regex", "alice"],
                               ca.key_handle(),
                               userids);
 
@@ -182,8 +175,8 @@ fn sq_pki_link_authorize_then_authenticate() {
         // The user authorizes the CA for the domains example.org and
         // other.org.
         sq.tick(1);
-        sq.pki_link_authorize(&concat(e, &["--domain", "example.org",
-                                           "--domain", "other.org"]),
+        sq.pki_link_authorize(&["--domain", "example.org",
+                                "--domain", "other.org"],
                               ca.key_handle(),
                               userids);
 
@@ -198,8 +191,8 @@ fn sq_pki_link_authorize_then_authenticate() {
         // The user authorizes the CA for the domain example.com and the
         // regex alice.
         sq.tick(1);
-        sq.pki_link_authorize(&concat(e, &["--domain", "other.org",
-                                           "--regex", "alice"]),
+        sq.pki_link_authorize(&["--domain", "other.org",
+                                "--regex", "alice"],
                               ca.key_handle(),
                               userids);
 
@@ -213,7 +206,7 @@ fn sq_pki_link_authorize_then_authenticate() {
 
         // The user authorizes the CA with the regex contraint "zoo".
         sq.tick(1);
-        sq.pki_link_authorize(&concat(e, &["--regex", "zoo"]),
+        sq.pki_link_authorize(&["--regex", "zoo"],
                               ca.key_handle(),
                               userids);
 
@@ -226,7 +219,7 @@ fn sq_pki_link_authorize_then_authenticate() {
 
         // The user authorizes the CA with the domain contraint "example".
         sq.tick(1);
-        sq.pki_link_authorize(&concat(e, &["--domain", "example"]),
+        sq.pki_link_authorize(&["--domain", "example"],
                               ca.key_handle(),
                               userids);
 
@@ -379,9 +372,9 @@ fn retract_non_self_signed() {
     // Authorize the CA via a non-self-signed user ID.  Now we can
     // authenticate alice.
     sq.tick(1);
-    sq.pki_link_authorize(&["--unconstrained", "--add-userid"],
+    sq.pki_link_authorize(&["--unconstrained"],
                           ca.key_handle(),
-                          &[non_self_signed]);
+                          &[UserIDArg::AddUserID(non_self_signed)]);
     check(&sq, true);
 
     // Retract the authorization.  It should no longer be considered a
@@ -445,9 +438,10 @@ fn retract_all() {
     // Authorize the CA via a non-self-signed user ID.  Now we can
     // authenticate alice.
     sq.tick(1);
-    sq.pki_link_authorize(&["--unconstrained", "--add-userid"],
+    sq.pki_link_authorize(&["--unconstrained"],
                           ca.key_handle(),
-                          &[self_signed, non_self_signed]);
+                          &[UserIDArg::UserID(self_signed),
+                            UserIDArg::AddUserID(non_self_signed)]);
     check(&sq, true);
 
     // Retract all authorizations.  It should no longer be considered

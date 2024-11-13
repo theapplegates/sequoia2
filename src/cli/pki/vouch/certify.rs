@@ -43,8 +43,7 @@ which is not a self-signed user ID.",
                 "sq", "pki", "vouch", "certify",
                 "--certifier=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "--add-userid",
-                "--email=bob@bobs.lair.net",
+                "--add-email=bob@bobs.lair.net",
             ],
         }),
     ],
@@ -99,7 +98,7 @@ pub struct Command {
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::MaybeSelfSignedUserIDEmailArgs>,
+        userid_designator::ExistingAndAddArgs>,
 
     #[clap(
         long = "amount",

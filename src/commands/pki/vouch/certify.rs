@@ -32,7 +32,6 @@ pub fn certify(sq: Sq, mut c: certify::Command)
         &certifier,
         &cert,
         &userids[..],
-        c.userids.add_userid().unwrap_or(false),
         true, // User supplied user IDs.
         &[(c.amount, c.expiration.value())],
         0,

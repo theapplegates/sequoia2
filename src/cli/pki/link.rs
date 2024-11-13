@@ -173,7 +173,7 @@ pub struct AddCommand {
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::MaybeSelfSignedUserIDEmailAllArgs>,
+        userid_designator::AllExistingAndAddArgs>,
 
     #[clap(
         long = "amount",
@@ -341,7 +341,7 @@ pub struct AuthorizeCommand {
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::MaybeSelfSignedUserIDEmailAllArgs,
+        userid_designator::AllExistingAndAddArgs,
         userid_designator::OptionalValue>,
 
     #[clap(
@@ -535,7 +535,7 @@ to force the signature to be re-created anyway.",
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::UserIDEmailArgs,
+        userid_designator::AnyArgs,
         userid_designator::OptionalValue>,
 }
 

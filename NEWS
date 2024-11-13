@@ -40,6 +40,10 @@
      --key-store=none`.
    - Similarly, `sq --home=none` disables all state, unless explicitly
      re-enabled using `--cert-store` or `--key-store`.
+   - `sq pki link add`, `sq pki link authorize`, `sq pki vouch
+     certify`, and `sq pki vouch authorize` have a `--add-userid`
+     flag.  Replace it with an `--add-userid` argument, and an
+     `--add-email` argument.
 
 * Changes in 0.39.0
 ** Notable changes

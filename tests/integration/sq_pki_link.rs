@@ -12,6 +12,7 @@ use openpgp::Cert;
 use super::common::FileOrKeyHandle;
 use super::common::NO_USERIDS;
 use super::common::Sq;
+use super::common::UserIDArg;
 use super::common::artifact;
 
 
@@ -669,7 +670,8 @@ fn retract_non_self_signed() {
 
     // Link a non-self-signed user ID.
     sq.tick(1);
-    sq.pki_link_add(&["--add-userid"], alice.key_handle(), &[petname]);
+    sq.pki_link_add(&[], alice.key_handle(),
+                    &[UserIDArg::AddUserID(petname)]);
 
     // Now it should work.
     sq_verify(&sq, None, &[], &[], &sig_msg_str, 1, 0);
@@ -705,7 +707,7 @@ fn retract_all() {
 
     // Link a non-self-signed user ID.
     sq.tick(1);
-    sq.pki_link_add(&["--add-userid"], alice.key_handle(), &[petname]);
+    sq.pki_link_add(&[], alice.key_handle(), &[UserIDArg::AddUserID(petname)]);
 
     // Now it should work.
     sq_verify(&sq, None, &[], &[], &sig_msg_str, 1, 0);

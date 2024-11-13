@@ -3,6 +3,7 @@ use openpgp::Result;
 
 use crate::Sq;
 use crate::cli::pki::vouch::authorize;
+use crate::cli::types::userid_designator::ResolvedUserID;
 use crate::commands::FileOrStdout;
 use crate::parse_notations;
 
@@ -25,9 +26,7 @@ pub fn authorize(sq: Sq, mut c: authorize::Command)
     let mut userids = c.userids.resolve(&vc)?;
     let user_supplied_userids = if userids.is_empty() {
         // Use all self-signed User IDs.
-        userids = vc.userids()
-            .map(|ua| ua.userid().clone())
-            .collect::<Vec<_>>();
+        userids = ResolvedUserID::implicit_for_valid_cert(&vc);
 
         if userids.is_empty() {
             return Err(anyhow::anyhow!(
@@ -49,7 +48,6 @@ pub fn authorize(sq: Sq, mut c: authorize::Command)
         &certifier,
         &cert,
         &userids[..],
-        c.userids.add_userid().unwrap_or(false),
         user_supplied_userids,
         &[(c.amount, c.expiration.value())],
         c.depth,

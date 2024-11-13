@@ -144,6 +144,25 @@ where
                         }
                     }
                 }
+                UserIDDesignator::Name(name) =>
+                {
+                    if let Some(ua) = vc.userids()
+                        .find(|ua| {
+                            if let Ok(Some(n)) = ua.userid().name2() {
+                                n == name
+                            } else {
+                                false
+                            }
+                        })
+                    {
+                        userids.push(designator.resolve_to(ua.userid().clone()));
+                    } else {
+                        eprintln!("None of the self-signed user IDs \
+                                   are for the display name {:?}.",
+                                  name);
+                        missing = true;
+                    }
+                }
             }
         }
 
@@ -166,7 +185,7 @@ where
                 wprintln!("Use `--add-userid` or `--add-email` to use \
                            a user ID even if it isn't self signed.");
             }
-            return Err(anyhow::anyhow!("Not a self-signed user ID"));
+            return Err(anyhow::anyhow!("No matching self-signed user ID"));
         }
         if ambiguous_email {
             wprintln!("Use `--userid` with the full user ID, or \

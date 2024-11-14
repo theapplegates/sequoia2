@@ -6,16 +6,16 @@ use anyhow::Context;
 use sequoia_wot as wot;
 
 use crate::Sq;
-use crate::cli::pki::PathCommand;
+use crate::cli::pki::path::Command;
 use crate::commands::pki::print_path;
 use crate::commands::pki::print_path_error;
 use crate::commands::pki::print_path_header;
 use crate::commands::pki::required_trust_amount;
 
-pub fn path(sq: Sq, c: PathCommand)
+pub fn path(sq: Sq, c: Command)
     -> Result<()>
 {
-    let PathCommand {
+    let Command {
         certification_network, trust_amount, path,
     } = c;
 

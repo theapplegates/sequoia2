@@ -540,7 +540,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
 
         // Authenticates a given path.
         Subcommands::Path(command) =>
-            path::path(sq, command)?,
+            self::path::path(sq, command)?,
 
         Subcommands::Vouch(command) =>
             self::vouch::vouch(sq, command)?,

@@ -39,28 +39,32 @@ pub type AddUserIDArg = typenum::U64;
 /// Adds a `--add-email` argument.
 pub type AddEmailArg = typenum::U128;
 
-/// Enables --userid, and --email (but not --name, --add-userid or
-/// --add-email).
+/// Adds a `--add-name` argument.  The value need not correspond to a
+/// self-signed user ID.
+pub type AddNameArg = typenum::U256;
+
+/// Enables --userid, and --email (but not --name, --add-userid,
+/// --add-email, or --add-name).
 pub type ExistingUserIDEmailArgs
     = <ExistingUserIDArg as std::ops::BitOr<ExistingEmailArg>>::Output;
 
-/// Enables --userid, --email, --name (but not --add-userid or
-/// --add-email).
+/// Enables --userid, --email, --name (but not --add-userid,
+/// --add-email, or --add-name).
 pub type ExistingUserIDEmailNameArgs
     = <ExistingUserIDEmailArgs as std::ops::BitOr<ExistingNameArg>>::Output;
 
-/// Enables --userid, and --email (but not --name, --add-userid or
-/// --add-email).
+/// Enables --userid, and --email (but not --name, --add-userid,
+/// --add-email, or --add-name).
 pub type AnyUserIDEmailArgs
     = <AnyUserIDArg as std::ops::BitOr<AnyEmailArg>>::Output;
 
-/// Enables --add-userid, and --add-email (but not --name, --userid or
-/// --email).
+/// Enables --add-userid, and --add-email (but not --userid, --email,
+/// --name, or --add-name).
 pub type AddUserIDEmailArgs
     = <AddUserIDArg as std::ops::BitOr<AddEmailArg>>::Output;
 
 /// Enables --userid, --email, --add-userid, and --add-email (but not
-/// --name).
+/// --name or --add-name).
 pub type ExistingAndAddXUserIDEmailArgs
     = <ExistingUserIDEmailArgs
        as std::ops::BitOr<AddUserIDEmailArgs>>::Output;
@@ -105,6 +109,9 @@ pub enum UserIDDesignator {
 
     /// An email address.
     AddEmail(String),
+
+    /// A name.
+    AddName(String),
 }
 
 #[allow(dead_code)]
@@ -121,6 +128,7 @@ impl UserIDDesignator {
             AnyEmail(_email) => "--email",
             AddUserID(_userid) => "--add-userid",
             AddEmail(_email) => "--add-email",
+            AddName(_name) => "--add-name",
         }
     }
 
@@ -136,6 +144,7 @@ impl UserIDDesignator {
             AnyEmail(email) => format!("{:?}", email),
             AddUserID(userid) => format!("{:?}", userid),
             AddEmail(email) => format!("{:?}", email),
+            AddName(name) => format!("{:?}", name),
         }
     }
 
@@ -154,6 +163,7 @@ impl UserIDDesignator {
             AnyEmail(email) => format!("{} {:?}", argument_name, email),
             AddUserID(userid) => format!("{} {:?}", argument_name, userid),
             AddEmail(email) => format!("{} {:?}", argument_name, email),
+            AddName(name) => format!("{} {:?}", argument_name, name),
         }
     }
 
@@ -239,6 +249,7 @@ where
         let any_email_arg = (arguments & AnyEmailArg::to_usize()) > 0;
         let add_userid_arg = (arguments & AddUserIDArg::to_usize()) > 0;
         let add_email_arg = (arguments & AddEmailArg::to_usize()) > 0;
+        let add_name_arg = (arguments & AddNameArg::to_usize()) > 0;
 
         // Can't provide both ExistingUserIDArg and AnyUserIDArg.
         assert!(! (userid_arg && any_userid_arg));
@@ -407,8 +418,25 @@ you can add a petname, i.e., a memorable, personal name like \"mom\"."));
 Use a user ID with the specified email address.
 
 This first searches for a matching self-signed user ID.  If there is \
-no self-signed user ID with the specified, it uses a new user ID with \
-the specified email address, and no display name."));
+no self-signed user ID with the specified email address, it uses a new \
+user ID with the specified email address, and no display name."));
+            arg_group = arg_group.arg(full_name);
+        }
+
+        if add_name_arg {
+            let full_name = "add-name";
+            cmd = cmd.arg(
+                clap::Arg::new(&full_name)
+                    .long(&full_name)
+                    .value_name("DISPLAY_NAME")
+                    .action(action.clone())
+                    .help("Use a user ID with the specified display name")
+                    .long_help("\
+Use a user ID with the specified display name.
+
+This first searches for a matching self-signed user ID.  If there is \
+no self-signed user ID with the specified name, it uses a new user ID \
+with the specified display name, and no email address."));
             arg_group = arg_group.arg(full_name);
         }
 
@@ -443,6 +471,7 @@ where
         let any_email_arg = (arguments & AnyEmailArg::to_usize()) > 0;
         let add_userid_arg = (arguments & AddUserIDArg::to_usize()) > 0;
         let add_email_arg = (arguments & AddEmailArg::to_usize()) > 0;
+        let add_name_arg = (arguments & AddNameArg::to_usize()) > 0;
 
         // Can't provide both ExistingUserIDArg and AnyUserIDArg.
         assert!(! (userid_arg && any_userid_arg));
@@ -523,6 +552,15 @@ where
         {
             for add_email in add_emails.cloned() {
                 designators.push(UserIDDesignator::AddEmail(add_email));
+            }
+        }
+
+        if let Some(Some(add_names))
+            = matches.try_get_many::<String>("add-name")
+            .ok().filter(|_| add_name_arg)
+        {
+            for add_name in add_names.cloned() {
+                designators.push(UserIDDesignator::AddName(add_name));
             }
         }
 
@@ -614,6 +652,7 @@ impl ResolvedUserID {
 
             Some(AddUserID(_userid)) => false,
             Some(AddEmail(_email)) => false,
+            Some(AddName(_name)) => false,
 
             None => false,
         }
@@ -635,7 +674,7 @@ mod test {
             ($t:ty,
              $userid:expr, $email:expr, $name:expr,
              $any_userid:expr, $any_email:expr,
-             $add_userid:expr, $add_email:expr) =>
+             $add_userid:expr, $add_email:expr, $add_name: expr) =>
             {{
                 #[derive(Parser, Debug)]
                 #[clap(name = "prog")]
@@ -722,24 +761,39 @@ mod test {
                 } else {
                     assert!(m.is_err());
                 }
+
+                // Check if --add-name is recognized.
+                let m = command.clone().try_get_matches_from(vec![
+                    "prog",
+                    "--add-name", "alice",
+                    "--add-name", "bob",
+                ]);
+                if $add_name {
+                    let m = m.expect("valid arguments");
+                    let c = CLI::from_arg_matches(&m).expect("ok");
+                    assert_eq!(c.userids.designators.len(), 2);
+                } else {
+                    assert!(m.is_err());
+                }
             }}
         }
 
-        // No Args.
-        check!(typenum::U0,             false, false, false, false, false, false, false);
-        check!(ExistingUserIDArg,        true, false, false, false, false, false, false);
-        check!(ExistingEmailArg,        false,  true, false, false, false, false, false);
-        check!(ExistingNameArg,         false, false,  true, false, false, false, false);
-        check!(ExistingUserIDEmailArgs,  true,  true, false, false, false, false, false);
-        check!(AnyUserIDArg,            false, false, false,  true, false, false, false);
-        check!(AnyEmailArg,             false, false, false, false,  true, false, false);
-        check!(AnyUserIDEmailArgs,      false, false, false,  true,  true, false, false);
-        check!(AddUserIDArg,            false, false, false, false, false,  true, false);
-        check!(AddEmailArg,             false, false, false, false, false, false,  true);
-        check!(AddUserIDEmailArgs,      false, false, false, false, false,  true,  true);
-        check!(ExistingUserIDEmailNameArgs,true,true, true, false, false,  false, false);
+        //                             userid  email  name ?userid ?email +userid +email +name
+        check!(typenum::U0,             false, false, false, false, false, false, false, false);
+        check!(ExistingUserIDArg,        true, false, false, false, false, false, false, false);
+        check!(ExistingEmailArg,        false,  true, false, false, false, false, false, false);
+        check!(ExistingNameArg,         false, false,  true, false, false, false, false, false);
+        check!(ExistingUserIDEmailArgs,  true,  true, false, false, false, false, false, false);
+        check!(AnyUserIDArg,            false, false, false,  true, false, false, false, false);
+        check!(AnyEmailArg,             false, false, false, false,  true, false, false, false);
+        check!(AnyUserIDEmailArgs,      false, false, false,  true,  true, false, false, false);
+        check!(AddUserIDArg,            false, false, false, false, false,  true, false, false);
+        check!(AddEmailArg,             false, false, false, false, false, false,  true, false);
+        check!(AddNameArg,              false, false, false, false, false, false, false,  true);
+        check!(AddUserIDEmailArgs,      false, false, false, false, false,  true,  true, false);
+        check!(ExistingUserIDEmailNameArgs,true,true, true, false, false,  false, false, false);
         check!(ExistingAndAddXUserIDEmailArgs,
-                                         true,  true, false, false, false,  true,  true);
+                                         true,  true, false, false, false,  true,  true, false);
     }
 
     #[test]

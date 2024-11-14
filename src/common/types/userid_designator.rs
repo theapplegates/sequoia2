@@ -24,8 +24,22 @@ where
 {
     /// Resolve the user ID designators.
     ///
-    /// If `--add-userid` is enabled, then this will return an error
-    /// if a user ID that is not self-signed is designated.
+    /// We first match on self-signed user IDs.  We return an error if
+    /// a match is ambiguous (e.g., when matching on an email address,
+    /// and there are multiple user IDs with the specified email
+    /// address).
+    ///
+    /// If there are no matches, and we don't require a match (e.g.,
+    /// UserIDArg, EmailArg, NameArg), then we create a new user ID.
+    ///
+    /// This will match on revoked user IDs.
+    ///
+    /// When `--all` is provided, returns all non-revoked, self-signed
+    /// user IDs.  If there are none, an error is returned.
+    ///
+    /// The returned `ResolvedUserID` are deduped by user ID.  That
+    /// is, if multiple designators resolve to the same user ID, only
+    /// one is kept.
     pub fn resolve(&self, vc: &ValidCert) -> Result<Vec<ResolvedUserID>> {
         let arguments = Arguments::to_usize();
         let add_userid_arg = (arguments & AddUserIDArg::to_usize()) > 0;
@@ -37,6 +51,7 @@ where
         // Don't stop at the first error.
         let mut missing = false;
         let mut ambiguous_email = false;
+        let mut ambiguous_name = false;
         let mut bad = None;
 
         if let Some(true) = self.all() {
@@ -147,35 +162,60 @@ where
                         }
                     }
                 }
-                UserIDDesignator::Name(name) =>
+                UserIDDesignator::Name(name)
+                    | UserIDDesignator::AddName(name) =>
                 {
-                    if let Some(ua) = vc.userids()
-                        .find(|ua| {
-                            if let Ok(Some(n)) = ua.userid().name2() {
-                                n == name
-                            } else {
-                                false
+                    let userid = UserID::from(&name[..]);
+                    if userid.name2().ok() != Some(Some(&name[..])) {
+                        let err = format!("{:?} is not a valid display name",
+                                          name);
+                        wprintln!("{}", err);
+                        bad = Some(anyhow::anyhow!(err));
+                        continue;
+                    };
+
+                    let mut found = false;
+                    for ua in vc.userids() {
+                        if let Ok(Some(n)) = ua.userid().name2() {
+                            if n == name {
+                                if found {
+                                    wprintln!("{:?} is ambiguous: it matches \
+                                               multiple self-signed user IDs.",
+                                              name);
+                                    ambiguous_name = true;
+                                }
+
+                                userids.push(designator.clone()
+                                             .resolve_to(ua.userid().clone()));
+                                found = true;
                             }
-                        })
-                    {
-                        userids.push(designator.resolve_to(ua.userid().clone()));
-                    } else {
-                        eprintln!("None of the self-signed user IDs \
-                                   are for the display name {:?}.",
-                                  name);
-                        missing = true;
+                        }
+                    }
+
+                    if ! found {
+                        if matches!(designator, UserIDDesignator::AddName(_)) {
+                            // Use as is.
+                            userids.push(designator.resolve_to(UserID::from(&name[..])));
+                        } else {
+                            eprintln!("None of the self-signed user IDs \
+                                       are for the display name {:?}.",
+                                      name);
+                            missing = true;
+                        }
                     }
                 }
             }
         }
 
-        if missing || ambiguous_email {
+        if missing || ambiguous_email || ambiguous_name {
             wprintln!("{}'s self-signed user IDs:", vc.fingerprint());
             let mut have_valid = false;
             for ua in vc.userids() {
                 if let Ok(u) = std::str::from_utf8(ua.userid().value()) {
                     have_valid = true;
-                    wprintln!("  - {:?}", u);
+                    wprintln!(initial_indent="  - ",
+                              subsequent_indent="    ",
+                              "{:?}", u);
                 }
             }
             if ! have_valid {
@@ -216,6 +256,13 @@ where
                        `--add-userid` to add a new user ID.");
             return Err(anyhow::anyhow!("\
                 An email address does not unambiguously designate a \
+                self-signed user ID"));
+        }
+        if ambiguous_name {
+            wprintln!("Use `--userid` with the full user ID, or \
+                       `--add-userid` to add a new user ID.");
+            return Err(anyhow::anyhow!("\
+                A name does not unambiguously designate a \
                 self-signed user ID"));
         }
 

@@ -16,7 +16,7 @@ pub fn path(sq: Sq, c: Command)
     -> Result<()>
 {
     let Command {
-        certification_network, trust_amount, path,
+        certification_network, trust_amount, path, userid,
     } = c;
 
     // Build the network.
@@ -39,12 +39,11 @@ pub fn path(sq: Sq, c: Command)
     let required_amount =
         required_trust_amount(*trust_amount, *certification_network)?;
 
-    let (khs, userid) = (path.certs()?, path.userid()?);
-    assert!(khs.len() > 0, "guaranteed by clap");
+    assert!(path.len() > 0, "guaranteed by clap");
 
-    let r = q.lint_path(&khs, &userid, required_amount, sq.policy);
+    let r = q.lint_path(&path, &userid, required_amount, sq.policy);
 
-    let target_kh = khs.last().expect("have one");
+    let target_kh = path.last().expect("have one");
 
     let trust_amount = match r {
         Ok(path) => {

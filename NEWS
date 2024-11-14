@@ -60,6 +60,9 @@
      should be used even if there is no corresponding self-signed user
      ID.  This functionality is replaced by the `--add-userid`,
      `--add-email` and `--add-name` arguments.
+   - `sq pki path` previously interpreted the last positional argument
+     as the user ID to authenticate.  Make it a named argument
+     instead, `--userid`.
 
 * Changes in 0.39.0
 ** Notable changes

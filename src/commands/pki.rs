@@ -16,6 +16,7 @@ use wot::store::Store;
 
 pub mod link;
 pub mod output;
+pub mod path;
 pub mod vouch;
 
 use crate::cli;
@@ -502,79 +503,6 @@ pub fn authenticate<'store, 'rstore>(
     }
 }
 
-// For `sq-wot path`.
-fn check_path(sq: &Sq,
-              certification_network: bool,
-              trust_amount: Option<TrustAmount<usize>>,
-              path: cli::pki::PathArg)
-    -> Result<()>
-{
-    tracer!(TRACE, "check_path");
-
-    // Build the network.
-    let cert_store = match sq.cert_store() {
-        Ok(Some(cert_store)) => cert_store,
-        Ok(None) => {
-            return Err(anyhow::anyhow!("Certificate store has been disabled"));
-        }
-        Err(err) => {
-            return Err(err).context("Opening certificate store");
-        }
-    };
-
-    let mut n = wot::NetworkBuilder::rooted(cert_store, &*sq.trust_roots());
-    if certification_network {
-        n = n.certification_network();
-    }
-    let q = n.build();
-
-    let required_amount =
-        required_trust_amount(trust_amount, certification_network)?;
-
-    let (khs, userid) = (path.certs()?, path.userid()?);
-    assert!(khs.len() > 0, "guaranteed by clap");
-
-    let r = q.lint_path(&khs, &userid, required_amount, sq.policy);
-
-    let target_kh = khs.last().expect("have one");
-
-    let trust_amount = match r {
-        Ok(path) => {
-            print_path_header(
-                target_kh,
-                &userid,
-                path.amount(),
-                required_amount,
-            );
-            print_path(&path, &userid, "  ")?;
-
-            let trust_amount = path.amount();
-            if trust_amount >= required_amount {
-                return Ok(());
-            }
-
-            trust_amount
-        }
-        Err(err) => {
-            print_path_header(
-                target_kh,
-                &userid,
-                0,
-                required_amount,
-            );
-
-            print_path_error(err);
-
-            0
-        }
-    };
-
-    Err(anyhow::anyhow!(
-        "The path is not sufficient to authenticate the binding.  \
-         Its trust amount is {}, but a trust amount of {} is required.",
-        trust_amount, required_amount))
-}
-
 pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
     tracer!(TRACE, "pki::dispatch");
 
@@ -611,10 +539,8 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
             None, Some(&cert), *show_paths)?,
 
         // Authenticates a given path.
-        Subcommands::Path(PathCommand {
-            certification_network, trust_amount, path,
-        }) => check_path(
-            &sq, *certification_network, *trust_amount, path)?,
+        Subcommands::Path(command) =>
+            path::path(sq, command)?,
 
         Subcommands::Vouch(command) =>
             self::vouch::vouch(sq, command)?,

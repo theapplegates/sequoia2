@@ -530,7 +530,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
 
         // Find and list all authenticated bindings for a given
         // certificate.
-        Subcommands::Identify(IdentifyCommand {
+        Subcommands::Identify(identify::Command {
             gossip, certification_network, trust_amount,
             cert, show_paths,
         }) => authenticate(

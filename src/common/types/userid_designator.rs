@@ -163,6 +163,7 @@ where
                     }
                 }
                 UserIDDesignator::Name(name)
+                    | UserIDDesignator::AnyName(name)
                     | UserIDDesignator::AddName(name) =>
                 {
                     let userid = UserID::from(&name[..]);
@@ -193,14 +194,15 @@ where
                     }
 
                     if ! found {
-                        if matches!(designator, UserIDDesignator::AddName(_)) {
-                            // Use as is.
-                            userids.push(designator.resolve_to(UserID::from(&name[..])));
-                        } else {
+                        if matches!(designator, UserIDDesignator::Name(_)) {
                             eprintln!("None of the self-signed user IDs \
                                        are for the display name {:?}.",
                                       name);
                             missing = true;
+                        } else {
+                            // Use as is.
+                            userids.push(designator.resolve_to(
+                                UserID::from(&name[..])));
                         }
                     }
                 }

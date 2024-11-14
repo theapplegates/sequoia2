@@ -33,15 +33,20 @@ pub type AnyUserIDArg = typenum::U16;
 /// `ExistingEmailArg`.
 pub type AnyEmailArg = typenum::U32;
 
+/// Adds a `--name` argument.  Unlike ExistingNameArg, the value
+/// need not correspond to a self-signed user ID.  Conflicts with
+/// `ExistingEmailArg`.
+pub type AnyNameArg = typenum::U64;
+
 /// Adds a `--add-userid` argument.
-pub type AddUserIDArg = typenum::U64;
+pub type AddUserIDArg = typenum::U128;
 
 /// Adds a `--add-email` argument.
-pub type AddEmailArg = typenum::U128;
+pub type AddEmailArg = typenum::U256;
 
 /// Adds a `--add-name` argument.  The value need not correspond to a
 /// self-signed user ID.
-pub type AddNameArg = typenum::U256;
+pub type AddNameArg = typenum::U512;
 
 /// Enables --userid, and --email (but not --name, --add-userid,
 /// --add-email, or --add-name).
@@ -111,6 +116,9 @@ pub enum UserIDDesignator {
     /// An email address.
     AnyEmail(String),
 
+    /// A name.
+    AnyName(String),
+
     /// A user ID.
     AddUserID(String),
 
@@ -133,6 +141,7 @@ impl UserIDDesignator {
             Name(_name) => "--name",
             AnyUserID(_userid) => "--userid",
             AnyEmail(_email) => "--email",
+            AnyName(_name) => "--name",
             AddUserID(_userid) => "--add-userid",
             AddEmail(_email) => "--add-email",
             AddName(_name) => "--add-name",
@@ -149,6 +158,7 @@ impl UserIDDesignator {
             Name(name) => format!("{:?}", name),
             AnyUserID(userid) => format!("{:?}", userid),
             AnyEmail(email) => format!("{:?}", email),
+            AnyName(name) => format!("{:?}", name),
             AddUserID(userid) => format!("{:?}", userid),
             AddEmail(email) => format!("{:?}", email),
             AddName(name) => format!("{:?}", name),
@@ -168,6 +178,7 @@ impl UserIDDesignator {
             Name(name) => format!("{} {:?}", argument_name, name),
             AnyUserID(userid) => format!("{} {:?}", argument_name, userid),
             AnyEmail(email) => format!("{} {:?}", argument_name, email),
+            AnyName(name) => format!("{} {:?}", argument_name, name),
             AddUserID(userid) => format!("{} {:?}", argument_name, userid),
             AddEmail(email) => format!("{} {:?}", argument_name, email),
             AddName(name) => format!("{} {:?}", argument_name, name),
@@ -254,6 +265,7 @@ where
         let name_arg = (arguments & ExistingNameArg::to_usize()) > 0;
         let any_userid_arg = (arguments & AnyUserIDArg::to_usize()) > 0;
         let any_email_arg = (arguments & AnyEmailArg::to_usize()) > 0;
+        let any_name_arg = (arguments & AnyNameArg::to_usize()) > 0;
         let add_userid_arg = (arguments & AddUserIDArg::to_usize()) > 0;
         let add_email_arg = (arguments & AddEmailArg::to_usize()) > 0;
         let add_name_arg = (arguments & AddNameArg::to_usize()) > 0;
@@ -261,6 +273,7 @@ where
         // Can't provide both ExistingUserIDArg and AnyUserIDArg.
         assert!(! (userid_arg && any_userid_arg));
         assert!(! (email_arg && any_email_arg));
+        assert!(! (name_arg && any_name_arg));
 
         let options = Options::to_usize();
         let one_value = (options & OneValue::to_usize()) > 0;
@@ -386,8 +399,26 @@ Use a user ID with the specified email address")
 Use a user ID with the specified email address.
 
 This first searches for a matching self-signed user ID.  If there is \
-no self-signed user ID with the specified, it uses a new user ID with \
-the specified email address, and no display name."));
+no self-signed user ID with the specified email, it uses a new user ID \
+with the specified email address, and no display name."));
+            arg_group = arg_group.arg(full_name);
+        }
+
+        if any_name_arg {
+            let full_name = "name";
+            cmd = cmd.arg(
+                clap::Arg::new(&full_name)
+                    .long(&full_name)
+                    .value_name("DISPLAY_NAME")
+                    .action(action.clone())
+                    .help("\
+Use a user ID with the specified display name")
+                    .long_help("\
+Use a user ID with the specified display name.
+
+This first searches for a matching self-signed user ID.  If there is \
+no self-signed user ID with the specified name, it uses a new user ID \
+with the specified display name, and no email address."));
             arg_group = arg_group.arg(full_name);
         }
 
@@ -476,6 +507,7 @@ where
         let name_arg = (arguments & ExistingNameArg::to_usize()) > 0;
         let any_userid_arg = (arguments & AnyUserIDArg::to_usize()) > 0;
         let any_email_arg = (arguments & AnyEmailArg::to_usize()) > 0;
+        let any_name_arg = (arguments & AnyNameArg::to_usize()) > 0;
         let add_userid_arg = (arguments & AddUserIDArg::to_usize()) > 0;
         let add_email_arg = (arguments & AddEmailArg::to_usize()) > 0;
         let add_name_arg = (arguments & AddNameArg::to_usize()) > 0;
@@ -483,6 +515,7 @@ where
         // Can't provide both ExistingUserIDArg and AnyUserIDArg.
         assert!(! (userid_arg && any_userid_arg));
         assert!(! (email_arg && any_email_arg));
+        assert!(! (name_arg && any_name_arg));
 
         let mut designators = Vec::new();
 
@@ -540,6 +573,15 @@ where
         {
             for email in emails.cloned() {
                 designators.push(UserIDDesignator::AnyEmail(email));
+            }
+        }
+
+        if let Some(Some(names))
+            = matches.try_get_many::<String>("name")
+            .ok().filter(|_| any_name_arg)
+        {
+            for name in names.cloned() {
+                designators.push(UserIDDesignator::AnyName(name));
             }
         }
 
@@ -656,6 +698,7 @@ impl ResolvedUserID {
             Some(Name(_email)) => true,
             Some(AnyUserID(_userid)) => true,
             Some(AnyEmail(_email)) => true,
+            Some(AnyName(_name)) => true,
 
             Some(AddUserID(_userid)) => false,
             Some(AddEmail(_email)) => false,
@@ -680,7 +723,7 @@ mod test {
         macro_rules! check {
             ($t:ty,
              $userid:expr, $email:expr, $name:expr,
-             $any_userid:expr, $any_email:expr,
+             $any_userid:expr, $any_email:expr, $any_name:expr,
              $add_userid:expr, $add_email:expr, $add_name: expr) =>
             {{
                 #[derive(Parser, Debug)]
@@ -725,7 +768,7 @@ mod test {
                     "--name", "alice",
                     "--name", "bob",
                 ]);
-                if $name {
+                if $name || $any_name {
                     let m = m.expect("valid arguments");
                     let c = CLI::from_arg_matches(&m).expect("ok");
                     assert_eq!(c.userids.designators.len(), 2);
@@ -785,24 +828,25 @@ mod test {
             }}
         }
 
-        //                             userid  email  name ?userid ?email +userid +email +name
-        check!(typenum::U0,             false, false, false, false, false, false, false, false);
-        check!(ExistingUserIDArg,        true, false, false, false, false, false, false, false);
-        check!(ExistingEmailArg,        false,  true, false, false, false, false, false, false);
-        check!(ExistingNameArg,         false, false,  true, false, false, false, false, false);
-        check!(ExistingUserIDEmailArgs,  true,  true, false, false, false, false, false, false);
-        check!(AnyUserIDArg,            false, false, false,  true, false, false, false, false);
-        check!(AnyEmailArg,             false, false, false, false,  true, false, false, false);
-        check!(AnyUserIDEmailArgs,      false, false, false,  true,  true, false, false, false);
-        check!(AddUserIDArg,            false, false, false, false, false,  true, false, false);
-        check!(AddEmailArg,             false, false, false, false, false, false,  true, false);
-        check!(AddNameArg,              false, false, false, false, false, false, false,  true);
-        check!(AddUserIDEmailArgs,      false, false, false, false, false,  true,  true, false);
-        check!(ExistingUserIDEmailNameArgs,true,true, true, false, false,  false, false, false);
+        //                             userid  email  name ?userid ?email  ?name +userid +email +name
+        check!(typenum::U0,             false, false, false, false, false, false, false, false, false);
+        check!(ExistingUserIDArg,        true, false, false, false, false, false, false, false, false);
+        check!(ExistingEmailArg,        false,  true, false, false, false, false, false, false, false);
+        check!(ExistingNameArg,         false, false,  true, false, false, false, false, false, false);
+        check!(ExistingUserIDEmailArgs,  true,  true, false, false, false, false, false, false, false);
+        check!(AnyUserIDArg,            false, false, false,  true, false, false, false, false, false);
+        check!(AnyEmailArg,             false, false, false, false,  true, false, false, false, false);
+        check!(AnyNameArg,              false, false, false, false, false,  true, false, false, false);
+        check!(AnyUserIDEmailArgs,      false, false, false,  true,  true, false, false, false, false);
+        check!(AddUserIDArg,            false, false, false, false, false, false,  true, false, false);
+        check!(AddEmailArg,             false, false, false, false, false, false, false,  true, false);
+        check!(AddNameArg,              false, false, false, false, false, false, false, false,  true);
+        check!(AddUserIDEmailArgs,      false, false, false, false, false, false,  true,  true, false);
+        check!(ExistingUserIDEmailNameArgs,true,true, true, false, false,  false, false, false, false);
         check!(ExistingAndAddXUserIDEmailArgs,
-                                         true,  true, false, false, false,  true,  true, false);
+                                         true,  true, false, false, false, false,  true,  true, false);
         check!(ExistingAndAddXUserIDEmailNameArgs,
-                                         true,  true,  true, false, false,  true,  true,  true);
+                                         true,  true,  true, false, false, false,  true,  true,  true);
     }
 
     #[test]

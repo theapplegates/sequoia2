@@ -66,6 +66,8 @@
    - Add `sq pki path --email` and `sq pki path --name` as additional
      ways to specify the user ID to authenticate.
    - The argument `sq encrypt --set-metadata-time` has been removed.
+   - The argument `sq encrypt --set-metadata-filename` now takes a
+     string that specifies the file name to be set.
 
 * Changes in 0.39.0
 ** Notable changes

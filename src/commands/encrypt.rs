@@ -2,7 +2,6 @@ use std::io;
 use std::path::PathBuf;
 use std::time::SystemTime;
 
-use anyhow::anyhow;
 use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
@@ -87,7 +86,7 @@ pub fn encrypt<'a, 'b: 'a>(
     compression: CompressionMode,
     time: Option<SystemTime>,
     use_expired_subkey: bool,
-    set_metadata_filename: bool,
+    set_metadata_filename: Option<String>,
 )
     -> Result<()>
 {
@@ -199,31 +198,8 @@ pub fn encrypt<'a, 'b: 'a>(
         sink = signer.build()?;
     }
 
-    let mut literal_writer = LiteralWriter::new(sink);
-
-    if set_metadata_filename {
-        literal_writer = literal_writer
-            .filename(
-                input
-                    .inner()
-                    .ok_or_else(|| {
-                        anyhow!(
-                            "Can not embed filename when reading from stdin."
-                        )
-                    })?
-                    .as_path()
-                    .file_name()
-                    .ok_or_else(|| {
-                        anyhow!("Failed to get filename from input.")
-                    })?
-                    .to_str()
-                    .ok_or_else(|| {
-                        anyhow!("Failed to convert filename to string.")
-                    })?
-                    .to_string(),
-            )
-            .context("Setting filename")?
-    }
+    let literal_writer = LiteralWriter::new(sink)
+        .filename(set_metadata_filename.unwrap_or_default())?;
 
     let mut writer_stack = literal_writer
         .build()

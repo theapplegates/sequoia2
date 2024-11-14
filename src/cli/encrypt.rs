@@ -88,14 +88,14 @@ pub struct Command {
 
     #[clap(
         help = "Set the filename of the encrypted file as metadata",
-        long,
+        long = "set-metadata-filename",
         long_help =
             "Set the filename of the encrypted file as metadata.  \
             Do note, that this metadata is not signed and as such relying on \
             it - on sender or receiver side - is generally considered \
             dangerous.",
     )]
-    pub set_metadata_filename: bool,
+    pub set_metadata_filename: Option<String>,
 
     #[command(flatten)]
     pub signers: CertDesignators<CertUserIDEmailFileArgs,

@@ -21,6 +21,7 @@ mod integration {
     mod sq_key_subkey_export;
     mod sq_key_subkey_password;
     mod sq_key_userid;
+    mod sq_key_userid_revoke;
     mod sq_pki;
     mod sq_pki_link;
     mod sq_pki_link_authorize;

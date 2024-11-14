@@ -75,6 +75,13 @@ pub type AllExistingAndAddXUserIDEmailArgs
     = <AllUserIDsArg
        as std::ops::BitOr<ExistingAndAddXUserIDEmailArgs>>::Output;
 
+/// Enables --userid, --email, --name, --add-userid,
+/// --add-email, and --add-name (but not --all).
+pub type ExistingAndAddXUserIDEmailNameArgs
+    = <<ExistingAndAddXUserIDEmailArgs
+        as std::ops::BitOr<ExistingNameArg>>::Output
+       as std::ops::BitOr<AddNameArg>>::Output;
+
 /// Argument parser options.
 
 /// Normally it is possible to designate multiple certificates.  This
@@ -794,6 +801,8 @@ mod test {
         check!(ExistingUserIDEmailNameArgs,true,true, true, false, false,  false, false, false);
         check!(ExistingAndAddXUserIDEmailArgs,
                                          true,  true, false, false, false,  true,  true, false);
+        check!(ExistingAndAddXUserIDEmailNameArgs,
+                                         true,  true,  true, false, false,  true,  true,  true);
     }
 
     #[test]

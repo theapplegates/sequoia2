@@ -7,7 +7,9 @@ use openpgp::types::ReasonForRevocation;
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
 use crate::cli::types::FileOrStdout;
+use crate::cli::types::UserIDDesignators;
 use crate::cli::types::cert_designator::*;
+use crate::cli::types::userid_designator;
 
 use crate::cli::examples;
 use examples::Action;
@@ -221,47 +223,10 @@ pub struct RevokeCommand {
                                  OneOptionalValue,
                                  UserIDRevokeRevokerDoc>,
 
-    #[clap(
-        long = "name",
-        value_name = "NAME",
-        help = "Revoke the given name user ID",
-        long_help = "\
-Revoke the given name user ID.  Must match a user ID exactly.  To revoke
-a user ID that contains more than just a name, use `--userid`.",
-    )]
-    pub name: Option<String>,
-
-    #[clap(
-        long = "email",
-        value_name = "ADDRESS",
-        help = "Revoke the given email address user ID",
-        long_help = "\
-Revoke the given email address user ID.  Must match a user ID exactly.
-To revoke a user ID that contains more than just an email address name,
-use `--userid`.",
-    )]
-    pub email: Option<String>,
-
-    #[clap(
-        long,
-        value_name = "USERID",
-        help = "Revoke the given user ID",
-        long_help = "\
-Revoke the given user ID.
-
-By default, this must exactly match a self-signed User ID.  Use \
-`--add-userid` to generate a revocation certificate for a User ID that is \
-not self signed."
-    )]
-    pub userid: Option<String>,
-
-    #[clap(
-        long = "add-userid",
-        help = "Add the given user ID if it doesn't exist.",
-        long_help =
-            "Add the given user ID if it doesn't exist in the certificate.",
-    )]
-    pub add_userid: bool,
+    #[command(flatten)]
+    pub userids: UserIDDesignators<
+        userid_designator::ExistingAndAddXUserIDEmailNameArgs,
+        userid_designator::OneValue>,
 
     #[clap(
         long,

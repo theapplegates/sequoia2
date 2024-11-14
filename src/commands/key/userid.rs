@@ -1,10 +1,7 @@
-use std::str::from_utf8;
 use std::sync::Arc;
 use std::time::SystemTime;
 
 use anyhow::Context;
-
-use anyhow::anyhow;
 
 use sequoia_openpgp as openpgp;
 use openpgp::cert::amalgamation::ValidAmalgamation;
@@ -26,15 +23,14 @@ use sequoia_cert_store as cert_store;
 use cert_store::StoreUpdate;
 
 use crate::Sq;
-use crate::cli;
 use crate::cli::key::userid::RevokeCommand;
-use crate::common::NULL_POLICY;
+use crate::cli::types::userid_designator::ResolvedUserID;
+use crate::cli;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
+use crate::sq::NULL_POLICY;
 use crate::common::userid::{
-    lint_email,
     lint_emails,
-    lint_name,
     lint_names,
     lint_userids,
 };
@@ -53,8 +49,7 @@ impl UserIDRevocation {
     /// Create a new UserIDRevocation
     pub fn new(
         sq: &Sq,
-        uid: UserID,
-        force: bool,
+        uid: ResolvedUserID,
         cert: Cert,
         revoker: Option<Cert>,
         reason: ReasonForRevocation,
@@ -64,46 +59,10 @@ impl UserIDRevocation {
         let (revoker, mut signer)
             = get_secret_signer(sq, &cert, revoker.as_ref())?;
 
-        let userid = String::from_utf8_lossy(uid.value()).to_string();
+        let userid = String::from_utf8_lossy(uid.userid().value()).to_string();
 
         let revocation_packet = {
             // Create a revocation for a User ID.
-
-            // Unless force is specified, we require the User ID to
-            // have a valid self signature under the Null policy.  We
-            // use the Null policy and not the standard policy,
-            // because it is still useful to revoke a User ID whose
-            // self signature is no longer valid.  For instance, the
-            // binding signature may use SHA-1.
-            if !force {
-                let valid_cert = cert.with_policy(NULL_POLICY, None)?;
-                let present = valid_cert
-                    .userids()
-                    .any(|u| u.userid() == &uid);
-
-                if !present {
-                    wprintln!(
-                        "User ID, cert: Cert, secret: Option<Cert>: '{}' not found.\nValid User IDs:",
-                        userid
-                    );
-                    let mut have_valid = false;
-                    for ua in valid_cert.userids() {
-                        if let Ok(u) = from_utf8(ua.userid().value()) {
-                            have_valid = true;
-                            wprintln!("  - {}", u);
-                        }
-                    }
-                    if !have_valid {
-                        wprintln!("  - Certificate has no valid User IDs.");
-                    }
-                    return Err(anyhow!(
-                        "The certificate does not contain the specified User \
-                        ID.  To create a revocation certificate for that User \
-                        ID anyways, specify '--add-userid'"
-                    ));
-                }
-            }
-
             let mut rev = UserIDRevocationBuilder::new()
                 .set_reason_for_revocation(reason, message.as_bytes())?;
             rev = rev.set_signature_creation_time(sq.time)?;
@@ -118,7 +77,7 @@ impl UserIDRevocation {
             let rev = rev.build(
                 &mut signer,
                 &cert,
-                &uid,
+                uid.userid(),
                 None,
             )?;
             Packet::Signature(rev)
@@ -129,7 +88,7 @@ impl UserIDRevocation {
             revoker,
             revocation_packet,
             userid,
-            uid,
+            uid: uid.userid().clone(),
         })
     }
 }
@@ -344,16 +303,15 @@ pub fn userid_revoke(
 ) -> Result<()> {
     let cert =
         sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.0;
-
-    let userid = if let Some(n) = command.name {
-        lint_name(&n)?;
-        UserID::from(n)
-    } else if let Some(e) = command.email {
-        lint_email(&e)?;
-        UserID::from_address(None, None, e)?
-    } else {
-        UserID::from(command.userid.expect("one of the three must be given"))
-    };
+    // We require the User ID to have a valid self signature under the
+    // Null policy.  We use the Null policy and not the standard
+    // policy, because it is still useful to revoke a User ID whose
+    // self signature is no longer valid.  For instance, the binding
+    // signature may use SHA-1.
+    let vcert = cert.with_policy(&NULL_POLICY, sq.time)?;
+    let userids = command.userids.resolve(&vcert)?;
+    assert_eq!(userids.len(), 1, "exactly one user ID enforced by clap");
+    let userid = userids.into_iter().next().unwrap();
 
     let revoker = if command.revoker.is_empty() {
         None
@@ -366,7 +324,6 @@ pub fn userid_revoke(
     let revocation = UserIDRevocation::new(
         &sq,
         userid,
-        command.add_userid,
         cert,
         revoker,
         command.reason.into(),

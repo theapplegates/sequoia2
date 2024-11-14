@@ -54,6 +54,12 @@
    - The argument `sq network wkd publish --create` has been split
      into two arguments, `--create` and `--method`, avoiding an
      ambiguity when parsing the arguments.
+   - `sq key userid revoke` no longer accepts the `--add-userid` flag
+     to indicate that a user ID specified using `--userid`, an email
+     specified using `--email`, or a name specified using `--name`
+     should be used even if there is no corresponding self-signed user
+     ID.  This functionality is replaced by the `--add-userid`,
+     `--add-email` and `--add-name` arguments.
 
 * Changes in 0.39.0
 ** Notable changes

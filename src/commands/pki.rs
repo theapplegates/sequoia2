@@ -520,7 +520,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
 
         // Find all authenticated bindings for a given User ID, list
         // the certificates.
-        Subcommands::Lookup(LookupCommand {
+        Subcommands::Lookup(lookup::Command {
             email, gossip, certification_network, trust_amount,
             userid, show_paths,
         }) => authenticate(

@@ -11,6 +11,7 @@ use openpgp::packet::UserID;
 use crate::cli::types::TrustAmount;
 
 pub mod authenticate;
+pub mod lookup;
 pub mod link;
 pub mod path;
 pub mod vouch;
@@ -54,77 +55,11 @@ pub struct Command {
 #[derive(clap::Subcommand, Debug)]
 pub enum Subcommands {
     Authenticate(authenticate::Command),
-    Lookup(LookupCommand),
+    Lookup(lookup::Command),
     Identify(IdentifyCommand),
     Vouch(vouch::Command),
     Link(link::Command),
     Path(path::Command),
-}
-
-const LOOKUP_EXAMPLES: Actions = Actions {
-    actions: &[
-        // Link Alice's certificate.
-        Action::Setup(Setup {
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Lookup certificates that can be authenticated for the given user ID.",
-            command: &[
-                "sq", "pki", "lookup", "Alice <alice@example.org>"
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Lookup certificates that have a user ID with the specified email \
-address, and that user ID can be authenticated.",
-            command: &[
-                "sq", "pki", "lookup", "--email", "alice@example.org",
-            ],
-        }),
-    ]
-};
-test_examples!(sq_pki_lookup, LOOKUP_EXAMPLES);
-
-/// Lookup the certificates associated with a User ID.
-///
-/// Identifies authenticated bindings (User ID and certificate
-/// pairs) where the User ID matches the specified User ID.
-///
-/// An error is return if no binding could be authenticated to the
-/// specified level (by default: fully authenticated, i.e., a trust
-/// amount of 120).
-///
-/// If a binding could be partially authenticated (i.e., its trust
-/// amount is greater than 0), then the binding is displayed, even
-/// if the trust is below the specified threshold.
-#[derive(Parser, Debug)]
-#[clap(
-    name = "lookup",
-    after_help = LOOKUP_EXAMPLES,
-)]
-pub struct LookupCommand {
-    #[command(flatten)]
-    pub show_paths: ShowPathsArg,
-
-    #[command(flatten)]
-    pub email: EmailArg,
-
-    #[command(flatten)]
-    pub gossip: GossipArg,
-
-    #[command(flatten)]
-    pub certification_network: CertificationNetworkArg,
-
-    #[command(flatten)]
-    pub trust_amount: RequiredTrustAmountArg,
-
-    #[command(flatten)]
-    pub userid: UserIDArg,
 }
 
 const IDENTIFY_EXAMPLES: Actions = Actions {

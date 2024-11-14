@@ -16,8 +16,24 @@ pub fn path(sq: Sq, c: Command)
     -> Result<()>
 {
     let Command {
-        certification_network, trust_amount, path, userid,
+        certification_network, trust_amount, path, userids,
     } = c;
+
+    assert_eq!(userids.len(), 1, "guaranteed by clap");
+
+    let target = path.last().expect("guaranteed by clap");
+    let mut userid = None;
+    if let Ok(cert) = sq.lookup_one(target, None, false) {
+        if let Ok(vc) = cert.with_policy(sq.policy, sq.time) {
+            if let Ok(userids) = userids.resolve(&vc) {
+                assert_eq!(userids.len(), 1);
+                userid = Some(userids.into_iter().next().unwrap());
+            }
+        }
+    }
+    let userid = userid.unwrap_or_else(|| {
+        userids.iter().next().unwrap().resolve_to_self()
+    });
 
     // Build the network.
     let cert_store = match sq.cert_store() {
@@ -41,7 +57,7 @@ pub fn path(sq: Sq, c: Command)
 
     assert!(path.len() > 0, "guaranteed by clap");
 
-    let r = q.lint_path(&path, &userid, required_amount, sq.policy);
+    let r = q.lint_path(&path, userid.userid(), required_amount, sq.policy);
 
     let target_kh = path.last().expect("have one");
 
@@ -49,11 +65,11 @@ pub fn path(sq: Sq, c: Command)
         Ok(path) => {
             print_path_header(
                 target_kh,
-                &userid,
+                userid.userid(),
                 path.amount(),
                 required_amount,
             );
-            print_path(&path, &userid, "  ")?;
+            print_path(&path, userid.userid(), "  ")?;
 
             let trust_amount = path.amount();
             if trust_amount >= required_amount {
@@ -65,7 +81,7 @@ pub fn path(sq: Sq, c: Command)
         Err(err) => {
             print_path_header(
                 target_kh,
-                &userid,
+                userid.userid(),
                 0,
                 required_amount,
             );

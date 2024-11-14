@@ -63,6 +63,11 @@ pub type ExistingUserIDEmailNameArgs
 pub type AnyUserIDEmailArgs
     = <AnyUserIDArg as std::ops::BitOr<AnyEmailArg>>::Output;
 
+/// Enables --userid, --email, and --name (but not --add-userid,
+/// --add-email, or --add-name).
+pub type AnyUserIDEmailNameArgs
+    = <AnyUserIDEmailArgs as std::ops::BitOr<AnyNameArg>>::Output;
+
 /// Enables --add-userid, and --add-email (but not --userid, --email,
 /// --name, or --add-name).
 pub type AddUserIDEmailArgs
@@ -192,6 +197,27 @@ impl UserIDDesignator {
             userid,
         }
     }
+
+    /// Resolves to the designated user ID.
+    ///
+    /// If an email or a name, first converts them to a user ID in the
+    /// usual manner.
+    pub fn resolve_to_self(&self) -> ResolvedUserID {
+        use UserIDDesignator::*;
+        let userid = match self {
+            UserID(userid) | AnyUserID(userid) | AddUserID(userid) =>
+                openpgp::packet::UserID::from(&userid[..]),
+            Email(email) | AnyEmail(email) | AddEmail(email) =>
+                openpgp::packet::UserID::from(&format!("<{}>", email)[..]),
+            Name(name) | AnyName(name) | AddName(name) =>
+                openpgp::packet::UserID::from(&name[..]),
+        };
+
+        ResolvedUserID {
+            designator: Some(self.clone()),
+            userid,
+        }
+    }
 }
 
 /// A data structure that can be flattened into a clap `Command`, and
@@ -235,6 +261,11 @@ impl<Arguments, Options> UserIDDesignators<Arguments, Options> {
     /// Like `Vec::is_empty`.
     pub fn is_empty(&self) -> bool {
         self.designators.is_empty()
+    }
+
+    /// Like `Vec::len`.
+    pub fn len(&self) -> usize {
+        self.designators.len()
     }
 
     /// Iterates over the user ID designators.

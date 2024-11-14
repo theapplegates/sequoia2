@@ -63,6 +63,8 @@
    - `sq pki path` previously interpreted the last positional argument
      as the user ID to authenticate.  Make it a named argument
      instead, `--userid`.
+   - Add `sq pki path --email` and `sq pki path --name` as additional
+     ways to specify the user ID to authenticate.
 
 * Changes in 0.39.0
 ** Notable changes

@@ -2,12 +2,14 @@ use clap::Parser;
 
 use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
-use openpgp::packet::UserID;
 
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
 use examples::Example;
+
+use crate::cli::types::UserIDDesignators;
+use crate::cli::types::userid_designator;
 
 use super::CertificationNetworkArg;
 use super::RequiredTrustAmountArg;
@@ -45,12 +47,10 @@ the specified user ID.
     )]
     pub path: Vec<KeyHandle>,
 
-    #[clap(
-        long = "userid",
-        value_name = "USERID",
-        help = "The user ID to authenticate",
-    )]
-    pub userid: UserID,
+    #[command(flatten)]
+    pub userids: UserIDDesignators<
+        userid_designator::AnyUserIDEmailNameArgs,
+        userid_designator::OneValue>,
 
     #[command(flatten)]
     pub certification_network: CertificationNetworkArg,

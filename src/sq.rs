@@ -112,8 +112,9 @@ pub struct Sq<'store, 'rstore>
     pub keyring_tsks: OnceCell<BTreeMap<
             Fingerprint,
         (Fingerprint, Key<key::PublicParts, key::UnspecifiedRole>)>>,
-    // This will be set if --no-cert-store is not passed, OR --keyring
-    // is passed.
+
+    /// This will be set if the cert store has not been disabled, OR
+    /// --keyring is passed.
     pub cert_store: OnceCell<WotStore<'store, 'rstore>>,
 
     // The value of --trust-root.
@@ -961,7 +962,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
         // Also insert the certificate into the certificate store.
         // If we can't, we don't fail.  This allows, in
-        // particular, `sq --no-cert-store key import` to work.
+        // particular, `sq --cert-store=none key import` to work.
         let fpr = cert.fingerprint();
         let mut cert_import_status = ImportStatus::Unchanged;
         match self.cert_store_or_else() {
@@ -998,9 +999,6 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// On success, returns whether the key was imported, updated, or
     /// unchanged.
     pub fn import_cert(&self, cert: Cert) -> Result<ImportStatus> {
-        // Also insert the certificate into the certificate store.
-        // If we can't, we don't fail.  This allows, in
-        // particular, `sq --no-cert-store key import` to work.
         let fpr = cert.fingerprint();
         let cert_store = self.cert_store_or_else()?;
 

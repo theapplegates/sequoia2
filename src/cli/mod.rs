@@ -210,9 +210,9 @@ pub fn build(globals_hidden: bool) -> Command {
 Functionality is grouped and available using subcommands.  This \
 interface is not completely stateless.  In particular, the user's \
 default certificate store is used.  This can be disabled using \
-`--no-cert-store`.  Similarly, a key store is used to manage and \
+`--cert-store=none`.  Similarly, a key store is used to manage and \
 protect secret key material.  This can be disabled using \
-`--no-key-store`.
+`--key-store=none`.
 
 OpenPGP data can be provided in binary or ASCII armored form.  This \
 will be handled automatically.  Emitted OpenPGP data is ASCII armored \

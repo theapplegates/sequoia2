@@ -270,7 +270,7 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
         // The key store is disabled.  Don't fail, just return
         // nothing.
         sq.hint(format_args!(
-            "The key store is disabled using --no-key-store."));
+            "The key store is disabled using --home=none or --key-store=none."));
         return Ok(());
     };
     let mut ks = ks.lock().unwrap();

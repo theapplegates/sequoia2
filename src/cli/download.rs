@@ -21,12 +21,13 @@ const EXAMPLES: Actions = Actions {
         }),
         Action::Example(Example {
             comment: "\
-Verify the Debian 12 checksum file.",
+Download and verify the Debian 12 checksum file.",
             command: &[
                 "sq", "download",
                 "--url=file://debian/SHA512SUMS",
                 "--signature=file://debian/SHA512SUMS.sign",
                 "--signer=DF9B9C49EAA9298432589D76DA87E80D6294BE9B",
+                "--output=SHA512SUMS",
             ],
         }),
     ]
@@ -87,10 +88,9 @@ inline.
     pub signatures: usize,
 
     #[clap(
-        help = FileOrStdout::HELP_OPTIONAL,
+        help = FileOrStdout::HELP_REQUIRED,
         long,
         value_name = FileOrStdout::VALUE_NAME,
-        default_value = "-",
     )]
     pub output: FileOrStdout,
 }

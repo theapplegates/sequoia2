@@ -4,7 +4,6 @@ use clap::{ValueEnum, Parser};
 
 use super::types::ClapData;
 use super::types::EncryptPurpose;
-use super::types::MetadataTime;
 use super::types::FileOrStdin;
 use super::types::FileOrStdout;
 
@@ -97,32 +96,6 @@ pub struct Command {
             dangerous.",
     )]
     pub set_metadata_filename: bool,
-    #[clap(
-        default_value_t = MetadataTime::default(),
-        help = "Set time for encrypted file as metadata",
-        long,
-        long_help = format!(
-            "Set time for encrypted file as metadata.  \
-            Allows setting TIME either as ISO 8601 formatted string or by \
-            providing custom keywords.  \
-            With `{}`, the metadata is not set.  \
-            With `{}`, the metadata is set to the file's creation \
-            timestamp.  \
-            With `{}`, the metadata is set to the file's last \
-            modification timestamp.  \
-            With `{}`, the metadata is set to the creation \
-            timestamp of the message for which the metadata is added.  \
-            Do note, that this metadata is not signed and as such relying on \
-            it - on sender or receiver side - is generally considered \
-            dangerous.",
-            MetadataTime::None,
-            MetadataTime::FileCreation,
-            MetadataTime::FileModification,
-            MetadataTime::MessageCreation,
-        ),
-        value_name = "TIME",
-    )]
-    pub set_metadata_time: MetadataTime,
 
     #[command(flatten)]
     pub signers: CertDesignators<CertUserIDEmailFileArgs,

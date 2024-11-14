@@ -65,6 +65,7 @@
      instead, `--userid`.
    - Add `sq pki path --email` and `sq pki path --name` as additional
      ways to specify the user ID to authenticate.
+   - The argument `sq encrypt --set-metadata-time` has been removed.
 
 * Changes in 0.39.0
 ** Notable changes

@@ -540,64 +540,6 @@ impl From<ArmorKind> for Option<openpgp::armor::Kind> {
     }
 }
 
-/// Time for metadata in literal data packet
-///
-/// This enum tracks time information for literal data packets, which may carry
-/// unsigned metadata about the encrypted file.
-#[derive(Debug, Clone, Eq, PartialEq)]
-#[non_exhaustive]
-pub enum MetadataTime {
-    /// No time is added
-    None,
-    /// The timestamp of the file creation
-    FileCreation,
-    /// The timestamp of the file modification
-    FileModification,
-    /// The timestamp of the message creation
-    MessageCreation,
-    /// A specific timestamp
-    Timestamp(Time),
-}
-
-impl MetadataTime {
-    /// Create a new MetadataTime in a Result
-    pub fn new(date: &str) -> Result<Self> {
-        match date {
-            "none" => Ok(Self::None),
-            "file-creation" => Ok(Self::FileCreation),
-            "file-modification" => Ok(Self::FileModification),
-            "message-creation" => Ok(Self::MessageCreation),
-            _ => Ok(Self::Timestamp(Time::from_str(date)?))
-        }
-    }
-}
-
-impl FromStr for MetadataTime {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<MetadataTime> {
-        MetadataTime::new(s)
-    }
-}
-
-impl Display for MetadataTime {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        match self {
-            MetadataTime::Timestamp(time) => write!(f, "{}", time),
-            MetadataTime::FileCreation => write!(f, "{}", "file-creation"),
-            MetadataTime::FileModification => write!(f, "{}", "file-modification"),
-            MetadataTime::MessageCreation => write!(f, "{}", "message-creation"),
-            MetadataTime::None => write!(f, "none"),
-        }
-    }
-}
-
-impl Default for MetadataTime {
-    fn default() -> Self {
-        MetadataTime::None
-    }
-}
-
 /// Describes the purpose of the encryption.
 #[derive(ValueEnum, Clone, Debug)]
 pub enum EncryptPurpose {

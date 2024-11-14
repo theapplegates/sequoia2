@@ -1,4 +1,3 @@
-use std::fs::metadata;
 use std::io;
 use std::path::PathBuf;
 use std::time::SystemTime;
@@ -25,7 +24,6 @@ use openpgp::types::KeyFlags;
 use crate::cli;
 use crate::cli::types::EncryptPurpose;
 use crate::cli::types::FileOrStdin;
-use crate::cli::types::MetadataTime;
 use crate::Sq;
 use crate::Result;
 use crate::common::password;
@@ -71,7 +69,6 @@ pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
         Some(sq.time),
         command.use_expired_subkey,
         command.set_metadata_filename,
-        command.set_metadata_time
     )?;
 
     Ok(())
@@ -91,7 +88,6 @@ pub fn encrypt<'a, 'b: 'a>(
     time: Option<SystemTime>,
     use_expired_subkey: bool,
     set_metadata_filename: bool,
-    set_metadata_time: MetadataTime,
 )
     -> Result<()>
 {
@@ -204,39 +200,6 @@ pub fn encrypt<'a, 'b: 'a>(
     }
 
     let mut literal_writer = LiteralWriter::new(sink);
-    match set_metadata_time {
-        MetadataTime::None => {}
-        MetadataTime::FileCreation => {
-            let metadata = metadata(
-                input.inner()
-                    .ok_or_else(|| {
-                        anyhow!(
-                            "Can not get metadata of file, when reading from stdin."
-                        )
-                    })?)?;
-            literal_writer = literal_writer.date(SystemTime::from(metadata.created()?))?;
-        }
-        MetadataTime::FileModification => {
-            let metadata = metadata(
-                input.inner()
-                    .ok_or_else(|| {
-                        anyhow!(
-                            "Can not get metadata of file, when reading from stdin."
-                        )
-                    })?)?;
-            literal_writer = literal_writer.date(
-                SystemTime::from(metadata.modified()?)
-            )?;
-        }
-        MetadataTime::MessageCreation => {
-            literal_writer = literal_writer.date(
-                time.ok_or(anyhow!("Unable to get reference time"))?
-            )?;
-        }
-        MetadataTime::Timestamp(time) => {
-            literal_writer = literal_writer.date(time.to_system_time(sq.time)?)?;
-        }
-    }
 
     if set_metadata_filename {
         literal_writer = literal_writer

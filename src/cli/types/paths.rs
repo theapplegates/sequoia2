@@ -91,6 +91,9 @@ impl clap::builder::TypedValueParser for StateDirectoryValueParser {
 
         let p = PathBuf::from(value);
 
+        // Expand `~/foo` to `/home/user/foo`.
+        let p = expand_tilde(p)?;
+
         if ! p.is_absolute() {
             let mut err = Error::new(ErrorKind::InvalidValue)
                 .with_cmd(cmd);
@@ -108,5 +111,29 @@ impl clap::builder::TypedValueParser for StateDirectoryValueParser {
         }
 
         Ok(StateDirectory::Absolute(p))
+    }
+}
+
+/// Expands tilde in paths.
+///
+/// There are at least two crates that do this, shellexpand and
+/// tilde-expand, but both operate on strings, which is the wrong data
+/// type.
+///
+/// Currently, we only handle `~`, not `~user`.  At least shellexpand
+/// doesn't either.
+fn expand_tilde(p: PathBuf) -> clap::error::Result<PathBuf> {
+    if p.components().next().map(|c| c.as_os_str() == "~").unwrap_or(false) {
+        Ok(dirs::home_dir().ok_or_else(
+            || {
+                use clap::error;
+
+                // Not great, but we cannot return a rich error here.
+                eprintln!("Error: no home directory known for this platform");
+                error::Error::new(error::ErrorKind::Io)
+            })?
+           .join(p.components().skip(1).collect::<PathBuf>()))
+    } else {
+        Ok(p)
     }
 }

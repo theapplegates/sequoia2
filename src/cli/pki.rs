@@ -10,6 +10,7 @@ use openpgp::packet::UserID;
 
 use crate::cli::types::TrustAmount;
 
+pub mod authenticate;
 pub mod link;
 pub mod path;
 pub mod vouch;
@@ -52,88 +53,12 @@ pub struct Command {
 
 #[derive(clap::Subcommand, Debug)]
 pub enum Subcommands {
-    Authenticate(AuthenticateCommand),
+    Authenticate(authenticate::Command),
     Lookup(LookupCommand),
     Identify(IdentifyCommand),
     Vouch(vouch::Command),
     Link(link::Command),
     Path(path::Command),
-}
-
-const AUTHENTICATE_EXAMPLES: Actions = Actions {
-    actions: &[
-        // Link Alice's certificate.
-        Action::Setup(Setup {
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Authenticate a specific binding.",
-            command: &[
-                "sq", "pki", "authenticate",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "Alice <alice@example.org>",
-            ]
-        }),
-        Action::Example(Example {
-            comment: "\
-Check whether we can authenticate any user ID with the specified email \
-address for the given certificate.",
-            command: &[
-                "sq", "pki", "authenticate",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--email", "alice@example.org",
-            ],
-        }),
-    ]
-};
-test_examples!(sq_pki_authenticate, AUTHENTICATE_EXAMPLES);
-
-/// Authenticate a binding.
-///
-/// Authenticate a binding (a certificate and User ID) by looking
-/// for a path from the trust roots to the specified binding in
-/// the Web of Trust.  Because certifications may express
-/// uncertainty (i.e., certifications may be marked as conveying
-/// only partial or marginal trust), multiple paths may be needed.
-///
-/// An error is return if no binding could be authenticated to the
-/// specified level (by default: fully authenticated, i.e., a trust
-/// amount of 120).
-///
-/// If any valid paths to the binding are found, they are printed
-/// on stdout whether they are sufficient to authenticate the
-/// binding or not.
-#[derive(Parser, Debug)]
-#[clap(
-    name = "authenticate",
-    after_help = AUTHENTICATE_EXAMPLES,
-)]
-pub struct AuthenticateCommand {
-    #[command(flatten)]
-    pub show_paths: ShowPathsArg,
-
-    #[command(flatten)]
-    pub email: EmailArg,
-
-    #[command(flatten)]
-    pub gossip: GossipArg,
-
-    #[command(flatten)]
-    pub certification_network: CertificationNetworkArg,
-
-    #[command(flatten)]
-    pub trust_amount: RequiredTrustAmountArg,
-
-    #[command(flatten)]
-    pub cert: CertArg,
-
-    #[command(flatten)]
-    pub userid: UserIDArg,
 }
 
 const LOOKUP_EXAMPLES: Actions = Actions {

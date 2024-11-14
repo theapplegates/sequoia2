@@ -509,7 +509,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
     use cli::pki::*;
     match cli.subcommand {
         // Authenticate a given binding.
-        Subcommands::Authenticate(AuthenticateCommand {
+        Subcommands::Authenticate(authenticate::Command {
             email, gossip, certification_network, trust_amount,
             cert, userid, show_paths,
         }) => authenticate(

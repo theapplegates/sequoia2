@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::collections::HashSet;
 
 use typenum::Unsigned;
@@ -7,6 +8,7 @@ use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::cert::ValidCert;
 use openpgp::packet::UserID;
 use openpgp::types::RevocationStatus;
+use openpgp::cert::amalgamation::ValidateAmalgamation;
 
 use crate::Result;
 use crate::cli::types::UserIDDesignators;
@@ -14,6 +16,7 @@ use crate::cli::types::userid_designator::AddEmailArg;
 use crate::cli::types::userid_designator::AddUserIDArg;
 use crate::cli::types::userid_designator::ResolvedUserID;
 use crate::cli::types::userid_designator::UserIDDesignator;
+use crate::sq::NULL_POLICY;
 
 impl<Arguments, Options> UserIDDesignators<Arguments, Options>
 where
@@ -177,6 +180,27 @@ where
             }
             if ! have_valid {
                 wprintln!("  - Certificate has no valid self-signed user IDs.");
+            }
+
+            if let Ok(null) = vc.clone().with_policy(&NULL_POLICY, vc.time()) {
+                if vc.userids().count() < null.userids().count() {
+                    wprintln!("Invalid self-signed user IDs:");
+                    let valid: BTreeSet<_>
+                        = vc.userids().map(|ua| ua.userid().clone()).collect();
+                    for ua in null.userids() {
+                        if valid.contains(ua.userid()) {
+                            continue;
+                        }
+
+                        if let Ok(u) = std::str::from_utf8(ua.userid().value()) {
+                            if let Err(err) = ua.with_policy(vc.policy(), vc.time()) {
+                                wprintln!(initial_indent="  - ",
+                                          subsequent_indent="    ",
+                                          "{:?}: {}", u, err);
+                            }
+                        }
+                    }
+                }
             }
         }
 

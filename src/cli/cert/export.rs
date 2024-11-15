@@ -1,3 +1,4 @@
+use clap::ArgGroup;
 use clap::Parser;
 
 use crate::cli::types::*;
@@ -96,6 +97,10 @@ no search criteria are specified, then this will return success.
 ",
     after_help = EXAMPLES,
 )]
+#[clap(group(ArgGroup::new("some-designator")
+             .args(&["cert", "userid", "email", "domain", "grep", "all"])
+             .required(true)
+             .multiple(true)))]
 pub struct Command {
     #[clap(
         default_value_t = FileOrStdout::default(),

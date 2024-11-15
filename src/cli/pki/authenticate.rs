@@ -8,7 +8,9 @@ use examples::Actions;
 use examples::Example;
 use examples::Setup;
 
-use super::CertArg;
+use crate::cli::types::cert_designator;
+use crate::cli::types::CertDesignators;
+
 use super::CertificationNetworkArg;
 use super::EmailArg;
 use super::GossipArg;
@@ -37,6 +39,18 @@ use super::UserIDArg;
     after_help = EXAMPLES,
 )]
 pub struct Command {
+    // Note: don't add --cert-file: the certificate needs to be merged
+    // into the certificate store, and --cert-file doesn't do that.
+    // Instead, the user should use --keyring FILE and --cert FPR.
+    #[command(flatten)]
+    pub cert: CertDesignators<
+        cert_designator::CertArg,
+        cert_designator::CertPrefix,
+        cert_designator::OneValue>,
+
+    #[command(flatten)]
+    pub userid: UserIDArg,
+
     #[command(flatten)]
     pub show_paths: ShowPathsArg,
 
@@ -51,12 +65,6 @@ pub struct Command {
 
     #[command(flatten)]
     pub trust_amount: RequiredTrustAmountArg,
-
-    #[command(flatten)]
-    pub cert: CertArg,
-
-    #[command(flatten)]
-    pub userid: UserIDArg,
 }
 
 const EXAMPLES: Actions = Actions {
@@ -74,7 +82,7 @@ const EXAMPLES: Actions = Actions {
 Authenticate a specific binding.",
             command: &[
                 "sq", "pki", "authenticate",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "Alice <alice@example.org>",
             ]
         }),
@@ -84,7 +92,7 @@ Check whether we can authenticate any user ID with the specified email \
 address for the given certificate.",
             command: &[
                 "sq", "pki", "authenticate",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email", "alice@example.org",
             ],
         }),

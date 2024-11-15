@@ -1780,7 +1780,7 @@ impl Sq {
         for arg in extra_args {
             cmd.arg(arg);
         }
-        cmd.arg(cert);
+        cmd.arg("--cert").arg(cert);
         cmd.arg(userid);
 
         let output = self.run(cmd, None);

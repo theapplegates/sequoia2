@@ -5,7 +5,6 @@ use std::ops::Deref;
 use clap::Parser;
 
 use sequoia_openpgp as openpgp;
-use openpgp::KeyHandle;
 use openpgp::packet::UserID;
 
 use crate::cli::types::TrustAmount;
@@ -55,21 +54,6 @@ pub enum Subcommands {
     Vouch(vouch::Command),
     Link(link::Command),
     Path(path::Command),
-}
-
-#[derive(clap::Args, Debug)]
-pub struct CertArg {
-    /// The fingerprint or Key ID of the certificate to authenticate.
-    #[arg(value_name="FINGERPRINT|KEYID")]
-    cert: KeyHandle
-}
-
-impl Deref for CertArg {
-    type Target = KeyHandle;
-
-    fn deref(&self) -> &Self::Target {
-        &self.cert
-    }
 }
 
 #[derive(clap::Args, Debug)]

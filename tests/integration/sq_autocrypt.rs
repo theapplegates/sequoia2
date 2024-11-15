@@ -40,7 +40,7 @@ fn sq_autocrypt_import() -> Result<()>
     let mut cmd = sq.command();
     cmd.arg("pki").arg("authenticate")
         .arg("--amount=40")
-        .arg("A614C91D0392D83EE6B1C4A4DD4147FEF78AD630")
+        .arg("--cert").arg("A614C91D0392D83EE6B1C4A4DD4147FEF78AD630")
         .arg("--email").arg("pink@probier.email");
     eprintln!("Running: {:?}", cmd);
     eprintln!("pre: {}", time_as_string(std::time::SystemTime::now().into()));
@@ -58,14 +58,14 @@ fn sq_autocrypt_import() -> Result<()>
     let mut cmd = sq.command();
     cmd.arg("pki").arg("authenticate")
         .arg("--gossip")
-        .arg("CBCD8F030588653EEDD7E2659B7DD433F254904A")
+        .arg("--cert").arg("CBCD8F030588653EEDD7E2659B7DD433F254904A")
         .arg("--email").arg("justus@sequoia-pgp.org");
     sq.run(cmd, true);
 
     let mut cmd = sq.command();
     cmd.arg("pki").arg("authenticate")
         .arg("--gossip")
-        .arg("BB6B7E5F8343B2BE990EB7A7F3AF066F267892C1")
+        .arg("--cert").arg("BB6B7E5F8343B2BE990EB7A7F3AF066F267892C1")
         .arg("--email").arg("hilal-maria@probier.email");
     sq.run(cmd, true);
 

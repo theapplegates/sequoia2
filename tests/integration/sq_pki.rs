@@ -113,6 +113,9 @@ where
             cmd.arg("--show-paths");
         }
         if let Some(target) = target {
+            if ["authenticate", "identify"].contains(&command) {
+                cmd.arg("--cert");
+            }
             cmd.arg(&target.to_string());
         }
         if let Some(userid) = userid {

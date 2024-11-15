@@ -1,14 +1,12 @@
 use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
+use openpgp::Cert;
 use openpgp::KeyID;
 use openpgp::Fingerprint;
 use openpgp::KeyHandle;
 use openpgp::Result;
 use openpgp::packet::UserID;
-
-use sequoia_cert_store as cert_store;
-use cert_store::store::StoreError;
 
 use sequoia_wot as wot;
 use wot::store::Backend;
@@ -85,7 +83,7 @@ pub fn authenticate<'store, 'rstore>(
     certification_network: bool,
     trust_amount: Option<TrustAmount<usize>>,
     userid: Option<&UserID>,
-    certificate: Option<&KeyHandle>,
+    certificate: Option<&Cert>,
     show_paths: bool,
 ) -> Result<()>
     where 'store: 'rstore,
@@ -114,57 +112,7 @@ pub fn authenticate<'store, 'rstore>(
     let required_amount =
         required_trust_amount(trust_amount, certification_network)?;
 
-    let mut certificate_dealiased = None;
-    let fingerprint: Option<Fingerprint> = if let Some(kh) = certificate {
-        match sq.lookup(std::iter::once(kh), None, true, true) {
-            Ok(certs) => {
-                assert!(certs.len() >= 1);
-
-                if certs.len() > 1 {
-                    return Err(anyhow::anyhow!(
-                        "The key ID {} is ambiguous.  \
-                         It could refer to any of the following \
-                         certificates: {}.",
-                        kh,
-                        certs.into_iter()
-                            .map(|c| c.fingerprint().to_hex())
-                            .collect::<Vec<String>>()
-                            .join(", ")));
-                }
-
-                let fpr = certs[0].fingerprint();
-                if ! KeyHandle::from(&fpr).aliases(kh) {
-                    // XXX: If the subkey does not have a backsig,
-                    // then it doesn't authenticate the primary key,
-                    // and thus the authentication confidence must be
-                    // 0, and the certificate should only be shown
-                    // when `--gossip` is passed.
-                    wprintln!("Certificate {} contains the subkey {}.",
-                              fpr, kh);
-                }
-                certificate_dealiased = Some(KeyHandle::from(&fpr));
-                Some(fpr)
-            }
-            Err(err) => {
-                if let Some(StoreError::NotFound(_)) = err.downcast_ref() {
-                    wprintln!("There are no certificates with the \
-                               specified {}.  \
-                               Run `sq network fetch {}` to look for \
-                               matching certificates on public \
-                               directories.",
-                              if let KeyHandle::Fingerprint(_) = kh {
-                                  "fingerprint"
-                              } else {
-                                  "key ID"
-                              },
-                              kh);
-                }
-                return Err(err);
-            }
-        }
-    } else {
-        None
-    };
+    let fingerprint: Option<Fingerprint> = certificate.map(|c| c.fingerprint());
 
     let mut bindings = Vec::new();
     if matches!(userid, Some(_)) && email {
@@ -216,9 +164,9 @@ pub fn authenticate<'store, 'rstore>(
                     None
                 }
             }).collect();
-    } else if let Some(fingerprint) = fingerprint {
+    } else if let Some(fingerprint) = fingerprint.as_ref() {
         if let Some(userid) = userid {
-            bindings.push((fingerprint, userid.clone()));
+            bindings.push((fingerprint.clone(), userid.clone()));
         } else {
             // Fingerprint, no User ID.
             bindings = n.certified_userids_of(&fingerprint)
@@ -316,7 +264,7 @@ pub fn authenticate<'store, 'rstore>(
     // We didn't show anything.  Try to figure out what was wrong.
     if lint_input {
         // See if the target certificate exists.
-        if let Some(kh) = certificate_dealiased {
+        if let Some(kh) = fingerprint.as_ref().map(|fpr| KeyHandle::from(fpr)) {
             match n.lookup_synopses(&kh) {
                 Err(err) => {
                     wprintln!("Looking up target certificate ({}): {}",
@@ -512,11 +460,15 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
         Subcommands::Authenticate(authenticate::Command {
             email, gossip, certification_network, trust_amount,
             cert, userid, show_paths,
-        }) => authenticate(
-            &sq, false, None,
-            *email, *gossip, *certification_network, *trust_amount,
-            Some(&userid), Some(&cert), *show_paths,
-        )?,
+        }) => {
+            let cert = sq.resolve_cert(&cert, 0)?.0;
+
+            authenticate(
+                &sq, false, None,
+                *email, *gossip, *certification_network, *trust_amount,
+                Some(&userid), Some(&cert), *show_paths,
+            )?
+        }
 
         // Find all authenticated bindings for a given User ID, list
         // the certificates.
@@ -533,10 +485,14 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
         Subcommands::Identify(identify::Command {
             gossip, certification_network, trust_amount,
             cert, show_paths,
-        }) => authenticate(
-            &sq, false, None,
-            false, *gossip, *certification_network, *trust_amount,
-            None, Some(&cert), *show_paths)?,
+        }) => {
+            let cert = sq.resolve_cert(&cert, 0)?.0;
+
+            authenticate(
+                &sq, false, None,
+                false, *gossip, *certification_network, *trust_amount,
+                None, Some(&cert), *show_paths)?;
+        }
 
         // Authenticates a given path.
         Subcommands::Path(command) =>

@@ -68,6 +68,12 @@
    - The argument `sq encrypt --set-metadata-time` has been removed.
    - The argument `sq encrypt --set-metadata-filename` now takes a
      string that specifies the file name to be set.
+   - `sq pki authenticate`'s positional argument for specifying the
+     certificate to authenticate must now be specified using a named
+     argument, `--cert`.
+   - `sq pki identify`'s positional argument for specifying the
+     certificate to identify must now be specified using a named
+     argument, `--cert`.
 
 * Changes in 0.39.0
 ** Notable changes

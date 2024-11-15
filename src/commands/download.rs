@@ -402,7 +402,7 @@ pub fn dispatch(sq: Sq, c: download::Command)
                                         false, // certification network
                                         Some(TrustAmount::Full), // trust amount
                                         None, // user ID
-                                        Some(&cert.key_handle()),
+                                        Some(&cert),
                                         true, // show paths
                                     ).is_ok();
 

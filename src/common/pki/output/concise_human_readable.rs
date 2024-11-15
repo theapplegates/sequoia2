@@ -26,7 +26,7 @@ use wot::PARTIALLY_TRUSTED;
 use crate::Convert;
 use crate::Sq;
 use crate::Time;
-use crate::commands::pki::output::OutputType;
+use super::OutputType;
 use crate::error_chain;
 use crate::output::wrapping::NBSP;
 

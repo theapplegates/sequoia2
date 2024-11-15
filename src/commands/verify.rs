@@ -183,7 +183,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
 
     fn print_sigs(&mut self, results: &[VerificationResult]) {
         make_qprintln!(self.quiet);
-        use crate::commands::pki::output::print_path;
+        use crate::common::pki::output::print_path;
         use crate::print_error_chain;
 
         let reference_time = self.sq.time;

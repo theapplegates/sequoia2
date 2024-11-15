@@ -36,8 +36,8 @@ use crate::cli::download;
 use crate::cli::types::TrustAmount;
 use crate::commands::network::CONNECT_TIMEOUT;
 use crate::commands::network::USER_AGENT;
-use crate::commands::pki::authenticate;
 use crate::commands::verify::verify;
+use crate::common::pki::authenticate;
 
 // So we can deal with either named temp files or files.
 enum SomeFile {

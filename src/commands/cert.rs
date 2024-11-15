@@ -4,7 +4,7 @@ use crate::{
     Sq,
     Result,
     cli::cert::{Command, list, Subcommands},
-    commands::pki::authenticate,
+    common::pki::authenticate,
 };
 
 pub mod import;

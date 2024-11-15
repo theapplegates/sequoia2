@@ -7,10 +7,10 @@ use sequoia_wot as wot;
 
 use crate::Sq;
 use crate::cli::pki::path::Command;
-use crate::commands::pki::print_path;
-use crate::commands::pki::print_path_error;
-use crate::commands::pki::print_path_header;
-use crate::commands::pki::required_trust_amount;
+use crate::common::pki::output::print_path;
+use crate::common::pki::output::print_path_error;
+use crate::common::pki::output::print_path_header;
+use crate::common::pki::required_trust_amount;
 
 pub fn path(sq: Sq, c: Command)
     -> Result<()>

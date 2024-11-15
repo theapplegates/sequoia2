@@ -8,15 +8,15 @@ use examples::Actions;
 use examples::Example;
 use examples::Setup;
 
-use crate::cli::types::cert_designator;
 use crate::cli::types::CertDesignators;
+use crate::cli::types::UserIDDesignators;
+use crate::cli::types::cert_designator;
+use crate::cli::types::userid_designator;
 
 use super::CertificationNetworkArg;
-use super::EmailArg;
 use super::GossipArg;
 use super::RequiredTrustAmountArg;
 use super::ShowPathsArg;
-use super::UserIDArg;
 
 /// Authenticate a binding.
 ///
@@ -49,13 +49,12 @@ pub struct Command {
         cert_designator::OneValue>,
 
     #[command(flatten)]
-    pub userid: UserIDArg,
+    pub userid: UserIDDesignators<
+        userid_designator::AnyUserIDEmailArgs,
+        userid_designator::OneValue>,
 
     #[command(flatten)]
     pub show_paths: ShowPathsArg,
-
-    #[command(flatten)]
-    pub email: EmailArg,
 
     #[command(flatten)]
     pub gossip: GossipArg,
@@ -83,7 +82,7 @@ Authenticate a specific binding.",
             command: &[
                 "sq", "pki", "authenticate",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "Alice <alice@example.org>",
+                "--userid", "Alice <alice@example.org>",
             ]
         }),
         Action::Example(Example {

@@ -7,10 +7,11 @@ use crate::cli::examples::Actions;
 use crate::cli::examples::Example;
 use crate::cli::examples::Setup;
 use crate::cli::pki::CertificationNetworkArg;
-use crate::cli::pki::EmailArg;
 use crate::cli::pki::GossipArg;
 use crate::cli::pki::RequiredTrustAmountArg;
 use crate::cli::pki::ShowPathsArg;
+use crate::cli::types::UserIDDesignators;
+use crate::cli::types::userid_designator;
 
 const EXAMPLES: Actions = Actions {
     actions: &[
@@ -54,10 +55,23 @@ test_examples!(sq_cert_list, EXAMPLES);
 )]
 pub struct Command {
     #[command(flatten)]
-    pub show_paths: ShowPathsArg,
+    pub userid: UserIDDesignators<
+        userid_designator::AnyUserIDEmailArgs,
+        userid_designator::OptionalValue>,
+
+    /// A pattern to select the bindings to authenticate.
+    ///
+    /// The pattern is treated as a UTF-8 encoded string and a
+    /// case insensitive substring search (using the current
+    /// locale) is performed against each User ID.  If a User ID
+    /// is not valid UTF-8, the binding is ignored.
+    #[clap(
+        conflicts_with_all = &[ "userid", "email" ]
+    )]
+    pub pattern: Option<String>,
 
     #[command(flatten)]
-    pub email: EmailArg,
+    pub show_paths: ShowPathsArg,
 
     #[command(flatten)]
     pub gossip: GossipArg,
@@ -67,13 +81,5 @@ pub struct Command {
 
     #[command(flatten)]
     pub trust_amount: RequiredTrustAmountArg,
-
-    /// A pattern to select the bindings to authenticate.
-    ///
-    /// The pattern is treated as a UTF-8 encoded string and a
-    /// case insensitive substring search (using the current
-    /// locale) is performed against each User ID.  If a User ID
-    /// is not valid UTF-8, the binding is ignored.
-    pub pattern: Option<String>,
 }
 

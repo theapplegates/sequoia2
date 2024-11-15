@@ -136,6 +136,43 @@ pub enum UserIDDesignator {
 
 #[allow(dead_code)]
 impl UserIDDesignator {
+    /// Whether the designator must refer to a valid self signature.
+    pub fn existing(&self) -> bool {
+        use UserIDDesignator::*;
+        matches!(self, UserID(_) | Email(_) | Name(_))
+    }
+
+    /// Whether the designator is a user ID.
+    pub fn is_userid(&self) -> bool {
+        use UserIDDesignator::*;
+        matches!(self, UserID(_) | AnyUserID(_) | AddUserID(_))
+    }
+
+    /// Whether the designator is an email address.
+    pub fn is_email(&self) -> bool {
+        use UserIDDesignator::*;
+        matches!(self, Email(_) | AnyEmail(_) | AddEmail(_))
+    }
+
+    /// Whether the designator is a display name.
+    pub fn is_name(&self) -> bool {
+        use UserIDDesignator::*;
+        matches!(self, Name(_) | AnyName(_) | AddName(_))
+    }
+
+    /// Returns the argument's value.
+    pub fn value(&self) -> &str {
+        use UserIDDesignator::*;
+        match self {
+            UserID(s) | Email(s) | Name(s)
+                | AnyUserID(s) | AnyEmail(s) | AnyName(s)
+                | AddUserID(s) | AddEmail(s) | AddName(s) =>
+            {
+                s
+            }
+        }
+    }
+
     /// Returns the argument's name, e.g., `--userid`.
     pub fn argument_name(&self) -> &str
     {
@@ -154,6 +191,8 @@ impl UserIDDesignator {
     }
 
     /// Returns the argument's value.
+    ///
+    /// The returned string is escaped.
     pub fn argument_value(&self) -> String
     {
         use UserIDDesignator::*;

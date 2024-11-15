@@ -4,7 +4,6 @@ use std::fmt::Result as FMTResult;
 use std::path;
 use std::time;
 
-use predicates::prelude::*;
 use regex::bytes::Regex;
 
 use sequoia_openpgp as openpgp;
@@ -14,6 +13,7 @@ use openpgp::Result;
 use openpgp::packet::UserID;
 
 use super::common::Sq;
+use super::common::UserIDArg;
 
 const HR_OK: &'static str = "[ ✓ ]";
 const HR_NOT_OK: &'static str = "[ 0/120 ]";
@@ -79,23 +79,25 @@ where S: AsRef<str>,
     output
 }
 
-fn test<'a, R>(
+fn test<'a, R, U>(
     keyring: &str,
     trust_root: R,
     sqwot_args: &[&str],
     command: &str,
     args: &[&str],
     amount: usize,
-    userid: Option<&UserID>,
+    userid: U,
     target: Option<&Fingerprint>,
     success: bool,
     output: &HashMap<OutputFormat, Vec<(usize, Regex)>>,
 ) -> Result<()>
 where
     R: Into<Option<&'a Fingerprint>>,
+    U: Into<Option<&'a UserIDArg<'a>>>,
 {
     let sq = Sq::new();
     let trust_root = trust_root.into();
+    let userid = userid.into();
 
     for outputformat in OutputFormat::iterator() {
         let mut cmd = sq.command();
@@ -119,10 +121,7 @@ where
             cmd.arg(&target.to_string());
         }
         if let Some(userid) = userid {
-            if command == "path" {
-                cmd.arg("--userid");
-            }
-            cmd.arg(format!("{}", String::from_utf8_lossy(userid.value())));
+            userid.as_arg(&mut cmd);
         }
         for arg in args {
             cmd.arg(arg);
@@ -156,7 +155,7 @@ where
             }
         } else {
             let assertion = cmd.assert();
-            let assertion = assertion.code(predicate::eq(1));
+            let assertion = assertion.failure();
 
             if let Some(output) = output.get(outputformat) {
                 for (expected_occurrences, s) in output {
@@ -194,19 +193,19 @@ fn authenticate() -> Result<()> {
         "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
         .parse().expect("valid fingerprint");
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::UserID("<alice@example.org>");
 
     let dave_fpr: Fingerprint =
         "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
         .parse().expect("valid fingerprint");
     let dave_uid
-        = UserID::from("<dave@example.org>");
+        = UserIDArg::UserID("<dave@example.org>");
 
     let ellen_fpr: Fingerprint =
         "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
         .parse().expect("valid fingerprint");
     let ellen_uid
-        = UserID::from("<ellen@example.org>");
+        = UserIDArg::UserID("<ellen@example.org>");
     // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
 
     // defaults
@@ -306,24 +305,28 @@ fn authenticate_email() -> Result<()> {
     let alice_fpr: Fingerprint =
         "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
         .parse().expect("valid fingerprint");
+    // Yes, UserIDArg::Email, not UserIDArg::UserID.  We're testing
+    // what --email matches!
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::Email("<alice@example.org>");
 
     let dave_fpr: Fingerprint =
         "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
         .parse().expect("valid fingerprint");
+    // Yes, UserIDArg::Email, not UserIDArg::UserID.
     let dave_uid
-        = UserID::from("<dave@example.org>");
-    let dave_email = UserID::from("dave@example.org");
-    let dave_email_uc1 = UserID::from("DAVE@example.org");
-    let dave_email_uc2 = UserID::from("DAVE@EXAMPLE.ORG");
+        = UserIDArg::Email("<dave@example.org>");
+    let dave_email = UserIDArg::Email("dave@example.org");
+    let dave_email_uc1 = UserIDArg::Email("DAVE@example.org");
+    let dave_email_uc2 = UserIDArg::Email("DAVE@EXAMPLE.ORG");
 
     let ellen_fpr: Fingerprint =
         "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
         .parse().expect("valid fingerprint");
+    // Yes, UserIDArg::Email, not UserIDArg::UserID.
     let ellen_uid
-        = UserID::from("<ellen@example.org>");
-    let ellen_email = UserID::from("ellen@example.org");
+        = UserIDArg::Email("<ellen@example.org>");
+    let ellen_email = UserIDArg::Email("ellen@example.org");
     // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
 
     // defaults
@@ -331,7 +334,7 @@ fn authenticate_email() -> Result<()> {
     let trust_root = &alice_fpr;
     let sqwot_args = &[];
     let command = "authenticate";
-    let args = &["--email"];
+    let args = &[];
 
     test(
         keyring,
@@ -516,42 +519,42 @@ fn authenticate_email() -> Result<()> {
         "B8DA8B318149B1C8C0CBD1ECB1CEC6D3CD00E69D"
         .parse().expect("valid fingerprint");
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::UserID("<alice@example.org>");
     let alice_email
-        = UserID::from("alice@example.org");
+        = UserIDArg::Email("alice@example.org");
 
     let hans_fpr: Fingerprint =
         "74767C4F2B15F57F3394FCA99DE867E6CA6A2756"
         .parse().expect("valid fingerprint");
     let hans_uid
-        = UserID::from("<hÄNS@bücher.tld>");
+        = UserIDArg::UserID("<hÄNS@bücher.tld>");
     // Certified by: B8DA8B318149B1C8C0CBD1ECB1CEC6D3CD00E69D
 
     let hans_email
-        = UserID::from("hÄNS@bücher.tld");
+        = UserIDArg::Email("hÄNS@bücher.tld");
     let hans_email_lowercase
-        = UserID::from("häns@bücher.tld");
+        = UserIDArg::Email("häns@bücher.tld");
     let hans_email_punycode
-        = UserID::from("hÄNS@xn--bcher-kva.tld");
+        = UserIDArg::Email("hÄNS@xn--bcher-kva.tld");
     let hans_email_punycode_lowercase
-        = UserID::from("häns@xn--bcher-kva.tld");
+        = UserIDArg::Email("häns@xn--bcher-kva.tld");
 
     let carol_fpr: Fingerprint =
         "7432C123761B94EC50D50CF6562B9ADEE7F789F6"
         .parse().expect("valid fingerprint");
     let carol_uid
-        = UserID::from("<carol@example.org>");
+        = UserIDArg::UserID("<carol@example.org>");
     // Certified by: 74767C4F2B15F57F3394FCA99DE867E6CA6A2756
 
     let carol_email
-        = UserID::from("carol@example.org");
+        = UserIDArg::Email("carol@example.org");
 
     // defaults
     let keyring = "puny-code.pgp";
     let trust_root = &alice_fpr;
     let sqwot_args = &[];
     let command = "authenticate";
-    let args = &["--email"];
+    let args = &[];
 
     let human_output =
         [(1, format!("- {} {}", HR_OK, &alice_uid))];
@@ -646,22 +649,22 @@ fn lookup() -> Result<()> {
     let alice_fpr: Fingerprint =
         "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
         .parse().expect("valid fingerprint");
-    let alice_uid = UserID::from("<alice@example.org>");
-    let alice_uid_uppercase = UserID::from("<ALICE@EXAMPLE.ORG>");
-    let alice_uid_uppercase2 = UserID::from("<alice@EXAMPLE.ORG>");
+    let alice_uid = UserIDArg::UserID("<alice@example.org>");
+    let alice_uid_uppercase = UserIDArg::UserID("<ALICE@EXAMPLE.ORG>");
+    let alice_uid_uppercase2 = UserIDArg::UserID("<alice@EXAMPLE.ORG>");
 
     let dave_fpr: Fingerprint =
         "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
         .parse().expect("valid fingerprint");
-    let dave_uid = UserID::from("<dave@example.org>");
-    let dave_uid_uppercase = UserID::from("<DAVE@EXAMPLE.ORG>");
-    let dave_uid_uppercase2 = UserID::from("<dave@EXAMPLE.ORG>");
+    let dave_uid = UserIDArg::UserID("<dave@example.org>");
+    let dave_uid_uppercase = UserIDArg::UserID("<DAVE@EXAMPLE.ORG>");
+    let dave_uid_uppercase2 = UserIDArg::UserID("<dave@EXAMPLE.ORG>");
 
     let ellen_fpr: Fingerprint =
         "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
         .parse().expect("valid fingerprint");
     let ellen_uid
-        = UserID::from("<ellen@example.org>");
+        = UserIDArg::UserID("<ellen@example.org>");
     // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
 
     // defaults
@@ -761,7 +764,7 @@ fn lookup() -> Result<()> {
         command,
         args,
         100,
-        Some(&UserID::from("Gary <gary@some.org>")),
+        &UserIDArg::UserID("Gary <gary@some.org>"),
         None,
         false,
         no_output(),
@@ -827,21 +830,21 @@ fn lookup_email() -> Result<()> {
     let alice_fpr: Fingerprint =
         "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
         .parse().expect("valid fingerprint");
-    let alice_uid = UserID::from("<alice@example.org>");
-    let alice_email = UserID::from("alice@example.org");
+    let alice_uid = UserIDArg::UserID("<alice@example.org>");
+    let alice_email = UserIDArg::Email("alice@example.org");
 
     let dave_fpr: Fingerprint =
         "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
         .parse().expect("valid fingerprint");
-    let dave_uid = UserID::from("<dave@example.org>");
-    let dave_email = UserID::from("dave@example.org");
+    let dave_uid = UserIDArg::UserID("<dave@example.org>");
+    let dave_email = UserIDArg::Email("dave@example.org");
 
     let ellen_fpr: Fingerprint =
         "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
         .parse().expect("valid fingerprint");
     let ellen_uid
-        = UserID::from("<ellen@example.org>");
-    let ellen_email = UserID::from("ellen@example.org");
+        = UserIDArg::UserID("<ellen@example.org>");
+    let ellen_email = UserIDArg::Email("ellen@example.org");
     // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
 
     // defaults for test() call
@@ -849,7 +852,7 @@ fn lookup_email() -> Result<()> {
     let trust_root = &alice_fpr;
     let sqwot_args = [];
     let command = "lookup";
-    let args = ["--email"];
+    let args = [];
     let target = None;
 
     let human_output =
@@ -873,7 +876,7 @@ fn lookup_email() -> Result<()> {
         command,
         &args,
         120,
-        Some(&alice_email),
+        &alice_email,
         target,
         true,
         &output_map(&human_output),
@@ -888,7 +891,7 @@ fn lookup_email() -> Result<()> {
         command,
         &args,
         100,
-        Some(&dave_email),
+        &dave_email,
         target,
         true,
         &output_map(&human_output),
@@ -900,7 +903,7 @@ fn lookup_email() -> Result<()> {
         command,
         &args,
         120,
-        Some(&dave_email),
+        &dave_email,
         target,
         false,
         no_output(),
@@ -914,7 +917,7 @@ fn lookup_email() -> Result<()> {
         command,
         &args,
         100,
-        Some(&ellen_email),
+        &ellen_email,
         target,
         false,
         no_output(),
@@ -926,7 +929,7 @@ fn lookup_email() -> Result<()> {
         command,
         &args,
         120,
-        Some(&ellen_email),
+        &ellen_email,
         target,
         false,
         no_output(),
@@ -940,7 +943,7 @@ fn lookup_email() -> Result<()> {
         command,
         &args,
         100,
-        Some(&UserID::from("gary@some.org")),
+        &UserIDArg::Email("gary@some.org"),
         target,
         false,
         no_output(),
@@ -1513,9 +1516,12 @@ fn list_email_pattern() -> Result<()> {
         = UserID::from("<hÄNS@bücher.tld>");
     // Certified by: B8DA8B318149B1C8C0CBD1ECB1CEC6D3CD00E69D
 
-    let hans_email = "hÄNS@bücher.tld";
-    let hans_email_punycode = "hÄNS@xn--bcher-kva.tld";
-    let hans_email_punycode_lowercase = "häns@xn--bcher-kva.tld";
+    let hans_email = UserIDArg::Email("hÄNS@bücher.tld");
+    let hans_email_bad = UserIDArg::Email("<hÄNS@bücher.tld>");
+    let hans_email_punycode
+        = UserIDArg::Email("hÄNS@xn--bcher-kva.tld");
+    let hans_email_punycode_lowercase
+        = UserIDArg::Email("häns@xn--bcher-kva.tld");
 
     let carol_fpr: Fingerprint =
         "7432C123761B94EC50D50CF6562B9ADEE7F789F6"
@@ -1542,53 +1548,29 @@ fn list_email_pattern() -> Result<()> {
         .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
         .collect::<Vec<_>>();
 
+    // --email has to match the whole email, not a substring.
     test(
         keyring,
         trust_root,
         sqwot_args,
         command,
-        &["--email", "bücher.tld"],
+        &[],
         100,
+        &UserIDArg::Email("bücher.tld"),
         None,
-        None,
-        true,
-        &output_map(&human_output),
+        false,
+        no_output(),
     );
 
+    // --email has to match the whole email, not a substring.
     test(
         keyring,
         trust_root,
         sqwot_args,
         command,
-        &["--email", "BÜCHER.TLD"],
+        &[],
         100,
-        None,
-        None,
-        true,
-        &output_map(&human_output),
-    );
-
-    test(
-        keyring,
-        trust_root,
-        sqwot_args,
-        command,
-        &["--email", hans_email],
-        100,
-        None,
-        None,
-        true,
-        &output_map(&human_output),
-    );
-
-    test(
-        keyring,
-        trust_root,
-        sqwot_args,
-        command,
-        &["--email", &format!("<{}>", hans_email)],
-        100,
-        None,
+        &UserIDArg::Email("BÜCHER.TLD"),
         None,
         false,
         no_output(),
@@ -1599,9 +1581,9 @@ fn list_email_pattern() -> Result<()> {
         trust_root,
         sqwot_args,
         command,
-        &["--email", hans_email_punycode],
+        &[],
         100,
-        None,
+        &hans_email,
         None,
         true,
         &output_map(&human_output),
@@ -1612,9 +1594,35 @@ fn list_email_pattern() -> Result<()> {
         trust_root,
         sqwot_args,
         command,
-        &["--email", hans_email_punycode_lowercase],
+        &[],
         100,
+        &hans_email_bad,
         None,
+        false,
+        no_output(),
+    );
+
+    test(
+        keyring,
+        trust_root,
+        sqwot_args,
+        command,
+        &[],
+        100,
+        &hans_email_punycode,
+        None,
+        true,
+        &output_map(&human_output),
+    );
+
+    test(
+        keyring,
+        trust_root,
+        sqwot_args,
+        command,
+        &[],
+        100,
+        &hans_email_punycode_lowercase,
         None,
         true,
         &output_map(&human_output),
@@ -1630,41 +1638,41 @@ fn path_simple() -> Result<()> {
         "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
         .parse().expect("valid fingerprint");
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::UserID("<alice@example.org>");
 
     let bob_fpr: Fingerprint =
         "39A479816C934B9E0464F1F4BC1DCFDEADA4EE90"
         .parse().expect("valid fingerprint");
     let bob_uid
-        = UserID::from("<bob@example.org>");
+        = UserIDArg::UserID("<bob@example.org>");
     // Certified by: 85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D
 
     let carol_fpr: Fingerprint =
         "43530F91B450EDB269AA58821A1CF4DC7F500F04"
         .parse().expect("valid fingerprint");
     let carol_uid
-        = UserID::from("<carol@example.org>");
+        = UserIDArg::UserID("<carol@example.org>");
     // Certified by: 39A479816C934B9E0464F1F4BC1DCFDEADA4EE90
 
     let dave_fpr: Fingerprint =
         "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
         .parse().expect("valid fingerprint");
     let dave_uid
-        = UserID::from("<dave@example.org>");
+        = UserIDArg::UserID("<dave@example.org>");
     // Certified by: 43530F91B450EDB269AA58821A1CF4DC7F500F04
 
     let ellen_fpr: Fingerprint =
         "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
         .parse().expect("valid fingerprint");
     let ellen_uid
-        = UserID::from("<ellen@example.org>");
+        = UserIDArg::UserID("<ellen@example.org>");
     // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
 
     let frank_fpr: Fingerprint =
         "2693237D2CED0BB68F118D78DC86A97CD2C819D9"
         .parse().expect("valid fingerprint");
     let frank_uid
-        = UserID::from("<frank@example.org>");
+        = UserIDArg::UserID("<frank@example.org>");
 
     // defaults
     let keyring = "simple.pgp";
@@ -1832,41 +1840,41 @@ fn path_missing_certs() -> Result<()> {
         "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
         .parse().expect("valid fingerprint");
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::UserID("<alice@example.org>");
 
     let bob_fpr: Fingerprint =
         "39A479816C934B9E0464F1F4BC1DCFDEADA4EE90"
         .parse().expect("valid fingerprint");
     let bob_uid
-        = UserID::from("<bob@example.org>");
+        = UserIDArg::UserID("<bob@example.org>");
     // Certified by: 85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D
 
     let carol_fpr: Fingerprint =
         "43530F91B450EDB269AA58821A1CF4DC7F500F04"
         .parse().expect("valid fingerprint");
     let carol_uid
-        = UserID::from("<carol@example.org>");
+        = UserIDArg::UserID("<carol@example.org>");
     // Certified by: 39A479816C934B9E0464F1F4BC1DCFDEADA4EE90
 
     let dave_fpr: Fingerprint =
         "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
         .parse().expect("valid fingerprint");
     let dave_uid
-        = UserID::from("<dave@example.org>");
+        = UserIDArg::UserID("<dave@example.org>");
     // Certified by: 43530F91B450EDB269AA58821A1CF4DC7F500F04
 
     let ellen_fpr: Fingerprint =
         "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
         .parse().expect("valid fingerprint");
     let ellen_uid
-        = UserID::from("<ellen@example.org>");
+        = UserIDArg::UserID("<ellen@example.org>");
     // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
 
     let frank_fpr: Fingerprint =
         "2693237D2CED0BB68F118D78DC86A97CD2C819D9"
         .parse().expect("valid fingerprint");
     let frank_uid
-        = UserID::from("<frank@example.org>");
+        = UserIDArg::UserID("<frank@example.org>");
 
     let missing_fpr: Fingerprint =
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -1966,41 +1974,41 @@ fn path_singleton() -> Result<()> {
         "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
         .parse().expect("valid fingerprint");
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::UserID("<alice@example.org>");
 
     let bob_fpr: Fingerprint =
         "39A479816C934B9E0464F1F4BC1DCFDEADA4EE90"
         .parse().expect("valid fingerprint");
     let bob_uid
-        = UserID::from("<bob@example.org>");
+        = UserIDArg::UserID("<bob@example.org>");
     // Certified by: 85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D
 
     let carol_fpr: Fingerprint =
         "43530F91B450EDB269AA58821A1CF4DC7F500F04"
         .parse().expect("valid fingerprint");
     let carol_uid
-        = UserID::from("<carol@example.org>");
+        = UserIDArg::UserID("<carol@example.org>");
     // Certified by: 39A479816C934B9E0464F1F4BC1DCFDEADA4EE90
 
     let dave_fpr: Fingerprint =
         "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
         .parse().expect("valid fingerprint");
     let dave_uid
-        = UserID::from("<dave@example.org>");
+        = UserIDArg::UserID("<dave@example.org>");
     // Certified by: 43530F91B450EDB269AA58821A1CF4DC7F500F04
 
     let ellen_fpr: Fingerprint =
         "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
         .parse().expect("valid fingerprint");
     let ellen_uid
-        = UserID::from("<ellen@example.org>");
+        = UserIDArg::UserID("<ellen@example.org>");
     // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
 
     let frank_fpr: Fingerprint =
         "2693237D2CED0BB68F118D78DC86A97CD2C819D9"
         .parse().expect("valid fingerprint");
     let frank_uid
-        = UserID::from("<frank@example.org>");
+        = UserIDArg::UserID("<frank@example.org>");
 
     let missing_fpr: Fingerprint =
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -2058,30 +2066,30 @@ fn path_multiple_userids_1() -> Result<()> {
         "2A2A4A23A7EEC119BC0B46642B3825DC02A05FEA"
         .parse().expect("valid fingerprint");
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::UserID("<alice@example.org>");
 
     let bob_fpr: Fingerprint =
         "03182611B91B1E7E20B848E83DFC151ABFAD85D5"
         .parse().expect("valid fingerprint");
     let bob_uid
-        = UserID::from("<bob@other.org>");
+        = UserIDArg::UserID("<bob@other.org>");
     // Certified by: 2A2A4A23A7EEC119BC0B46642B3825DC02A05FEA
     let bob_some_org_uid
-        = UserID::from("<bob@some.org>");
+        = UserIDArg::UserID("<bob@some.org>");
     // Certified by: 2A2A4A23A7EEC119BC0B46642B3825DC02A05FEA
 
     let carol_fpr: Fingerprint =
         "9CA36907B46FE7B6B9EE9601E78064C12B6D7902"
         .parse().expect("valid fingerprint");
     let carol_uid
-        = UserID::from("<carol@example.org>");
+        = UserIDArg::UserID("<carol@example.org>");
     // Certified by: 03182611B91B1E7E20B848E83DFC151ABFAD85D5
 
     let dave_fpr: Fingerprint =
         "C1BC6794A6C6281B968A6A41ACE2055D610CEA03"
         .parse().expect("valid fingerprint");
     let dave_uid
-        = UserID::from("<dave@other.org>");
+        = UserIDArg::UserID("<dave@other.org>");
     // Certified by: 9CA36907B46FE7B6B9EE9601E78064C12B6D7902
 
     // defaults
@@ -2148,44 +2156,44 @@ fn path_multiple_users_2() -> Result<()> {
         "F1C99C4019837703DD17C45440F8A0141DF278EA"
         .parse().expect("valid fingerprint");
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::UserID("<alice@example.org>");
 
     let bob_fpr: Fingerprint =
         "5528B9E5DAFC519ED2E37F0377B332E4111456CB"
         .parse().expect("valid fingerprint");
     let bob_uid
-        = UserID::from("<bob@other.org>");
+        = UserIDArg::UserID("<bob@other.org>");
     // Certified by: F1C99C4019837703DD17C45440F8A0141DF278EA
     let bob_some_org_uid
-        = UserID::from("<bob@some.org>");
+        = UserIDArg::UserID("<bob@some.org>");
     // Certified by: F1C99C4019837703DD17C45440F8A0141DF278EA
 
     let carol_fpr: Fingerprint =
         "6F8291428420AB53576BAB4BEFF6477D3E348D71"
         .parse().expect("valid fingerprint");
     let carol_uid
-        = UserID::from("<carol@example.org>");
+        = UserIDArg::UserID("<carol@example.org>");
     // Certified by: 5528B9E5DAFC519ED2E37F0377B332E4111456CB
 
     let dave_fpr: Fingerprint =
         "62C57D90DAD253DEA01D5A86C7382FD6285C18F0"
         .parse().expect("valid fingerprint");
     let dave_uid
-        = UserID::from("<dave@other.org>");
+        = UserIDArg::UserID("<dave@other.org>");
     // Certified by: 6F8291428420AB53576BAB4BEFF6477D3E348D71
 
     let ed_fpr: Fingerprint =
         "0E974D0ACBA0C4D8F51D7CF68F048FF83B173504"
         .parse().expect("valid fingerprint");
     let ed_uid
-        = UserID::from("<ed@example.org>");
+        = UserIDArg::UserID("<ed@example.org>");
     // Certified by: 6F8291428420AB53576BAB4BEFF6477D3E348D71
 
     let frank_fpr: Fingerprint =
         "5BEE3D41F85B2FCBC300DE4E18CB2BDA65465F03"
         .parse().expect("valid fingerprint");
     let frank_uid
-        = UserID::from("<frank@other.org>");
+        = UserIDArg::UserID("<frank@other.org>");
     // Certified by: 5528B9E5DAFC519ED2E37F0377B332E4111456CB
 
     // defaults
@@ -2319,13 +2327,13 @@ fn path_sha1() -> Result<()> {
         "B5FA089BA76FE3E17DC11660960E53286738F94C"
         .parse().expect("valid fingerprint");
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::UserID("<alice@example.org>");
 
     let bob_fpr: Fingerprint =
         "231BC4AB9D8CAB86D1622CE02C0CE554998EECDB"
         .parse().expect("valid fingerprint");
     let bob_uid
-        = UserID::from("<bob@example.org>");
+        = UserIDArg::UserID("<bob@example.org>");
     // Certified by: B5FA089BA76FE3E17DC11660960E53286738F94C
     // Certified by: B5FA089BA76FE3E17DC11660960E53286738F94C
 
@@ -2333,7 +2341,7 @@ fn path_sha1() -> Result<()> {
         "FABA8485B2D4D5BF1582AA963A8115E774FA9852"
         .parse().expect("valid fingerprint");
     let carol_uid
-        = UserID::from("<carol@example.org>");
+        = UserIDArg::UserID("<carol@example.org>");
     // Certified by: 231BC4AB9D8CAB86D1622CE02C0CE554998EECDB
     // Certified by: 231BC4AB9D8CAB86D1622CE02C0CE554998EECDB
 
@@ -2444,41 +2452,41 @@ fn authenticate_certification_network_simple() -> Result<()> {
         "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
         .parse().expect("valid fingerprint");
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::UserID("<alice@example.org>");
 
     let bob_fpr: Fingerprint =
         "39A479816C934B9E0464F1F4BC1DCFDEADA4EE90"
         .parse().expect("valid fingerprint");
     let bob_uid
-        = UserID::from("<bob@example.org>");
+        = UserIDArg::UserID("<bob@example.org>");
     // Certified by: 85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D
 
     let carol_fpr: Fingerprint =
         "43530F91B450EDB269AA58821A1CF4DC7F500F04"
         .parse().expect("valid fingerprint");
     let carol_uid
-        = UserID::from("<carol@example.org>");
+        = UserIDArg::UserID("<carol@example.org>");
     // Certified by: 39A479816C934B9E0464F1F4BC1DCFDEADA4EE90
 
     let dave_fpr: Fingerprint =
         "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
         .parse().expect("valid fingerprint");
     let dave_uid
-        = UserID::from("<dave@example.org>");
+        = UserIDArg::UserID("<dave@example.org>");
     // Certified by: 43530F91B450EDB269AA58821A1CF4DC7F500F04
 
     let ellen_fpr: Fingerprint =
         "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
         .parse().expect("valid fingerprint");
     let ellen_uid
-        = UserID::from("<ellen@example.org>");
+        = UserIDArg::UserID("<ellen@example.org>");
     // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
 
     let frank_fpr: Fingerprint =
         "2693237D2CED0BB68F118D78DC86A97CD2C819D9"
         .parse().expect("valid fingerprint");
     let frank_uid
-        = UserID::from("<frank@example.org>");
+        = UserIDArg::UserID("<frank@example.org>");
 
     // defaults
     let keyring = "simple.pgp";
@@ -2526,28 +2534,28 @@ fn authenticate_certification_network() -> Result<()> {
         "B2B371214EF71AFD16E42C62D81360B4C0489225"
         .parse().expect("valid fingerprint");
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::UserID("<alice@example.org>");
     // Certified by: 9A1AE937B5CB8BC46048AB63023CC01973ED9DF3
 
     let bob_fpr: Fingerprint =
         "A68DF00EB82F9C49C27CC7723C5F5BBE6B790C05"
         .parse().expect("valid fingerprint");
     let bob_uid
-        = UserID::from("<bob@example.org>");
+        = UserIDArg::UserID("<bob@example.org>");
     // Certified by: B2B371214EF71AFD16E42C62D81360B4C0489225
 
     let carol_fpr: Fingerprint =
         "AB9EF1C89631519842ED559697557DD147D99C97"
         .parse().expect("valid fingerprint");
     let carol_uid
-        = UserID::from("<carol@example.org>");
+        = UserIDArg::UserID("<carol@example.org>");
     // Certified by: A68DF00EB82F9C49C27CC7723C5F5BBE6B790C05
 
     let dave_fpr: Fingerprint =
         "9A1AE937B5CB8BC46048AB63023CC01973ED9DF3"
         .parse().expect("valid fingerprint");
     let dave_uid
-        = UserID::from("<dave@example.org>");
+        = UserIDArg::UserID("<dave@example.org>");
     // Certified by: AB9EF1C89631519842ED559697557DD147D99C97
 
     // defaults
@@ -2767,28 +2775,28 @@ fn path_certification_network() -> Result<()> {
         "B2B371214EF71AFD16E42C62D81360B4C0489225"
         .parse().expect("valid fingerprint");
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::UserID("<alice@example.org>");
     // Certified by: 9A1AE937B5CB8BC46048AB63023CC01973ED9DF3
 
     let bob_fpr: Fingerprint =
         "A68DF00EB82F9C49C27CC7723C5F5BBE6B790C05"
         .parse().expect("valid fingerprint");
     let bob_uid
-        = UserID::from("<bob@example.org>");
+        = UserIDArg::UserID("<bob@example.org>");
     // Certified by: B2B371214EF71AFD16E42C62D81360B4C0489225
 
     let carol_fpr: Fingerprint =
         "AB9EF1C89631519842ED559697557DD147D99C97"
         .parse().expect("valid fingerprint");
     let carol_uid
-        = UserID::from("<carol@example.org>");
+        = UserIDArg::UserID("<carol@example.org>");
     // Certified by: A68DF00EB82F9C49C27CC7723C5F5BBE6B790C05
 
     let dave_fpr: Fingerprint =
         "9A1AE937B5CB8BC46048AB63023CC01973ED9DF3"
         .parse().expect("valid fingerprint");
     let dave_uid
-        = UserID::from("<dave@example.org>");
+        = UserIDArg::UserID("<dave@example.org>");
     // Certified by: AB9EF1C89631519842ED559697557DD147D99C97
 
     // defaults
@@ -3091,28 +3099,28 @@ fn gossip_certification_network() -> Result<()> {
         "B2B371214EF71AFD16E42C62D81360B4C0489225"
         .parse().expect("valid fingerprint");
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::UserID("<alice@example.org>");
     // Certified by: 9A1AE937B5CB8BC46048AB63023CC01973ED9DF3
 
     let bob_fpr: Fingerprint =
         "A68DF00EB82F9C49C27CC7723C5F5BBE6B790C05"
         .parse().expect("valid fingerprint");
     let bob_uid
-        = UserID::from("<bob@example.org>");
+        = UserIDArg::UserID("<bob@example.org>");
     // Certified by: B2B371214EF71AFD16E42C62D81360B4C0489225
 
     let carol_fpr: Fingerprint =
         "AB9EF1C89631519842ED559697557DD147D99C97"
         .parse().expect("valid fingerprint");
     let carol_uid
-        = UserID::from("<carol@example.org>");
+        = UserIDArg::UserID("<carol@example.org>");
     // Certified by: A68DF00EB82F9C49C27CC7723C5F5BBE6B790C05
 
     let dave_fpr: Fingerprint =
         "9A1AE937B5CB8BC46048AB63023CC01973ED9DF3"
         .parse().expect("valid fingerprint");
     let dave_uid
-        = UserID::from("<dave@example.org>");
+        = UserIDArg::UserID("<dave@example.org>");
     // Certified by: AB9EF1C89631519842ED559697557DD147D99C97
 
     // defaults
@@ -3168,20 +3176,20 @@ fn target_cert_expired() -> Result<()> {
         "1FA62523FB7C06E71EEFB82BB5159F3FC3EB3AC9"
         .parse().expect("valid fingerprint");
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::UserID("<alice@example.org>");
 
     let bob_fpr: Fingerprint =
         "B166B31AE5F95600B3F7184FE74C6CE62821686F"
         .parse().expect("valid fingerprint");
     let bob_uid
-        = UserID::from("<bob@example.org>");
+        = UserIDArg::UserID("<bob@example.org>");
     // Certified by: 1FA62523FB7C06E71EEFB82BB5159F3FC3EB3AC9
 
     let carol_fpr: Fingerprint =
         "81CD118AC5BD9156DC113772626222D76ACDFFCF"
         .parse().expect("valid fingerprint");
     let carol_uid
-        = UserID::from("<carol@example.org>");
+        = UserIDArg::UserID("<carol@example.org>");
     // Certified by: B166B31AE5F95600B3F7184FE74C6CE62821686F
 
     // $ date '+%s' -d 20200202
@@ -3289,13 +3297,13 @@ fn target_cert_hard_revoked() -> Result<()> {
         "219AAB661C8AAF4526DBC31AA751A7A0532863BA"
         .parse().expect("valid fingerprint");
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::UserID("<alice@example.org>");
 
     let bob_fpr: Fingerprint =
         "90E02BFB03FAA04714D1D3D87543157EF3B12BE9"
         .parse().expect("valid fingerprint");
     let bob_uid
-        = UserID::from("<bob@example.org>");
+        = UserIDArg::UserID("<bob@example.org>");
     // Certified by: 219AAB661C8AAF4526DBC31AA751A7A0532863BA
     // Certified by: 219AAB661C8AAF4526DBC31AA751A7A0532863BA
 
@@ -3303,14 +3311,14 @@ fn target_cert_hard_revoked() -> Result<()> {
         "BF680710128E6BCCB2268154569F5F6BFB95C544"
         .parse().expect("valid fingerprint");
     let carol_uid
-        = UserID::from("<carol@example.org>");
+        = UserIDArg::UserID("<carol@example.org>");
     // Certified by: 219AAB661C8AAF4526DBC31AA751A7A0532863BA
 
     let dave_fpr: Fingerprint =
         "46945292F8F643F0573AF71183F9C1A4759A16D6"
         .parse().expect("valid fingerprint");
     let dave_uid
-        = UserID::from("<dave@example.org>");
+        = UserIDArg::UserID("<dave@example.org>");
     // Certified by: 90E02BFB03FAA04714D1D3D87543157EF3B12BE9
     // Certified by: BF680710128E6BCCB2268154569F5F6BFB95C544
     // Certified by: 90E02BFB03FAA04714D1D3D87543157EF3B12BE9
@@ -3365,27 +3373,27 @@ fn target_cert_soft_revoked() -> Result<()> {
         "66037F98B444BBAFDFE98E871738DFAB86878262"
         .parse().expect("valid fingerprint");
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::UserID("<alice@example.org>");
 
     let bob_fpr: Fingerprint =
         "4CD8737F76C2B897C4F058DBF28C47540FA2C3B3"
         .parse().expect("valid fingerprint");
     let bob_uid
-        = UserID::from("<bob@example.org>");
+        = UserIDArg::UserID("<bob@example.org>");
     // Certified by: 66037F98B444BBAFDFE98E871738DFAB86878262
 
     let carol_fpr: Fingerprint =
         "AB4E3F8EE8BBD3459754D75ACE570F9B8C7DC75D"
         .parse().expect("valid fingerprint");
     let carol_uid
-        = UserID::from("<carol@example.org>");
+        = UserIDArg::UserID("<carol@example.org>");
     // Certified by: 66037F98B444BBAFDFE98E871738DFAB86878262
 
     let dave_fpr: Fingerprint =
         "DF6A440ED9DE723B0EBC7F50E24FBB1B9FADC999"
         .parse().expect("valid fingerprint");
     let dave_uid
-        = UserID::from("<dave@example.org>");
+        = UserIDArg::UserID("<dave@example.org>");
     // Certified by: 4CD8737F76C2B897C4F058DBF28C47540FA2C3B3
     // Certified by: AB4E3F8EE8BBD3459754D75ACE570F9B8C7DC75D
     // Certified by: 4CD8737F76C2B897C4F058DBF28C47540FA2C3B3
@@ -3481,13 +3489,13 @@ fn target_userid_revoked() -> Result<()> {
         "01672BB67E4B4047E5A4EC0A731CEA092C465FC8"
         .parse().expect("valid fingerprint");
     let alice_uid
-        = UserID::from("<alice@example.org>");
+        = UserIDArg::UserID("<alice@example.org>");
 
     let bob_fpr: Fingerprint =
         "EA479A77CD074458EAFE56B4861BF42FF490C581"
         .parse().expect("valid fingerprint");
     let bob_uid
-        = UserID::from("<bob@example.org>");
+        = UserIDArg::UserID("<bob@example.org>");
     // Certified by: 01672BB67E4B4047E5A4EC0A731CEA092C465FC8
     // Certified by: 01672BB67E4B4047E5A4EC0A731CEA092C465FC8
 
@@ -3495,7 +3503,7 @@ fn target_userid_revoked() -> Result<()> {
         "212873BB9C4CC49F8E5A6FEA78BC5397470BA7F0"
         .parse().expect("valid fingerprint");
     let carol_uid
-        = UserID::from("<carol@example.org>");
+        = UserIDArg::UserID("<carol@example.org>");
     // Certified by: EA479A77CD074458EAFE56B4861BF42FF490C581
     // Certified by: EA479A77CD074458EAFE56B4861BF42FF490C581
 

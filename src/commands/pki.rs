@@ -6,7 +6,6 @@ pub mod path;
 pub mod vouch;
 
 use crate::cli;
-use cli::types::TrustAmount;
 
 use crate::Sq;
 use crate::common::pki::authenticate;
@@ -18,14 +17,17 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
     match cli.subcommand {
         // Authenticate a given binding.
         Subcommands::Authenticate(authenticate::Command {
-            email, gossip, certification_network, trust_amount,
-            cert, userid, show_paths,
+            userid, gossip, certification_network, trust_amount,
+            cert, show_paths,
         }) => {
             let cert = sq.resolve_cert(&cert, 0)?.0;
 
+            assert_eq!(userid.len(), 1);
+            let userid = userid.designators.into_iter().next().unwrap();
+
             authenticate(
                 &sq, false, None,
-                *email, *gossip, *certification_network, *trust_amount,
+                *gossip, *certification_network, *trust_amount,
                 Some(&userid), Some(&cert), *show_paths,
             )?
         }
@@ -33,12 +35,17 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
         // Find all authenticated bindings for a given User ID, list
         // the certificates.
         Subcommands::Lookup(lookup::Command {
-            email, gossip, certification_network, trust_amount,
+            gossip, certification_network, trust_amount,
             userid, show_paths,
-        }) => authenticate(
-            &sq, false, None,
-            *email, *gossip, *certification_network, *trust_amount,
-            Some(&userid), None, *show_paths)?,
+        }) => {
+            assert_eq!(userid.len(), 1);
+            let userid = userid.designators.into_iter().next().unwrap();
+
+            authenticate(
+                &sq, false, None,
+                *gossip, *certification_network, *trust_amount,
+                Some(&userid), None, *show_paths)?;
+        }
 
         // Find and list all authenticated bindings for a given
         // certificate.
@@ -50,7 +57,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
 
             authenticate(
                 &sq, false, None,
-                false, *gossip, *certification_network, *trust_amount,
+                *gossip, *certification_network, *trust_amount,
                 None, Some(&cert), *show_paths)?;
         }
 

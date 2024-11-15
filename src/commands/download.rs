@@ -397,7 +397,6 @@ pub fn dispatch(sq: Sq, c: download::Command)
                                         &sq,
                                         false, // precompute
                                         None, // list pattern
-                                        false, // email
                                         false, // gossip
                                         false, // certification network
                                         Some(TrustAmount::Full), // trust amount

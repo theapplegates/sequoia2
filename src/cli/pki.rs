@@ -4,9 +4,6 @@ use std::ops::Deref;
 
 use clap::Parser;
 
-use sequoia_openpgp as openpgp;
-use openpgp::packet::UserID;
-
 use crate::cli::types::TrustAmount;
 
 pub mod authenticate;
@@ -54,52 +51,6 @@ pub enum Subcommands {
     Vouch(vouch::Command),
     Link(link::Command),
     Path(path::Command),
-}
-
-#[derive(clap::Args, Debug)]
-pub struct UserIDArg {
-    /// The User ID to authenticate.
-    ///
-    /// This is case sensitive, and must be the whole User ID, not
-    /// just a substring or an email address.
-    pub userid: UserID,
-}
-
-impl Deref for UserIDArg {
-    type Target = UserID;
-
-    fn deref(&self) -> &Self::Target {
-        &self.userid
-    }
-}
-
-#[derive(clap::Args, Debug)]
-pub struct EmailArg {
-    /// Changes the USERID parameter to match User IDs with the
-    /// specified email address.
-    ///
-    /// Interprets the USERID parameter as an email address, which
-    /// is then used to select User IDs with that email address.
-    ///
-    /// Unlike when comparing User IDs, email addresses are first
-    /// normalized by the domain to ASCII using IDNA2008 Punycode
-    /// conversion, and then converting the resulting email
-    /// address to lowercase using the empty locale.
-    ///
-    /// If multiple User IDs match, they are each considered in
-    /// turn, and this function returns success if at least one of
-    /// those User IDs can be authenticated.  Note: The paths to
-    /// the different User IDs are not combined.
-    #[arg(long)]
-    pub email: bool,
-}
-
-impl Deref for EmailArg {
-    type Target = bool;
-
-    fn deref(&self) -> &Self::Target {
-        &self.email
-    }
 }
 
 #[derive(clap::Args, Debug)]

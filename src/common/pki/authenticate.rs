@@ -13,6 +13,7 @@ use wot::store::Store;
 
 use crate::cli;
 use cli::types::TrustAmount;
+use cli::types::userid_designator;
 
 use super::output::ConciseHumanReadableOutputNetwork;
 use super::output::OutputType;
@@ -69,11 +70,10 @@ pub fn authenticate<'store, 'rstore>(
     sq: &Sq<'store, 'rstore>,
     precompute: bool,
     list_pattern: Option<String>,
-    email: bool,
     gossip: bool,
     certification_network: bool,
     trust_amount: Option<TrustAmount<usize>>,
-    userid: Option<&UserID>,
+    userid: Option<&userid_designator::UserIDDesignator>,
     certificate: Option<&Cert>,
     show_paths: bool,
 ) -> Result<()>
@@ -105,18 +105,16 @@ pub fn authenticate<'store, 'rstore>(
 
     let fingerprint: Option<Fingerprint> = certificate.map(|c| c.fingerprint());
 
+    let email = userid.map(|u| u.is_email()).unwrap_or(false);
+    let userid = userid.map(|u| u.value());
+
     let mut bindings = Vec::new();
     if matches!(userid, Some(_)) && email {
-        let userid = userid.expect("required");
-
-        // First, we check that the supplied User ID is a bare
-        // email address.
-        let email = String::from_utf8(userid.value().to_vec())
-            .context("email address must be valid UTF-8")?;
+        let email = userid.expect("required");
 
         let userid_check = UserID::from(format!("<{}>", email));
         if let Ok(Some(email_check)) = userid_check.email2() {
-            if &email != email_check {
+            if email != email_check {
                 return Err(anyhow::anyhow!(
                     "{:?} does not appear to be an email address",
                     email));
@@ -157,7 +155,7 @@ pub fn authenticate<'store, 'rstore>(
             }).collect();
     } else if let Some(fingerprint) = fingerprint.as_ref() {
         if let Some(userid) = userid {
-            bindings.push((fingerprint.clone(), userid.clone()));
+            bindings.push((fingerprint.clone(), UserID::from(userid)));
         } else {
             // Fingerprint, no User ID.
             bindings = n.certified_userids_of(&fingerprint)
@@ -168,9 +166,9 @@ pub fn authenticate<'store, 'rstore>(
     } else if let Some(userid) = userid {
         // The caller did not specify a certificate.  Find all
         // bindings with the User ID.
-        bindings = n.lookup_synopses_by_userid(userid.clone())
+        bindings = n.lookup_synopses_by_userid(UserID::from(userid))
             .into_iter()
-            .map(|fpr| (fpr, userid.clone()))
+            .map(|fpr| (fpr, UserID::from(userid)))
             .collect();
     } else {
         // No User ID, no Fingerprint.
@@ -299,7 +297,7 @@ pub fn authenticate<'store, 'rstore>(
 
             // See if there is a matching self-signed User ID.
             if let Some(userid) = userid {
-                if ! have_self_signed_userid(cert, userid, email) {
+                if ! have_self_signed_userid(cert, &UserID::from(userid), email) {
                     wprintln!("Warning: {} is not a \
                                self-signed User ID for {}.",
                               userid, cert.fingerprint());
@@ -327,15 +325,13 @@ pub fn authenticate<'store, 'rstore>(
         // specified User ID looks like an email, try and be helpful.
         if ! email {
             if let Some(userid) = userid {
-                if let Ok(email) = std::str::from_utf8(userid.value()) {
-                    let userid_check = UserID::from(format!("<{}>", email));
-                    if let Ok(Some(email_check)) = userid_check.email2() {
-                        if email == email_check {
-                            wprintln!("WARNING: {} appears to be a bare \
-                                      email address.  Perhaps you forgot \
-                                      to specify --email.",
-                                     email);
-                        }
+                let userid_check = UserID::from(format!("<{}>", email));
+                if let Ok(Some(email_check)) = userid_check.email2() {
+                    if userid == email_check {
+                        wprintln!("WARNING: {} appears to be a bare \
+                                   email address.  Perhaps you forgot \
+                                   to specify --email.",
+                                  email);
                     }
                 }
             }
@@ -362,7 +358,7 @@ pub fn authenticate<'store, 'rstore>(
     let pattern = || {
         certificate.map(|kh| kh.to_string())
             .or_else(|| userid.map(|u| {
-                String::from_utf8_lossy(u.value()).to_string()
+                u.to_string()
             }))
             .or_else(|| list_pattern.clone())
     };

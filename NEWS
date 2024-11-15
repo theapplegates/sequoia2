@@ -74,6 +74,15 @@
    - `sq pki identify`'s positional argument for specifying the
      certificate to identify must now be specified using a named
      argument, `--cert`.
+   - Drop `sq cert list --email`'s flag, and replace it with the
+     `--userid` and `--email` positional arguments, which match on
+     user IDs.
+   - Drop `sq pki authenticate --email`'s flag, and replace it with
+     the `--userid` and `--email` positional arguments, which match on
+     user IDs.
+   - Drop `sq pki lookup --email`'s flag, and replace it with the
+     `--userid` and `--email` positional arguments, which match on
+     user IDs.
 
 * Changes in 0.39.0
 ** Notable changes

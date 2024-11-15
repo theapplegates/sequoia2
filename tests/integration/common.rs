@@ -257,7 +257,7 @@ impl<'a> From<&'a String> for UserIDArg<'a> {
 
 impl UserIDArg<'_> {
     /// Return the raw string.
-    fn raw(&self) -> &str {
+    pub fn raw(&self) -> &str {
         match self {
             UserIDArg::UserID(s)
                 | UserIDArg::Email(s)
@@ -271,7 +271,7 @@ impl UserIDArg<'_> {
     }
 
     /// Add the argument to a `Command`.
-    fn as_arg(&self, cmd: &mut Command) {
+    pub fn as_arg(&self, cmd: &mut Command) {
         match self {
             UserIDArg::UserID(userid) =>
                 cmd.arg("--userid").arg(userid),
@@ -284,6 +284,14 @@ impl UserIDArg<'_> {
             UserIDArg::AddEmail(email) =>
                 cmd.arg("--add-email").arg(email),
         };
+    }
+}
+
+impl std::fmt::Display for UserIDArg<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>)
+        -> std::result::Result<(), std::fmt::Error>
+    {
+        write!(f, "{}", self.raw())
     }
 }
 
@@ -1771,9 +1779,10 @@ impl Sq {
     }
 
     /// Authenticate a binding.
-    pub fn pki_authenticate(&self, extra_args: &[&str],
-                            cert: &str, userid: &str)
+    pub fn pki_authenticate<'a, U>(&self, extra_args: &[&str],
+                                   cert: &str, userid: U)
         -> Result<()>
+        where U: Into<UserIDArg<'a>>,
     {
         let mut cmd = self.command();
         cmd.args([ "pki", "authenticate", "--show-paths" ]);
@@ -1781,7 +1790,7 @@ impl Sq {
             cmd.arg(arg);
         }
         cmd.arg("--cert").arg(cert);
-        cmd.arg(userid);
+        userid.into().as_arg(&mut cmd);
 
         let output = self.run(cmd, None);
         if output.status.success() {

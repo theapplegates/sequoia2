@@ -11,11 +11,11 @@ use cert_store::{LazyCert, Store};
 
 use crate::Sq;
 use crate::commands::active_certification;
-use crate::commands::pki::TrustAmount;
 use crate::parse_notations;
 
 use crate::cli::pki::link;
 use crate::cli::types::Expiration;
+use crate::cli::types::TrustAmount;
 use crate::cli::types::userid_designator::ResolvedUserID;
 
 pub fn link(sq: Sq, c: link::Command) -> Result<()> {

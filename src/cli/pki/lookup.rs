@@ -9,11 +9,12 @@ use examples::Example;
 use examples::Setup;
 
 use super::CertificationNetworkArg;
-use super::EmailArg;
 use super::GossipArg;
 use super::RequiredTrustAmountArg;
 use super::ShowPathsArg;
-use super::UserIDArg;
+
+use crate::cli::types::userid_designator;
+use crate::cli::types::UserIDDesignators;
 
 /// Lookup the certificates associated with a User ID.
 ///
@@ -34,10 +35,12 @@ use super::UserIDArg;
 )]
 pub struct Command {
     #[command(flatten)]
-    pub show_paths: ShowPathsArg,
+    pub userid: UserIDDesignators<
+        userid_designator::AnyUserIDEmailArgs,
+        userid_designator::OneValue>,
 
     #[command(flatten)]
-    pub email: EmailArg,
+    pub show_paths: ShowPathsArg,
 
     #[command(flatten)]
     pub gossip: GossipArg,
@@ -47,9 +50,6 @@ pub struct Command {
 
     #[command(flatten)]
     pub trust_amount: RequiredTrustAmountArg,
-
-    #[command(flatten)]
-    pub userid: UserIDArg,
 }
 
 const EXAMPLES: Actions = Actions {
@@ -66,7 +66,8 @@ const EXAMPLES: Actions = Actions {
             comment: "\
 Lookup certificates that can be authenticated for the given user ID.",
             command: &[
-                "sq", "pki", "lookup", "Alice <alice@example.org>"
+                "sq", "pki", "lookup",
+                "--userid", "Alice <alice@example.org>"
             ],
         }),
         Action::Example(Example {
@@ -74,7 +75,8 @@ Lookup certificates that can be authenticated for the given user ID.",
 Lookup certificates that have a user ID with the specified email \
 address, and that user ID can be authenticated.",
             command: &[
-                "sq", "pki", "lookup", "--email", "alice@example.org",
+                "sq", "pki", "lookup",
+                "--email", "alice@example.org",
             ],
         }),
     ]

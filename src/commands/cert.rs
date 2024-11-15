@@ -22,24 +22,27 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
 
         // List all authenticated bindings.
         Subcommands::List(list::Command {
-            email, gossip, certification_network, trust_amount,
-            pattern, show_paths,
-        }) => if let Some(handle) = pattern.as_ref()
-            .and_then(|p| p.parse().ok())
-            .iter().filter(|_| ! *email).next()
-        {
-            // A key handle was given as pattern and --email was not
-            // given.  Act like `sq pki identify`.
-            authenticate(
-                &sq, false, None,
-                false, *gossip, *certification_network, *trust_amount,
-                None, Some(&handle), *show_paths)
-        } else {
-            authenticate(
-                &sq, pattern.is_none(), pattern,
-                *email, *gossip, *certification_network, *trust_amount,
-                None, None, *show_paths)
-        },
+            userid, pattern, gossip, certification_network, trust_amount,
+            show_paths,
+        }) => {
+            let userid = userid.designators.into_iter().next();
+
+            if let Some(handle) = pattern.as_ref()
+                .and_then(|p| p.parse().ok())
+            {
+                // A key handle was given as pattern and --email was not
+                // given.  Act like `sq pki identify`.
+                authenticate(
+                    &sq, false, None,
+                    *gossip, *certification_network, *trust_amount,
+                    userid.as_ref(), Some(&handle), *show_paths)
+            } else {
+                authenticate(
+                    &sq, pattern.is_none(), pattern,
+                    *gossip, *certification_network, *trust_amount,
+                    userid.as_ref(), None, *show_paths)
+            }
+        }
 
         Subcommands::Lint(command) =>
             lint::lint(sq, command),

@@ -195,7 +195,7 @@ macro_rules! test_examples {
 
             eprintln!("Testing example from {}:{}", file!(), line!());
 
-            for action in $actions.actions {
+            for (i, action) in $actions.actions.into_iter().enumerate() {
                 let command = if let Some(command) = action.command() {
                     command
                 } else {
@@ -222,7 +222,11 @@ macro_rules! test_examples {
 
                     let res = cmd.assert();
                     intermediate = Some(res.get_output().stdout.clone());
-                    res.success();
+                    if let Err(err) = res.try_success() {
+                        eprintln!("example:{}:{}: executing example #{}: {}",
+                                  file!(), line!(), i + 1, err);
+                        panic!("executing example failed");
+                    }
                 }
             }
         }

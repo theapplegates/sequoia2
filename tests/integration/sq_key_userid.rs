@@ -404,17 +404,56 @@ fn sq_key_userid_strip() -> Result<()> {
             UserIDArg::Name("Joan Clarke"),
             UserIDArg::Name("Joan Clarke Murray"),
             UserIDArg::Email("joan@hut8.bletchley.park"),
+            UserIDArg::UserID("Joan <joan@example.org>"),
         ]);
-    assert_eq!(key.userids().count(), 3);
+    assert_eq!(key.userids().count(), 4);
+
 
     // Whoops, that's a secret.
-    let key = sq.toolbox_strip_userid(key, &[
+    let update = sq.toolbox_strip_userid(key.clone(), &[
         "--userid", "<joan@hut8.bletchley.park>",
     ])?;
 
-    assert_eq!(key.userids().count(), 2);
-    assert!(key.userids().any(|u| u.value() == b"Joan Clarke"));
-    assert!(key.userids().any(|u| u.value() == b"Joan Clarke Murray"));
+    assert_eq!(update.userids().count(), 3);
+    assert!(update.userids().any(|u| u.value() == b"Joan Clarke"));
+    assert!(update.userids().any(|u| u.value() == b"Joan Clarke Murray"));
+    assert!(update.userids().any(|u| u.value() == b"Joan <joan@example.org>"));
+
+    let update = sq.toolbox_strip_userid(key.clone(), &[
+        "--email", "joan@hut8.bletchley.park",
+    ])?;
+
+    assert_eq!(update.userids().count(), 3);
+    assert!(update.userids().any(|u| u.value() == b"Joan Clarke"));
+    assert!(update.userids().any(|u| u.value() == b"Joan Clarke Murray"));
+    assert!(update.userids().any(|u| u.value() == b"Joan <joan@example.org>"));
+
+    let update = sq.toolbox_strip_userid(key.clone(), &[
+        "--name", "Joan Clarke",
+    ])?;
+
+    assert_eq!(update.userids().count(), 3);
+    assert!(update.userids().any(|u| u.value() == b"Joan Clarke Murray"));
+    assert!(update.userids().any(|u| u.value() == b"<joan@hut8.bletchley.park>"));
+    assert!(update.userids().any(|u| u.value() == b"Joan <joan@example.org>"));
+
+    let update = sq.toolbox_strip_userid(key.clone(), &[
+        "--email", "joan@example.org",
+    ])?;
+
+    assert_eq!(update.userids().count(), 3);
+    assert!(update.userids().any(|u| u.value() == b"Joan Clarke"));
+    assert!(update.userids().any(|u| u.value() == b"Joan Clarke Murray"));
+    assert!(update.userids().any(|u| u.value() == b"<joan@hut8.bletchley.park>"));
+
+    let update = sq.toolbox_strip_userid(key.clone(), &[
+        "--email", "joan@example.org",
+        "--name", "Joan Clarke",
+        "--userid", "Joan Clarke Murray",
+        "--email", "joan@hut8.bletchley.park",
+    ])?;
+
+    assert_eq!(update.userids().count(), 0);
 
     Ok(())
 }

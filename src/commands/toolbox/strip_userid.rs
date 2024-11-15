@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use sequoia_openpgp as openpgp;
-use openpgp::packet::UserID;
 use openpgp::serialize::Serialize;
 use openpgp::types::HashAlgorithm;
 use openpgp::Cert;
@@ -11,11 +10,10 @@ use sequoia_cert_store as cert_store;
 use cert_store::{LazyCert, StoreUpdate, store::MergeCerts};
 
 use crate::Sq;
+use crate::cli::types::userid_designator::ResolvedUserID;
 use crate::cli;
-use crate::common::userid::{
-    lint_emails,
-    lint_names,
-};
+use crate::commands::FileOrStdout;
+use crate::sq::NULL_POLICY;
 
 /// Computes a checksum of the cert.
 fn cert_checksum(cert: &Cert) -> Result<Vec<u8>> {
@@ -27,34 +25,30 @@ fn cert_checksum(cert: &Cert) -> Result<Vec<u8>> {
 
 pub fn userid_strip(
     sq: Sq,
-    mut command: cli::toolbox::strip_userid::Command,
+    command: cli::toolbox::strip_userid::Command,
 ) -> Result<()> {
     let cert =
         sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.0;
 
-    lint_names(&command.names)?;
-    for n in &command.names {
-        command.userid.push(UserID::from(n.as_str()));
-    }
+    // We use the NULL policy, because we don't really care if the
+    // user IDs are valid: the user is not trying to use them; they
+    // are trying to remove them.
+    let vc = cert.with_policy(&NULL_POLICY, sq.time)?;
+    let userids = command.userids.resolve(&vc)?;
 
-    lint_emails(&command.emails)?;
-    for n in &command.emails {
-        command.userid.push(UserID::from_address(None, None, n)?);
-    }
-
-    userid_strip_internal(sq, command, cert, 3)
+    userid_strip_internal(sq, cert, userids, 3, command.output, command.binary)
 }
 
 fn userid_strip_internal(
     sq: Sq,
-    command: cli::toolbox::strip_userid::Command,
     key: Cert,
+    strip: Vec<ResolvedUserID>,
     tries: usize,
+    output: Option<FileOrStdout>,
+    binary: bool,
 ) -> Result<()> {
     let orig_cert_checksum = cert_checksum(&key)?;
     let orig_cert_valid = key.with_policy(sq.policy, None).is_ok();
-
-    let strip: &Vec<_> = &command.userid;
 
     // Make sure that each User ID that the user requested to remove exists in
     // `key`, and *can* be removed.
@@ -63,7 +57,7 @@ fn userid_strip_internal(
 
     let missing: Vec<_> = strip
         .iter()
-        .filter(|s| !key_userids.contains(&s.value()))
+        .filter(|s| !key_userids.contains(&s.userid().value()))
         .collect();
     if !missing.is_empty() {
         return Err(anyhow::anyhow!(
@@ -75,7 +69,7 @@ fn userid_strip_internal(
 
     let cert = key.retain_userids(|uid| {
         // Don't keep User IDs that were selected for removal
-        !strip.iter().any(|rm| rm == uid.component())
+        !strip.iter().any(|rm| rm.userid() == uid.component())
     });
 
     if orig_cert_valid {
@@ -91,9 +85,9 @@ signatures on other User IDs to make the key valid again.",
         }
     }
 
-    if let Some(output) = command.output {
+    if let Some(output) = output {
         let mut sink = output.for_secrets().create_safe(&sq)?;
-        if command.binary {
+        if binary {
             cert.as_tsk().serialize(&mut sink)?;
         } else {
             cert.as_tsk().armored().serialize(&mut sink)?;
@@ -147,8 +141,9 @@ signatures on other User IDs to make the key valid again.",
                         // are tries left..  Retry the operation with
                         // the changed cert.
                         userid_strip_internal(
-                            sq, command, retry_with.cert,
-                            tries.checked_sub(1).expect("tries left"))
+                            sq, retry_with.cert, strip,
+                            tries.checked_sub(1).expect("tries left"),
+                            output, binary)
                     } else {
                         Err(retry_with.into())
                     }

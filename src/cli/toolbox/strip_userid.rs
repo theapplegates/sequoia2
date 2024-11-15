@@ -1,14 +1,14 @@
-use clap::{ArgGroup, Args};
-
-use sequoia_openpgp as openpgp;
-use openpgp::packet::UserID;
+use clap::Args;
 
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
 use crate::cli::types::FileOrStdout;
 
 use crate::cli::examples::*;
-use crate::cli::types::cert_designator::*;
+use crate::cli::types::CertDesignators;
+use crate::cli::types::UserIDDesignators;
+use crate::cli::types::cert_designator;
+use crate::cli::types::userid_designator;
 
 #[derive(Debug, Args)]
 #[clap(
@@ -38,13 +38,17 @@ signature.
 ",
     after_help = USERID_STRIP_EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("strip-userid").args(&["names", "emails", "userid"]).required(true).multiple(true)))]
 pub struct Command {
     #[command(flatten)]
-    pub cert: CertDesignators<CertUserIDEmailFileArgs,
-                              CertPrefix,
-                              OneValue,
-                              StripUserIDDoc>,
+    pub cert: CertDesignators<
+        cert_designator::CertUserIDEmailFileArgs,
+        cert_designator::CertPrefix,
+        cert_designator::OneValue,
+        StripUserIDDoc>,
+
+    #[command(flatten)]
+    pub userids: UserIDDesignators<
+        userid_designator::ExistingUserIDEmailNameArgs>,
 
     #[clap(
         long,
@@ -59,36 +63,6 @@ specified, and the certificate was read from a file, writes the
 modified certificate to stdout.",
     )]
     pub output: Option<FileOrStdout>,
-
-    #[clap(
-        long = "name",
-        value_name = "NAME",
-        help = "Strip the given name user ID",
-        long_help = "\
-Strip the given name user ID.  Must match a user ID exactly.  To strip
-a user ID that contains more than just a name, use `--userid`.",
-    )]
-    pub names: Vec<String>,
-
-    #[clap(
-        long = "email",
-        value_name = "ADDRESS",
-        help = "Strip the given email address user ID",
-        long_help = "\
-Strip the given email address user ID.  Must match a user ID exactly.
-To strip a user ID that contains more than just an email address name,
-use `--userid`.",
-    )]
-    pub emails: Vec<String>,
-
-    #[clap(
-        value_name = "USERID",
-        long,
-        help = "Strip the given user IDs",
-        long_help = "\
-Strip the given user IDs from the key.  Must match a user ID exactly.",
-    )]
-    pub userid: Vec<UserID>,
 
     #[clap(
         long,
@@ -115,7 +89,7 @@ test_examples!(sq_key_userid_strip, USERID_STRIP_EXAMPLES);
 /// strip-userid command.
 pub struct StripUserIDDoc {}
 
-impl AdditionalDocs for StripUserIDDoc {
+impl cert_designator::AdditionalDocs for StripUserIDDoc {
     fn help(arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         match arg {
             "file" =>

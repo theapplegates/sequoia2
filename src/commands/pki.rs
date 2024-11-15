@@ -2,10 +2,9 @@ use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
 use openpgp::Cert;
-use openpgp::KeyID;
 use openpgp::Fingerprint;
-use openpgp::KeyHandle;
 use openpgp::Result;
+use openpgp::types::RevocationStatus;
 use openpgp::packet::UserID;
 
 use sequoia_wot as wot;
@@ -48,7 +47,7 @@ fn required_trust_amount(trust_amount: Option<TrustAmount<usize>>,
 }
 
 // Returns whether there is a matching self-signed User ID.
-fn have_self_signed_userid(cert: &wot::CertSynopsis,
+fn have_self_signed_userid(cert: &Cert,
                            pattern: &UserID, email: bool)
     -> bool
 {
@@ -264,63 +263,69 @@ pub fn authenticate<'store, 'rstore>(
     // We didn't show anything.  Try to figure out what was wrong.
     if lint_input {
         // See if the target certificate exists.
-        if let Some(kh) = fingerprint.as_ref().map(|fpr| KeyHandle::from(fpr)) {
-            match n.lookup_synopses(&kh) {
-                Err(err) => {
-                    wprintln!("Looking up target certificate ({}): {}",
-                             kh, err);
-                }
-                Ok(certs) => {
-                    for cert in certs.iter() {
-                        let fpr = cert.fingerprint();
-                        let kh = if certs.len() == 1 {
-                            KeyHandle::KeyID(KeyID::from(&fpr))
-                        } else {
-                            KeyHandle::Fingerprint(fpr.clone())
-                        };
+        if let Some(cert) = certificate {
+            match cert.with_policy(sq.policy, sq.time) {
+                Ok(vc) => {
+                    // The certificate is valid under the current
+                    // policy.
 
-                        // Check if the certificate was revoke.
-                        use wot::RevocationStatus;
-                        match cert.revocation_status() {
-                            RevocationStatus::Soft(_)
-                            | RevocationStatus::Hard => {
-                                wprintln!("Warning: {} is revoked.", kh);
-                            }
-                            RevocationStatus::NotAsFarAsWeKnow => (),
-                        }
-
-                        // Check if the certificate has expired.
-                        if let Some(e) = cert.expiration_time() {
-                            if e <= n.reference_time() {
-                                wprintln!("Warning: {} is expired.", kh);
-                            }
-                        }
-
-                        // See if there is a matching self-signed User ID.
-                        if let Some(userid) = userid {
-                            if ! have_self_signed_userid(cert, userid, email) {
-                                wprintln!("Warning: {} is not a \
-                                          self-signed User ID for {}.",
-                                         userid, kh);
-                            }
-                        }
-
-                        // See if there are any certifications made on
-                        // this certificate.
-                        if let Ok(cs) = n.certifications_of(&fpr, 0.into()) {
-                            if cs.iter().all(|cs| {
-                                cs.certifications()
-                                    .all(|(_userid, certifications)| {
-                                        certifications.is_empty()
-                                    })
-                            })
-                            {
-                                wprintln!("Warning: {} has no valid \
-                                          certifications.",
-                                         kh);
-                            }
-                        }
+                    // Check if the certificate has expired.
+                    if let Err(err) = vc.alive() {
+                        wprintln!("Warning: {} is not live: {}.",
+                                  cert.fingerprint(), err);
                     }
+                }
+                Err(err) => {
+                    wprintln!("Warning: {} is not valid according to \
+                               the current policy: {}.",
+                              cert.fingerprint(),
+                              crate::one_line_error_chain(err));
+                }
+            };
+
+            // Check if the certificate was revoked.
+            if let RevocationStatus::Revoked(sigs)
+                = cert.revocation_status(sq.policy, sq.time)
+            {
+                if let Some((reason, message))
+                    = sigs[0].reason_for_revocation()
+                {
+                    wprintln!("Warning: {} is revoked: {}{}",
+                              cert.fingerprint(),
+                              reason,
+                              if message.is_empty() {
+                                  "".to_string()
+                              } else {
+                                  format!(": {:?}",
+                                          String::from_utf8_lossy(message))
+                              });
+                } else {
+                    wprintln!("Warning: {} is revoked: unspecified reason",
+                              cert.fingerprint());
+                }
+            }
+
+            // See if there is a matching self-signed User ID.
+            if let Some(userid) = userid {
+                if ! have_self_signed_userid(cert, userid, email) {
+                    wprintln!("Warning: {} is not a \
+                               self-signed User ID for {}.",
+                              userid, cert.fingerprint());
+                }
+            }
+
+            // See if there are any certifications made on
+            // this certificate.
+            if let Ok(cs) = n.certifications_of(&cert.fingerprint(), 0.into()) {
+                if cs.iter().all(|cs| {
+                    cs.certifications()
+                        .all(|(_userid, certifications)| {
+                            certifications.is_empty()
+                        })
+                })
+                {
+                    wprintln!("Warning: {} has no valid certifications.",
+                              cert.fingerprint());
                 }
             }
         }

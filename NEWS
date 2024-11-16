@@ -85,6 +85,7 @@
      user IDs.
    - `sq toolbox keyring` is now just `sq keyring`.
    - `sq toolbox packet` is now just `sq packet`.
+   - `sq toolbox armor` is now `sq packet armor`.
 
 * Changes in 0.39.0
 ** Notable changes

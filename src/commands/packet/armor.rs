@@ -45,7 +45,7 @@ where B: BufferedReader<C>,
     kind
 }
 
-pub fn dispatch(sq: Sq, command: cli::toolbox::armor::Command)
+pub fn dispatch(sq: Sq, command: cli::packet::armor::Command)
     -> Result<()>
 {
     tracer!(TRACE, "armor::dispatch");

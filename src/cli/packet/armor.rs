@@ -62,7 +62,7 @@ const EXAMPLES: Actions = Actions {
             comment: "\
 Convert a binary OpenPGP message to an ASCII armored OpenPGP message.",
             command: &[
-                "sq", "toolbox", "armor",
+                "sq", "packet", "armor",
                 "message.bin",
             ],
         }),
@@ -72,11 +72,11 @@ Convert a binary OpenPGP message to an ASCII armored OpenPGP message.",
 Convert a binary OpenPGP message to an ASCII armored OpenPGP message
 explicitly choosing the armor label.",
             command: &[
-                "sq", "toolbox", "armor",
+                "sq", "packet", "armor",
                 "--label=message",
                 "message.bin",
             ],
         }),
     ],
 };
-test_examples!(sq_toolbox_armor, EXAMPLES);
+test_examples!(sq_packet_armor, EXAMPLES);

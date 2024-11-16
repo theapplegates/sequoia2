@@ -1375,7 +1375,7 @@ then stderr matches regex 2.authenticated signatures
 
 
 
-# ASCII Armor data representation: `sq toolbox armor` and `sq toolbox dearmor`
+# ASCII Armor data representation: `sq packet armor` and `sq toolbox dearmor`
 
 The scenarios in this chapter verify that `sq` can convert data into
 the "ASCII Armor" representation and back.
@@ -1388,7 +1388,7 @@ stdout._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq toolbox armor hello.txt
+when I run sq packet armor hello.txt
 then stdout contains "-----BEGIN PGP ARMORED FILE-----"
 then stdout contains "-----END PGP ARMORED FILE-----"
 ~~~
@@ -1402,7 +1402,7 @@ named file._
 given an installed sq
 given file hello.txt
 given file hello.asc
-when I run sq toolbox armor hello.txt --output hello.out
+when I run sq packet armor hello.txt --output hello.out
 then files hello.asc and hello.out match
 ~~~
 
@@ -1415,17 +1415,17 @@ the label we choose._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq toolbox armor hello.txt --label auto
+when I run sq packet armor hello.txt --label auto
 then stdout contains "-----BEGIN PGP ARMORED FILE-----"
-when I run sq toolbox armor hello.txt --label message
+when I run sq packet armor hello.txt --label message
 then stdout contains "-----BEGIN PGP MESSAGE-----"
-when I run sq toolbox armor hello.txt --label cert
+when I run sq packet armor hello.txt --label cert
 then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
-when I run sq toolbox armor hello.txt --label key
+when I run sq packet armor hello.txt --label key
 then stdout contains "-----BEGIN PGP PRIVATE KEY BLOCK-----"
-when I run sq toolbox armor hello.txt --label sig
+when I run sq packet armor hello.txt --label sig
 then stdout contains "-----BEGIN PGP SIGNATURE-----"
-when I run sq toolbox armor hello.txt --label file
+when I run sq packet armor hello.txt --label file
 then stdout contains "-----BEGIN PGP ARMORED FILE-----"
 ~~~
 
@@ -1462,7 +1462,7 @@ back._
 ~~~scenario
 given an installed sq
 given file hello.txt
-when I run sq toolbox armor hello.txt --output hello.tmp
+when I run sq packet armor hello.txt --output hello.tmp
 when I run sq toolbox dearmor hello.tmp --output hello.out
 then files hello.txt and hello.out match
 ~~~

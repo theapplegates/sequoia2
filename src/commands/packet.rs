@@ -39,6 +39,7 @@ use crate::cli::types::StdinWarning;
 use crate::commands;
 use crate::load_keys;
 
+pub mod armor;
 pub mod dump;
 
 pub fn dispatch(sq: Sq, command: Command)
@@ -46,6 +47,8 @@ pub fn dispatch(sq: Sq, command: Command)
 {
     tracer!(TRACE, "packet::dispatch");
     match command.subcommand {
+        Subcommands::Armor(command) =>
+            armor::dispatch(sq, command)?,
         Subcommands::Dump(command) => {
             let mut input = if command.cert.is_empty() {
                 if let Some(path) = command.input.inner() {

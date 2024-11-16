@@ -15,6 +15,8 @@ use crate::cli::types::FileOrStdout;
 use crate::cli::types::SessionKey;
 use crate::cli::types::cert_designator::*;
 
+pub mod armor;
+
 #[derive(Parser, Debug)]
 #[clap(
     name = "packet",
@@ -39,6 +41,7 @@ pub struct Command {
 
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
+    Armor(armor::Command),
     Dump(DumpCommand),
     Decrypt(DecryptCommand),
     Split(SplitCommand),

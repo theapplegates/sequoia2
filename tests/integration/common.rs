@@ -755,7 +755,8 @@ impl Sq {
 
         let any_userids = ! userids.is_empty()
             || extra_args.iter().any(|a| a.starts_with("--name")
-                                     || a.starts_with("--email"));
+                                     || a.starts_with("--email")
+                                     || a.starts_with("--userid"));
         if ! any_userids {
             cmd.arg("--no-userids");
         } else {

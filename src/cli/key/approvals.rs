@@ -2,6 +2,7 @@
 
 use clap::{
     Args,
+    ArgGroup,
     Subcommand,
 };
 
@@ -232,6 +233,17 @@ distributed, e.g. by uploading it to a key server.
 ",
     after_help = UPDATE_EXAMPLES,
 )]
+#[clap(group(
+    ArgGroup::new("action")
+        .args(&[
+            "remove_all",
+            "remove_by",
+            "add_all",
+            "add_by",
+            "add_authenticated",
+        ])
+        .required(true)
+        .multiple(true)))]
 pub struct UpdateCommand {
     #[command(flatten)]
     pub cert: CertDesignators<CertUserIDEmailFileArgs,

@@ -92,6 +92,8 @@
      now check that user IDs that are not self-signed are in canonical
      form.  Add a flag, `--allow-non-canonical-userids`, to disable
      this check.
+   - `sq key approvals update` now requires an action, like
+     `--add-authenticated`.
 
 * Changes in 0.39.0
 ** Notable changes

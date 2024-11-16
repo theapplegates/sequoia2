@@ -1,5 +1,9 @@
 use clap::Parser;
 
+use crate::cli::examples::Action;
+use crate::cli::examples::Actions;
+use crate::cli::examples::Example;
+
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
 use crate::cli::types::FileOrStdout;
@@ -39,6 +43,7 @@ trusted can be tuned using `sq pki link add` or `sq pki link retract` in \
 the usual way.
 ",
     arg_required_else_help = true,
+    after_help = EXAMPLES,
 )]
 pub struct Command {
     #[clap(
@@ -79,3 +84,23 @@ pub struct Command {
     )]
     pub query: Vec<String>,
 }
+
+const EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::SyntaxCheck(Example {
+            comment: "\
+Search for the Qubes master signing certificate.",
+            command: &[
+                "sq", "network", "search", "427F11FD0FAA4B080123F01CDDFA1A3E36879494",
+            ],
+        }),
+        Action::SyntaxCheck(Example {
+            comment: "\
+Search for certificates that have are associated with an email address.",
+            command: &[
+                "sq", "network", "search", "alice@example.org",
+            ],
+        })
+    ]
+};
+test_examples!(sq_network_search, EXAMPLES);

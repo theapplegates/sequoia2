@@ -29,6 +29,10 @@ pub enum Action<'a> {
     /// shown in the manual pages.
     Setup(Setup<'a>),
 
+    /// A command that is syntax check (but not run) by the
+    /// integration test, and shown in the manual pages.
+    SyntaxCheck(Example<'a>),
+
     /// A command that is executed by the integration test, and shown
     /// in the manual pages.
     Example(Example<'a>),
@@ -40,6 +44,7 @@ impl<'a> Action<'a> {
     pub fn command(&self) -> Option<&'a [ &'a str ]> {
         match self {
             Action::Setup(Setup { command, .. }) => Some(command),
+            Action::SyntaxCheck(Example { command, .. }) => Some(command),
             Action::Example(Example { command, .. }) => Some(command),
         }
     }
@@ -78,10 +83,12 @@ impl<'a> IntoResettable<clap::builder::StyledStr> for Actions<'a> {
         lines.extend(self.actions
             .iter()
             .filter_map(|action| {
-                let example = if let Action::Example(example) = action {
-                    example
-                } else {
-                    return None;
+                let example = match action {
+                    Action::SyntaxCheck(example) => example,
+                    Action::Example(example) => example,
+
+                    // Don't show it.
+                    Action::Setup(_) => return None,
                 };
 
                 let comment = textwrap::indent(
@@ -201,6 +208,20 @@ macro_rules! test_examples {
                 } else {
                     continue;
                 };
+
+                if let Action::SyntaxCheck(_) = &action {
+                    // Just syntax check it.
+                    eprintln!("Syntax checking: {:?}", command);
+
+                    use clap::Parser;
+                    if let Err(err) = $crate::cli::SqCommand::try_parse_from(command.iter()) {
+                        eprintln!("example:{}:{}: checking example #{}: {}",
+                                  file!(), line!(), i + 1, err);
+                        panic!("syntax checking example failed");
+                    }
+
+                    continue;
+                }
 
                 // Handle pipelines by tracking intermediate results.
                 let mut intermediate = None;

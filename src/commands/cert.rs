@@ -1,5 +1,8 @@
 //! Operations on certs.
 
+use sequoia_openpgp as openpgp;
+use openpgp::KeyHandle;
+
 use crate::{
     Sq,
     Result,
@@ -27,15 +30,14 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
         }) => {
             let userid = userid.designators.into_iter().next();
 
-            if let Some(handle) = pattern.as_ref()
-                .and_then(|p| p.parse().ok())
+            if let Some(kh) = pattern.as_ref()
+                .and_then(|p| p.parse::<KeyHandle>().ok())
             {
-                // A key handle was given as pattern and --email was not
-                // given.  Act like `sq pki identify`.
+                let cert = sq.resolve_cert(&kh.into(), 0)?.0;
                 authenticate(
                     &sq, false, None,
                     *gossip, *certification_network, *trust_amount,
-                    userid.as_ref(), Some(&handle), *show_paths)
+                    userid.as_ref(), Some(&cert), *show_paths)
             } else {
                 authenticate(
                     &sq, pattern.is_none(), pattern,

@@ -1475,6 +1475,26 @@ impl Sq {
         Ok(out_key)
     }
 
+    /// Runs `sq cert list` with the supplied arguments.
+    pub fn cert_list_maybe(&self, args: &[&str]) -> Result<Vec<u8>> {
+        let mut cmd = self.command();
+        cmd.arg("cert").arg("list");
+        for arg in args {
+            cmd.arg(arg);
+        }
+        let output = self.run(cmd, None);
+        if output.status.success() {
+            Ok(output.stdout)
+        } else {
+            Err(anyhow::anyhow!("sq cert list returned an error"))
+        }
+    }
+
+    /// Runs `sq cert list` with the supplied arguments.
+    pub fn cert_list(&self, args: &[&str]) -> Vec<u8> {
+        self.cert_list_maybe(args).expect("success")
+    }
+
     /// Imports the specified certificate into the keystore.
     pub fn cert_import_maybe<P>(&self, path: P) -> Result<()>
     where P: AsRef<Path>

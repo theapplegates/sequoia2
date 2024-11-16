@@ -4,6 +4,7 @@ mod integration {
     mod sq_cert_export;
     mod sq_cert_import;
     mod sq_cert_lint;
+    mod sq_cert_list;
     mod sq_cli_version;
     mod sq_decrypt;
     mod sq_encrypt;

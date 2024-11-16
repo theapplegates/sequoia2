@@ -36,6 +36,7 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
     let all = userids.is_empty();
     let mut designated_userids = BTreeSet::from_iter(
         userids.into_iter().map(|u| u.userid().clone()));
+    let mut pending = 0;
     for uid in vcert.userids() {
         if ! all && ! designated_userids.remove(uid.userid()) {
             continue;
@@ -48,10 +49,18 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
             uid.attested_certifications().collect::<BTreeSet<_>>();
 
         let mut any = false;
-        for (approved, c) in uid.certifications()
-            .map(|c| (approved.contains(c), c))
-            .filter(|(a, _)| ! *a == cmd.pending)
-        {
+        for c in uid.certifications() {
+            let approved = approved.contains(c);
+            if ! approved {
+                pending += 1;
+            }
+
+            if approved == cmd.pending {
+                // It's approved and we pending, or it's pending and
+                // we want approved.
+                continue;
+            }
+
             // Verify certifications by looking up the issuing cert.
             let mut issuer = None;
             let mut err = None;
@@ -97,6 +106,12 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
         }
     }
     assert!(designated_userids.is_empty());
+
+    if ! cmd.pending && pending > 0 {
+        wprintln!("{} certifications are pending approval.  Using `--pending` \
+                   to see them.",
+                  pending);
+    }
 
     Ok(())
 }

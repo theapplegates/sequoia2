@@ -409,6 +409,19 @@ impl<Arguments, Prefix, Options, Doc> std::fmt::Debug
     }
 }
 
+impl From<KeyHandle> for CertDesignators<CertArg, NoPrefix, NoOptions, NoDoc> {
+    /// Sometimes we need to convert a key handle into a cert
+    /// designator.  Voila.
+    fn from(kh: KeyHandle) -> Self {
+        Self {
+            designators: vec![ CertDesignator::Cert(kh) ],
+            with_passwords: 0,
+            with_password_files: vec![],
+            arguments: std::marker::PhantomData,
+        }
+    }
+}
+
 impl<Arguments, Prefix, Options, Doc> CertDesignators<Arguments, Prefix, Options, Doc> {
     /// Like `Vec::push`.
     pub fn push(&mut self, designator: CertDesignator) {

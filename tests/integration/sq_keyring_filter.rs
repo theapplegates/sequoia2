@@ -23,8 +23,7 @@ fn build_keyring(sq: &Sq) {
         .serialize(&mut File::create(&bob).unwrap()).unwrap();
 
     let mut cmd = sq.command();
-    cmd.arg("toolbox")
-        .arg("keyring")
+    cmd.arg("keyring")
         .arg("merge")
         .arg("--output=keys.pgp")
         .arg(artifact("examples").join("alice-secret.pgp"))
@@ -68,8 +67,7 @@ fn read_certs(source: &mut (dyn Read + Sync + Send)) -> Vec<Cert> {
 /// Filters the keyring, then reads all certs in.
 fn filter(sq: &Sq, args: &[&str]) -> Vec<Cert> {
     let mut cmd = sq.command();
-    cmd.arg("toolbox")
-        .arg("keyring")
+    cmd.arg("keyring")
         .arg("filter")
         .arg("--output=-")
         .args(args)

@@ -1,4 +1,4 @@
-//! Command-line parser for `sq toolbox keyring`.
+//! Command-line parser for `sq keyring`.
 
 use std::path::PathBuf;
 
@@ -159,7 +159,7 @@ const FILTER_EXAMPLES: Actions = Actions {
     actions: &[
         Action::Setup(Setup {
             command: &[
-                "sq", "toolbox", "keyring", "merge",
+                "sq", "keyring", "merge",
                 "--output=certs.pgp",
                 "bob.pgp", "romeo.pgp",
             ],
@@ -169,7 +169,7 @@ const FILTER_EXAMPLES: Actions = Actions {
             comment: "\
 Convert all keys to certificates (i.e. remove any secret key material).",
             command: &[
-                "sq", "toolbox", "keyring", "filter",
+                "sq", "keyring", "filter",
                 "--to-cert",
                 "certs.pgp",
             ],
@@ -179,7 +179,7 @@ Convert all keys to certificates (i.e. remove any secret key material).",
             comment: "\
 Get all certificates with a user ID on example.org.",
             command: &[
-                "sq", "toolbox", "keyring", "filter",
+                "sq", "keyring", "filter",
                 "--domain=example.org",
                 "certs.pgp",
             ],
@@ -189,7 +189,7 @@ Get all certificates with a user ID on example.org.",
             comment: "\
 Get all certificates with a user ID on example.org or example.net.",
             command: &[
-                "sq", "toolbox", "keyring", "filter",
+                "sq", "keyring", "filter",
                 "--domain=example.org",
                 "--domain=example.net",
                 "certs.pgp",
@@ -200,7 +200,7 @@ Get all certificates with a user ID on example.org or example.net.",
             comment: "\
 Get all certificates with a name user ID matching Romeo.",
             command: &[
-                "sq", "toolbox", "keyring", "filter",
+                "sq", "keyring", "filter",
                 "--name=Romeo",
                 "certs.pgp",
             ],
@@ -210,10 +210,10 @@ Get all certificates with a name user ID matching Romeo.",
             comment: "\
 Get all certificates with a name user ID matching Romeo on example.org.",
             command: &[
-                "sq", "toolbox", "keyring", "filter",
+                "sq", "keyring", "filter",
                 "--domain=example.org",
                 "certs.pgp",
-                "|", "sq", "toolbox", "keyring", "filter",
+                "|", "sq", "keyring", "filter",
                 "--name=Romeo",
             ],
         }),
@@ -222,7 +222,7 @@ Get all certificates with a name user ID matching Romeo on example.org.",
             comment: "\
 Get all certificates with a user ID on example.org, pruning other user IDs.",
             command: &[
-                "sq", "toolbox", "keyring", "filter",
+                "sq", "keyring", "filter",
                 "--domain=example.org",
                 "--prune-certs",
                 "certs.pgp",
@@ -230,7 +230,7 @@ Get all certificates with a user ID on example.org, pruning other user IDs.",
         }),
     ],
 };
-test_examples!(sq_toolbox_keyring_filter, FILTER_EXAMPLES);
+test_examples!(sq_keyring_filter, FILTER_EXAMPLES);
 
 #[derive(Debug, Args)]
 #[clap(
@@ -275,13 +275,13 @@ const MERGE_EXAMPLES: Actions = Actions {
         Action::Example(Example {
             comment: "Merge certificate updates.",
             command: &[
-                "sq", "toolbox", "keyring", "merge",
+                "sq", "keyring", "merge",
                 "bob.pgp", "bob-updates.pgp",
             ],
         }),
     ],
 };
-test_examples!(sq_toolbox_keyring_merge, MERGE_EXAMPLES);
+test_examples!(sq_keyring_merge, MERGE_EXAMPLES);
 
 #[derive(Debug, Args)]
 #[clap(
@@ -315,7 +315,7 @@ const LIST_EXAMPLES: Actions = Actions {
     actions: &[
         Action::Setup(Setup {
             command: &[
-                "sq", "toolbox", "keyring", "merge",
+                "sq", "keyring", "merge",
                 "--output=certs.pgp",
                 "bob.pgp", "romeo.pgp",
             ],
@@ -324,7 +324,7 @@ const LIST_EXAMPLES: Actions = Actions {
         Action::Example(Example {
             comment: "List all certificates.",
             command: &[
-                "sq", "toolbox", "keyring", "list",
+                "sq", "keyring", "list",
                 "certs.pgp",
             ],
         }),
@@ -333,15 +333,15 @@ const LIST_EXAMPLES: Actions = Actions {
             comment: "\
 List all certificates with a user ID on example.org.",
             command: &[
-                "sq", "toolbox", "keyring", "filter",
+                "sq", "keyring", "filter",
                 "--domain=example.org",
                 "certs.pgp",
-                "|", "sq", "toolbox", "keyring", "list",
+                "|", "sq", "keyring", "list",
             ],
         }),
     ],
 };
-test_examples!(sq_toolbox_keyring_list, LIST_EXAMPLES);
+test_examples!(sq_keyring_list, LIST_EXAMPLES);
 
 #[derive(Debug, Args)]
 #[clap(
@@ -352,7 +352,7 @@ test_examples!(sq_toolbox_keyring_list, LIST_EXAMPLES);
 Splitting up a keyring into individual keys helps with curating a \
 keyring.
 
-The converse operation is `sq toolbox keyring merge`.
+The converse operation is `sq keyring merge`.
 ",
     after_help = SPLIT_EXAMPLES,
 )]
@@ -381,7 +381,7 @@ const SPLIT_EXAMPLES: Actions = Actions {
     actions: &[
         Action::Setup(Setup {
             command: &[
-                "sq", "toolbox", "keyring", "merge",
+                "sq", "keyring", "merge",
                 "--output=certs.pgp",
                 "bob.pgp", "romeo.pgp",
             ],
@@ -390,7 +390,7 @@ const SPLIT_EXAMPLES: Actions = Actions {
         Action::Example(Example {
             comment: "Split all certificates.",
             command: &[
-                "sq", "toolbox", "keyring", "split",
+                "sq", "keyring", "split",
                 "certs.pgp",
             ],
         }),
@@ -400,11 +400,11 @@ const SPLIT_EXAMPLES: Actions = Actions {
             comment: "\
 Split all certificates, merging them first to avoid duplicates.",
             command: &[
-                "sq", "toolbox", "keyring", "merge",
+                "sq", "keyring", "merge",
                 "certs.pgp",
-                "|", "sq", "toolbox", "keyring", "split",
+                "|", "sq", "keyring", "split",
             ],
         }),
     ],
 };
-test_examples!(sq_toolbox_keyring_split, SPLIT_EXAMPLES);
+test_examples!(sq_keyring_split, SPLIT_EXAMPLES);

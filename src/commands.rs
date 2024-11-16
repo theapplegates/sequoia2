@@ -19,6 +19,7 @@ pub mod cert;
 pub mod decrypt;
 pub mod download;
 pub mod encrypt;
+pub mod keyring;
 pub mod sign;
 pub mod inspect;
 pub mod key;
@@ -56,6 +57,8 @@ pub fn dispatch(sq: Sq, command: SqCommand) -> Result<()>
 
         SqSubcommands::Network(command) =>
             network::dispatch(sq, command),
+        SqSubcommands::Keyring(command) =>
+            keyring::dispatch(sq, command),
         SqSubcommands::Toolbox(command) =>
             toolbox::dispatch(sq, command),
 

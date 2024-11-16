@@ -570,12 +570,12 @@ then stdout contains "-----END PGP PUBLIC KEY BLOCK-----"
 ~~~
 
 
-# Keyring management: `sq toolbox keyring`
+# Keyring management: `sq keyring`
 
 This chapter verifies that the various subcommands to manage keyring
-files work: subcommands of the `sq toolbox keyring` command.
+files work: subcommands of the `sq keyring` command.
 
-## Joining keys into a keyring: `sq toolbox keyring merge`
+## Joining keys into a keyring: `sq keyring merge`
 
 The scenarios in this section verify that various ways of joining keys
 into a keyring work.
@@ -591,8 +591,8 @@ This is for secret keys, with the output going to stdout in text form.
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq toolbox keyring list ring.pgp
+when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
+when I run sq keyring list ring.pgp
 then stdout contains "Alice"
 then stdout contains "Bob"
 ~~~
@@ -608,7 +608,7 @@ This is for secret keys, with the output going to a file in text form.
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox keyring merge alice.pgp bob.pgp --output ring.pgp
+when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
 then file ring.pgp contains "-----BEGIN PGP PRIVATE KEY BLOCK-----"
 then file ring.pgp contains "-----END PGP PRIVATE KEY BLOCK-----"
 when I run sq inspect ring.pgp
@@ -625,7 +625,7 @@ _Requirement: we can join two keys into a keyring in binary form._
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox keyring merge alice.pgp bob.pgp --output ring.pgp --binary
+when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp --binary
 when I try to run grep PGP ring.pgp
 then command fails
 when I run sq inspect ring.pgp
@@ -648,7 +648,7 @@ when I run sq key generate --without-password --userid Alice --output alice.pgp 
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
 when I run sq toolbox extract-cert alice.pgp --output alice-cert.pgp
 when I run sq toolbox extract-cert bob.pgp --output bob-cert.pgp
-when I run sq toolbox keyring merge alice-cert.pgp bob-cert.pgp --output ring.pgp
+when I run sq keyring merge alice-cert.pgp bob-cert.pgp --output ring.pgp
 when I run cat ring.pgp
 then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 then stdout contains "-----END PGP PUBLIC KEY BLOCK-----"
@@ -660,10 +660,10 @@ then stdout contains "Bob"
 ~~~
 
 
-## Filter a keyring: `sq toolbox keyring filter`
+## Filter a keyring: `sq keyring filter`
 
 The scenarios in this section verify that various ways of filtering
-the contents of a keyring work: the `sq toolbox keyring filter` subcommand
+the contents of a keyring work: the `sq keyring filter` subcommand
 variants.
 
 
@@ -676,8 +676,8 @@ certificates._
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq toolbox keyring filter --to-cert ring.pgp --output filtered.pgp
+when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
+when I run sq keyring filter --to-cert ring.pgp --output filtered.pgp
 when I run sq inspect filtered.pgp
 then stdout contains "OpenPGP Certificate."
 then stdout doesn't contain "Transferable Secret Key."
@@ -694,8 +694,8 @@ file._
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq toolbox keyring filter --to-cert ring.pgp
+when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
+when I run sq keyring filter --to-cert ring.pgp
 then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 then stdout contains "-----END PGP PUBLIC KEY BLOCK-----"
 ~~~
@@ -708,8 +708,8 @@ _Requirement: we can get filter output in binary form._
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq toolbox keyring filter --binary --to-cert ring.pgp
+when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
+when I run sq keyring filter --binary --to-cert ring.pgp
 then stdout doesn't contain "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 ~~~
 
@@ -721,7 +721,7 @@ criteria._
 ~~~scenario
 given an installed sq
 when I run sq key generate --without-password --userid Alice --userid Bob --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq toolbox keyring filter --prune-certs --name Alice alice.pgp --output filtered.pgp
+when I run sq keyring filter --prune-certs --name Alice alice.pgp --output filtered.pgp
 when I run sq inspect filtered.pgp
 then stdout contains "Alice"
 then stdout doesn't contain "Bob"
@@ -736,8 +736,8 @@ specific user id._
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq toolbox keyring filter --userid Alice ring.pgp --output filtered.pgp
+when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
+when I run sq keyring filter --userid Alice ring.pgp --output filtered.pgp
 when I run sq inspect filtered.pgp
 then stdout contains "Alice"
 then stdout doesn't contain "Bob"
@@ -752,8 +752,8 @@ specific user ids._
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq toolbox keyring filter --userid Alice --userid Bob ring.pgp --output filtered.pgp
+when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
+when I run sq keyring filter --userid Alice --userid Bob ring.pgp --output filtered.pgp
 when I run sq inspect filtered.pgp
 then stdout contains "Alice"
 then stdout contains "Bob"
@@ -768,8 +768,8 @@ part of a user ids._
 given an installed sq
 when I run sq key generate --without-password --userid 'Alice <alice@example.com>' --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --without-password --userid 'Bob <bob@example.com>' --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq toolbox keyring filter --name Alice ring.pgp --output filtered.pgp
+when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
+when I run sq keyring filter --name Alice ring.pgp --output filtered.pgp
 when I run sq inspect filtered.pgp
 then stdout contains "Alice"
 then stdout doesn't contain "Bob"
@@ -784,8 +784,8 @@ several names as part of the user id._
 given an installed sq
 when I run sq key generate --without-password --userid 'Alice <alice@example.com>' --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --without-password --userid 'Bob <bob@example.com>' --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq toolbox keyring filter --name Alice --name Bob ring.pgp --output filtered.pgp
+when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
+when I run sq keyring filter --name Alice --name Bob ring.pgp --output filtered.pgp
 when I run sq inspect filtered.pgp
 then stdout contains "Alice"
 then stdout contains "Bob"
@@ -800,8 +800,8 @@ part of a user ids._
 given an installed sq
 when I run sq key generate --without-password --userid 'Alice <alice@example.com>' --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --without-password --userid 'Bob <bob@sequoia-pgp.org>' --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq toolbox keyring filter --domain example.com ring.pgp --output filtered.pgp
+when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
+when I run sq keyring filter --domain example.com ring.pgp --output filtered.pgp
 when I run sq inspect filtered.pgp
 then stdout contains "Alice"
 then stdout doesn't contain "Bob"
@@ -816,15 +816,15 @@ several names as part of the user id._
 given an installed sq
 when I run sq key generate --without-password --userid 'Alice <alice@example.com>' --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --without-password --userid 'Bob <bob@sequoia-pgp.org>' --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq toolbox keyring filter --domain example.com --domain sequoia-pgp.org ring.pgp --output filtered.pgp
+when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
+when I run sq keyring filter --domain example.com --domain sequoia-pgp.org ring.pgp --output filtered.pgp
 when I run sq inspect filtered.pgp
 then stdout contains "Alice"
 then stdout contains "Bob"
 ~~~
 
 
-## Listing contents of a keyring: `sq toolbox keyring list`
+## Listing contents of a keyring: `sq keyring list`
 
 The scenarios in this section verify the contents of a keyring can be listed.
 
@@ -836,8 +836,8 @@ _Requirement: we can list the keys in a keyring._
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq toolbox keyring list ring.pgp
+when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
+when I run sq keyring list ring.pgp
 then stdout contains "Alice"
 then stdout contains "Bob"
 ~~~
@@ -849,7 +849,7 @@ _Requirement: we can list the keys in a key file._
 ~~~scenario
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq toolbox keyring list alice.pgp
+when I run sq keyring list alice.pgp
 then stdout contains "Alice"
 then stdout doesn't contain "Bob"
 ~~~
@@ -861,7 +861,7 @@ _Requirement: we can list all user ids._
 ~~~scenario
 given an installed sq
 when I run sq key generate --without-password --userid Alice --userid Bob --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq toolbox keyring list alice.pgp --all-userids
+when I run sq keyring list alice.pgp --all-userids
 then stdout contains "Alice"
 then stdout contains "Bob"
 ~~~
@@ -875,10 +875,10 @@ redirecting stdin to come from a file first.
 
 
 
-## Split a keyring: `sq toolbox keyring split`
+## Split a keyring: `sq keyring split`
 
 The scenarios in this section verify that splitting a keyring into
-individual files, one per key: the `sq toolbox keyring split` subcommand.
+individual files, one per key: the `sq keyring split` subcommand.
 
 Or rather, there will be such scenarios here when Subplot provides
 tools for dealing with randomly named files. Until then, this section
@@ -888,8 +888,8 @@ is a placeholder.
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq toolbox keyring split ring.pgp
+when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
+when I run sq keyring split ring.pgp
 then the resulting files match alice,pgp and bob.pgp
 ~~~
 

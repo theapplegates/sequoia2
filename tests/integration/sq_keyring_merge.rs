@@ -11,7 +11,7 @@ use super::common::Sq;
 use super::common::STANDARD_POLICY;
 
 #[test]
-fn toolbox_keyring_merge_revocation() -> Result<()> {
+fn keyring_merge_revocation() -> Result<()> {
     let sq = Sq::new();
 
     // Generate a key.  (We don't use sq on purpose: we want to make
@@ -33,7 +33,7 @@ fn toolbox_keyring_merge_revocation() -> Result<()> {
         = sq.key_generate(&[], &["bob"]);
 
     // "Merge" a single cert.
-    let certs = sq.toolbox_keyring_merge(
+    let certs = sq.keyring_merge(
         &[ &alice_cert_file ][..],
         None, None);
     assert_eq!(certs.len(), 1);
@@ -42,7 +42,7 @@ fn toolbox_keyring_merge_revocation() -> Result<()> {
         RevocationStatus::Revoked(_)));
 
     // "Merge" two certs.
-    let certs = sq.toolbox_keyring_merge(
+    let certs = sq.keyring_merge(
         &[ &alice_cert_file, &bob_cert_file ][..],
         None, None);
     assert_eq!(certs.len(), 2);
@@ -51,7 +51,7 @@ fn toolbox_keyring_merge_revocation() -> Result<()> {
         RevocationStatus::Revoked(_)));
 
     // "Merge" a single cert and its revocation certificate.
-    let certs = sq.toolbox_keyring_merge(
+    let certs = sq.keyring_merge(
         &[ &alice_rev_file, &alice_cert_file ][..],
         None, None);
     assert_eq!(certs.len(), 1);
@@ -61,13 +61,13 @@ fn toolbox_keyring_merge_revocation() -> Result<()> {
 
     // Merging a revocation certificate without the certificate should
     // result in an error.
-    assert!(sq.toolbox_keyring_merge_maybe(
+    assert!(sq.keyring_merge_maybe(
         &[ &alice_rev_file ][..],
         None, None).is_err());
 
     // Merging a revocation certificate without the certificate should
     // result in an error.
-    assert!(sq.toolbox_keyring_merge_maybe(
+    assert!(sq.keyring_merge_maybe(
         &[ &alice_rev_file, &bob_cert_file ][..],
         None, None).is_err());
 

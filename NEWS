@@ -83,6 +83,7 @@
    - Drop `sq pki lookup --email`'s flag, and replace it with the
      `--userid` and `--email` positional arguments, which match on
      user IDs.
+   - `sq toolbox keyring` is now just `sq keyring`.
 
 * Changes in 0.39.0
 ** Notable changes

@@ -9,15 +9,12 @@ use crate::{
 pub mod armor;
 pub mod dearmor;
 pub mod extract_cert;
-pub mod keyring;
 pub mod packet;
 pub mod strip_userid;
 
 pub fn dispatch(sq: Sq, command: Command) -> Result<()>
 {
     match command.subcommand {
-        Subcommands::Keyring(command) =>
-            keyring::dispatch(sq, command),
         Subcommands::Packet(command) =>
             packet::dispatch(sq, command),
         Subcommands::ExtractCert(command) =>

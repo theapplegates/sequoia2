@@ -34,7 +34,7 @@ fn update_files() -> Result<()> {
                       .unwrap_or(OsStr::new(""))
                       .to_str().unwrap_or("")));
 
-        sq.toolbox_keyring_merge(
+        sq.keyring_merge(
             &[ public, &alice_pgp ][..], None,
             &*priv_file);
 

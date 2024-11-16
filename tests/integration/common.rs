@@ -2004,10 +2004,10 @@ impl Sq {
     }
 
     // Merges the certificates.
-    pub fn toolbox_keyring_merge_maybe<'a, P, Q>(&self,
-                                                 input_files: &[P],
-                                                 input_bytes: Option<&[u8]>,
-                                                 output_file: Q)
+    pub fn keyring_merge_maybe<'a, P, Q>(&self,
+                                         input_files: &[P],
+                                         input_bytes: Option<&[u8]>,
+                                         output_file: Q)
         -> Result<Vec<Cert>>
     where P: AsRef<Path>,
           Q: Into<Option<&'a Path>>,
@@ -2015,7 +2015,7 @@ impl Sq {
         let output_file = output_file.into();
 
         let mut cmd = self.command();
-        cmd.args([ "toolbox", "keyring", "merge" ]);
+        cmd.args([ "keyring", "merge" ]);
 
         for input_file in input_files.into_iter() {
             cmd.arg(input_file.as_ref());
@@ -2054,15 +2054,15 @@ impl Sq {
     }
 
     // Merges the certificates.
-    pub fn toolbox_keyring_merge<'a, P, Q>(&self,
-                                           input_files: &[P],
-                                           input_bytes: Option<&[u8]>,
-                                           output_file: Q)
+    pub fn keyring_merge<'a, P, Q>(&self,
+                                   input_files: &[P],
+                                   input_bytes: Option<&[u8]>,
+                                   output_file: Q)
         -> Vec<Cert>
     where P: AsRef<Path>,
           Q: Into<Option<&'a Path>>,
     {
-        self.toolbox_keyring_merge_maybe(input_files, input_bytes, output_file)
+        self.keyring_merge_maybe(input_files, input_bytes, output_file)
             .expect("success")
     }
 }

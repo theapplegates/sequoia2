@@ -42,7 +42,7 @@ use crate::{
     output::KeyringListItem,
 };
 
-use crate::cli::toolbox::keyring;
+use crate::cli::keyring;
 use crate::cli::types::StdinWarning;
 
 pub fn dispatch(sq: Sq, c: keyring::Command) -> Result<()> {

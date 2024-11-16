@@ -79,7 +79,7 @@ const EXAMPLES: Actions = Actions {
     actions: &[
         Action::Setup(Setup {
             command: &[
-                "sq", "toolbox", "keyring", "merge",
+                "sq", "keyring", "merge",
                 "--output=certs.pgp",
                 "bob.pgp", "romeo.pgp",
             ],

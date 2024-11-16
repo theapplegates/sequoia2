@@ -20,6 +20,8 @@ use super::output::OutputType;
 
 use crate::Sq;
 
+const TRACE: bool = false;
+
 pub fn required_trust_amount(trust_amount: Option<TrustAmount<usize>>,
                              certification_network: bool)
     -> Result<usize>
@@ -79,6 +81,8 @@ pub fn authenticate<'store, 'rstore>(
 ) -> Result<()>
     where 'store: 'rstore,
 {
+    tracer!(TRACE, "authenticate");
+
     // Build the network.
     let cert_store = match sq.cert_store() {
         Ok(Some(cert_store)) => cert_store,
@@ -110,6 +114,8 @@ pub fn authenticate<'store, 'rstore>(
 
     let mut bindings = Vec::new();
     if matches!(userid, Some(_)) && email {
+        t!("Authenticating email: {:?}", userid);
+
         let email = userid.expect("required");
 
         let userid_check = UserID::from(format!("<{}>", email));
@@ -155,9 +161,11 @@ pub fn authenticate<'store, 'rstore>(
             }).collect();
     } else if let Some(fingerprint) = fingerprint.as_ref() {
         if let Some(userid) = userid {
+            t!("Authenticating {}, {:?}", fingerprint, userid);
             bindings.push((fingerprint.clone(), UserID::from(userid)));
         } else {
             // Fingerprint, no User ID.
+            t!("Authenticating {}", fingerprint);
             bindings = n.certified_userids_of(&fingerprint)
                 .into_iter()
                 .map(|userid| (fingerprint.clone(), userid))
@@ -166,6 +174,7 @@ pub fn authenticate<'store, 'rstore>(
     } else if let Some(userid) = userid {
         // The caller did not specify a certificate.  Find all
         // bindings with the User ID.
+        t!("Authenticating user ID: {:?}", userid);
         bindings = n.lookup_synopses_by_userid(UserID::from(userid))
             .into_iter()
             .map(|fpr| (fpr, UserID::from(userid)))
@@ -173,6 +182,7 @@ pub fn authenticate<'store, 'rstore>(
     } else {
         // No User ID, no Fingerprint.
         // List everything.
+        t!("Authenticating everything");
 
         bindings = n.certified_userids();
 

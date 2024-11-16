@@ -191,8 +191,7 @@ pub type OptionalValue = typenum::U2;
 pub type OneOptionalValue
     = <OneValue as BitOr<OptionalValue>>::Output;
 
-/// Normally it is possible to designate multiple certificates.  This
-/// errors out if there is more than one value.
+/// Cause --file to require --output.
 pub type FileRequiresOutput = typenum::U4;
 
 /// Combines OneValue and FileRequiresOutput.

@@ -48,7 +48,8 @@ pub struct Command {
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::ExistingUserIDEmailNameArgs>,
+        userid_designator::ExistingUserIDEmailNameArgs,
+        userid_designator::NoLinting>,
 
     #[clap(
         long,

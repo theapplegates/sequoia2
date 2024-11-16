@@ -140,3 +140,49 @@ fn revoked_userid() {
         "bye, bye",
         updated_path.as_path());
 }
+
+#[test]
+fn allow_non_canonical_userid() {
+    // Make sure we can revoke a user ID that is bound using SHA-1.
+
+    let sq = Sq::new();
+
+    let userid = "<a@b.com> <a@b.com>";
+
+    let (_cert, cert_path, _rev_path) = sq.key_generate(
+        &["--allow-non-canonical-userids"],
+        &[userid]);
+
+    // We should be able to revoke the non-canonical user ID, because
+    // it is a self-signed user ID.
+    let updated_path = sq.scratch_file("updated");
+    sq.key_userid_revoke(&[],
+                         &cert_path,
+                         UserIDArg::AddUserID(userid),
+                         "retired",
+                         "bye, bye",
+                         updated_path.as_path());
+
+    // But we can't use a non-canonical user ID that is not
+    // self-signed.
+    let updated_path = sq.scratch_file("updated");
+    assert!(
+        sq.key_userid_revoke_maybe(
+            &[],
+            &cert_path,
+            UserIDArg::AddUserID("<some@example.org> <some@example.org>"),
+            "retired",
+            "bye, bye",
+            updated_path.as_path())
+            .is_err());
+
+    // Unless we include --allow
+    let updated_path = sq.scratch_file("updated");
+    sq.key_userid_revoke(
+        &["--allow-non-canonical-userids"],
+        &cert_path,
+        UserIDArg::AddUserID("<some@example.org> <some@example.org>"),
+        "retired",
+        "bye, bye",
+        updated_path.as_path());
+}

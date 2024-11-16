@@ -103,6 +103,16 @@ pub type OneValue = typenum::U1;
 /// completely optional.
 pub type OptionalValue = typenum::U2;
 
+/// Doesn't lint new (non-self signed) user IDs.  This also suppresses
+/// the `--allow-non-canonical-userid` flag.
+pub type NoLinting = typenum::U4;
+
+pub type OneValueNoLinting
+    = <OneValue as std::ops::BitOr<NoLinting>>::Output;
+
+pub type OptionalValueNoLinting
+    = <OptionalValue as std::ops::BitOr<NoLinting>>::Output;
+
 /// A user ID designator.
 #[derive(Debug, Clone)]
 pub enum UserIDDesignator {
@@ -276,6 +286,9 @@ pub struct UserIDDesignators<Arguments, Options=typenum::U0>
     /// Use all self-signed user IDs.
     pub all: Option<bool>,
 
+    /// Whether --allow-non-canonical-userids was passed.
+    pub allow_non_canonical_userids: bool,
+
     arguments: std::marker::PhantomData<(Arguments, Options)>,
 }
 
@@ -318,6 +331,11 @@ impl<Arguments, Options> UserIDDesignators<Arguments, Options> {
     pub fn all(&self) -> Option<bool> {
         self.all
     }
+
+    /// Returns whether the allow-non-canonical-userids flag was set.
+    pub fn allow_non_canonical_userids(&self) -> bool {
+        self.allow_non_canonical_userids
+    }
 }
 
 impl<Arguments, Options> clap::Args
@@ -348,6 +366,7 @@ where
         let options = Options::to_usize();
         let one_value = (options & OneValue::to_usize()) > 0;
         let optional_value = (options & OptionalValue::to_usize()) > 0;
+        let no_linting = (options & NoLinting::to_usize()) > 0;
 
         let group = format!("userid-designator-{:X}-{:X}",
                             arguments,
@@ -548,6 +567,25 @@ with the specified display name, and no email address."));
             arg_group = arg_group.arg(full_name);
         }
 
+        if ! no_linting
+            && (add_userid_arg || any_userid_arg
+                || add_email_arg || any_email_arg
+                || add_name_arg || any_name_arg)
+        {
+            let full_name = "allow-non-canonical-userids";
+            cmd = cmd.arg(
+                clap::Arg::new(&full_name)
+                    .long(&full_name)
+                    .action(clap::ArgAction::SetTrue)
+                    .help("\
+Don't reject new user IDs that are not in canonical form")
+                    .long_help("\
+Don't reject new user IDs that are not in canonical form.
+
+Canonical user IDs are of the form `Name (Comment) \
+<localpart@example.org>`."));
+        }
+
         cmd = cmd.group(arg_group);
 
         cmd
@@ -581,6 +619,9 @@ where
         let add_userid_arg = (arguments & AddUserIDArg::to_usize()) > 0;
         let add_email_arg = (arguments & AddEmailArg::to_usize()) > 0;
         let add_name_arg = (arguments & AddNameArg::to_usize()) > 0;
+
+        let options = Options::to_usize();
+        let no_linting = (options & NoLinting::to_usize()) > 0;
 
         // Can't provide both ExistingUserIDArg and AnyUserIDArg.
         assert!(! (userid_arg && any_userid_arg));
@@ -683,6 +724,16 @@ where
             }
         }
 
+        if no_linting {
+            self.allow_non_canonical_userids = true;
+        } else if add_userid_arg || any_userid_arg
+            || add_email_arg || any_email_arg
+            || add_name_arg || any_name_arg
+        {
+            self.allow_non_canonical_userids
+                = matches.get_flag("allow-non-canonical-userids");
+        }
+
         self.designators = designators;
         Ok(())
     }
@@ -694,6 +745,7 @@ where
             designators: Vec::new(),
             arguments: std::marker::PhantomData,
             all: None,
+            allow_non_canonical_userids: false,
         };
 
         // The way we use clap, this is never called.

@@ -87,6 +87,11 @@
    - `sq toolbox packet` is now just `sq packet`.
    - `sq toolbox armor` is now `sq packet armor`.
    - `sq toolbox dearmor` is now `sq packet dearmor`.
+   - `sq key userid revoke`, `sq pki link add`, `sq pki link
+     authorize`, `sq pki vouch certify`, and `sq pki vouch authorize`
+     now check that user IDs that are not self-signed are in canonical
+     form.  Add a flag, `--allow-non-canonical-userids`, to disable
+     this check.
 
 * Changes in 0.39.0
 ** Notable changes

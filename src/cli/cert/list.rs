@@ -57,7 +57,7 @@ pub struct Command {
     #[command(flatten)]
     pub userid: UserIDDesignators<
         userid_designator::AnyUserIDEmailArgs,
-        userid_designator::OptionalValue>,
+        userid_designator::OptionalValueNoLinting>,
 
     /// A pattern to select the bindings to authenticate.
     ///

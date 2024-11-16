@@ -51,7 +51,7 @@ pub struct Command {
     #[command(flatten)]
     pub userid: UserIDDesignators<
         userid_designator::AnyUserIDEmailArgs,
-        userid_designator::OneValue>,
+        userid_designator::OneValueNoLinting>,
 
     #[command(flatten)]
     pub show_paths: ShowPathsArg,

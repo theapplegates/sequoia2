@@ -50,7 +50,7 @@ the specified user ID.
     #[command(flatten)]
     pub userids: UserIDDesignators<
         userid_designator::AnyUserIDEmailNameArgs,
-        userid_designator::OneValue>,
+        userid_designator::OneValueNoLinting>,
 
     #[command(flatten)]
     pub certification_network: CertificationNetworkArg,

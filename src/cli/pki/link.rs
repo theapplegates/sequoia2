@@ -536,7 +536,7 @@ to force the signature to be re-created anyway.",
     #[command(flatten)]
     pub userids: UserIDDesignators<
         userid_designator::AnyUserIDEmailArgs,
-        userid_designator::OptionalValue>,
+        userid_designator::OptionalValueNoLinting>,
 }
 
 const RETRACT_EXAMPLES: Actions = Actions {

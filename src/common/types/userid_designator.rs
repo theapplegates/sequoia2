@@ -16,6 +16,9 @@ use crate::cli::types::userid_designator::AddEmailArg;
 use crate::cli::types::userid_designator::AddUserIDArg;
 use crate::cli::types::userid_designator::ResolvedUserID;
 use crate::cli::types::userid_designator::UserIDDesignator;
+use crate::common::userid::lint_email;
+use crate::common::userid::lint_name;
+use crate::common::userid::lint_userid;
 use crate::sq::NULL_POLICY;
 
 impl<Arguments, Options> UserIDDesignators<Arguments, Options>
@@ -77,7 +80,10 @@ where
 
         for designator in self.iter() {
             match designator {
-                UserIDDesignator::UserID(userid) => {
+                UserIDDesignator::UserID(userid)
+                    | UserIDDesignator::AnyUserID(userid)
+                    | UserIDDesignator::AddUserID(userid) =>
+                {
                     let userid = UserID::from(&userid[..]);
 
                     if let Some(_) = vc.userids()
@@ -86,17 +92,21 @@ where
                         })
                     {
                         userids.push(designator.resolve_to(userid.clone()));
+                    } else if matches!(designator,
+                                       UserIDDesignator::AnyUserID(_)
+                                       | UserIDDesignator::AddUserID(_))
+                    {
+                        if ! self.allow_non_canonical_userids {
+                            // We're going to add a user ID.  Lint it
+                            // first.
+                            lint_userid(&userid)?;
+                        }
+                        userids.push(designator.resolve_to(userid));
                     } else {
                         wprintln!("{:?} is not a self-signed user ID.",
                                   String::from_utf8_lossy(userid.value()));
                         missing = true;
                     }
-                }
-                UserIDDesignator::AnyUserID(userid)
-                    | UserIDDesignator::AddUserID(userid) =>
-                {
-                    let userid = UserID::from(&userid[..]);
-                    userids.push(designator.resolve_to(userid));
                 }
                 UserIDDesignator::Email(email)
                     | UserIDDesignator::AnyEmail(email)
@@ -157,6 +167,11 @@ where
                                       email);
                             missing = true;
                         } else {
+                            if ! self.allow_non_canonical_userids {
+                                // We're going to add a user ID.  Lint it
+                                // first.
+                                lint_email(email)?;
+                            }
                             userids.push(
                                 designator.clone().resolve_to(userid));
                         }
@@ -200,7 +215,11 @@ where
                                       name);
                             missing = true;
                         } else {
-                            // Use as is.
+                            if ! self.allow_non_canonical_userids {
+                                // We're going to add a user ID.  Lint it
+                                // first.
+                                lint_name(&name[..])?;
+                            }
                             userids.push(designator.resolve_to(
                                 UserID::from(&name[..])));
                         }

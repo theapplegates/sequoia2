@@ -75,7 +75,10 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
                 }
             }
 
-            wprintln!(initial_indent = "   - ", "{}: {}",
+            wprintln!(initial_indent = "   - ", "{}{}: {}",
+                      issuer.as_ref()
+                      .map(|c| format!("{} ", c.fingerprint()))
+                      .unwrap_or_else(|| "".into()),
                       issuer.as_ref()
                       .and_then(|i| Some(sq.best_userid(i.to_cert().ok()?, true)
                                          .to_string()))

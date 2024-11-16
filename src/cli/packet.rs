@@ -16,6 +16,7 @@ use crate::cli::types::SessionKey;
 use crate::cli::types::cert_designator::*;
 
 pub mod armor;
+pub mod dearmor;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -42,6 +43,7 @@ pub struct Command {
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
     Armor(armor::Command),
+    Dearmor(dearmor::Command),
     Dump(DumpCommand),
     Decrypt(DecryptCommand),
     Split(SplitCommand),

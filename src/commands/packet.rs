@@ -40,6 +40,7 @@ use crate::commands;
 use crate::load_keys;
 
 pub mod armor;
+pub mod dearmor;
 pub mod dump;
 
 pub fn dispatch(sq: Sq, command: Command)
@@ -49,6 +50,8 @@ pub fn dispatch(sq: Sq, command: Command)
     match command.subcommand {
         Subcommands::Armor(command) =>
             armor::dispatch(sq, command)?,
+        Subcommands::Dearmor(command) =>
+            dearmor::dispatch(sq, command)?,
         Subcommands::Dump(command) => {
             let mut input = if command.cert.is_empty() {
                 if let Some(path) = command.input.inner() {

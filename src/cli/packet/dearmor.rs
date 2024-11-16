@@ -44,11 +44,11 @@ const EXAMPLES: Actions = Actions {
             comment: "\
 Convert an ASCII armored OpenPGP message to a binary OpenPGP message.",
             command: &[
-                "sq", "toolbox", "dearmor",
+                "sq", "packet", "dearmor",
                 "--output=message.bin",
                 "message.pgp",
             ],
         }),
     ],
 };
-test_examples!(sq_toolbox_dearmor, EXAMPLES);
+test_examples!(sq_packet_dearmor, EXAMPLES);

@@ -2,7 +2,6 @@
 
 use clap::{Parser, Subcommand};
 
-pub mod dearmor;
 pub mod extract_cert;
 pub mod strip_userid;
 
@@ -29,5 +28,4 @@ pub struct Command {
 pub enum Subcommands {
     ExtractCert(extract_cert::Command),
     StripUserid(strip_userid::Command),
-    Dearmor(dearmor::Command),
 }

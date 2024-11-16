@@ -266,7 +266,7 @@ const MERGE_EXAMPLES: Actions = Actions {
     actions: &[
         Action::Setup(Setup {
             command: &[
-                "sq", "toolbox", "dearmor",
+                "sq", "packet", "dearmor",
                 "--output=bob-updates.pgp",
                 "bob.pgp",
             ],

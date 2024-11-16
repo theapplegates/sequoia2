@@ -7,7 +7,7 @@ use crate::Sq;
 use crate::Result;
 use crate::cli;
 
-pub fn dispatch(sq: Sq, command: cli::toolbox::dearmor::Command)
+pub fn dispatch(sq: Sq, command: cli::packet::dearmor::Command)
     -> Result<()>
 {
     tracer!(TRACE, "dearmor::dispatch");

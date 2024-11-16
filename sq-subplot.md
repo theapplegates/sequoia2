@@ -1375,7 +1375,7 @@ then stderr matches regex 2.authenticated signatures
 
 
 
-# ASCII Armor data representation: `sq packet armor` and `sq toolbox dearmor`
+# ASCII Armor data representation: `sq packet armor` and `sq packet dearmor`
 
 The scenarios in this chapter verify that `sq` can convert data into
 the "ASCII Armor" representation and back.
@@ -1437,7 +1437,7 @@ stdout._
 ~~~scenario
 given an installed sq
 given file hello.asc
-when I run sq toolbox dearmor hello.asc
+when I run sq packet dearmor hello.asc
 then stdout contains "hello, world"
 ~~~
 
@@ -1450,7 +1450,7 @@ a named file._
 given an installed sq
 given file hello.txt
 given file hello.asc
-when I run sq toolbox dearmor hello.asc --output hello.out
+when I run sq packet dearmor hello.asc --output hello.out
 then files hello.txt and hello.out match
 ~~~
 
@@ -1463,7 +1463,7 @@ back._
 given an installed sq
 given file hello.txt
 when I run sq packet armor hello.txt --output hello.tmp
-when I run sq toolbox dearmor hello.tmp --output hello.out
+when I run sq packet dearmor hello.tmp --output hello.out
 then files hello.txt and hello.out match
 ~~~
 

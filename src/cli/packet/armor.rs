@@ -20,7 +20,7 @@ can be transformed to an ASCII representation called ASCII Armor.  sq \
 emits armored data by default, but this subcommand can be used to \
 convert existing OpenPGP data to its ASCII-encoded representation.
 
-The converse operation is `sq toolbox dearmor`.
+The converse operation is `sq packet dearmor`.
 ",
     after_help = EXAMPLES,
 )]
@@ -52,7 +52,7 @@ const EXAMPLES: Actions = Actions {
     actions: &[
         Action::Setup(Setup {
             command: &[
-                "sq", "toolbox", "dearmor",
+                "sq", "packet", "dearmor",
                 "--output=message.bin",
                 "message.pgp",
             ],

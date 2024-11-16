@@ -135,6 +135,8 @@ fn update(
     let all = userids.is_empty();
     let mut designated_userids = BTreeSet::from_iter(
         userids.into_iter().map(|u| u.userid().clone()));
+    let mut removed = 0;
+    let mut added = 0;
     for uid in vcert.userids() {
         if ! all && ! designated_userids.remove(uid.userid()) {
             continue;
@@ -225,6 +227,13 @@ fn update(
                 }
             }
 
+            if ! prev && next {
+                added += 1;
+            }
+            if prev && ! next {
+                removed += 1;
+            }
+
             wprintln!(initial_indent = "  ", "{} {}: {}",
                       match (prev, next) {
                           (false, false) => '.',
@@ -266,6 +275,24 @@ fn update(
         )?);
     }
     assert!(designated_userids.is_empty());
+
+    match (added, removed) {
+        (1, 1) => {
+            wprintln!("1 new approval, 1 approval retracted");
+        }
+        (added, 1) => {
+            wprintln!("{} new approvals, 1 approval retracted",
+                      added);
+        }
+        (1, removed) => {
+            wprintln!("1 new approval, {} approvals retracted",
+                      removed);
+        }
+        (added, removed) => {
+            wprintln!("{} new approvals, {} approvals retracted",
+                      added, removed);
+        }
+    }
 
     // Finally, add the new signatures.
     let key = key.insert_packets(approval_signatures)?;

@@ -28,7 +28,7 @@ use openpgp::serialize::stream::Message;
 use crate::Sq;
 use crate::Convert;
 use crate::Result;
-use crate::cli::toolbox::packet::{
+use crate::cli::packet::{
     Command,
     Subcommands,
     SplitCommand,
@@ -52,7 +52,7 @@ pub fn dispatch(sq: Sq, command: Command)
                     if ! path.exists() &&
                         format!("{}", command.input).parse::<KeyHandle>().is_ok() {
                             wprintln!("The file {} does not exist, \
-                                       did you mean \"sq toolbox packet dump \
+                                       did you mean \"sq packet dump \
                                        --cert {}\"?",
                                       path.display(), path.display());
                         }

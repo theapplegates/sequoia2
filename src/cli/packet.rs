@@ -1,4 +1,4 @@
-//! Command-line parser for `sq toolbox packet`.
+//! Command-line parser for `sq packet`.
 
 use std::{
     ffi::OsString,
@@ -24,7 +24,7 @@ use crate::cli::types::cert_designator::*;
 
 An OpenPGP data stream consists of packets.  These tools allow working \
 with packet streams.  They are mostly of interest to developers, but \
-`sq toolbox packet dump` may be helpful to a wider audience both to provide \
+`sq packet dump` may be helpful to a wider audience both to provide \
 valuable information in bug reports to OpenPGP-related software, and \
 as a learning tool.
 ",
@@ -115,7 +115,7 @@ const DUMP_EXAMPLES: Actions = Actions {
             comment: "\
 Print the packets of a certificate.",
             command: &[
-                "sq", "toolbox", "packet", "dump",
+                "sq", "packet", "dump",
                 "juliet.pgp",
             ],
         }),
@@ -124,7 +124,7 @@ Print the packets of a certificate.",
             comment: "\
 Print the packets including cryptographic artifacts of a certificate.",
             command: &[
-                "sq", "toolbox", "packet", "dump",
+                "sq", "packet", "dump",
                 "--mpis", "juliet.pgp",
             ],
         }),
@@ -133,7 +133,7 @@ Print the packets including cryptographic artifacts of a certificate.",
             comment: "\
 Print the packets including a dump of every byte of a certificate.",
             command: &[
-                "sq", "toolbox", "packet", "dump",
+                "sq", "packet", "dump",
                 "--hex", "juliet.pgp",
             ],
         }),
@@ -143,16 +143,16 @@ Print the packets including a dump of every byte of a certificate.",
 Prints the packets of an encrypted message, decrypting it using a \
 secret key file.",
             command: &[
-                "sq", "toolbox", "packet", "dump",
+                "sq", "packet", "dump",
                 "--recipient-file", "bob-secret.pgp",
                 "message.pgp",
             ],
         }),
     ],
 };
-test_examples!(sq_toolbox_packet_dump, DUMP_EXAMPLES);
+test_examples!(sq_packet_dump, DUMP_EXAMPLES);
 
-/// Documentation for the cert designators for the toolbox packet dump
+/// Documentation for the cert designators for the packet dump
 /// command.
 pub struct PacketDumpDoc {}
 
@@ -179,7 +179,7 @@ impl AdditionalDocs for PacketDumpDoc {
 
 Decrypts a message, dumping the content of the encryption container \
 without further processing.  The result is a valid OpenPGP message \
-that can, among other things, be inspected using `sq toolbox packet dump`.
+that can, among other things, be inspected using `sq packet dump`.
 ",
     after_help = DECRYPT_EXAMPLES,
 )]
@@ -227,14 +227,14 @@ const DECRYPT_EXAMPLES: Actions = Actions {
             comment: "\
 Unwrap the encryption revealing the signed message.",
             command: &[
-                "sq", "toolbox", "packet", "decrypt",
+                "sq", "packet", "decrypt",
                 "--recipient-file", "bob-secret.pgp",
                 "message.pgp",
             ],
         }),
     ],
 };
-test_examples!(sq_toolbox_packet_decrypt, DECRYPT_EXAMPLES);
+test_examples!(sq_packet_decrypt, DECRYPT_EXAMPLES);
 
 #[derive(Debug, Args)]
 #[clap(
@@ -242,19 +242,19 @@ test_examples!(sq_toolbox_packet_decrypt, DECRYPT_EXAMPLES);
     long_about = "Split a message into packets
 
 Splitting a packet sequence into individual packets, then recombining \
-them freely with `sq toolbox packet join` is a great way to experiment with \
+them freely with `sq packet join` is a great way to experiment with \
 OpenPGP data.
 
 By default, the packets are written to stdout as a sequence of ASCII \
 armored blocks.  It is possible to edit this file directly (e.g., \
-moving, adding, or removing packets), and then use `sq toolbox packet \
+moving, adding, or removing packets), and then use `sq packet \
 join` to assemble the stream.
 
 Alternatively, if a `--prefix` is given, the packets are written into \
 individual files starting with the prefix, and can be reassembled \
-with `sq toolbox packet join`.
+with `sq packet join`.
 
-The converse operation is `sq toolbox packet join`.
+The converse operation is `sq packet join`.
 ",
     after_help = SPLIT_EXAMPLES,
 )]
@@ -302,7 +302,7 @@ const SPLIT_EXAMPLES: Actions = Actions {
             comment: "\
 Split a certificate into individual packets printed to stdout.",
             command: &[
-                "sq", "toolbox", "packet", "split",
+                "sq", "packet", "split",
                 "--output=-",
                 "juliet.pgp",
             ],
@@ -313,7 +313,7 @@ Split a certificate into individual packets printed to stdout.",
 Split a inline-signed message into individual packets written to \
 individual files with the prefix 'packet'.",
             command: &[
-                "sq", "toolbox", "packet", "split",
+                "sq", "packet", "split",
                 "--prefix", "packet",
                 "document.pgp",
             ],
@@ -324,7 +324,7 @@ individual files with the prefix 'packet'.",
 Then reassemble the message, transforming it into an old-style \
 signed message with a prefix signature.",
             command: &[
-                "sq", "toolbox", "packet", "join",
+                "sq", "packet", "join",
                 "--output", "prefix-signature.pgp",
                 "--label", "message",
                 "packet-2-Signature-Packet",
@@ -333,7 +333,7 @@ signed message with a prefix signature.",
         }),
     ],
 };
-test_examples!(sq_toolbox_packet_split, SPLIT_EXAMPLES);
+test_examples!(sq_packet_split, SPLIT_EXAMPLES);
 
 #[derive(Debug, Args)]
 #[clap(
@@ -341,10 +341,10 @@ test_examples!(sq_toolbox_packet_split, SPLIT_EXAMPLES);
     long_about = "Join packets split across files
 
 Splitting a packet sequence into individual packets, then recombining \
-them freely with `sq toolbox packet join` is a great way to experiment with \
+them freely with `sq packet join` is a great way to experiment with \
 OpenPGP data.
 
-The converse operation is `sq toolbox packet split`.
+The converse operation is `sq packet split`.
 ",
     after_help = JOIN_EXAMPLES,
 )]
@@ -381,7 +381,7 @@ const JOIN_EXAMPLES: Actions = Actions {
 Split a inline-signed message into individual packets written to \
 individual files with the prefix 'packet'.",
             command: &[
-                "sq", "toolbox", "packet", "split",
+                "sq", "packet", "split",
                 "--prefix", "packet",
                 "document.pgp",
             ],
@@ -392,7 +392,7 @@ individual files with the prefix 'packet'.",
 Then reassemble the message, transforming it into an old-style \
 signed message with a prefix signature.",
             command: &[
-                "sq", "toolbox", "packet", "join",
+                "sq", "packet", "join",
                 "--output", "prefix-signature.pgp",
                 "--label", "message",
                 "packet-2-Signature-Packet",
@@ -401,4 +401,4 @@ signed message with a prefix signature.",
         }),
     ],
 };
-test_examples!(sq_toolbox_packet_join, JOIN_EXAMPLES);
+test_examples!(sq_packet_join, JOIN_EXAMPLES);

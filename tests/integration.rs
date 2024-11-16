@@ -24,13 +24,13 @@ mod integration {
     mod sq_key_userid_revoke;
     mod sq_keyring_filter;
     mod sq_keyring_merge;
+    mod sq_packet_decrypt;
+    mod sq_packet_dump;
     mod sq_pki;
     mod sq_pki_link;
     mod sq_pki_link_authorize;
     mod sq_pki_vouch_certify;
     mod sq_pki_vouch_authorize;
     mod sq_sign;
-    mod sq_toolbox_packet_decrypt;
-    mod sq_toolbox_packet_dump;
     mod sq_verify;
 }

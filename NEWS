@@ -84,6 +84,7 @@
      `--userid` and `--email` positional arguments, which match on
      user IDs.
    - `sq toolbox keyring` is now just `sq keyring`.
+   - `sq toolbox packet` is now just `sq packet`.
 
 * Changes in 0.39.0
 ** Notable changes

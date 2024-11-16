@@ -41,7 +41,7 @@ use crate::SECONDS_IN_DAY;
 
 use crate::cli::inspect;
 use crate::cli::types::FileOrStdout;
-use crate::commands::toolbox::packet::dump::PacketDumper;
+use crate::commands::packet::dump::PacketDumper;
 use crate::common::PreferredUserID;
 
 /// Width of the largest key of any key, value pair we emit.

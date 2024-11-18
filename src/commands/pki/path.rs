@@ -23,7 +23,7 @@ pub fn path(sq: Sq, c: Command)
 
     let target = path.last().expect("guaranteed by clap");
     let mut userid = None;
-    if let Ok(cert) = sq.lookup_one(target, None, false) {
+    if let Ok((cert, _cert_handle)) = sq.resolve_cert(&target.into(), 0) {
         if let Ok(vc) = cert.with_policy(sq.policy, sq.time) {
             if let Ok(userids) = userids.resolve(&vc) {
                 assert_eq!(userids.len(), 1);

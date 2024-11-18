@@ -30,6 +30,7 @@ pub const NULL_POLICY: &NullPolicy = &NullPolicy::new();
 /// Something like a User ID.
 ///
 /// This is used to avoid unnecessary allocations.
+#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq)]
 enum UserIDLike {
     UserID(UserID),
     String(String),
@@ -44,6 +45,7 @@ enum UserIDLike {
 /// ```text
 /// format!("{:.70}", userid);
 /// ```
+#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq)]
 pub struct PreferredUserID {
     userid: UserIDLike,
     trust_amount: usize,

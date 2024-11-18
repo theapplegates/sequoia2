@@ -1,6 +1,6 @@
 use std::{
     cmp::Ordering,
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, HashSet},
     fmt,
     time::SystemTime,
 };
@@ -11,7 +11,7 @@ use sequoia_openpgp::{
     KeyHandle,
     cert::amalgamation::ValidAmalgamation,
     cert::amalgamation::ValidateAmalgamation,
-    packet::{Key, key},
+    packet::{Key, key, UserID},
     types::RevocationStatus,
 };
 
@@ -20,6 +20,7 @@ use keystore::Protection;
 
 use crate::cli;
 use crate::Convert;
+use crate::PreferredUserID;
 use crate::Sq;
 use crate::Result;
 use crate::Time;
@@ -52,14 +53,6 @@ impl Association {
         match self {
             Association::Bound(c) => c.primary_key().key().into(),
             Association::Bare(k) => k,
-        }
-    }
-
-    /// Returns the best user ID, if any.
-    pub fn best_userid(&self, sq: &Sq) -> String {
-        match self {
-            Association::Bound(c) => sq.best_userid(c, true).to_string(),
-            Association::Bare(_) => "bare key".into(),
         }
     }
 }
@@ -382,6 +375,22 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
     }
 
     // Now display the keys grouped by OpenPGP certificates.
+
+    let q = sq.wot_query();
+    let q = q.map(|q| q.build()).ok();
+    let authenticate = |cert: &Cert, userid: &UserID|
+        -> (usize, PreferredUserID)
+    {
+        if let Some(q) = q.as_ref() {
+            let paths = q.authenticate(
+                userid, &cert.fingerprint(), sequoia_wot::FULLY_TRUSTED);
+            let amount = paths.amount();
+            (amount, PreferredUserID::from_userid(userid.clone(), amount))
+        } else {
+            (0, PreferredUserID::from_userid(userid.clone(), 0))
+        }
+    };
+
     for (association, keys) in the_keys.iter() {
         if let Some(c) = &certs {
             // Skip the keys the user is not interested in.
@@ -398,7 +407,69 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
         // Emit metadata.
         wprintln!(initial_indent = " - ", "{}",
                   association.key().fingerprint());
-        wprintln!(initial_indent = "   - ", "{}", association.best_userid(&sq));
+
+        // Show the user IDs that can be authenticated or are self signed.
+        if let Some(cert) = association.cert() {
+            let self_signed: HashSet<UserID> = if let Ok(vc)
+                = cert.with_policy(sq.policy, sq.time)
+            {
+                HashSet::from_iter(vc.userids().map(|ua| ua.userid()).cloned())
+            } else {
+                Default::default()
+            };
+
+            let mut userids = Vec::with_capacity(cert.userids().count());
+            for ua in cert.userids() {
+                let revoked = if let RevocationStatus::Revoked(_)
+                    = ua.revocation_status(sq.policy, sq.time)
+                {
+                    true
+                } else {
+                    false
+                };
+
+                let self_signed = self_signed.contains(&ua.userid());
+
+                let (amount, userid) = authenticate(cert, ua.userid());
+                if amount > 0 || self_signed {
+                    userids.push((revoked, amount, self_signed, userid));
+                }
+            }
+
+            if userids.is_empty() {
+                wprintln!(initial_indent = "   - ", "no user IDs");
+            } else {
+                let userid_count = userids.len();
+                if userid_count > 1 {
+                    wprintln!(initial_indent = "   - ", "user IDs:");
+                }
+
+                userids.sort_by(
+                    |(a_revoked, a_amount, a_self_signed, a_userid),
+                     (b_revoked, b_amount, b_self_signed, b_userid) |
+                    {
+                        a_revoked.cmp(b_revoked)
+                            .then(a_amount.cmp(b_amount).reverse())
+                            .then(a_self_signed.cmp(b_self_signed))
+                            .then(a_userid.cmp(b_userid))
+                    });
+                for (revoked, amount, self_signed, userid)
+                    in userids.into_iter()
+                {
+                    if amount > 0 || self_signed {
+                        if userid_count == 1 {
+                            wprintln!(initial_indent = "   - ", "user ID: {}{}",
+                                      userid,
+                                      if revoked { " revoked" } else { "" });
+                        } else {
+                            wprintln!(initial_indent = "     - ", "{}{}",
+                                      userid,
+                                      if revoked { " revoked" } else { "" });
+                        }
+                    }
+                }
+            }
+        }
         wprintln!(initial_indent = "   - ", "created {}",
                   association.key().creation_time().convert());
 

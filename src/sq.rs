@@ -355,7 +355,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// Returns a web-of-trust query builder.
     ///
     /// The trust roots are already set appropriately.
-    fn wot_query(&self) -> Result<wot::NetworkBuilder<&WotStore<'store, 'rstore>>>
+    pub fn wot_query(&self)
+        -> Result<wot::NetworkBuilder<&WotStore<'store, 'rstore>>>
     {
         let cert_store = self.cert_store_or_else()?;
         let network = wot::NetworkBuilder::rooted(cert_store,

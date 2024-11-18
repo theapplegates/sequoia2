@@ -1,6 +1,6 @@
 # See https://gitlab.com/sequoia-pgp/sequoia/-/blob/main/README.md#debian
 # for system requirements
-FROM debian:trixie AS build
+FROM docker.io/library/debian:trixie AS build
 
 # create a sandbox user for the build (in ~builder) and install (in /opt)
 # give it permissions to the build dir and home
@@ -40,7 +40,7 @@ RUN cd /home/builder/sequoia && \
     install --strip -D --target-directory /opt/usr/local/bin \
                   /tmp/target/release/sq
 
-FROM debian:trixie-slim AS sq-base
+FROM docker.io/library/debian:trixie-slim AS sq-base
 
 RUN groupadd user && \
     useradd --no-log-init -g user user && \

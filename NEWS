@@ -94,6 +94,8 @@
      this check.
    - `sq key approvals update` now requires an action, like
      `--add-authenticated`.
+   - `sq key approvals --add-authenticated` is now a simple flag, and
+     we always require full authentication.
 
 * Changes in 0.39.0
 ** Notable changes

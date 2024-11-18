@@ -297,18 +297,15 @@ if any.
     #[clap(
         long = "add-authenticated",
         value_name = "AMOUNT",
-        default_missing_value = "40",
-        num_args = 0..=1,
         help = "Approve of all certifications by authenticated certifiers",
         long_help = "\
 Approve of all certifications by authenticated certifiers.
 
 For all pending approvals, try to authenticate any user ID on the
-certifier, and if any can be authenticated to at least the given
-amount, approve of the certification.",
+certifier, and if any can be authenticated, approve of the certification.",
         conflicts_with = "add_all",
     )]
-    pub add_authenticated: Option<u8>,
+    pub add_authenticated: bool,
 
     #[clap(
         long,

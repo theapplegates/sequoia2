@@ -137,10 +137,9 @@ fn update(
     }
 
     // If we want to authenticate, prepare the authentication network.
-    let network_threshold = command.add_authenticated.map(
-        |threshold|
+    let network_threshold = command.add_authenticated.then_some(
         (wot::NetworkBuilder::rooted(store, &*sq.trust_roots()).build(),
-         usize::from(threshold)));
+         sequoia_wot::FULLY_TRUSTED));
 
     // Get a signer.
     let mut pk_signer = sq.get_primary_key(&key, None)?;

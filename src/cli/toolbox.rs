@@ -3,7 +3,6 @@
 use clap::{Parser, Subcommand};
 
 pub mod extract_cert;
-pub mod strip_userid;
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -27,5 +26,4 @@ pub struct Command {
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
     ExtractCert(extract_cert::Command),
-    StripUserid(strip_userid::Command),
 }

@@ -77,7 +77,7 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::export::Command)
 
     let mut output = command.output.for_secrets().create_safe(&sq)?;
 
-    if command.binary {
+    if false {
         cert.as_tsk().serialize(&mut output)
             .with_context(|| {
                 format!("Serializing {}", cert.fingerprint())

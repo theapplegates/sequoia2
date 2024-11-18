@@ -139,11 +139,6 @@ specified, and the certificate was read from a file, writes the \
 modified certificate to stdout.",
     )]
     pub output: Option<FileOrStdout>,
-    #[clap(
-        long,
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
 }
 
 /// Documentation for the cert designators for the key userid add.
@@ -288,12 +283,6 @@ specified, and the certificate was read from a file, writes the \
 modified certificate to stdout.",
     )]
     pub output: Option<FileOrStdout>,
-
-    #[clap(
-        long,
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
 }
 
 /// Documentation for the cert designators for the key userid revoke.

@@ -101,6 +101,8 @@
      export --email` has been changed to `sq key export --cert-email`
      for consistency reasons, and to free `--name`, `--email`, and
      `--userid` for user ID designators.
+   - The `--binary` argument has been removed from all commands but
+     those that emit signed and or encrypted messages.
 
 * Changes in 0.39.0
 ** Notable changes

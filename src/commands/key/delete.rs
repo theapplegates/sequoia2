@@ -10,5 +10,5 @@ pub fn dispatch(sq: Sq, command: cli::key::delete::Command)
                 -> Result<()>
 {
     delete::delete(sq, command.cert, KeyDesignators::none(),
-                   command.output, command.binary)
+                   command.output, false)
 }

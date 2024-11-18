@@ -76,7 +76,7 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
 
     if let Some(output) = command.output {
         let mut sink = output.for_secrets().create_safe(&sq)?;
-        if command.binary {
+        if false {
             new_cert.as_tsk().serialize(&mut sink)?;
         } else {
             new_cert.as_tsk().armored().serialize(&mut sink)?;

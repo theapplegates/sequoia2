@@ -139,11 +139,7 @@ pub struct FilterCommand {
         help = "Remove certificate components not matching the filter",
     )]
     pub prune_certs: bool,
-    #[clap(
-        long = "binary",
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
+
     #[clap(
         long = "to-cert",
         help = "Convert any keys in the input to \
@@ -255,11 +251,6 @@ pub struct MergeCommand {
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,
-    #[clap(
-        long = "binary",
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
 }
 
 const MERGE_EXAMPLES: Actions = Actions {
@@ -370,11 +361,6 @@ pub struct SplitCommand {
             [defaults: `FILE-` if FILE is set, or `output-` if read from stdin]",
     )]
     pub prefix: Option<String>,
-    #[clap(
-        long,
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
 }
 
 const SPLIT_EXAMPLES: Actions = Actions {

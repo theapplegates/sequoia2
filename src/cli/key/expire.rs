@@ -67,12 +67,6 @@ pub struct Command {
     )]
     pub output: Option<FileOrStdout>,
 
-    #[clap(
-        long,
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
-
     #[clap(flatten)]
     pub expiration: ExpirationArg,
 }

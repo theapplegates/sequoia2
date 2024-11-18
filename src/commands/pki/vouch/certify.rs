@@ -40,5 +40,5 @@ pub fn certify(sq: Sq, mut c: certify::Command)
         c.non_revocable,
         &notations[..],
         c.output,
-        c.binary)
+        false)
 }

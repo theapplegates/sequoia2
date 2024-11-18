@@ -156,9 +156,4 @@ pub struct Command {
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: Option<FileOrStdout>,
-    #[clap(
-        long,
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
 }

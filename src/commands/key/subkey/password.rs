@@ -9,6 +9,6 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::password::Command)
 
     password(sq, command.cert, Some(command.keys),
              command.clear_password, command.new_password_file.as_deref(),
-             command.output, command.binary)
+             command.output, false)
 }
 

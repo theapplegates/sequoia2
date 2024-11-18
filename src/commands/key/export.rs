@@ -76,7 +76,7 @@ pub fn dispatch(sq: Sq, command: cli::key::export::Command)
 
     let mut output = command.output.for_secrets().create_safe(&sq)?;
 
-    if command.binary {
+    if false {
         for cert in results.into_iter() {
             cert.as_tsk().serialize(&mut output)
                 .with_context(|| {

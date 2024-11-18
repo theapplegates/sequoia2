@@ -523,23 +523,6 @@ then stdout contains "Alice"
 ~~~
 
 
-### Extract binary certificate to the standard output
-
-_Requirement: We must be able to extract a binary certificate to the
-standard output._
-
-This scenario actually only verifies the output doesn't look like a
-textual certificate. It could certainly be improved.
-
-~~~scenario
-given an installed sq
-when I run sq key generate --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
-when I run sq toolbox extract-cert key.pgp --binary
-then stdout doesn't contain "-----BEGIN PGP PUBLIC KEY BLOCK-----"
-then stdout doesn't contain "-----END PGP PUBLIC KEY BLOCK-----"
-~~~
-
-
 ### Extract binary certificate from the standard input
 
 _Requirement: We must be able to extract a certificate from a key read
@@ -605,17 +588,15 @@ then stdout contains "Alice"
 then stdout contains "Bob"
 ~~~
 
-### Join two keys into a binary keyring
+### Join two keys into a keyring
 
-_Requirement: we can join two keys into a keyring in binary form._
+_Requirement: we can join two keys into a keyring form._
 
 ~~~scenario
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp --binary
-when I try to run grep PGP ring.pgp
-then command fails
+when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
 when I run sq inspect ring.pgp
 then stdout contains "Transferable Secret Key."
 then stdout contains "Alice"
@@ -686,19 +667,6 @@ when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
 when I run sq keyring filter --to-cert ring.pgp
 then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 then stdout contains "-----END PGP PUBLIC KEY BLOCK-----"
-~~~
-
-### We can filter with binary output
-
-_Requirement: we can get filter output in binary form._
-
-~~~scenario
-given an installed sq
-when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq keyring filter --binary --to-cert ring.pgp
-then stdout doesn't contain "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 ~~~
 
 ### We can keep only matching certificates
@@ -1039,7 +1007,7 @@ when I run sq inspect cert.pgp
 then stdout contains "Certifications: 1,"
 ~~~
 
-## Certify an identity as binary
+## Certify an identity
 
 _Requirement: We can certify a user identity on a key._
 
@@ -1053,9 +1021,7 @@ when I run sq toolbox extract-cert bob.pgp --output bob-cert.pgp
 when I run sq inspect bob-cert.pgp
 then stdout doesn't contain "Certifications:"
 
-when I run sq pki vouch certify --certifier-file alice.pgp --cert-file bob-cert.pgp --userid Bob --output cert.pgp --binary
-when I run cat cert.pgp
-then stdout doesn't contain "-----BEGIN PGP PUBLIC KEY BLOCK-----"
+when I run sq pki vouch certify --certifier-file alice.pgp --cert-file bob-cert.pgp --userid Bob --output cert.pgp
 when I run sq inspect cert.pgp
 then stdout contains "Certifications: 1,"
 ~~~

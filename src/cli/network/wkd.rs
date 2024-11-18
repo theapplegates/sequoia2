@@ -73,12 +73,7 @@ pub struct SearchCommand {
         help = "Retrieve certificate(s) for ADDRESS",
     )]
     pub addresses: Vec<String>,
-    #[clap(
-        long,
-        requires = "output",
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
+
     #[clap(
         help = FileOrCertStore::HELP_OPTIONAL,
         long,

@@ -9,5 +9,5 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::expire::Command)
 
     expire(sq, command.cert, Some(command.keys),
            command.expiration.value(),
-           command.output, command.binary)
+           command.output, false)
 }

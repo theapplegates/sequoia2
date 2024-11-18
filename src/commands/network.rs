@@ -1034,7 +1034,7 @@ pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
     // Release all thread pool resources.
     drop(rt);
 
-    Response::import_or_emit(sq, c.output, c.binary, results)?;
+    Response::import_or_emit(sq, c.output, false, results)?;
     Ok(())
 }
 
@@ -1101,7 +1101,7 @@ pub fn dispatch_keyserver(mut sq: Sq,
             Response::collect(&mut sq, requests, &mut certs, c.output.is_none(),
                               default_servers, &mut pb).await?;
             drop(pb);
-            Response::import_or_emit(sq, c.output, c.binary, certs)?;
+            Response::import_or_emit(sq, c.output, false, certs)?;
             Result::Ok(())
         })?,
 
@@ -1213,7 +1213,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             Response::collect(&mut sq, requests, &mut certs, c.output.is_none(),
                               false, &mut pb).await?;
             drop(pb);
-            Response::import_or_emit(sq, c.output, c.binary, certs)?;
+            Response::import_or_emit(sq, c.output, false, certs)?;
             Result::Ok(())
         })?,
 
@@ -1459,7 +1459,7 @@ pub fn dispatch_dane(mut sq: Sq, c: cli::network::dane::Command)
             Response::collect(&mut sq, requests, &mut certs, c.output.is_none(),
                               false, &mut pb).await?;
             drop(pb);
-            Response::import_or_emit(sq, c.output, c.binary, certs)?;
+            Response::import_or_emit(sq, c.output, false, certs)?;
             Result::Ok(())
         })?,
     }

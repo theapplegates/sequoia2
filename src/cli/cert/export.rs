@@ -111,12 +111,6 @@ pub struct Command {
     pub output: FileOrStdout,
 
     #[clap(
-        long,
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
-
-    #[clap(
         long = "local",
         help = "Export local (non-exportable) signatures",
         long_help = "\

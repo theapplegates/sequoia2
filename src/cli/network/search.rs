@@ -63,13 +63,6 @@ pub struct Command {
 
     #[clap(
         long,
-        requires = "output",
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
-
-    #[clap(
-        long,
         conflicts_with = "query",
         help = "Fetch updates for all known certificates",
     )]

@@ -41,12 +41,6 @@ pub struct Command {
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: FileOrStdout,
-
-    #[clap(
-        long,
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
 }
 
 const EXAMPLES: Actions = Actions {

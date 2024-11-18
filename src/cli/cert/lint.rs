@@ -68,11 +68,6 @@ pub struct Command {
                 certificate to stdout.",
     )]
     pub output: Option<FileOrStdout>,
-    #[clap(
-        long = "binary",
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
 }
 
 const EXAMPLES: Actions = Actions {

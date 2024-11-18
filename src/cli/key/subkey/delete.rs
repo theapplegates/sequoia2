@@ -85,13 +85,6 @@ file.  When deleting secret key material managed by the key store using \
 `--cert`, you can get the stripped certificate using `sq key export`.",
     )]
     pub output: Option<FileOrStdout>,
-
-    #[clap(
-        long,
-        requires = "output",
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
 }
 
 const EXAMPLES: Actions = Actions {

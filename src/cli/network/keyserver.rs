@@ -78,12 +78,6 @@ pub struct SearchCommand {
         value_name = FileOrCertStore::VALUE_NAME,
     )]
     pub output: Option<FileOrStdout>,
-    #[clap(
-        long,
-        requires = "output",
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
 
     #[clap(
         long,

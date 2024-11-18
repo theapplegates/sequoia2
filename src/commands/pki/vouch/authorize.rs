@@ -57,5 +57,5 @@ pub fn authorize(sq: Sq, mut c: authorize::Command)
         c.non_revocable,
         &notations[..],
         c.output,
-        c.binary)
+        false)
 }

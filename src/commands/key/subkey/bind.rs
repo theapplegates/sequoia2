@@ -378,7 +378,7 @@ pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
     if let Some(output) = command.output {
         let path = output.path().map(Clone::clone);
         let mut sink = output.for_secrets().create_safe(&sq)?;
-        if command.binary {
+        if false {
             cert.as_tsk().serialize(&mut sink)?;
         } else {
             cert.as_tsk().armored().serialize(&mut sink)?;

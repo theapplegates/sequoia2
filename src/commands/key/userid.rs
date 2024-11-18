@@ -278,7 +278,7 @@ fn userid_add(
 
     if let Some(output) = command.output {
         let mut sink = output.for_secrets().create_safe(&sq)?;
-        if command.binary {
+        if false {
             cert.as_tsk().serialize(&mut sink)?;
         } else {
             cert.as_tsk().armored().serialize(&mut sink)?;
@@ -331,7 +331,7 @@ pub fn userid_revoke(
         &notations,
     )?;
 
-    revocation.write(&sq, command.output, command.binary)?;
+    revocation.write(&sq, command.output, false)?;
 
     Ok(())
 }

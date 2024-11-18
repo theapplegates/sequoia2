@@ -153,10 +153,10 @@ pub fn dispatch(sq: Sq, c: keyring::Command) -> Result<()> {
             };
 
             filter(&sq, command.input, command.output, filter_fn,
-                   command.binary, command.to_certificate)
+                   false, command.to_certificate)
         },
         Merge(c) =>
-            merge(&sq, c.input, c.output, c.binary),
+            merge(&sq, c.input, c.output, false),
         List(c) => {
             let mut input = c.input.open()?;
             list(sq, &mut input, c.all_userids)
@@ -177,7 +177,7 @@ pub fn dispatch(sq: Sq, c: keyring::Command) -> Result<()> {
                         .unwrap_or_else(|| String::from("output"))
                     // ... finally, add a hyphen to the derived prefix.
                         + "-");
-            split(&mut input, &prefix, c.binary)
+            split(&mut input, &prefix, false)
         },
     }
 }

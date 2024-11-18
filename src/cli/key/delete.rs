@@ -26,13 +26,6 @@ pub struct Command {
         help = "Write the stripped certificate to the specified file",
     )]
     pub output: Option<FileOrStdout>,
-
-    #[clap(
-        long,
-        requires = "output",
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
 }
 
 const EXAMPLES: Actions = Actions {

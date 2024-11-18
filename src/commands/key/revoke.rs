@@ -109,7 +109,7 @@ pub fn certificate_revoke(
         &command.message,
         &notations,
     )?;
-    revocation.write(&sq, command.output, command.binary)?;
+    revocation.write(&sq, command.output, false)?;
 
     Ok(())
 }

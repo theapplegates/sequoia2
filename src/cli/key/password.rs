@@ -59,13 +59,6 @@ any surrounding whitespace like a trailing newline."
         value_name = FileOrStdout::VALUE_NAME,
     )]
     pub output: Option<FileOrStdout>,
-
-    #[clap(
-        long,
-        requires = "output",
-        help = "Emit binary data",
-    )]
-    pub binary: bool,
 }
 
 const EXAMPLES: Actions = Actions {

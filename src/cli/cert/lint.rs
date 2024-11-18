@@ -55,7 +55,7 @@ pub struct Command {
 
     #[command(flatten)]
     pub certs: CertDesignators<FileCertUserIDEmailDomainGrepArgs,
-                               NoPrefix,
+                               CertPrefix,
                                NoOptions>,
 
     #[clap(
@@ -96,7 +96,7 @@ const EXAMPLES: Actions = Actions {
 Gather statistics on the certificates in a keyring.",
             command: &[
                 "sq", "cert", "lint",
-                "--file", "certs.pgp",
+                "--cert-file", "certs.pgp",
             ],
         }),
 
@@ -106,7 +106,7 @@ Fix a key with known problems.",
             command: &[
                 "sq", "key", "export",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "|", "sq", "cert", "lint", "--fix", "--file=-",
+                "|", "sq", "cert", "lint", "--fix", "--cert-file=-",
                 "|", "sq", "cert", "import"
             ],
         }),

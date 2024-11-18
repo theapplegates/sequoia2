@@ -2321,7 +2321,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                 "--cert"
                             }
                             FileStdinOrKeyHandle::FileOrStdin(_file) => {
-                                "--file"
+                                "--cert-file"
                             }
                         },
                         match &cert_handle {

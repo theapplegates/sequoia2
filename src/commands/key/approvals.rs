@@ -330,7 +330,7 @@ fn update(
                  so that others can find it, for example using:",
                 path.display()))
                 .sq().arg("network").arg("keyserver").arg("publish")
-                .arg_value("--file", path.display())
+                .arg_value("--cert-file", path.display())
                 .done();
         } else {
             sq.hint(format_args!(

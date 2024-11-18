@@ -15,7 +15,7 @@ use crate::cli::types::cert_designator::*;
 pub struct Command {
     #[command(flatten)]
     pub cert: CertDesignators<CertUserIDEmailFileArgs,
-                              NoPrefix,
+                              CertPrefix,
                               OneValueAndFileRequiresOutput,
                               DeleteKeyDoc>,
 
@@ -72,7 +72,7 @@ Delete any secret key associated with Alice's certificate \
 selected by user ID.",
             command: &[
                 "sq", "key", "delete",
-                "--email=alice@example.org",
+                "--cert-email=alice@example.org",
             ],
         }),
     ]

@@ -89,7 +89,7 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
             if keystore {
                 cmd.arg("--cert").arg(&cert.fingerprint().to_string());
             } else {
-                cmd.arg("--file").arg(filename);
+                cmd.arg("--cert-file").arg(filename);
             }
 
             cmd
@@ -135,7 +135,7 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
                 ]);
             } else {
                 cmd.args([
-                    "--file", &format!("{}-{}.pgp", base, suffix),
+                    "--cert-file", &format!("{}-{}.pgp", base, suffix),
                 ]);
             }
             for p in passwords.iter() {
@@ -159,7 +159,7 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
                             cmd.arg("--cert")
                                 .arg(&cert.fingerprint().to_string());
                         } else {
-                            cmd.arg("--file").arg("-")
+                            cmd.arg("--cert-file").arg("-")
                                 .write_stdin(output);
                         }
 
@@ -483,7 +483,7 @@ fn signature() {
         .args(&[
             "cert", "lint",
             "--time", FROZEN_TIME,
-            "--file", "msg.sig",
+            "--cert-file", "msg.sig",
         ])
         .assert()
         // If there are issues, the command fails.

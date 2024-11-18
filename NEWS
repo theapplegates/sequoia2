@@ -97,6 +97,10 @@
    - `sq key approvals --add-authenticated` is now a simple flag, and
      we always require full authentication.
    - `sq toolbox strip-userid` has been removed.
+   - All cert designators now use the `--cert-` prefix, e.g.  `sq key
+     export --email` has been changed to `sq key export --cert-email`
+     for consistency reasons, and to free `--name`, `--email`, and
+     `--userid` for user ID designators.
 
 * Changes in 0.39.0
 ** Notable changes

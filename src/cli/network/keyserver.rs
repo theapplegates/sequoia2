@@ -117,7 +117,7 @@ default, the certificates are sent to {}.  This can be tweaked using \
 pub struct PublishCommand {
     #[command(flatten)]
     pub certs: CertDesignators<FileCertUserIDEmailDomainArgs,
-                               NoPrefix>,
+                               CertPrefix>,
 }
 
 /// Joins the given key server URLs into a list.

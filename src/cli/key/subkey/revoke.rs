@@ -86,7 +86,7 @@ pub struct Command {
     #[command(flatten)]
     pub cert: CertDesignators<
         cert_designator::CertUserIDEmailFileArgs,
-        cert_designator::NoPrefix,
+        cert_designator::CertPrefix,
         cert_designator::OneValueAndFileRequiresOutput,
         CertDoc>,
 

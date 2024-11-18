@@ -31,7 +31,7 @@ provided, the user is prompted.
 pub struct Command {
     #[command(flatten)]
     pub cert: CertDesignators<CertUserIDEmailFileArgs,
-                              NoPrefix,
+                              CertPrefix,
                               OneValueAndFileRequiresOutput,
                               KeyPasswordDoc>,
 

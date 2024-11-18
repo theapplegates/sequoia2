@@ -817,7 +817,7 @@ impl Sq {
 
         match &cert_handle {
             FileOrKeyHandle::FileOrStdin(path) => {
-                cmd.arg("--file").arg(path);
+                cmd.arg("--cert-file").arg(path);
                 assert!(output_file.is_some());
             }
             FileOrKeyHandle::KeyHandle((_kh, s)) => {
@@ -859,7 +859,7 @@ impl Sq {
 
         match &cert_handle {
             FileOrKeyHandle::FileOrStdin(path) => {
-                cmd.arg("--file").arg(path);
+                cmd.arg("--cert-file").arg(path);
                 assert!(output_file.is_some());
             }
             FileOrKeyHandle::KeyHandle((_kh, s)) => {
@@ -948,7 +948,7 @@ impl Sq {
         cmd.arg("key").arg("password");
 
         if cert_handle.is_file() {
-            cmd.arg("--file").arg(&cert_handle);
+            cmd.arg("--cert-file").arg(&cert_handle);
             assert!(output_file.is_some());
         } else {
             cmd.arg("--cert").arg(&cert_handle);
@@ -1011,7 +1011,7 @@ impl Sq {
         }
 
         if target.is_file() {
-            cmd.arg("--file").arg(&target);
+            cmd.arg("--cert-file").arg(&target);
         } else {
             cmd.arg("--cert").arg(&target);
         };
@@ -1114,7 +1114,7 @@ impl Sq {
             .arg("--expiration").arg(expire);
 
         if cert_handle.is_file() {
-            cmd.arg("--file").arg(&cert_handle);
+            cmd.arg("--cert-file").arg(&cert_handle);
             assert!(output_file.is_some());
         } else {
             cmd.arg("--cert").arg(&cert_handle);
@@ -1196,7 +1196,7 @@ impl Sq {
 
         match &cert_handle {
             FileOrKeyHandle::FileOrStdin(path) => {
-                cmd.arg("--file").arg(path);
+                cmd.arg("--cert-file").arg(path);
                 assert!(output_file.is_some());
             }
             FileOrKeyHandle::KeyHandle((_kh, s)) => {
@@ -1250,7 +1250,7 @@ impl Sq {
 
         match &cert_handle {
             FileOrKeyHandle::FileOrStdin(path) => {
-                cmd.arg("--file").arg(path);
+                cmd.arg("--cert-file").arg(path);
                 assert!(output_file.is_some());
             }
             FileOrKeyHandle::KeyHandle((_kh, s)) => {
@@ -1292,7 +1292,7 @@ impl Sq {
         cmd.arg("key").arg("subkey").arg("password");
 
         if cert_handle.is_file() {
-            cmd.arg("--file").arg(&cert_handle);
+            cmd.arg("--cert-file").arg(&cert_handle);
             assert!(output_file.is_some());
         } else {
             cmd.arg("--cert").arg(&cert_handle);
@@ -1341,7 +1341,7 @@ impl Sq {
             .arg("--expiration").arg(expire);
 
         if cert_handle.is_file() {
-            cmd.arg("--file").arg(&cert_handle);
+            cmd.arg("--cert-file").arg(&cert_handle);
             assert!(output_file.is_some());
         } else {
             cmd.arg("--cert").arg(&cert_handle);

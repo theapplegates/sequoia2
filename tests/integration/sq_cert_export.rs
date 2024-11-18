@@ -158,58 +158,58 @@ fn sq_cert_export() -> Result<()>
                     ua.userid().value()).into_owned();
                 let email = ua.userid().email2().unwrap().unwrap();
 
-                call(&["--userid", &userid], true && authenticated, &[data]);
-                call(&["--userid", &email], false, &[]);
+                call(&["--cert-userid", &userid], true && authenticated, &[data]);
+                call(&["--cert-userid", &email], false, &[]);
                 // Should be case sensitive.
-                call(&["--userid", &userid.deref().to_uppercase()], false, &[]);
+                call(&["--cert-userid", &userid.deref().to_uppercase()], false, &[]);
                 // Substring should fail.
-                call(&["--userid", &userid[1..]], false, &[]);
+                call(&["--cert-userid", &userid[1..]], false, &[]);
 
-                call(&["--email", &userid], false, &[]);
-                call(&["--email", &email], true && authenticated, &[data]);
+                call(&["--cert-email", &userid], false, &[]);
+                call(&["--cert-email", &email], true && authenticated, &[data]);
                 // Email is case insensitive.
-                call(&["--email", &email.to_uppercase()], true && authenticated,
+                call(&["--cert-email", &email.to_uppercase()], true && authenticated,
                      &[data]);
                 // Substring should fail.
-                call(&["--email", &email[1..]], false, &[]);
+                call(&["--cert-email", &email[1..]], false, &[]);
 
-                call(&["--grep", &userid], true && authenticated, &[data]);
-                call(&["--grep", &email], true && authenticated, &[data]);
+                call(&["--cert-grep", &userid], true && authenticated, &[data]);
+                call(&["--cert-grep", &email], true && authenticated, &[data]);
                 // Should be case insensitive.
-                call(&["--grep", &userid.deref().to_uppercase()],
+                call(&["--cert-grep", &userid.deref().to_uppercase()],
                      true && authenticated, &[data]);
                 // Substring should succeed.
-                call(&["--grep", &userid[1..]], true && authenticated, &[data]);
+                call(&["--cert-grep", &userid[1..]], true && authenticated, &[data]);
             }
         }
     }
 
     // By domain.
-    call(&["--domain", "example.org"], true, &[alice, bob]);
-    call(&["--domain", "EXAMPLE.ORG"], true, &[alice, bob]);
-    call(&["--domain", "sub.example.org"], true, &[carol]);
-    call(&["--domain", "SUB.EXAMPLE.ORG"], true, &[carol]);
-    call(&["--domain", "other.org"], true, &[carol]);
+    call(&["--cert-domain", "example.org"], true, &[alice, bob]);
+    call(&["--cert-domain", "EXAMPLE.ORG"], true, &[alice, bob]);
+    call(&["--cert-domain", "sub.example.org"], true, &[carol]);
+    call(&["--cert-domain", "SUB.EXAMPLE.ORG"], true, &[carol]);
+    call(&["--cert-domain", "other.org"], true, &[carol]);
 
-    call(&["--domain", "hello.com"], false, &[]);
-    call(&["--domain", "me@hello.com"], false, &[]);
-    call(&["--domain", "alice@example.org"], false, &[]);
-    call(&["--domain", "xample.org"], false, &[]);
-    call(&["--domain", "example.or"], false, &[]);
-    call(&["--domain", "@example.org"], false, &[]);
+    call(&["--cert-domain", "hello.com"], false, &[]);
+    call(&["--cert-domain", "me@hello.com"], false, &[]);
+    call(&["--cert-domain", "alice@example.org"], false, &[]);
+    call(&["--cert-domain", "xample.org"], false, &[]);
+    call(&["--cert-domain", "example.or"], false, &[]);
+    call(&["--cert-domain", "@example.org"], false, &[]);
 
     // Match a cert in many ways.  It should only be exported
     // once.
     call(&["--cert", &carol.cert().fingerprint().to_string(),
-           "--userid", carol.userids[0],
-           "--email", "carol@sub.example.org",
-           "--domain", "other.org"
+           "--cert-userid", carol.userids[0],
+           "--cert-email", "carol@sub.example.org",
+           "--cert-domain", "other.org"
     ], true, &[carol]);
 
     // Match multiple certs in different ways.
     call(&["--cert", &alice.cert().fingerprint().to_string(),
            "--cert", &bob.cert().fingerprint().to_string(),
-           "--email", "carol@sub.example.org",
+           "--cert-email", "carol@sub.example.org",
     ], true, &[alice, bob, carol]);
 
     Ok(())

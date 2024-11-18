@@ -13,7 +13,7 @@ use crate::cli::types::cert_designator::*;
 pub struct Command {
     #[command(flatten)]
     pub certs: CertDesignators<CertUserIDEmailDomainGrepArgs,
-                               NoPrefix,
+                               CertPrefix,
                                OptionalValue,
                                ListKeyDoc>,
 
@@ -56,7 +56,7 @@ List the keys managed by the keystore server \
 with a user ID in example.org.",
             command: &[
                 "sq", "key", "list",
-                "--domain=example.org",
+                "--cert-domain=example.org",
             ],
         }),
     ]

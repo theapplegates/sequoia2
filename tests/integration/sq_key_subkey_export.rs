@@ -81,7 +81,7 @@ fn by_email() {
         let mut cmd = sq.command();
         cmd.args([
             "key", "subkey", "export",
-            "--email", "alice@example.org",
+            "--cert-email", "alice@example.org",
             "--key", &cert1.fingerprint().to_string(),
         ]);
         let output = sq.run(cmd, i == 1);

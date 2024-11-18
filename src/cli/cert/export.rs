@@ -3,7 +3,7 @@ use clap::Parser;
 
 use crate::cli::types::*;
 use crate::cli::types::cert_designator::CertUserIDEmailDomainGrepArgs;
-use crate::cli::types::cert_designator::NoPrefix;
+use crate::cli::types::cert_designator::CertPrefix;
 use crate::cli::types::cert_designator::OptionalValue;
 use crate::cli::examples::*;
 
@@ -38,7 +38,7 @@ signatures are checked, and the User IDs are authenticated. \
 Note: this check is case sensitive.",
             command: &[
                 "sq", "cert", "export",
-                "--userid", "Alice <alice@example.org>",
+                "--cert-userid", "Alice <alice@example.org>",
             ],
         }),
         Action::Example(Example {
@@ -47,7 +47,7 @@ Export certificates with a User ID containing the email address. \
 The binding signatures are checked, and the User IDs are \
 authenticated.  Note: this check is case insensitive.",
             command: &[
-                "sq", "cert", "export", "--email", "alice@example.org",
+                "sq", "cert", "export", "--cert-email", "alice@example.org",
             ],
         }),
         Action::Example(Example {
@@ -64,8 +64,8 @@ Export certificates that contain a User ID with *either* (not both!) \
 email address.  Note: this check is case insensitive.",
             command: &[
                 "sq", "cert", "export",
-                "--email", "alice@example.org",
-                "--email", "bob@example.org",
+                "--cert-email", "alice@example.org",
+                "--cert-email", "bob@example.org",
             ],
         }),
     ],
@@ -98,7 +98,7 @@ no search criteria are specified, then this will return success.
     after_help = EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("some-designator")
-             .args(&["cert", "userid", "email", "domain", "grep", "all"])
+             .args(&["cert", "cert-userid", "cert-email", "cert-domain", "cert-grep", "all"])
              .required(true)
              .multiple(true)))]
 pub struct Command {
@@ -136,7 +136,7 @@ for example.",
     #[clap(
         long,
         conflicts_with_all = [
-            "cert", "userid", "email", "domain", "grep",
+            "cert", "cert-userid", "cert-email", "cert-domain", "cert-grep",
         ],
         help = "Export all certificates",
     )]
@@ -144,6 +144,6 @@ for example.",
 
     #[command(flatten)]
     pub certs: CertDesignators<CertUserIDEmailDomainGrepArgs,
-                               NoPrefix,
+                               CertPrefix,
                                OptionalValue>,
 }

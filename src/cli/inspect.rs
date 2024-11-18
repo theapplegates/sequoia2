@@ -68,13 +68,13 @@ pub struct Command {
         default_value_t = FileOrStdin::default(),
         help = FileOrStdin::HELP_OPTIONAL,
         value_name = FileOrStdin::VALUE_NAME,
-        conflicts_with_all = ["file", "cert", "userid", "email", "domain", "grep"],
+        conflicts_with_all = ["cert-file", "cert", "cert-userid", "cert-email", "cert-domain", "cert-grep"],
     )]
     pub input: FileOrStdin,
 
     #[command(flatten)]
     pub certs: CertDesignators<FileCertUserIDEmailDomainGrepArgs,
-                               NoPrefix,
+                               CertPrefix,
                                OptionalValue,
                                ToInspectDoc>,
 

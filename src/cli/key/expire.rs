@@ -56,7 +56,7 @@ expire` subcommand.
 pub struct Command {
     #[command(flatten)]
     pub cert: CertDesignators<CertUserIDEmailFileArgs,
-                              NoPrefix,
+                              CertPrefix,
                               OneValueAndFileRequiresOutput,
                               KeyExpireDoc>,
 

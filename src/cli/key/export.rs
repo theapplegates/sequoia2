@@ -30,7 +30,7 @@ with a certificate, use `sq key subkey export`.
 pub struct Command {
     #[command(flatten)]
     pub certs: CertDesignators<CertUserIDEmailDomainGrepArgs,
-                               NoPrefix,
+                               CertPrefix,
                                NoOptions,
                                ExportKeyDoc>,
 
@@ -80,7 +80,7 @@ Export Alice's certificate with all available secret key material \
 identified by email address.",
             command: &[
                 "sq", "key", "export",
-                "--email", "alice@example.org",
+                "--cert-email", "alice@example.org",
             ],
         }),
     ]

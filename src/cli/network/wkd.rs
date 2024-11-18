@@ -9,7 +9,7 @@ use crate::cli::types::FileOrStdout;
 use crate::cli::types::cert_designator::{
     CertDesignators,
     CertUserIDEmailFileArgs,
-    NoPrefix,
+    CertPrefix,
     OptionalValue,
 };
 
@@ -178,7 +178,7 @@ be taken to avoid concurrent updates.
 pub struct PublishCommand {
     #[command(flatten)]
     pub certs: CertDesignators<CertUserIDEmailFileArgs,
-                               NoPrefix,
+                               CertPrefix,
                                OptionalValue>,
 
     #[clap(

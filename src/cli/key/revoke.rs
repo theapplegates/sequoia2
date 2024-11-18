@@ -66,7 +66,7 @@ instead of the current time.
 pub struct Command {
     #[command(flatten)]
     pub cert: CertDesignators<CertUserIDEmailFileArgs,
-                              NoPrefix,
+                              CertPrefix,
                               OneValueAndFileRequiresOutput,
                               KeyRevokeCertDoc>,
 

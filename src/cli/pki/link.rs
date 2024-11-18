@@ -591,7 +591,7 @@ retracted.
 pub struct ListCommand {
     #[command(flatten)]
     pub certs: CertDesignators<CertUserIDEmailDomainGrepArgs,
-                               NoPrefix,
+                               CertPrefix,
                                OptionalValue>,
 
     #[clap(
@@ -628,7 +628,7 @@ with the email address alice@example.org.",
             comment: "List all links in the example.org domain.",
             command: &[
                 "sq", "pki", "link", "list",
-                "--domain=example.org",
+                "--cert-domain=example.org",
             ],
         }),
     ],

@@ -9,7 +9,7 @@ use crate::cli::types::cert_designator::{
     CertDesignators,
     CertUserIDEmailFileArgs,
     OptionalValue,
-    NoPrefix,
+    CertPrefix,
 };
 
 use crate::cli::examples::*;
@@ -63,7 +63,7 @@ Generate DANE records from juliet.pgp for example.org.",
             command: &[
                 "sq", "network", "dane", "generate",
                 "--domain=example.org",
-                "--file=juliet.pgp",
+                "--cert-file=juliet.pgp",
             ],
         }),
 
@@ -100,7 +100,7 @@ records instead.
 pub struct GenerateCommand {
     #[command(flatten)]
     pub certs: CertDesignators<CertUserIDEmailFileArgs,
-                               NoPrefix,
+                               CertPrefix,
                                OptionalValue>,
 
     #[clap(

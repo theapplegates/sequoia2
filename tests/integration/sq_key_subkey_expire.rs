@@ -57,7 +57,7 @@ fn sq_key_subkey_expire() -> Result<()> {
             } else {
                 cmd
                     .arg("--overwrite")
-                    .arg("--file").arg(&cert_path)
+                    .arg("--cert-file").arg(&cert_path)
                     .arg("--output").arg(&updated_path);
             }
             for k in expiring.iter() {
@@ -118,7 +118,7 @@ fn sq_key_subkey_expire() -> Result<()> {
             } else {
                 cmd
                     .arg("--overwrite")
-                    .arg("--file").arg(&updated_path)
+                    .arg("--cert-file").arg(&updated_path)
                     .arg("--output").arg(&updated2_path);
             }
             for k in expiring.iter() {

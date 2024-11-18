@@ -92,7 +92,7 @@ fn unbound_userid() {
             updated_path.as_path())
             .is_err());
 
-    // But it should work with --add-userid.
+    // But it should work with --userid-or-add.
     sq.key_userid_revoke(
         &[],
         &cert_path,

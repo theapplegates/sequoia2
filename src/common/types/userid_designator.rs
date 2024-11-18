@@ -267,21 +267,21 @@ where
 
         if missing {
             if add_userid_arg && add_email_arg {
-                wprintln!("Use `--add-userid` or `--add-email` to use \
+                wprintln!("Use `--userid-or-add` or `--email-or-add` to use \
                            a user ID even if it isn't self signed.");
             }
             return Err(anyhow::anyhow!("No matching self-signed user ID"));
         }
         if ambiguous_email {
             wprintln!("Use `--userid` with the full user ID, or \
-                       `--add-userid` to add a new user ID.");
+                       `--userid-or-add` to add a new user ID.");
             return Err(anyhow::anyhow!("\
                 An email address does not unambiguously designate a \
                 self-signed user ID"));
         }
         if ambiguous_name {
             wprintln!("Use `--userid` with the full user ID, or \
-                       `--add-userid` to add a new user ID.");
+                       `--userid-or-add` to add a new user ID.");
             return Err(anyhow::anyhow!("\
                 A name does not unambiguously designate a \
                 self-signed user ID"));

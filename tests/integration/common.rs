@@ -280,9 +280,9 @@ impl UserIDArg<'_> {
             UserIDArg::Name(name) =>
                 cmd.arg("--name").arg(name),
             UserIDArg::AddUserID(userid) =>
-                cmd.arg("--add-userid").arg(userid),
+                cmd.arg("--userid-or-add").arg(userid),
             UserIDArg::AddEmail(email) =>
-                cmd.arg("--add-email").arg(email),
+                cmd.arg("--email-or-add").arg(email),
         };
     }
 }

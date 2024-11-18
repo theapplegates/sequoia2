@@ -41,10 +41,10 @@
    - Similarly, `sq --home=none` disables all state, unless explicitly
      re-enabled using `--cert-store` or `--key-store`.
    - `sq pki link add`, `sq pki link authorize`, `sq pki vouch
-     certify`, and `sq pki vouch authorize` have a `--add-userid`
-     flag.  Replace it with an `--add-userid` argument, and an
-     `--add-email` argument.
-   - The `--email` and `--add-email` arguments to `sq pki link add`,
+     certify`, and `sq pki vouch authorize` have a `--userid-or-add`
+     flag.  Replace it with an `--userid-or-add` argument, and an
+     `--email-or-add` argument.
+   - The `--email` and `--email-or-add` arguments to `sq pki link add`,
      etc. cannot be used to designate a self-signed user ID, if
      multiple self-signed user IDs include the specified email
      address.  Previously, the arguments would designate all
@@ -54,12 +54,12 @@
    - The argument `sq network wkd publish --create` has been split
      into two arguments, `--create` and `--method`, avoiding an
      ambiguity when parsing the arguments.
-   - `sq key userid revoke` no longer accepts the `--add-userid` flag
+   - `sq key userid revoke` no longer accepts the `--userid-or-add` flag
      to indicate that a user ID specified using `--userid`, an email
      specified using `--email`, or a name specified using `--name`
      should be used even if there is no corresponding self-signed user
-     ID.  This functionality is replaced by the `--add-userid`,
-     `--add-email` and `--add-name` arguments.
+     ID.  This functionality is replaced by the `--userid-or-add`,
+     `--email-or-add` and `--name-or-add` arguments.
    - `sq pki path` previously interpreted the last positional argument
      as the user ID to authenticate.  Make it a named argument
      instead, `--userid`.

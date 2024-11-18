@@ -38,55 +38,55 @@ pub type AnyEmailArg = typenum::U32;
 /// `ExistingEmailArg`.
 pub type AnyNameArg = typenum::U64;
 
-/// Adds a `--add-userid` argument.
+/// Adds a `--userid-or-add` argument.
 pub type AddUserIDArg = typenum::U128;
 
-/// Adds a `--add-email` argument.
+/// Adds a `--email-or-add` argument.
 pub type AddEmailArg = typenum::U256;
 
-/// Adds a `--add-name` argument.  The value need not correspond to a
+/// Adds a `--name-or-add` argument.  The value need not correspond to a
 /// self-signed user ID.
 pub type AddNameArg = typenum::U512;
 
-/// Enables --userid, and --email (but not --name, --add-userid,
-/// --add-email, or --add-name).
+/// Enables --userid, and --email (but not --name, --userid-or-add,
+/// --email-or-add, or --name-or-add).
 pub type ExistingUserIDEmailArgs
     = <ExistingUserIDArg as std::ops::BitOr<ExistingEmailArg>>::Output;
 
-/// Enables --userid, --email, --name (but not --add-userid,
-/// --add-email, or --add-name).
+/// Enables --userid, --email, --name (but not --userid-or-add,
+/// --email-or-add, or --name-or-add).
 pub type ExistingUserIDEmailNameArgs
     = <ExistingUserIDEmailArgs as std::ops::BitOr<ExistingNameArg>>::Output;
 
-/// Enables --userid, and --email (but not --name, --add-userid,
-/// --add-email, or --add-name).
+/// Enables --userid, and --email (but not --name, --userid-or-add,
+/// --email-or-add, or --name-or-add).
 pub type AnyUserIDEmailArgs
     = <AnyUserIDArg as std::ops::BitOr<AnyEmailArg>>::Output;
 
-/// Enables --userid, --email, and --name (but not --add-userid,
-/// --add-email, or --add-name).
+/// Enables --userid, --email, and --name (but not --userid-or-add,
+/// --email-or-add, or --name-or-add).
 pub type AnyUserIDEmailNameArgs
     = <AnyUserIDEmailArgs as std::ops::BitOr<AnyNameArg>>::Output;
 
-/// Enables --add-userid, and --add-email (but not --userid, --email,
-/// --name, or --add-name).
+/// Enables --userid-or-add, and --email-or-add (but not --userid, --email,
+/// --name, or --name-or-add).
 pub type AddUserIDEmailArgs
     = <AddUserIDArg as std::ops::BitOr<AddEmailArg>>::Output;
 
-/// Enables --userid, --email, --add-userid, and --add-email (but not
-/// --name or --add-name).
+/// Enables --userid, --email, --userid-or-add, and --email-or-add (but not
+/// --name or --name-or-add).
 pub type ExistingAndAddXUserIDEmailArgs
     = <ExistingUserIDEmailArgs
        as std::ops::BitOr<AddUserIDEmailArgs>>::Output;
 
-/// Enables --all, --userid, --email, --add-userid, and --add-email
+/// Enables --all, --userid, --email, --userid-or-add, and --email-or-add
 /// (but not --name).
 pub type AllExistingAndAddXUserIDEmailArgs
     = <AllUserIDsArg
        as std::ops::BitOr<ExistingAndAddXUserIDEmailArgs>>::Output;
 
-/// Enables --userid, --email, --name, --add-userid,
-/// --add-email, and --add-name (but not --all).
+/// Enables --userid, --email, --name, --userid-or-add,
+/// --email-or-add, and --name-or-add (but not --all).
 pub type ExistingAndAddXUserIDEmailNameArgs
     = <<ExistingAndAddXUserIDEmailArgs
         as std::ops::BitOr<ExistingNameArg>>::Output
@@ -194,9 +194,9 @@ impl UserIDDesignator {
             AnyUserID(_userid) => "--userid",
             AnyEmail(_email) => "--email",
             AnyName(_name) => "--name",
-            AddUserID(_userid) => "--add-userid",
-            AddEmail(_email) => "--add-email",
-            AddName(_name) => "--add-name",
+            AddUserID(_userid) => "--userid-or-add",
+            AddEmail(_email) => "--email-or-add",
+            AddName(_name) => "--name-or-add",
         }
     }
 
@@ -219,7 +219,7 @@ impl UserIDDesignator {
         }
     }
 
-    /// Returns the argument's name and value, e.g., `--add-userid
+    /// Returns the argument's name and value, e.g., `--userid-or-add
     /// userid`.
     pub fn argument(&self) -> String
     {
@@ -512,7 +512,7 @@ with the specified display name, and no email address."));
         }
 
         if add_userid_arg {
-            let full_name = "add-userid";
+            let full_name = "userid-or-add";
             cmd = cmd.arg(
                 clap::Arg::new(&full_name)
                     .long(&full_name)
@@ -533,7 +533,7 @@ you can add a petname, i.e., a memorable, personal name like \"mom\"."));
         }
 
         if add_email_arg {
-            let full_name = "add-email";
+            let full_name = "email-or-add";
             cmd = cmd.arg(
                 clap::Arg::new(&full_name)
                     .long(&full_name)
@@ -551,7 +551,7 @@ user ID with the specified email address, and no display name."));
         }
 
         if add_name_arg {
-            let full_name = "add-name";
+            let full_name = "name-or-add";
             cmd = cmd.arg(
                 clap::Arg::new(&full_name)
                     .long(&full_name)
@@ -697,7 +697,7 @@ where
         }
 
         if let Some(Some(add_userids))
-            = matches.try_get_many::<String>("add-userid")
+            = matches.try_get_many::<String>("userid-or-add")
             .ok().filter(|_| add_userid_arg)
         {
             for add_userid in add_userids.cloned() {
@@ -707,7 +707,7 @@ where
         }
 
         if let Some(Some(add_emails))
-            = matches.try_get_many::<String>("add-email")
+            = matches.try_get_many::<String>("email-or-add")
             .ok().filter(|_| add_email_arg)
         {
             for add_email in add_emails.cloned() {
@@ -716,7 +716,7 @@ where
         }
 
         if let Some(Some(add_names))
-            = matches.try_get_many::<String>("add-name")
+            = matches.try_get_many::<String>("name-or-add")
             .ok().filter(|_| add_name_arg)
         {
             for add_name in add_names.cloned() {
@@ -906,11 +906,11 @@ mod test {
                 ]);
                 assert!(m.is_err());
 
-                // Check if --add-userid is recognized.
+                // Check if --userid-or-add is recognized.
                 let m = command.clone().try_get_matches_from(vec![
                     "prog",
-                    "--add-userid", "alice",
-                    "--add-userid", "bob",
+                    "--userid-or-add", "alice",
+                    "--userid-or-add", "bob",
                 ]);
                 if $add_userid {
                     let m = m.expect("valid arguments");
@@ -920,11 +920,11 @@ mod test {
                     assert!(m.is_err());
                 }
 
-                // Check if --add-email is recognized.
+                // Check if --email-or-add is recognized.
                 let m = command.clone().try_get_matches_from(vec![
                     "prog",
-                    "--add-email", "alice@example.org",
-                    "--add-email", "bob@example.org",
+                    "--email-or-add", "alice@example.org",
+                    "--email-or-add", "bob@example.org",
                 ]);
                 if $add_email {
                     let m = m.expect("valid arguments");
@@ -934,11 +934,11 @@ mod test {
                     assert!(m.is_err());
                 }
 
-                // Check if --add-name is recognized.
+                // Check if --name-or-add is recognized.
                 let m = command.clone().try_get_matches_from(vec![
                     "prog",
-                    "--add-name", "alice",
-                    "--add-name", "bob",
+                    "--name-or-add", "alice",
+                    "--name-or-add", "bob",
                 ]);
                 if $add_name {
                     let m = m.expect("valid arguments");

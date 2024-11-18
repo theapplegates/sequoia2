@@ -75,7 +75,7 @@ pub fn authenticate<'store, 'rstore>(
     gossip: bool,
     certification_network: bool,
     trust_amount: Option<TrustAmount<usize>>,
-    userid: Option<&userid_designator::UserIDDesignator>,
+    userid_designator: Option<&userid_designator::UserIDDesignator>,
     certificate: Option<&Cert>,
     show_paths: bool,
 ) -> Result<()>
@@ -109,8 +109,8 @@ pub fn authenticate<'store, 'rstore>(
 
     let fingerprint: Option<Fingerprint> = certificate.map(|c| c.fingerprint());
 
-    let email = userid.map(|u| u.is_email()).unwrap_or(false);
-    let userid = userid.map(|u| u.value());
+    let email = userid_designator.map(|u| u.is_email()).unwrap_or(false);
+    let userid = userid_designator.map(|u| u.value());
 
     let mut bindings = Vec::new();
     if matches!(userid, Some(_)) && email {
@@ -229,6 +229,7 @@ pub fn authenticate<'store, 'rstore>(
     bindings.dedup();
 
     let mut authenticated = 0;
+    let mut bindings_shown = 0;
     let mut lint_input = true;
 
     let mut output = ConciseHumanReadableOutputNetwork::new(
@@ -243,9 +244,18 @@ pub fn authenticate<'store, 'rstore>(
         };
 
         let aggregated_amount = paths.amount();
-        if aggregated_amount == 0 && ! gossip {
+        if certificate.is_some() && userid_designator.is_none()
+            && list_pattern.is_none()
+        {
+            // We're authenticating a certificate, which was
+            // specified.  We don't consider it authenticated, but we
+            // do want to show it.
+        } else if aggregated_amount == 0 && ! gossip {
+            // We didn't authenticate the binding, and we're not in
+            // gossip mode.  Don't show it.
             continue;
         }
+
         lint_input = false;
         if gossip {
             authenticated += 1;
@@ -253,6 +263,7 @@ pub fn authenticate<'store, 'rstore>(
             authenticated += 1;
         }
 
+        bindings_shown += 1;
         let paths = paths.into_iter().collect::<Vec<(wot::Path, usize)>>();
 
         output.add_paths(paths, fingerprint, userid, aggregated_amount)?;
@@ -418,12 +429,12 @@ pub fn authenticate<'store, 'rstore>(
                 .arg("some-mail-address")
                 .done();
         }
-    } else if bindings.len() - authenticated > 0 {
-        // Some of the matching bindings are unauthenticated.  Tell
-        // the user about the `--gossip` option.
+    } else if bindings.len() - bindings_shown > 0 {
+        // Some of the matching bindings were not shown.  Tell the
+        // user about the `--gossip` option.
         let bindings = bindings.len();
         assert!(bindings > 0);
-        let unauthenticated = bindings - authenticated;
+        let bindings_not_shown = bindings - bindings_shown;
 
         if bindings == 1 {
             wprintln!("1 binding found.");
@@ -431,12 +442,12 @@ pub fn authenticate<'store, 'rstore>(
             wprintln!("{} bindings found.", bindings);
         }
 
-        if unauthenticated == 1 {
+        if bindings_not_shown == 1 {
             wprintln!("Skipped 1 binding, which could not be authenticated.");
             wprintln!("Pass `--gossip` to see the unauthenticated binding.");
         } else {
             wprintln!("Skipped {} bindings, which could not be authenticated.",
-                      unauthenticated);
+                      bindings_not_shown);
             wprintln!("Pass `--gossip` to see the unauthenticated bindings.");
         }
     }

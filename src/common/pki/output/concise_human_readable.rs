@@ -1,6 +1,6 @@
 use std::{
     fmt::Write,
-    time::{Duration, SystemTime},
+    time::SystemTime,
 };
 
 use anyhow::Error;
@@ -26,9 +26,10 @@ use wot::PARTIALLY_TRUSTED;
 use crate::Convert;
 use crate::Sq;
 use crate::Time;
-use super::OutputType;
+use crate::common::ca_creation_time;
 use crate::error_chain;
 use crate::output::wrapping::NBSP;
+use super::OutputType;
 
 /// Prints a Path Error
 pub fn print_path_error(err: Error) {
@@ -434,14 +435,4 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
 
         Ok(())
     }
-}
-
-/// The creation time for the trust root and intermediate CAs.
-///
-/// We use a creation time in the past (Feb 2002) so that it is still
-/// possible to use the CA when the reference time is in the past.
-// XXX: This is copied from sequoia-cert-store.  It would be nice to
-// import it, but it is private.
-fn ca_creation_time() -> SystemTime {
-    SystemTime::UNIX_EPOCH + Duration::new(1014235320, 0)
 }

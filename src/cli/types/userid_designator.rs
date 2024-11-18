@@ -434,31 +434,6 @@ The specified user ID must be self signed."));
             arg_group = arg_group.arg(full_name);
         }
 
-        if email_arg {
-            let full_name = "email";
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("EMAIL")
-                    .value_parser(parse_as_email)
-                    .action(action.clone())
-                    .help("\
-Use the self-signed user ID with the specified email address"));
-            arg_group = arg_group.arg(full_name);
-        }
-
-        if name_arg {
-            let full_name = "name";
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("DISPLAY_NAME")
-                    .action(action.clone())
-                    .help("\
-Use the self-signed user ID with the specified display name"));
-            arg_group = arg_group.arg(full_name);
-        }
-
         if any_userid_arg {
             let full_name = "userid";
             cmd = cmd.arg(
@@ -471,43 +446,6 @@ Use the self-signed user ID with the specified display name"));
 Use the specified user ID.
 
 The specified user ID does not need to be self signed."));
-            arg_group = arg_group.arg(full_name);
-        }
-
-        if any_email_arg {
-            let full_name = "email";
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("EMAIL")
-                    .value_parser(parse_as_email)
-                    .action(action.clone())
-                    .help("\
-Use a user ID with the specified email address")
-                    .long_help("\
-Use a user ID with the specified email address.
-
-This first searches for a matching self-signed user ID.  If there is \
-no self-signed user ID with the specified email, it uses a new user ID \
-with the specified email address, and no display name."));
-            arg_group = arg_group.arg(full_name);
-        }
-
-        if any_name_arg {
-            let full_name = "name";
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("DISPLAY_NAME")
-                    .action(action.clone())
-                    .help("\
-Use a user ID with the specified display name")
-                    .long_help("\
-Use a user ID with the specified display name.
-
-This first searches for a matching self-signed user ID.  If there is \
-no self-signed user ID with the specified name, it uses a new user ID \
-with the specified display name, and no email address."));
             arg_group = arg_group.arg(full_name);
         }
 
@@ -532,6 +470,38 @@ you can add a petname, i.e., a memorable, personal name like \"mom\"."));
             arg_group = arg_group.arg(full_name);
         }
 
+        if email_arg {
+            let full_name = "email";
+            cmd = cmd.arg(
+                clap::Arg::new(&full_name)
+                    .long(&full_name)
+                    .value_name("EMAIL")
+                    .value_parser(parse_as_email)
+                    .action(action.clone())
+                    .help("\
+Use the self-signed user ID with the specified email address"));
+            arg_group = arg_group.arg(full_name);
+        }
+
+        if any_email_arg {
+            let full_name = "email";
+            cmd = cmd.arg(
+                clap::Arg::new(&full_name)
+                    .long(&full_name)
+                    .value_name("EMAIL")
+                    .value_parser(parse_as_email)
+                    .action(action.clone())
+                    .help("\
+Use a user ID with the specified email address")
+                    .long_help("\
+Use a user ID with the specified email address.
+
+This first searches for a matching self-signed user ID.  If there is \
+no self-signed user ID with the specified email, it uses a new user ID \
+with the specified email address, and no display name."));
+            arg_group = arg_group.arg(full_name);
+        }
+
         if add_email_arg {
             let full_name = "email-or-add";
             cmd = cmd.arg(
@@ -547,6 +517,36 @@ Use a user ID with the specified email address.
 This first searches for a matching self-signed user ID.  If there is \
 no self-signed user ID with the specified email address, it uses a new \
 user ID with the specified email address, and no display name."));
+            arg_group = arg_group.arg(full_name);
+        }
+
+        if name_arg {
+            let full_name = "name";
+            cmd = cmd.arg(
+                clap::Arg::new(&full_name)
+                    .long(&full_name)
+                    .value_name("DISPLAY_NAME")
+                    .action(action.clone())
+                    .help("\
+Use the self-signed user ID with the specified display name"));
+            arg_group = arg_group.arg(full_name);
+        }
+
+        if any_name_arg {
+            let full_name = "name";
+            cmd = cmd.arg(
+                clap::Arg::new(&full_name)
+                    .long(&full_name)
+                    .value_name("DISPLAY_NAME")
+                    .action(action.clone())
+                    .help("\
+Use a user ID with the specified display name")
+                    .long_help("\
+Use a user ID with the specified display name.
+
+This first searches for a matching self-signed user ID.  If there is \
+no self-signed user ID with the specified name, it uses a new user ID \
+with the specified display name, and no email address."));
             arg_group = arg_group.arg(full_name);
         }
 

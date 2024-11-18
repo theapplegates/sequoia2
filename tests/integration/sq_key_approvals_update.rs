@@ -1,13 +1,14 @@
 use std::ffi::OsStr;
 use std::path::Path;
 
-use super::common::{Sq, STANDARD_POLICY};
+use super::common::{artifact, Sq, STANDARD_POLICY};
 
 use sequoia_openpgp as openpgp;
 use openpgp::{
     Cert,
     Result,
     cert::amalgamation::ValidateAmalgamation,
+    parse::Parse,
 };
 
 #[test]
@@ -235,4 +236,81 @@ fn update_authenticated() -> Result<()> {
                .attested_certifications().count(), 1);
 
     Ok(())
+}
+
+#[test]
+fn ignore_shadow_ca() {
+    // Check that update ignores certificates made by shadow CAs.
+    let now = std::time::SystemTime::now()
+        - std::time::Duration::new(60 * 60, 0);
+
+    let sq = Sq::at(now);
+    let (alice, bob) = make_keys(&sq).unwrap();
+
+    // Have Bob certify Alice.
+    let alice2 = sq.pki_vouch_certify(&[],
+                                      bob.key_handle(),
+                                      alice.key_handle(),
+                                      &[ALICE_USERID],
+                                      None);
+    assert_eq!(alice2.fingerprint(), alice.fingerprint());
+
+    let shadow_ca = artifact("keys/_sequoia_ca_keys.openpgp.org.pgp");
+    sq.key_import(&shadow_ca);
+    let shadow_ca = Cert::from_file(&shadow_ca).unwrap();
+
+    // Have the shadow CA certify Alice.
+    let alice2 = sq.pki_vouch_certify(&[],
+                                      &shadow_ca.key_handle(),
+                                      alice.key_handle(),
+                                      &[ALICE_USERID],
+                                      None);
+    assert_eq!(alice2.fingerprint(), alice.fingerprint());
+
+    // Attest to all certifications.  This should ignore the shadow
+    // CA's certification.
+    let approval = sq.key_approvals_update(
+        &alice.key_handle(), &["--add-all"], None);
+
+    assert_eq!(approval.bad_signatures().count(), 0);
+    let approval_ua = approval.userids().next().unwrap();
+    // We have an attestation key signature.
+    assert_eq!(approval_ua.attestations().count(), 1);
+    // With one attestation (not two!).
+    assert_eq!(approval_ua.with_policy(STANDARD_POLICY, None).unwrap()
+               .attested_certifications().count(), 1);
+}
+
+#[test]
+fn ignore_unexportable_certifications() {
+    // Check that update ignores certificates that are not exportable.
+    let now = std::time::SystemTime::now()
+        - std::time::Duration::new(60 * 60, 0);
+
+    let sq = Sq::at(now);
+    let (alice, bob) = make_keys(&sq).unwrap();
+
+    // Have Bob create a non-exportable certification for Alice.
+    let alice2 = sq.pki_vouch_certify(&["--local"],
+                                      bob.key_handle(),
+                                      alice.key_handle(),
+                                      &[ALICE_USERID],
+                                      None);
+    assert_eq!(alice2.fingerprint(), alice.fingerprint());
+
+    // Attest to all certifications.  This should ignore
+    // non-exportable certifications.
+    let approval = sq.key_approvals_update(
+        &alice.key_handle(), &["--add-all"], None);
+
+    assert_eq!(approval.bad_signatures().count(), 0);
+    let approval_ua = approval.userids().next().unwrap();
+    for attestation in approval_ua.attestations() {
+        eprintln!(" - {:?}", attestation);
+    }
+    // We have an attestation key signature.
+    assert_eq!(approval_ua.attestations().count(), 1);
+    // With zero attestations.
+    assert_eq!(approval_ua.with_policy(STANDARD_POLICY, None).unwrap()
+               .attested_certifications().count(), 0);
 }

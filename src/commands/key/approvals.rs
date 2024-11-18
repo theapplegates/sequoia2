@@ -11,8 +11,9 @@ use sequoia_cert_store::Store;
 use sequoia_wot as wot;
 
 use crate::Sq;
-use crate::cli;
 use crate::cli::key::approvals;
+use crate::cli;
+use crate::common::ca_creation_time;
 
 pub fn dispatch(sq: Sq, command: approvals::Command)
                 -> Result<()>
@@ -50,14 +51,27 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
 
         let mut any = false;
         for c in uid.certifications() {
+            // Ignore non-exportable certifications.
+            if c.exportable().is_err() {
+                sq.info(format_args!(
+                    "Ignoring non-exportable certification from {} on {}.",
+                    c.get_issuers()
+                        .into_iter()
+                        .next()
+                        .map(|kh| kh.to_string())
+                        .unwrap_or_else(|| "unknown certificate".to_string()),
+                    String::from_utf8_lossy(uid.value())));
+                continue;
+            }
+
             let approved = approved.contains(c);
             if ! approved {
                 pending += 1;
             }
 
             if approved == cmd.pending {
-                // It's approved and we pending, or it's pending and
-                // we want approved.
+                // It's approved and we want pending, or it's pending
+                // and we want approved.
                 continue;
             }
 
@@ -72,6 +86,25 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
                 match c.verify_signature(&i.primary_key()) {
                     Ok(_) => issuer = Some(i),
                     Err(e) => err = Some(e),
+                }
+            }
+
+            // If the certificate should not be exported, we don't
+            // approve the certification.
+            if let Some(Ok(i)) = issuer.as_ref().map(|i| i.to_cert()) {
+                if ! i.exportable() {
+                    sq.info(format_args!(
+                        "Ignoring certification from non-exportable \
+                         certificate {} on {}.",
+                        i.fingerprint(), String::from_utf8_lossy(uid.value())));
+                    continue;
+                }
+                if i.primary_key().creation_time() == ca_creation_time() {
+                    sq.info(format_args!(
+                        "Ignoring certification from local shadow CA \
+                         {} on {}.",
+                        i.fingerprint(), String::from_utf8_lossy(uid.value())));
+                    continue;
                 }
             }
 
@@ -180,20 +213,103 @@ fn update(
         // Selectively add approvals.
         let next_approved_cloned = next_approved.clone();
         for sig in uid.certifications()
-        // Don't consider those that we already approved.
+            // Don't consider those that we already approved.
             .filter(|s| ! next_approved_cloned.contains(s))
-        // Don't consider those explicitly removed.
-            .filter(|s| ! s.get_issuers().iter().any(
-                // Quadratic, but how bad can it be...?
-                |i| command.remove_by.iter().any(|j| i.aliases(j))))
         {
+            // Ignore non-exportable certifications.
+            if sig.exportable().is_err() {
+                sq.info(format_args!(
+                    "Ignoring non-exportable certification from {} on {}.",
+                    sig.get_issuers()
+                        .into_iter()
+                        .next()
+                        .map(|kh| kh.to_string())
+                        .unwrap_or_else(|| "unknown certificate".to_string()),
+                    String::from_utf8_lossy(uid.value())));
+                continue;
+            }
+
+            // Try and get the issuer's certificate.
+            let mut issuer = None;
+            let mut err = None;
+            for i in sig.get_issuers().into_iter()
+                .filter_map(|i| store.lookup_by_cert(&i).ok()
+                            .map(IntoIterator::into_iter))
+                .flatten()
+            {
+                match sig.verify_signature(&i.primary_key()) {
+                    Ok(_) => {
+                        issuer = Some(i)
+                    }
+                    Err(e) => err = Some((i.fingerprint(), e)),
+                }
+            }
+
+            if issuer.is_none() {
+                if let Some((fpr, err)) = err {
+                    // We have the alleged signer, but we couldn't
+                    // verify the certification.  It's bad; silently
+                    // ignore it.
+                    sq.info(format_args!(
+                        "Ignoring invalid certification from {}: {}",
+                        fpr, err));
+                    continue;
+                }
+            }
+
+            // Convert it from a lazy cert to a cert.
+            let issuer = if let Some(Ok(i))
+                = issuer.as_ref().map(|i| i.to_cert())
+            {
+                Some(i)
+            } else {
+                None
+            };
+
+            // If the certificate should not be exported, we don't
+            // approve the certification.
+            if let Some(i) = issuer.as_ref() {
+                if ! i.exportable() {
+                    sq.info(format_args!(
+                        "Ignoring certification from non-exportable \
+                         certificate {} on {}.",
+                        i.fingerprint(), String::from_utf8_lossy(uid.value())));
+                    continue;
+                }
+                if i.primary_key().creation_time() == ca_creation_time() {
+                    sq.info(format_args!(
+                        "Ignoring certification from local shadow CA \
+                         {} on {}.",
+                        i.fingerprint(), String::from_utf8_lossy(uid.value())));
+                    continue;
+                }
+            }
+
+            // Skip if the issuer is in --remove-by.
+            if let Some(issuer) = issuer.as_ref() {
+                if command.remove_by.iter().any(|j| issuer.key_handle().aliases(j)) {
+                    continue;
+                }
+            } else if ! sig.get_issuers().iter().any(
+                // Quadratic, but how bad can it be...?
+                |i| command.remove_by.iter().any(|j| i.aliases(j)))
+            {
+                continue;
+            }
+
+            // Add if --add-all is passed.
             if command.add_all {
                 next_approved.insert(sig);
                 continue;
             }
 
-            // Add by issuer handle.
-            if let Some(cert) = sig.get_issuers().iter().find_map(
+            // Add if the issuer is in --add-by.
+            if let Some(issuer) = issuer.as_ref() {
+                if command.add_by.iter().any(|j| issuer.key_handle().aliases(j)) {
+                    next_approved.insert(sig);
+                    continue;
+                }
+            } else if let Some(cert) = sig.get_issuers().iter().find_map(
                 // Quadratic, but how bad can it be...?
                 |i| add_by.iter().find_map(
                     |cert| i.aliases(cert.key_handle()).then_some(cert)))
@@ -205,16 +321,11 @@ fn update(
             }
 
             // Add authenticated certifiers.
-            if let Some((ref network, threshold)) = network_threshold {
-                if let Some(cert) = sig.get_issuers().iter().find_map(
-                    |i| store.lookup_by_cert(i).unwrap_or_default().into_iter()
-                        .find_map(
-                            |cert| sig.verify_signature(&cert.primary_key())
-                                .is_ok().then_some(cert)))
-                {
-                    // We found the certifier.
-                    if cert.userids().any(
-                        |u| network.authenticate(u, cert.fingerprint(),
+            if let Some(issuer) = issuer.as_ref() {
+                if let Some((ref network, threshold)) = network_threshold {
+                    if issuer.userids().any(
+                        |u| network.authenticate(u.userid(),
+                                                 issuer.fingerprint(),
                                                  threshold)
                             .amount() >= threshold)
                     {
@@ -251,13 +362,16 @@ fn update(
                 removed += 1;
             }
 
-            wprintln!(initial_indent = "  ", "{} {}: {}",
+            wprintln!(initial_indent = "  ", "{} {}{}: {}",
                       match (prev, next) {
                           (false, false) => '.',
                           (true, false) => '-',
                           (false, true) => '+',
                           (true, true) => '=',
                       },
+                      issuer.as_ref()
+                      .map(|c| format!("{} ", c.fingerprint()))
+                      .unwrap_or_else(|| "".into()),
                       issuer.as_ref()
                       .and_then(|i| Some(sq.best_userid(i.to_cert().ok()?, true)
                                          .to_string()))

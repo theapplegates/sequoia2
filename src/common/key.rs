@@ -49,8 +49,6 @@ pub fn get_keys<CA, CP, CO, CD, KO, KD>(
 where CP: cert_designator::ArgumentPrefix,
       KO: typenum::Unsigned,
 {
-    let mut ks = None;
-
     assert_eq!(cert.len(), 1);
     if let Some(keys) = keys {
         assert!(keys.len() > 0);
@@ -58,21 +56,6 @@ where CP: cert_designator::ArgumentPrefix,
 
     let (cert, cert_source)
         = sq.resolve_cert(&cert, sequoia_wot::FULLY_TRUSTED)?;
-
-    match cert_source {
-        FileStdinOrKeyHandle::FileOrStdin(ref file) => {
-            // If it is not a TSK, there is nothing to do.
-            if ! cert.is_tsk() {
-                return Err(anyhow::anyhow!(
-                    "{} (read from {}) does not contain any secret \
-                     key material.",
-                    cert.fingerprint(), file));
-            }
-        }
-        FileStdinOrKeyHandle::KeyHandle(ref _kh) => {
-            ks = Some(sq.key_store_or_else()?);
-        }
-    };
 
     let vc = Cert::with_policy(&cert, sq.policy, sq.time)
         .with_context(|| {
@@ -87,29 +70,49 @@ where CP: cert_designator::ArgumentPrefix,
         vc.keys().collect::<Vec<_>>()
     };
 
-    let mut ks = ks.map(|ks| ks.lock().unwrap());
-
     let mut list: Vec<(Key<_, _>, bool, Option<_>)> = Vec::new();
 
     let mut no_secret_key_material_count = 0;
-    for ka in kas.into_iter() {
-        let (no_secret_key_material, remote_keys)
-            = if let Some(ks) = ks.as_mut()
-        {
-            let remote_keys = ks.find_key(ka.key_handle())?;
-            (remote_keys.is_empty(), Some(remote_keys))
-        } else {
-            (! ka.has_secret(), None)
-        };
 
-        if no_secret_key_material {
-            wprintln!("{} does not contain any secret key material",
-                      ka.fingerprint());
-            no_secret_key_material_count += 1;
-            continue;
+    match cert_source {
+        FileStdinOrKeyHandle::FileOrStdin(ref file) => {
+            // If it is not a TSK, there is nothing to do.
+            if ! cert.is_tsk() {
+                return Err(anyhow::anyhow!(
+                    "{} (read from {}) does not contain any secret \
+                     key material.",
+                    cert.fingerprint(), file));
+            }
+            for ka in kas.into_iter() {
+                let no_secret_key_material = ! ka.has_secret();
+                if no_secret_key_material {
+                    wprintln!("{} does not contain any secret key material",
+                              ka.fingerprint());
+                    no_secret_key_material_count += 1;
+                    continue;
+                }
+
+                list.push((ka.key().clone(), ka.primary(), None));
+            }
         }
+        FileStdinOrKeyHandle::KeyHandle(ref _kh) => {
+            let ks = sq.key_store_or_else()?;
+            let mut ks = ks.lock().unwrap();
 
-        list.push((ka.key().clone(), ka.primary(), remote_keys));
+            for ka in kas.into_iter() {
+                let remote_keys = ks.find_key(ka.key_handle())?;
+                let no_secret_key_material = remote_keys.is_empty();
+
+                if no_secret_key_material {
+                    wprintln!("{} does not contain any secret key material",
+                              ka.fingerprint());
+                    no_secret_key_material_count += 1;
+                    continue;
+                }
+
+                list.push((ka.key().clone(), ka.primary(), Some(remote_keys)));
+            }
+        }
     }
 
     if no_secret_key_material_count > 1 {

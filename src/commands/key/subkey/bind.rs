@@ -22,10 +22,7 @@ use crate::common::password;
 
 pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
 {
-    let handle =
-        sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.1;
-
-    let cert = sq.lookup_one(handle, None, true)?;
+    let cert = sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.0;
 
     let null_policy_;
     let adoptee_policy: &dyn Policy = if command.allow_broken_crypto {

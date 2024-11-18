@@ -59,7 +59,7 @@ where CP: cert_designator::ArgumentPrefix,
     let (cert, cert_source)
         = sq.resolve_cert(&cert, sequoia_wot::FULLY_TRUSTED)?;
 
-    let cert = match cert_source {
+    match cert_source {
         FileStdinOrKeyHandle::FileOrStdin(ref file) => {
             // If it is not a TSK, there is nothing to do.
             if ! cert.is_tsk() {
@@ -68,12 +68,9 @@ where CP: cert_designator::ArgumentPrefix,
                      key material.",
                     cert.fingerprint(), file));
             }
-
-            cert
         }
-        FileStdinOrKeyHandle::KeyHandle(ref kh) => {
+        FileStdinOrKeyHandle::KeyHandle(ref _kh) => {
             ks = Some(sq.key_store_or_else()?);
-            sq.lookup_one(kh, None, true)?
         }
     };
 

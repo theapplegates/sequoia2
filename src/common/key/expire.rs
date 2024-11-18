@@ -68,7 +68,6 @@ where P: cert_designator::ArgumentPrefix,
             output = Some(FileOrStdout::new(None));
         }
     }
-    let cert = sq.lookup_one(cert_handle.clone(), None, true)?;
 
     let mut primary_signer
         = sq.get_primary_key(&cert, Some(&[GetKeysOptions::AllowNotAlive]))?;

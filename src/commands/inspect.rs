@@ -443,7 +443,7 @@ fn inspect_cert(
             let width = terminal_size::terminal_size()
                 .map(|(w, _)| w.0.into());
 
-            let pd = PacketDumper::new(width.unwrap_or(80), false);
+            let pd = PacketDumper::new(sq, width.unwrap_or(80), false);
             for bad in cert.bad_signatures() {
                 writeln!(output, "{:>WIDTH$}:", "Bad Signature")?;
                 pd.dump_signature(output, &format!("{:>WIDTH$}", ""), bad)?;

@@ -1,6 +1,7 @@
 use std::io::{self, Read};
 
 use sequoia_openpgp as openpgp;
+use openpgp::KeyHandle;
 use openpgp::armor::ReaderMode;
 use self::openpgp::fmt::hex;
 use self::openpgp::crypto::mpi;
@@ -21,6 +22,7 @@ use self::openpgp::parse::{
 
 use crate::Convert;
 use crate::cli::types::SessionKey;
+use crate::Sq;
 
 #[derive(Debug)]
 pub enum Kind {
@@ -64,7 +66,7 @@ pub fn dump<W>(sq: &crate::Sq,
         &sq, 0, Vec::new(), secrets, session_keys.clone(), false);
 
   loop {
-    let mut dumper = PacketDumper::new(width, mpis);
+    let mut dumper = PacketDumper::new(sq, width, mpis);
     let mut message_encrypted = false;
     let mut pkesks = vec![];
     let mut skesks = vec![];
@@ -232,15 +234,17 @@ impl Node {
     }
 }
 
-pub struct PacketDumper {
+pub struct PacketDumper<'a, 'b, 'c> {
+    sq: &'a Sq<'b, 'c>,
     width: usize,
     mpis: bool,
     root: Option<Node>,
 }
 
-impl PacketDumper {
-    pub fn new(width: usize, mpis: bool) -> Self {
+impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
+    pub fn new(sq: &'a Sq<'b, 'c>, width: usize, mpis: bool) -> Self {
         PacketDumper {
+            sq,
             width,
             mpis,
             root: None,
@@ -854,8 +858,15 @@ impl PacketDumper {
                     write!(output, ", sensitive")?;
                 }
             },
-            Issuer(ref is) =>
-                write!(output, "{}    Issuer: {}", i, is)?,
+            Issuer(ref is) => {
+                let (userid, cert)
+                    = self.sq.best_userid_for(&KeyHandle::from(is), None, true);
+                write!(output, "{}    Issuer: {}", i, is)?;
+                if cert.is_ok() {
+                    writeln!(output)?;
+                    write!(output, "{}      {}", i, userid)?;
+                }
+            }
             NotationData(n) => if n.flags().human_readable() {
                 write!(output, "{}    Notation: {}", i, n)?;
                 if s.critical() {
@@ -910,8 +921,15 @@ impl PacketDumper {
             EmbeddedSignature(_) =>
             // Embedded signature is dumped below.
                 write!(output, "{}    Embedded signature: ", i)?,
-            IssuerFingerprint(ref fp) =>
-                write!(output, "{}    Issuer Fingerprint: {}", i, fp)?,
+            IssuerFingerprint(ref fp) => {
+                let (userid, cert)
+                    = self.sq.best_userid_for(&KeyHandle::from(fp), None, true);
+                write!(output, "{}    Issuer Fingerprint: {}", i, fp)?;
+                if cert.is_ok() {
+                    writeln!(output)?;
+                    write!(output, "{}      {}", i, userid)?;
+                }
+            }
             PreferredAEADAlgorithms(ref c) =>
                 write!(output, "{}    AEAD preferences: {}", i,
                        c.iter().map(|c| format!("{:?}", c))

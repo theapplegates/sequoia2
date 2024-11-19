@@ -36,17 +36,13 @@ USER builder
 # the `build-release` target is used instead of the default because
 # `install` calls it after anyways
 RUN cd /home/builder/sequoia && \
-    CARGO_TARGET_DIR=/tmp/target cargo build -p sequoia-sq --release && \
+    CARGO_TARGET_DIR=/tmp/target ASSET_OUT_DIR=/tmp/target/assets cargo build -p sequoia-sq --release && \
     install --strip -D --target-directory /opt/usr/local/bin \
                   /tmp/target/release/sq
 
 FROM docker.io/library/debian:trixie-slim AS sq-base
 
-RUN groupadd user && \
-    useradd --no-log-init -g user user && \
-    mkdir /home/user && \
-    chown -R user:user /home/user && \
-    apt-get update && \
+RUN apt-get update && \
     apt-get upgrade --assume-yes && \
     apt-get install -yqq \
             bash-completion \
@@ -64,4 +60,10 @@ COPY --from=build /etc/ssl/certs /etc/ssl/certs
 COPY --from=build /tmp/target/assets/shell-completions/sq.bash /etc/bash_completion.d/sq
 COPY --from=build /tmp/target/assets/man-pages/* /usr/share/man/man1/
 
+ENV SEQUOIA_HOME=/sequoia SEQUOIA_CERT_STORE=/sequoia/certstore SEQUOIA_KEY_STORE=/sequoia/keystore
+
+# Set the default workdir to sequoia home directory
+WORKDIR /sequoia
+
+VOLUME /sequoia
 ENTRYPOINT ["/usr/local/bin/sq"]

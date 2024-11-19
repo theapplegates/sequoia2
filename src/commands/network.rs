@@ -1,6 +1,6 @@
 //! Network services.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fmt;
 use std::fs::{self, DirEntry};
 use std::path::{Path, PathBuf};
@@ -528,7 +528,7 @@ impl Query {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum Method {
     KeyServer(String),
     WKD,
@@ -685,7 +685,7 @@ impl Response {
     async fn collect<'store, 'rstore>(
         sq: &mut Sq<'store, 'rstore>,
         mut responses: JoinSet<Response>,
-        certs: &mut BTreeMap<Fingerprint, Cert>,
+        certs: &mut BTreeMap<Fingerprint, (Cert, BTreeSet<Method>)>,
         certify: bool,
         silent_errors: bool,
         pb: &mut ProgressBar,
@@ -698,24 +698,26 @@ impl Response {
 
         /// Merges `cert` into `acc`, adding its fingerprint to `new`
         /// if the cert is new, or there are new user IDs.
-        fn merge(acc: &mut BTreeMap<Fingerprint, Cert>,
+        fn merge(acc: &mut BTreeMap<Fingerprint, (Cert, BTreeSet<Method>)>,
                  new: &mut Vec<Fingerprint>,
+                 method: Method,
                  cert: Cert)
                  -> Result<()>
         {
             use std::collections::btree_map::Entry;
             match acc.entry(cert.fingerprint()) {
                 Entry::Occupied(e) => {
-                    let e = e.into_mut();
+                    let (e, m) = e.into_mut();
                     let n_uids = e.userids().count();
                     *e = e.clone().merge_public(cert)?;
                     if e.userids().count() > n_uids {
                         new.push(e.fingerprint());
                     }
+                    m.insert(method);
                 },
                 Entry::Vacant(e) => {
                     new.push(cert.fingerprint());
-                    e.insert(cert);
+                    e.insert((cert, std::iter::once(method).collect()));
                 },
             }
             Ok(())
@@ -729,17 +731,20 @@ impl Response {
                 Ok(returned_certs) => for cert in returned_certs {
                     match cert {
                         Ok(cert) => if ! certify {
-                            merge(certs, &mut new, cert)?;
+                            merge(certs, &mut new,
+                                  response.method.clone(), cert)?;
                         } else { pb.suspend(|| -> Result<()> {
                             if let Some(ca) = response.method.ca(sq)
                             {
                                 for cert in certify_downloads(
                                     sq, ca, vec![cert], None)
                                 {
-                                    merge(certs, &mut new, cert)?;
+                                    merge(certs, &mut new,
+                                          response.method.clone(), cert)?;
                                 }
                             } else {
-                                merge(certs, &mut new, cert)?;
+                                merge(certs, &mut new,
+                                      response.method.clone(), cert)?;
                             }
                             Ok(())
                         })?},
@@ -770,7 +775,7 @@ impl Response {
     fn import_or_emit(mut sq: Sq<'_, '_>,
                       output: Option<FileOrStdout>,
                       binary: bool,
-                      certs: BTreeMap<Fingerprint, Cert>)
+                      certs: BTreeMap<Fingerprint, (Cert, BTreeSet<Method>)>)
                       -> Result<()>
     {
         make_qprintln!(sq.quiet);
@@ -779,16 +784,16 @@ impl Response {
                   certs.len().of("certificate"));
 
         let mut certs = certs.into_values()
-            .map(|cert| {
+            .map(|(cert, methods)| {
                 let userid = sq.best_userid(&cert, true);
-                (userid, cert)
+                (userid, cert, methods)
             })
             .collect::<Vec<_>>();
 
         // Reverse sort, i.e., most authenticated first.
         certs.sort_unstable_by_key(|cert| usize::MAX - cert.0.trust_amount());
 
-        for (i, (userid, cert)) in certs.iter().enumerate() {
+        for (i, (userid, cert, methods)) in certs.iter().enumerate() {
             if i > 0 {
                 qprintln!();
             }
@@ -852,9 +857,13 @@ impl Response {
                 Err(e) =>
                     qprintln!(initial_indent = "   - ", "not valid: {}", e),
             }
+
+            qprintln!(initial_indent = "   - ", "found via: {}",
+                      methods.into_iter().map(|m| m.to_string())
+                      .collect::<Vec<_>>().join(", "));
         }
 
-        let certs = certs.into_iter().map(|(_, cert)| cert).collect();
+        let certs = certs.into_iter().map(|(_, cert, _)| cert).collect();
 
         if let Some(file) = &output {
             serialize_keyring(&sq, file, certs, binary)?;
@@ -1016,7 +1025,7 @@ pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
             default_servers, &mut pb).await?;
 
         // Expand certs to discover new identifiers to query.
-        for cert in new.iter().filter_map(|fp| results.get(fp)) {
+        for (cert, _) in new.iter().filter_map(|fp| results.get(fp)) {
             queries.push(Query::Handle(cert.key_handle()));
 
             for uid in cert.userids() {

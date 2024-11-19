@@ -150,6 +150,15 @@ pub fn split(sq: Sq, c: SplitCommand) -> Result<()>
         pos.iter().map(ToString::to_string).collect::<Vec<_>>().join(delimiter)
     }
 
+    if let Ok(sink) = sink.as_mut() {
+        sink.write_all(b"\
+# You can open this file in your preferred editor, rearrange and
+# remove the packets, and add new ones.  When you are happy, you
+# can recombine the packets using sq packet join.
+
+")?;
+    }
+
     let mut first = true;
     while let PacketParserResult::Some(pp) = ppr {
         if let Some(map) = pp.map() {

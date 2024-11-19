@@ -149,7 +149,10 @@ pub fn build(globals_hidden: bool) -> Command {
         .into_boxed_str(),
     ) as &str;
 
-    let mut command = SqCommand::command().version(sq_version);
+    let mut command = SqCommand::command()
+        .version(sq_version)
+    // To improve readability limit the width of the text columns.
+        .max_term_width(100);
 
     // Change the globals to be hidden.
     if globals_hidden {

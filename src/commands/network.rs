@@ -544,7 +544,7 @@ impl fmt::Display for Method {
             Method::WKD => write!(f, "WKD"),
             Method::DANE => write!(f, "DANE"),
             Method::Http(_) => write!(f, "http"),
-            Method::CertStore => write!(f, "CertStore"),
+            Method::CertStore => write!(f, "cert-store"),
         }
     }
 }

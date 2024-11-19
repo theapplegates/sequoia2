@@ -30,6 +30,7 @@ use cert_store::StoreUpdate;
 use crate::{
     Sq,
     cli::cert::lint::Command,
+    cli::types::cert_designator::CertDesignator,
     commands::FileOrStdout,
 };
 
@@ -189,7 +190,7 @@ fn update_subkey_binding<P>(sq: &Sq,
     Ok(sig)
 }
 
-pub fn lint(sq: Sq, args: Command) -> Result<()> {
+pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
     // Number of certs that have issues.
     let mut certs_with_issues = 0;
     // Whether we were unable to fix at least one issue.
@@ -248,6 +249,11 @@ pub fn lint(sq: Sq, args: Command) -> Result<()> {
     } else {
         None
     };
+
+    // If no inputs are given, read from stdin.
+    if args.certs.is_empty() {
+        args.certs.designators.push(CertDesignator::Stdin);
+    }
 
     {
         'next_cert: for cert in sq.resolve_certs_or_fail(&args.certs, 0)? {

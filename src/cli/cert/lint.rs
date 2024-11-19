@@ -56,7 +56,7 @@ pub struct Command {
     #[command(flatten)]
     pub certs: CertDesignators<FileCertUserIDEmailDomainGrepArgs,
                                CertPrefix,
-                               NoOptions>,
+                               OptionalValue>,
 
     #[clap(
         long,

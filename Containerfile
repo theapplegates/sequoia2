@@ -48,7 +48,12 @@ RUN groupadd user && \
     chown -R user:user /home/user && \
     apt-get update && \
     apt-get upgrade --assume-yes && \
-    apt-get install --assume-yes ca-certificates libssl3 libsqlite3-0 && \
+    apt-get install -yqq \
+            bash-completion \
+            ca-certificates \
+	    libssl3 \
+	    libsqlite3-0 \
+	    man-db && \
     apt-get clean && \
     rm -fr -- /var/lib/apt/lists/* /var/cache/*
 
@@ -56,5 +61,7 @@ FROM sq-base AS sq
 
 COPY --from=build /opt/usr/local/bin/sq /usr/local/bin/sq
 COPY --from=build /etc/ssl/certs /etc/ssl/certs
+COPY --from=build /tmp/target/assets/shell-completions/sq.bash /etc/bash_completion.d/sq
+COPY --from=build /tmp/target/assets/man-pages/* /usr/share/man/man1/
 
 ENTRYPOINT ["/usr/local/bin/sq"]

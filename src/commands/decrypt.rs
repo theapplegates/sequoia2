@@ -340,24 +340,32 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                                             .set_transport_encryption(),
                                         true);
 
-                                    let keypair = loop {
-                                        let password = rpassword::prompt_password(
-                                            format!(
-                                                "Enter password to unlock {}, {}: ",
-                                                keyid, userid))?
-                                            .into();
+                                    if self.sq.batch {
+                                        wprintln!(
+                                            "{}, {} is locked, but not \
+                                             prompting for password, \
+                                             because you passed --batch.",
+                                            keyid, userid);
+                                    } else {
+                                        let keypair = loop {
+                                            let password = rpassword::prompt_password(
+                                                format!(
+                                                    "Enter password to unlock {}, {}: ",
+                                                    keyid, userid))?
+                                                .into();
 
-                                        if let Ok(()) = key.unlock(password) {
-                                            break Box::new(key);
-                                        } else {
-                                            wprintln!("Bad password.");
+                                            if let Ok(()) = key.unlock(password) {
+                                                break Box::new(key);
+                                            } else {
+                                                wprintln!("Bad password.");
+                                            }
+                                        };
+
+                                        if let Some(fp) = self.try_decrypt(
+                                            &pkesk, sym_algo, keypair, &mut decrypt)
+                                        {
+                                            return Ok(fp);
                                         }
-                                    };
-
-                                    if let Some(fp) = self.try_decrypt(
-                                        &pkesk, sym_algo, keypair, &mut decrypt)
-                                    {
-                                        return Ok(fp);
                                     }
                                 }
                             }

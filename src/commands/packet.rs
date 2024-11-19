@@ -382,6 +382,12 @@ pub fn join(sq: Sq, c: JoinCommand) -> Result<()> {
         copy_all(&sq, ppr, &output, &mut sink)?;
     }
 
+    if sink.is_none() {
+        // We haven't written anything.
+        sink = Some(output.create_pgp_safe(
+            &sq, true, openpgp::armor::Kind::File)?);
+    }
+
     sink.unwrap().finalize()?;
     Ok(())
 }

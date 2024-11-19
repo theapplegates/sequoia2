@@ -39,7 +39,7 @@ use crate::{
 pub fn dispatch(sq: Sq, command: cli::decrypt::Command) -> Result<()> {
     tracer!(TRACE, "decrypt::dispatch");
 
-    let mut input = command.input.open()?;
+    let mut input = command.input.open("an encrypted message")?;
     let mut output = command.output.create_safe(&sq)?;
 
     let signers =

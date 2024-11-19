@@ -35,7 +35,7 @@ use merge_signatures::merge_signatures;
 pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
     tracer!(TRACE, "sign::dispatch");
 
-    let mut input = command.input.open()?;
+    let mut input = command.input.open("the data to sign")?;
     let output = &command.output;
     let detached = command.detached;
     let binary = command.binary;
@@ -61,7 +61,7 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
             armor::Kind::Message,
         )?;
         let data: FileOrStdin = merge.into();
-        let mut input2 = data.open()?;
+        let mut input2 = data.open("OpenPGP signatures")?;
         return merge_signatures(&mut input, &mut input2, output);
     }
 

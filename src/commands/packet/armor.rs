@@ -50,7 +50,7 @@ pub fn dispatch(sq: Sq, command: cli::packet::armor::Command)
 {
     tracer!(TRACE, "armor::dispatch");
 
-    let mut input = command.input.open()?;
+    let mut input = command.input.open("the data to encode")?;
     let mut want_kind: Option<armor::Kind>
         = command.kind.into();
 

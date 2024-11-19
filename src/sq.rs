@@ -497,7 +497,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         for handle in handles {
             let (kh, mut certs) = match handle.into() {
                 FileStdinOrKeyHandle::FileOrStdin(file) => {
-                    let br = file.open()?;
+                    let br = file.open("an OpenPGP certificate")?;
                     let cert = Cert::from_buffered_reader(br)?;
                     (cert.key_handle(), vec![ cert ])
                 }

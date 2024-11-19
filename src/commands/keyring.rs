@@ -158,11 +158,11 @@ pub fn dispatch(sq: Sq, c: keyring::Command) -> Result<()> {
         Merge(c) =>
             merge(&sq, c.input, c.output, false),
         List(c) => {
-            let mut input = c.input.open()?;
+            let mut input = c.input.open("OpenPGP certificates")?;
             list(sq, &mut input, c.all_userids)
         },
         Split(c) => {
-            let mut input = c.input.open()?;
+            let mut input = c.input.open("OpenPGP certificates")?;
             let prefix =
             // The prefix is either specified explicitly...
                 c.prefix.unwrap_or(

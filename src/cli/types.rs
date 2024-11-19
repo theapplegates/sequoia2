@@ -87,7 +87,8 @@ pub trait ClapData {
 /// read within a certain amount of time.
 pub struct StdinWarning {
     do_warn: bool,
-    warning: &'static str,
+    /// The thing that is being waited for.  See `StdinWarning::emit`.
+    thing: &'static str,
 }
 
 /// Print a warning if we don't get any input after this amount of
@@ -96,28 +97,27 @@ const STDIN_TIMEOUT: Duration = std::time::Duration::new(2, 0);
 
 impl StdinWarning {
     /// Emit a custom warning if no input is received.
-    pub fn warn(warning: &'static str) -> Self {
+    pub fn new(thing: &'static str) -> Self {
         Self {
             do_warn: true,
-            warning,
+            thing,
         }
-    }
-
-    /// Emit a standard warning if no input is received.
-    pub fn new() -> Self {
-        Self::warn("Waiting for input on stdin...")
     }
 
     /// Emit a warning that a certificate is expected if no input is
     /// received.
     pub fn openpgp() -> Self {
-        Self::warn("Waiting for OpenPGP data on stdin...")
+        Self::new("OpenPGP data")
     }
 
     /// Emit a warning that certificates are expected if no input is
     /// received.
     pub fn certs() -> Self {
-        Self::warn("Waiting for certificates on stdin...")
+        Self::new("OpenPGP certificates")
+    }
+
+    pub fn emit(&self) {
+        eprintln!("Waiting for {} on stdin...", self.thing);
     }
 }
 
@@ -145,7 +145,7 @@ impl Read for StdinWarning {
                     if let Err(mpsc::RecvTimeoutError::Timeout)
                         = receiver.recv_timeout(STDIN_TIMEOUT)
                     {
-                        eprintln!("{}", self.warning);
+                        self.emit();
                     }
                 });
 
@@ -215,14 +215,20 @@ impl FileOrStdin {
     /// Get a boxed BufferedReader for the FileOrStdin
     ///
     /// Opens a file if there is Some(PathBuf), else opens stdin.
-    pub fn open<'a>(&self) -> Result<Box<dyn BufferedReader<Cookie> + 'a>> {
+    ///
+    /// `thing` is the thing that we expect to read, e.g., "OpenPGP
+    /// certificates" or "a signed message".
+    pub fn open<'a>(&self, thing: &'static str)
+        -> Result<Box<dyn BufferedReader<Cookie> + 'a>>
+    {
         if let Some(path) = self.inner() {
             Ok(Box::new(
                 File::with_cookie(path, Default::default())
                 .with_context(|| format!("Failed to open {}", self))?))
         } else {
             Ok(Box::new(
-                Generic::with_cookie(StdinWarning::new(), None, Default::default())))
+                Generic::with_cookie(
+                    StdinWarning::new(thing), None, Default::default())))
         }
     }
 

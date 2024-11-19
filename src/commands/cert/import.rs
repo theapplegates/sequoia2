@@ -42,7 +42,7 @@ where 'store: 'rstore
     let inner = || -> Result<()> {
         for input in inputs.into_iter() {
             let input = FileOrStdin::from(input);
-            let mut input_reader = input.open()?;
+            let mut input_reader = input.open("OpenPGP certificates")?;
 
             if input_reader.eof() {
                 // Empty file.  Silently skip it.

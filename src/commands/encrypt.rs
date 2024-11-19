@@ -206,7 +206,7 @@ pub fn encrypt<'a, 'b: 'a>(
         .context("Failed to create literal writer")?;
 
     // Finally, copy stdin to our writer stack to encrypt the data.
-    io::copy(&mut input.open()?, &mut writer_stack)
+    io::copy(&mut input.open("data to encrypt")?, &mut writer_stack)
         .context("Failed to encrypt")?;
 
     writer_stack.finalize().context("Failed to encrypt")?;

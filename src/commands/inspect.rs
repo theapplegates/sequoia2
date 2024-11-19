@@ -71,7 +71,7 @@ pub fn dispatch(mut sq: Sq, c: inspect::Command)
             }
         }
 
-        inspect(&mut sq, input.open()?,
+        inspect(&mut sq, input.open("OpenPGP or autocrypt data")?,
                 Some(&input.to_string()), output,
                 print_certifications, dump_bad_signatures)?;
     } else {

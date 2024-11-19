@@ -64,7 +64,7 @@ pub fn dispatch(sq: Sq, command: Command)
                         }
                 }
 
-                Box::new(command.input.open()?)
+                Box::new(command.input.open("OpenPGP packets")?)
                     as Box<dyn io::Read + Send + Sync>
             } else {
                 let cert = sq.resolve_cert(&command.cert, 0)?.0;
@@ -92,7 +92,7 @@ pub fn dispatch(sq: Sq, command: Command)
         },
 
         Subcommands::Decrypt(command) => {
-            let mut input = command.input.open()?;
+            let mut input = command.input.open("an encrypted message")?;
             let mut output = command.output.create_pgp_safe(
                 &sq,
                 command.binary,
@@ -124,7 +124,7 @@ pub fn dispatch(sq: Sq, command: Command)
 
 pub fn split(sq: Sq, c: SplitCommand) -> Result<()>
 {
-    let input = c.input.open()?;
+    let input = c.input.open("OpenPGP packets")?;
 
     // If --binary is given, the user has to provide a prefix.
     assert!(! c.binary || c.prefix.is_some(),

@@ -31,7 +31,7 @@ pub fn dispatch(sq: Sq, command: cli::verify::Command)
 {
     tracer!(TRACE, "verify::dispatch");
 
-    let mut input = command.input.open()?;
+    let mut input = command.input.open("a signed message")?;
     let mut output = command.output.create_safe(&sq)?;
     let signatures = command.signatures;
 

@@ -1253,6 +1253,17 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             let mut insert = BTreeMap::from_iter(
                 insert.into_iter().map(|c| (c.fingerprint(), c)));
 
+            if c.create && insert.is_empty() {
+                sq.hint(format_args!(
+                    "You specified `--create`, but didn't specify any \
+                     certificates to insert.  Try specifying `--all` to \
+                     insert all certificates that have an authenticated \
+                     user ID with an email address for {:?}.",
+                    c.domain));
+                return Err(anyhow::anyhow!(
+                    "Cowardly refusing to create an empty WKD."));
+            }
+
             // Make `--rsync-path` imply `--rsync`.
             let rsync = c.rsync_path.take()
                 .or_else(|| c.rsync.then_some("rsync".into()));

@@ -42,6 +42,10 @@ fn options() -> textwrap::Options<'static> {
         // textwrap do it, because textwrap uses an older version,
         // leading to duplicate crates.
         textwrap::Options::new(stderr_terminal_width())
+        // Using a more naive separation algorithm keeps URLs
+        // together, whereas the unicode line breaking algorithm would
+        // break after e.g. `hkps://`.
+            .word_separator(textwrap::WordSeparator::AsciiSpace)
     }).clone()
 }
 

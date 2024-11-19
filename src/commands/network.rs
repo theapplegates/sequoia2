@@ -1331,6 +1331,8 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             fs::create_dir(&push)?;
             let insert_ref = &mut insert;
             let sq_ref = &sq;
+            let mut number_of_changes = 0;
+            let number_of_changes_ref = &mut number_of_changes;
             visit_dirs(&hu, &mut |entry: &DirEntry| -> Result<()> {
                 let p = entry.path();
                 for cert in CertParser::from_reader(fs::File::open(p)?)? {
@@ -1388,12 +1390,15 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                                   sq_ref.best_userid(&cert, false));
                     }
 
-                    wkd::insert(&push, &c.domain, variant, &cert)
-                        .with_context(|| {
-                            format!("Inserting {}, {}",
-                                    cert.fingerprint(),
-                                    sq.best_userid(&cert, true))
-                        })?;
+                    if updated {
+                        wkd::insert(&push, &c.domain, variant, &cert)
+                            .with_context(|| {
+                                format!("Inserting {}, {}",
+                                        cert.fingerprint(),
+                                        sq.best_userid(&cert, true))
+                            })?;
+                        *number_of_changes_ref += 1;
+                    }
                 }
                 Ok(())
             })?;
@@ -1408,6 +1413,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                                 cert.fingerprint(),
                                 sq.best_userid(&cert, true))
                     })?;
+                number_of_changes += 1;
             }
 
             // Preserve the original policy file, if any.
@@ -1424,13 +1430,17 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                     })?;
             }
 
-            // Finally, transfer the WKD hierarchy back.
-            transfer(&rsync, &push_wk.display().to_string(),
-                     &format!("{}", c.destination))
-                .with_context(|| {
-                    format!("failed to push updates to {}",
-                            c.destination)
-                })?;
+            if number_of_changes == 0 {
+                qprintln!("No updates.");
+            } else {
+                // Finally, transfer the WKD hierarchy back.
+                transfer(&rsync, &push_wk.display().to_string(),
+                         &format!("{}", c.destination))
+                    .with_context(|| {
+                        format!("failed to push updates to {}",
+                                c.destination)
+                    })?;
+            }
         },
     }
 

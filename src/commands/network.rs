@@ -123,6 +123,7 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
 
     for vcert in certs.iter()
         .filter_map(|cert| cert.with_policy(sq.policy, sq.time).ok())
+        .filter(|vcert| vcert.alive().is_ok())
     {
         let mut hint = sq.hint(format_args!(
             "After checking that the certificate {} really belongs to the \

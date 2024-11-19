@@ -18,13 +18,14 @@ use sequoia_openpgp::{
 use sequoia_keystore as keystore;
 use keystore::Protection;
 
-use crate::cli;
 use crate::Convert;
 use crate::PreferredUserID;
-use crate::Sq;
 use crate::Result;
+use crate::Sq;
 use crate::Time;
 use crate::cli::types::cert_designator;
+use crate::cli;
+use crate::common::NULL_POLICY;
 
 /// Keys may either be grouped into a certificate or be bare.
 ///
@@ -410,8 +411,16 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
 
         // Show the user IDs that can be authenticated or are self signed.
         if let Some(cert) = association.cert() {
+            // If we have any valid self signed user IDs, prefer
+            // those.  Otherwise, fallback to those valid under the
+            // NULL policy.  They won't be considered authenticated,
+            // but at least we'll show something.
             let self_signed: HashSet<UserID> = if let Ok(vc)
                 = cert.with_policy(sq.policy, sq.time)
+            {
+                HashSet::from_iter(vc.userids().map(|ua| ua.userid()).cloned())
+            } else if let Ok(vc)
+                = cert.with_policy(NULL_POLICY, sq.time)
             {
                 HashSet::from_iter(vc.userids().map(|ua| ua.userid()).cloned())
             } else {

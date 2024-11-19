@@ -222,10 +222,15 @@ pub fn split(sq: Sq, c: SplitCommand) -> Result<()>
                         if let Some(t) = s.signature_creation_time() {
                             headers.push(("Comment", format!("Created: {}", t.convert())));
                         }
-                        if let Some(i) = s.get_issuers().get(0)
-                        {
+                        if let Some(i) = s.get_issuers().get(0) {
                             headers.push(
                                 ("Comment", format!("Issuer: {}", i)));
+                            if let Ok(cert) = sq.lookup_one(i, None, false) {
+                                headers.push(
+                                    ("Comment",
+                                     format!("Issuer: {}",
+                                             sq.best_userid(&cert, true))));
+                            }
                         }
                     },
                     Packet::UserID(u) => headers.push(

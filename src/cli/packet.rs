@@ -255,8 +255,8 @@ armored blocks.  It is possible to edit this file directly (e.g., \
 moving, adding, or removing packets), and then use `sq packet \
 join` to assemble the stream.
 
-Alternatively, if a `--prefix` is given, the packets are written into \
-individual files starting with the prefix, and can be reassembled \
+Alternatively, if a `--output-prefix` is given, the packets are written \
+into individual files starting with the prefix, and can be reassembled \
 with `sq packet join`.
 
 The converse operation is `sq packet join`.
@@ -286,7 +286,7 @@ pub struct SplitCommand {
     pub binary: bool,
 
     #[clap(
-        long = "prefix",
+        long = "output-prefix",
         value_name = "PREFIX",
         help = "Write packets to files starting with PREFIX",
         help = "\
@@ -318,7 +318,7 @@ Split a inline-signed message into individual packets written to \
 individual files with the prefix 'packet'.",
             command: &[
                 "sq", "packet", "split",
-                "--prefix", "packet",
+                "--output-prefix", "packet",
                 "document.pgp",
             ],
         }),
@@ -386,7 +386,7 @@ Split a inline-signed message into individual packets written to \
 individual files with the prefix 'packet'.",
             command: &[
                 "sq", "packet", "split",
-                "--prefix", "packet",
+                "--output-prefix", "packet",
                 "document.pgp",
             ],
         }),

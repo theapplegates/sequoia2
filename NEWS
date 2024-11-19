@@ -106,6 +106,8 @@
    - The command `sq toolbox extract-cert` has been removed in favor
      of `sq key delete` and `sq key subkey delete`.
    - The command `sq packet split` now writes to stdout by default.
+   - The argument `sq packets split --prefix` is now called
+     `--output-prefix`.
 
 * Changes in 0.39.0
 ** Notable changes

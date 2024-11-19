@@ -105,6 +105,7 @@
      those that emit signed and or encrypted messages.
    - The command `sq toolbox extract-cert` has been removed in favor
      of `sq key delete` and `sq key subkey delete`.
+   - The command `sq packet split` now writes to stdout by default.
 
 * Changes in 0.39.0
 ** Notable changes

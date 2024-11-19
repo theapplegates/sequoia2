@@ -5,7 +5,7 @@ use std::{
     path::PathBuf,
 };
 
-use clap::{ArgGroup, Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 
 use crate::cli::examples::*;
 use crate::cli::types::ArmorKind;
@@ -263,7 +263,6 @@ The converse operation is `sq packet join`.
 ",
     after_help = SPLIT_EXAMPLES,
 )]
-#[clap(group(ArgGroup::new("sink").args(&["output", "prefix"]).required(true)))]
 pub struct SplitCommand {
     #[clap(
         default_value_t = FileOrStdin::default(),

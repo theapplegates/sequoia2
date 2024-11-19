@@ -134,8 +134,8 @@ pub fn split(sq: Sq, c: SplitCommand) -> Result<()>
     let mut sink = match c.prefix {
         Some(p) => Err(p),
         None => Ok(
-            c.output.as_ref()
-                .expect("either prefix or output must be given")
+            c.output
+                .unwrap_or_default()
                 .create_pgp_safe(&sq, true, Kind::SecretKey)?),
     };
 

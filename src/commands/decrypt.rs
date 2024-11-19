@@ -340,31 +340,45 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                                             .set_transport_encryption(),
                                         true);
 
-                                    if self.sq.batch {
-                                        wprintln!(
-                                            "{}, {} is locked, but not \
-                                             prompting for password, \
-                                             because you passed --batch.",
-                                            keyid, userid);
-                                    } else {
-                                        let keypair = loop {
-                                            let password = rpassword::prompt_password(
-                                                format!(
-                                                    "Enter password to unlock {}, {}: ",
-                                                    keyid, userid))?
-                                                .into();
+                                    loop {
+                                        if self.sq.batch {
+                                            eprintln!(
+                                                "{}, {} is locked, but not \
+                                                 prompting for password, \
+                                                 because you passed --batch.",
+                                                keyid, userid);
+                                            break;
+                                        }
 
-                                            if let Ok(()) = key.unlock(password) {
-                                                break Box::new(key);
-                                            } else {
-                                                wprintln!("Bad password.");
+                                        match password::prompt_to_unlock_or_cancel(
+                                            self.sq,
+                                            &format!("{}, {}", keyid, userid))
+                                        {
+                                            Err(err) => {
+                                                return Err(err).context(
+                                                    "Prompting for password");
                                             }
-                                        };
+                                            Ok(Some(password)) => {
+                                                if let Err(_err) = key.unlock(password) {
+                                                    wprintln!("Bad password.");
+                                                    continue;
+                                                }
+                                            }
+                                            Ok(None) => {
+                                                // Cancelled.
+                                                wprintln!("Skipping {}, {}",
+                                                          keyid, userid);
+                                                break;
+                                            }
+                                        }
 
+                                        let keypair = Box::new(key);
                                         if let Some(fp) = self.try_decrypt(
                                             &pkesk, sym_algo, keypair, &mut decrypt)
                                         {
                                             return Ok(fp);
+                                        } else {
+                                            break;
                                         }
                                     }
                                 }

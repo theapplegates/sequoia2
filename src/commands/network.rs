@@ -1189,7 +1189,10 @@ pub fn dispatch_keyserver(mut sq: Sq,
 }
 
 pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
-                    -> Result<()> {
+    -> Result<()>
+{
+    make_qprintln!(sq.quiet);
+
     let rt = tokio::runtime::Runtime::new()?;
 
     use crate::cli::network::wkd::Subcommands::*;
@@ -1314,10 +1317,14 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             let push_openpgpkey = push_wk.join("openpgpkey");
             fs::create_dir(&push)?;
             let insert_ref = &mut insert;
+            let sq_ref = &sq;
             visit_dirs(&hu, &mut |entry: &DirEntry| -> Result<()> {
                 let p = entry.path();
                 for cert in CertParser::from_reader(fs::File::open(p)?)? {
                     let mut cert = cert?;
+
+                    let mut updated = false;
+                    let mut unchanged = false;
 
                     // Here we look for updates from the cert store
                     // and merge them into any certificates in the
@@ -1327,9 +1334,14 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                     // below.  As such, we also handle explicitly
                     // named certificates here.
                     if let Some(update) = insert_ref.remove(&cert.fingerprint()) {
-                        let (cert_, _updated) = cert.insert_packets2(
+                        let (cert_, updated_) = cert.insert_packets2(
                             update.into_packets2())?;
                         cert = cert_;
+                        if updated_ {
+                            updated = true;
+                        } else {
+                            unchanged = true;
+                        }
                     }
 
                     // We still look for updates in the cert store:
@@ -1339,9 +1351,28 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                     if let Ok(update) =
                         cert_store.lookup_by_cert_fpr(&cert.fingerprint())
                     {
-                        let (cert_, _updated) = cert.insert_packets2(
+                        let (cert_, updated_) = cert.insert_packets2(
                             update.to_cert()?.clone().into_packets2())?;
                         cert = cert_;
+                        if updated_ {
+                            updated = true;
+                        } else {
+                            unchanged = true;
+                        }
+                    }
+
+                    if updated {
+                        qprintln!("Updating {}, {}",
+                                  cert.fingerprint(),
+                                  sq_ref.best_userid(&cert, false));
+                    } else if unchanged {
+                        qprintln!("Unchanged {}, {}",
+                                  cert.fingerprint(),
+                                  sq_ref.best_userid(&cert, false));
+                    } else {
+                        qprintln!("Retaining {}, {}",
+                                  cert.fingerprint(),
+                                  sq_ref.best_userid(&cert, false));
                     }
 
                     wkd::insert(&push, &c.domain, variant, &cert)?;
@@ -1350,7 +1381,9 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             })?;
 
             // Insert the new ones, if any.
-            for (_fpr, cert) in insert.into_iter() {
+            for (fpr, cert) in insert.into_iter() {
+                qprintln!("Inserting {}, {}",
+                          fpr, sq.best_userid(&cert, false));
                 wkd::insert(&push, &c.domain, variant, &cert)?;
             }
 

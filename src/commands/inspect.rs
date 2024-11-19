@@ -277,7 +277,7 @@ where
             writeln!(output, "  Keyring: {}", is_keyring.as_ref().unwrap_err())?;
             writeln!(output)?;
             if let Some(filename) = input_filename {
-                writeln!(output, "Hint: Try 'sq toolbox packet dump {}'",
+                writeln!(output, "Hint: Try 'sq packet dump {}'",
                          filename)?;
             }
         }
@@ -1015,7 +1015,7 @@ impl Kind {
                     hint.hint(format_args!(
                         "To inspect the packet sequence in {}:",
                         input_path_text))
-                        .sq().arg("toolbox").arg("packet").arg("dump")
+                        .sq().arg("packet").arg("dump")
                         .arg(&input_path_arg)
                         .done();
                 },

@@ -1454,27 +1454,6 @@ impl Sq {
             .expect("succeeds")
     }
 
-    /// Strips user IDs to the given key.
-    pub fn toolbox_strip_userid(&self, key: Cert, args: &[&str]) -> Result<Cert> {
-        let mut cmd = self.command();
-        cmd.args(["toolbox", "strip-userid"]);
-        for arg in args {
-            cmd.arg(arg);
-        }
-
-        let in_filename = self.scratch_file(None);
-        key.as_tsk().serialize(&mut File::create(&in_filename)?)?;
-        cmd.arg("--cert-file").arg(&in_filename);
-        let out_filename = self.scratch_file(None);
-        cmd.arg("--output").arg(&out_filename);
-
-        let output = self.run(cmd, Some(true));
-
-        let out_key = Cert::from_file(&out_filename)?;
-        assert!(out_key.is_tsk());
-        Ok(out_key)
-    }
-
     /// Runs `sq cert list` with the supplied arguments.
     pub fn cert_list_maybe(&self, args: &[&str]) -> Result<Vec<u8>> {
         let mut cmd = self.command();

@@ -41,13 +41,27 @@ fn options() -> textwrap::Options<'static> {
         // It is better to use terminal_size instead of letting
         // textwrap do it, because textwrap uses an older version,
         // leading to duplicate crates.
-        textwrap::Options::new(terminal_width())
+        textwrap::Options::new(stderr_terminal_width())
     }).clone()
 }
 
 /// Returns the terminal width we assume for wrapping.
-pub fn terminal_width() -> usize {
-    terminal_size::terminal_size().map(|(w, _h)| w.0)
-        .unwrap_or(80)
-        .into()
+pub fn stderr_terminal_width() -> usize {
+    // XXX: For compatibility with terminal_size 0.2 and 0.3.  Once we
+    // depend on 0.4, use terminal_size_of instead.
+    platform! {
+        unix => {
+            use std::os::fd::AsRawFd;
+            #[allow(deprecated)]
+            unsafe {
+                terminal_size::terminal_size_using_fd(std::io::stderr().as_raw_fd())
+            }
+        },
+        windows => {
+            terminal_size::terminal_size()
+        },
+    }
+        .map(|(w, _h)| w.0)
+        .map(Into::into)
+        .unwrap_or(usize::MAX)
 }

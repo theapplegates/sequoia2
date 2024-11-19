@@ -82,7 +82,7 @@ impl Command {
     /// Emits the command hint.
     pub fn done(self) -> Hint {
         if ! self.hint.quiet {
-            let width = crate::output::wrapping::terminal_width();
+            let width = crate::output::wrapping::stderr_terminal_width();
 
             eprintln!();
             eprintln!("{}", crate::cli::examples::wrap_command(

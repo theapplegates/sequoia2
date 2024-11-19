@@ -1280,8 +1280,9 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             let r = transfer(&rsync,
                   &format!("{}/.well-known/openpgpkey", c.destination),
                   &fetch.display().to_string())
-                .context("failed to copy the remote WKD hierarchy \
-                          to the local system");
+                .with_context(|| {
+                    format!("failed to fetch the WKD from {}", c.destination)
+                });
             if r.is_err() && ! c.create {
                 return r;
             }
@@ -1295,7 +1296,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                             || advanced_policy.exists())
             {
                 return Err(anyhow::anyhow!(
-                    "Cannot create WKD because {} already contains one",
+                    "Cannot create WKD: {} already contains one",
                     c.destination));
             }
 
@@ -1308,13 +1309,14 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                     (c.method.unwrap_or_default().into(), None)
                 } else {
                     return Err(anyhow::anyhow!("No policy file found")
-                               .context("Neither direct nor advanced \
-                                         WKD detected, consider using \
-                                         --create"))
+                               .context(format!(
+                                   "{} does not appear to be a \
+                                    WKD, consider specifying `--create`",
+                                   c.destination)))
                 },
                 (true, true) =>
                     return Err(anyhow::anyhow!("Two policy files found")
-                               .context("Both direct and advanced \
+                               .context("Invalid WKD: both direct and advanced \
                                          WKD detected")),
             };
             let hu = match variant {
@@ -1386,7 +1388,12 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                                   sq_ref.best_userid(&cert, false));
                     }
 
-                    wkd::insert(&push, &c.domain, variant, &cert)?;
+                    wkd::insert(&push, &c.domain, variant, &cert)
+                        .with_context(|| {
+                            format!("Inserting {}, {}",
+                                    cert.fingerprint(),
+                                    sq.best_userid(&cert, true))
+                        })?;
                 }
                 Ok(())
             })?;
@@ -1395,26 +1402,35 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             for (fpr, cert) in insert.into_iter() {
                 qprintln!("Inserting {}, {}",
                           fpr, sq.best_userid(&cert, false));
-                wkd::insert(&push, &c.domain, variant, &cert)?;
+                wkd::insert(&push, &c.domain, variant, &cert)
+                    .with_context(|| {
+                        format!("Inserting {}, {}",
+                                cert.fingerprint(),
+                                sq.best_userid(&cert, true))
+                    })?;
             }
 
             // Preserve the original policy file, if any.
             if let Some(policy) = policy {
-                match variant {
-                    Variant::Direct => fs::copy(
-                        policy,
-                        push_openpgpkey.join("policy"))?,
-                    Variant::Advanced => fs::copy(
-                        policy,
-                        push_openpgpkey.join(&c.domain).join("policy"))?,
+                let path = match variant {
+                    Variant::Direct => push_openpgpkey.join("policy"),
+                    Variant::Advanced =>
+                        push_openpgpkey.join(&c.domain).join("policy"),
                 };
+
+                fs::copy(policy, &path)
+                    .with_context(|| {
+                        format!("Updating {}", path.display())
+                    })?;
             }
 
             // Finally, transfer the WKD hierarchy back.
             transfer(&rsync, &push_wk.display().to_string(),
                      &format!("{}", c.destination))
-                .context("failed to copy the local WKD hierarchy \
-                          to the remote system")?;
+                .with_context(|| {
+                    format!("failed to push updates to {}",
+                            c.destination)
+                })?;
         },
     }
 

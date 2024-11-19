@@ -1247,6 +1247,9 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                 return Err(anyhow::anyhow!("Failed to resolve certificates"));
             }
 
+            let mut insert = BTreeMap::from_iter(
+                insert.into_iter().map(|c| (c.fingerprint(), c)));
+
             // Make `--rsync-path` imply `--rsync`.
             let rsync = c.rsync_path.take()
                 .or_else(|| c.rsync.then_some("rsync".into()));
@@ -1310,14 +1313,35 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             let push_wk = push.join(".well-known");
             let push_openpgpkey = push_wk.join("openpgpkey");
             fs::create_dir(&push)?;
-            visit_dirs(&hu, &|entry: &DirEntry| -> Result<()> {
+            let insert_ref = &mut insert;
+            visit_dirs(&hu, &mut |entry: &DirEntry| -> Result<()> {
                 let p = entry.path();
                 for cert in CertParser::from_reader(fs::File::open(p)?)? {
                     let mut cert = cert?;
+
+                    // Here we look for updates from the cert store
+                    // and merge them into any certificates in the
+                    // WKD.  Below, we insert explicitly named
+                    // certificates.  If a certificate exists in the
+                    // WKD and is explicitly named, we'll overwrite it
+                    // below.  As such, we also handle explicitly
+                    // named certificates here.
+                    if let Some(update) = insert_ref.remove(&cert.fingerprint()) {
+                        let (cert_, _updated) = cert.insert_packets2(
+                            update.into_packets2())?;
+                        cert = cert_;
+                    }
+
+                    // We still look for updates in the cert store:
+                    // the designated certificate could have been from
+                    // a file with updates that are not in the
+                    // certificate store.
                     if let Ok(update) =
                         cert_store.lookup_by_cert_fpr(&cert.fingerprint())
                     {
-                        cert = cert.merge_public(update.to_cert()?.clone())?;
+                        let (cert_, _updated) = cert.insert_packets2(
+                            update.to_cert()?.clone().into_packets2())?;
+                        cert = cert_;
                     }
 
                     wkd::insert(&push, &c.domain, variant, &cert)?;
@@ -1326,7 +1350,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             })?;
 
             // Insert the new ones, if any.
-            for cert in insert {
+            for (_fpr, cert) in insert.into_iter() {
                 wkd::insert(&push, &c.domain, variant, &cert)?;
             }
 
@@ -1390,7 +1414,7 @@ fn rsync(rsync: &Path, source: &str, destination: &str) -> Result<()> {
 }
 
 // one possible implementation of walking a directory only visiting files
-fn visit_dirs(dir: &Path, cb: &dyn Fn(&DirEntry) -> Result<()>) -> Result<()> {
+fn visit_dirs(dir: &Path, cb: &mut dyn FnMut(&DirEntry) -> Result<()>) -> Result<()> {
     if dir.is_dir() {
         for entry in fs::read_dir(dir)? {
             let entry = entry?;

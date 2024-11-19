@@ -291,8 +291,9 @@ pub fn generate(
             if let Some(output_path) = output.path() {
                 sq.hint(format_args!("You can extract the certificate from the \
                                       generated key by running:"))
-                    .sq().arg("toolbox").arg("extract-cert")
-                    .arg(output_path.display())
+                    .sq().arg("key").arg("delete")
+                    .arg_value("--cert-file", output_path.display())
+                    .arg_value("--output", output_path.with_extension("cert").display())
                     .done();
                 shown = true;
             }
@@ -301,7 +302,7 @@ pub fn generate(
         if ! shown {
             sq.hint(format_args!("You can extract the certificate from the \
                                   generated key using:"))
-                .sq().arg("toolbox").arg("extract-cert").done();
+                .sq().arg("key").arg("delete").done();
         }
     }
 

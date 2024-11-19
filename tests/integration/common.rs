@@ -1972,36 +1972,6 @@ impl Sq {
             .expect("success")
     }
 
-    // Strips the secret key material from input.  Writes it to
-    // `output_file`, if `Some`.
-    pub fn toolbox_extract_cert<'a, P, Q>(&self, input: P,
-                                          output_file: Q)
-        -> Cert
-    where P: AsRef<Path>,
-          Q: Into<Option<&'a Path>>,
-    {
-        let output_file = output_file.into();
-
-        let mut cmd = self.command();
-        cmd.args([ "toolbox", "extract-cert" ]);
-        cmd.arg(input.as_ref());
-        if let Some(output_file) = output_file {
-            cmd.arg("--output").arg(output_file);
-        }
-
-        let output = self.run(cmd, Some(true));
-        if let Some(output_file) = output_file {
-            if output_file != &PathBuf::from("-") {
-                return Cert::from_file(&output_file)
-                   .expect("can parse certificate");
-            }
-        }
-
-        // Read from stdout.
-        Cert::from_bytes(&output.stdout)
-           .expect("can parse certificate")
-    }
-
     // Merges the certificates.
     pub fn keyring_merge_maybe<'a, P, Q>(&self,
                                          input_files: &[P],

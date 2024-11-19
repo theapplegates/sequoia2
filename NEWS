@@ -103,6 +103,8 @@
      `--userid` for user ID designators.
    - The `--binary` argument has been removed from all commands but
      those that emit signed and or encrypted messages.
+   - The command `sq toolbox extract-cert` has been removed in favor
+     of `sq key delete` and `sq key subkey delete`.
 
 * Changes in 0.39.0
 ** Notable changes

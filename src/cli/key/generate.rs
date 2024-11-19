@@ -250,9 +250,9 @@ Generate a key, and save it in a file instead of in the key store.",
             comment: "\
 Strip the secret key material from the new key.",
             command: &[
-                "sq", "toolbox", "extract-cert",
-                "alice-priv.pgp",
-                "--output", "alice.pgp",
+                "sq", "key", "delete",
+                "--cert-file=alice-priv.pgp",
+                "--output=alice.pgp",
             ],
         }),
     ]

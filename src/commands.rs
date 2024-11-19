@@ -26,7 +26,6 @@ pub mod key;
 pub mod network;
 pub mod packet;
 pub mod pki;
-pub mod toolbox;
 pub mod verify;
 pub mod version;
 
@@ -62,8 +61,6 @@ pub fn dispatch(sq: Sq, command: SqCommand) -> Result<()>
             keyring::dispatch(sq, command),
         SqSubcommands::Packet(command) =>
             packet::dispatch(sq, command),
-        SqSubcommands::Toolbox(command) =>
-            toolbox::dispatch(sq, command),
 
         SqSubcommands::Version(command) =>
             version::dispatch(sq, command),

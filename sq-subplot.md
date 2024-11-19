@@ -488,10 +488,10 @@ then stdout contains "UserID: <juliet@example.org>"
 ~~~
 
 
-## Certificate extraction: `sq toolbox extract-cert`
+## Certificate extraction: `sq key delete`
 
 This section covers extraction of certificates from keys: the `sq
-toolbox extract-certificate` subcommand and its variations.
+key delete` subcommand and its variations.
 
 
 ### Extract certificate to the standard output
@@ -502,7 +502,7 @@ output._
 ~~~scenario
 given an installed sq
 when I run sq key generate --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
-when I run sq toolbox extract-cert key.pgp
+when I run sq key delete --cert-file key.pgp --output -
 then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 then stdout contains "-----END PGP PUBLIC KEY BLOCK-----"
 ~~~
@@ -516,28 +516,10 @@ file._
 ~~~scenario
 given an installed sq
 when I run sq key generate --without-password --output key.pgp --rev-cert key.pgp.rev --userid Alice
-when I run sq toolbox extract-cert key.pgp --output cert.pgp
+when I run sq key delete --cert-file key.pgp --output cert.pgp
 when I run sq inspect cert.pgp
 then stdout contains "OpenPGP Certificate."
 then stdout contains "Alice"
-~~~
-
-
-### Extract binary certificate from the standard input
-
-_Requirement: We must be able to extract a certificate from a key read
-from the standard input._
-
-Unfortunately, Subplot does not currently have a way to redirect
-stding from a file. This scenario is inactive and here as a
-placeholder until Subplot learns a new trick.
-
-~~~
-given an installed sq
-when I run sq key generate --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
-when I run sq toolbox extract-cert < key.pgp
-then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
-then stdout contains "-----END PGP PUBLIC KEY BLOCK-----"
 ~~~
 
 
@@ -615,8 +597,8 @@ so we don't change writing to stdout separately.
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox extract-cert alice.pgp --output alice-cert.pgp
-when I run sq toolbox extract-cert bob.pgp --output bob-cert.pgp
+when I run sq key delete --cert-file alice.pgp --output alice-cert.pgp
+when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 when I run sq keyring merge alice-cert.pgp bob-cert.pgp --output ring.pgp
 when I run cat ring.pgp
 then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
@@ -868,7 +850,7 @@ in cleartext, just in case.
 given an installed sq
 given file hello.txt
 when I run sq key generate --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
-when I run sq toolbox extract-cert --output cert.pgp key.pgp
+when I run sq key delete --cert-file key.pgp --output cert.pgp
 when I run sq encrypt --for-file cert.pgp hello.txt
 then stdout contains "-----BEGIN PGP MESSAGE-----"
 then stdout doesn't contain "hello, world"
@@ -887,7 +869,7 @@ in cleartext, just in case.
 given an installed sq
 given file hello.txt
 when I run sq key generate --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
-when I run sq toolbox extract-cert --output cert.pgp key.pgp
+when I run sq key delete --cert-file key.pgp --output cert.pgp
 when I run sq encrypt --binary --for-file cert.pgp hello.txt
 then stdout doesn't contain "-----BEGIN PGP MESSAGE-----"
 then stdout doesn't contain "hello, world"
@@ -909,7 +891,7 @@ files, etc).
 given an installed sq
 given file hello.txt
 when I run sq key generate --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
-when I run sq toolbox extract-cert --output cert.pgp key.pgp
+when I run sq key delete --cert-file key.pgp --output cert.pgp
 when I run sq encrypt --output x.pgp --for-file cert.pgp hello.txt
 when I run sq decrypt --output output.txt --recipient-file key.pgp x.pgp
 then files hello.txt and output.txt match
@@ -925,9 +907,9 @@ recipients at a time._
 given an installed sq
 given file hello.txt
 when I run sq key generate --without-password --no-userids --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq toolbox extract-cert --output alice-cert.pgp alice.pgp
+when I run sq key delete --cert-file alice.pgp --output alice-cert.pgp
 when I run sq key generate --without-password --no-userids --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox extract-cert --output bob-cert.pgp bob.pgp
+when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 
 when I run sq encrypt --for-file alice-cert.pgp --for-file bob-cert.pgp hello.txt --output x.pgp
 
@@ -948,7 +930,7 @@ same time._
 given an installed sq
 given file hello.txt
 when I run sq key generate --without-password --no-userids --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq toolbox extract-cert --output alice-cert.pgp alice.pgp
+when I run sq key delete --cert-file alice.pgp --output alice-cert.pgp
 
 when I run sq encrypt --for-file alice-cert.pgp --signer-file alice.pgp hello.txt --output x.pgp
 
@@ -967,9 +949,9 @@ given an installed sq
 given file hello.txt
 given file empty
 when I run sq key generate --without-password --no-userids --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq toolbox extract-cert --output alice-cert.pgp alice.pgp
+when I run sq key delete --cert-file alice.pgp --output alice-cert.pgp
 when I run sq key generate --without-password --no-userids --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox extract-cert --output bob-cert.pgp bob.pgp
+when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 
 when I run sq encrypt --for-file alice-cert.pgp --signer-file alice.pgp hello.txt --output x.pgp
 
@@ -993,9 +975,9 @@ _Requirement: We can certify a user identity on a key._
 ~~~scenario
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq toolbox extract-cert alice.pgp --output alice-cert.pgp
+when I run sq key delete --cert-file alice.pgp --output alice-cert.pgp
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox extract-cert bob.pgp --output bob-cert.pgp
+when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 
 when I run sq inspect bob-cert.pgp
 then stdout doesn't contain "Certifications:"
@@ -1014,9 +996,9 @@ _Requirement: We can certify a user identity on a key._
 ~~~scenario
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq toolbox extract-cert alice.pgp --output alice-cert.pgp
+when I run sq key delete --cert-file alice.pgp --output alice-cert.pgp
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox extract-cert bob.pgp --output bob-cert.pgp
+when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 
 when I run sq inspect bob-cert.pgp
 then stdout doesn't contain "Certifications:"
@@ -1034,9 +1016,9 @@ email address._
 ~~~scenario
 given an installed sq
 when I run sq key generate --without-password --userid "<alice@example.org>" --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq toolbox extract-cert alice.pgp --output alice-cert.pgp
+when I run sq key delete --cert-file alice.pgp --output alice-cert.pgp
 when I run sq key generate --without-password --userid "<bob@example.org>" --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox extract-cert bob.pgp --output bob-cert.pgp
+when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 
 when I run sq pki vouch certify --certifier-file alice.pgp --cert-file bob-cert.pgp --email bob@example.org --output cert.pgp
 when I run sq inspect cert.pgp
@@ -1052,9 +1034,9 @@ self-signature._
 ~~~scenario
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq toolbox extract-cert alice.pgp --output alice-cert.pgp
+when I run sq key delete --cert-file alice.pgp --output alice-cert.pgp
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox extract-cert bob.pgp --output bob-cert.pgp
+when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 
 when I run sq inspect bob-cert.pgp
 then stdout doesn't contain "Certifications:"
@@ -1074,9 +1056,9 @@ self-signature._
 ~~~scenario
 given an installed sq
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq toolbox extract-cert alice.pgp --output alice-cert.pgp
+when I run sq key delete --cert-file alice.pgp --output alice-cert.pgp
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox extract-cert bob.pgp --output bob-cert.pgp
+when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 
 when I run sq pki vouch certify --certifier-file alice.pgp --cert-file bob-cert.pgp --email-or-add "bob@example.org" --output cert.pgp
 when I run sq inspect cert.pgp
@@ -1142,7 +1124,7 @@ _Requirement: We can sign a file and verify the signature._
 given an installed sq
 given file hello.txt
 when I run sq key generate --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
-when I run sq toolbox extract-cert key.pgp --output cert.pgp
+when I run sq key delete --cert-file key.pgp --output cert.pgp
 when I run sq sign --message --signer-file key.pgp --output signed.pgp hello.txt
 when I run sq verify --message --signer-file cert.pgp signed.pgp
 then stdout contains "hello, world"
@@ -1161,9 +1143,9 @@ not enough, when we need two.
 given an installed sq
 given file hello.txt
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq toolbox extract-cert alice.pgp --output alice-cert.pgp
+when I run sq key delete --cert-file alice.pgp --output alice-cert.pgp
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox extract-cert bob.pgp --output bob-cert.pgp
+when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 
 when I run sq sign --message --signer-file alice.pgp --output signed1.pgp hello.txt
 when I try to run sq verify --message --signer-file alice-cert.pgp --signer-file bob-cert.pgp --signatures=2 signed1.pgp
@@ -1191,7 +1173,7 @@ given an installed sq
 given file hello.txt
 given file sed-in-place
 when I run sq key generate --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
-when I run sq toolbox extract-cert key.pgp --output cert.pgp
+when I run sq key delete --cert-file key.pgp --output cert.pgp
 when I run sq sign --message --signer-file key.pgp --output signed.pgp hello.txt
 when I run sh sed-in-place 3d signed.pgp
 when I try to run sq verify --message --signer-file cert.pgp signed.pgp
@@ -1217,7 +1199,7 @@ included in a readable form._
 given an installed sq
 given file hello.txt
 when I run sq key generate --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
-when I run sq toolbox extract-cert key.pgp --output cert.pgp
+when I run sq key delete --cert-file key.pgp --output cert.pgp
 
 when I run sq sign --cleartext --signer-file key.pgp --output signed.txt hello.txt
 then file signed.txt contains "-----BEGIN PGP SIGNED MESSAGE-----"
@@ -1238,7 +1220,7 @@ given an installed sq
 given file hello.txt
 given file sed-in-place
 when I run sq key generate --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
-when I run sq toolbox extract-cert key.pgp --output cert.pgp
+when I run sq key delete --cert-file key.pgp --output cert.pgp
 
 when I run sq sign --cleartext --signer-file key.pgp --output signed.txt hello.txt
 when I run sh sed-in-place s/hello/HELLO/ signed.txt
@@ -1255,7 +1237,7 @@ data it signs._
 given an installed sq
 given file hello.txt
 when I run sq key generate --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
-when I run sq toolbox extract-cert key.pgp --output cert.pgp
+when I run sq key delete --cert-file key.pgp --output cert.pgp
 
 when I run sq sign --signature-file --signer-file key.pgp --output hello.txt.sig hello.txt
 then file hello.txt.sig contains "-----BEGIN PGP SIGNATURE-----"
@@ -1276,7 +1258,7 @@ given an installed sq
 given file hello.txt
 given file sed-in-place
 when I run sq key generate --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
-when I run sq toolbox extract-cert key.pgp --output cert.pgp
+when I run sq key delete --cert-file key.pgp --output cert.pgp
 
 when I run sq sign --signature-file --signer-file key.pgp --output hello.txt.sig hello.txt
 when I run sh sed-in-place s/hello/HELLO/ hello.txt
@@ -1294,9 +1276,9 @@ message._
 given an installed sq
 given file hello.txt
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq toolbox extract-cert alice.pgp --output alice-cert.pgp
+when I run sq key delete --cert-file alice.pgp --output alice-cert.pgp
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox extract-cert bob.pgp --output bob-cert.pgp
+when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 
 when I run sq sign --message --signer-file alice.pgp --output signed1.pgp hello.txt
 when I run sq sign --message --append --signer-file bob.pgp --output signed2.pgp signed1.pgp
@@ -1314,9 +1296,9 @@ twice separately._
 given an installed sq
 given file hello.txt
 when I run sq key generate --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq toolbox extract-cert alice.pgp --output alice-cert.pgp
+when I run sq key delete --cert-file alice.pgp --output alice-cert.pgp
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
-when I run sq toolbox extract-cert bob.pgp --output bob-cert.pgp
+when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 
 when I run sq sign --message --signer-file alice.pgp --output signed1.pgp hello.txt
 when I run sq sign --message --signer-file bob.pgp --output signed2.pgp hello.txt

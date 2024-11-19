@@ -104,7 +104,6 @@ pub mod output;
 pub mod packet;
 pub mod pki;
 pub mod sign;
-pub mod toolbox;
 pub mod verify;
 pub mod version;
 
@@ -562,7 +561,6 @@ pub enum SqSubcommands {
 
     Keyring(keyring::Command),
     Packet(packet::Command),
-    Toolbox(toolbox::Command),
 
     Version(version::Command),
 }

@@ -1073,7 +1073,7 @@ fn sq_sign_keyring() {
     let mut alice_pub = alice_pgp.clone();
     alice_pub.set_extension("pub");
 
-    sq.toolbox_extract_cert(&alice_pgp, Some(&*alice_pub));
+    sq.key_delete(&alice_pgp, Some(&*alice_pub));
 
     // We pass the secret key material via --keyring.  This should
     // work.

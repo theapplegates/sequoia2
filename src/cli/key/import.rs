@@ -14,9 +14,9 @@ use crate::cli::examples::*;
 pub struct Command {
     #[clap(
         value_name = "KEY_FILE",
-        help = "Import the keys in KEY_FILE",
+        help = "Read from KEY_FILE or stdin if omitted",
     )]
-    pub file: Vec<PathBuf>,
+    pub input: Vec<PathBuf>,
 }
 
 const IMPORT_EXAMPLES: Actions = Actions {

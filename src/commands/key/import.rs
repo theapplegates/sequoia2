@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use sequoia_openpgp as openpgp;
 use openpgp::cert::CertParser;
 use openpgp::parse::Parse;
@@ -5,6 +7,7 @@ use openpgp::parse::Parse;
 use crate::output::import::ImportStats;
 
 use crate::cli;
+use crate::cli::types::FileOrStdin;
 use crate::Sq;
 use crate::Result;
 
@@ -19,11 +22,20 @@ fn import_internal(sq: &Sq, command: cli::key::import::Command,
                    stats: &mut ImportStats)
                    -> Result<()>
 {
+    let inputs = if command.input.is_empty() {
+        vec![ PathBuf::from("-") ]
+    } else {
+        command.input
+    };
+
     // Return the first error.
     let mut ret = Ok(());
 
-    for file in command.file {
-        for r in CertParser::from_file(&file)? {
+    for file in inputs {
+        let input = FileOrStdin::from(file.clone());
+        let input_reader = input.open("OpenPGP keys")?;
+
+        for r in CertParser::from_buffered_reader(input_reader)? {
             let cert = match r {
                 Ok(cert) => cert,
                 Err(err) => {

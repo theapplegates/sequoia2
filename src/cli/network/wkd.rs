@@ -88,13 +88,13 @@ const SEARCH_EXAMPLES: Actions = Actions {
         Action::example().comment(
             "Retrieve Alice's certificate over WKD."
         ).command(&[
-            "sq", "network", "dane", "search", "alice@example.org",
+            "sq", "network", "wkd", "search", "alice@example.org",
         ]).syntax_check(),
 
         Action::example().comment(
             "Retrieve updates for all known certificates over WKD."
         ).command(&[
-            "sq", "network", "dane", "search", "--all",
+            "sq", "network", "wkd", "search", "--all",
         ]).syntax_check(),
     ],
 };

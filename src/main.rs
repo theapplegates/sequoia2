@@ -193,10 +193,8 @@ fn real_main() -> Result<()> {
         cli.clone().try_get_matches()
     };
 
-    let c = match matches {
-        Ok(matches) => {
-            cli::SqCommand::from_arg_matches(&matches)?
-        }
+    let matches = match matches {
+        Ok(matches) => matches,
         Err(err) => {
             // Warning: hack ahead!
             //
@@ -257,6 +255,7 @@ fn real_main() -> Result<()> {
             std::process::exit(err.exit_code());
         }
     };
+    let c = cli::SqCommand::from_arg_matches(&matches)?;
 
     let time_is_now = c.time.is_none();
     let time: SystemTime = if let Some(t) = c.time.as_ref() {
@@ -323,7 +322,65 @@ fn real_main() -> Result<()> {
         password_cache: password_cache.into(),
     };
 
-    commands::dispatch(sq, c)
+    match commands::dispatch(sq, c) {
+        Ok(()) => Ok(()),
+        Err(err) => {
+            use clap::error::ErrorFormatter;
+
+            if err.is::<clap::Error>() {
+                // We want to go from an ArgMatches to the
+                // corresponding Command.  Given an ArgMatches, we can
+                // walk down it, to get the name of each (sub)command.
+                // Then we can walk down the top-level Command to get
+                // the
+
+                // Recover the subcommands, e.g., &["key", "list"].
+                let mut m = &matches;
+                let mut trail = Vec::new();
+                while let Some((name, matches)) = m.subcommand() {
+                    trail.push(name);
+                    m = matches;
+                }
+
+                // Get the corresponding command in `cli`.
+                let mut command = Some(&mut cli);
+                for intermediate in trail.into_iter() {
+                    if let Some(c) = command {
+                        command = c.find_subcommand_mut(intermediate);
+                    }
+                }
+
+                let err = err.downcast::<clap::Error>().unwrap();
+                let exit_code = err.exit_code();
+                if let Some(mut command) = command {
+                    let err = err.format(&mut command);
+
+                    err.print()?;
+
+                    if let Some(examples) = command.get_after_help() {
+                        wprintln!("\n{}", examples);
+                    }
+                } else {
+                    // Ummm... something went wrong: we should be able
+                    // to find the subcommand.  But let's not panic.
+                    // Just show the error, and quit.
+                    if err.use_stderr() {
+                        eprintln!(
+                            "{}",
+                            clap::error::RichFormatter::format_error(&err));
+                    } else {
+                        println!(
+                            "{}",
+                            clap::error::RichFormatter::format_error(&err));
+                    }
+                }
+
+                std::process::exit(exit_code);
+            } else {
+                Err(err)
+            }
+        }
+    }
 }
 
 fn parse_notations<N>(n: N) -> Result<Vec<(bool, NotationData)>>

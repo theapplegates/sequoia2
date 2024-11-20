@@ -14,12 +14,98 @@ pub struct Setup<'a> {
     pub command: &'a [ &'a str ],
 }
 
+/// Builds up setup actions in an extensible way.
+pub struct SetupBuilder<'a> {
+    setup: Setup<'a>,
+}
+
+impl<'a> SetupBuilder<'a> {
+    /// Returns a new setup builder.
+    const fn new() -> Self {
+        SetupBuilder {
+            setup: Setup {
+                command: &[],
+            }
+        }
+    }
+
+    /// Provides the command as slice.
+    ///
+    /// It'd be nice to provide a per-argument interface, but that
+    /// requires some ingenuity for it to stay const.
+    pub const fn command(mut self, command: &'a [&'a str]) -> Self {
+        self.setup.command = command;
+        self
+    }
+
+    /// Finishes building the setup action.
+    pub const fn build(self) -> Action<'a> {
+        assert!(! self.setup.command.is_empty());
+        Action::Setup(self.setup)
+    }
+}
+
 /// A command that is executed by the integration test, and shown in
 /// the manual pages.
 pub struct Example<'a> {
     // A human-readable comment.
     pub comment: &'a str,
     pub command: &'a [ &'a str ],
+}
+
+/// Builds up example actions in an extensible way.
+pub struct ExampleBuilder<'a> {
+    example: Example<'a>,
+}
+
+impl<'a> ExampleBuilder<'a> {
+    /// Returns a new example builder.
+    const fn new() -> Self {
+        ExampleBuilder {
+            example: Example {
+                comment: "",
+                command: &[],
+            }
+        }
+    }
+
+    /// Provides the comment.
+    ///
+    /// It'd be nice to provide a per-argument interface, but that
+    /// requires some ingenuity for it to stay const.
+    pub const fn comment(mut self, comment: &'a str) -> Self {
+        self.example.comment = comment;
+        self
+    }
+
+    /// Provides the command as slice.
+    ///
+    /// It'd be nice to provide a per-argument interface, but that
+    /// requires some ingenuity for it to stay const.
+    pub const fn command(mut self, command: &'a [&'a str]) -> Self {
+        self.example.command = command;
+        self
+    }
+
+    /// Finishes building the example action.
+    ///
+    /// The example will be executed by the test.
+    pub const fn build(self) -> Action<'a> {
+        assert!(! self.example.comment.is_empty());
+        assert!(! self.example.command.is_empty());
+        Action::Example(self.example)
+    }
+
+    /// Finishes building the example action, marking it for syntax
+    /// checking only.
+    ///
+    /// The example will not be executed by the test, but the syntax
+    /// will be checked using our command line parser.
+    pub const fn syntax_check(self) -> Action<'a> {
+        assert!(! self.example.comment.is_empty());
+        assert!(! self.example.command.is_empty());
+        Action::SyntaxCheck(self.example)
+    }
 }
 
 /// An action to execute.
@@ -39,6 +125,16 @@ pub enum Action<'a> {
 }
 
 impl<'a> Action<'a> {
+    /// Creates a setup action.
+    pub const fn setup() -> SetupBuilder<'a> {
+        SetupBuilder::new()
+    }
+
+    /// Creates an example action.
+    pub const fn example() -> ExampleBuilder<'a> {
+        ExampleBuilder::new()
+    }
+
     /// Return the action's command, if any.
     #[allow(dead_code)]
     pub fn command(&self) -> Option<&'a [ &'a str ]> {

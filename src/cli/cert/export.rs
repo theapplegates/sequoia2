@@ -9,65 +9,39 @@ use crate::cli::examples::*;
 
 const EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--userid=Alice <alice@example.org>",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "pki", "link", "add",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--userid=Alice <alice@example.org>",
+        ]).build(),
 
-        Action::Setup(Setup {
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "--userid=Bob <bob@example.org>",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "pki", "link", "add",
+            "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+            "--userid=Bob <bob@example.org>",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "Export all certificates.",
-            command: &[
-                "sq", "cert", "export", "--all",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Export certificates with a matching User ID packet.  The binding \
-signatures are checked, and the User IDs are authenticated. \
-Note: this check is case sensitive.",
-            command: &[
-                "sq", "cert", "export",
-                "--cert-userid", "Alice <alice@example.org>",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Export certificates with a User ID containing the email address. \
-The binding signatures are checked, and the User IDs are \
-authenticated.  Note: this check is case insensitive.",
-            command: &[
-                "sq", "cert", "export", "--cert-email", "alice@example.org",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Export certificates where a certificate's primary key or a subkey \
-has the specified Key ID.",
-            command: &[
-                "sq", "cert", "export", "--cert", "6F0073F60FD0CBF0",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Export certificates that contain a User ID with *either* (not both!) \
-email address.  Note: this check is case insensitive.",
-            command: &[
-                "sq", "cert", "export",
-                "--cert-email", "alice@example.org",
-                "--cert-email", "bob@example.org",
-            ],
-        }),
+        Action::example().comment(
+            "Export certificates with a User ID containing the \
+             email address."
+        ).command(&[
+            "sq", "cert", "export", "--cert-email=alice@example.org",
+        ]).build(),
+
+        Action::example().comment(
+            "Export certificates that contain a User ID with *either* \
+             (not both!) email address."
+        ).command(&[
+            "sq", "cert", "export",
+            "--cert-email=alice@example.org",
+            "--cert-email=bob@example.org",
+        ]).build(),
+
+        Action::example().comment(
+            "Export all certificates."
+        ).command(&[
+            "sq", "cert", "export", "--all",
+        ]).build(),
     ],
 };
 

@@ -230,6 +230,11 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
 
     let reference_time = sq.time;
 
+    // If no inputs are given, read from stdin.
+    if args.certs.is_empty() {
+        args.certs.designators.push(CertDesignator::Stdin);
+    }
+
     let mut out = if args.output.is_some()
         || args.certs.iter().any(|d| d.from_file() || d.from_stdin())
     {
@@ -249,11 +254,6 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
     } else {
         None
     };
-
-    // If no inputs are given, read from stdin.
-    if args.certs.is_empty() {
-        args.certs.designators.push(CertDesignator::Stdin);
-    }
 
     {
         'next_cert: for cert in sq.resolve_certs_or_fail(&args.certs, 0)? {

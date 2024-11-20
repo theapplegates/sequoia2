@@ -171,9 +171,9 @@ may change line endings.  In doubt, create binary signatures.",
         long,
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
-        help = "Add a notation to the certification.",
+        help = "Add a notation to the signature.",
         conflicts_with = "merge",
-        long_help = "Add a notation to the certification.  \
+        long_help = "Add a notation to the signature.  \
             A user-defined notation's name must be of the form \
             `name@a.domain.you.control.org`. If the notation's name starts \
             with a `!`, then the notation is marked as being critical.  If a \

@@ -290,13 +290,18 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         Ok(Some(self.cert_store.get().expect("just configured")))
     }
 
+    fn no_cert_store_err() -> clap::Error {
+        clap::Error::raw(clap::error::ErrorKind::ArgumentConflict,
+                         "Operation requires a certificate store, \
+                          but the certificate store is disabled")
+    }
+
     /// Returns the cert store.
     ///
     /// If the cert store is disabled, returns an error.
     pub fn cert_store_or_else(&self) -> Result<&WotStore<'store, 'rstore>> {
         self.cert_store().and_then(|cert_store| cert_store.ok_or_else(|| {
-            anyhow::anyhow!("Operation requires a certificate store, \
-                             but the certificate store is disabled")
+            Self::no_cert_store_err().into()
         }))
     }
 
@@ -308,9 +313,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         -> Result<Option<&mut WotStore<'store, 'rstore>>>
     {
         if self.no_rw_cert_store() {
-            return Err(anyhow::anyhow!(
-                "Operation requires a certificate store, \
-                 but the certificate store is disabled"));
+            return Err(Self::no_cert_store_err().into());
         }
 
         // self.cert_store() will do any required initialization, but
@@ -327,8 +330,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         -> Result<&mut WotStore<'store, 'rstore>>
     {
         self.cert_store_mut().and_then(|cert_store| cert_store.ok_or_else(|| {
-            anyhow::anyhow!("Operation requires a certificate store, \
-                             but the certificate store is disabled")
+            Self::no_cert_store_err().into()
         }))
     }
 
@@ -384,19 +386,23 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         }
     }
 
+    fn no_key_store_err() -> clap::Error {
+        clap::Error::raw(clap::error::ErrorKind::ArgumentConflict,
+                         "Operation requires a key store, \
+                          but the key store is disabled")
+    }
+
     /// Returns the key store's path.
     ///
     /// If the key store is disabled, returns an error.
     pub fn key_store_path_or_else(&self) -> Result<PathBuf> {
-        const NO_KEY_STORE_ERROR: &str =
-            "Operation requires a key store, \
-             but the key store is disabled";
-
         if self.no_key_store() {
-            Err(anyhow::anyhow!(NO_KEY_STORE_ERROR))
+            Err(Self::no_key_store_err().into())
         } else {
             self.key_store_path()?
-                .ok_or(anyhow::anyhow!(NO_KEY_STORE_ERROR))
+                .ok_or_else(|| {
+                    Self::no_key_store_err().into()
+                })
         }
     }
 
@@ -427,8 +433,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// If the key store is disabled, returns an error.
     pub fn key_store_or_else(&self) -> Result<&Mutex<keystore::Keystore>> {
         self.key_store().and_then(|key_store| key_store.ok_or_else(|| {
-            anyhow::anyhow!("Operation requires a key store, \
-                             but the key store is disabled")
+            Self::no_key_store_err().into()
         }))
     }
 

@@ -1,5 +1,6 @@
 use clap::{Args, Parser, Subcommand};
 
+use crate::cli::examples::*;
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
 use crate::cli::types::FileOrStdout;
@@ -69,7 +70,8 @@ is in turn certified as a minimally trusted CA (trust amount: 1 of \
 120) by the local trust root.  How much a proxy key server CA is \
 trusted can be tuned using `sq pki link add` or `sq pki link retract` in \
 the usual way.
-"
+",
+    after_help = SEARCH_EXAMPLES,
 )]
 pub struct SearchCommand {
     #[clap(
@@ -96,6 +98,40 @@ pub struct SearchCommand {
     pub query: Vec<String>,
 }
 
+const SEARCH_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::example().comment(
+            "Retrieve Alice's certificate from the default keyservers."
+        ).command(&[
+            "sq", "network", "keyserver", "search", "alice@example.org",
+        ]).syntax_check(),
+
+        Action::example().comment(
+            "Retrieve Alice's certificate addressed by fingerprint \
+             from the default keyservers."
+        ).command(&[
+            "sq", "network", "keyserver", "search",
+            "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+        ]).syntax_check(),
+
+        Action::example().comment(
+            "Retrieve Alice's certificate from a non-default keyserver."
+        ).command(&[
+            "sq", "network", "keyserver", "search",
+            "--server=hkps://keys.example.org",
+            "alice@example.org",
+        ]).syntax_check(),
+
+        Action::example().comment(
+            "Retrieve updates for all known certificates from the default \
+             keyservers."
+        ).command(&[
+            "sq", "network", "keyserver", "search", "--all",
+        ]).syntax_check(),
+    ],
+};
+test_examples!(sq_network_keyserver_search, SEARCH_EXAMPLES);
+
 #[derive(Debug, Args)]
 #[clap(
     about = "Publish certificates on key servers",
@@ -107,12 +143,25 @@ default, the certificates are sent to {}.  This can be tweaked using \
 `--servers`.
 ",
         join(DEFAULT_KEYSERVERS.iter().cloned())),
+    after_help = PUBLISH_EXAMPLES,
 )]
 pub struct PublishCommand {
     #[command(flatten)]
     pub certs: CertDesignators<FileCertUserIDEmailDomainArgs,
                                CertPrefix>,
 }
+
+const PUBLISH_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::example().comment(
+            "Publish Alice's certificate on the default keyservers."
+        ).command(&[
+            "sq", "network", "keyserver", "publish",
+            "--cert-email=alice@example.org",
+        ]).syntax_check(),
+    ],
+};
+test_examples!(sq_network_keyserver_publish, PUBLISH_EXAMPLES);
 
 /// Joins the given key server URLs into a list.
 fn join<'a>(i: impl Iterator<Item = &'a str>) -> String {

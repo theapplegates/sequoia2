@@ -57,7 +57,8 @@ certificate is in turn certified as a minimally trusted CA (trust \
 amount: 1 of 120) by the local trust root.  How much the WKD proxy CA \
 is trusted can be tuned using `sq pki link add` or `sq pki link retract` \
 in the usual way.
-"
+",
+    after_help = SEARCH_EXAMPLES,
 )]
 pub struct SearchCommand {
     #[clap(
@@ -81,6 +82,23 @@ pub struct SearchCommand {
     )]
     pub output: Option<FileOrStdout>,
 }
+
+const SEARCH_EXAMPLES: Actions = Actions {
+    actions: &[
+        Action::example().comment(
+            "Retrieve Alice's certificate over WKD."
+        ).command(&[
+            "sq", "network", "dane", "search", "alice@example.org",
+        ]).syntax_check(),
+
+        Action::example().comment(
+            "Retrieve updates for all known certificates over WKD."
+        ).command(&[
+            "sq", "network", "dane", "search", "--all",
+        ]).syntax_check(),
+    ],
+};
+test_examples!(sq_network_wkd_search, SEARCH_EXAMPLES);
 
 const PUBLISH_EXAMPLES: Actions = Actions {
     actions: &[

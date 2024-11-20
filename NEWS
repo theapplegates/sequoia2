@@ -108,6 +108,7 @@
    - The command `sq packet split` now writes to stdout by default.
    - The argument `sq packets split --prefix` is now called
      `--output-prefix`.
+   - `sq pki vouch certify` is now called `sq pki vouch add`.
 
 * Changes in 0.39.0
 ** Notable changes

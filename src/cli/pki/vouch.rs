@@ -1,7 +1,7 @@
 //! Command-line parser for `sq pki vouch`.
 
 pub mod authorize;
-pub mod certify;
+pub mod add;
 
 use clap::{Parser, Subcommand};
 
@@ -71,7 +71,7 @@ const VOUCH_EXAMPLES: Actions = Actions {
             comment: "\
 Certify EB28F26E2739A4870ECC47726F0073F60FD0CBF0 for alice@example.org.",
             command: &[
-                "sq", "pki", "vouch", "certify",
+                "sq", "pki", "vouch", "add",
                 "--certifier=E7FC51AD886BBB5C4F44C3D7A9DA14F3E740F63F",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
@@ -95,6 +95,6 @@ test_examples!(sq_pki_vouch, VOUCH_EXAMPLES);
 
 #[derive(Debug, Subcommand)]
 pub enum Subcommands {
-    Certify(certify::Command),
+    Add(add::Command),
     Authorize(authorize::Command),
 }

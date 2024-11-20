@@ -2,11 +2,11 @@ use sequoia_openpgp as openpgp;
 use openpgp::Result;
 
 use crate::Sq;
-use crate::cli::pki::vouch::certify;
+use crate::cli::pki::vouch::add;
 use crate::commands::FileOrStdout;
 use crate::parse_notations;
 
-pub fn certify(sq: Sq, mut c: certify::Command)
+pub fn add(sq: Sq, mut c: add::Command)
     -> Result<()>
 {
     let certifier =

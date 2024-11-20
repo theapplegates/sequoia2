@@ -30,7 +30,7 @@ mod integration {
     mod sq_pki;
     mod sq_pki_link;
     mod sq_pki_link_authorize;
-    mod sq_pki_vouch_certify;
+    mod sq_pki_vouch_add;
     mod sq_pki_vouch_authorize;
     mod sq_sign;
     mod sq_verify;

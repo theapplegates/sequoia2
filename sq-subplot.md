@@ -963,7 +963,7 @@ then file alice.txt does not exist
 
 
 
-# Certify user identities: `sq pki vouch certify`
+# Certify user identities: `sq pki vouch add`
 
 The scenarios in this chapter verify the certification functionality:
 the subcommand `sq certify` in its various variations.
@@ -982,7 +982,7 @@ when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 when I run sq inspect bob-cert.pgp
 then stdout doesn't contain "Certifications:"
 
-when I run sq pki vouch certify --certifier-file alice.pgp --cert-file bob-cert.pgp --userid Bob --output cert.pgp
+when I run sq pki vouch add --certifier-file alice.pgp --cert-file bob-cert.pgp --userid Bob --output cert.pgp
 then file cert.pgp contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 then file cert.pgp contains "-----END PGP PUBLIC KEY BLOCK-----"
 when I run sq inspect cert.pgp
@@ -1003,7 +1003,7 @@ when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 when I run sq inspect bob-cert.pgp
 then stdout doesn't contain "Certifications:"
 
-when I run sq pki vouch certify --certifier-file alice.pgp --cert-file bob-cert.pgp --userid Bob --output cert.pgp
+when I run sq pki vouch add --certifier-file alice.pgp --cert-file bob-cert.pgp --userid Bob --output cert.pgp
 when I run sq inspect cert.pgp
 then stdout contains "Certifications: 1,"
 ~~~
@@ -1020,7 +1020,7 @@ when I run sq key delete --cert-file alice.pgp --output alice-cert.pgp
 when I run sq key generate --without-password --userid "<bob@example.org>" --output bob.pgp --rev-cert bob.pgp.rev
 when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 
-when I run sq pki vouch certify --certifier-file alice.pgp --cert-file bob-cert.pgp --email bob@example.org --output cert.pgp
+when I run sq pki vouch add --certifier-file alice.pgp --cert-file bob-cert.pgp --email bob@example.org --output cert.pgp
 when I run sq inspect cert.pgp
 then stdout contains "Certifications: 1,"
 ~~~
@@ -1041,7 +1041,7 @@ when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 when I run sq inspect bob-cert.pgp
 then stdout doesn't contain "Certifications:"
 
-when I run sq pki vouch certify --certifier-file alice.pgp --cert-file bob-cert.pgp --userid-or-add "My friend Bob" --output cert.pgp
+when I run sq pki vouch add --certifier-file alice.pgp --cert-file bob-cert.pgp --userid-or-add "My friend Bob" --output cert.pgp
 when I run sq inspect cert.pgp
 then stdout contains "My friend Bob"
 then stdout contains "Certifications: 1,"
@@ -1060,7 +1060,7 @@ when I run sq key delete --cert-file alice.pgp --output alice-cert.pgp
 when I run sq key generate --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
 when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 
-when I run sq pki vouch certify --certifier-file alice.pgp --cert-file bob-cert.pgp --email-or-add "bob@example.org" --output cert.pgp
+when I run sq pki vouch add --certifier-file alice.pgp --cert-file bob-cert.pgp --email-or-add "bob@example.org" --output cert.pgp
 when I run sq inspect cert.pgp
 then stdout contains "<bob@example.org>"
 then stdout contains "Certifications: 1,"

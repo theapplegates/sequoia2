@@ -1513,7 +1513,7 @@ impl Sq {
     ///
     /// If `output_file` is `Some`, then the output is written to that
     /// file.  Otherwise, the default behavior is followed.
-    pub fn pki_vouch_certify_p<'a, 'b, H, C, U, Q>(
+    pub fn try_pki_vouch_add<'a, 'b, H, C, U, Q>(
         &self, extra_args: &[&str],
         certifier: H,
         cert: C, userids: &[U],
@@ -1534,7 +1534,7 @@ impl Sq {
         let output_file = output_file.into();
 
         let mut cmd = self.command();
-        cmd.args([ "pki", "vouch", "certify" ]);
+        cmd.args([ "pki", "vouch", "add" ]);
         for arg in extra_args {
             cmd.arg(arg);
         }
@@ -1567,7 +1567,7 @@ impl Sq {
     }
 
     /// Certify the user ID binding.
-    pub fn pki_vouch_certify<'a, 'b, H, C, U, Q>(
+    pub fn pki_vouch_add<'a, 'b, H, C, U, Q>(
         &self, extra_args: &[&str],
         certifier: H,
         cert: C, userids: &[U],
@@ -1578,7 +1578,7 @@ impl Sq {
           U: Into<UserIDArg<'a>> + Clone,
           Q: Into<Option<&'b Path>>,
     {
-        self.pki_vouch_certify_p(
+        self.try_pki_vouch_add(
             extra_args, certifier, cert, userids, output_file, true)
             .expect("success")
     }

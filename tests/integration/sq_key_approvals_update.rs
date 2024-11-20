@@ -59,7 +59,7 @@ fn update_files() -> Result<()> {
 
     // Have Bob certify Alice.
     let alice2_pub_pgp = sq.scratch_file("alice2_pub");
-    let alice2 = sq.pki_vouch_certify(&[],
+    let alice2 = sq.pki_vouch_add(&[],
                                       &bob_pgp,
                                       &alice_pgp,
                                       &[alice_userid],
@@ -108,7 +108,7 @@ fn update_all() -> Result<()> {
                .attested_certifications().count(), 0);
 
     // Have Bob certify Alice.
-    let alice2 = sq.pki_vouch_certify(&[],
+    let alice2 = sq.pki_vouch_add(&[],
                                       bob.key_handle(),
                                       alice.key_handle(),
                                       &[ALICE_USERID],
@@ -159,7 +159,7 @@ fn update_by() -> Result<()> {
                .attested_certifications().count(), 0);
 
     // Have Bob certify Alice.
-    let alice2 = sq.pki_vouch_certify(&[],
+    let alice2 = sq.pki_vouch_add(&[],
                                       bob.key_handle(),
                                       alice.key_handle(),
                                       &[ALICE_USERID],
@@ -201,7 +201,7 @@ fn update_authenticated() -> Result<()> {
     let bob_fp = bob.fingerprint().to_string();
 
     // Have Bob certify Alice.
-    let alice2 = sq.pki_vouch_certify(&[],
+    let alice2 = sq.pki_vouch_add(&[],
                                       bob.key_handle(),
                                       alice.key_handle(),
                                       &[ALICE_USERID],
@@ -248,7 +248,7 @@ fn ignore_shadow_ca() {
     let (alice, bob) = make_keys(&sq).unwrap();
 
     // Have Bob certify Alice.
-    let alice2 = sq.pki_vouch_certify(&[],
+    let alice2 = sq.pki_vouch_add(&[],
                                       bob.key_handle(),
                                       alice.key_handle(),
                                       &[ALICE_USERID],
@@ -260,7 +260,7 @@ fn ignore_shadow_ca() {
     let shadow_ca = Cert::from_file(&shadow_ca).unwrap();
 
     // Have the shadow CA certify Alice.
-    let alice2 = sq.pki_vouch_certify(&[],
+    let alice2 = sq.pki_vouch_add(&[],
                                       &shadow_ca.key_handle(),
                                       alice.key_handle(),
                                       &[ALICE_USERID],
@@ -291,7 +291,7 @@ fn ignore_unexportable_certifications() {
     let (alice, bob) = make_keys(&sq).unwrap();
 
     // Have Bob create a non-exportable certification for Alice.
-    let alice2 = sq.pki_vouch_certify(&["--local"],
+    let alice2 = sq.pki_vouch_add(&["--local"],
                                       bob.key_handle(),
                                       alice.key_handle(),
                                       &[ALICE_USERID],

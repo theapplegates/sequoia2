@@ -1,4 +1,4 @@
-//! Command-line parser for `sq pki vouch certify`.
+//! Command-line parser for `sq pki vouch add`.
 
 use clap::Parser;
 
@@ -16,7 +16,7 @@ use crate::cli::types::userid_designator;
 
 use crate::cli::examples::*;
 
-const CERTIFY_EXAMPLES: Actions = Actions {
+const ADD_EXAMPLES: Actions = Actions {
     actions: &[
         Action::Setup(Setup {
             command: &[
@@ -28,7 +28,7 @@ const CERTIFY_EXAMPLES: Actions = Actions {
             comment: "\
 Alice certifies that Bob controls 3F68CB84CE537C9A and bob@example.org.",
             command: &[
-                "sq", "pki", "vouch", "certify",
+                "sq", "pki", "vouch", "add",
                 "--certifier=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
                 "--email=bob@example.org",
@@ -40,7 +40,7 @@ Alice certifies that Bob controls 3F68CB84CE537C9A and bob@example.org.",
 Alice certifies that Bob controls 3F68CB84CE537C9A and bob@bobs.lair.net, \
 which is not a self-signed user ID.",
             command: &[
-                "sq", "pki", "vouch", "certify",
+                "sq", "pki", "vouch", "add",
                 "--certifier=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
                 "--email-or-add=bob@bobs.lair.net",
@@ -48,11 +48,11 @@ which is not a self-signed user ID.",
         }),
     ],
 };
-test_examples!(sq_pki_vouch_certify, CERTIFY_EXAMPLES);
+test_examples!(sq_pki_vouch_add, ADD_EXAMPLES);
 
 #[derive(Parser, Debug)]
 #[clap(
-    name = "certify",
+    name = "add",
     about = "Certify a User ID for a Certificate",
     long_about = format!(
 "Certify a User ID for a Certificate
@@ -72,13 +72,13 @@ Using the `--expiration` argument specific validity periods may be defined. \
 It allows for providing a point in time for validity to end or a validity \
 duration.
 
-`sq pki vouch certify` respects the reference time set by the top-level \
+`sq pki vouch add` respects the reference time set by the top-level \
 `--time` argument.  It sets the certification's creation time to the \
 reference time.
 ",
         THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS,
     ),
-    after_help = CERTIFY_EXAMPLES,
+    after_help = ADD_EXAMPLES,
 )]
 #[clap(mut_arg("expiration", |arg| {
     arg.default_value(Expiration::from_duration(THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION))

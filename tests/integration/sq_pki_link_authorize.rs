@@ -35,7 +35,7 @@ fn sq_pki_link_authorize_then_authenticate() {
         // The ca certifies alice's and bob's certificates for each of
         // their user IDs.
         let certification = sq.scratch_file(None);
-        sq.pki_vouch_certify(
+        sq.pki_vouch_add(
             &[],
             ca.key_handle(), alice.key_handle(),
             &[ alice_example_org ],
@@ -43,7 +43,7 @@ fn sq_pki_link_authorize_then_authenticate() {
         sq.cert_import(&certification);
 
         let certification = sq.scratch_file(None);
-        sq.pki_vouch_certify(
+        sq.pki_vouch_add(
             &[],
             ca.key_handle(), bob.key_handle(),
             &[ bob_example_org, bob_other_org ],
@@ -261,7 +261,7 @@ fn retract_explicit() {
 
         // The ca certifies alice's certificate
         let certification = sq.scratch_file(None);
-        sq.pki_vouch_certify(&[],
+        sq.pki_vouch_add(&[],
                              ca.key_handle(), alice.key_handle(),
                              &[ alice_example_org ],
                              certification.as_path());
@@ -340,7 +340,7 @@ fn retract_non_self_signed() {
 
     // The ca certifies alice's certificate
     let certification = sq.scratch_file(None);
-    sq.pki_vouch_certify(&[],
+    sq.pki_vouch_add(&[],
                          ca.key_handle(), alice.key_handle(),
                          &[ alice_example_org ],
                          certification.as_path());
@@ -406,7 +406,7 @@ fn retract_all() {
 
     // The ca certifies alice's certificate
     let certification = sq.scratch_file(None);
-    sq.pki_vouch_certify(&[],
+    sq.pki_vouch_add(&[],
                          ca.key_handle(), alice.key_handle(),
                          &[ alice_example_org ],
                          certification.as_path());
@@ -482,7 +482,7 @@ fn sq_pki_link_all_revoked() {
 
     // The ca certifies alice's certificate.
     let certification = sq.scratch_file(None);
-    sq.pki_vouch_certify(
+    sq.pki_vouch_add(
         &[],
         ca.key_handle(), alice.key_handle(),
         &[ alice_example_org ],

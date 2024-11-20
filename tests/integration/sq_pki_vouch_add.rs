@@ -20,7 +20,7 @@ use super::common::Sq;
 const P: &StandardPolicy = &StandardPolicy::new();
 
 #[test]
-fn sq_pki_vouch_certify() -> Result<()> {
+fn sq_pki_vouch_add() -> Result<()> {
     let mut sq = Sq::new();
 
     let (alice, alice_pgp, _alice_rev)
@@ -46,7 +46,7 @@ fn sq_pki_vouch_certify() -> Result<()> {
         // A simple certification.
         sq.tick(1);
         let bob_pgp_new = sq.scratch_file("bob");
-        let cert = sq.pki_vouch_certify(
+        let cert = sq.pki_vouch_add(
             &[], &alice_handle, bob_pgp.last().unwrap(), &["<bob@example.org>"],
             Some(&*bob_pgp_new));
         bob_pgp.push(bob_pgp_new);
@@ -81,7 +81,7 @@ fn sq_pki_vouch_certify() -> Result<()> {
         // No expiration.
         sq.tick(1);
         let bob_pgp_new = sq.scratch_file(None);
-        let cert = sq.pki_vouch_certify(
+        let cert = sq.pki_vouch_add(
             &["--expiration", "never"],
             &alice_handle, bob_pgp.last().unwrap(), &["<bob@example.org>"],
             Some(&*bob_pgp_new));
@@ -159,14 +159,14 @@ fn sq_pki_vouch_certify() -> Result<()> {
         assert!(ok, "Didn't find user id");
 
         // It should fail if the User ID doesn't exist.
-        assert!(sq.pki_vouch_certify_p(
+        assert!(sq.try_pki_vouch_add(
             &[], &alice_handle, bob_pgp.last().unwrap(), &["bob"],
             None, false).is_err());
 
         // With a notation.
         sq.tick(1);
         let bob_pgp_new = sq.scratch_file(None);
-        let cert = sq.pki_vouch_certify(
+        let cert = sq.pki_vouch_add(
             &[
                 "--notation", "foo", "bar",
                 "--notation", "!foo", "xyzzy",
@@ -255,7 +255,7 @@ fn sq_pki_vouch_certify() -> Result<()> {
 }
 
 #[test]
-fn sq_pki_vouch_certify_creation_time() -> Result<()>
+fn sq_pki_vouch_add_creation_time() -> Result<()>
 {
     // $ date +'%Y%m%dT%H%M%S%z'; date +'%s'
     let t = 1642692756;
@@ -284,7 +284,7 @@ fn sq_pki_vouch_certify_creation_time() -> Result<()>
         };
 
         // Alice certifies bob's key.
-        let cert = sq.pki_vouch_certify(
+        let cert = sq.pki_vouch_add(
             &[], &alice_handle, &bob_pgp, &[bob], None);
 
         assert_eq!(cert.bad_signatures().count(), 0,
@@ -321,7 +321,7 @@ fn sq_pki_vouch_certify_creation_time() -> Result<()>
 }
 
 #[test]
-fn sq_pki_vouch_certify_with_expired_key() -> Result<()>
+fn sq_pki_vouch_add_with_expired_key() -> Result<()>
 {
     let seconds_in_day = 24 * 60 * 60;
 
@@ -357,7 +357,7 @@ fn sq_pki_vouch_certify_with_expired_key() -> Result<()>
         sq.tick(validity_seconds + 1);
 
         // Make sure using an expired key fails by default.
-        assert!(sq.pki_vouch_certify_p(
+        assert!(sq.try_pki_vouch_add(
             &[], &alice_handle, &bob_pgp, &[bob], Some(&*bob_pgp), false).is_err());
     }
 
@@ -365,7 +365,7 @@ fn sq_pki_vouch_certify_with_expired_key() -> Result<()>
 }
 
 #[test]
-fn sq_pki_vouch_certify_with_revoked_key() -> Result<()>
+fn sq_pki_vouch_add_with_revoked_key() -> Result<()>
 {
     let seconds_in_day = 24 * 60 * 60;
 
@@ -418,7 +418,7 @@ fn sq_pki_vouch_certify_with_revoked_key() -> Result<()>
         sq.tick(delta);
 
         // Make sure using an expired key fails by default.
-        assert!(sq.pki_vouch_certify_p(
+        assert!(sq.try_pki_vouch_add(
             &[], &alice_handle, &bob_pgp, &[bob], None, false).is_err());
     }
 
@@ -427,7 +427,7 @@ fn sq_pki_vouch_certify_with_revoked_key() -> Result<()>
 
 // Certify a certificate in the cert store.
 #[test]
-fn sq_pki_vouch_certify_using_cert_store() -> Result<()>
+fn sq_pki_vouch_add_using_cert_store() -> Result<()>
 {
     let mut sq = Sq::new();
 
@@ -454,7 +454,7 @@ fn sq_pki_vouch_certify_using_cert_store() -> Result<()>
         sq.tick(1);
 
         // Have alice certify bob.
-        let found = sq.pki_vouch_certify(
+        let found = sq.pki_vouch_add(
             &[], &alice_handle,
             bob_key.key_handle(), &["<bob@example.org>"],
             None);
@@ -484,7 +484,7 @@ fn sq_pki_vouch_certify_using_cert_store() -> Result<()>
 
 // Make sure we reject making self signatures.
 #[test]
-fn sq_pki_vouch_certify_no_self_signatures() -> Result<()>
+fn sq_pki_vouch_add_no_self_signatures() -> Result<()>
 {
     let sq = Sq::new();
 
@@ -493,7 +493,7 @@ fn sq_pki_vouch_certify_no_self_signatures() -> Result<()>
         = sq.key_generate(&[], &[alice_userid]);
     sq.key_import(&alice_pgp);
 
-    let r = sq.pki_vouch_certify_p(
+    let r = sq.try_pki_vouch_add(
         &[], &alice.key_handle(),
         alice.key_handle(), &[alice_userid],
         None,

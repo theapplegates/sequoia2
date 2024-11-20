@@ -31,6 +31,10 @@ pub fn dispatch<'store, 'rstore>(mut sq: Sq<'store, 'rstore>,
     -> Result<()>
 where 'store: 'rstore
 {
+    // We're going to save the input to the certificate store.
+    // Make sure it is enabled.
+    sq.cert_store_or_else()?;
+
     let inputs = if cmd.input.is_empty() {
         vec![ PathBuf::from("-") ]
     } else {

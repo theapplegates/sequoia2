@@ -32,6 +32,13 @@ pub fn generate(
             "--output and --rev-cert must not both be stdout"));
     }
 
+    if command.output.is_none() {
+        // We're going to save the output to the certificate store and
+        // the key store.  Make sure they are enabled.
+        sq.cert_store_or_else()?;
+        sq.key_store_or_else()?;
+    }
+
     let mut builder = CertBuilder::new();
 
     // Names, email addresses, and user IDs.

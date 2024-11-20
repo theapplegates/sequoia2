@@ -882,6 +882,12 @@ const SEARCH_MAX_QUERY_ITERATIONS: usize = 3;
 pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
                       -> Result<()>
 {
+    if c.output.is_none() {
+        // We're going to save the output to the certificate store.
+        // Make sure it is enabled.
+        sq.cert_store_or_else()?;
+    }
+
     let default_servers = default_keyservers_p(&c.servers);
     let http_client = http_client()?;
     let servers = c.servers.iter().map(
@@ -1079,6 +1085,12 @@ pub fn dispatch_keyserver(mut sq: Sq,
     use crate::cli::network::keyserver::Subcommands::*;
     match c.subcommand {
         Search(c) => rt.block_on(async {
+            if c.output.is_none() {
+                // We're going to save the output to the certificate store.
+                // Make sure it is enabled.
+                sq.cert_store_or_else()?;
+            }
+
             let mut pb = Response::progress_bar(&sq);
             let queries = if c.all {
                 Query::all_certs(&sq)?
@@ -1198,6 +1210,12 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
     use crate::cli::network::wkd::Subcommands::*;
     match c.subcommand {
         Search(c) => rt.block_on(async {
+            if c.output.is_none() {
+                // We're going to save the output to the certificate store.
+                // Make sure it is enabled.
+                sq.cert_store_or_else()?;
+            }
+
             let mut pb = Response::progress_bar(&sq);
             let http_client = http_client()?;
             let queries = if c.all {
@@ -1538,6 +1556,12 @@ pub fn dispatch_dane(mut sq: Sq, c: cli::network::dane::Command)
             }
         },
         Search(c) => rt.block_on(async {
+            if c.output.is_none() {
+                // We're going to save the output to the certificate store.
+                // Make sure it is enabled.
+                sq.cert_store_or_else()?;
+            }
+
             let mut pb = Response::progress_bar(&sq);
             let queries = if c.all {
                 Query::all_addresses(&sq)?

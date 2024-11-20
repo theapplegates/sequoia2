@@ -9,6 +9,7 @@ use openpgp::armor::Writer;
 use openpgp::cert::CertBuilder;
 use openpgp::serialize::Serialize;
 use openpgp::types::KeyFlags;
+use openpgp::Cert;
 use openpgp::Packet;
 use openpgp::packet::UserID;
 use openpgp::Result;
@@ -220,7 +221,11 @@ pub fn generate(
             }
             None => {
                 // write the key to the key store
-                match sq.import_key(cert.clone(), &mut Default::default())
+
+                // Certify the key with a per-host shadow CA.
+                let cert = certify_generated(&mut sq, &cert)?;
+
+                match sq.import_key(cert, &mut Default::default())
                     .map(|(key_status, _cert_status)| key_status)
                 {
                     Ok(ImportStatus::New) => { /* success */ }
@@ -314,4 +319,30 @@ pub fn generate(
     }
 
     Ok(())
+}
+
+
+/// Certifies the newly created key with a per-host shadow CA that
+/// marks the origin.
+///
+/// This also has the benefit that newly created keys also show up in
+/// the cert listing.
+fn certify_generated<'store, 'rstore>(sq: &mut Sq<'store, 'rstore>, cert: &Cert)
+                                      -> Result<Cert>
+{
+    use crate::commands::network::certify_downloads;
+
+    let hostname =
+        gethostname::gethostname().to_string_lossy().to_string();
+    let certd = sq.certd_or_else()?;
+
+    let (ca, _created) = certd.shadow_ca(
+        &format!("generated_on_{}", hostname),
+        true,
+        format!("Generated on {}", hostname),
+        1,
+        &[])?;
+
+    Ok(certify_downloads(sq, ca, vec![cert.clone()], None)
+       .into_iter().next().expect("exactly one"))
 }

@@ -8,6 +8,8 @@ use sequoia_openpgp as openpgp;
 use openpgp::armor;
 use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::crypto;
+use openpgp::packet::signature::SignatureBuilder;
+use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::policy::Policy;
 use openpgp::serialize::stream::Compressor;
 use openpgp::serialize::stream::Encryptor2 as Encryptor;
@@ -19,6 +21,7 @@ use openpgp::serialize::stream::Signer;
 use openpgp::serialize::stream::padding::Padder;
 use openpgp::types::CompressionAlgorithm;
 use openpgp::types::KeyFlags;
+use openpgp::types::SignatureType;
 
 use crate::cli;
 use crate::cli::types::EncryptPurpose;
@@ -54,6 +57,14 @@ pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
                                  sequoia_wot::FULLY_TRUSTED)?;
     let signers = sq.get_signing_keys(&signers, None)?;
 
+    let notations =
+        crate::parse_notations(command.signature_notations)?;
+
+    if signers.is_empty() && ! notations.is_empty() {
+        return Err(anyhow::anyhow!("--signature-notation requires signers, \
+                                    but none are given"));
+    }
+
     encrypt(
         &sq,
         sq.policy,
@@ -63,6 +74,7 @@ pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
         command.recipients.with_password_files(),
         &recipients,
         signers,
+        notations,
         command.mode,
         command.compression,
         Some(sq.time),
@@ -82,6 +94,7 @@ pub fn encrypt<'a, 'b: 'a>(
     password_files: &[PathBuf],
     recipients: &'b [openpgp::Cert],
     mut signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
+    notations: Vec<(bool, NotationData)>,
     mode: EncryptPurpose,
     compression: CompressionMode,
     time: Option<SystemTime>,
@@ -184,7 +197,17 @@ pub fn encrypt<'a, 'b: 'a>(
 
     // Optionally sign message.
     if let Some(first) = signers.pop() {
-        let mut signer = Signer::new(sink, first);
+        // Create a signature template.
+        let mut builder = SignatureBuilder::new(SignatureType::Binary);
+        for (critical, n) in notations.iter() {
+            builder = builder.add_notation(
+                n.name(),
+                n.value(),
+                Some(n.flags().clone()),
+                *critical)?;
+        }
+
+        let mut signer = Signer::with_template(sink, first, builder);
 
         if let Some(time) = time {
             signer = signer.creation_time(time);

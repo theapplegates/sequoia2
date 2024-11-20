@@ -8,14 +8,14 @@ use crate::cli;
 use crate::Sq;
 use crate::Result;
 
-pub fn import(sq: Sq, command: cli::key::ImportCommand) -> Result<()> {
+pub fn import(sq: Sq, command: cli::key::import::Command) -> Result<()> {
     let mut stats = Default::default();
     let r = import_internal(&sq, command, &mut stats);
     stats.print_summary(&sq)?;
     r
 }
 
-fn import_internal(sq: &Sq, command: cli::key::ImportCommand,
+fn import_internal(sq: &Sq, command: cli::key::import::Command,
                    stats: &mut ImportStats)
                    -> Result<()>
 {

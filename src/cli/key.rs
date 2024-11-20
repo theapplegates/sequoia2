@@ -1,23 +1,17 @@
 //! Command-line parser for `sq key`.
 
-use std::path::PathBuf;
-
-use clap::{ValueEnum, Args, Parser, Subcommand};
+use clap::{ValueEnum, Parser, Subcommand};
 
 use sequoia_openpgp as openpgp;
 use openpgp::cert::CipherSuite as SqCipherSuite;
 use openpgp::types::ReasonForRevocation;
-
-use crate::cli::examples;
-use examples::Action;
-use examples::Actions;
-use examples::Example;
 
 pub mod approvals;
 pub mod delete;
 pub mod expire;
 pub mod export;
 pub mod generate;
+pub mod import;
 pub mod list;
 pub mod password;
 pub mod revoke;
@@ -87,7 +81,7 @@ pub struct Command {
 pub enum Subcommands {
     List(list::Command),
     Generate(generate::Command),
-    Import(ImportCommand),
+    Import(import::Command),
     Export(export::Command),
     Delete(delete::Command),
     Password(password::Command),
@@ -121,30 +115,4 @@ impl CipherSuite {
             CipherSuite::Cv25519 => SqCipherSuite::Cv25519,
         }
     }
-}
-
-const IMPORT_EXAMPLES: Actions = Actions {
-    actions: &[
-        Action::Example(Example {
-            comment: "\
-Import the keys into the key store.",
-            command: &[
-                "sq", "key", "import", "alice-secret.pgp",
-            ],
-        }),
-    ]
-};
-test_examples!(sq_key_import, IMPORT_EXAMPLES);
-
-#[derive(Debug, Args)]
-#[clap(
-    about = "Import keys into the key store",
-    after_help = IMPORT_EXAMPLES,
-)]
-pub struct ImportCommand {
-    #[clap(
-        value_name = "KEY_FILE",
-        help = "Import the keys in KEY_FILE",
-    )]
-    pub file: Vec<PathBuf>,
 }

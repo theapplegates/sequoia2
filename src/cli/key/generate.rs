@@ -70,7 +70,11 @@ authenticated and as a fully trusted introducer.",
 
 The newly generated key with all of its user IDs will be marked as \
 authenticated, but not as a trusted introducer.  Further, the key \
-metadata will indicate that this is a shared key."
+metadata will indicate that this is a shared key.
+
+Use this option if you plan to share this key with other people.  \
+Normally, you shouldn't share keys material.  An example of where you \
+might want to do this is a shared mailbox."
     )]
     pub shared_key: bool,
 

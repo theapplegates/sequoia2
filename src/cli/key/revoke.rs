@@ -110,7 +110,7 @@ future.`",
     pub message: String,
 
     #[clap(
-        long,
+        long = "signature-notation",
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
         help = "Add a notation to the revocation",

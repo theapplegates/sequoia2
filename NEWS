@@ -111,6 +111,8 @@
    - `sq pki vouch certify` is now called `sq pki vouch add`.
    - We now certify newly generated keys with a per-host shadow CA.
    - The argument `sq encrypt --signature-notation` has been added.
+   - All arguments to add signature notations have been renamed from
+     `--notation` to `--signature-notation`.
 
 * Changes in 0.39.0
 ** Notable changes

@@ -202,7 +202,7 @@ of power, you have to opt in to this behavior explicitly.",
     pub expiration: ExpirationArg,
 
     #[clap(
-        long,
+        long = "signature-notation",
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
         help = "Add a notation to the certification.",

@@ -168,7 +168,7 @@ may change line endings.  In doubt, create binary signatures.",
                                  SignerDoc>,
 
     #[clap(
-        long,
+        long = "signature-notation",
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
         help = "Add a notation to the signature.",

@@ -545,13 +545,13 @@ fn sq_pki_link_update_detection() -> Result<()> {
 
     // Use a notation.
     let output = sq_link(&sq, &alice_fpr, &[], &[],
-                         &["--notation", "foo", "10", "--all"], true);
+                         &["--signature-notation", "foo", "10", "--all"], true);
     assert!(output.2.contains("was previously"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, false);
 
     let output = sq_link(&sq, &alice_fpr, &[], &[],
-                         &["--notation", "foo", "10", "--all"], true);
+                         &["--signature-notation", "foo", "10", "--all"], true);
     assert!(output.2.contains("Certification parameters are unchanged"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, true);

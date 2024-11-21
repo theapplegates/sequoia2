@@ -268,7 +268,7 @@ fn sq_key_subkey_revoke() -> Result<()> {
             }
 
             for (k, v) in notations {
-                cmd.args(["--notation", k, v]);
+                cmd.args(["--signature-notation", k, v]);
             }
             if let Some(time) = revocation_time {
                 cmd.args([
@@ -523,7 +523,7 @@ fn sq_key_subkey_revoke_thirdparty() -> Result<()> {
             }
 
             for (k, v) in notations {
-                cmd.args(["--notation", k, v]);
+                cmd.args(["--signature-notation", k, v]);
             }
             if let Some(time) = revocation_time {
                 cmd.args([

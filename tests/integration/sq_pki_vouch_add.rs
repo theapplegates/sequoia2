@@ -168,9 +168,9 @@ fn sq_pki_vouch_add() -> Result<()> {
         let bob_pgp_new = sq.scratch_file(None);
         let cert = sq.pki_vouch_add(
             &[
-                "--notation", "foo", "bar",
-                "--notation", "!foo", "xyzzy",
-                "--notation", "hello@example.org", "1234567890",
+                "--signature-notation", "foo", "bar",
+                "--signature-notation", "!foo", "xyzzy",
+                "--signature-notation", "hello@example.org", "1234567890",
             ],
             &alice_handle, bob_pgp.last().unwrap(), &["<bob@example.org>"],
             Some(&*bob_pgp_new));

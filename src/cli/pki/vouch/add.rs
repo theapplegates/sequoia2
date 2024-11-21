@@ -136,7 +136,7 @@ pub struct Command {
     pub non_revocable: bool,
 
     #[clap(
-        long,
+        long = "signature-notation",
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
         help = "Add a notation to the certification.",

@@ -881,7 +881,7 @@ impl Sq {
         }
 
         for (k, v) in notations {
-            cmd.args(["--notation", k, v]);
+            cmd.args(["--signature-notation", k, v]);
         }
 
         if let Some(time) = revocation_time {
@@ -1218,7 +1218,7 @@ impl Sq {
         }
 
         for (k, v) in notations {
-            cmd.args(["--notation", k, v]);
+            cmd.args(["--signature-notation", k, v]);
         }
 
         if let Some(time) = revocation_time {

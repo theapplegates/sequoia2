@@ -69,9 +69,9 @@ fn sq_sign_with_notations() {
     let sig = tmp_dir.path().join("sig0");
 
     // Sign message.
-    sq.sign_args(&["--notation", "foo", "bar",
-                   "--notation", "!foo", "xyzzy",
-                   "--notation", "hello@example.org", "1234567890"],
+    sq.sign_args(&["--signature-notation", "foo", "bar",
+                   "--signature-notation", "!foo", "xyzzy",
+                   "--signature-notation", "hello@example.org", "1234567890"],
                  artifact("keys/dennis-simon-anton-private.pgp"), None,
                  &artifact("messages/a-cypherpunks-manifesto.txt"), sig.as_path());
 

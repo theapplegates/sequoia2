@@ -216,7 +216,7 @@ to force the signature to be re-created anyway.",
     pub recreate: bool,
 
     #[clap(
-        long,
+        long = "signature-notation",
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
         help = "Add a notation to the certification.",
@@ -427,7 +427,7 @@ to force the signature to be recreated anyway.",
     pub recreate: bool,
 
     #[clap(
-        long,
+        long = "signature-notation",
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
         help = "Add a notation to the certification.",
@@ -501,7 +501,7 @@ particular time instead of the current time.
 )]
 pub struct RetractCommand {
     #[clap(
-        long,
+        long = "signature-notation",
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
         help = "Add a notation to the certification.",

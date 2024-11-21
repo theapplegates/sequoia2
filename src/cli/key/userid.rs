@@ -254,7 +254,7 @@ has left the organization, it might say who to contact instead.",
     pub message: String,
 
     #[clap(
-        long,
+        long = "signature-notation",
         value_names = &["NAME", "VALUE"],
         number_of_values = 2,
         help = "Add a notation to the certification.",

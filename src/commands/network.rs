@@ -1342,13 +1342,22 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                 Variant::Advanced => fetch.join(&c.domain).join("hu"),
             };
 
+            // Reports on certificate updates, or the lack thereof.
+            let sq_ref = &sq;
+            let status = |cert: &Cert, msg: &str| {
+                qprintln!(initial_indent = " - ", "{}", cert.fingerprint());
+                qprintln!(initial_indent = "   - ", "{}",
+                          sq_ref.best_userid(&cert, false));
+                qprintln!(initial_indent = "   - ", "{}", msg);
+                qprintln!();
+            };
+
             // Now re-create the WKD hierarchy while updating the certs.
             let push = wd.path().join("push");
             let push_wk = push.join(".well-known");
             let push_openpgpkey = push_wk.join("openpgpkey");
             fs::create_dir(&push)?;
             let insert_ref = &mut insert;
-            let sq_ref = &sq;
             let mut number_of_changes = 0;
             let number_of_changes_ref = &mut number_of_changes;
             visit_dirs(&hu, &mut |entry: &DirEntry| -> Result<()> {
@@ -1395,17 +1404,11 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                     }
 
                     if updated {
-                        qprintln!("Updating {}, {}",
-                                  cert.fingerprint(),
-                                  sq_ref.best_userid(&cert, false));
+                        status(&cert, "updated");
                     } else if unchanged {
-                        qprintln!("Unchanged {}, {}",
-                                  cert.fingerprint(),
-                                  sq_ref.best_userid(&cert, false));
+                        status(&cert, "unchanged");
                     } else {
-                        qprintln!("Retaining {}, {}",
-                                  cert.fingerprint(),
-                                  sq_ref.best_userid(&cert, false));
+                        status(&cert, "retained");
                     }
 
                     if updated {
@@ -1422,9 +1425,8 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             })?;
 
             // Insert the new ones, if any.
-            for (fpr, cert) in insert.into_iter() {
-                qprintln!("Inserting {}, {}",
-                          fpr, sq.best_userid(&cert, false));
+            for (_fpr, cert) in insert.into_iter() {
+                status(&cert, "inserted");
                 wkd::insert(&push, &c.domain, variant, &cert)
                     .with_context(|| {
                         format!("Inserting {}, {}",
@@ -1460,6 +1462,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                         format!("failed to push updates to {}",
                                 c.destination)
                     })?;
+                qprintln!("{} applied.", number_of_changes.of("update"));
             }
         },
     }

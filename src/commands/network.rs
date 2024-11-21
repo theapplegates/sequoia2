@@ -1250,7 +1250,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
 
         Publish(mut c) => {
             use wkd::Variant;
-            let cert_store = sq.cert_store_or_else()?;
+            let cert_store = sq.cert_store()?;
 
             // Make `--all` implicitly select all certs with a user ID
             // matching `--domain` that can be authenticated.
@@ -1381,9 +1381,9 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                     // the designated certificate could have been from
                     // a file with updates that are not in the
                     // certificate store.
-                    if let Ok(update) =
-                        cert_store.lookup_by_cert_fpr(&cert.fingerprint())
-                    {
+                    if let Some(update) = cert_store.as_ref().and_then(|cs| {
+                        cs.lookup_by_cert_fpr(&cert.fingerprint()).ok()
+                    }) {
                         let (cert_, updated_) = cert.insert_packets2(
                             update.to_cert()?.clone().into_packets2())?;
                         cert = cert_;

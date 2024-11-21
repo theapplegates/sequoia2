@@ -1442,6 +1442,8 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                         push_openpgpkey.join(&c.domain).join("policy"),
                 };
 
+                fs::create_dir_all(
+                    path.parent().expect("at least two components"))?;
                 fs::copy(policy, &path)
                     .with_context(|| {
                         format!("Updating {}", path.display())

@@ -2,31 +2,31 @@
 use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
-use openpgp::Result;
+use openpgp::Cert;
 use openpgp::Packet;
+use openpgp::Result;
+use openpgp::cert::amalgamation::key::ValidErasedKeyAmalgamation;
+use openpgp::packet::key::KeyParts;
 use openpgp::serialize::Serialize;
 
 use crate::Sq;
-use crate::cli::types::CertDesignators;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::FileStdinOrKeyHandle;
-use crate::cli::types::KeyDesignators;
-use crate::cli::types::cert_designator;
 
 use super::get_keys;
 
-pub fn delete<CA, CP, CO, CD, KO, KD>(
+pub fn delete<'a, P>(
     sq: Sq,
-    cert: CertDesignators<CA, CP, CO, CD>,
-    keys: Option<KeyDesignators<KO, KD>>,
+    cert: &Cert,
+    cert_source: FileStdinOrKeyHandle,
+    kas: &[ValidErasedKeyAmalgamation<'a, P>],
     output: Option<FileOrStdout>,
     binary: bool)
     -> Result<()>
-where CP: cert_designator::ArgumentPrefix,
-      KO: typenum::Unsigned,
+where
+    P: 'a + KeyParts,
 {
-    let (cert, cert_source, to_delete)
-        = get_keys(&sq, &cert, keys.as_ref())?;
+    let to_delete = get_keys(&sq, &cert_source, kas)?;
 
     let ks = matches!(cert_source, FileStdinOrKeyHandle::KeyHandle(_));
     if ks {
@@ -55,7 +55,7 @@ where CP: cert_designator::ArgumentPrefix,
             }
         }
 
-        let cert = cert.insert_packets(
+        let cert = cert.clone().insert_packets(
             stripped.into_iter().map(|stripped| Packet::from(stripped)))?;
 
         let output = output.unwrap_or_else(|| FileOrStdout::new(None));

@@ -1233,12 +1233,12 @@ impl Sq {
             .expect("can parse certificate")
     }
 
-    /// Delete the specified key.
-    pub fn key_subkey_delete<'a, H, Q>(&self,
-                                       cert_handle: H,
-                                       key_handles: &[KeyHandle],
-                                       output_file: Q)
-        -> Cert
+    /// Delete the specified keys.
+    pub fn try_key_subkey_delete<'a, H, Q>(&self,
+                                           cert_handle: H,
+                                           key_handles: &[KeyHandle],
+                                           output_file: Q)
+        -> Result<Cert>
     where H: Into<FileOrKeyHandle>,
           Q: Into<Option<&'a Path>>,
     {
@@ -1251,10 +1251,17 @@ impl Sq {
         match &cert_handle {
             FileOrKeyHandle::FileOrStdin(path) => {
                 cmd.arg("--cert-file").arg(path);
-                assert!(output_file.is_some());
+                if let Some(output_file) = output_file {
+                    cmd.arg("--output").arg(output_file);
+                } else {
+                    cmd.arg("--output").arg("-");
+                }
             }
             FileOrKeyHandle::KeyHandle((_kh, s)) => {
                 cmd.arg("--cert").arg(&s);
+                if let Some(output_file) = output_file {
+                    cmd.arg("--output").arg(output_file);
+                }
             }
         };
 
@@ -1262,25 +1269,32 @@ impl Sq {
             cmd.arg("--key").arg(kh.to_string());
         }
 
-        if let Some(output_file) = output_file {
-            cmd.arg("--output").arg(output_file);
-        }
-
-        let output = self.run(cmd, Some(true));
-        assert!(output.status.success());
+        let output = self.run(cmd, None);
         self.handle_cert_output(output, cert_handle, output_file, None)
-            .expect("can parse certificate")
+    }
+
+    /// Delete the specified keys.
+    pub fn key_subkey_delete<'a, H, Q>(&self,
+                                       cert_handle: H,
+                                       key_handles: &[KeyHandle],
+                                       output_file: Q)
+        -> Cert
+    where H: Into<FileOrKeyHandle>,
+          Q: Into<Option<&'a Path>>,
+    {
+        self.try_key_subkey_delete(cert_handle, key_handles, output_file)
+            .expect("success")
     }
 
     /// Change the key's password.
-    pub fn key_subkey_password<'a, H, Q>(&self,
-                                         cert_handle: H,
-                                         keys: &[KeyHandle],
-                                         old_password_file: Option<&'a Path>,
-                                         new_password_file: Option<&'a Path>,
-                                         output_file: Q,
-                                         success: bool)
-                                         -> Result<Cert>
+    pub fn try_key_subkey_password<'a, H, Q>(
+        &self,
+        cert_handle: H,
+        keys: &[KeyHandle],
+        old_password_file: Option<&'a Path>,
+        new_password_file: Option<&'a Path>,
+        output_file: Q)
+        -> Result<Cert>
     where
         H: Into<FileOrKeyHandle>,
         Q: Into<Option<&'a Path>>,
@@ -1293,9 +1307,16 @@ impl Sq {
 
         if cert_handle.is_file() {
             cmd.arg("--cert-file").arg(&cert_handle);
-            assert!(output_file.is_some());
+            if let Some(output_file) = output_file {
+                cmd.arg("--output").arg(output_file);
+            } else {
+                cmd.arg("--output").arg("-");
+            }
         } else {
             cmd.arg("--cert").arg(&cert_handle);
+            if let Some(output_file) = output_file {
+                cmd.arg("--output").arg(output_file);
+            }
         };
 
         for key in keys.iter() {
@@ -1312,12 +1333,27 @@ impl Sq {
             cmd.arg("--clear-password");
         }
 
-        if let Some(output_file) = output_file {
-            cmd.arg("--output").arg(output_file);
-        }
-
-        let output = self.run(cmd, Some(success));
+        let output = self.run(cmd, None);
         self.handle_cert_output(output, cert_handle, output_file, None)
+    }
+
+    /// Change the key's password.
+    pub fn key_subkey_password<'a, H, Q>(&self,
+                                         cert_handle: H,
+                                         keys: &[KeyHandle],
+                                         old_password_file: Option<&'a Path>,
+                                         new_password_file: Option<&'a Path>,
+                                         output_file: Q)
+                                         -> Cert
+    where
+        H: Into<FileOrKeyHandle>,
+        Q: Into<Option<&'a Path>>,
+    {
+        self.try_key_subkey_password(
+            cert_handle, keys,
+            old_password_file, new_password_file,
+            output_file)
+            .expect("success")
     }
 
     /// Change the key's expiration.

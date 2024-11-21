@@ -1,19 +1,15 @@
-use anyhow::Context;
-
 use sequoia_openpgp as openpgp;
-use openpgp::Cert;
 use openpgp::Result;
 use openpgp::cert::amalgamation::key::PrimaryKey;
-use openpgp::packet::key;
+use openpgp::cert::amalgamation::key::ValidErasedKeyAmalgamation;
 use openpgp::packet::Key;
+use openpgp::packet::key::KeyParts;
+use openpgp::packet::key;
 
 use sequoia_keystore as keystore;
 
 use crate::Sq;
-use crate::cli::types::CertDesignators;
 use crate::cli::types::FileStdinOrKeyHandle;
-use crate::cli::types::KeyDesignators;
-use crate::cli::types::cert_designator;
 
 
 mod expire;
@@ -37,52 +33,23 @@ pub use password::password;
 /// secret key material.
 ///
 /// The returned keys are not unlocked.
-pub fn get_keys<CA, CP, CO, CD, KO, KD>(
+pub fn get_keys<'a, P>(
     sq: &Sq,
-    cert: &CertDesignators<CA, CP, CO, CD>,
-    keys: Option<&KeyDesignators<KO, KD>>)
-    -> Result<(Cert,
-               FileStdinOrKeyHandle,
-               Vec<(Key<key::PublicParts, key::UnspecifiedRole>,
-                    bool,
-                    Option<Vec<keystore::Key>>)>)>
-where CP: cert_designator::ArgumentPrefix,
-      KO: typenum::Unsigned,
+    cert_source: &FileStdinOrKeyHandle,
+    kas: &[ValidErasedKeyAmalgamation<'a, P>])
+    -> Result<Vec<(Key<key::PublicParts, key::UnspecifiedRole>,
+                   bool,
+                   Option<Vec<keystore::Key>>)>>
+where
+    P: 'a + KeyParts,
 {
-    assert_eq!(cert.len(), 1);
-    if let Some(keys) = keys {
-        assert!(keys.len() > 0);
-    }
-
-    let (cert, cert_source)
-        = sq.resolve_cert(&cert, sequoia_wot::FULLY_TRUSTED)?;
-
-    let vc = Cert::with_policy(&cert, sq.policy, sq.time)
-        .with_context(|| {
-            format!("The certificate {} is not valid under the \
-                     current policy.",
-                    cert.fingerprint())
-        })?;
-
-    let kas = if let Some(keys) = keys {
-        sq.resolve_keys(&vc, &cert_source, &keys, true)?
-    } else {
-        vc.keys().collect::<Vec<_>>()
-    };
-
     let mut list: Vec<(Key<_, _>, bool, Option<_>)> = Vec::new();
 
     let mut no_secret_key_material_count = 0;
 
     match cert_source {
-        FileStdinOrKeyHandle::FileOrStdin(ref file) => {
+        FileStdinOrKeyHandle::FileOrStdin(ref _file) => {
             // If it is not a TSK, there is nothing to do.
-            if ! cert.is_tsk() {
-                return Err(anyhow::anyhow!(
-                    "{} (read from {}) does not contain any secret \
-                     key material.",
-                    cert.fingerprint(), file));
-            }
             for ka in kas.into_iter() {
                 let no_secret_key_material = ! ka.has_secret();
                 if no_secret_key_material {
@@ -92,7 +59,10 @@ where CP: cert_designator::ArgumentPrefix,
                     continue;
                 }
 
-                list.push((ka.key().clone(), ka.primary(), None));
+                list.push((
+                    ka.key().clone().parts_into_public(),
+                    ka.primary(),
+                    None));
             }
         }
         FileStdinOrKeyHandle::KeyHandle(ref _kh) => {
@@ -110,7 +80,10 @@ where CP: cert_designator::ArgumentPrefix,
                     continue;
                 }
 
-                list.push((ka.key().clone(), ka.primary(), Some(remote_keys)));
+                list.push((
+                    ka.key().clone().parts_into_public(),
+                    ka.primary(),
+                    Some(remote_keys)));
             }
         }
     }
@@ -129,5 +102,5 @@ where CP: cert_designator::ArgumentPrefix,
 
     assert!(! list.is_empty());
 
-    Ok((cert, cert_source, list))
+    Ok(list)
 }

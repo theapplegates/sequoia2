@@ -3,34 +3,35 @@ use std::path::Path;
 use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
-use openpgp::crypto::Password;
-use openpgp::serialize::Serialize;
+use openpgp::Cert;
 use openpgp::Packet;
 use openpgp::Result;
+use openpgp::cert::amalgamation::key::ValidErasedKeyAmalgamation;
+use openpgp::crypto::Password;
+use openpgp::packet::key::KeyParts;
+use openpgp::serialize::Serialize;
 
 use sequoia_keystore as keystore;
 use keystore::Protection;
 
 use crate::common;
 use crate::Sq;
-use crate::cli::types::CertDesignators;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::FileStdinOrKeyHandle;
-use crate::cli::types::KeyDesignators;
-use crate::cli::types::cert_designator;
 use crate::common::password;
 
-pub fn password<CA, CP, CO, CD, KO, KD>(
+pub fn password<'a, P>(
     sq: Sq,
-    cert: CertDesignators<CA, CP, CO, CD>,
-    keys: Option<KeyDesignators<KO, KD>>,
+    cert: &Cert,
+    cert_source: FileStdinOrKeyHandle,
+    kas: &[ValidErasedKeyAmalgamation<'a, P>],
     clear_password: bool,
     new_password_file: Option<&Path>,
     output: Option<FileOrStdout>,
     binary: bool)
     -> Result<()>
-where CP: cert_designator::ArgumentPrefix,
-      KO: typenum::Unsigned,
+where
+    P: 'a + KeyParts,
 {
     let mut new_password_ = None;
     // Some(password) => new password
@@ -49,8 +50,7 @@ where CP: cert_designator::ArgumentPrefix,
         Ok(new_password_.clone().unwrap())
     };
 
-    let (cert, cert_source, mut list)
-        = super::get_keys(&sq, &cert, keys.as_ref())?;
+    let mut list = super::get_keys(&sq, &cert_source, kas)?;
     let uid = sq.best_userid(&cert, true);
 
     let ks = matches!(cert_source, FileStdinOrKeyHandle::KeyHandle(_));
@@ -156,7 +156,7 @@ where CP: cert_designator::ArgumentPrefix,
             }
         }
 
-        let cert = cert.insert_packets(packets)?;
+        let cert = cert.clone().insert_packets(packets)?;
 
         let output = output.unwrap_or_else(|| FileOrStdout::new(None));
         let mut output = output.for_secrets().create_safe(&sq)?;

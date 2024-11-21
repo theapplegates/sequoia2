@@ -802,10 +802,10 @@ impl Sq {
     }
 
     /// Delete the specified key.
-    pub fn key_delete<'a, H, Q>(&self,
-                                cert_handle: H,
-                                output_file: Q)
-        -> Cert
+    pub fn try_key_delete<'a, H, Q>(&self,
+                                    cert_handle: H,
+                                    output_file: Q)
+        -> Result<Cert>
     where H: Into<FileOrKeyHandle>,
           Q: Into<Option<&'a Path>>,
     {
@@ -818,20 +818,34 @@ impl Sq {
         match &cert_handle {
             FileOrKeyHandle::FileOrStdin(path) => {
                 cmd.arg("--cert-file").arg(path);
-                assert!(output_file.is_some());
+                if let Some(output_file) = output_file {
+                    cmd.arg("--output").arg(output_file);
+                } else {
+                    cmd.arg("--output").arg("-");
+                }
             }
             FileOrKeyHandle::KeyHandle((_kh, s)) => {
                 cmd.arg("--cert").arg(&s);
+                if let Some(output_file) = output_file {
+                    cmd.arg("--output").arg(output_file);
+                }
             }
         };
 
-        if let Some(output_file) = output_file {
-            cmd.arg("--output").arg(output_file);
-        }
-
-        let output = self.run(cmd, Some(true));
+        let output = self.run(cmd, None);
         self.handle_cert_output(output, cert_handle, output_file, None)
-            .expect("can parse certificate")
+    }
+
+    /// Delete the specified key.
+    pub fn key_delete<'a, H, Q>(&self,
+                                cert_handle: H,
+                                output_file: Q)
+        -> Cert
+    where H: Into<FileOrKeyHandle>,
+          Q: Into<Option<&'a Path>>,
+    {
+        self.try_key_delete(cert_handle, output_file)
+            .expect("success")
     }
 
     /// Run `sq key revoked` and return the revocation certificate.

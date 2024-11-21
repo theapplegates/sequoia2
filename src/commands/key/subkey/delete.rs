@@ -9,6 +9,7 @@ use crate::Result;
 use crate::Sq;
 use crate::common::key::delete;
 use crate::common::NULL_POLICY;
+use crate::common::key::get_keys;
 
 pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::delete::Command)
     -> Result<()>
@@ -26,7 +27,10 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::delete::Command)
         })?;
 
     let kas = sq.resolve_keys(&vc, &cert_source, &command.keys, true)?;
+    let kas = kas.iter().collect::<Vec<_>>();
 
-    delete::delete(sq, &cert, cert_source, &kas,
+    let to_delete = get_keys(&sq, &cert_source, &kas)?;
+
+    delete::delete(sq, &cert, cert_source, to_delete,
                    command.output, false)
 }

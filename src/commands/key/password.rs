@@ -8,6 +8,7 @@ use openpgp::Cert;
 use crate::Result;
 use crate::Sq;
 use crate::cli;
+use crate::common::key::get_keys;
 use crate::common::key::password;
 
 pub fn dispatch(sq: Sq, command: cli::key::password::Command)
@@ -24,8 +25,11 @@ pub fn dispatch(sq: Sq, command: cli::key::password::Command)
         })?;
 
     let kas = vc.keys().collect::<Vec<_>>();
+    let kas = kas.iter().collect::<Vec<_>>();
 
-    password::password(sq, &cert, cert_source, &kas,
+    let to_change = get_keys(&sq, &cert_source, &kas)?;
+
+    password::password(sq, &cert, cert_source, to_change,
                        command.clear_password,
                        command.new_password_file.as_deref(),
                        command.output, false)

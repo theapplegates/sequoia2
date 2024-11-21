@@ -1,10 +1,7 @@
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
-use openpgp::cert::amalgamation::key::PrimaryKey;
 use openpgp::cert::amalgamation::key::ValidErasedKeyAmalgamation;
-use openpgp::packet::Key;
 use openpgp::packet::key::KeyParts;
-use openpgp::packet::key;
 
 use sequoia_keystore as keystore;
 
@@ -36,14 +33,14 @@ pub use password::password;
 pub fn get_keys<'a, P>(
     sq: &Sq,
     cert_source: &FileStdinOrKeyHandle,
-    kas: &[ValidErasedKeyAmalgamation<'a, P>])
-    -> Result<Vec<(Key<key::PublicParts, key::UnspecifiedRole>,
-                   bool,
+    kas: &[&'a ValidErasedKeyAmalgamation<'a, P>])
+    -> Result<Vec<(&'a ValidErasedKeyAmalgamation<'a, P>,
                    Option<Vec<keystore::Key>>)>>
 where
     P: 'a + KeyParts,
 {
-    let mut list: Vec<(Key<_, _>, bool, Option<_>)> = Vec::new();
+    let mut list: Vec<(&ValidErasedKeyAmalgamation<'a, P>, Option<_>)>
+        = Vec::new();
 
     let mut no_secret_key_material_count = 0;
 
@@ -59,10 +56,7 @@ where
                     continue;
                 }
 
-                list.push((
-                    ka.key().clone().parts_into_public(),
-                    ka.primary(),
-                    None));
+                list.push((ka, None));
             }
         }
         FileStdinOrKeyHandle::KeyHandle(ref _kh) => {
@@ -80,10 +74,7 @@ where
                     continue;
                 }
 
-                list.push((
-                    ka.key().clone().parts_into_public(),
-                    ka.primary(),
-                    Some(remote_keys)));
+                list.push((ka, Some(remote_keys)));
             }
         }
     }

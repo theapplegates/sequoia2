@@ -6,6 +6,7 @@ use sequoia_openpgp as openpgp;
 use openpgp::Cert;
 use openpgp::Packet;
 use openpgp::Result;
+use openpgp::cert::amalgamation::key::PrimaryKey;
 use openpgp::cert::amalgamation::key::ValidErasedKeyAmalgamation;
 use openpgp::crypto::Password;
 use openpgp::packet::key::KeyParts;
@@ -24,7 +25,10 @@ pub fn password<'a, P>(
     sq: Sq,
     cert: &Cert,
     cert_source: FileStdinOrKeyHandle,
-    kas: &[ValidErasedKeyAmalgamation<'a, P>],
+    to_change: Vec<(
+        &'a ValidErasedKeyAmalgamation<'a, P>,
+        Option<Vec<keystore::Key>>
+    )>,
     clear_password: bool,
     new_password_file: Option<&Path>,
     output: Option<FileOrStdout>,
@@ -50,14 +54,13 @@ where
         Ok(new_password_.clone().unwrap())
     };
 
-    let mut list = super::get_keys(&sq, &cert_source, kas)?;
     let uid = sq.best_userid(&cert, true);
 
     let ks = matches!(cert_source, FileStdinOrKeyHandle::KeyHandle(_));
     if ks {
         // Change the password of the secret key material on the key
         // store.
-        for (key, _primary, remote_keys) in list.into_iter() {
+        for (key, remote_keys) in to_change.into_iter() {
             let remote_keys = remote_keys.expect("have remote keys");
             assert!(! remote_keys.is_empty());
             for mut remote_key in remote_keys.into_iter() {
@@ -118,18 +121,20 @@ where
         }
     } else {
         // First, decrypt all secrets.
-        for (key, _primary, _remote_keys) in list.iter_mut() {
-            *key = sq.decrypt_key(
+        let to_change = to_change.into_iter().map(|(ka, remote)| {
+            let key = ka.key().clone().parts_into_secret()?;
+            let key = sq.decrypt_key(
                 Some(&cert),
-                key.clone().parts_into_secret()?,
+                key,
                 true, // May prompt.
                 false, // Don't allow skipping.
             )?.parts_into_public();
-        }
+            Ok((key, ka.primary(), remote))
+        }).collect::<Result<Vec<_>>>()?;
 
         let mut packets: Vec<Packet> = Vec::new();
         if let Some(new) = get_new_password()? {
-            for (key, primary, _remote_keys) in list.into_iter() {
+            for (key, primary, _remote_keys) in to_change.into_iter() {
                 let key = key.parts_into_secret()
                     .expect("have secret key amterial")
                     .encrypt_secret(&new)?
@@ -144,7 +149,7 @@ where
                 }
             }
         } else {
-            for (key, primary, _remote_keys) in list.into_iter() {
+            for (key, primary, _remote_keys) in to_change.into_iter() {
                 let key = key.parts_into_public();
                 if primary {
                     packets.push(

@@ -760,6 +760,15 @@ pub struct ResolvedUserID {
     userid: UserID,
 }
 
+impl From<UserID> for ResolvedUserID {
+    fn from(userid: UserID) -> Self {
+        ResolvedUserID {
+            designator: None,
+            userid,
+        }
+    }
+}
+
 use crate::cli::types::MyAsRef;
 impl MyAsRef<UserID> for &ResolvedUserID {
     fn as_ref(&self) -> &UserID {

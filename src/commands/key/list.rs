@@ -545,7 +545,7 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
 
         hint.hint(format_args!(
             "Consider generating a new key like so:"))
-            .sq().arg("key").arg("generate")
+            .sq().arg("key").arg("generate").arg("--own-key")
             .arg_value("--name", "Juliet Capulet")
             .arg_value("--email", "juliet@example.org")
             .done()

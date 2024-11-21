@@ -113,6 +113,10 @@
    - The argument `sq encrypt --signature-notation` has been added.
    - All arguments to add signature notations have been renamed from
      `--notation` to `--signature-notation`.
+   - When generating keys, either `--own-key` or `--shared-key` has to
+     be given.  The former marks the key's user IDs as authenticated
+     and makes it a trusted introducer.  The latter marks the key's
+     user IDs as authenticated, and marks the key as a group key.
 
 * Changes in 0.39.0
 ** Notable changes

@@ -46,10 +46,34 @@ subkeys, and the binding signatures to the reference time.
 #[clap(group(ArgGroup::new("cap-authenticate").args(&["can_authenticate", "cannot_authenticate"])))]
 #[clap(group(ArgGroup::new("cap-encrypt").args(&["can_encrypt", "cannot_encrypt"])))]
 #[clap(group(ArgGroup::new("cert-userid").args(&["names", "emails", "userid", "no_userids"]).required(true).multiple(true)))]
+#[clap(group(ArgGroup::new("key-owner")
+             .args(&["own_key", "shared_key"])
+             .required(true)))]
 #[clap(mut_arg("expiration", |arg| {
     arg.default_value(Expiration::from_duration(KEY_VALIDITY_DURATION))
 }))]
 pub struct Command {
+    #[clap(
+        long = "own-key",
+        help = "Mark the key as one's own key",
+        long_help = "Mark the key as one's own key
+
+The newly generated key with all of its user IDs will be marked as \
+authenticated and as a fully trusted introducer.",
+    )]
+    pub own_key: bool,
+
+    #[clap(
+        long = "shared-key",
+        help = "Mark the key as a shared key",
+        long_help = "Mark the key as a shared key
+
+The newly generated key with all of its user IDs will be marked as \
+authenticated, but not as a trusted introducer.  Further, the key \
+metadata will indicate that this is a shared key."
+    )]
+    pub shared_key: bool,
+
     #[clap(
         long = "name",
         value_name = "NAME",
@@ -228,7 +252,7 @@ const GENERATE_EXAMPLES: Actions = Actions {
             comment: "\
 Generate a key, and save it on the key store.",
             command: &[
-                "sq", "key", "generate",
+                "sq", "key", "generate", "--own-key",
                 "--without-password",
                 "--name", "Alice",
                 "--email", "alice@example.org",
@@ -238,7 +262,7 @@ Generate a key, and save it on the key store.",
             comment: "\
 Generate a key, and save it in a file instead of in the key store.",
             command: &[
-                "sq", "key", "generate",
+                "sq", "key", "generate", "--own-key",
                 "--without-password",
                 "--name", "Alice",
                 "--email", "alice@example.org",

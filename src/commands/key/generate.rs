@@ -17,8 +17,14 @@ use openpgp::Result;
 use crate::common::password;
 use crate::common::userid::{lint_userids, lint_names, lint_emails};
 use crate::Sq;
-use crate::cli::types::FileOrStdout;
-use crate::cli;
+use crate::cli::{
+    self,
+    types::{
+        Expiration,
+        FileOrStdout,
+        TrustAmount,
+    },
+};
 use crate::commands::inspect::inspect;
 use crate::output::import::ImportStatus;
 
@@ -39,6 +45,14 @@ pub fn generate(
         sq.cert_store_or_else()?;
         sq.key_store_or_else()?;
     }
+
+    // Common key flags.  If this is a shared key, mark it as such.
+    assert!(command.own_key ^ command.shared_key);
+    let key_flags_template = if command.own_key {
+        KeyFlags::empty()
+    } else {
+        KeyFlags::empty().set_group_key()
+    };
 
     let mut builder = CertBuilder::new();
 
@@ -62,8 +76,8 @@ pub fn generate(
             lint_userids(&command.userid)?;
         }
 
-        for uid in command.userid {
-            builder = builder.add_userid(uid);
+        for uid in &command.userid {
+            builder = builder.add_userid(uid.clone());
         }
     }
 
@@ -82,10 +96,16 @@ pub fn generate(
         command.cipher_suite.as_ciphersuite()
     );
 
+    // Primary key capabilities.
+    builder = builder.set_primary_key_flags(
+        key_flags_template.clone().set_certification());
+
     // Signing Capability
     match (command.can_sign, command.cannot_sign) {
         (false, false) | (true, false) => {
-            builder = builder.add_signing_subkey();
+            builder = builder.add_subkey(
+                key_flags_template.clone().set_signing(),
+                None, None);
         }
         (false, true) => { /* no signing subkey */ }
         (true, true) => {
@@ -98,13 +118,15 @@ pub fn generate(
     // Authentication Capability
     match (command.can_authenticate, command.cannot_authenticate) {
         (false, false) | (true, false) => {
-            builder = builder.add_authentication_subkey()
+            builder = builder.add_subkey(
+                key_flags_template.clone().set_authentication(),
+                None, None);
         }
         (false, true) => { /* no authentication subkey */ }
         (true, true) => {
             return Err(anyhow::anyhow!(
-                "Conflicting arguments --can-authenticate and\
-                                --cannot-authenticate"
+                "Conflicting arguments --can-authenticate and \
+                 --cannot-authenticate"
             ));
         }
     }
@@ -114,18 +136,20 @@ pub fn generate(
     match (command.can_encrypt, command.cannot_encrypt) {
         (Some(Universal), false) | (None, false) => {
             builder = builder.add_subkey(
-                KeyFlags::empty()
+                key_flags_template.clone()
                     .set_transport_encryption()
                     .set_storage_encryption(),
-                None,
-                None,
-            );
+                None, None);
         }
         (Some(Storage), false) => {
-            builder = builder.add_storage_encryption_subkey();
+            builder = builder.add_subkey(
+                key_flags_template.clone().set_storage_encryption(),
+                None, None);
         }
         (Some(Transport), false) => {
-            builder = builder.add_transport_encryption_subkey();
+            builder = builder.add_subkey(
+                key_flags_template.clone().set_transport_encryption(),
+                None, None);
         }
         (None, true) => { /* no encryption subkey */ }
         (Some(_), true) => {
@@ -225,7 +249,7 @@ pub fn generate(
                 // Certify the key with a per-host shadow CA.
                 let cert = certify_generated(&mut sq, &cert)?;
 
-                match sq.import_key(cert, &mut Default::default())
+                match sq.import_key(cert.clone(), &mut Default::default())
                     .map(|(key_status, _cert_status)| key_status)
                 {
                     Ok(ImportStatus::New) => { /* success */ }
@@ -243,6 +267,56 @@ pub fn generate(
                         return Err(anyhow::anyhow!(
                             "Failed saving to the store: {}", err))
                     }
+                }
+
+                // Now certify the user IDs, and if this is our own
+                // key, mark it as trusted introducer.
+                let trust_root = sq.local_trust_root()?;
+                let trust_root = trust_root.to_cert()?;
+
+                if command.own_key {
+                    // Mark all user IDs as authenticated, and mark
+                    // the key as a trusted introducer.
+                    crate::common::pki::certify::certify(
+                        &sq,
+                        false, // Recreate.
+                        &trust_root,
+                        &cert,
+                        &command.userid.into_iter().map(Into::into)
+                            .collect::<Vec<_>>(),
+                        true, // User-supplied user IDs.
+                        &[(TrustAmount::Full, Expiration::Never)],
+                        // Make it a unconstrained trusted introducer.
+                        u8::MAX, // Trust depth.
+                        &[][..], // Domain.
+                        &[][..], // Regex.
+                        true, // Local.
+                        false, // Non-revocable.
+                        &[][..], // Notations.
+                        None, // Output.
+                        false, // Binary.
+                    )?;
+                } else if command.shared_key {
+                    // Mark all user IDs as authenticated.
+                    crate::common::pki::certify::certify(
+                        &sq,
+                        false, // Recreate.
+                        &trust_root,
+                        &cert,
+                        &command.userid.into_iter().map(Into::into)
+                            .collect::<Vec<_>>(),
+                        true, // User-supplied user IDs.
+                        &[(TrustAmount::Full, Expiration::Never)],
+                        // No trusted introducer.
+                        0, // Trust depth.
+                        &[][..], // Domain.
+                        &[][..], // Regex.
+                        true, // Local.
+                        false, // Non-revocable.
+                        &[][..], // Notations.
+                        None, // Output.
+                        false, // Binary.
+                    )?;
                 }
             }
         }
@@ -271,22 +345,30 @@ pub fn generate(
         }
     }
 
+    // If we are writing to key store, provide some guidance.
+    if on_keystore && command.own_key {
+        sq.hint(format_args!("Because you supplied the `--own-key` flag, \
+                              the user IDs on this key have been marked as \
+                              authenticated, and this key has been marked \
+                              as fully trusted introducer.  \
+                              If that was a mistake, you can undo that \
+                              with:"))
+            .sq().arg("pki").arg("link").arg("retract")
+            .arg_value("--cert", cert.fingerprint())
+            .done();
+    }
+
+    if on_keystore && command.shared_key {
+        sq.hint(format_args!("The user IDs on the key have been marked as \
+                              authenticated.  \
+                              If that was a mistake, you can undo that \
+                              with:"))
+            .sq().arg("pki").arg("link").arg("retract")
+            .arg_value("--cert", cert.fingerprint())
+            .done();
+    }
+
     if on_keystore {
-        // Writing to key store.  Provide some guidance.
-        sq.hint(format_args!("If this is your key, you should mark it as a \
-                              fully trusted introducer:"))
-            .sq().arg("pki").arg("link").arg("authorize")
-            .arg("--unconstrained")
-            .arg("--cert").arg(cert.fingerprint())
-            .arg("--all")
-            .done();
-
-        sq.hint(format_args!("Otherwise, you should mark it as authenticated:"))
-            .sq().arg("pki").arg("link").arg("add")
-            .arg("--cert").arg(cert.fingerprint())
-            .arg("--all")
-            .done();
-
         sq.hint(format_args!("You can export your certificate as follows:"))
             .sq().arg("cert").arg("export")
             .arg_value("--cert", cert.fingerprint())

@@ -743,7 +743,7 @@ impl Sq {
             .collect();
 
         let mut cmd = self.command();
-        cmd.args([ "key", "generate" ]);
+        cmd.args([ "key", "generate", "--own-key" ]);
 
         if ! extra_args.contains(&"--new-password-file") {
             cmd.arg("--without-password");

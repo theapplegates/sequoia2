@@ -350,7 +350,7 @@ pub fn generate(
         sq.hint(format_args!("Because you supplied the `--own-key` flag, \
                               the user IDs on this key have been marked as \
                               authenticated, and this key has been marked \
-                              as fully trusted introducer.  \
+                              as a fully trusted introducer.  \
                               If that was a mistake, you can undo that \
                               with:"))
             .sq().arg("pki").arg("link").arg("retract")

@@ -944,13 +944,12 @@ impl Sq {
     }
 
     /// Change the key's password.
-    pub fn key_password<'a, H, Q>(&self,
-                                  cert_handle: H,
-                                  old_password_file: Option<&'a Path>,
-                                  new_password_file: Option<&'a Path>,
-                                  output_file: Q,
-                                  success: bool)
-                                  -> Result<Cert>
+    pub fn try_key_password<'a, H, Q>(&self,
+                                      cert_handle: H,
+                                      old_password_file: Option<&'a Path>,
+                                      new_password_file: Option<&'a Path>,
+                                      output_file: Q)
+        -> Result<Cert>
     where
         H: Into<FileOrKeyHandle>,
         Q: Into<Option<&'a Path>>,
@@ -963,7 +962,9 @@ impl Sq {
 
         if cert_handle.is_file() {
             cmd.arg("--cert-file").arg(&cert_handle);
-            assert!(output_file.is_some());
+            if output_file.is_none() {
+                cmd.arg("--output").arg("-");
+            }
         } else {
             cmd.arg("--cert").arg(&cert_handle);
         };
@@ -982,8 +983,24 @@ impl Sq {
             cmd.arg("--output").arg(output_file);
         }
 
-        let output = self.run(cmd, Some(success));
+        let output = self.run(cmd, None);
         self.handle_cert_output(output, cert_handle, output_file, true)
+    }
+
+    /// Change the key's password.
+    pub fn key_password<'a, H, Q>(&self,
+                                  cert_handle: H,
+                                  old_password_file: Option<&'a Path>,
+                                  new_password_file: Option<&'a Path>,
+                                  output_file: Q)
+        -> Cert
+    where
+        H: Into<FileOrKeyHandle>,
+        Q: Into<Option<&'a Path>>,
+    {
+        self.try_key_password(
+            cert_handle, old_password_file, new_password_file, output_file)
+            .expect("success")
     }
 
     /// Calls `sq key bind`.

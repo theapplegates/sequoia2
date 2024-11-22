@@ -15,11 +15,12 @@ use openpgp::serialize::Serialize;
 use sequoia_keystore as keystore;
 use keystore::Protection;
 
-use crate::common;
+use crate::Convert;
 use crate::Sq;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::common::password;
+use crate::common;
 
 pub fn password<'a, P>(
     sq: Sq,
@@ -37,6 +38,8 @@ pub fn password<'a, P>(
 where
     P: 'a + KeyParts,
 {
+    make_qprintln!(sq.quiet);
+
     let mut new_password_ = None;
     // Some(password) => new password
     // None => clear password
@@ -55,6 +58,9 @@ where
     };
 
     let uid = sq.best_userid(&cert, true);
+
+    qprintln!("Changed password for {}, {}",
+              cert.fingerprint(), uid);
 
     let ks = matches!(cert_source, FileStdinOrKeyHandle::KeyHandle(_));
     if ks {
@@ -80,10 +86,38 @@ where
                             wprintln!("{}", hint);
                         }
 
+                        let time = key.creation_time().convert().to_string();
+
+                        let flags = if let Some(flags) = key.key_flags() {
+                            let mut s = Vec::new();
+                            if flags.for_certification() {
+                                s.push("certifying");
+                            }
+                            if flags.for_signing() {
+                                s.push("signing");
+                            }
+                            if flags.for_storage_encryption()
+                                && flags.for_transport_encryption()
+                            {
+                                s.push("encryption");
+                            } else if flags.for_storage_encryption() {
+                                s.push("storage encryption");
+                            } else if flags.for_transport_encryption() {
+                                s.push("transport encryption");
+                            }
+                            if ! s.is_empty() {
+                                format!(" for {}", s.join(", "))
+                            } else {
+                                "".into()
+                            }
+                        } else {
+                            "".into()
+                        };
+
                         loop {
                             let p = password::prompt_to_unlock(&sq, &format!(
-                                "{}/{}, {}",
-                                cert.keyid(), key.keyid(), uid))?;
+                                "{}, created {}{}",
+                                key.fingerprint(), time, flags))?;
 
                             match remote_key.unlock(p.clone()) {
                                 Ok(()) => {
@@ -117,6 +151,8 @@ where
                     .with_context(|| {
                         format!("Changing {}'s password", key.fingerprint())
                     })?;
+
+                qprintln!("Changed password for {}", key.fingerprint());
             }
         }
     } else {

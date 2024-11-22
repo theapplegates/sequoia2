@@ -226,3 +226,47 @@ fn sha1_subkey_without_secret_key_material() {
     let result = sq.key_delete(update, None);
     assert!(! result.is_tsk());
 }
+
+
+#[test]
+fn ambiguous() {
+    // If a key is associated with multiple certificates, then sq key
+    // delete should refuse to delete the secret key material.
+    let sq = Sq::new();
+
+    let (alice1, alice1_path, _alice1_rev)
+        = sq.key_generate(&[], &["alice1"]);
+    sq.key_import(&alice1_path);
+
+    let common_subkey = alice1.keys().subkeys().take(1)
+        .map(|ka| ka.key_handle())
+        .collect::<Vec<_>>();
+
+    let (alice2, alice2_path, _alice2_rev)
+        = sq.key_generate(&[], &["alice2"]);
+    sq.key_import(&alice2_path);
+
+    let alice2_update = sq.scratch_file("alice2-updated");
+    sq.key_subkey_bind(&[], vec![ &alice2_path ],
+                       alice2.fingerprint(),
+                       common_subkey.clone(),
+                       &alice2_update);
+
+    sq.key_import(alice2_update);
+
+    assert!(sq.try_key_delete(alice2.fingerprint(), None).is_err());
+
+    // We should be able to delete it using sq key subkey delete.
+    sq.key_subkey_delete(alice1.fingerprint(),
+                         &common_subkey,
+                         None);
+
+    sq.key_subkey_delete(alice2.fingerprint(),
+                         &common_subkey,
+                         None);
+
+    // And now we should be able to delete the secret key material
+    // associated with the certificate.
+    sq.key_delete(alice2.fingerprint(), None);
+}
+

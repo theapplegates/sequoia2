@@ -36,10 +36,26 @@ where
         for (ka, remote_keys) in to_delete.into_iter() {
             let remote_keys = remote_keys.expect("have remote keys");
             assert!(! remote_keys.is_empty());
-            for mut kh in remote_keys.into_iter() {
-                kh.delete_secret_key_material().with_context(|| {
-                    format!("Deleting {}", ka.fingerprint())
-                })?;
+            for (i, mut kh) in remote_keys.into_iter().enumerate() {
+                if let Err(err) = kh.delete_secret_key_material() {
+                    if i > 0 {
+                        // We failed to delete the key.  It could be
+                        // that when we deleted another instance of
+                        // the key, it deleted this instance.  (The
+                        // softkey backend combines keys, and does
+                        // this.)
+                        if let Some(err)
+                            = err.downcast_ref::<keystore::Error>()
+                        {
+                            if let keystore::Error::EOF = err {
+                                continue;
+                            }
+                        }
+                    }
+                    Err(err).with_context(|| {
+                        format!("Deleting {}", ka.fingerprint())
+                    })?;
+                }
             }
         }
     } else {

@@ -105,6 +105,41 @@ pub fn dispatch(sq: Sq, command: cli::key::delete::Command)
             cert.fingerprint()));
     }
 
+    if cert_source.is_key_handle() {
+        let mut die = false;
+
+        // Make sure this is not ambiguous.
+        for (ka, _remote) in to_delete.iter() {
+            if let Ok(certs) = sq.lookup_with_policy(
+                std::iter::once(ka.key_handle()),
+                None,
+                true,
+                true,
+                NULL_POLICY,
+                sq.time)
+            {
+                if certs.len() > 1 {
+                    die = true;
+                    wprintln!("{} is associated with multiple certificates:",
+                              ka.fingerprint());
+                    for cert in certs.iter() {
+                        wprintln!(" - {}", cert.fingerprint());
+                    }
+                }
+            }
+        }
+
+        if die {
+            wprintln!("Cowardly refusing to delete secret key material to \
+                       avoid accidentally losing data.  Use \
+                       `sq key subkey delete` to delete the keys \
+                       individually.");
+
+            return Err(anyhow::anyhow!(
+                "Some keys are associated with multiple certificates."));
+        }
+    }
+
     delete::delete(sq, &cert, cert_source, to_delete,
                    command.output, false)
 }

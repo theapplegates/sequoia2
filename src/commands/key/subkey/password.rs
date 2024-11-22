@@ -29,7 +29,7 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::password::Command)
     let kas = sq.resolve_keys(&vc, &cert_source, &command.keys, true)?;
     let kas = kas.iter().collect::<Vec<_>>();
 
-    let to_change = get_keys(&sq, &cert_source, &kas)?;
+    let to_change = get_keys(&sq, &cert_source, &kas, false)?;
 
     password(sq, &cert, cert_source, to_change,
              command.clear_password, command.new_password_file.as_deref(),

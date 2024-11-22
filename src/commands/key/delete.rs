@@ -67,7 +67,7 @@ pub fn dispatch(sq: Sq, command: cli::key::delete::Command)
 
     let kas = nc.keys().collect::<Vec<_>>();
     let kas = kas.iter().collect::<Vec<_>>();
-    let to_delete = get_keys(&sq, &cert_source, &kas)?;
+    let to_delete = get_keys(&sq, &cert_source, &kas, true)?;
 
     // Go through the keys with secret key material, and make sure
     // their binding is valid under the current policy.
@@ -97,6 +97,12 @@ pub fn dispatch(sq: Sq, command: cli::key::delete::Command)
 
         return Err(anyhow::anyhow!(
             "The authenticity of some subkeys is uncertain."));
+    }
+
+    if to_delete.is_empty() {
+        return Err(anyhow::anyhow!(
+            "{} does not contain any secret key material.",
+            cert.fingerprint()));
     }
 
     delete::delete(sq, &cert, cert_source, to_delete,

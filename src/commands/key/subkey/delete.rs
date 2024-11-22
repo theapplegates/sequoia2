@@ -29,7 +29,7 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::delete::Command)
     let kas = sq.resolve_keys(&vc, &cert_source, &command.keys, true)?;
     let kas = kas.iter().collect::<Vec<_>>();
 
-    let to_delete = get_keys(&sq, &cert_source, &kas)?;
+    let to_delete = get_keys(&sq, &cert_source, &kas, false)?;
 
     delete::delete(sq, &cert, cert_source, to_delete,
                    command.output, false)

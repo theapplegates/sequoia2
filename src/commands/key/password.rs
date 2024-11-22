@@ -27,7 +27,13 @@ pub fn dispatch(sq: Sq, command: cli::key::password::Command)
     let kas = vc.keys().collect::<Vec<_>>();
     let kas = kas.iter().collect::<Vec<_>>();
 
-    let to_change = get_keys(&sq, &cert_source, &kas)?;
+    let to_change = get_keys(&sq, &cert_source, &kas, true)?;
+
+    if to_change.is_empty() {
+        return Err(anyhow::anyhow!(
+            "{} does not contain any secret key material.",
+            cert.fingerprint()));
+    }
 
     password::password(sq, &cert, cert_source, to_change,
                        command.clear_password,

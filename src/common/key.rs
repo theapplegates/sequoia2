@@ -33,7 +33,8 @@ pub use password::password;
 pub fn get_keys<'a, P>(
     sq: &Sq,
     cert_source: &FileStdinOrKeyHandle,
-    kas: &[&'a ValidErasedKeyAmalgamation<'a, P>])
+    kas: &[&'a ValidErasedKeyAmalgamation<'a, P>],
+    ignore_missing: bool)
     -> Result<Vec<(&'a ValidErasedKeyAmalgamation<'a, P>,
                    Option<Vec<keystore::Key>>)>>
 where
@@ -44,14 +45,20 @@ where
 
     let mut no_secret_key_material_count = 0;
 
+    let warning = if ignore_missing {
+        "Warning: "
+    } else {
+        ""
+    };
+
     match cert_source {
         FileStdinOrKeyHandle::FileOrStdin(ref _file) => {
             // If it is not a TSK, there is nothing to do.
             for ka in kas.into_iter() {
                 let no_secret_key_material = ! ka.has_secret();
                 if no_secret_key_material {
-                    wprintln!("{} does not contain any secret key material",
-                              ka.fingerprint());
+                    wprintln!("{}{} does not contain any secret key material",
+                              warning, ka.fingerprint());
                     no_secret_key_material_count += 1;
                     continue;
                 }
@@ -68,8 +75,8 @@ where
                 let no_secret_key_material = remote_keys.is_empty();
 
                 if no_secret_key_material {
-                    wprintln!("{} does not contain any secret key material",
-                              ka.fingerprint());
+                    wprintln!("{}{} does not contain any secret key material",
+                              warning, ka.fingerprint());
                     no_secret_key_material_count += 1;
                     continue;
                 }
@@ -79,19 +86,19 @@ where
         }
     }
 
-    if no_secret_key_material_count > 1 {
-        // Plural.
-        return Err(anyhow::anyhow!(
-            "{} of the specified keys don't have secret key material",
-            no_secret_key_material_count));
-    } else if no_secret_key_material_count > 0 {
-        // Singular.
-        return Err(anyhow::anyhow!(
-            "{} of the specified keys doesn't have secret key material",
-            no_secret_key_material_count));
+    if ! ignore_missing {
+        if no_secret_key_material_count > 1 {
+            // Plural.
+            return Err(anyhow::anyhow!(
+                "{} of the specified keys don't have secret key material",
+                no_secret_key_material_count));
+        } else if no_secret_key_material_count > 0 {
+            // Singular.
+            return Err(anyhow::anyhow!(
+                "{} of the specified keys doesn't have secret key material",
+                no_secret_key_material_count));
+        }
     }
-
-    assert!(! list.is_empty());
 
     Ok(list)
 }

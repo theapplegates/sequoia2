@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use sequoia_openpgp as openpgp;
 use openpgp::Cert;
 use openpgp::Fingerprint;
+use openpgp::KeyHandle;
 use openpgp::Result;
 use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::parse::Parse;
@@ -162,4 +163,66 @@ fn sha1_subkey() {
     assert_eq!(all_subkeys.len(), 1);
 
     assert!(sq.try_key_delete(cert_path, None).is_err());
+}
+
+#[test]
+fn sha1_subkey_without_secret_key_material() {
+    // Make sure we can delete secret key material in the presence of
+    // a subkey that is bound using SHA-1, but for which there is no
+    // secret key material.
+
+    let sq = Sq::new();
+
+    let cert_path = sq.test_data()
+        .join("keys")
+        .join("sha1-subkey-priv.pgp");
+
+    let cert = Cert::from_file(&cert_path).expect("can read");
+    let vc = cert.with_policy(STANDARD_POLICY, sq.now())
+        .expect("valid cert");
+
+    // Make sure the subkey key is there and really uses SHA-1.
+    eprintln!("Valid keys:");
+    let valid_keys: Vec<_> = vc.keys()
+        .map(|ka| {
+            let fpr = ka.fingerprint();
+            eprintln!(" - {}", fpr);
+            fpr
+        })
+        .collect();
+
+    eprintln!("All keys:");
+    let all_keys: Vec<_> = cert.keys()
+        .map(|ka| {
+            let fpr = ka.fingerprint();
+            eprintln!(" - {}", fpr);
+            fpr
+        })
+        .collect();
+
+    assert!(valid_keys.len() < all_keys.len());
+
+    let mut update = cert_path;
+    for fpr in all_keys.iter() {
+        if ! valid_keys.contains(fpr) {
+            let update2 = sq.scratch_file(
+                Some(&format!("delete-{}", fpr)[..]));
+            sq.key_subkey_delete(
+                update, &[KeyHandle::from(fpr)], update2.as_path());
+            update = update2;
+        }
+    }
+
+    let cert = Cert::from_file(&update).expect("can read");
+    for ka in cert.keys() {
+        if valid_keys.contains(&ka.fingerprint()) {
+            assert!(ka.has_secret());
+        } else {
+            assert!(! ka.has_secret(),
+                    "{} still has secret key material", ka.fingerprint());
+        }
+    }
+
+    let result = sq.key_delete(update, None);
+    assert!(! result.is_tsk());
 }

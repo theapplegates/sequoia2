@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use sequoia_openpgp as openpgp;
+use openpgp::Cert;
 use openpgp::KeyHandle;
 use openpgp::KeyID;
 use openpgp::Fingerprint;
@@ -788,3 +789,26 @@ fn sq_encrypt_revoked() -> Result<()>
     Ok(())
 }
 
+// Try encrypting to a certificate with a weakly bound key.  Make sure
+// it fails.
+#[test]
+fn sq_encrypt_weak() -> Result<()>
+{
+    let mut sq = Sq::new();
+
+    let cert_path = sq.test_data()
+        .join("keys")
+        .join("sha1-subkey-priv.pgp");
+    sq.key_import(&cert_path);
+
+    let cert = Cert::from_file(&cert_path).expect("can read");
+
+    sq.tick(1);
+
+    // Two days pass...
+    sq.tick(2 * 24 * 60 * 60);
+
+    try_encrypt(&sq, &[], &[], &[ &cert.fingerprint() ], &[], &[]);
+
+    Ok(())
+}

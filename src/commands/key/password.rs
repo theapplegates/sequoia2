@@ -8,6 +8,7 @@ use openpgp::Cert;
 use crate::Result;
 use crate::Sq;
 use crate::cli;
+use crate::common::NULL_POLICY;
 use crate::common::key::get_keys;
 use crate::common::key::password;
 
@@ -17,10 +18,20 @@ pub fn dispatch(sq: Sq, command: cli::key::password::Command)
     let (cert, cert_source)
         = sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?;
 
-    let vc = Cert::with_policy(&cert, sq.policy, sq.time)
+    // We require the certificate be valid under the standard policy.
+    Cert::with_policy(&cert, sq.policy, sq.time)
         .with_context(|| {
             format!("The certificate {} is not valid under the \
                      current policy.",
+                    cert.fingerprint())
+        })?;
+
+    // But we change the password for all keys with plausible
+    // bindings.
+    let vc = Cert::with_policy(&cert, NULL_POLICY, sq.time)
+        .with_context(|| {
+            format!("The certificate {} is not valid under the \
+                     null policy.",
                     cert.fingerprint())
         })?;
 

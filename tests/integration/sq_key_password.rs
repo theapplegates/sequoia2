@@ -206,6 +206,42 @@ fn hard_revoked_subkey() {
 }
 
 #[test]
+fn sha1_subkey() {
+    // Make sure we can change the password of keys that are bound
+    // using SHA-1.
+
+    let sq = Sq::new();
+
+    let new_password = sq.scratch_file("new-password.txt");
+    std::fs::write(&new_password, "crazy passw0rd").unwrap();
+
+    let cert_path = sq.test_data()
+        .join("keys")
+        .join("sha1-subkey-priv.pgp");
+
+    let cert = Cert::from_file(&cert_path).expect("can read");
+    let vc = cert.with_policy(STANDARD_POLICY, sq.now())
+        .expect("valid cert");
+
+    // Make sure the subkey key is there and really uses SHA-1.
+    let valid_subkeys: Vec<_> = vc.keys().subkeys()
+        .map(|ka| ka.fingerprint())
+        .collect();
+    let all_subkeys: Vec<_> = cert.keys().subkeys()
+        .map(|ka| ka.fingerprint())
+        .collect();
+
+    assert_eq!(valid_subkeys.len(), 0);
+    assert_eq!(all_subkeys.len(), 1);
+
+    let updated = sq.key_password(
+        cert_path, None, Some(new_password.as_path()), None);
+    for ka in updated.keys() {
+        assert!(! ka.has_unencrypted_secret());
+    }
+}
+
+#[test]
 fn subkey_without_secret_key_material() {
     // Make sure we can change the password of keys where some of the
     // subkeys are missing secret key material.

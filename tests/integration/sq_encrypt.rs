@@ -681,7 +681,7 @@ fn sq_encrypt_expired() -> Result<()>
 // Try encrypting to a certificate with a revoked subkey.  Make sure
 // it fails.
 #[test]
-fn sq_encrypt_revoked() -> Result<()>
+fn sq_encrypt_revoked_subkey() -> Result<()>
 {
     let mut sq = Sq::new();
 
@@ -735,3 +735,56 @@ fn sq_encrypt_revoked() -> Result<()>
 
     Ok(())
 }
+
+// Try encrypting to a revoked certificate.  Make sure it fails.
+#[test]
+fn sq_encrypt_revoked() -> Result<()>
+{
+    let mut sq = Sq::new();
+
+    // Generate the keys.  Alice has an encryption capable subkey, but
+    // Bob doesn't.
+    let (alice, alice_pgp, _alice_rev) = sq.key_generate(
+        &[],
+        &["<alice@example.org>"]);
+    sq.key_import(alice_pgp);
+
+    let alice_enc = alice.keys().with_policy(STANDARD_POLICY, sq.now())
+        .for_storage_encryption()
+        .next()
+        .expect("have a storage encryption-capable subkey")
+        .fingerprint();
+
+    let (bob, bob_pgp, _bob_rev) = sq.key_generate(
+        &[],
+        &["<bob@example.org>"]);
+    sq.key_import(&bob_pgp);
+
+    sq.tick(1);
+
+    // Revoke.
+    let bob = sq.key_revoke(
+        bob.key_handle(), None,
+        "retired", "retired this key", None, &[], None);
+
+    // Two days pass...
+    sq.tick(2 * 24 * 60 * 60);
+
+    for (i, (recipients, result)) in [
+        (&[ &alice ][..], &[ &alice_enc ][..]),
+        (&[ &bob ], &[]),
+        (&[ &alice, &bob ], &[]),
+    ].into_iter().enumerate() {
+        eprintln!("Test #{}", i + 1);
+
+        let recipients = recipients.iter().map(|r| r.fingerprint())
+            .collect::<Vec<Fingerprint>>();
+        let recipients = recipients.iter()
+            .collect::<Vec<&Fingerprint>>();
+
+        try_encrypt(&sq, &[], result, &recipients, &[], &[]);
+    }
+
+    Ok(())
+}
+

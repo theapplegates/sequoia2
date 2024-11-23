@@ -21,6 +21,7 @@ use openpgp::serialize::stream::Signer;
 use openpgp::serialize::stream::padding::Padder;
 use openpgp::types::CompressionAlgorithm;
 use openpgp::types::KeyFlags;
+use openpgp::types::RevocationStatus;
 use openpgp::types::SignatureType;
 
 use crate::cli;
@@ -136,6 +137,15 @@ pub fn encrypt<'a, 'b: 'a>(
     // Build a vector of recipients to hand to Encryptor.
     let mut recipient_subkeys: Vec<Recipient> = Vec::new();
     for cert in recipients.iter() {
+        if let RevocationStatus::Revoked(_)
+            = cert.revocation_status(policy, time)
+        {
+            return Err(anyhow::anyhow!(
+                "Can't encrypt to {}, {}: it is revoked",
+                cert.fingerprint(),
+                sq.best_userid(&cert, true)));
+        }
+
         let mut count = 0;
         for key in cert.keys().with_policy(policy, time).alive().revoked(false)
             .key_flags(&mode).supported().map(|ka| ka.key())

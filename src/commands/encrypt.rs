@@ -7,6 +7,7 @@ use anyhow::Context;
 use sequoia_openpgp as openpgp;
 use openpgp::armor;
 use openpgp::cert::amalgamation::ValidAmalgamation;
+use openpgp::cert::amalgamation::ValidateAmalgamation;
 use openpgp::crypto;
 use openpgp::packet::signature::SignatureBuilder;
 use openpgp::packet::signature::subpacket::NotationData;
@@ -24,11 +25,12 @@ use openpgp::types::KeyFlags;
 use openpgp::types::RevocationStatus;
 use openpgp::types::SignatureType;
 
-use crate::cli;
+use crate::Convert;
+use crate::Result;
+use crate::Sq;
 use crate::cli::types::EncryptPurpose;
 use crate::cli::types::FileOrStdin;
-use crate::Sq;
-use crate::Result;
+use crate::cli;
 use crate::common::password;
 use crate::print_error_chain;
 
@@ -146,41 +148,125 @@ pub fn encrypt<'a, 'b: 'a>(
                 sq.best_userid(&cert, true)));
         }
 
-        let mut count = 0;
-        for key in cert.keys().with_policy(policy, time).alive().revoked(false)
-            .key_flags(&mode).supported().map(|ka| ka.key())
-        {
-            recipient_subkeys.push(key.into());
-            count += 1;
-        }
-        if count == 0 {
-            let mut expired_keys = Vec::new();
-            for ka in cert.keys().with_policy(policy, time).revoked(false)
-                .key_flags(&mode).supported()
-            {
-                let key = ka.key();
-                expired_keys.push(
-                    (ka.binding_signature().key_expiration_time(key)
-                         .expect("Key must have an expiration time"),
-                     key));
-            }
-            expired_keys.sort_by_key(|(expiration_time, _)| *expiration_time);
+        let mut have_one = false;
+        let mut encryption_keys = 0;
+        let mut bad: Vec<String> = Vec::new();
+        let mut expired_keys: Vec<(Recipient, _)> = Vec::new();
 
-            if let Some((expiration_time, key)) = expired_keys.last() {
-                if use_expired_subkey {
-                    recipient_subkeys.push((*key).into());
-                } else {
-                    use chrono::{DateTime, offset::Utc};
-                    return Err(anyhow::anyhow!(
-                        "The last suitable encryption key of cert {} expired \
-                         on {}\n\
-                         Hint: Use --use-expired-subkey to use it anyway.",
-                        cert,
-                        DateTime::<Utc>::from(*expiration_time)));
+        if let RevocationStatus::Revoked(_)
+            = cert.revocation_status(policy, time)
+        {
+            return Err(anyhow::anyhow!(
+                "Can't encrypt to {}, {}: it is revoked",
+                cert.fingerprint(),
+                sq.best_userid(&cert, true)));
+        }
+
+        let vc = cert.with_policy(policy, time)
+            .with_context(|| {
+                format!("{}, {} is not valid according to the \
+                         current policy",
+                        cert.fingerprint(),
+                        sq.best_userid(&cert, true))
+            })?;
+
+        for ka in vc.keys() {
+            let fpr = ka.fingerprint();
+            let ka = match ka.with_policy(policy, time) {
+                Ok(ka) => ka,
+                Err(err) => {
+                    bad.push(format!("{} is not valid: {}",
+                                     fpr,
+                                     crate::one_line_error_chain(err)));
+                    continue;
+                }
+            };
+
+            if let Some(key_flags) = ka.key_flags() {
+                if (&key_flags & &mode).is_empty() {
+                    // Not for encryption.
+                    continue;
                 }
             } else {
+                // No key flags.  Not for encryption.
+                continue;
+            }
+            encryption_keys += 1;
+
+            if ! ka.key().pk_algo().is_supported() {
+                bad.push(format!("{} uses {}, which is not supported",
+                                 ka.fingerprint(),
+                                 ka.key().pk_algo()));
+                continue;
+            }
+            if let RevocationStatus::Revoked(_sigs) = ka.revocation_status() {
+                bad.push(format!("{} is revoked", ka.fingerprint()));
+                continue;
+            }
+            if let Err(err) = ka.alive() {
+                if let Some(t) = ka.key_expiration_time() {
+                    if t < sq.time {
+                        expired_keys.push((ka.key().into(), t));
+                        bad.push(format!("{} expired on {}",
+                                         fpr, t.convert().to_string()));
+                    } else {
+                        bad.push(format!("{} is not alive: {}",
+                                         fpr, err));
+                    }
+                } else {
+                    bad.push(format!("{} is not alive: {}",
+                                     fpr, err));
+                }
+                continue;
+            }
+
+            recipient_subkeys.push(ka.key().into());
+            have_one = true;
+        }
+        if ! have_one && use_expired_subkey && ! expired_keys.is_empty() {
+            expired_keys.sort_by_key(|(_key, t)| *t);
+
+            if let Some((key, _expiration_time)) = expired_keys.pop() {
+                recipient_subkeys.push(key);
+                have_one = true;
+            }
+        }
+
+        // We didn't find any keys for this certificate.
+        if ! have_one {
+            for ka in cert.keys() {
+                let fpr = ka.fingerprint();
+                if let Err(err) = ka.with_policy(policy, time) {
+                    bad.push(format!("{} is not valid: {}",
+                                     fpr,
+                                     crate::one_line_error_chain(err)));
+                }
+            }
+
+            if ! bad.is_empty() {
+                wprintln!("Cannot encrypt to {}, {}:",
+                          cert.fingerprint(),
+                          sq.best_userid(&cert, true));
+                for message in bad.into_iter() {
+                    wprintln!(initial_indent="  - ", "{}", message);
+                }
+            }
+            if ! use_expired_subkey && ! expired_keys.is_empty() {
+                sq.hint(format_args!(
+                    "To use an expired key anyway, pass \
+                     --use-expired-subkey"));
+            }
+
+            if encryption_keys > 0 {
                 return Err(anyhow::anyhow!(
-                    "Cert {} has no suitable encryption key", cert));
+                    "Cert {}, {} has no suitable encryption key",
+                    cert,
+                    sq.best_userid(&cert, true)));
+            } else {
+                return Err(anyhow::anyhow!(
+                    "Cert {}, {} has no encryption-capable keys",
+                    cert,
+                    sq.best_userid(&cert, true)));
             }
         }
     }

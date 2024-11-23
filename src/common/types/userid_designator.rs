@@ -268,7 +268,8 @@ where
         if missing {
             if add_userid_arg && add_email_arg {
                 wprintln!("Use `--userid-or-add` or `--email-or-add` to use \
-                           a user ID even if it isn't self signed.");
+                           a user ID even if it isn't self signed, or has \
+                           an invalid self signature.");
             }
             return Err(anyhow::anyhow!("No matching self-signed user ID"));
         }

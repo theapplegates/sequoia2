@@ -28,7 +28,6 @@ use crate::cli::types::userid_designator::ResolvedUserID;
 use crate::cli;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
-use crate::sq::NULL_POLICY;
 use crate::common::userid::{
     lint_emails,
     lint_names,
@@ -303,12 +302,18 @@ pub fn userid_revoke(
 ) -> Result<()> {
     let cert =
         sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.0;
-    // We require the User ID to have a valid self signature under the
-    // Null policy.  We use the Null policy and not the standard
-    // policy, because it is still useful to revoke a User ID whose
-    // self signature is no longer valid.  For instance, the binding
-    // signature may use SHA-1.
-    let vcert = cert.with_policy(&NULL_POLICY, sq.time)?;
+    // To revoke a user ID, we require the certificate be valid under
+    // the current policy.  Users can still revoke user IDs whose
+    // binding signature relies on weak cryptography using
+    // `--user-or-add`.
+    let vcert = cert.with_policy(sq.policy, sq.time)
+        .with_context(|| {
+            format!("The certificate is not valid under the current \
+                     policy.  Consider revoking the whole certificate \
+                     using `sq key revoke`, or fixing it using \
+                     `sq cert lint` after verifying the certificate's \
+                     integrity.")
+        })?;
     let userids = command.userids.resolve(&vcert)?;
     assert_eq!(userids.len(), 1, "exactly one user ID enforced by clap");
     let userid = userids.into_iter().next().unwrap();

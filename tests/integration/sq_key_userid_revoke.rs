@@ -42,9 +42,18 @@ fn sha1_userid() {
         = String::from_utf8_lossy(weak_userids[0].value()).to_string();
 
     let updated_path = sq.scratch_file("updated");
+    assert!(
+        sq.key_userid_revoke_maybe(&[],
+                                   &cert_path,
+                                   &weak_userid,
+                                   "retired",
+                                   "bye, bye",
+                                   updated_path.as_path())
+            .is_err());
+
     sq.key_userid_revoke(&[],
-                         cert_path,
-                         &weak_userid,
+                         &cert_path,
+                         UserIDArg::AddUserID(&weak_userid),
                          "retired",
                          "bye, bye",
                          updated_path.as_path());

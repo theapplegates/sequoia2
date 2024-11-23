@@ -197,6 +197,13 @@ the certificate that is being revoked, this results in a third-party \
 revocation.  This is normally only useful if the owner of the \
 certificate designated the key to be a designated revoker.
 
+To revoke a user ID, the certificate must be valid under the current \
+policy.  If the certificate is not valid under the current policy, \
+consider revoking the whole certificate, or fixing it using `sq cert \
+lint` after verifying the certificate's integrity.  If the certificate \
+is valid under the current policy, but the user ID you want to revoke \
+isn't, you can still revoke the user ID using `--userid-or-add`.
+
 `sq key userid revoke` respects the reference time set by the top-level \
 `--time` argument.  When set, it uses the specified time instead of \
 the current time when determining what keys are valid, and it sets \

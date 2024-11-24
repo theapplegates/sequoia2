@@ -11,6 +11,7 @@ use cert_store::{LazyCert, Store};
 
 use crate::Sq;
 use crate::commands::active_certification;
+use crate::common::NULL_POLICY;
 use crate::parse_notations;
 
 use crate::cli::pki::link;
@@ -134,7 +135,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
     let (cert, _source)
         = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
 
-    let vc = cert.with_policy(sq.policy, Some(sq.time))?;
+    let vc = cert.with_policy(NULL_POLICY, Some(sq.time))?;
     let mut userids = c.userids.resolve(&vc)?;
 
     let user_supplied_userids = if userids.is_empty() {

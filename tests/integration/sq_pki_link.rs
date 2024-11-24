@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
 use std::sync::{Mutex, OnceLock};
@@ -8,13 +9,14 @@ use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 use openpgp::Result;
 use openpgp::Cert;
+use openpgp::parse::Parse;
 
 use super::common::FileOrKeyHandle;
 use super::common::NO_USERIDS;
 use super::common::Sq;
+use super::common::STANDARD_POLICY;
 use super::common::UserIDArg;
 use super::common::artifact;
-
 
 // We are going to replace certifications, and we want to make sure
 // that the newest one is the active one.  This means ensuring that
@@ -683,6 +685,52 @@ fn retract_non_self_signed() {
 
     // Now it should fail.
     sq_verify(&sq, None, &[], &[], &sig_msg_str, 0, 1);
+}
+
+#[test]
+fn retract_weak() {
+    // Make sure we can retract signed user IDs whose binding
+    // signatures rely on weak cryptography from a valid certificate.
+    let sq = Sq::new();
+
+    let cert_path = sq.test_data()
+        .join("keys")
+        .join("sha1-userid-priv.pgp");
+    sq.key_import(&cert_path);
+
+    let cert = Cert::from_file(&cert_path).expect("can read");
+
+    // Make sure the user ID is there and really uses SHA-1.
+    let vc = cert.with_policy(STANDARD_POLICY, sq.now())
+        .expect("valid cert");
+    let valid_userids: BTreeSet<_> = vc.userids()
+        .map(|ua| ua.userid())
+        .collect();
+    let all_userids: BTreeSet<_> = cert.userids()
+        .map(|ua| ua.userid())
+        .collect();
+
+    assert!(valid_userids.len() < all_userids.len());
+
+    let weak_userids: Vec<_>
+        = all_userids.difference(&valid_userids)
+        .map(|u| {
+            String::from_utf8_lossy(u.value()).to_string()
+        })
+        .collect();
+    let weak_userids: Vec<&String> = weak_userids.iter().collect();
+
+    // The current policy doesn't allow SHA-1.
+    assert!(
+        sq.pki_link_add_maybe(&[], cert.key_handle(), &weak_userids)
+            .is_err());
+
+    // But the policy as of 2003 did.
+    sq.pki_link_add(&["--policy-as-of", "2003-01-01"],
+                    cert.key_handle(), &weak_userids);
+
+    // Retract.
+    sq.pki_link_retract(&[], cert.key_handle(), &weak_userids[..]);
 }
 
 #[test]

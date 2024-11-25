@@ -47,12 +47,6 @@ pub struct Command {
     #[arg(long)]
     pub fix: bool,
 
-    /// When fixing a certificate, the fixed certificate is exported
-    /// without any secret key material.  Using this switch causes any
-    /// secret key material to also be exported.
-    #[arg(long)]
-    pub export_secret_keys: bool,
-
     #[command(flatten)]
     pub certs: CertDesignators<FileCertUserIDEmailDomainGrepArgs,
                                CertPrefix,

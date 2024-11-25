@@ -117,6 +117,9 @@
      be given.  The former marks the key's user IDs as authenticated
      and makes it a trusted introducer.  The latter marks the key's
      user IDs as authenticated, and marks the key as a group key.
+   - The argument `sq cert lint --export-secret-keys` has been
+     removed: if a secret key is provided as file input, it will be
+     emitted.
 
 * Changes in 0.39.0
 ** Notable changes

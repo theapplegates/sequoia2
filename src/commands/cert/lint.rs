@@ -235,6 +235,8 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
         args.certs.designators.push(CertDesignator::Stdin);
     }
 
+    let certs = sq.resolve_certs_or_fail(&args.certs, 0)?;
+
     let mut out = if args.output.is_some()
         || args.certs.iter().any(|d| d.from_file() || d.from_stdin())
     {
@@ -246,7 +248,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
 
         Some(output.create_pgp_safe(
             &sq, false,
-            if args.export_secret_keys {
+            if certs.iter().any(|c| c.is_tsk()) {
                 armor::Kind::SecretKey
             } else {
                 armor::Kind::PublicKey
@@ -256,7 +258,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
     };
 
     {
-        'next_cert: for cert in sq.resolve_certs_or_fail(&args.certs, 0)? {
+        'next_cert: for cert in certs {
             // Whether we found at least one issue.
             let mut found_issue = false;
 
@@ -285,11 +287,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                     if updates.len() > 0 {
                         let cert = cert.insert_packets(updates)?;
                         if let Some(mut out) = out.as_mut() {
-                            if args.export_secret_keys {
-                                cert.as_tsk().serialize(&mut out)?;
-                            } else {
-                                cert.serialize(&mut out)?;
-                            }
+                            cert.as_tsk().serialize(&mut out)?;
                         } else {
                             let fpr = cert.fingerprint();
                             let cert_store = sq.cert_store_or_else()?;

@@ -45,7 +45,7 @@ certificate, use `sq key export`.
 pub struct Command {
     #[command(flatten)]
     pub cert: CertDesignators<
-        cert_designator::CertUserIDEmailFileArgs,
+        cert_designator::CertUserIDEmailArgs,
         cert_designator::CertPrefix,
         cert_designator::OneValue>,
 

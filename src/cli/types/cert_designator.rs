@@ -160,6 +160,12 @@ pub type CertUserIDEmailFileArgs
         as std::ops::BitOr<EmailArg>>::Output
        as std::ops::BitOr<FileArg>>::Output;
 
+/// Enables --cert, --userid, and --email (i.e., not --domain,
+/// --grep, --file, --with-password, or --with-password-file).
+pub type CertUserIDEmailArgs
+    = <<CertArg as std::ops::BitOr<UserIDArg>>::Output
+       as std::ops::BitOr<EmailArg>>::Output;
+
 /// Enables --cert, --userid, --email, --file, --with-password and
 /// --with-password-file (i.e., not --domain, or --grep).
 pub type CertUserIDEmailFileWithPasswordArgs

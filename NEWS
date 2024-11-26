@@ -120,6 +120,7 @@
    - The argument `sq cert lint --export-secret-keys` has been
      removed: if a secret key is provided as file input, it will be
      emitted.
+   - The argument `sq key subkey export --cert-file` has been removed.
 
 * Changes in 0.39.0
 ** Notable changes

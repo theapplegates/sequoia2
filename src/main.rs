@@ -26,6 +26,10 @@ use openpgp::cert::prelude::*;
 
 use clap::FromArgMatches;
 
+// XXX: This could be its own crate, or preferably integrated into
+// toml_edit.
+mod toml_edit_tree;
+
 #[macro_use] mod macros;
 #[macro_use] mod log;
 
@@ -44,6 +48,7 @@ use cli::types::Version;
 use cli::types::paths::StateDirectory;
 
 mod commands;
+pub mod config;
 pub mod output;
 pub use output::Model;
 
@@ -195,8 +200,12 @@ fn real_main() -> Result<()> {
 
     let matches = match matches {
         Ok(matches) => matches,
-        Err(err) => {
+        Err(mut err) => {
             // Warning: hack ahead!
+            //
+            // We want to hide global options in the help output for
+            // subcommands, and we want to include values from the
+            // configuration file in the help output.
             //
             // If we are showing the help output, we only want to
             // display the global options at the top-level; for
@@ -219,12 +228,24 @@ fn real_main() -> Result<()> {
             if err.kind() == ErrorKind::DisplayHelp
                 || err.kind() == ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
             {
+                // We want to try to parse the configuration file.  To
+                // that end, we first need to find the path to it.
+                let mut config = config::ConfigFile::default();
+                if let Some(augmentations) = cli::config::find_home().and_then(
+                    |home| config.read_and_augment(&home).ok())
+                {
+                    cli::config::set_augmentations(augmentations);
+                }
+
                 let output = err.render();
                 let output = if output == cli.render_long_help() {
                     Some(cli::build(false).render_long_help())
                 } else if output == cli.render_help() {
                     Some(cli::build(false).render_help())
                 } else {
+                    // Redo the parse so that the help message will
+                    // include any augmentations.
+                    err = cli::build(true).try_get_matches().unwrap_err();
                     None
                 };
 
@@ -257,6 +278,32 @@ fn real_main() -> Result<()> {
     };
     let c = cli::SqCommand::from_arg_matches(&matches)?;
 
+    let home = match &c.home {
+        Some(StateDirectory::Absolute(p)) =>
+            Some(sequoia_directories::Home::new(p.clone())?),
+        None | Some(StateDirectory::Default) =>
+            Some(sequoia_directories::Home::default()
+                 .ok_or(anyhow::anyhow!("no default SEQUOIA_HOME \
+                                         on this platform"))?
+                 .clone()),
+        Some(StateDirectory::None) => None,
+    };
+
+    // Parse the configuration file.
+    let mut config_file = config::ConfigFile::default_config(home.as_ref())?;
+    let mut config = if let Some(home) = &home {
+        // Sanity check `cli::config::find_home`.
+        debug_assert_eq!(home.location(),
+                         cli::config::find_home().unwrap().location());
+
+        config_file.read(home)
+            .with_context(|| format!(
+                "while reading configuration file {}",
+                config::ConfigFile::file_name(home).display()))?
+    } else {
+        Default::default()
+    };
+
     let time_is_now = c.time.is_none();
     let time: SystemTime = if let Some(t) = c.time.as_ref() {
         t.to_system_time(std::time::SystemTime::now())?
@@ -270,10 +317,7 @@ fn real_main() -> Result<()> {
         time.clone()
     };
 
-    let mut policy
-        = sequoia_policy_config::ConfiguredStandardPolicy::at(policy_as_of);
-    policy.parse_default_config()?;
-    let mut policy = policy.build();
+    let mut policy = config.policy(policy_as_of)?;
 
     let known_notations_store = c.known_notation.clone();
     let known_notations = known_notations_store
@@ -293,6 +337,8 @@ fn real_main() -> Result<()> {
 
     #[allow(deprecated)]
     let sq = Sq {
+        config_file,
+        config,
         verbose: c.verbose,
         quiet: c.quiet,
         overwrite: c.overwrite,
@@ -301,16 +347,7 @@ fn real_main() -> Result<()> {
         time_is_now,
         policy_as_of,
         policy: &policy,
-        home: match &c.home {
-            Some(StateDirectory::Absolute(p)) =>
-                Some(sequoia_directories::Home::new(p.clone())?),
-            None | Some(StateDirectory::Default) =>
-                Some(sequoia_directories::Home::default()
-                     .ok_or(anyhow::anyhow!("no default SEQUOIA_HOME \
-                                             on this platform"))?
-                     .clone()),
-            Some(StateDirectory::None) => None,
-        },
+        home,
         cert_store_path: c.cert_store.clone(),
         keyrings: c.keyring.clone(),
         keyring_tsks: Default::default(),
@@ -322,7 +359,7 @@ fn real_main() -> Result<()> {
         password_cache: password_cache.into(),
     };
 
-    match commands::dispatch(sq, c) {
+    match commands::dispatch(sq, c, &matches) {
         Ok(()) => Ok(()),
         Err(err) => {
             use clap::error::ErrorFormatter;

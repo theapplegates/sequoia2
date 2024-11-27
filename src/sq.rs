@@ -92,6 +92,9 @@ type WotStore<'store, 'rstore>
 pub struct Sq<'store, 'rstore>
     where 'store: 'rstore
 {
+    pub config_file: crate::config::ConfigFile,
+    pub config: crate::config::Config,
+
     pub verbose: bool,
     pub quiet: bool,
 

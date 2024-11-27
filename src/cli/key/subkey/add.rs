@@ -9,6 +9,7 @@ use examples::Actions;
 use examples::Example;
 use examples::Setup;
 
+use crate::cli::config;
 use crate::cli::key::CipherSuite;
 use crate::cli::types::CertDesignators;
 use crate::cli::types::ClapData;
@@ -90,10 +91,16 @@ pub struct Command {
         long,
         value_name = "CIPHER-SUITE",
         default_value_t = CipherSuite::Cv25519,
-        help = "Select the cryptographic algorithms for the subkey",
+        help = config::augment_help(
+            "key.generate.cipher-suite",
+            "Select the cryptographic algorithms for the subkey"),
         value_enum,
     )]
     pub cipher_suite: CipherSuite,
+
+    /// Workaround for https://github.com/clap-rs/clap/issues/3846
+    #[clap(skip)]
+    pub cipher_suite_source: Option<clap::parser::ValueSource>,
 
     #[command(flatten)]
     pub expiration: ExpirationArg,

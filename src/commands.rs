@@ -1,5 +1,7 @@
 use std::time::SystemTime;
 
+use clap::ArgMatches;
+
 use sequoia_openpgp as openpgp;
 use openpgp::cert::prelude::*;
 use openpgp::{Cert, Result};
@@ -16,6 +18,7 @@ use crate::cli::{SqCommand, SqSubcommands};
 
 pub mod autocrypt;
 pub mod cert;
+pub mod config;
 pub mod decrypt;
 pub mod download;
 pub mod encrypt;
@@ -30,8 +33,9 @@ pub mod verify;
 pub mod version;
 
 /// Dispatches the top-level subcommand.
-pub fn dispatch(sq: Sq, command: SqCommand) -> Result<()>
+pub fn dispatch(sq: Sq, command: SqCommand, matches: &ArgMatches) -> Result<()>
 {
+    let matches = matches.subcommand().unwrap().1;
     match command.subcommand {
         SqSubcommands::Encrypt(command) =>
             encrypt::dispatch(sq, command),
@@ -50,17 +54,20 @@ pub fn dispatch(sq: Sq, command: SqCommand) -> Result<()>
         SqSubcommands::Cert(command) =>
             cert::dispatch(sq, command),
         SqSubcommands::Key(command) =>
-            key::dispatch(sq, command),
+            key::dispatch(sq, command, matches),
 
         SqSubcommands::Pki(command) =>
             pki::dispatch(sq, command),
 
         SqSubcommands::Network(command) =>
-            network::dispatch(sq, command),
+            network::dispatch(sq, command, matches),
         SqSubcommands::Keyring(command) =>
             keyring::dispatch(sq, command),
         SqSubcommands::Packet(command) =>
             packet::dispatch(sq, command),
+
+        SqSubcommands::Config(command) =>
+            config::dispatch(sq, command),
 
         SqSubcommands::Version(command) =>
             version::dispatch(sq, command),

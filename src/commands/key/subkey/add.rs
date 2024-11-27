@@ -67,7 +67,9 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
 
     let new_cert = KeyBuilder::new(keyflags)
         .set_creation_time(sq.time)
-        .set_cipher_suite(command.cipher_suite.as_ciphersuite())
+        .set_cipher_suite(
+            sq.config.cipher_suite(&command.cipher_suite,
+                                   command.cipher_suite_source))
         .set_password(password)
         .subkey(valid_cert)?
         .set_key_validity_period(validity)?

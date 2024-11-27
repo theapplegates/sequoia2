@@ -93,8 +93,8 @@ pub fn generate(
 
     // Cipher Suite
     builder = builder.set_cipher_suite(
-        command.cipher_suite.as_ciphersuite()
-    );
+        sq.config.cipher_suite(&command.cipher_suite,
+                               command.cipher_suite_source));
 
     // Primary key capabilities.
     builder = builder.set_primary_key_flags(

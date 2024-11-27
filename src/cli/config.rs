@@ -1,0 +1,105 @@
+//! Command-line parser for `sq config`.
+
+use std::{
+    collections::BTreeMap,
+    sync::OnceLock,
+};
+
+use clap::{
+    Parser,
+    Subcommand,
+};
+
+use sequoia_directories::Home;
+
+pub mod get;
+pub mod set;
+pub mod template;
+
+/// Computes the path to the config file even if argument parsing
+/// failed.
+///
+/// This happens notably if `--help` is given.
+pub fn find_home() -> Option<Home> {
+    let args = std::env::args().collect::<Vec<_>>();
+
+    for (i, arg) in args.iter().enumerate() {
+        if arg == "--" {
+            break;
+        }
+
+        if arg.starts_with("--home=") {
+            return Home::new(Some(arg["--home=".len()..].into())).ok();
+        }
+
+        if arg == "--home" {
+            if let Some(home) = args.get(i + 1) {
+                return Home::new(Some(home.into())).ok();
+            }
+        }
+    }
+
+    Home::new(None).ok()
+}
+
+/// Values read from the config file to be included in help messages.
+pub type Augmentations = BTreeMap<&'static str, String>;
+
+/// Includes values from the config file in help messages.
+pub fn augment_help(key: &'static str, text: &str) -> String {
+    if let Some(a) = AUGMENTATIONS.get().and_then(|a| a.get(key)) {
+        format!("{}\n\n[config: {}] (overrides default)", text, a)
+    } else {
+        text.into()
+    }
+}
+
+/// Includes values from the config file in help messages.
+pub fn set_augmentations(augmentations: Augmentations) {
+    AUGMENTATIONS.set(augmentations)
+        .expect("augmentations must only be set once");
+}
+
+/// Values read from the config file to be included in help messages.
+static AUGMENTATIONS: OnceLock<Augmentations> = OnceLock::new();
+
+#[derive(Debug, Parser)]
+#[clap(
+    name = "config",
+    about = "Get configuration options",
+    long_about = format!("\
+Get configuration options
+
+This subcommand can be used to inspect the configuration \
+file{}, and to create a template that can be edited to your liking.
+",
+        sequoia_directories::Home::default()
+        .map(|home| {
+            let p = home.config_dir(sequoia_directories::Component::Sq);
+            let p = p.join("config.toml");
+            let p = p.display().to_string();
+            if let Some(home) = dirs::home_dir() {
+                let home = home.display().to_string();
+                if let Some(rest) = p.strip_prefix(&home) {
+                    return format!(" (default location: $HOME{})",
+                                   rest);
+                }
+            }
+            p
+        })
+        .unwrap_or("".to_string())),
+    subcommand_required = true,
+    arg_required_else_help = true,
+    disable_help_subcommand = true,
+)]
+pub struct Command {
+    #[clap(subcommand)]
+    pub subcommand: Subcommands,
+}
+
+#[derive(Debug, Subcommand)]
+#[non_exhaustive]
+pub enum Subcommands {
+    Get(get::Command),
+    Template(template::Command),
+}

@@ -7,6 +7,7 @@ use openpgp::packet::UserID;
 
 use crate::cli::KEY_VALIDITY_DURATION;
 use crate::cli::KEY_VALIDITY_IN_YEARS;
+use crate::cli::config;
 use crate::cli::types::ClapData;
 use crate::cli::types::EncryptPurpose;
 use crate::cli::types::Expiration;
@@ -134,10 +135,16 @@ Canonical user IDs are of the form `Name (Comment) \
         long = "cipher-suite",
         value_name = "CIPHER-SUITE",
         default_value_t = Default::default(),
-        help = "Select the cryptographic algorithms for the key",
+        help = config::augment_help(
+            "key.generate.cipher-suite",
+            "Select the cryptographic algorithms for the key"),
         value_enum,
     )]
     pub cipher_suite: CipherSuite,
+
+    /// Workaround for https://github.com/clap-rs/clap/issues/3846
+    #[clap(skip)]
+    pub cipher_suite_source: Option<clap::parser::ValueSource>,
 
     #[clap(
         long = "new-password-file",

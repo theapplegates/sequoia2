@@ -93,6 +93,7 @@ use openpgp::Fingerprint;
 pub mod examples;
 
 pub mod cert;
+pub mod config;
 pub mod decrypt;
 pub mod download;
 pub mod encrypt;
@@ -565,5 +566,6 @@ pub enum SqSubcommands {
     Keyring(keyring::Command),
     Packet(packet::Command),
 
+    Config(config::Command),
     Version(version::Command),
 }

@@ -1,5 +1,6 @@
 use clap::Parser;
 
+use crate::cli::config;
 use crate::cli::examples::Action;
 use crate::cli::examples::Actions;
 use crate::cli::examples::Example;
@@ -50,9 +51,15 @@ pub struct Command {
         long = "server",
         default_values_t = DEFAULT_KEYSERVERS.iter().map(ToString::to_string),
         value_name = "URI",
-        help = "Set the key server to use.  Can be given multiple times.",
+        help = config::augment_help(
+            "network.keyserver.servers",
+            "Set a key server to use.  Can be given multiple times."),
     )]
     pub servers: Vec<String>,
+
+    /// Workaround for https://github.com/clap-rs/clap/issues/3846
+    #[clap(skip)]
+    pub servers_source: Option<clap::parser::ValueSource>,
 
     #[clap(
         help = FileOrCertStore::HELP_OPTIONAL,

@@ -1,5 +1,6 @@
 use clap::{Args, Parser, Subcommand};
 
+use crate::cli::config;
 use crate::cli::examples::*;
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
@@ -38,7 +39,9 @@ pub struct Command {
         // that they are sorted to the bottom.
         display_order = 800,
         value_name = "URI",
-        help = "Set the key server to use.  Can be given multiple times.",
+        help = config::augment_help(
+            "network.keyserver.servers",
+            "Set a key server to use.  Can be given multiple times."),
     )]
     pub servers: Vec<String>,
     #[clap(subcommand)]

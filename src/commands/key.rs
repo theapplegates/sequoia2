@@ -1,3 +1,5 @@
+use clap::ArgMatches;
+
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
 
@@ -20,12 +22,17 @@ use revoke::certificate_revoke;
 mod subkey;
 pub mod userid;
 
-pub fn dispatch(sq: Sq, command: cli::key::Command) -> Result<()>
+pub fn dispatch(sq: Sq, command: cli::key::Command, matches: &ArgMatches)
+                -> Result<()>
 {
+    let matches = matches.subcommand().unwrap().1;
     use cli::key::Subcommands::*;
     match command.subcommand {
         List(c) => list(sq, c)?,
-        Generate(c) => generate(sq, c)?,
+        Generate(mut c) => {
+            c.cipher_suite_source = matches.value_source("cipher_suite");
+            generate(sq, c)?
+        },
         Import(c) => import(sq, c)?,
         Export(c) => export::dispatch(sq, c)?,
         Delete(c) => delete::dispatch(sq, c)?,
@@ -33,7 +40,7 @@ pub fn dispatch(sq: Sq, command: cli::key::Command) -> Result<()>
         Expire(c) => expire::dispatch(sq, c)?,
         Userid(c) => userid::dispatch(sq, c)?,
         Revoke(c) => certificate_revoke(sq, c)?,
-        Subkey(c) => subkey::dispatch(sq, c)?,
+        Subkey(c) => subkey::dispatch(sq, c, matches)?,
         Approvals(c) => approvals::dispatch(sq, c)?,
     }
     Ok(())

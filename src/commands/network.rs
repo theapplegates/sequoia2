@@ -8,6 +8,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Context;
+use clap::ArgMatches;
 use indicatif::ProgressBar;
 use tokio::task::JoinSet;
 
@@ -75,16 +76,19 @@ pub const CONNECT_TIMEOUT: Duration = Duration::new(5, 0);
 /// How long to wait for each individual http request.
 pub const REQUEST_TIMEOUT: Duration = Duration::new(5, 0);
 
-pub fn dispatch(sq: Sq, c: cli::network::Command)
+pub fn dispatch(sq: Sq, c: cli::network::Command, matches: &ArgMatches)
                 -> Result<()>
 {
+    let matches = matches.subcommand().unwrap().1;
     use cli::network::Subcommands;
     match c.subcommand {
-        Subcommands::Search(command) =>
-            dispatch_search(sq, command),
+        Subcommands::Search(mut command) => {
+            command.servers_source = matches.value_source("servers");
+            dispatch_search(sq, command)
+        },
 
         Subcommands::Keyserver(command) =>
-            dispatch_keyserver(sq, command),
+            dispatch_keyserver(sq, command, matches),
 
         Subcommands::Wkd(command) =>
             dispatch_wkd(sq, command),
@@ -888,12 +892,15 @@ pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
         sq.cert_store_or_else()?;
     }
 
-    let default_servers = default_keyservers_p(&c.servers);
+    let default_servers =
+        matches!(c.servers_source.unwrap(),
+                 clap::parser::ValueSource::DefaultValue);
+
     let http_client = http_client()?;
-    let servers = c.servers.iter().map(
-        |uri| KeyServer::with_client(uri, http_client.clone())
-            .with_context(|| format!("Malformed keyserver URI: {}", uri))
-            .map(Arc::new))
+    let servers = sq.config.key_servers(&c.servers, c.servers_source)
+        .map(|uri| KeyServer::with_client(uri, http_client.clone())
+             .with_context(|| format!("Malformed keyserver URI: {}", uri))
+             .map(Arc::new))
         .collect::<Result<Vec<_>>>()?;
 
     let mut seen_emails = HashSet::new();
@@ -1054,30 +1061,22 @@ pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
     Ok(())
 }
 
-/// Figures out whether the given set of key servers is the default
-/// set.
-fn default_keyservers_p(servers: &[String]) -> bool {
-    // XXX: This could be nicer, maybe with a custom clap parser
-    // that encodes it in the type.  For now we live with the
-    // false positive if someone explicitly provides the same set
-    // of servers.
-    use crate::cli::network::keyserver::DEFAULT_KEYSERVERS;
-    servers.len() == DEFAULT_KEYSERVERS.len()
-        && servers.iter().zip(DEFAULT_KEYSERVERS.iter())
-        .all(|(a, b)| a == b)
-}
-
-pub fn dispatch_keyserver(mut sq: Sq,
-                          c: cli::network::keyserver::Command)
-    -> Result<()>
+pub fn dispatch_keyserver(
+    mut sq: Sq,
+    c: cli::network::keyserver::Command,
+    matches: &ArgMatches,
+) -> Result<()>
 {
     make_qprintln!(sq.quiet);
 
-    let default_servers = default_keyservers_p(&c.servers);
-    let servers = c.servers.iter().map(
-        |uri| KeyServer::with_client(uri, http_client()?)
-            .with_context(|| format!("Malformed keyserver URI: {}", uri))
-            .map(Arc::new))
+    let servers_source = matches.value_source("servers").unwrap();
+    let default_servers =
+        matches!(servers_source, clap::parser::ValueSource::DefaultValue);
+
+    let servers = sq.config.key_servers(&c.servers, Some(servers_source))
+        .map(|uri| KeyServer::with_client(uri, http_client()?)
+             .with_context(|| format!("Malformed keyserver URI: {}", uri))
+             .map(Arc::new))
         .collect::<Result<Vec<_>>>()?;
 
     let rt = tokio::runtime::Runtime::new()?;

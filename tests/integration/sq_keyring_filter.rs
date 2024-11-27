@@ -69,6 +69,7 @@ fn filter(sq: &Sq, args: &[&str]) -> Vec<Cert> {
     let mut cmd = sq.command();
     cmd.arg("keyring")
         .arg("filter")
+        .arg("--experimental")
         .arg("--output=-")
         .args(args)
         .arg("keys.pgp");

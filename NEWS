@@ -124,6 +124,9 @@
    - `sq` now reads a configuration file that can be used to tweak a
      number of defaults, like the cipher suite to generate new keys,
      the set of key servers to query, and the cryptographic policy.
+   - The command `sq keyring filter` is now considered experimental
+     and may change in the future.  To acknowledge this, it has to be
+     invoked with the `--experimental` flag.
 
 * Changes in 0.39.0
 ** Notable changes

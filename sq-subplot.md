@@ -628,7 +628,7 @@ given an installed sq
 when I run sq key generate --own-key --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --own-key --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
 when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq keyring filter --to-cert ring.pgp --output filtered.pgp
+when I run sq keyring filter --experimental --to-cert ring.pgp --output filtered.pgp
 when I run sq inspect filtered.pgp
 then stdout contains "OpenPGP Certificate."
 then stdout doesn't contain "Transferable Secret Key."
@@ -646,7 +646,7 @@ given an installed sq
 when I run sq key generate --own-key --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --own-key --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
 when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq keyring filter --to-cert ring.pgp
+when I run sq keyring filter --experimental --to-cert ring.pgp
 then stdout contains "-----BEGIN PGP PUBLIC KEY BLOCK-----"
 then stdout contains "-----END PGP PUBLIC KEY BLOCK-----"
 ~~~
@@ -659,7 +659,7 @@ criteria._
 ~~~scenario
 given an installed sq
 when I run sq key generate --own-key --without-password --userid Alice --userid Bob --output alice.pgp --rev-cert alice.pgp.rev
-when I run sq keyring filter --prune-certs --name Alice alice.pgp --output filtered.pgp
+when I run sq keyring filter --experimental --prune-certs --name Alice alice.pgp --output filtered.pgp
 when I run sq inspect filtered.pgp
 then stdout contains "Alice"
 then stdout doesn't contain "Bob"
@@ -675,7 +675,7 @@ given an installed sq
 when I run sq key generate --own-key --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --own-key --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
 when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq keyring filter --userid Alice ring.pgp --output filtered.pgp
+when I run sq keyring filter --experimental --userid Alice ring.pgp --output filtered.pgp
 when I run sq inspect filtered.pgp
 then stdout contains "Alice"
 then stdout doesn't contain "Bob"
@@ -691,7 +691,7 @@ given an installed sq
 when I run sq key generate --own-key --without-password --userid Alice --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --own-key --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
 when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq keyring filter --userid Alice --userid Bob ring.pgp --output filtered.pgp
+when I run sq keyring filter --experimental --userid Alice --userid Bob ring.pgp --output filtered.pgp
 when I run sq inspect filtered.pgp
 then stdout contains "Alice"
 then stdout contains "Bob"
@@ -707,7 +707,7 @@ given an installed sq
 when I run sq key generate --own-key --without-password --userid 'Alice <alice@example.com>' --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --own-key --without-password --userid 'Bob <bob@example.com>' --output bob.pgp --rev-cert bob.pgp.rev
 when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq keyring filter --name Alice ring.pgp --output filtered.pgp
+when I run sq keyring filter --experimental --name Alice ring.pgp --output filtered.pgp
 when I run sq inspect filtered.pgp
 then stdout contains "Alice"
 then stdout doesn't contain "Bob"
@@ -723,7 +723,7 @@ given an installed sq
 when I run sq key generate --own-key --without-password --userid 'Alice <alice@example.com>' --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --own-key --without-password --userid 'Bob <bob@example.com>' --output bob.pgp --rev-cert bob.pgp.rev
 when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq keyring filter --name Alice --name Bob ring.pgp --output filtered.pgp
+when I run sq keyring filter --experimental --name Alice --name Bob ring.pgp --output filtered.pgp
 when I run sq inspect filtered.pgp
 then stdout contains "Alice"
 then stdout contains "Bob"
@@ -739,7 +739,7 @@ given an installed sq
 when I run sq key generate --own-key --without-password --userid 'Alice <alice@example.com>' --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --own-key --without-password --userid 'Bob <bob@sequoia-pgp.org>' --output bob.pgp --rev-cert bob.pgp.rev
 when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq keyring filter --domain example.com ring.pgp --output filtered.pgp
+when I run sq keyring filter --experimental --domain example.com ring.pgp --output filtered.pgp
 when I run sq inspect filtered.pgp
 then stdout contains "Alice"
 then stdout doesn't contain "Bob"
@@ -755,7 +755,7 @@ given an installed sq
 when I run sq key generate --own-key --without-password --userid 'Alice <alice@example.com>' --output alice.pgp --rev-cert alice.pgp.rev
 when I run sq key generate --own-key --without-password --userid 'Bob <bob@sequoia-pgp.org>' --output bob.pgp --rev-cert bob.pgp.rev
 when I run sq keyring merge alice.pgp bob.pgp --output ring.pgp
-when I run sq keyring filter --domain example.com --domain sequoia-pgp.org ring.pgp --output filtered.pgp
+when I run sq keyring filter --experimental --domain example.com --domain sequoia-pgp.org ring.pgp --output filtered.pgp
 when I run sq inspect filtered.pgp
 then stdout contains "Alice"
 then stdout contains "Bob"

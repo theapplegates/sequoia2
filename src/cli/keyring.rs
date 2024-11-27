@@ -61,10 +61,32 @@ If multiple predicates are given, they are or'ed, i.e., a key matches \
 if any of the predicates match.  To require all predicates to match, \
 chain multiple invocations of this command.  See EXAMPLES for \
 inspiration.
+
+Note: this command is considered experimental and may change in future \
+releases.  To acknowledge this, you must give the `--experimental` \
+flag when invoking this command.
 ",
     after_help = FILTER_EXAMPLES,
 )]
 pub struct FilterCommand {
+    #[clap(
+        long = "experimental",
+        required = true,
+        help = "Opt-in to using an experimental feature",
+        long_help = "\
+Opt-in to using an experimental feature
+
+This command is considered experimental and may change in future \
+releases.  To acknowledge this, you must give the `--experimental` \
+flag when invoking this command.
+
+In the future, we may stabilize this command.  When that happens, \
+`--experimental` will no longer be required, but will be ignored \
+silently.
+",
+    )]
+    pub _experimental: bool,
+
     #[clap(value_name = "FILE", help = "Read from FILE or stdin if omitted")]
     pub input: Vec<PathBuf>,
     #[clap(
@@ -166,6 +188,7 @@ const FILTER_EXAMPLES: Actions = Actions {
 Convert all keys to certificates (i.e. remove any secret key material).",
             command: &[
                 "sq", "keyring", "filter",
+                "--experimental",
                 "--to-cert",
                 "certs.pgp",
             ],
@@ -176,6 +199,7 @@ Convert all keys to certificates (i.e. remove any secret key material).",
 Get all certificates with a user ID on example.org.",
             command: &[
                 "sq", "keyring", "filter",
+                "--experimental",
                 "--domain=example.org",
                 "certs.pgp",
             ],
@@ -186,6 +210,7 @@ Get all certificates with a user ID on example.org.",
 Get all certificates with a user ID on example.org or example.net.",
             command: &[
                 "sq", "keyring", "filter",
+                "--experimental",
                 "--domain=example.org",
                 "--domain=example.net",
                 "certs.pgp",
@@ -197,6 +222,7 @@ Get all certificates with a user ID on example.org or example.net.",
 Get all certificates with a name user ID matching Romeo.",
             command: &[
                 "sq", "keyring", "filter",
+                "--experimental",
                 "--name=Romeo",
                 "certs.pgp",
             ],
@@ -207,9 +233,11 @@ Get all certificates with a name user ID matching Romeo.",
 Get all certificates with a name user ID matching Romeo on example.org.",
             command: &[
                 "sq", "keyring", "filter",
+                "--experimental",
                 "--domain=example.org",
                 "certs.pgp",
                 "|", "sq", "keyring", "filter",
+                "--experimental",
                 "--name=Romeo",
             ],
         }),
@@ -219,6 +247,7 @@ Get all certificates with a name user ID matching Romeo on example.org.",
 Get all certificates with a user ID on example.org, pruning other user IDs.",
             command: &[
                 "sq", "keyring", "filter",
+                "--experimental",
                 "--domain=example.org",
                 "--prune-certs",
                 "certs.pgp",
@@ -325,6 +354,7 @@ const LIST_EXAMPLES: Actions = Actions {
 List all certificates with a user ID on example.org.",
             command: &[
                 "sq", "keyring", "filter",
+                "--experimental",
                 "--domain=example.org",
                 "certs.pgp",
                 "|", "sq", "keyring", "list",

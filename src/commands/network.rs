@@ -1268,8 +1268,32 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                 return Err(anyhow::anyhow!("Failed to resolve certificates"));
             }
 
-            let mut insert = BTreeMap::from_iter(
-                insert.into_iter().map(|c| (c.fingerprint(), c)));
+            let mut skipping = Vec::new();
+            let mut insert: BTreeMap<_, _> = insert.into_iter()
+                .filter(|cert| {
+                    if ! cert.with_policy(sq.policy, sq.time)
+                        .ok()
+                        .map(|vc| vc.userids().any(
+                            |u| u.userid().email2().ok().flatten().map(
+                                |a| a.ends_with(&c.domain))
+                                .unwrap_or(false)))
+                        .unwrap_or(false)
+                    {
+                        skipping.push(cert.fingerprint());
+                        false // Drop.
+                    } else {
+                        true // Keep.
+                    }
+                })
+                .map(|c| (c.fingerprint(), c))
+                .collect();
+
+            if ! skipping.is_empty() {
+                qprintln!("Note: Skipping the following certificates because \
+                           they don't have a valid self-signed user ID in \
+                           {}:", c.domain);
+                skipping.into_iter().for_each(|fipr| qprintln!(" - {}", fipr))
+            }
 
             if c.create && insert.is_empty() {
                 sq.hint(format_args!(

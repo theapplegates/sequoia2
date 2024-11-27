@@ -41,6 +41,7 @@ for example.org and example.com.",
                 "--cert=E7FC51AD886BBB5C4F44C3D7A9DA14F3E740F63F",
                 "--domain=example.org",
                 "--domain=example.com",
+                "--all",
             ],
         }),
     ],
@@ -108,8 +109,7 @@ pub struct Command {
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::ExistingAndAddXUserIDEmailArgs,
-        userid_designator::OptionalValue>,
+        userid_designator::AllExistingAndAddXUserIDEmailArgs>,
 
     #[clap(
         long = "amount",

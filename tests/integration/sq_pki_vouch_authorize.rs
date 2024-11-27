@@ -89,7 +89,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     // Otto authorizes completely to the CA.
     let certification = sq.scratch_file(None);
     sq.tick(1);
-    sq.pki_vouch_authorize(&["--unconstrained"],
+    sq.pki_vouch_authorize(&["--unconstrained", "--all"],
                            otto.key_handle(), ca.key_handle(),
                            NO_USERIDS,
                            certification.as_path());
@@ -105,7 +105,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     // Otto authorizes to the CA with the regex contraint "example".
     let certification = sq.scratch_file(None);
     sq.tick(1);
-    sq.pki_vouch_authorize(&["--regex", "example"],
+    sq.pki_vouch_authorize(&["--regex", "example", "--all"],
                            otto.key_handle(), ca.key_handle(),
                            NO_USERIDS,
                            certification.as_path());
@@ -121,7 +121,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     // Otto authorizes to the CA with the domain contraint "example.org".
     let certification = sq.scratch_file(None);
     sq.tick(1);
-    sq.pki_vouch_authorize(&["--domain", "example.org"],
+    sq.pki_vouch_authorize(&["--domain", "example.org", "--all"],
                            otto.key_handle(), ca.key_handle(),
                            NO_USERIDS,
                            certification.as_path());
@@ -137,7 +137,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     // Otto authorizes to the CA with the regex contraint "other".
     let certification = sq.scratch_file(None);
     sq.tick(1);
-    sq.pki_vouch_authorize(&["--regex", "other"],
+    sq.pki_vouch_authorize(&["--regex", "other", "--all"],
                            otto.key_handle(), ca.key_handle(),
                            NO_USERIDS,
                            certification.as_path());
@@ -153,7 +153,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     // Otto authorizes to the CA with the regex contraint "bob".
     let certification = sq.scratch_file(None);
     sq.tick(1);
-    sq.pki_vouch_authorize(&["--regex", "bob"],
+    sq.pki_vouch_authorize(&["--regex", "bob", "--all"],
                            otto.key_handle(), ca.key_handle(),
                            NO_USERIDS,
                            certification.as_path());
@@ -169,7 +169,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     // Otto authorizes to the CA with the regex contraint "bob" or "alice".
     let certification = sq.scratch_file(None);
     sq.tick(1);
-    sq.pki_vouch_authorize(&["--regex", "bob", "--regex", "alice"],
+    sq.pki_vouch_authorize(&["--regex", "bob", "--regex", "alice", "--all"],
                            otto.key_handle(), ca.key_handle(),
                            NO_USERIDS,
                            certification.as_path());
@@ -187,7 +187,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     let certification = sq.scratch_file(None);
     sq.tick(1);
     sq.pki_vouch_authorize(
-        &["--domain", "example.org", "--domain", "other.org"],
+        &["--domain", "example.org", "--domain", "other.org", "--all"],
         otto.key_handle(), ca.key_handle(),
         NO_USERIDS,
         certification.as_path());
@@ -205,7 +205,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     let certification = sq.scratch_file(None);
     sq.tick(1);
     sq.pki_vouch_authorize(
-        &["--domain", "other.org", "--regex", "alice"],
+        &["--domain", "other.org", "--regex", "alice", "--all"],
         otto.key_handle(), ca.key_handle(),
         NO_USERIDS,
         certification.as_path());
@@ -222,7 +222,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     // Otto authorizes to the CA with the regex contraint "zoo".
     let certification = sq.scratch_file(None);
     sq.tick(1);
-    sq.pki_vouch_authorize(&["--regex", "zoo"],
+    sq.pki_vouch_authorize(&["--regex", "zoo", "--all"],
                            otto.key_handle(), ca.key_handle(),
                            NO_USERIDS,
                            certification.as_path());
@@ -238,7 +238,7 @@ fn sq_pki_vouch_authorize_then_authenticate() {
     // Otto authorizes to the CA with the domain contraint "example".
     let certification = sq.scratch_file(None);
     sq.tick(1);
-    sq.pki_vouch_authorize(&["--domain", "example"],
+    sq.pki_vouch_authorize(&["--domain", "example", "--all"],
                            otto.key_handle(), ca.key_handle(),
                            NO_USERIDS,
                            certification.as_path());
@@ -326,7 +326,7 @@ fn sq_pki_vouch_authorize_all_revoked() {
     // That means the revoked user ID should be skipped.
     let certification = sq.scratch_file(None);
     sq.tick(1);
-    sq.pki_vouch_authorize(&["--unconstrained"],
+    sq.pki_vouch_authorize(&["--unconstrained", "--all"],
                            otto.key_handle(), ca.key_handle(),
                            NO_USERIDS,
                            certification.as_path());

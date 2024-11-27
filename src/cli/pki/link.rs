@@ -98,6 +98,7 @@ certificate is considered a trusted introducer for example.org.",
                 "sq", "pki", "link", "authorize",
                 "--domain=example.org",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
             ],
         }),
 
@@ -341,8 +342,7 @@ pub struct AuthorizeCommand {
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::AllExistingAndAddXUserIDEmailArgs,
-        userid_designator::OptionalValue>,
+        userid_designator::AllExistingAndAddXUserIDEmailArgs>,
 
     #[clap(
         long = "amount",
@@ -450,7 +450,8 @@ Add an unconstrained trusted introducer.",
             command: &[
                 "sq", "pki", "link", "authorize",
                 "--unconstrained",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0"
+                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
             ],
         }),
 
@@ -462,6 +463,7 @@ Add a trusted introducer for example.org and example.com.",
                 "--domain=example.org",
                 "--domain=example.com",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
             ],
         }),
 
@@ -473,6 +475,7 @@ Add a partially trusted introducer.",
                 "--unconstrained",
                 "--amount=60",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
             ],
         }),
     ],

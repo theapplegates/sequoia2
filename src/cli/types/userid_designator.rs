@@ -798,6 +798,7 @@ impl ResolvedUserID {
 
     /// Return implicitly resolved user IDs for of a certificate's
     /// self-signed user IDs.
+    #[allow(dead_code)]
     pub fn implicit_for_valid_cert(vc: &ValidCert) -> Vec<Self> {
         vc.userids()
             .map(|ua| Self::implicit(ua.userid().clone()))

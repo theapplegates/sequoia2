@@ -90,21 +90,7 @@ pub fn authorize(sq: Sq, c: link::AuthorizeCommand)
         = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
 
     let vc = cert.with_policy(sq.policy, Some(sq.time))?;
-    let mut userids = c.userids.resolve(&vc)?;
-    let user_supplied_userids = if userids.is_empty() {
-        // Use all self-signed User IDs.
-        userids = ResolvedUserID::implicit_for_valid_cert(&vc);
-        if userids.is_empty() {
-            return Err(anyhow::anyhow!(
-                "{} has no self-signed user IDs, and you didn't provide \
-                 an alternate user ID",
-                vc.fingerprint()));
-        }
-
-        false
-    } else {
-        true
-    };
+    let userids = c.userids.resolve(&vc)?;
 
     let notations = parse_notations(c.notation)?;
 
@@ -114,7 +100,7 @@ pub fn authorize(sq: Sq, c: link::AuthorizeCommand)
         &trust_root,
         &cert,
         &userids[..],
-        user_supplied_userids,
+        true, // User supplied user IDs.
         &[(c.amount, c.expiration.value())][..],
         c.depth,
         &c.domain[..],

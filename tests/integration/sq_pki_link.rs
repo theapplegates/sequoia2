@@ -497,7 +497,7 @@ fn sq_pki_link_update_detection() -> Result<()> {
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
     // Make Alice a CA.
-    sq.pki_link_authorize(&["--time", &tick(), "--unconstrained"],
+    sq.pki_link_authorize(&["--time", &tick(), "--unconstrained", "--all"],
                           alice.key_handle(),
                           NO_USERIDS);
     let bytes = compare(bytes, &alice_cert_pgp, false);

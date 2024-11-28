@@ -11,6 +11,8 @@ use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 use openpgp::packet::UserID;
 
+use crate::cli::types::SpecialName;
+
 /// The prefix for the designators.
 ///
 /// See [`NoPrefix`], [`CertPrefix`], etc.
@@ -124,8 +126,11 @@ pub type GrepArg = typenum::U64;
 /// This is only used for `sq encrypt`.
 pub type WithPasswordArgs = typenum::U128;
 
+/// Adds a `--special` argument.
+pub type SpecialArg = typenum::U256;
+
 /// Enables --file, --cert, --userid, --email, --domain, and --grep
-/// (i.e., not --with-password, or --with-password-file).
+/// (i.e., not --with-password, --with-password-file, --special).
 #[allow(dead_code)]
 pub type FileCertUserIDEmailDomainGrepArgs
     = <<<<<FileArg
@@ -136,7 +141,7 @@ pub type FileCertUserIDEmailDomainGrepArgs
        as std::ops::BitOr<GrepArg>>::Output;
 
 /// Enables --file, --cert, --userid, --email, and --domain, (i.e.,
-/// not --grep, --with-password, or --with-password-file).
+/// not --grep, --with-password, --with-password-file, or --special).
 #[allow(dead_code)]
 pub type FileCertUserIDEmailDomainArgs
     = <<<<FileArg
@@ -146,7 +151,7 @@ pub type FileCertUserIDEmailDomainArgs
        as std::ops::BitOr<DomainArg>>::Output;
 
 /// Enables --cert, --userid, --email, --domain, and --grep (i.e., not
-/// --file, --with-password, or --with-password-file).
+/// --file, --with-password, --with-password-file, or --special).
 pub type CertUserIDEmailDomainGrepArgs
     = <<<<CertArg as std::ops::BitOr<UserIDArg>>::Output
          as std::ops::BitOr<EmailArg>>::Output
@@ -154,20 +159,20 @@ pub type CertUserIDEmailDomainGrepArgs
        as std::ops::BitOr<GrepArg>>::Output;
 
 /// Enables --cert, --userid, --email, and --file (i.e., not --domain,
-/// --grep, --with-password, or --with-password-file).
+/// --grep, --with-password, --with-password-file, or --special).
 pub type CertUserIDEmailFileArgs
     = <<<CertArg as std::ops::BitOr<UserIDArg>>::Output
         as std::ops::BitOr<EmailArg>>::Output
        as std::ops::BitOr<FileArg>>::Output;
 
-/// Enables --cert, --userid, and --email (i.e., not --domain,
-/// --grep, --file, --with-password, or --with-password-file).
+/// Enables --cert, --userid, and --email (i.e., not --domain, --grep,
+/// --file, --with-password, --with-password-file, or --special).
 pub type CertUserIDEmailArgs
     = <<CertArg as std::ops::BitOr<UserIDArg>>::Output
        as std::ops::BitOr<EmailArg>>::Output;
 
 /// Enables --cert, --userid, --email, --file, --with-password and
-/// --with-password-file (i.e., not --domain, or --grep).
+/// --with-password-file (i.e., not --domain, --grep, or --special).
 pub type CertUserIDEmailFileWithPasswordArgs
     = <<<<CertArg as std::ops::BitOr<UserIDArg>>::Output
          as std::ops::BitOr<EmailArg>>::Output
@@ -175,9 +180,12 @@ pub type CertUserIDEmailFileWithPasswordArgs
        as std::ops::BitOr<WithPasswordArgs>>::Output;
 
 /// Enables --cert, and --file (i.e., not --userid, --email, --domain,
-/// --grep, --with-password, or --with-password-file).
+/// --grep, --with-password, --with-password-file, or --special).
 pub type CertFileArgs = <CertArg as std::ops::BitOr<FileArg>>::Output;
 
+/// Enables --cert, and --special (i.e., not --userid, --email,
+/// --domain, --grep, --with-password, or --with-password-file).
+pub type CertSpecialArgs = <CertArg as std::ops::BitOr<SpecialArg>>::Output;
 
 /// Argument parser options.
 
@@ -319,6 +327,13 @@ pub enum CertDesignator {
     ///
     /// `--grep`.
     Grep(String),
+
+    /// Looks up certificates special name.
+    ///
+    /// This maps special names like keys.openpgp.org to certificates.
+    ///
+    /// `--special`.
+    Special(SpecialName),
 }
 
 impl CertDesignator {
@@ -346,6 +361,7 @@ impl CertDesignator {
             Email(_email) => format!("--{}email", prefix),
             Domain(_domain) => format!("--{}domain", prefix),
             Grep(_pattern) => format!("--{}grep", prefix),
+            Special(_special) => format!("--{}special", prefix),
         }
     }
 
@@ -365,6 +381,7 @@ impl CertDesignator {
             Email(email) => format!("{} {:?}", argument_name, email),
             Domain(domain) => format!("{} {:?}", argument_name, domain),
             Grep(pattern) => format!("{} {:?}", argument_name, pattern),
+            Special(special) => format!("{} {:?}", argument_name, special),
         }
     }
 
@@ -486,6 +503,7 @@ where
         let domain_arg = (arguments & DomainArg::to_usize()) > 0;
         let grep_arg = (arguments & GrepArg::to_usize()) > 0;
         let with_password_args = (arguments & WithPasswordArgs::to_usize()) > 0;
+        let special_arg = (arguments & SpecialArg::to_usize()) > 0;
 
         let options = Options::to_usize();
         let one_value = (options & OneValue::to_usize()) > 0;
@@ -585,6 +603,21 @@ where
                         "cert",
                         "Use certificates with the specified \
                          fingerprint or key ID")));
+            arg_group = arg_group.arg(full_name);
+        }
+
+        if special_arg {
+            let full_name = full_name("special");
+            cmd = cmd.arg(
+                clap::Arg::new(&full_name)
+                    .long(&full_name)
+                    .value_name("SPECIAL")
+                    .value_parser(
+                        clap::builder::EnumValueParser::<SpecialName>::new())
+                    .action(action.clone())
+                    .help(Doc::help(
+                        "special",
+                        "Use certificates identified by the special name")));
             arg_group = arg_group.arg(full_name);
         }
 
@@ -741,6 +774,7 @@ where
         let domain_arg = (arguments & DomainArg::to_usize()) > 0;
         let grep_arg = (arguments & GrepArg::to_usize()) > 0;
         let with_password_args = (arguments & WithPasswordArgs::to_usize()) > 0;
+        let special_arg = (arguments & SpecialArg::to_usize()) > 0;
 
         let mut designators = Vec::new();
 
@@ -820,6 +854,17 @@ where
             }
         }
 
+        if let Some(Some(names))
+            = matches.try_get_many::<SpecialName>(&format!("{}special", prefix))
+            .ok().filter(|_| special_arg)
+        {
+            for name in names.cloned() {
+                designators.push(CertDesignator::Special(name));
+            }
+        }
+
+        // eprintln!("{:?}", designators);
+
         self.designators = designators;
         Ok(())
     }
@@ -855,6 +900,7 @@ mod test {
             ($t:ty,
              $cert:expr, $userid:expr, $email:expr,
              $domain:expr, $grep:expr, $file:expr,
+             $special:expr,
              $with_password:expr) =>
             {{
                 #[derive(Parser, Debug)]
@@ -998,6 +1044,22 @@ mod test {
                     assert!(m.is_err());
                 }
 
+
+                // Check if --special is recognized.
+                let m = command.clone().try_get_matches_from(vec![
+                    "prog",
+                    "--special", "keys.openpgp.org",
+                    "--special", "keys.mailvelope.com",
+                ]);
+                if $special {
+                    let m = m.expect("valid arguments");
+                    let c = CLI::from_arg_matches(&m).expect("ok");
+                    assert_eq!(c.certs.designators.len(), 2);
+                } else {
+                    assert!(m.is_err());
+                }
+
+
                 // Check if --with-password is recognized.
                 let m = command.clone().try_get_matches_from(vec![
                     "prog",
@@ -1029,21 +1091,22 @@ mod test {
         }
 
         check!(CertUserIDEmailDomainGrepArgs,
-               true,  true,  true,  true,  true,  false, false);
+               true,  true,  true,  true,  true,  false, false, false);
         check!(CertUserIDEmailFileArgs,
-               true,  true,  true, false, false, true, false);
+               true,  true,  true, false, false, true, false, false);
         check!(CertUserIDEmailFileWithPasswordArgs,
-               true,  true,  true, false, false, true, true);
+               true,  true,  true, false, false, true, false, true);
         // No Args.
-        check!(typenum::U0,false, false, false, false, false, false, false);
-        check!(CertArg,     true, false, false, false, false, false, false);
-        check!(UserIDArg,  false,  true, false, false, false, false, false);
-        check!(EmailArg,   false, false,  true, false, false, false, false);
-        check!(DomainArg,  false, false, false,  true, false, false, false);
-        check!(GrepArg,    false, false, false, false,  true, false, false);
-        check!(FileArg,    false, false, false, false, false,  true, false);
+        check!(typenum::U0,false, false, false, false, false, false, false, false);
+        check!(CertArg,     true, false, false, false, false, false, false, false);
+        check!(UserIDArg,  false,  true, false, false, false, false, false, false);
+        check!(EmailArg,   false, false,  true, false, false, false, false, false);
+        check!(DomainArg,  false, false, false,  true, false, false, false, false);
+        check!(GrepArg,    false, false, false, false,  true, false, false, false);
+        check!(FileArg,    false, false, false, false, false,  true, false, false);
+        check!(SpecialArg, false, false, false, false, false, false,  true, false);
         check!(WithPasswordArgs,
-                           false, false, false, false, false,  false, true);
+                           false, false, false, false, false,  false, false, true);
     }
 
     #[test]

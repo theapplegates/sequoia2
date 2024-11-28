@@ -39,6 +39,8 @@ pub use userid_designator::UserIDDesignators;
 pub mod expiration;
 pub use expiration::Expiration;
 pub use expiration::ExpirationArg;
+pub mod special_names;
+pub use special_names::SpecialName;
 pub mod time;
 pub use time::Time;
 pub mod version;

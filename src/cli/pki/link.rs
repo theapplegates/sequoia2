@@ -168,7 +168,7 @@ time.
 pub struct AddCommand {
     #[command(flatten)]
     pub cert: CertDesignators<
-        cert_designator::CertArg,
+        cert_designator::CertSpecialArgs,
         cert_designator::CertPrefix,
         cert_designator::OneValue>,
 
@@ -336,7 +336,7 @@ reference time.
 pub struct AuthorizeCommand {
     #[command(flatten)]
     pub cert: CertDesignators<
-        cert_designator::CertArg,
+        cert_designator::CertSpecialArgs,
         cert_designator::CertPrefix,
         cert_designator::OneValue>,
 
@@ -532,7 +532,7 @@ to force the signature to be re-created anyway.",
 
     #[command(flatten)]
     pub cert: CertDesignators<
-        cert_designator::CertArg,
+        cert_designator::CertSpecialArgs,
         cert_designator::CertPrefix,
         cert_designator::OneValue>,
 

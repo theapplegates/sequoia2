@@ -51,10 +51,11 @@ use keystore::Protection;
 use crate::cli::types::CertDesignators;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::cli::types::KeyDesignators;
+use crate::cli::types::SpecialName;
 use crate::cli::types::StdinWarning;
-use crate::cli::types::paths::StateDirectory;
 use crate::cli::types::cert_designator;
 use crate::cli::types::key_designator;
+use crate::cli::types::paths::StateDirectory;
 use crate::common::password;
 use crate::output::hint::Hint;
 use crate::output::import::{ImportStats, ImportStatus};
@@ -2026,6 +2027,55 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                 "stdin did not contain any certificates")),
                             false);
                     }
+                }
+                cert_designator::CertDesignator::Special(name) => {
+                    let certd = match self.certd_or_else() {
+                        Ok(certd) => certd,
+                        Err(err) => {
+                            ret(
+                                designator,
+                                Err(err),
+                                true);
+                            continue;
+                        }
+                    };
+
+                    let result = match name {
+                        SpecialName::PublicDirectories => {
+                            certd.public_directory_ca()
+                        }
+                        SpecialName::KeysOpenpgpOrg => {
+                            certd.shadow_ca_keys_openpgp_org()
+                        }
+                        SpecialName::KeysMailvelopeCom => {
+                            certd.shadow_ca_keys_mailvelope_com()
+                        }
+                        SpecialName::ProtonMe => {
+                            certd.shadow_ca_proton_me()
+                        }
+                        SpecialName::WKD => {
+                            certd.shadow_ca_wkd()
+                        }
+                        SpecialName::DANE => {
+                            certd.shadow_ca_dane()
+                        }
+                        SpecialName::Autocrypt => {
+                            certd.shadow_ca_autocrypt()
+                        }
+                        SpecialName::Web => {
+                            certd.shadow_ca_web()
+                        }
+                    };
+
+                    ret(
+                        designator,
+                        result
+                            .map(|(cert, _created)| cert)
+                            .with_context(|| {
+                                format!("Looking up special certificate {}",
+                                        name)
+                            }),
+                        true);
                 }
             }
         }

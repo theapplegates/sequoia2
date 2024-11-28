@@ -808,3 +808,47 @@ fn no_ambiguous_email() {
         &[], alice.key_handle(),
         &[UserIDArg::AddUserID("<alice@example.org>")]);
 }
+
+#[test]
+fn special_names() {
+    // Check that --cert-special works.
+    let sq = Sq::new();
+
+    let check = |cmd: &str, args: &[&str], name: &str, success: bool| {
+        let mut c = sq.command();
+        c.args([ "pki", "link", cmd, "--cert-special", name ]);
+        c.args(args);
+        sq.run(c, Some(success));
+    };
+
+    const SPECIAL_STRINGS: &'static [&'static str] = &[
+        "public-directories",
+        "keys.openpgp.org",
+        "keys.mailvelope.com",
+        "proton.me",
+        "wkd",
+        "dane",
+        "autocrypt",
+        "web",
+    ];
+
+    for name in SPECIAL_STRINGS.iter() {
+        check("add", &["--all"], name, true);
+    }
+    check("add", &["--all"], "xxx", false);
+
+    for name in SPECIAL_STRINGS.iter() {
+        check("retract", &[], name, true);
+    }
+    check("retract", &[], "xxx", false);
+
+    for name in SPECIAL_STRINGS.iter() {
+        check("authorize", &["--all", "--unconstrained"], name, true);
+    }
+    check("authorize", &["--all", "--unconstrained"], "xxx", false);
+
+    for name in SPECIAL_STRINGS.iter() {
+        check("retract", &[], name, true);
+    }
+    check("retract", &[], "xxx", false);
+}

@@ -2,6 +2,16 @@
 #+TITLE: sequoia-sq NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 0.41.0
+** New functionality
+** Notable changes
+   - `sq pki link add`, `sq pki link authorize`, and `sq pki link
+     retract` gain a new parameter, `--cert-special`, which allows
+     addressing shadow CAs by symbolic names.  For instance, `sq pki
+     link authorize --cert-special keys.openpgp.org --all
+     --unconstrained` can be used to fully trust the keys.openpgp.org
+     key server.  This also creates the shadow CA if it doesn't exist
+     yet.
 * Changes in 0.40.0
 ** New functionality
    - New subcommand `sq download`, which downloads a file and a

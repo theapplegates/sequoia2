@@ -63,11 +63,16 @@ pub type Augmentations = BTreeMap<&'static str, String>;
 
 /// Includes values from the config file in help messages.
 pub fn augment_help(key: &'static str, text: &str) -> String {
-    if let Some(a) = AUGMENTATIONS.get().and_then(|a| a.get(key)) {
+    if let Some(a) = get_augmentation(key) {
         format!("{}\n\n[config: {}] (overrides default)", text, a)
     } else {
         text.into()
     }
+}
+
+/// Returns the value of an augmentation, if any.
+pub fn get_augmentation(key: &'static str) -> Option<&str> {
+    AUGMENTATIONS.get().and_then(|a| a.get(key).map(|v| v.as_str()))
 }
 
 /// Includes values from the config file in help messages.

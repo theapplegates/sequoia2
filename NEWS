@@ -4,6 +4,8 @@
 
 * Changes in 0.41.0
 ** New functionality
+   - `sq encrypt --for-self` now adds the certs configured under
+     `encrypt.for-self` to the list of recipients.
 ** Notable changes
    - `sq pki link add`, `sq pki link authorize`, and `sq pki link
      retract` gain a new parameter, `--cert-special`, which allows

@@ -11,6 +11,8 @@ use sequoia_openpgp as openpgp;
 use openpgp::KeyHandle;
 use openpgp::packet::UserID;
 
+use crate::cli::config;
+use crate::cli::encrypt::ENCRYPT_FOR_SELF;
 use crate::cli::types::SpecialName;
 
 /// The prefix for the designators.
@@ -129,6 +131,9 @@ pub type WithPasswordArgs = typenum::U128;
 /// Adds a `--special` argument.
 pub type SpecialArg = typenum::U256;
 
+/// Adds a `--self` argument.
+pub type SelfArg = typenum::U512;
+
 /// Enables --file, --cert, --userid, --email, --domain, and --grep
 /// (i.e., not --with-password, --with-password-file, --special).
 #[allow(dead_code)]
@@ -178,6 +183,12 @@ pub type CertUserIDEmailFileWithPasswordArgs
          as std::ops::BitOr<EmailArg>>::Output
         as std::ops::BitOr<FileArg>>::Output
        as std::ops::BitOr<WithPasswordArgs>>::Output;
+
+/// Enables --cert, --userid, --email, --file, --self, --with-password
+/// and --with-password-file (i.e., not --domain, --grep, or
+/// --special).
+pub type CertUserIDEmailFileSelfWithPasswordArgs =
+    <CertUserIDEmailFileWithPasswordArgs as std::ops::BitOr<SelfArg>>::Output;
 
 /// Enables --cert, and --file (i.e., not --userid, --email, --domain,
 /// --grep, --with-password, --with-password-file, or --special).
@@ -334,6 +345,15 @@ pub enum CertDesignator {
     ///
     /// `--special`.
     Special(SpecialName),
+
+    /// Use the configured set of certificates presumably belonging to
+    /// oneself.
+    ///
+    /// This is used to add ones own certificates as encryption
+    /// recipients.
+    ///
+    /// `--self`.
+    Self_,
 }
 
 impl CertDesignator {
@@ -362,6 +382,7 @@ impl CertDesignator {
             Domain(_domain) => format!("--{}domain", prefix),
             Grep(_pattern) => format!("--{}grep", prefix),
             Special(_special) => format!("--{}special", prefix),
+            Self_ => format!("--{}self", prefix),
         }
     }
 
@@ -382,6 +403,7 @@ impl CertDesignator {
             Domain(domain) => format!("{} {:?}", argument_name, domain),
             Grep(pattern) => format!("{} {:?}", argument_name, pattern),
             Special(special) => format!("{} {:?}", argument_name, special),
+            Self_ => argument_name,
         }
     }
 
@@ -504,6 +526,7 @@ where
         let grep_arg = (arguments & GrepArg::to_usize()) > 0;
         let with_password_args = (arguments & WithPasswordArgs::to_usize()) > 0;
         let special_arg = (arguments & SpecialArg::to_usize()) > 0;
+        let self_arg = (arguments & SelfArg::to_usize()) > 0;
 
         let options = Options::to_usize();
         let one_value = (options & OneValue::to_usize()) > 0;
@@ -698,6 +721,35 @@ where
             arg_group = arg_group.arg(full_name);
         }
 
+        if self_arg {
+            let full_name = full_name("self");
+            let long_help = format!(
+"Encrypt the message for yourself
+
+This adds the certificates listed in the configuration file under \
+`{}` to the list of recipients.  \
+This can be used to make sure that you yourself can decrypt the message.
+
+{}
+",
+                ENCRYPT_FOR_SELF,
+                if let Some(certs) = config::get_augmentation(ENCRYPT_FOR_SELF) {
+                    format!("The following certs will be added: {}.", certs)
+                } else {
+                    "Currently, the list of certificates to be added is empty."
+                        .into()
+                });
+            cmd = cmd.arg(
+                clap::Arg::new(&full_name)
+                    .long(&full_name)
+                    .action(clap::ArgAction::SetTrue)
+                    .help(Doc::help(
+                        "self",
+                        "Encrypt the message for yourself"))
+                    .long_help(long_help));
+            arg_group = arg_group.arg(full_name);
+        }
+
         if with_password_args {
             let full_name = "with-password";
             let arg = clap::Arg::new(full_name)
@@ -775,6 +827,7 @@ where
         let grep_arg = (arguments & GrepArg::to_usize()) > 0;
         let with_password_args = (arguments & WithPasswordArgs::to_usize()) > 0;
         let special_arg = (arguments & SpecialArg::to_usize()) > 0;
+        let self_arg = (arguments & SelfArg::to_usize()) > 0;
 
         let mut designators = Vec::new();
 
@@ -863,6 +916,10 @@ where
             }
         }
 
+        if self_arg && matches.get_flag(&format!("{}self", prefix)) {
+            designators.push(CertDesignator::Self_);
+        }
+
         // eprintln!("{:?}", designators);
 
         self.designators = designators;
@@ -900,6 +957,7 @@ mod test {
             ($t:ty,
              $cert:expr, $userid:expr, $email:expr,
              $domain:expr, $grep:expr, $file:expr,
+             $self: expr,
              $special:expr,
              $with_password:expr) =>
             {{
@@ -1045,6 +1103,20 @@ mod test {
                 }
 
 
+                // Check if --self is recognized.
+                let m = command.clone().try_get_matches_from(vec![
+                    "prog",
+                    "--self",
+                ]);
+                if $self {
+                    let m = m.expect("valid arguments");
+                    let c = CLI::from_arg_matches(&m).expect("ok");
+                    assert_eq!(c.certs.designators.len(), 1);
+                } else {
+                    assert!(m.is_err());
+                }
+
+
                 // Check if --special is recognized.
                 let m = command.clone().try_get_matches_from(vec![
                     "prog",
@@ -1091,22 +1163,25 @@ mod test {
         }
 
         check!(CertUserIDEmailDomainGrepArgs,
-               true,  true,  true,  true,  true,  false, false, false);
+               true,  true,  true,  true,  true,  false, false, false, false);
         check!(CertUserIDEmailFileArgs,
-               true,  true,  true, false, false, true, false, false);
+               true,  true,  true, false, false, true, false, false, false);
         check!(CertUserIDEmailFileWithPasswordArgs,
-               true,  true,  true, false, false, true, false, true);
+               true,  true,  true, false, false, true, false, false, true);
+        check!(CertUserIDEmailFileSelfWithPasswordArgs,
+               true,  true,  true, false, false, true, true, false, true);
         // No Args.
-        check!(typenum::U0,false, false, false, false, false, false, false, false);
-        check!(CertArg,     true, false, false, false, false, false, false, false);
-        check!(UserIDArg,  false,  true, false, false, false, false, false, false);
-        check!(EmailArg,   false, false,  true, false, false, false, false, false);
-        check!(DomainArg,  false, false, false,  true, false, false, false, false);
-        check!(GrepArg,    false, false, false, false,  true, false, false, false);
-        check!(FileArg,    false, false, false, false, false,  true, false, false);
-        check!(SpecialArg, false, false, false, false, false, false,  true, false);
+        check!(typenum::U0,false, false, false, false, false, false, false, false, false);
+        check!(CertArg,     true, false, false, false, false, false, false, false, false);
+        check!(UserIDArg,  false,  true, false, false, false, false, false, false, false);
+        check!(EmailArg,   false, false,  true, false, false, false, false, false, false);
+        check!(DomainArg,  false, false, false,  true, false, false, false, false, false);
+        check!(GrepArg,    false, false, false, false,  true, false, false, false, false);
+        check!(FileArg,    false, false, false, false, false,  true, false, false, false);
+        check!(SelfArg,    false, false, false, false, false, false,  true, false, false);
+        check!(SpecialArg, false, false, false, false, false, false, false,  true, false);
         check!(WithPasswordArgs,
-                           false, false, false, false, false,  false, false, true);
+                           false, false, false, false, false, false, false, false, true);
     }
 
     #[test]

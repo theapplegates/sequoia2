@@ -48,6 +48,7 @@ use wot::store::Store as _;
 use sequoia_keystore as keystore;
 use keystore::Protection;
 
+use crate::cli;
 use crate::cli::types::CertDesignators;
 use crate::cli::types::FileStdinOrKeyHandle;
 use crate::cli::types::KeyDesignators;
@@ -2079,7 +2080,24 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                         name)
                             }),
                         true);
-                }
+                },
+
+                cert_designator::CertDesignator::Self_ => {
+                    if self.config.encrypt_for_self().is_empty() {
+                        return Err(anyhow::anyhow!(
+                            "`--for-self` is given but the list of \
+                             certificates in `{}` is empty",
+                            cli::encrypt::ENCRYPT_FOR_SELF));
+                    }
+
+                    for fp in self.config.encrypt_for_self() {
+                        let cert = self.resolve_cert(
+                            &openpgp::KeyHandle::from(fp.clone()).into(), 0)?.0;
+                        ret(designator,
+                            Ok(Arc::new(cert.into())),
+                            true);
+                    }
+                },
             }
         }
 

@@ -13,6 +13,9 @@ use crate::cli::types::cert_designator::*;
 use crate::cli::examples;
 use examples::*;
 
+/// Key for the help augmentation.
+pub const ENCRYPT_FOR_SELF: &str = "encrypt.for-self";
+
 const ENCRYPT_EXAMPLES: Actions = Actions {
     actions: &[
         Action::Setup(Setup {
@@ -83,7 +86,7 @@ pub struct Command {
     pub binary: bool,
 
     #[command(flatten)]
-    pub recipients: CertDesignators<CertUserIDEmailFileWithPasswordArgs,
+    pub recipients: CertDesignators<CertUserIDEmailFileSelfWithPasswordArgs,
                                     RecipientPrefix>,
 
     #[clap(

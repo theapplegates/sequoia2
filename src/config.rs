@@ -19,7 +19,10 @@ use toml_edit::{
     Value,
 };
 
-use sequoia_openpgp::policy::StandardPolicy;
+use sequoia_openpgp::{
+    Fingerprint,
+    policy::StandardPolicy,
+};
 use sequoia_net::reqwest::Url;
 use sequoia_directories::{Component, Home};
 use sequoia_policy_config::ConfiguredStandardPolicy;
@@ -36,6 +39,7 @@ use crate::{
 /// It is available as `Sq::config`, with suitable accessors that
 /// handle the precedence of the various sources.
 pub struct Config {
+    encrypt_for_self: Vec<Fingerprint>,
     policy_path: Option<PathBuf>,
     policy_inline: Option<Vec<u8>>,
     cipher_suite: Option<sequoia_openpgp::cert::CipherSuite>,
@@ -45,6 +49,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
+            encrypt_for_self: vec![],
             policy_path: None,
             policy_inline: None,
             cipher_suite: None,
@@ -54,6 +59,12 @@ impl Default for Config {
 }
 
 impl Config {
+    /// Returns the certificates that should be added to the list of
+    /// recipients if `encrypt --for-self` is given.
+    pub fn encrypt_for_self(&self) -> &[Fingerprint] {
+        &self.encrypt_for_self
+    }
+
     /// Returns the cryptographic policy.
     ///
     /// We read in the default policy configuration, the configuration
@@ -136,6 +147,9 @@ impl ConfigFile {
     const TEMPLATE: &'static str = "\
 # Configuration template for sq <SQ-VERSION>
 <SQ-CONFIG-PATH-HINT>
+
+[encrypt]
+#for-self = [\"fingerprint of your key\"]
 
 [key.generate]
 #cipher-suite = <DEFAULT-CIPHER-SUITE>
@@ -525,10 +539,58 @@ type Schema = &'static [(&'static str, Applicator)];
 
 /// Schema for the toplevel.
 const TOP_LEVEL_SCHEMA: Schema = &[
+    ("encrypt", apply_encrypt),
     ("key", apply_key),
     ("network", apply_network),
     ("policy", apply_policy),
 ];
+
+/// Schema for the `encrypt` section.
+const ENCRYPT_SCHEMA: Schema = &[
+    ("for-self", apply_encrypt_for_self),
+];
+
+/// Validates the `encrypt` section.
+fn apply_encrypt(config: &mut Option<&mut Config>, cli: &mut Option<&mut Augmentations>,
+                 path: &str, item: &Item)
+                 -> Result<()>
+{
+    let section = item.as_table_like()
+        .ok_or_else(|| Error::bad_item_type(path, item, "table"))?;
+    apply_schema(config, cli, Some(path), section.iter(), ENCRYPT_SCHEMA)?;
+    Ok(())
+}
+
+/// Validates the `encrypt.for-self` value.
+fn apply_encrypt_for_self(config: &mut Option<&mut Config>,
+                          cli: &mut Option<&mut Augmentations>,
+                          path: &str, item: &Item)
+                          -> Result<()>
+{
+    let list = item.as_array()
+        .ok_or_else(|| Error::bad_item_type(path, item, "array"))?;
+
+    let mut strs = Vec::new();
+    let mut values = Vec::new();
+    for (i, server) in list.iter().enumerate() {
+        let s = server.as_str()
+            .ok_or_else(|| Error::bad_value_type(&format!("{}.{}", path, i),
+                                                 server, "string"))?;
+
+        strs.push(s);
+        values.push(s.parse::<Fingerprint>()?);
+    }
+
+    if let Some(cli) = cli {
+        cli.insert("encrypt.for-self", strs.join(" "));
+    }
+
+    if let Some(config) = config {
+        config.encrypt_for_self = values;
+    }
+
+    Ok(())
+}
 
 /// Schema for the `key` section.
 const KEY_SCHEMA: Schema = &[

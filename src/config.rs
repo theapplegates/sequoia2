@@ -58,7 +58,7 @@ impl Config {
     ///
     /// We read in the default policy configuration, the configuration
     /// referenced in the configuration file, and the inline policy.
-    pub fn policy(&mut self, at: SystemTime)
+    pub fn policy(&self, at: SystemTime)
                   -> Result<StandardPolicy<'static>>
     {
         let mut policy = ConfiguredStandardPolicy::at(at);

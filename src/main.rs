@@ -291,7 +291,7 @@ fn real_main() -> Result<()> {
 
     // Parse the configuration file.
     let mut config_file = config::ConfigFile::default_config(home.as_ref())?;
-    let mut config = if let Some(home) = &home {
+    let config = if let Some(home) = &home {
         // Sanity check `cli::config::find_home`.
         debug_assert_eq!(home.location(),
                          cli::config::find_home().unwrap().location());

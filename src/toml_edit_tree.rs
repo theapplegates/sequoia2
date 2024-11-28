@@ -608,20 +608,24 @@ pub type TraversalResult<T> = std::result::Result<T, TraversalError>;
 /// Errors traversing the document tree.
 #[derive(thiserror::Error, Debug)]
 pub enum TraversalError {
-    #[error("Tried to look up {1:?}{}, \
-             but it does not exist", Self::fmt_path("in", &.0))]
+    #[error("Tried to look up {1:?}{path}, \
+             but it does not exist",
+            path=Self::fmt_path("in", &.0))]
     KeyNotFound(Path, String),
 
-    #[error("Tried to get the item at index {1}{}, \
-             but there are only {2} items", Self::fmt_path("from", &.0))]
+    #[error("Tried to get the item at index {1}{path}, \
+             but there are only {2} items",
+            path=Self::fmt_path("from", &.0))]
     OutOfBounds(Path, usize, usize),
 
-    #[error("Tried to look up {1:?}{}, \
-             but the latter is a {2}, not a table", Self::fmt_path("in", &.0))]
+    #[error("Tried to look up {1:?}{path}, \
+             but the latter is a {2}, not a table",
+            path=Self::fmt_path("in", &.0))]
     KeyLookupBadType(Path, String, &'static str),
 
-    #[error("Tried to get the item at index {1}{}, \
-             but the latter is a {2}, not an array", Self::fmt_path("from", &.0))]
+    #[error("Tried to get the item at index {1}{path}, \
+             but the latter is a {2}, not an array",
+            path=Self::fmt_path("from", &.0))]
     IndexLookupBadType(Path, usize, &'static str),
 }
 

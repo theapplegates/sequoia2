@@ -137,6 +137,9 @@ fn sq_retract(sq: &Sq, cert: &str, userids: &[&str], emails: &[&str])
     for email in emails {
         cmd.arg("--email").arg(email);
     }
+    if userids.is_empty() && emails.is_empty() {
+        cmd.arg("--all");
+    }
     eprintln!("{:?}", cmd);
     let output = sq.run(cmd, true);
 
@@ -838,9 +841,9 @@ fn special_names() {
     check("add", &["--all"], "xxx", false);
 
     for name in SPECIAL_STRINGS.iter() {
-        check("retract", &[], name, true);
+        check("retract", &["--all"], name, true);
     }
-    check("retract", &[], "xxx", false);
+    check("retract", &["--all"], "xxx", false);
 
     for name in SPECIAL_STRINGS.iter() {
         check("authorize", &["--all", "--unconstrained"], name, true);
@@ -848,7 +851,7 @@ fn special_names() {
     check("authorize", &["--all", "--unconstrained"], "xxx", false);
 
     for name in SPECIAL_STRINGS.iter() {
-        check("retract", &[], name, true);
+        check("retract", &["--all"], name, true);
     }
-    check("retract", &[], "xxx", false);
+    check("retract", &["--all"], "xxx", false);
 }

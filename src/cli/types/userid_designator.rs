@@ -85,6 +85,11 @@ pub type AllExistingAndAddXUserIDEmailArgs
     = <AllUserIDsArg
        as std::ops::BitOr<ExistingAndAddXUserIDEmailArgs>>::Output;
 
+/// Enables --all, --userid, and --email (but not --name, --userid-or-add,
+/// --email-or-add, or --name-or-add).
+pub type AllAnyUserIDEmailArgs
+    = <AllUserIDsArg as std::ops::BitOr<AnyUserIDEmailArgs>>::Output;
+
 /// Enables --userid, --email, --name, --userid-or-add,
 /// --email-or-add, and --name-or-add (but not --all).
 pub type ExistingAndAddXUserIDEmailNameArgs
@@ -107,11 +112,17 @@ pub type OptionalValue = typenum::U2;
 /// the `--allow-non-canonical-userid` flag.
 pub type NoLinting = typenum::U4;
 
+/// Makes --all match non-self signed user IDs.
+pub type AllMatchesNonSelfSigned = typenum::U8;
+
 pub type OneValueNoLinting
     = <OneValue as std::ops::BitOr<NoLinting>>::Output;
 
 pub type OptionalValueNoLinting
     = <OptionalValue as std::ops::BitOr<NoLinting>>::Output;
+
+pub type AllMatchesNonSelfSignedNoLinting
+    = <AllMatchesNonSelfSigned as std::ops::BitOr<NoLinting>>::Output;
 
 /// A user ID designator.
 #[derive(Debug, Clone)]
@@ -286,6 +297,9 @@ pub struct UserIDDesignators<Arguments, Options=typenum::U0>
     /// Use all self-signed user IDs.
     pub all: Option<bool>,
 
+    /// Whether --all should match non-self signed user IDs.
+    all_matches_non_self_signed: bool,
+
     /// Whether --allow-non-canonical-userids was passed.
     pub allow_non_canonical_userids: bool,
 
@@ -330,6 +344,11 @@ impl<Arguments, Options> UserIDDesignators<Arguments, Options> {
     /// If the flag was not enabled, returns `None`.
     pub fn all(&self) -> Option<bool> {
         self.all
+    }
+
+    /// Returns whether --all should match non-self signed user IDs.
+    pub fn all_matches_non_self_signed(&self) -> bool {
+        self.all_matches_non_self_signed
     }
 
     /// Returns whether the allow-non-canonical-userids flag was set.
@@ -622,6 +641,8 @@ where
 
         let options = Options::to_usize();
         let no_linting = (options & NoLinting::to_usize()) > 0;
+        let all_matches_non_self_signed =
+            (options & AllMatchesNonSelfSigned::to_usize()) > 0;
 
         // Can't provide both ExistingUserIDArg and AnyUserIDArg.
         assert!(! (userid_arg && any_userid_arg));
@@ -639,6 +660,7 @@ where
         } else {
             None
         };
+        self.all_matches_non_self_signed = all_matches_non_self_signed;
 
         if let Some(Some(userids))
             = matches.try_get_many::<String>("userid")
@@ -745,6 +767,7 @@ where
             designators: Vec::new(),
             arguments: std::marker::PhantomData,
             all: None,
+            all_matches_non_self_signed: false,
             allow_non_canonical_userids: false,
         };
 
@@ -790,6 +813,7 @@ impl ResolvedUserID {
 
     /// Return implicitly resolved user IDs for all user IDs
     /// associated with a certificate.
+    #[allow(dead_code)]
     pub fn implicit_for_cert(cert: &Cert) -> Vec<Self> {
         cert.userids()
             .map(|ua| Self::implicit(ua.userid().clone()))

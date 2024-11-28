@@ -116,6 +116,7 @@ and any associated user IDs.  This effectively invalidates all links.",
             command: &[
                 "sq", "pki", "link", "retract",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
             ],
         }),
     ],
@@ -538,8 +539,8 @@ to force the signature to be re-created anyway.",
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::AnyUserIDEmailArgs,
-        userid_designator::OptionalValueNoLinting>,
+        userid_designator::AllAnyUserIDEmailArgs,
+        userid_designator::AllMatchesNonSelfSignedNoLinting>,
 }
 
 const RETRACT_EXAMPLES: Actions = Actions {
@@ -573,6 +574,7 @@ and any associated user IDs.  This effectively invalidates all links.",
             command: &[
                 "sq", "pki", "link", "retract",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--all",
             ],
         }),
     ],

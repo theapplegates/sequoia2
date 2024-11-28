@@ -355,6 +355,7 @@ pub fn generate(
                               with:"))
             .sq().arg("pki").arg("link").arg("retract")
             .arg_value("--cert", cert.fingerprint())
+            .arg("--all")
             .done();
     }
 
@@ -365,6 +366,7 @@ pub fn generate(
                               with:"))
             .sq().arg("pki").arg("link").arg("retract")
             .arg_value("--cert", cert.fingerprint())
+            .arg("--all")
             .done();
     }
 

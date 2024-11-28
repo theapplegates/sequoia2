@@ -58,21 +58,39 @@ where
         let mut bad = None;
 
         if let Some(true) = self.all() {
-            let all_userids = vc.userids()
+            let mut revoked_userids = BTreeSet::new();
+            let valid_userids = vc.userids()
                 .filter_map(|ua| {
                     if let RevocationStatus::Revoked(_) = ua.revocation_status() {
+                        revoked_userids.insert(ua.userid());
                         None
                     } else {
                         Some(ua.userid().clone())
                     }
                 })
+                .collect::<BTreeSet<_>>();
+
+            let non_self_signed_userids = vc.cert().userids()
+                .filter(|_| self.all_matches_non_self_signed())
+                .filter(|u| ! revoked_userids.contains(u.userid()))
+                .filter(|u| ! valid_userids.contains(u.userid()))
+                .map(|u| u.userid().clone())
+                .collect::<Vec<_>>();
+
+            let all_userids = valid_userids.into_iter()
+                .chain(non_self_signed_userids.into_iter())
                 .map(|userid| ResolvedUserID::implicit(userid))
                 .collect::<Vec<_>>();
 
             if all_userids.is_empty() {
                 return Err(anyhow::anyhow!(
-                    "{} has no valid self-signed user IDs",
-                    vc.fingerprint()));
+                    "{} has no {}user IDs",
+                    vc.fingerprint(),
+                    if self.all_matches_non_self_signed() {
+                        ""
+                    } else {
+                        "valid self-signed "
+                    }));
             }
 
             userids.extend(all_userids);

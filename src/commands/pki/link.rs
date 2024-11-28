@@ -17,7 +17,6 @@ use crate::parse_notations;
 use crate::cli::pki::link;
 use crate::cli::types::Expiration;
 use crate::cli::types::TrustAmount;
-use crate::cli::types::userid_designator::ResolvedUserID;
 
 pub fn link(sq: Sq, c: link::Command) -> Result<()> {
     use link::Subcommands::*;
@@ -122,17 +121,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
         = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
 
     let vc = cert.with_policy(NULL_POLICY, Some(sq.time))?;
-    let mut userids = c.userids.resolve(&vc)?;
-
-    let user_supplied_userids = if userids.is_empty() {
-        // Nothing was specified.  Retract links for all user IDs
-        // (self signed or not).
-        userids = ResolvedUserID::implicit_for_cert(&cert);
-
-        false
-    } else {
-        true
-    };
+    let userids = c.userids.resolve(&vc)?;
 
     let notations = parse_notations(c.notation)?;
 
@@ -142,7 +131,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
         &trust_root,
         &cert,
         &userids[..],
-        user_supplied_userids,
+        true, // User supplied user IDs.
         &[(TrustAmount::None, Expiration::Never)],
         0,
         &[][..], &[][..], // Domain, regex.

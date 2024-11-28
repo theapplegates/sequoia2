@@ -459,7 +459,7 @@ fn retract_all() {
     // Retract all authorizations.  It should no longer be considered
     // a trusted introducer.
     sq.tick(1);
-    sq.pki_link_retract(&[], ca.key_handle(), NO_USERIDS);
+    sq.pki_link_retract(&["--all"], ca.key_handle(), NO_USERIDS);
     check(&sq, false);
 }
 

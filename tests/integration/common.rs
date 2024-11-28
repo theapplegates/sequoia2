@@ -519,7 +519,20 @@ impl Sq {
     pub fn run<E>(&self, mut cmd: Command, expect: E) -> Output
         where E: Into<Option<bool>>
     {
-        eprintln!("Running: {:?}", cmd);
+        eprintln!("Running: {}",
+                  std::iter::once(cmd.get_program())
+                  .chain(cmd.get_args())
+                  .map(|arg| {
+                      let arg = arg.to_string_lossy();
+                      if arg.contains(" ") {
+                          format!("{:?}", arg)
+                      } else {
+                          arg.into_owned()
+                      }
+                  })
+                  .collect::<Vec<_>>()
+                  .join(" "));
+
         let output = cmd.output().expect("can run command");
         let expect = expect.into();
         match (output.status.success(), expect) {

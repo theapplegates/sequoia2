@@ -191,7 +191,10 @@ impl ConfigFile {
             &format!("{:?}", cli::key::CipherSuite::default().
                      to_possible_value().unwrap().get_name()),
             &format!("{:?}", cli::network::keyserver::DEFAULT_KEYSERVERS),
-            &format!("{:?}", ConfiguredStandardPolicy::CONFIG_FILE),
+            &format!("{:?}",
+                     std::env::var(ConfiguredStandardPolicy::ENV_VAR)
+                     .unwrap_or_else(
+                         |_| ConfiguredStandardPolicy::CONFIG_FILE.into())),
             &default_policy_inline.to_string(),
         ]))
     }

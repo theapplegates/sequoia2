@@ -96,7 +96,7 @@ pub fn encrypt<'a, 'b: 'a>(
     npasswords: usize,
     password_files: &[PathBuf],
     recipients: &'b [openpgp::Cert],
-    mut signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
+    mut signers: Vec<(openpgp::Cert, Box<dyn crypto::Signer + Send + Sync>)>,
     notations: Vec<(bool, NotationData)>,
     mode: EncryptPurpose,
     compression: CompressionMode,
@@ -299,6 +299,23 @@ pub fn encrypt<'a, 'b: 'a>(
                   passwords.len().of("password"));
     }
 
+    if signers.is_empty() {
+        sq.hint(format_args!(
+            "The message will not be signed.  \
+             While the message integrity will be protected \
+             by the encryption, there will be no way for the \
+             recipient to tell whether the message is \
+             authentic.  Consider signing the message."));
+    } else {
+        for (signer, _) in &signers {
+            qprintln!();
+            qprintln!(initial_indent = " - ", "signed by {}",
+                      sq.best_userid(signer, true));
+            qprintln!(initial_indent = "   - ", "using {}",
+                      signer.fingerprint());
+        }
+    }
+
     // A newline to make it look nice.
     qprintln!();
 
@@ -334,13 +351,13 @@ pub fn encrypt<'a, 'b: 'a>(
                 *critical)?;
         }
 
-        let mut signer = Signer::with_template(sink, first, builder);
+        let mut signer = Signer::with_template(sink, first.1, builder);
 
         if let Some(time) = time {
             signer = signer.creation_time(time);
         }
         for s in signers {
-            signer = signer.add_signer(s);
+            signer = signer.add_signer(s.1);
         }
         for r in recipients.iter() {
             signer = signer.add_intended_recipient(r);

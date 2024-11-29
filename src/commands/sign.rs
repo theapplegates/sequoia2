@@ -91,7 +91,7 @@ pub fn sign<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
     input: &'a mut (dyn BufferedReader<Cookie> + Sync + Send),
     output: &'a FileOrStdout,
-    signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
+    signers: Vec<(openpgp::Cert, Box<dyn crypto::Signer + Send + Sync>)>,
     mode: Mode,
     detached: bool,
     binary: bool,
@@ -127,7 +127,7 @@ fn sign_data<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
     input: &'a mut (dyn BufferedReader<Cookie> + Sync + Send),
     output_path: &'a FileOrStdout,
-    mut signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
+    mut signers: Vec<(openpgp::Cert, Box<dyn crypto::Signer + Send + Sync>)>,
     mode: Mode,
     detached: bool,
     binary: bool,
@@ -200,11 +200,11 @@ fn sign_data<'a, 'store, 'rstore>(
 
     let mut signer = Signer::with_template(
         message,
-        signers.pop().unwrap(),
+        signers.pop().unwrap().1,
         builder);
     signer = signer.creation_time(sq.time);
     for s in signers {
-        signer = signer.add_signer(s);
+        signer = signer.add_signer(s.1);
     }
     if detached {
         signer = signer.detached();
@@ -242,7 +242,7 @@ fn sign_message<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
     input: &'a mut (dyn BufferedReader<Cookie> + Sync + Send),
     output: &'a FileOrStdout,
-    signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
+    signers: Vec<(openpgp::Cert, Box<dyn crypto::Signer + Send + Sync>)>,
     mode: Mode,
     binary: bool,
     notarize: bool,
@@ -268,7 +268,7 @@ fn sign_message<'a, 'store, 'rstore>(
 fn sign_message_<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
     input: &'a mut (dyn BufferedReader<Cookie> + Sync + Send),
-    mut signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
+    mut signers: Vec<(openpgp::Cert, Box<dyn crypto::Signer + Send + Sync>)>,
     mode: Mode,
     notarize: bool,
     notations: &'a [(bool, NotationData)],
@@ -349,10 +349,10 @@ fn sign_message_<'a, 'store, 'rstore>(
                 }
 
                 let mut signer = Signer::with_template(
-                    sink, signers.pop().unwrap(), builder);
+                    sink, signers.pop().unwrap().1, builder);
                 signer = signer.creation_time(sq.time);
                 for s in signers.drain(..) {
-                    signer = signer.add_signer(s);
+                    signer = signer.add_signer(s.1);
                 }
                 sink = signer.build().context("Failed to create signer")?;
                 state = State::Signing { signature_count: 0, };
@@ -468,7 +468,7 @@ fn sign_message_<'a, 'store, 'rstore>(
 pub fn clearsign(sq: Sq,
                  mut input: impl BufferedReader<Cookie> + Sync + Send,
                  mut output: impl io::Write + Sync + Send,
-                 mut signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
+                 mut signers: Vec<(openpgp::Cert, Box<dyn crypto::Signer + Send + Sync>)>,
                  notations: &[(bool, NotationData)])
                  -> Result<()>
 {
@@ -484,11 +484,11 @@ pub fn clearsign(sq: Sq,
 
     let message = Message::new(&mut output);
     let mut signer = Signer::with_template(
-        message, signers.pop().unwrap(), builder)
+        message, signers.pop().unwrap().1, builder)
         .cleartext();
     signer = signer.creation_time(sq.time);
     for s in signers {
-        signer = signer.add_signer(s);
+        signer = signer.add_signer(s.1);
     }
     let mut message = signer.build().context("Failed to create signer")?;
 

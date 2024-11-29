@@ -1393,7 +1393,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     fn get_keys<C>(&self, certs: &[C],
                    keytype: KeyType,
                    options: Option<&[GetKeysOptions]>)
-        -> Result<Vec<Box<dyn crypto::Signer + Send + Sync>>>
+        -> Result<Vec<(Cert, Box<dyn crypto::Signer + Send + Sync>)>>
     where C: Borrow<Cert>
     {
         let mut bad = Vec::new();
@@ -1409,7 +1409,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             self.policy as &dyn Policy
         };
 
-        let mut keys: Vec<Box<dyn crypto::Signer + Send + Sync>> = vec![];
+        let mut keys = vec![];
 
         'next_cert: for cert in certs {
             let cert = cert.borrow();
@@ -1449,7 +1449,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 }
 
                 if let Ok(key) = self.get_signer(&ka) {
-                    keys.push(key);
+                    keys.push((cert.clone(), key));
                     continue 'next_cert;
                 } else {
                     bad_[3] = true;
@@ -1531,6 +1531,9 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     where C: std::borrow::Borrow<Cert>
     {
         self.get_keys(certs, KeyType::Primary, options)
+            .map(|keys| keys.into_iter()
+                 .map(|(_, signer)| signer)
+                 .collect())
     }
 
     /// Returns a signer for the certificate's primary key.
@@ -1578,7 +1581,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// the password.
     pub fn get_signing_keys<C>(&self, certs: &[C],
                                options: Option<&[GetKeysOptions]>)
-        -> Result<Vec<Box<dyn crypto::Signer + Send + Sync>>>
+        -> Result<Vec<(Cert, Box<dyn crypto::Signer + Send + Sync>)>>
     where C: Borrow<Cert>
     {
         self.get_keys(certs,
@@ -1602,17 +1605,17 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     ///
     /// If a key is locked, then the user will be prompted to enter
     /// the password.
-    pub fn get_signing_key<C>(&self, certs: C,
+    pub fn get_signing_key<C>(&self, cert: C,
                                options: Option<&[GetKeysOptions]>)
         -> Result<Box<dyn crypto::Signer + Send + Sync>>
     where C: Borrow<Cert>
     {
-        let keys = self.get_signing_keys(&[certs], options)?;
+        let keys = self.get_signing_keys(&[cert], options)?;
         assert!(
             keys.len() == 1,
             "Expected exactly one result from get_signing_keys()"
         );
-        Ok(keys.into_iter().next().unwrap())
+        Ok(keys.into_iter().next().unwrap().1)
     }
 
     /// Returns a signer for a certification-capable key for each
@@ -1633,7 +1636,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// the password.
     pub fn get_certification_keys<C>(&self, certs: &[C],
                                      options: Option<&[GetKeysOptions]>)
-        -> Result<Vec<Box<dyn crypto::Signer + Send + Sync>>>
+        -> Result<Vec<(Cert, Box<dyn crypto::Signer + Send + Sync>)>>
     where C: std::borrow::Borrow<Cert>
     {
         self.get_keys(certs,
@@ -1667,7 +1670,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             keys.len() == 1,
             "Expected exactly one result from get_certification_keys()"
         );
-        Ok(keys.into_iter().next().unwrap())
+        Ok(keys.into_iter().next().unwrap().1)
     }
 
     /// Prints additional information in verbose mode.

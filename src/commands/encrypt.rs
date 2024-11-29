@@ -32,6 +32,7 @@ use crate::cli::types::FileOrStdin;
 use crate::cli;
 use crate::common::password;
 use crate::print_error_chain;
+use crate::output::pluralize::Pluralize;
 
 use crate::commands::CompressionMode;
 
@@ -105,6 +106,8 @@ pub fn encrypt<'a, 'b: 'a>(
 )
     -> Result<()>
 {
+    make_qprintln!(sq.quiet);
+
     let mut passwords: Vec<crypto::Password> = Vec::with_capacity(npasswords);
     for n in 0..npasswords {
         let nprompt;
@@ -135,9 +138,15 @@ pub fn encrypt<'a, 'b: 'a>(
 
     let mode = KeyFlags::from(mode);
 
+    qprintln!("Composing a message...");
+
     // Build a vector of recipients to hand to Encryptor.
     let mut recipient_subkeys: Vec<Recipient> = Vec::new();
     for cert in recipients.iter() {
+        // XXX: In this block, instead of using sq.best_userid(&cert,
+        // true), it'd be nice to use the cert designator that the
+        // user used, instead or additionally.
+
         if let RevocationStatus::Revoked(_)
             = cert.revocation_status(policy, time)
         {
@@ -272,11 +281,26 @@ pub fn encrypt<'a, 'b: 'a>(
                     sq.best_userid(&cert, true)));
             }
         } else {
+            qprintln!();
+            qprintln!(initial_indent = " - ", "encrypted for {}",
+                      sq.best_userid(&cert, true));
+            qprintln!(initial_indent = "   - ", "using {}",
+                      cert.fingerprint());
+
             for ka in selected_keys {
                 recipient_subkeys.push(ka.key().into());
             }
         }
     }
+
+    if ! passwords.is_empty() {
+        qprintln!();
+        qprintln!(initial_indent = " - ", "encrypted using {}",
+                  passwords.len().of("password"));
+    }
+
+    // A newline to make it look nice.
+    qprintln!();
 
     // We want to encrypt a literal data packet.
     let encryptor =

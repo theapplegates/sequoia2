@@ -1,4 +1,3 @@
-use std::io;
 use std::path::PathBuf;
 use std::time::SystemTime;
 
@@ -333,7 +332,7 @@ pub fn encrypt<'a, 'b: 'a>(
         .context("Failed to create literal writer")?;
 
     // Finally, copy stdin to our writer stack to encrypt the data.
-    io::copy(&mut input.open("data to encrypt")?, &mut writer_stack)
+    input.open("data to encrypt")?.copy(&mut writer_stack)
         .context("Failed to encrypt")?;
 
     writer_stack.finalize().context("Failed to encrypt")?;

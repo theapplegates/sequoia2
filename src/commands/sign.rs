@@ -4,6 +4,8 @@ use std::io;
 use std::path::PathBuf;
 use tempfile::NamedTempFile;
 
+use buffered_reader::BufferedReader;
+
 use sequoia_openpgp as openpgp;
 use openpgp::armor;
 use openpgp::crypto;
@@ -11,6 +13,7 @@ use openpgp::{Packet, Result};
 use openpgp::packet::prelude::*;
 use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::parse::{
+    Cookie,
     Parse,
     PacketParserResult,
 };
@@ -86,7 +89,7 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
 
 pub fn sign<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
-    input: &'a mut (dyn io::Read + Sync + Send),
+    input: &'a mut (dyn BufferedReader<Cookie> + Sync + Send),
     output: &'a FileOrStdout,
     signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
     mode: Mode,
@@ -122,7 +125,7 @@ pub fn sign<'a, 'store, 'rstore>(
 
 fn sign_data<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
-    input: &'a mut (dyn io::Read + Sync + Send),
+    input: &'a mut (dyn BufferedReader<Cookie> + Sync + Send),
     output_path: &'a FileOrStdout,
     mut signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
     mode: Mode,
@@ -219,7 +222,7 @@ fn sign_data<'a, 'store, 'rstore>(
     };
 
     // Finally, copy stdin to our writer stack to sign the data.
-    io::copy(input, &mut writer)
+    input.copy(&mut writer)
         .context("Failed to sign")?;
 
     writer.finalize()
@@ -237,7 +240,7 @@ fn sign_data<'a, 'store, 'rstore>(
 
 fn sign_message<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
-    input: &'a mut (dyn io::Read + Sync + Send),
+    input: &'a mut (dyn BufferedReader<Cookie> + Sync + Send),
     output: &'a FileOrStdout,
     signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
     mode: Mode,
@@ -264,7 +267,7 @@ fn sign_message<'a, 'store, 'rstore>(
 
 fn sign_message_<'a, 'store, 'rstore>(
     sq: Sq<'store, 'rstore>,
-    input: &'a mut (dyn io::Read + Sync + Send),
+    input: &'a mut (dyn BufferedReader<Cookie> + Sync + Send),
     mut signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
     mode: Mode,
     notarize: bool,
@@ -387,7 +390,7 @@ fn sign_message_<'a, 'store, 'rstore>(
                 .context("Failed to create literal writer")?;
 
             // Finally, just copy all the data.
-            io::copy(&mut pp, &mut literal)
+            pp.copy(&mut literal)
                 .context("Failed to sign data")?;
 
             // Pop the literal writer.
@@ -463,7 +466,7 @@ fn sign_message_<'a, 'store, 'rstore>(
 }
 
 pub fn clearsign(sq: Sq,
-                 mut input: impl io::Read + Sync + Send,
+                 mut input: impl BufferedReader<Cookie> + Sync + Send,
                  mut output: impl io::Write + Sync + Send,
                  mut signers: Vec<Box<dyn crypto::Signer + Send + Sync>>,
                  notations: &[(bool, NotationData)])
@@ -490,7 +493,7 @@ pub fn clearsign(sq: Sq,
     let mut message = signer.build().context("Failed to create signer")?;
 
     // Finally, copy stdin to our writer stack to sign the data.
-    io::copy(&mut input, &mut message)
+    input.copy(&mut message)
         .context("Failed to sign")?;
 
     message.finalize()

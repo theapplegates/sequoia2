@@ -148,10 +148,14 @@ pub fn encrypt<'a, 'b: 'a>(
                 sq.best_userid(&cert, true)));
         }
 
-        let mut have_one = false;
         let mut encryption_keys = 0;
         let mut bad: Vec<String> = Vec::new();
-        let mut expired_keys: Vec<(Recipient, _)> = Vec::new();
+
+        // This cert's subkeys we selected for encryption.
+        let mut selected_keys = Vec::new();
+
+        // As a fallback, we may consider expired keys.
+        let mut expired_keys = Vec::new();
 
         if let RevocationStatus::Revoked(_)
             = cert.revocation_status(policy, time)
@@ -206,7 +210,7 @@ pub fn encrypt<'a, 'b: 'a>(
             if let Err(err) = ka.alive() {
                 if let Some(t) = ka.key_expiration_time() {
                     if t < sq.time {
-                        expired_keys.push((ka.key().into(), t));
+                        expired_keys.push((ka, t));
                         bad.push(format!("{} expired on {}",
                                          fpr, t.convert().to_string()));
                     } else {
@@ -220,20 +224,20 @@ pub fn encrypt<'a, 'b: 'a>(
                 continue;
             }
 
-            recipient_subkeys.push(ka.key().into());
-            have_one = true;
+            selected_keys.push(ka);
         }
-        if ! have_one && use_expired_subkey && ! expired_keys.is_empty() {
+        if selected_keys.is_empty() && use_expired_subkey
+            && ! expired_keys.is_empty()
+        {
             expired_keys.sort_by_key(|(_key, t)| *t);
 
             if let Some((key, _expiration_time)) = expired_keys.pop() {
-                recipient_subkeys.push(key);
-                have_one = true;
+                selected_keys.push(key);
             }
         }
 
-        // We didn't find any keys for this certificate.
-        if ! have_one {
+        if selected_keys.is_empty() {
+            // We didn't find any keys for this certificate.
             for ka in cert.keys() {
                 let fpr = ka.fingerprint();
                 if let Err(err) = ka.with_policy(policy, time) {
@@ -267,6 +271,10 @@ pub fn encrypt<'a, 'b: 'a>(
                     "Cert {}, {} has no encryption-capable keys",
                     cert,
                     sq.best_userid(&cert, true)));
+            }
+        } else {
+            for ka in selected_keys {
+                recipient_subkeys.push(ka.key().into());
             }
         }
     }

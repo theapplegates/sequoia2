@@ -140,6 +140,10 @@ pub fn encrypt<'a, 'b: 'a>(
 
     qprintln!("Composing a message...");
 
+    // Track whether we have a secret for one of the encryption
+    // subkeys.
+    let mut have_one_secret = false;
+
     // Build a vector of recipients to hand to Encryptor.
     let mut recipient_subkeys: Vec<Recipient> = Vec::new();
     for cert in recipients.iter() {
@@ -288,6 +292,7 @@ pub fn encrypt<'a, 'b: 'a>(
                       cert.fingerprint());
 
             for ka in selected_keys {
+                have_one_secret |= sq.have_secret_key(&ka);
                 recipient_subkeys.push(ka.key().into());
             }
         }
@@ -314,6 +319,14 @@ pub fn encrypt<'a, 'b: 'a>(
             qprintln!(initial_indent = "   - ", "using {}",
                       signer.fingerprint());
         }
+    }
+
+    if ! have_one_secret && passwords.is_empty() {
+        sq.hint(format_args!(
+            "It looks like you won't be able to decrypt the message.  \
+             Consider adding yourself as recipient, for example by \
+             adding your cert to `{}` and using `--for-self`.",
+            cli::encrypt::ENCRYPT_FOR_SELF));
     }
 
     // A newline to make it look nice.

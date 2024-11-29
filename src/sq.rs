@@ -1265,6 +1265,52 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         }
     }
 
+    /// Checks whether we have a secret key.
+    pub fn have_secret_key<P, R, R2>(&self, ka: &KeyAmalgamation<P, R, R2>)
+                                     -> bool
+    where
+        P: key::KeyParts + Clone,
+        R: key::KeyRole + Clone
+    {
+        let try_tsk = |_: &Cert, key: &Key<_, _>|
+            -> Result<_>
+        {
+            key.parts_as_secret()?;
+            Ok(())
+        };
+        let try_keyrings = |cert: &Cert, key: &Key<_, _>|
+            -> Result<_>
+        {
+            let keyring_tsks = self.keyring_tsks();
+            if let Some((cert_fpr, key))
+                = keyring_tsks.get(&key.fingerprint())
+            {
+                if cert_fpr == &cert.fingerprint() {
+                    return try_tsk(cert, key);
+                }
+            }
+
+            Err(anyhow!("no secret key material"))
+        };
+        let try_keystore = |ka: &KeyAmalgamation<_, _, R2>|
+            -> Result<_>
+        {
+            let ks = self.key_store_or_else()?;
+            let mut ks = ks.lock().unwrap();
+            if ks.find_key(ka.key_handle())?.is_empty() {
+                Err(anyhow!("no secret key material in the store"))
+            } else {
+                Ok(())
+            }
+        };
+
+        let key = ka.key().parts_as_public().role_as_unspecified();
+        try_tsk(ka.cert(), key)
+            .or_else(|_| try_keyrings(ka.cert(), key))
+            .or_else(|_| try_keystore(ka))
+            .is_ok()
+    }
+
     /// Gets a signer for the specified key.
     ///
     /// If `ka` includes secret key material, that is preferred.

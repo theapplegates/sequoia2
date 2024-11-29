@@ -29,16 +29,32 @@ pub fn find_home() -> Option<Home> {
         }
 
         if arg.starts_with("--home=") {
-            return Home::new(Some(arg["--home=".len()..].into())).ok();
+            return handle(Some(arg["--home=".len()..].into()));
         }
 
         if arg == "--home" {
             if let Some(home) = args.get(i + 1) {
-                return Home::new(Some(home.into())).ok();
+                return handle(Some(home.into()));
             }
         }
     }
 
+    /// Handle the argument to `--home`.
+    fn handle(arg: Option<String>) -> Option<Home> {
+        if let Some(arg) = arg {
+            match arg.as_str() {
+                "default" => Home::default().cloned(),
+                "none" => None,
+                _ => Home::new(Some(arg.into())).ok(),
+            }
+        } else {
+            // No argument to `--home` is a syntax error.
+            None
+        }
+    }
+
+    // No `--home` argument, select the default, possibly overridden
+    // by SEQUOIA_HOME.
     Home::new(None).ok()
 }
 

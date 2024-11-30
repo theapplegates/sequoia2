@@ -93,6 +93,8 @@ Get configuration options
 
 This subcommand can be used to inspect the configuration \
 file{}, and to create a template that can be edited to your liking.
+
+Configuration file: {}
 ",
         sequoia_directories::Home::default()
         .map(|home| {
@@ -107,6 +109,20 @@ file{}, and to create a template that can be edited to your liking.
                 }
             }
             format!(" (default location: {})", p)
+        })
+        .unwrap_or("".to_string()),
+        find_home()
+        .map(|home| {
+            let p = home.config_dir(sequoia_directories::Component::Sq);
+            let p = p.join("config.toml");
+            let p = p.display().to_string();
+            if let Some(home) = dirs::home_dir() {
+                let home = home.display().to_string();
+                if let Some(rest) = p.strip_prefix(&home) {
+                    return format!("$HOME{}", rest);
+                }
+            }
+            p
         })
         .unwrap_or("".to_string())),
     subcommand_required = true,

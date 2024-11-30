@@ -106,7 +106,7 @@ file{}, and to create a template that can be edited to your liking.
                                    rest);
                 }
             }
-            p
+            format!(" (default location: {})", p)
         })
         .unwrap_or("".to_string())),
     subcommand_required = true,

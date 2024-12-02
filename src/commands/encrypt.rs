@@ -15,7 +15,6 @@ use openpgp::serialize::stream::Compressor;
 use openpgp::serialize::stream::Encryptor2 as Encryptor;
 use openpgp::serialize::stream::LiteralWriter;
 use openpgp::serialize::stream::Message;
-use openpgp::serialize::stream::Recipient;
 use openpgp::serialize::stream::Signer;
 #[cfg(all(unix, not(unix)))] // Bottom, but: `cfg` predicate key cannot be a literal
 use openpgp::serialize::stream::padding::Padder;
@@ -145,7 +144,7 @@ pub fn encrypt<'a, 'b: 'a>(
     let mut have_one_secret = false;
 
     // Build a vector of recipients to hand to Encryptor.
-    let mut recipient_subkeys: Vec<Recipient> = Vec::new();
+    let mut recipient_subkeys = Vec::new();
     for cert in recipients.iter() {
         // XXX: In this block, instead of using sq.best_userid(&cert,
         // true), it'd be nice to use the cert designator that the
@@ -293,7 +292,7 @@ pub fn encrypt<'a, 'b: 'a>(
 
             for ka in selected_keys {
                 have_one_secret |= sq.have_secret_key(&ka);
-                recipient_subkeys.push(ka.key().into());
+                recipient_subkeys.push(ka.key());
             }
         }
     }

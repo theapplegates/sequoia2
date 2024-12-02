@@ -429,9 +429,14 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
         self.key_store
             .get_or_try_init(|| {
-                let c = keystore::Context::configure()
-                    .home(self.key_store_path_or_else()?)
-                    .build()?;
+                let mut c = keystore::Context::configure()
+                    .home(self.key_store_path_or_else()?);
+
+                if let Some(p) = self.config.servers_path() {
+                    c = c.lib(p);
+                }
+
+                let c = c.build()?;
                 let ks = keystore::Keystore::connect(&c)
                     .context("Connecting to key store")?;
 

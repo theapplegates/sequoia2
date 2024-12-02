@@ -4,7 +4,7 @@ use std::{
     collections::{BTreeSet, HashSet},
     fs,
     io,
-    path::PathBuf,
+    path::{Path, PathBuf},
     time::SystemTime,
 };
 
@@ -53,6 +53,9 @@ pub struct Config {
     policy_inline: Option<Vec<u8>>,
     cipher_suite: Option<sequoia_openpgp::cert::CipherSuite>,
     key_servers: Option<Vec<Url>>,
+
+    /// The location of the backend server executables.
+    servers_path: Option<PathBuf>,
 }
 
 impl Default for Config {
@@ -66,6 +69,7 @@ impl Default for Config {
             policy_inline: None,
             cipher_suite: None,
             key_servers: None,
+            servers_path: None,
         }
     }
 }
@@ -206,6 +210,11 @@ impl Config {
                 as Box<dyn Iterator<Item = &str>>,
         }
     }
+
+    /// Returns the path to the backend servers.
+    pub fn servers_path(&self) -> Option<&Path> {
+        self.servers_path.as_ref().map(|p| p.as_path())
+    }
 }
 
 /// Holds the document tree of the configuration file.
@@ -234,6 +243,9 @@ impl ConfigFile {
 [network]
 #keyservers = <DEFAULT-KEY-SERVERS>
 
+[servers]
+#path = <DEFAULT-SERVERS-PATH>
+
 [policy]
 #path = <DEFAULT-POLICY-FILE>
 
@@ -250,6 +262,7 @@ impl ConfigFile {
         "<SQ-CONFIG-PATH-HINT>",
         "<DEFAULT-CIPHER-SUITE>",
         "<DEFAULT-KEY-SERVERS>",
+        "<DEFAULT-SERVERS-PATH>",
         "<DEFAULT-POLICY-FILE>",
         "<DEFAULT-POLICY-INLINE>",
     ];
@@ -282,6 +295,11 @@ impl ConfigFile {
             &format!("{:?}", cli::key::CipherSuite::default().
                      to_possible_value().unwrap().get_name()),
             &format!("{:?}", cli::network::keyserver::DEFAULT_KEYSERVERS),
+            &format!("{:?}", {
+                sequoia_keystore::sequoia_ipc::Context::configure().build()
+                    .map(|c| c.lib().display().to_string())
+                    .unwrap_or_else(|_| "<unknown>".into())
+            }),
             &format!("{:?}",
                      std::env::var(ConfiguredStandardPolicy::ENV_VAR)
                      .unwrap_or_else(
@@ -625,6 +643,7 @@ const TOP_LEVEL_SCHEMA: Schema = &[
     ("key", apply_key),
     ("network", apply_network),
     ("policy", apply_policy),
+    ("servers", apply_servers),
     ("ui", apply_ui),
 ];
 
@@ -911,6 +930,38 @@ fn apply_policy_path(config: &mut Option<&mut Config>,
 
     if let Some(config) = config {
         config.policy_path = Some(path.into());
+    }
+
+    Ok(())
+}
+
+/// Schema for the `servers` section.
+const SERVERS_SCHEMA: Schema = &[
+    ("path", apply_servers_path),
+];
+
+/// Validates the `servers` section.
+fn apply_servers(config: &mut Option<&mut Config>, cli: &mut Option<&mut Augmentations>,
+                 path: &str, item: &Item)
+                 -> Result<()>
+{
+    let section = item.as_table_like()
+        .ok_or_else(|| Error::bad_item_type(path, item, "table"))?;
+    apply_schema(config, cli, Some(path), section.iter(), SERVERS_SCHEMA)?;
+    Ok(())
+}
+
+/// Validates the `servers.path` value.
+fn apply_servers_path(config: &mut Option<&mut Config>,
+                      _: &mut Option<&mut Augmentations>,
+                      path: &str, item: &Item)
+                      -> Result<()>
+{
+    let path = item.as_str()
+        .ok_or_else(|| Error::bad_item_type(path, item, "string"))?;
+
+    if let Some(config) = config {
+        config.servers_path = Some(path.into());
     }
 
     Ok(())

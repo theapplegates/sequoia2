@@ -13,6 +13,7 @@ use openpgp::packet::UserID;
 
 use crate::cli::config;
 use crate::cli::encrypt::ENCRYPT_FOR_SELF;
+use crate::cli::sign::SIGNER_SELF;
 use crate::cli::types::SpecialName;
 
 /// The prefix for the designators.
@@ -169,6 +170,12 @@ pub type CertUserIDEmailFileArgs
     = <<<CertArg as std::ops::BitOr<UserIDArg>>::Output
         as std::ops::BitOr<EmailArg>>::Output
        as std::ops::BitOr<FileArg>>::Output;
+
+/// Enables --cert, --userid, --email, --file, and --self (i.e., not
+/// --domain, --grep, --with-password, --with-password-file, or
+/// --special).
+pub type CertUserIDEmailFileSelfArgs
+    = <CertUserIDEmailFileArgs as std::ops::BitOr<SelfArg>>::Output;
 
 /// Enables --cert, --userid, and --email (i.e., not --domain, --grep,
 /// --file, --with-password, --with-password-file, or --special).
@@ -723,7 +730,11 @@ where
 
         if self_arg {
             let full_name = full_name("self");
-            let long_help = format!(
+
+            let (help, long_help) = match Prefix::name() {
+                "for" => (
+                    "Encrypt the message for yourself",
+                    format!(
 "Encrypt the message for yourself
 
 This adds the certificates listed in the configuration file under \
@@ -732,20 +743,48 @@ This can be used to make sure that you yourself can decrypt the message.
 
 {}
 ",
-                ENCRYPT_FOR_SELF,
-                if let Some(certs) = config::get_augmentation(ENCRYPT_FOR_SELF) {
-                    format!("The following certs will be added: {}.", certs)
-                } else {
-                    "Currently, the list of certificates to be added is empty."
-                        .into()
-                });
+                        ENCRYPT_FOR_SELF,
+                        if let Some(certs) = config::get_augmentation(ENCRYPT_FOR_SELF) {
+                            format!("The following certs will be added: {}.", certs)
+                        } else {
+                            "Currently, the list of certificates to be added is empty."
+                                .into()
+                        }),
+                ),
+
+                "signer" => (
+                    "Sign using your default signer keys",
+                    format!(
+"Sign using your default signer keys
+
+This adds the certificates listed in the configuration file under \
+`{}` to the list of signer keys.
+
+{}
+",
+                        SIGNER_SELF,
+                        if let Some(certs) = config::get_augmentation(SIGNER_SELF) {
+                            format!("The following certs will be added: {}.", certs)
+                        } else {
+                            "Currently, the list of certificates to be added is empty."
+                                .into()
+                        }),
+                ),
+
+                #[cfg(test)]
+                "cert" => (
+                    "dummy text for the test",
+                    "dummy text for the test".into(),
+                ),
+
+                p => panic!("no help texts for --{}-self", p),
+            };
+
             cmd = cmd.arg(
                 clap::Arg::new(&full_name)
                     .long(&full_name)
                     .action(clap::ArgAction::SetTrue)
-                    .help(Doc::help(
-                        "self",
-                        "Encrypt the message for yourself"))
+                    .help(help)
                     .long_help(long_help));
             arg_group = arg_group.arg(full_name);
         }

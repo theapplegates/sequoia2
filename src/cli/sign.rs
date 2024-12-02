@@ -16,6 +16,9 @@ use crate::cli::examples;
 use examples::*;
 use crate::cli::types::cert_designator::*;
 
+/// Key for the help augmentation.
+pub const SIGNER_SELF: &str = "sign.signer-self";
+
 const SIGN_EXAMPLES: Actions = Actions {
     actions: &[
         Action::Example(Example {
@@ -158,7 +161,7 @@ may change line endings.  In doubt, create binary signatures.",
     pub merge: Option<PathBuf>,
 
     #[command(flatten)]
-    pub signers: CertDesignators<CertUserIDEmailFileArgs,
+    pub signers: CertDesignators<CertUserIDEmailFileSelfArgs,
                                  SignerPrefix,
                                  // XXX: should be NoOptions, but we
                                  // cannot express that one cert

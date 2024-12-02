@@ -101,7 +101,7 @@ pub struct Command {
     pub set_metadata_filename: Option<String>,
 
     #[command(flatten)]
-    pub signers: CertDesignators<CertUserIDEmailFileArgs,
+    pub signers: CertDesignators<CertUserIDEmailFileSelfArgs,
                                  SignerPrefix,
                                  OptionalValue,
                                  SignerDoc>,

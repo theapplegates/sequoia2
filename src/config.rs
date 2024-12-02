@@ -48,7 +48,12 @@ pub struct Config {
     /// Whether to show hints.
     hints: Option<bool>,
 
+    /// The set of encryption certs selected using `--for-self`.
     encrypt_for_self: BTreeSet<Fingerprint>,
+
+    /// The set of signing keys selected using `--signer-self`.
+    sign_signer_self: BTreeSet<Fingerprint>,
+
     policy_path: Option<PathBuf>,
     policy_inline: Option<Vec<u8>>,
     cipher_suite: Option<sequoia_openpgp::cert::CipherSuite>,
@@ -76,6 +81,7 @@ impl Default for Config {
             quiet: false,
             hints: None,
             encrypt_for_self: Default::default(),
+            sign_signer_self: Default::default(),
             policy_path: None,
             policy_inline: None,
             cipher_suite: None,
@@ -154,6 +160,12 @@ impl Config {
     /// recipients if `encrypt --for-self` is given.
     pub fn encrypt_for_self(&self) -> &BTreeSet<Fingerprint> {
         &self.encrypt_for_self
+    }
+
+    /// Returns the keys that should be added to the list of
+    /// signers if `--signer-self` is given.
+    pub fn sign_signer_self(&self) -> &BTreeSet<Fingerprint> {
+        &self.sign_signer_self
     }
 
     /// Returns the cryptographic policy.
@@ -678,6 +690,7 @@ const TOP_LEVEL_SCHEMA: Schema = &[
     ("network", apply_network),
     ("policy", apply_policy),
     ("servers", apply_servers),
+    ("sign", apply_sign),
     ("ui", apply_ui),
 ];
 
@@ -795,6 +808,54 @@ fn apply_encrypt_for_self(config: &mut Option<&mut Config>,
 
     if let Some(config) = config {
         config.encrypt_for_self = values;
+    }
+
+    Ok(())
+}
+
+/// Schema for the `sign` section.
+const SIGN_SCHEMA: Schema = &[
+    ("signer-self", apply_sign_signer_self),
+];
+
+/// Validates the `sign` section.
+fn apply_sign(config: &mut Option<&mut Config>,
+              cli: &mut Option<&mut Augmentations>,
+              path: &str, item: &Item)
+              -> Result<()>
+{
+    let section = item.as_table_like()
+        .ok_or_else(|| Error::bad_item_type(path, item, "table"))?;
+    apply_schema(config, cli, Some(path), section.iter(), SIGN_SCHEMA)?;
+    Ok(())
+}
+
+/// Validates the `sign.signer-self` value.
+fn apply_sign_signer_self(config: &mut Option<&mut Config>,
+                          cli: &mut Option<&mut Augmentations>,
+                          path: &str, item: &Item)
+                          -> Result<()>
+{
+    let list = item.as_array()
+        .ok_or_else(|| Error::bad_item_type(path, item, "array"))?;
+
+    let mut strs = Vec::new();
+    let mut values = BTreeSet::default();
+    for (i, server) in list.iter().enumerate() {
+        let s = server.as_str()
+            .ok_or_else(|| Error::bad_value_type(&format!("{}.{}", path, i),
+                                                 server, "string"))?;
+
+        strs.push(s);
+        values.insert(s.parse::<Fingerprint>()?);
+    }
+
+    if let Some(cli) = cli {
+        cli.insert("sign.signer-self", strs.join(" "));
+    }
+
+    if let Some(config) = config {
+        config.sign_signer_self = values;
     }
 
     Ok(())

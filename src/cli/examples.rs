@@ -224,8 +224,13 @@ pub fn wrap_command<S: AsRef<str>>(command: &[S],
                                    continuation_width: usize)
                                    -> String
 {
+    let prompt = platform! {
+        unix => { "$" },
+        windows => { ">" },
+    };
+
     command.iter()
-        .fold(vec![format!("{}$", indent)], |mut s, arg| {
+        .fold(vec![format!("{}{}", indent, prompt)], |mut s, arg| {
             let first = s.len() == 1;
 
             let arg = arg.as_ref();

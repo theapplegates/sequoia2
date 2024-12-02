@@ -145,7 +145,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
             broken_keys: 0,
             bad_signatures: 0,
             broken_signatures: 0,
-            quiet: sq.quiet,
+            quiet: sq.quiet(),
         }
     }
 

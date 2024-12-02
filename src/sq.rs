@@ -142,6 +142,16 @@ pub struct Sq<'store, 'rstore>
 }
 
 impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
+    /// Be verbose.
+    pub fn verbose(&self) -> bool {
+        self.verbose
+    }
+
+    /// Be quiet.
+    pub fn quiet(&self) -> bool {
+        self.quiet
+    }
+
     /// Returns whether the cert store is disabled.
     fn no_rw_cert_store(&self) -> bool {
         self.cert_store_path.as_ref()
@@ -1722,14 +1732,14 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
     /// Prints additional information in verbose mode.
     pub fn info(&self, msg: fmt::Arguments) {
-        if self.verbose {
+        if self.verbose() {
             wprintln!("{}", msg);
         }
     }
 
     /// Prints a hint for the user.
     pub fn hint(&self, msg: fmt::Arguments) -> Hint {
-        Hint::new(self.quiet)
+        Hint::new(self.quiet())
             .hint(msg)
     }
 

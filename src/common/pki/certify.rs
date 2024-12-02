@@ -43,7 +43,7 @@ pub fn diff_certification(sq: &Sq, old: &Signature, new: &SignatureBuilder,
                           new_ct: SystemTime)
     -> bool
 {
-    make_qprintln!(sq.quiet);
+    make_qprintln!(sq.quiet());
     let mut changed = false;
 
     let a_expiration = old.signature_expiration_time();
@@ -177,7 +177,7 @@ pub fn certify(sq: &Sq,
 {
     assert!(templates.len() > 0);
     assert!(userids.len() > 0);
-    make_qprintln!(sq.quiet);
+    make_qprintln!(sq.quiet());
 
     if certifier.fingerprint() == cert.fingerprint() {
         sq.hint(

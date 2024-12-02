@@ -177,7 +177,7 @@ pub fn dispatch(sq: Sq, c: download::Command)
         sq.resolve_certs_or_fail(&c.signers, sequoia_wot::FULLY_TRUSTED)?;
     let output = c.output;
 
-    if ! sq.quiet && ! sq.batch {
+    if ! sq.quiet() && ! sq.batch {
         let output_is_terminal
             = output.path().is_none() && std::io::stdout().is_terminal();
         if output_is_terminal {
@@ -217,7 +217,7 @@ pub fn dispatch(sq: Sq, c: download::Command)
 
 
     // Create the progress bar.
-    let progress_bar = if sq.verbose || sq.batch {
+    let progress_bar = if sq.verbose() || sq.batch {
         ProgressBar::hidden()
     } else {
         ProgressBar::new(0)

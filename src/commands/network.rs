@@ -320,7 +320,7 @@ pub fn certify_downloads<'store, 'rstore>(sq: &mut Sq<'store, 'rstore>,
             let err = err.context(
                 "Warning: not recording provenance information, \
                  failed to load CA key");
-            if sq.verbose {
+            if sq.verbose() {
                 print_error_chain(&err);
             }
             return certs;
@@ -342,7 +342,7 @@ pub fn certify_downloads<'store, 'rstore>(sq: &mut Sq<'store, 'rstore>,
                     "Warning: not recording provenance information \
                      for {}, not valid",
                     cert.fingerprint()));
-                if sq.verbose {
+                if sq.verbose() {
                     print_error_chain(&err);
                 }
                 return cert;
@@ -364,7 +364,7 @@ pub fn certify_downloads<'store, 'rstore>(sq: &mut Sq<'store, 'rstore>,
                 .collect::<Vec<UserID>>();
 
             if userids.is_empty() {
-                if sq.verbose {
+                if sq.verbose() {
                     sq.info(format_args!(
                         "Warning: not recording provenance information \
                          for {}, it does not contain a valid User ID with \
@@ -390,7 +390,7 @@ pub fn certify_downloads<'store, 'rstore>(sq: &mut Sq<'store, 'rstore>,
                     "Warning: not recording provenance information \
                      for {}, failed to certify it",
                     cert.fingerprint()));
-                if sq.verbose {
+                if sq.verbose() {
                     print_error_chain(&err);
                 }
 
@@ -563,7 +563,7 @@ impl Method {
         -> Option<Arc<LazyCert<'store>>>
         where 'store: 'rstore
     {
-        make_qprintln!(sq.quiet);
+        make_qprintln!(sq.quiet());
 
         let ca = || -> Result<_> {
             let certd = sq.certd_or_else()?;
@@ -574,7 +574,7 @@ impl Method {
                     match result {
                         Some((cert, created)) => (cert, created),
                         None => {
-                            if sq.verbose {
+                            if sq.verbose() {
                                 wprintln!(
                                     "Not recording provenance information: \
                                      {} is not known to be a verifying \
@@ -613,7 +613,7 @@ impl Method {
                         err);
                 };
 
-                if sq.verbose {
+                if sq.verbose() {
                     print_err();
                 } else {
                     use std::sync::Once;
@@ -630,7 +630,7 @@ impl Method {
             return Some(cert);
         }
 
-        if sq.verbose {
+        if sq.verbose() {
             let invalid = "invalid data".to_string();
 
             wprintln!(
@@ -672,7 +672,7 @@ struct Response {
 impl Response {
     /// Creates a progress bar.
     fn progress_bar(sq: &Sq) -> ProgressBar {
-        if sq.verbose || sq.batch {
+        if sq.verbose() || sq.batch {
             ProgressBar::hidden()
         } else {
             ProgressBar::new(0)
@@ -763,7 +763,7 @@ impl Response {
             }
         }
 
-        if ! silent_errors || sq.verbose || certs.is_empty() {
+        if ! silent_errors || sq.verbose() || certs.is_empty() {
             for (method, query, e) in errors {
                 pb.suspend(|| wprintln!("{}: {}: {}", method, query, e));
             }
@@ -783,7 +783,7 @@ impl Response {
                       certs: BTreeMap<Fingerprint, (Cert, BTreeSet<Method>)>)
                       -> Result<()>
     {
-        make_qprintln!(sq.quiet);
+        make_qprintln!(sq.quiet());
 
         qprintln!("\nFound {} related to the query:\n",
                   certs.len().of("certificate"));
@@ -1067,7 +1067,7 @@ pub fn dispatch_keyserver(
     matches: &ArgMatches,
 ) -> Result<()>
 {
-    make_qprintln!(sq.quiet);
+    make_qprintln!(sq.quiet());
 
     let servers_source = matches.value_source("servers").unwrap();
     let default_servers =
@@ -1163,7 +1163,7 @@ pub fn dispatch_keyserver(
                         // by default, but we will not consider this
                         // an error, and only print the message in
                         // verbose mode.
-                        if sq.verbose {
+                        if sq.verbose() {
                             wprintln!("{}: {}", url, e);
                         }
                     },
@@ -1202,7 +1202,7 @@ pub fn dispatch_keyserver(
 pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
     -> Result<()>
 {
-    make_qprintln!(sq.quiet);
+    make_qprintln!(sq.quiet());
 
     let rt = tokio::runtime::Runtime::new()?;
 

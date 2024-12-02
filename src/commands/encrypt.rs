@@ -105,7 +105,7 @@ pub fn encrypt<'a, 'b: 'a>(
 )
     -> Result<()>
 {
-    make_qprintln!(sq.quiet);
+    make_qprintln!(sq.quiet());
 
     let mut passwords: Vec<crypto::Password> = Vec::with_capacity(npasswords);
     for n in 0..npasswords {

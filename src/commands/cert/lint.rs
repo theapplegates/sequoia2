@@ -273,7 +273,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                             certs_with_issues += 1;
                             found_issue = true;
                         }
-                        if ! sq.quiet {
+                        if ! sq.quiet() {
                             wprintln!($($arg)*);
                         }
                     }
@@ -745,7 +745,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                   pl(certs_valid + certs_invalid,
                      "certificate", "certificates"));
 
-        if ! sq.quiet {
+        if ! sq.quiet() {
             err!(certs_invalid,
                  "  {} {} invalid and {} not linted.",
                  certs_invalid,
@@ -816,7 +816,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
 
         if args.fix {
             if unfixed_issue > 0 {
-                if ! sq.quiet {
+                if ! sq.quiet() {
                     err!(unfixed_issue,
                          "Failed to fix {} {}.",
                          unfixed_issue,

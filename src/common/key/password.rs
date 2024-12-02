@@ -38,7 +38,7 @@ pub fn password<'a, P>(
 where
     P: 'a + KeyParts,
 {
-    make_qprintln!(sq.quiet);
+    make_qprintln!(sq.quiet());
 
     let mut new_password_ = None;
     // Some(password) => new password

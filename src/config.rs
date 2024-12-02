@@ -390,19 +390,20 @@ impl ConfigFile {
         Ok(())
     }
 
-    /// Augments the configuration with the given policy.
+    /// Augments the configuration with the effective configuration
+    /// and policy.
     ///
     /// XXX: Due to the way doc.remove works, it will leave misleading
     /// comments behind.  Therefore, the resulting configuration is
     /// not suitable for dumping, but may only be used for
     /// commands::config::get.
-    pub fn augment_with_policy(&self, p: &StandardPolicy) -> Result<Self> {
+    pub fn effective_configuration(&self, sq: &crate::Sq) -> Result<Self> {
         use std::io::Write;
         let mut raw = Vec::new();
 
         // First, start with our configuration, and drop most of the
         // policy with the exception of the path.
-        let p = ConfiguredStandardPolicy::from_policy(p.clone());
+        let p = ConfiguredStandardPolicy::from_policy(sq.policy.clone());
         let mut doc = self.doc.clone();
         doc.remove("policy");
 

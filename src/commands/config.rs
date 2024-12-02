@@ -45,7 +45,7 @@ fn get(sq: Sq, cmd: config::get::Command) -> Result<()> {
     let mut acc = Default::default();
 
     // First, look in the configuration.
-    let config = sq.config_file.augment_with_policy(&sq.policy)?;
+    let config = sq.config_file.effective_configuration(&sq)?;
     let r0 = Node::traverse(&*config.as_item() as _, &path)
         .map_err(Into::into)
         .and_then(

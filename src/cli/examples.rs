@@ -200,7 +200,8 @@ impl<'a> IntoResettable<clap::builder::StyledStr> for Actions<'a> {
                 //
                 //   warning: Continuation in example exceeds 57 chars:
                 let command = wrap_command(&example.command,
-                                           width.min(64), width.min(57));
+                                           "", width.min(64),
+                                           "  ", width.min(57));
 
                 Some(format!("{}\n{}", comment, command))
             }));
@@ -211,13 +212,20 @@ impl<'a> IntoResettable<clap::builder::StyledStr> for Actions<'a> {
     }
 }
 
+/// Wraps the given command to width, adding continuation backslashes.
+///
+/// The first line is prefixed with `indent` and wrapped `to_width`,
+/// any continuations are prefixed with `continuation_indent` and
+/// wrapped to `continuation_width`.
 pub fn wrap_command<S: AsRef<str>>(command: &[S],
+                                   indent: &str,
                                    to_width: usize,
+                                   continuation_indent: &str,
                                    continuation_width: usize)
                                    -> String
 {
     command.iter()
-        .fold(vec!["$".to_string()], |mut s, arg| {
+        .fold(vec![format!("{}$", indent)], |mut s, arg| {
             let first = s.len() == 1;
 
             let arg = arg.as_ref();
@@ -255,7 +263,7 @@ pub fn wrap_command<S: AsRef<str>>(command: &[S],
                 *last = format!("{} {}", last, arg);
             } else {
                 *last = format!("{} \\", last);
-                s.push(format!("  {}", arg));
+                s.push(format!("{}{}", continuation_indent, arg));
             }
 
             s

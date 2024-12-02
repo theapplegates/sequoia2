@@ -975,7 +975,9 @@ pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
                 });
             }
 
-            if let Some(address) = query.as_address() {
+            if let Some(address) = query.as_address()
+                .filter(|_| sq.config.network_search_dane())
+            {
                 let a = address.to_string();
                 pb.inc_length(1);
                 requests.spawn(async move {

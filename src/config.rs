@@ -59,6 +59,9 @@ pub struct Config {
     /// Whether network search should use WKD.
     network_search_wkd: bool,
 
+    /// Whether network search should use DANE.
+    network_search_dane: bool,
+
     /// The location of the backend server executables.
     servers_path: Option<PathBuf>,
 }
@@ -75,6 +78,7 @@ impl Default for Config {
             cipher_suite: None,
             key_servers: None,
             network_search_wkd: true,
+            network_search_dane: true,
             servers_path: None,
         }
     }
@@ -222,6 +226,11 @@ impl Config {
         self.network_search_wkd
     }
 
+    /// Returns whether network search should use DANE.
+    pub fn network_search_dane(&self) -> bool {
+        self.network_search_dane
+    }
+
     /// Returns the path to the backend servers.
     pub fn servers_path(&self) -> Option<&Path> {
         self.servers_path.as_ref().map(|p| p.as_path())
@@ -256,6 +265,7 @@ impl ConfigFile {
 
 [network.search]
 #use-wkd = true
+#use-dane = true
 
 [servers]
 #path = <DEFAULT-SERVERS-PATH>
@@ -896,6 +906,7 @@ fn apply_network_keyservers(config: &mut Option<&mut Config>,
 
 /// Schema for the `network.search` section.
 const NETWORK_SEARCH_SCHEMA: Schema = &[
+    ("use-dane", apply_network_search_use_dane),
     ("use-wkd", apply_network_search_use_wkd),
 ];
 
@@ -909,6 +920,22 @@ fn apply_network_search(config: &mut Option<&mut Config>,
         .ok_or_else(|| Error::bad_item_type(path, item, "table"))?;
     apply_schema(config, cli, Some(path), section.iter(),
                  NETWORK_SEARCH_SCHEMA)?;
+    Ok(())
+}
+
+/// Validates the `network.search.use-dane` value.
+fn apply_network_search_use_dane(config: &mut Option<&mut Config>,
+                                _cli: &mut Option<&mut Augmentations>,
+                                path: &str, item: &Item)
+                                -> Result<()>
+{
+    let s = item.as_bool()
+        .ok_or_else(|| Error::bad_item_type(path, item, "bool"))?;
+
+    if let Some(config) = config {
+        config.network_search_dane = s;
+    }
+
     Ok(())
 }
 

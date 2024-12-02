@@ -52,7 +52,12 @@ pub struct Config {
     policy_path: Option<PathBuf>,
     policy_inline: Option<Vec<u8>>,
     cipher_suite: Option<sequoia_openpgp::cert::CipherSuite>,
+
+    /// The set of keyservers to use.
     key_servers: Option<Vec<Url>>,
+
+    /// Whether network search should use WKD.
+    network_search_wkd: bool,
 
     /// The location of the backend server executables.
     servers_path: Option<PathBuf>,
@@ -69,6 +74,7 @@ impl Default for Config {
             policy_inline: None,
             cipher_suite: None,
             key_servers: None,
+            network_search_wkd: true,
             servers_path: None,
         }
     }
@@ -211,6 +217,11 @@ impl Config {
         }
     }
 
+    /// Returns whether network search should use WKD.
+    pub fn network_search_wkd(&self) -> bool {
+        self.network_search_wkd
+    }
+
     /// Returns the path to the backend servers.
     pub fn servers_path(&self) -> Option<&Path> {
         self.servers_path.as_ref().map(|p| p.as_path())
@@ -242,6 +253,9 @@ impl ConfigFile {
 
 [network]
 #keyservers = <DEFAULT-KEY-SERVERS>
+
+[network.search]
+#use-wkd = true
 
 [servers]
 #path = <DEFAULT-SERVERS-PATH>
@@ -826,6 +840,7 @@ fn apply_key_generate_cipher_suite(config: &mut Option<&mut Config>,
 /// Schema for the `network` section.
 const NETWORK_SCHEMA: Schema = &[
     ("keyservers", apply_network_keyservers),
+    ("search", apply_network_search),
 ];
 
 /// Validates the `network` section.
@@ -874,6 +889,40 @@ fn apply_network_keyservers(config: &mut Option<&mut Config>,
 
     if let Some(config) = config {
         config.key_servers = Some(servers_url);
+    }
+
+    Ok(())
+}
+
+/// Schema for the `network.search` section.
+const NETWORK_SEARCH_SCHEMA: Schema = &[
+    ("use-wkd", apply_network_search_use_wkd),
+];
+
+/// Validates the `network.search` section.
+fn apply_network_search(config: &mut Option<&mut Config>,
+                        cli: &mut Option<&mut Augmentations>,
+                        path: &str, item: &Item)
+                        -> Result<()>
+{
+    let section = item.as_table_like()
+        .ok_or_else(|| Error::bad_item_type(path, item, "table"))?;
+    apply_schema(config, cli, Some(path), section.iter(),
+                 NETWORK_SEARCH_SCHEMA)?;
+    Ok(())
+}
+
+/// Validates the `network.search.use-wkd` value.
+fn apply_network_search_use_wkd(config: &mut Option<&mut Config>,
+                                _cli: &mut Option<&mut Augmentations>,
+                                path: &str, item: &Item)
+                                -> Result<()>
+{
+    let s = item.as_bool()
+        .ok_or_else(|| Error::bad_item_type(path, item, "bool"))?;
+
+    if let Some(config) = config {
+        config.network_search_wkd = s;
     }
 
     Ok(())

@@ -58,8 +58,18 @@ fn get(sq: Sq, cmd: config::get::Command) -> Result<()> {
         .map_err(Into::into)
         .and_then(
             |node| collect(&mut acc, path, node, &|p, n| {
-                (n.as_atomic_value().is_some() || n.as_array().is_some())
-                    ^ config.as_item().traverse(p).is_ok()
+                // Is this a leaf node?
+                let leaf = n.as_atomic_value().is_some()
+                    || n.as_array().is_some();
+
+                // Is this set in the config file?
+                let is_configured =
+                    config.as_item().traverse(p).is_ok();
+
+                // Show or continue traversing if this is either an
+                // intermediate node, or the node is absent in the
+                // configuration.
+                ! leaf || ! is_configured
             }));
 
     // One of the lookups must be successful.

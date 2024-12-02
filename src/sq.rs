@@ -1736,7 +1736,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
     /// Prints a hint for the user.
     pub fn hint(&self, msg: fmt::Arguments) -> Hint {
-        Hint::new(self.quiet())
+        Hint::new(! self.config.hints())
             .hint(msg)
     }
 

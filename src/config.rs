@@ -45,6 +45,9 @@ pub struct Config {
     /// Whether to be more quiet.
     quiet: bool,
 
+    /// Whether to show hints.
+    hints: Option<bool>,
+
     encrypt_for_self: BTreeSet<Fingerprint>,
     policy_path: Option<PathBuf>,
     policy_inline: Option<Vec<u8>>,
@@ -57,6 +60,7 @@ impl Default for Config {
         Config {
             verbose: false,
             quiet: false,
+            hints: None,
             encrypt_for_self: Default::default(),
             policy_path: None,
             policy_inline: None,
@@ -121,6 +125,11 @@ impl Config {
     /// initialization time.
     pub fn quiet(&self) -> bool {
         self.quiet
+    }
+
+    /// Returns whether to show hints.
+    pub fn hints(&self) -> bool {
+        self.hints.unwrap_or(! self.quiet())
     }
 
     /// Returns the certificates that should be added to the list of
@@ -214,6 +223,7 @@ impl ConfigFile {
 
 [ui]
 #verbosity = \"default\" # or \"verbose\" or \"quiet\"
+#hints = true
 
 [encrypt]
 #for-self = [\"fingerprint of your key\"]
@@ -431,7 +441,11 @@ impl ConfigFile {
         write!(&mut raw, "{}", default_policy_inline)?;
 
         // Now, parse the resulting configuration.
-        let doc: DocumentMut = std::str::from_utf8(&raw)?.parse()?;
+        let mut doc: DocumentMut = std::str::from_utf8(&raw)?.parse()?;
+
+        // Tweak a few settings.
+        doc.get_mut("ui".into()).unwrap()
+            .set(&"hints".into(), sq.config.hints().into())?;
 
         // Double check that it is well-formed.
         apply_schema(&mut None, &mut None, None, doc.iter(), TOP_LEVEL_SCHEMA)?;
@@ -616,6 +630,7 @@ const TOP_LEVEL_SCHEMA: Schema = &[
 
 /// Schema for the `ui` section.
 const UI_SCHEMA: Schema = &[
+    ("hints", apply_ui_hints),
     ("verbosity", apply_ui_verbosity),
 ];
 
@@ -627,6 +642,22 @@ fn apply_ui(config: &mut Option<&mut Config>, cli: &mut Option<&mut Augmentation
     let section = item.as_table_like()
         .ok_or_else(|| Error::bad_item_type(path, item, "table"))?;
     apply_schema(config, cli, Some(path), section.iter(), UI_SCHEMA)?;
+    Ok(())
+}
+
+/// Validates the `ui.hints` value.
+fn apply_ui_hints(config: &mut Option<&mut Config>,
+                  _cli: &mut Option<&mut Augmentations>,
+                  path: &str, item: &Item)
+                  -> Result<()>
+{
+    let s = item.as_bool()
+        .ok_or_else(|| Error::bad_item_type(path, item, "bool"))?;
+
+    if let Some(config) = config {
+        config.hints = Some(s);
+    }
+
     Ok(())
 }
 

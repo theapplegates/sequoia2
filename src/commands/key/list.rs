@@ -331,7 +331,7 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
         for mut device in devices {
             let keys = device.list()?;
             if keys.len() == 0 {
-                wprintln!(initial_indent = "   - ", "Device {}/{} has no keys.",
+                wprintln!(initial_indent = " - ", "Device {}/{} has no keys.",
                           backend.id()?, device.id()?);
                 dirty = true;
             }

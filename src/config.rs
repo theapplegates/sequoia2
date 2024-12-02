@@ -1,7 +1,7 @@
 //! Configuration model and file parsing.
 
 use std::{
-    collections::HashSet,
+    collections::{BTreeSet, HashSet},
     fs,
     io,
     path::PathBuf,
@@ -39,7 +39,7 @@ use crate::{
 /// It is available as `Sq::config`, with suitable accessors that
 /// handle the precedence of the various sources.
 pub struct Config {
-    encrypt_for_self: Vec<Fingerprint>,
+    encrypt_for_self: BTreeSet<Fingerprint>,
     policy_path: Option<PathBuf>,
     policy_inline: Option<Vec<u8>>,
     cipher_suite: Option<sequoia_openpgp::cert::CipherSuite>,
@@ -49,7 +49,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            encrypt_for_self: vec![],
+            encrypt_for_self: Default::default(),
             policy_path: None,
             policy_inline: None,
             cipher_suite: None,
@@ -61,7 +61,7 @@ impl Default for Config {
 impl Config {
     /// Returns the certificates that should be added to the list of
     /// recipients if `encrypt --for-self` is given.
-    pub fn encrypt_for_self(&self) -> &[Fingerprint] {
+    pub fn encrypt_for_self(&self) -> &BTreeSet<Fingerprint> {
         &self.encrypt_for_self
     }
 
@@ -571,14 +571,14 @@ fn apply_encrypt_for_self(config: &mut Option<&mut Config>,
         .ok_or_else(|| Error::bad_item_type(path, item, "array"))?;
 
     let mut strs = Vec::new();
-    let mut values = Vec::new();
+    let mut values = BTreeSet::default();
     for (i, server) in list.iter().enumerate() {
         let s = server.as_str()
             .ok_or_else(|| Error::bad_value_type(&format!("{}.{}", path, i),
                                                  server, "string"))?;
 
         strs.push(s);
-        values.push(s.parse::<Fingerprint>()?);
+        values.insert(s.parse::<Fingerprint>()?);
     }
 
     if let Some(cli) = cli {

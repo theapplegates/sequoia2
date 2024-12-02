@@ -320,7 +320,9 @@ pub fn encrypt<'a, 'b: 'a>(
         }
     }
 
-    if ! have_one_secret && passwords.is_empty() {
+    if ! have_one_secret && passwords.is_empty() && ! recipients.iter()
+        .any(|c| sq.config.encrypt_for_self().contains(&c.fingerprint()))
+    {
         sq.hint(format_args!(
             "It looks like you won't be able to decrypt the message.  \
              Consider adding yourself as recipient, for example by \

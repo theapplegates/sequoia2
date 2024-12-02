@@ -323,11 +323,19 @@ pub fn encrypt<'a, 'b: 'a>(
     if ! have_one_secret && passwords.is_empty() && ! recipients.iter()
         .any(|c| sq.config.encrypt_for_self().contains(&c.fingerprint()))
     {
-        sq.hint(format_args!(
-            "It looks like you won't be able to decrypt the message.  \
-             Consider adding yourself as recipient, for example by \
-             adding your cert to `{}` and using `--for-self`.",
-            cli::encrypt::ENCRYPT_FOR_SELF));
+        if let Some(home) = &sq.home {
+            sq.hint(format_args!(
+                "It looks like you won't be able to decrypt the message.  \
+                 Consider adding yourself as recipient, for example by \
+                 adding your cert to `{}` in the configuration file ({}), \
+                 and using the `--for-self` argument.",
+                cli::encrypt::ENCRYPT_FOR_SELF,
+                crate::config::ConfigFile::file_name(home).display()));
+        } else {
+            sq.hint(format_args!(
+                "It looks like you won't be able to decrypt the message.  \
+                 Consider adding yourself as recipient."));
+        }
     }
 
     // A newline to make it look nice.

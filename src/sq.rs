@@ -97,9 +97,6 @@ pub struct Sq<'store, 'rstore>
     pub config_file: crate::config::ConfigFile,
     pub config: crate::config::Config,
 
-    pub verbose: bool,
-    pub quiet: bool,
-
     /// Overwrite existing files.
     pub overwrite: bool,
 
@@ -144,12 +141,12 @@ pub struct Sq<'store, 'rstore>
 impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// Be verbose.
     pub fn verbose(&self) -> bool {
-        self.verbose
+        self.config.verbose()
     }
 
     /// Be quiet.
     pub fn quiet(&self) -> bool {
-        self.quiet
+        self.config.quiet()
     }
 
     /// Returns whether the cert store is disabled.

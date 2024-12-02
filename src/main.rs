@@ -291,7 +291,7 @@ fn real_main() -> Result<()> {
 
     // Parse the configuration file.
     let mut config_file = config::ConfigFile::default_config(home.as_ref())?;
-    let config = if let Some(home) = &home {
+    let mut config = if let Some(home) = &home {
         // Sanity check `cli::config::find_home`.
         debug_assert_eq!(home.location(),
                          cli::config::find_home().unwrap().location());
@@ -303,6 +303,9 @@ fn real_main() -> Result<()> {
     } else {
         Default::default()
     };
+
+    config.init_verbose(c.verbose, matches.value_source("verbose"));
+    config.init_quiet(c.quiet, matches.value_source("quiet"));
 
     let time_is_now = c.time.is_none();
     let time: SystemTime = if let Some(t) = c.time.as_ref() {
@@ -339,8 +342,6 @@ fn real_main() -> Result<()> {
     let sq = Sq {
         config_file,
         config,
-        verbose: c.verbose,
-        quiet: c.quiet,
         overwrite: c.overwrite,
         batch: c.batch,
         time,

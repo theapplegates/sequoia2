@@ -39,6 +39,12 @@ use crate::{
 /// It is available as `Sq::config`, with suitable accessors that
 /// handle the precedence of the various sources.
 pub struct Config {
+    /// Whether to be more verbose.
+    verbose: bool,
+
+    /// Whether to be more quiet.
+    quiet: bool,
+
     encrypt_for_self: BTreeSet<Fingerprint>,
     policy_path: Option<PathBuf>,
     policy_inline: Option<Vec<u8>>,
@@ -49,6 +55,8 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
+            verbose: false,
+            quiet: false,
             encrypt_for_self: Default::default(),
             policy_path: None,
             policy_inline: None,
@@ -59,6 +67,62 @@ impl Default for Config {
 }
 
 impl Config {
+    /// Sets the verbose setting.
+    ///
+    /// Handles the precedence of the various sources, but since this
+    /// is a global flag and accessed very often, this is a setter and
+    /// we do this once, when initializing the configuration object:
+    ///
+    /// - If the flag is given, use the given value.
+    /// - If the command line flag is not given, then
+    ///   - use the value from the configuration file (if any),
+    ///   - or use the default value.
+    pub fn init_verbose(&mut self, cli: bool, source: Option<ValueSource>)
+    {
+        match source.expect("set by the cli parser") {
+            ValueSource::DefaultValue => {
+                // Use the value from the configuration file.
+            },
+            _ => self.verbose = cli,
+        }
+    }
+
+    /// Returns the verbose setting.
+    ///
+    /// The precedence of the various sources has been handled at
+    /// initialization time.
+    pub fn verbose(&self) -> bool {
+        self.verbose
+    }
+
+    /// Sets the quiet setting.
+    ///
+    /// Handles the precedence of the various sources, but since this
+    /// is a global flag and accessed very often, this is a setter and
+    /// we do this once, when initializing the configuration object:
+    ///
+    /// - If the flag is given, use the given value.
+    /// - If the command line flag is not given, then
+    ///   - use the value from the configuration file (if any),
+    ///   - or use the default value.
+    pub fn init_quiet(&mut self, cli: bool, source: Option<ValueSource>)
+    {
+        match source.expect("set by the cli parser") {
+            ValueSource::DefaultValue => {
+                // Use the value from the configuration file.
+            },
+            _ => self.quiet = cli,
+        }
+    }
+
+    /// Returns the quiet setting.
+    ///
+    /// The precedence of the various sources has been handled at
+    /// initialization time.
+    pub fn quiet(&self) -> bool {
+        self.quiet
+    }
+
     /// Returns the certificates that should be added to the list of
     /// recipients if `encrypt --for-self` is given.
     pub fn encrypt_for_self(&self) -> &BTreeSet<Fingerprint> {
@@ -147,6 +211,9 @@ impl ConfigFile {
     const TEMPLATE: &'static str = "\
 # Configuration template for sq <SQ-VERSION>
 <SQ-CONFIG-PATH-HINT>
+
+[ui]
+#verbosity = \"default\" # or \"verbose\" or \"quiet\"
 
 [encrypt]
 #for-self = [\"fingerprint of your key\"]
@@ -543,7 +610,63 @@ const TOP_LEVEL_SCHEMA: Schema = &[
     ("key", apply_key),
     ("network", apply_network),
     ("policy", apply_policy),
+    ("ui", apply_ui),
 ];
+
+/// Schema for the `ui` section.
+const UI_SCHEMA: Schema = &[
+    ("verbosity", apply_ui_verbosity),
+];
+
+/// Validates the `ui` section.
+fn apply_ui(config: &mut Option<&mut Config>, cli: &mut Option<&mut Augmentations>,
+            path: &str, item: &Item)
+            -> Result<()>
+{
+    let section = item.as_table_like()
+        .ok_or_else(|| Error::bad_item_type(path, item, "table"))?;
+    apply_schema(config, cli, Some(path), section.iter(), UI_SCHEMA)?;
+    Ok(())
+}
+
+/// Validates the `ui.verbosity` value.
+fn apply_ui_verbosity(config: &mut Option<&mut Config>,
+                      cli: &mut Option<&mut Augmentations>,
+                      path: &str, item: &Item)
+                      -> Result<()>
+{
+    let s = item.as_str()
+        .ok_or_else(|| Error::bad_item_type(path, item, "string"))?;
+
+    let mut verbose = false;
+    let mut quiet = false;
+    match s {
+        "default" => (),
+        "verbose" => verbose = true,
+        "quiet" => quiet = true,
+        _ => return Err(anyhow::anyhow!("verbosity must be either \
+                                         \"default\", \
+                                         \"verbose\", \
+                                         or \"quiet\"")),
+    };
+
+    if let Some(config) = config {
+        config.verbose = verbose;
+        config.quiet = quiet;
+    }
+
+    if let Some(cli) = cli {
+        if verbose {
+            cli.insert("ui.verbose", "verbose".into());
+        }
+
+        if quiet {
+            cli.insert("ui.quiet", "quiet".into());
+        }
+    }
+
+    Ok(())
+}
 
 /// Schema for the `encrypt` section.
 const ENCRYPT_SCHEMA: Schema = &[

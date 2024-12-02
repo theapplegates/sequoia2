@@ -56,6 +56,9 @@ pub struct Config {
     /// The set of keyservers to use.
     key_servers: Option<Vec<Url>>,
 
+    /// Iterations for network search.
+    network_search_iterations: u8,
+
     /// Whether network search should use WKD.
     network_search_wkd: bool,
 
@@ -77,6 +80,7 @@ impl Default for Config {
             policy_inline: None,
             cipher_suite: None,
             key_servers: None,
+            network_search_iterations: 3,
             network_search_wkd: true,
             network_search_dane: true,
             servers_path: None,
@@ -221,6 +225,11 @@ impl Config {
         }
     }
 
+    /// Returns the iteration count for network search.
+    pub fn network_search_iterations(&self) -> u8 {
+        self.network_search_iterations
+    }
+
     /// Returns whether network search should use WKD.
     pub fn network_search_wkd(&self) -> bool {
         self.network_search_wkd
@@ -264,6 +273,7 @@ impl ConfigFile {
 #keyservers = <DEFAULT-KEY-SERVERS>
 
 [network.search]
+#iterations = 3
 #use-wkd = true
 #use-dane = true
 
@@ -906,6 +916,7 @@ fn apply_network_keyservers(config: &mut Option<&mut Config>,
 
 /// Schema for the `network.search` section.
 const NETWORK_SEARCH_SCHEMA: Schema = &[
+    ("iterations", apply_network_search_iterations),
     ("use-dane", apply_network_search_use_dane),
     ("use-wkd", apply_network_search_use_wkd),
 ];
@@ -923,11 +934,32 @@ fn apply_network_search(config: &mut Option<&mut Config>,
     Ok(())
 }
 
+/// Validates the `network.search.iterations` value.
+fn apply_network_search_iterations(config: &mut Option<&mut Config>,
+                                   _cli: &mut Option<&mut Augmentations>,
+                                   path: &str, item: &Item)
+                                   -> Result<()>
+{
+    let s = item.as_integer()
+        .ok_or_else(|| Error::bad_item_type(path, item, "integer"))?;
+
+    if let Some(config) = config {
+        if s == 0 {
+            return Err(anyhow::anyhow!("value must be at least 1"));
+        }
+
+        config.network_search_iterations = s.try_into()
+            .map_err(|_| anyhow::anyhow!("value must not exceed 255"))?;
+    }
+
+    Ok(())
+}
+
 /// Validates the `network.search.use-dane` value.
 fn apply_network_search_use_dane(config: &mut Option<&mut Config>,
-                                _cli: &mut Option<&mut Augmentations>,
-                                path: &str, item: &Item)
-                                -> Result<()>
+                                 _cli: &mut Option<&mut Augmentations>,
+                                 path: &str, item: &Item)
+                                 -> Result<()>
 {
     let s = item.as_bool()
         .ok_or_else(|| Error::bad_item_type(path, item, "bool"))?;

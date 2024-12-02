@@ -880,9 +880,6 @@ impl Response {
     }
 }
 
-/// How many times to iterate to discover related certificates.
-const SEARCH_MAX_QUERY_ITERATIONS: usize = 3;
-
 pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
                       -> Result<()>
 {
@@ -917,7 +914,7 @@ pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
 
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async {
-      for _ in 0..SEARCH_MAX_QUERY_ITERATIONS {
+      for _ in 0..sq.config.network_search_iterations() {
         let mut requests = JoinSet::new();
         let mut converged = true;
         std::mem::take(&mut queries).into_iter().for_each(|query| {

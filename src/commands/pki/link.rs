@@ -171,6 +171,8 @@ pub fn list(sq: Sq, c: link::ListCommand)
         return Err(anyhow::anyhow!("Failed to resolve certificates"));
     }
 
+    let o = &mut std::io::stdout();
+
     for cert in certs {
         let cert = if let Ok(cert) = cert.to_cert() {
             cert
@@ -203,19 +205,22 @@ pub fn list(sq: Sq, c: link::ListCommand)
             }
 
             if dirty {
-                weprintln!();
+                wwriteln!(stream=o);
             }
             dirty = true;
 
-            weprintln!(initial_indent=" - ┌ ", subsequent_indent="   │ ",
-                       "{}", cert.fingerprint());
-            weprintln!(initial_indent="   └ ",
-                       "{:?}", String::from_utf8_lossy(userid.value()));
+            wwriteln!(stream=o,
+                      initial_indent=" - ┌ ", subsequent_indent="   │ ",
+                      "{}", cert.fingerprint());
+            wwriteln!(stream=o,
+                      initial_indent="   └ ",
+                      "{:?}", String::from_utf8_lossy(userid.value()));
 
             const INDENT: &'static str = "     - ";
 
             if amount == 0 {
-                weprintln!(initial_indent=INDENT, "link was retracted");
+                wwriteln!(stream=o, initial_indent=INDENT,
+                          "link was retracted");
             } else {
                 let mut regex: Vec<_> = certification.regular_expressions()
                     .map(|re| String::from_utf8_lossy(re))
@@ -234,28 +239,28 @@ pub fn list(sq: Sq, c: link::ListCommand)
                 } else {
                     "is linked"
                 };
-                weprintln!(initial_indent=INDENT, "{}", summary);
+                wwriteln!(stream=o, initial_indent=INDENT, "{}", summary);
 
                 if let Some(e) = certification.signature_expiration_time() {
-                    weprintln!(initial_indent=INDENT,
-                               "expiration: {}",
-                               chrono::DateTime::<chrono::Utc>::from(e)
-                               .format("%Y‑%m‑%d"));
+                    wwriteln!(stream=o, initial_indent=INDENT,
+                              "expiration: {}",
+                              chrono::DateTime::<chrono::Utc>::from(e)
+                              .format("%Y‑%m‑%d"));
                 }
 
                 if depth != 0 && depth != 255 {
-                    weprintln!(initial_indent=INDENT,
-                               "trust depth: {}", depth);
+                    wwriteln!(stream=o, initial_indent=INDENT,
+                              "trust depth: {}", depth);
                 }
 
                 if amount != sequoia_wot::FULLY_TRUSTED as u8 {
-                    weprintln!(initial_indent=INDENT,
-                               "trust amount: {}", amount);
+                    wwriteln!(stream=o, initial_indent=INDENT,
+                              "trust amount: {}", amount);
                 }
 
                 if ! regex.is_empty() {
-                    weprintln!(initial_indent=INDENT,
-                               "regular expressions: {}", regex.join("; "));
+                    wwriteln!(stream=o, initial_indent=INDENT,
+                              "regular expressions: {}", regex.join("; "));
                 }
             }
         }

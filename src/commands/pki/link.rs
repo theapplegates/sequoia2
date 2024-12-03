@@ -3,8 +3,12 @@ use std::{
     time::Duration,
 };
 
-use sequoia_openpgp as openpgp;
-use openpgp::Result;
+use anyhow::Result;
+
+use sequoia_openpgp::{
+    KeyHandle,
+    Fingerprint,
+};
 
 use sequoia_cert_store as cert_store;
 use cert_store::{LazyCert, Store};
@@ -17,6 +21,7 @@ use crate::parse_notations;
 use crate::cli::pki::link;
 use crate::cli::types::Expiration;
 use crate::cli::types::TrustAmount;
+use crate::cli::types::cert_designator;
 
 pub fn link(sq: Sq, c: link::Command) -> Result<()> {
     use link::Subcommands::*;
@@ -145,7 +150,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
         false) // Binary.
 }
 
-pub fn list(sq: Sq, c: link::ListCommand)
+pub fn list(sq: Sq, mut c: link::ListCommand)
     -> Result<()>
 {
     let cert_store = sq.cert_store_or_else()?;
@@ -157,6 +162,31 @@ pub fn list(sq: Sq, c: link::ListCommand)
 
     let cert_store = sq.cert_store_or_else()?;
     let mut dirty = false;
+
+    if let Some(pattern) = c.pattern {
+        let mut d = None;
+        if let Ok(kh) = pattern.parse::<KeyHandle>() {
+            if matches!(kh, KeyHandle::Fingerprint(Fingerprint::Invalid(_))) {
+                let hex = pattern.chars()
+                    .map(|c| {
+                        if c == ' ' { 0 } else { 1 }
+                    })
+                    .sum::<usize>();
+
+                if hex >= 16 {
+                    weprintln!("Warning: {} looks like a fingerprint or key ID, \
+                                but its invalid.  Treating it as a text pattern.",
+                               pattern);
+                }
+            } else {
+                d = Some(cert_designator::CertDesignator::Cert(kh));
+            }
+        };
+
+        c.certs.push(d.unwrap_or_else(|| {
+            cert_designator::CertDesignator::Grep(pattern)
+        }));
+    }
 
     let (certs, errors) = if c.certs.is_empty() {
         (cert_store.certs(), Vec::new())

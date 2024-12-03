@@ -599,6 +599,18 @@ pub struct ListCommand {
                                CertPrefix,
                                OptionalValue>,
 
+    /// A pattern to select the bindings to authenticate.
+    ///
+    /// The pattern is treated as a UTF-8 encoded string and a
+    /// case insensitive substring search (using the current
+    /// locale) is performed against each User ID.  If a User ID
+    /// is not valid UTF-8, the binding is ignored.
+    #[clap(
+        conflicts_with_all = &["cert", "cert-userid", "cert-email",
+                               "cert-domain", "cert-grep"],
+    )]
+    pub pattern: Option<String>,
+
     #[clap(
         long = "ca",
         required = false,

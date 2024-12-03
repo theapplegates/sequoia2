@@ -46,7 +46,7 @@ pub fn path(sq: Sq, c: Command)
 
     assert!(path.len() > 0, "guaranteed by clap");
 
-    let o = &mut std::io::stderr();
+    let o = &mut std::io::stdout();
 
     let r = q.lint_path(&path, userid.userid(), required_amount, sq.policy);
 

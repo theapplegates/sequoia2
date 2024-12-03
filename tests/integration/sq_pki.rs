@@ -134,12 +134,7 @@ where
 
             if let Some(output) = output.get(outputformat) {
                 for (expected_occurrences, s) in output {
-                    let haystack =
-                        if outputformat == &OutputFormat::HumanReadable {
-                            &assertion.get_output().stderr
-                        } else {
-                            &assertion.get_output().stdout
-                        };
+                    let haystack = &assertion.get_output().stdout;
                     let occurrences =
                         s.find_iter(haystack.as_ref()).count();
 
@@ -159,12 +154,7 @@ where
 
             if let Some(output) = output.get(outputformat) {
                 for (expected_occurrences, s) in output {
-                    let haystack =
-                        if outputformat == &OutputFormat::HumanReadable {
-                            &assertion.get_output().stderr
-                        } else {
-                            &assertion.get_output().stdout
-                        };
+                    let haystack = &assertion.get_output().stdout;
                     let occurrences =
                         s.find_iter(haystack.as_ref()).count();
 

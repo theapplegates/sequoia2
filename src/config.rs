@@ -168,6 +168,12 @@ impl Config {
         &self.sign_signer_self
     }
 
+    /// Returns the path to the referenced cryptographic policy, if
+    /// any.
+    pub fn policy_path(&self) -> Option<&Path> {
+        self.policy_path.as_deref()
+    }
+
     /// Returns the cryptographic policy.
     ///
     /// We read in the default policy configuration, the configuration
@@ -346,10 +352,7 @@ impl ConfigFile {
                     .map(|c| c.lib().display().to_string())
                     .unwrap_or_else(|_| "<unknown>".into())
             }),
-            &format!("{:?}",
-                     std::env::var(ConfiguredStandardPolicy::ENV_VAR)
-                     .unwrap_or_else(
-                         |_| ConfiguredStandardPolicy::CONFIG_FILE.into())),
+            &format!("{:?}", Self::global_crypto_policy_file()),
             &default_policy_inline.to_string(),
         ]))
     }
@@ -517,6 +520,14 @@ impl ConfigFile {
         Ok(Self {
             doc,
         })
+    }
+
+    /// Returns the path to the global cryptographic policy
+    /// configuration file.
+    pub fn global_crypto_policy_file() -> String {
+        std::env::var(ConfiguredStandardPolicy::ENV_VAR)
+            .unwrap_or_else(
+                |_| ConfiguredStandardPolicy::CONFIG_FILE.into())
     }
 
     /// Returns the document tree.

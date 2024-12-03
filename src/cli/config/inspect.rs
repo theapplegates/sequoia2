@@ -5,6 +5,7 @@ use clap::{
     Subcommand,
 };
 
+pub mod paths;
 pub mod policy;
 
 #[derive(Debug, Parser)]
@@ -30,5 +31,6 @@ pub struct Command {
 #[derive(Debug, Subcommand)]
 #[non_exhaustive]
 pub enum Subcommands {
+    Paths(paths::Command),
     Policy(policy::Command),
 }

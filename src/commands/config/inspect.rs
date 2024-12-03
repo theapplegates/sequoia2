@@ -141,24 +141,26 @@ fn network(sq: Sq, _: inspect::network::Command) -> Result<()> {
 
 /// Implements `sq config inspect paths`.
 fn paths(sq: Sq, _: inspect::paths::Command) -> Result<()> {
+    let o = &mut std::io::stdout();
+
     // Whether we have emitted anything.
     let mut dirty = false;
 
     // Formats a path.
     let mut p = |path: &Path, name: &str, description: &str| -> Result<()> {
         if dirty {
-            weprintln!();
+            wwriteln!(o);
         }
         dirty = true;
 
-        weprintln!(initial_indent = " - ", "{}", name);
-        weprintln!(initial_indent = "   - ", "{}", path.display());
+        wwriteln!(stream=o, initial_indent = " - ", "{}", name);
+        wwriteln!(stream=o, initial_indent = "   - ", "{}", path.display());
 
         if ! path.exists() {
-            weprintln!(initial_indent = "   - ", "does not exist");
+            wwriteln!(stream=o, initial_indent = "   - ", "does not exist");
         }
 
-        weprintln!(initial_indent = "   - ", "{}", description);
+        wwriteln!(stream=o, initial_indent = "   - ", "{}", description);
 
         Ok(())
     };

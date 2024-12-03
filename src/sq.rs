@@ -2141,14 +2141,23 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 },
 
                 cert_designator::CertDesignator::Self_ => {
-                    if self.config.encrypt_for_self().is_empty() {
+                    let (certs, config) = match Prefix::name() {
+                        "for" => (self.config.encrypt_for_self(),
+                                  cli::encrypt::ENCRYPT_FOR_SELF),
+                        "signer" => (self.config.sign_signer_self(),
+                                     cli::sign::SIGNER_SELF),
+                        _ => return Err(anyhow::anyhow!(
+                            "self designator used with unexpected prefix")),
+                    };
+
+                    if certs.is_empty() {
                         return Err(anyhow::anyhow!(
                             "`--for-self` is given but the list of \
                              certificates in `{}` is empty",
-                            cli::encrypt::ENCRYPT_FOR_SELF));
+                            config));
                     }
 
-                    for fp in self.config.encrypt_for_self() {
+                    for fp in certs {
                         let cert = self.resolve_cert(
                             &openpgp::KeyHandle::from(fp.clone()).into(), 0)?.0;
                         ret(designator,

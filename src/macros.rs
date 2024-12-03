@@ -135,7 +135,7 @@ macro_rules! weprintln {
 
 /// Like weprintln, but doesn't emit anything in quiet mode.
 macro_rules! make_qprintln {
-    ($quiet: expr) => {
+    ($stream: expr, $quiet: expr) => {
         macro_rules! qprintln {
             // XXX: Lot's of repetition due to the fact that nested
             // macros still cannot have repetitions:
@@ -144,169 +144,172 @@ macro_rules! make_qprintln {
             // First, with `indent`.
             { indent=$i: expr } => {
                 if ! $quiet {
-                    weprintln!(indent=$i);
+                    wwriteln!(stream=$stream, indent=$i);
                 }
             };
             { indent=$i: expr, $a0: expr } => {
                 if ! $quiet {
-                    weprintln!(indent=$i, $a0);
+                    wwriteln!(stream=$stream, indent=$i, $a0);
                 }
             };
             { indent=$i: expr, $a0: expr, $a1: expr } => {
                 if ! $quiet {
-                    weprintln!(indent=$i, $a0, $a1);
+                    wwriteln!(stream=$stream, indent=$i, $a0, $a1);
                 }
             };
             { indent=$i: expr, $a0: expr, $a1: expr, $a2: expr } => {
                 if ! $quiet {
-                    weprintln!(indent=$i, $a0, $a1, $a2);
+                    wwriteln!(stream=$stream, indent=$i, $a0, $a1, $a2);
                 }
             };
             { indent=$i: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr } => {
                 if ! $quiet {
-                    weprintln!(indent=$i, $a0, $a1, $a2, $a3);
+                    wwriteln!(stream=$stream, indent=$i, $a0, $a1, $a2, $a3);
                 }
             };
             { indent=$i: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr } => {
                 if ! $quiet {
-                    weprintln!(indent=$i, $a0, $a1, $a2, $a3, $a4);
+                    wwriteln!(stream=$stream, indent=$i, $a0, $a1, $a2, $a3, $a4);
                 }
             };
             { indent=$i: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr, $a5: expr } => {
                 if ! $quiet {
-                    weprintln!(indent=$i, $a0, $a1, $a2, $a3, $a4, $a5);
+                    wwriteln!(stream=$stream, indent=$i, $a0, $a1, $a2, $a3, $a4, $a5);
                 }
             };
             { indent=$i: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr, $a5: expr, $a6: expr } => {
                 if ! $quiet {
-                    weprintln!(indent=$i, $a0, $a1, $a2, $a3, $a4, $a5, $a6);
+                    wwriteln!(stream=$stream, indent=$i, $a0, $a1, $a2, $a3, $a4, $a5, $a6);
                 }
             };
             // Again, with `initial_indent` and `subsequent_indent`.
             { initial_indent=$ii: expr, subsequent_indent=$si: expr } => {
                 if ! $quiet {
-                    weprintln!(initial_indent=$ii, subsequent_indent=$si);
+                    wwriteln!(stream=$stream, initial_indent=$ii, subsequent_indent=$si);
                 }
             };
             { initial_indent=$ii: expr, subsequent_indent=$si: expr, $a0: expr } => {
                 if ! $quiet {
-                    weprintln!(initial_indent=$ii, subsequent_indent=$si, $a0);
+                    wwriteln!(stream=$stream, initial_indent=$ii, subsequent_indent=$si, $a0);
                 }
             };
             { initial_indent=$ii: expr, subsequent_indent=$si: expr, $a0: expr, $a1: expr } => {
                 if ! $quiet {
-                    weprintln!(initial_indent=$ii, subsequent_indent=$si, $a0, $a1);
+                    wwriteln!(stream=$stream, initial_indent=$ii, subsequent_indent=$si, $a0, $a1);
                 }
             };
             { initial_indent=$ii: expr, subsequent_indent=$si: expr, $a0: expr, $a1: expr, $a2: expr } => {
                 if ! $quiet {
-                    weprintln!(initial_indent=$ii, subsequent_indent=$si, $a0, $a1, $a2);
+                    wwriteln!(stream=$stream, initial_indent=$ii, subsequent_indent=$si, $a0, $a1, $a2);
                 }
             };
             { initial_indent=$ii: expr, subsequent_indent=$si: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr } => {
                 if ! $quiet {
-                    weprintln!(initial_indent=$ii, subsequent_indent=$si, $a0, $a1, $a2, $a3);
+                    wwriteln!(stream=$stream, initial_indent=$ii, subsequent_indent=$si, $a0, $a1, $a2, $a3);
                 }
             };
             { initial_indent=$ii: expr, subsequent_indent=$si: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr } => {
                 if ! $quiet {
-                    weprintln!(initial_indent=$ii, subsequent_indent=$si, $a0, $a1, $a2, $a3, $a4);
+                    wwriteln!(stream=$stream, initial_indent=$ii, subsequent_indent=$si, $a0, $a1, $a2, $a3, $a4);
                 }
             };
             { initial_indent=$ii: expr, subsequent_indent=$si: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr, $a5: expr } => {
                 if ! $quiet {
-                    weprintln!(initial_indent=$ii, subsequent_indent=$si, $a0, $a1, $a2, $a3, $a4, $a5);
+                    wwriteln!(stream=$stream, initial_indent=$ii, subsequent_indent=$si, $a0, $a1, $a2, $a3, $a4, $a5);
                 }
             };
             { initial_indent=$ii: expr, subsequent_indent=$si: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr, $a5: expr, $a6: expr } => {
                 if ! $quiet {
-                    weprintln!(initial_indent=$ii, subsequent_indent=$si, $a0, $a1, $a2, $a3, $a4, $a5, $a6);
+                    wwriteln!(stream=$stream, initial_indent=$ii, subsequent_indent=$si, $a0, $a1, $a2, $a3, $a4, $a5, $a6);
                 }
             };
 
             // Again, with `initial_indent`.
             { initial_indent=$ii: expr } => {
                 if ! $quiet {
-                    weprintln!(initial_indent=$ii);
+                    wwriteln!(stream=$stream, initial_indent=$ii);
                 }
             };
             { initial_indent=$ii: expr, $a0: expr } => {
                 if ! $quiet {
-                    weprintln!(initial_indent=$ii, $a0);
+                    wwriteln!(stream=$stream, initial_indent=$ii, $a0);
                 }
             };
             { initial_indent=$ii: expr, $a0: expr, $a1: expr } => {
                 if ! $quiet {
-                    weprintln!(initial_indent=$ii, $a0, $a1);
+                    wwriteln!(stream=$stream, initial_indent=$ii, $a0, $a1);
                 }
             };
             { initial_indent=$ii: expr, $a0: expr, $a1: expr, $a2: expr } => {
                 if ! $quiet {
-                    weprintln!(initial_indent=$ii, $a0, $a1, $a2);
+                    wwriteln!(stream=$stream, initial_indent=$ii, $a0, $a1, $a2);
                 }
             };
             { initial_indent=$ii: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr } => {
                 if ! $quiet {
-                    weprintln!(initial_indent=$ii, $a0, $a1, $a2, $a3);
+                    wwriteln!(stream=$stream, initial_indent=$ii, $a0, $a1, $a2, $a3);
                 }
             };
             { initial_indent=$ii: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr } => {
                 if ! $quiet {
-                    weprintln!(initial_indent=$ii, $a0, $a1, $a2, $a3, $a4);
+                    wwriteln!(stream=$stream, initial_indent=$ii, $a0, $a1, $a2, $a3, $a4);
                 }
             };
             { initial_indent=$ii: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr, $a5: expr } => {
                 if ! $quiet {
-                    weprintln!(initial_indent=$ii, $a0, $a1, $a2, $a3, $a4, $a5);
+                    wwriteln!(stream=$stream, initial_indent=$ii, $a0, $a1, $a2, $a3, $a4, $a5);
                 }
             };
             { initial_indent=$ii: expr, $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr, $a5: expr, $a6: expr } => {
                 if ! $quiet {
-                    weprintln!(initial_indent=$ii, $a0, $a1, $a2, $a3, $a4, $a5, $a6);
+                    wwriteln!(stream=$stream, initial_indent=$ii, $a0, $a1, $a2, $a3, $a4, $a5, $a6);
                 }
             };
 
             // Again, without any indent.
             {} => {
                 if ! $quiet {
-                    weprintln!();
+                    wwriteln!(stream=$stream);
                 }
             };
             { $a0: expr } => {
                 if ! $quiet {
-                    weprintln!($a0);
+                    wwriteln!(stream=$stream, $a0);
                 }
             };
             { $a0: expr, $a1: expr } => {
                 if ! $quiet {
-                    weprintln!($a0, $a1);
+                    wwriteln!(stream=$stream, $a0, $a1);
                 }
             };
             { $a0: expr, $a1: expr, $a2: expr } => {
                 if ! $quiet {
-                    weprintln!($a0, $a1, $a2);
+                    wwriteln!(stream=$stream, $a0, $a1, $a2);
                 }
             };
             { $a0: expr, $a1: expr, $a2: expr, $a3: expr } => {
                 if ! $quiet {
-                    weprintln!($a0, $a1, $a2, $a3);
+                    wwriteln!(stream=$stream, $a0, $a1, $a2, $a3);
                 }
             };
             { $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr } => {
                 if ! $quiet {
-                    weprintln!($a0, $a1, $a2, $a3, $a4);
+                    wwriteln!(stream=$stream, $a0, $a1, $a2, $a3, $a4);
                 }
             };
             { $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr, $a5: expr } => {
                 if ! $quiet {
-                    weprintln!($a0, $a1, $a2, $a3, $a4, $a5);
+                    wwriteln!(stream=$stream, $a0, $a1, $a2, $a3, $a4, $a5);
                 }
             };
             { $a0: expr, $a1: expr, $a2: expr, $a3: expr, $a4: expr, $a5: expr, $a6: expr } => {
                 if ! $quiet {
-                    weprintln!($a0, $a1, $a2, $a3, $a4, $a5, $a6);
+                    wwriteln!(stream=$stream, $a0, $a1, $a2, $a3, $a4, $a5, $a6);
                 }
             };
         }
     };
+    ($quiet: expr) => {
+        make_qprintln!(&mut std::io::stderr(), $quiet)
+    }
 }

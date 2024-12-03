@@ -34,6 +34,10 @@ fingerprint.  Otherwise, it is treated as if it were passed via \
 
 const EXAMPLES: Actions = Actions {
     actions: &[
+        Action::setup()
+            .command(&["sq", "key", "import", "alice-secret.pgp"])
+            .build(),
+
         Action::Setup(Setup {
             command: &[
                 "sq", "pki", "link", "add",

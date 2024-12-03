@@ -28,6 +28,8 @@ if it were passed to `--cert`, and matches on the certificate's \
 fingerprint.  Otherwise, it is treated as if it were passed via \
 `--cert-grep`, and matches on user IDs.
 ",
+        conflicts_with_all = &["cert", "cert-userid", "cert-email",
+                               "cert-domain", "cert-grep"],
     )]
     pub pattern: Option<String>,
 }

@@ -271,15 +271,15 @@ pub fn authenticate<'store, 'rstore>(
 
                     // Check if the certificate has expired.
                     if let Err(err) = vc.alive() {
-                        wprintln!("Warning: {} is not live: {}.",
-                                  cert.fingerprint(), err);
+                        weprintln!("Warning: {} is not live: {}.",
+                                   cert.fingerprint(), err);
                     }
                 }
                 Err(err) => {
-                    wprintln!("Warning: {} is not valid according to \
-                               the current policy: {}.",
-                              cert.fingerprint(),
-                              crate::one_line_error_chain(err));
+                    weprintln!("Warning: {} is not valid according to \
+                                the current policy: {}.",
+                               cert.fingerprint(),
+                               crate::one_line_error_chain(err));
                 }
             };
 
@@ -290,27 +290,27 @@ pub fn authenticate<'store, 'rstore>(
                 if let Some((reason, message))
                     = sigs[0].reason_for_revocation()
                 {
-                    wprintln!("Warning: {} is revoked: {}{}",
-                              cert.fingerprint(),
-                              reason,
-                              if message.is_empty() {
-                                  "".to_string()
-                              } else {
-                                  format!(": {:?}",
-                                          String::from_utf8_lossy(message))
-                              });
+                    weprintln!("Warning: {} is revoked: {}{}",
+                               cert.fingerprint(),
+                               reason,
+                               if message.is_empty() {
+                                   "".to_string()
+                               } else {
+                                   format!(": {:?}",
+                                           String::from_utf8_lossy(message))
+                               });
                 } else {
-                    wprintln!("Warning: {} is revoked: unspecified reason",
-                              cert.fingerprint());
+                    weprintln!("Warning: {} is revoked: unspecified reason",
+                               cert.fingerprint());
                 }
             }
 
             // See if there is a matching self-signed User ID.
             if let Some(userid) = userid {
                 if ! have_self_signed_userid(cert, &UserID::from(userid), email) {
-                    wprintln!("Warning: {} is not a \
-                               self-signed User ID for {}.",
-                              userid, cert.fingerprint());
+                    weprintln!("Warning: {} is not a \
+                                self-signed User ID for {}.",
+                               userid, cert.fingerprint());
                 }
             }
 
@@ -324,8 +324,8 @@ pub fn authenticate<'store, 'rstore>(
                         })
                 })
                 {
-                    wprintln!("Warning: {} has no valid certifications.",
-                              cert.fingerprint());
+                    weprintln!("Warning: {} has no valid certifications.",
+                               cert.fingerprint());
                 }
             }
         }
@@ -338,10 +338,10 @@ pub fn authenticate<'store, 'rstore>(
                 let userid_check = UserID::from(format!("<{}>", email));
                 if let Ok(Some(email_check)) = userid_check.email2() {
                     if userid == email_check {
-                        wprintln!("WARNING: {} appears to be a bare \
-                                   email address.  Perhaps you forgot \
-                                   to specify --email.",
-                                  email);
+                        weprintln!("WARNING: {} appears to be a bare \
+                                    email address.  Perhaps you forgot \
+                                    to specify --email.",
+                                   email);
                     }
                 }
             }
@@ -352,15 +352,15 @@ pub fn authenticate<'store, 'rstore>(
             if n.roots().iter().all(|r| {
                 let fpr = r.fingerprint();
                 if let Err(err) = n.lookup_synopsis_by_fpr(&fpr) {
-                    wprintln!("Looking up trust root ({}): {}.",
-                             fpr, err);
+                    weprintln!("Looking up trust root ({}): {}.",
+                               fpr, err);
                     true
                 } else {
                     false
                 }
             })
             {
-                wprintln!("No trust roots found.");
+                weprintln!("No trust roots found.");
             }
         }
     }
@@ -377,17 +377,17 @@ pub fn authenticate<'store, 'rstore>(
         // We are in gossip mode.  Mention `sq pki link` as a way to
         // mark bindings as authenticated.
         if ! bindings.is_empty() {
-            wprintln!("After checking that a user ID really belongs to \
-                       a certificate, use `sq pki link add` to mark \
-                       the binding as authenticated, or use \
-                       `sq network fetch FINGERPRINT|EMAIL` to look for \
-                       new certifications.");
+            weprintln!("After checking that a user ID really belongs to \
+                        a certificate, use `sq pki link add` to mark \
+                        the binding as authenticated, or use \
+                        `sq network fetch FINGERPRINT|EMAIL` to look for \
+                        new certifications.");
         }
     } else if bindings.is_empty() {
         // There are no matching bindings.  Tell the user about `sq
         // network fetch`.
         if let Some(pattern) = pattern() {
-            wprintln!("No bindings match.");
+            weprintln!("No bindings match.");
 
             sq.hint(format_args!(
                 "Try searching public directories:"))
@@ -395,8 +395,8 @@ pub fn authenticate<'store, 'rstore>(
                 .arg(pattern)
                 .done();
         } else {
-            wprintln!("The certificate store does not contain any \
-                       certificates.");
+            weprintln!("The certificate store does not contain any \
+                        certificates.");
 
             sq.hint(format_args!(
                 "Consider creating a key for yourself:"))
@@ -426,18 +426,18 @@ pub fn authenticate<'store, 'rstore>(
         let bindings_not_shown = bindings - bindings_shown;
 
         if bindings == 1 {
-            wprintln!("1 binding found.");
+            weprintln!("1 binding found.");
         } else {
-            wprintln!("{} bindings found.", bindings);
+            weprintln!("{} bindings found.", bindings);
         }
 
         if bindings_not_shown == 1 {
-            wprintln!("Skipped 1 binding, which could not be authenticated.");
-            wprintln!("Pass `--gossip` to see the unauthenticated binding.");
+            weprintln!("Skipped 1 binding, which could not be authenticated.");
+            weprintln!("Pass `--gossip` to see the unauthenticated binding.");
         } else {
-            wprintln!("Skipped {} bindings, which could not be authenticated.",
+            weprintln!("Skipped {} bindings, which could not be authenticated.",
                       bindings_not_shown);
-            wprintln!("Pass `--gossip` to see the unauthenticated bindings.");
+            weprintln!("Pass `--gossip` to see the unauthenticated bindings.");
         }
     }
 

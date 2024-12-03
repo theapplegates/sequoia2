@@ -43,8 +43,8 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
             continue;
         }
 
-        wprintln!(initial_indent = " - ", "{}",
-                  String::from_utf8_lossy(uid.value()));
+        weprintln!(initial_indent = " - ", "{}",
+                   String::from_utf8_lossy(uid.value()));
 
         let approved =
             uid.attested_certifications().collect::<BTreeSet<_>>();
@@ -108,45 +108,45 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
                 }
             }
 
-            wprintln!(initial_indent = "   - ", "{}{}: {}",
-                      issuer.as_ref()
-                      .map(|c| format!("{} ", c.fingerprint()))
-                      .unwrap_or_else(|| "".into()),
-                      issuer.as_ref()
-                      .and_then(|i| Some(sq.best_userid(i.to_cert().ok()?, true)
-                                         .to_string()))
-                      .or(c.get_issuers().into_iter().next()
-                          .map(|h| h.to_string()))
-                      .unwrap_or_else(|| "no issuer information".into()),
-                      if issuer.is_none() {
-                          if let Some(e) = err {
-                              e.to_string()
-                          } else {
-                              "issuer cert not found".into()
-                          }
-                      } else if approved {
-                          "approved".into()
-                      } else {
-                          "unapproved".into()
-                      });
+            weprintln!(initial_indent = "   - ", "{}{}: {}",
+                       issuer.as_ref()
+                       .map(|c| format!("{} ", c.fingerprint()))
+                       .unwrap_or_else(|| "".into()),
+                       issuer.as_ref()
+                       .and_then(|i| Some(sq.best_userid(i.to_cert().ok()?, true)
+                                          .to_string()))
+                       .or(c.get_issuers().into_iter().next()
+                           .map(|h| h.to_string()))
+                       .unwrap_or_else(|| "no issuer information".into()),
+                       if issuer.is_none() {
+                           if let Some(e) = err {
+                               e.to_string()
+                           } else {
+                               "issuer cert not found".into()
+                           }
+                       } else if approved {
+                           "approved".into()
+                       } else {
+                           "unapproved".into()
+                       });
             any = true;
         }
 
         if ! any {
-            wprintln!(initial_indent = "   - ", "no {} certifications",
-                      if cmd.pending {
-                          "unapproved"
-                      } else {
-                          "approved"
-                      });
+            weprintln!(initial_indent = "   - ", "no {} certifications",
+                       if cmd.pending {
+                           "unapproved"
+                       } else {
+                           "approved"
+                       });
         }
     }
     assert!(designated_userids.is_empty());
 
     if ! cmd.pending && pending > 0 {
-        wprintln!("{} certifications are pending approval.  Using `--pending` \
-                   to see them.",
-                  pending);
+        weprintln!("{} certifications are pending approval.  Using `--pending` \
+                    to see them.",
+                   pending);
     }
 
     Ok(())
@@ -192,8 +192,8 @@ fn update(
             continue;
         }
 
-        wprintln!(initial_indent = " - ", "{}",
-                  String::from_utf8_lossy(uid.value()));
+        weprintln!(initial_indent = " - ", "{}",
+                   String::from_utf8_lossy(uid.value()));
 
         let previously_approved =
             uid.attested_certifications().collect::<BTreeSet<_>>();
@@ -362,40 +362,40 @@ fn update(
                 removed += 1;
             }
 
-            wprintln!(initial_indent = "  ", "{} {}{}: {}",
-                      match (prev, next) {
-                          (false, false) => '.',
-                          (true, false) => '-',
-                          (false, true) => '+',
-                          (true, true) => '=',
-                      },
-                      issuer.as_ref()
-                      .map(|c| format!("{} ", c.fingerprint()))
-                      .unwrap_or_else(|| "".into()),
-                      issuer.as_ref()
-                      .and_then(|i| Some(sq.best_userid(i.to_cert().ok()?, true)
-                                         .to_string()))
-                      .or(c.get_issuers().into_iter().next()
-                          .map(|h| h.to_string()))
-                      .unwrap_or_else(|| "no issuer information".into()),
-                      if issuer.is_none() {
-                          if let Some(e) = err {
-                              e.to_string()
-                          } else {
-                              "issuer cert not found".into()
-                          }
-                      } else if next {
-                          "approved".into()
-                      } else if prev {
-                          "previously approved".into()
-                      } else {
-                          "unapproved".into()
-                      });
+            weprintln!(initial_indent = "  ", "{} {}{}: {}",
+                       match (prev, next) {
+                           (false, false) => '.',
+                           (true, false) => '-',
+                           (false, true) => '+',
+                           (true, true) => '=',
+                       },
+                       issuer.as_ref()
+                       .map(|c| format!("{} ", c.fingerprint()))
+                       .unwrap_or_else(|| "".into()),
+                       issuer.as_ref()
+                       .and_then(|i| Some(sq.best_userid(i.to_cert().ok()?, true)
+                                          .to_string()))
+                       .or(c.get_issuers().into_iter().next()
+                           .map(|h| h.to_string()))
+                       .unwrap_or_else(|| "no issuer information".into()),
+                       if issuer.is_none() {
+                           if let Some(e) = err {
+                               e.to_string()
+                           } else {
+                               "issuer cert not found".into()
+                           }
+                       } else if next {
+                           "approved".into()
+                       } else if prev {
+                           "previously approved".into()
+                       } else {
+                           "unapproved".into()
+                       });
             any = true;
         }
 
         if ! any {
-            wprintln!("    no certifications");
+            weprintln!("    no certifications");
         }
 
         approval_signatures.append(&mut uid.attest_certifications2(
@@ -409,19 +409,19 @@ fn update(
 
     match (added, removed) {
         (1, 1) => {
-            wprintln!("1 new approval, 1 approval retracted");
+            weprintln!("1 new approval, 1 approval retracted");
         }
         (added, 1) => {
-            wprintln!("{} new approvals, 1 approval retracted",
-                      added);
+            weprintln!("{} new approvals, 1 approval retracted",
+                       added);
         }
         (1, removed) => {
-            wprintln!("1 new approval, {} approvals retracted",
-                      removed);
+            weprintln!("1 new approval, {} approvals retracted",
+                       removed);
         }
         (added, removed) => {
-            wprintln!("{} new approvals, {} approvals retracted",
-                      added, removed);
+            weprintln!("{} new approvals, {} approvals retracted",
+                       added, removed);
         }
     }
 
@@ -454,7 +454,7 @@ fn update(
     } else {
         let fipr = key.fingerprint();
         if let Err(err) = sq.import_cert(key) {
-            wprintln!("Error importing updated cert: {}", err);
+            weprintln!("Error importing updated cert: {}", err);
             return Err(err);
         } else {
             sq.hint(format_args!(

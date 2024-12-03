@@ -35,21 +35,21 @@ fn network(sq: Sq, _: inspect::network::Command) -> Result<()> {
     }
 
     // First, sq network search, the most general interface.
-    wprintln!(initial_indent = " - ", "sq network search");
-    wprintln!(initial_indent = "   - ", "{}",
-              may_use("WKD", sq.config.network_search_wkd()));
-    wprintln!(initial_indent = "     - ",
-              "relevant setting: network.search.use-wkd");
+    weprintln!(initial_indent = " - ", "sq network search");
+    weprintln!(initial_indent = "   - ", "{}",
+               may_use("WKD", sq.config.network_search_wkd()));
+    weprintln!(initial_indent = "     - ",
+               "relevant setting: network.search.use-wkd");
     if sq.config.network_search_wkd() {
-        wprintln!(initial_indent = "     - ", "see below for impact");
+        weprintln!(initial_indent = "     - ", "see below for impact");
     }
 
-    wprintln!(initial_indent = "   - ", "{}",
-              may_use("DANE", sq.config.network_search_dane()));
-    wprintln!(initial_indent = "     - ",
-              "relevant setting: network.search.use-dane");
+    weprintln!(initial_indent = "   - ", "{}",
+               may_use("DANE", sq.config.network_search_dane()));
+    weprintln!(initial_indent = "     - ",
+               "relevant setting: network.search.use-dane");
     if sq.config.network_search_dane() {
-        wprintln!(initial_indent = "     - ", "see below for impact");
+        weprintln!(initial_indent = "     - ", "see below for impact");
     }
 
     let key_servers = sq.config.key_servers(
@@ -58,84 +58,84 @@ fn network(sq: Sq, _: inspect::network::Command) -> Result<()> {
         .collect::<Vec<_>>();
 
     if key_servers.is_empty() {
-        wprintln!(initial_indent = "   - ",
-                  "will use no key servers by default");
+        weprintln!(initial_indent = "   - ",
+                   "will use no key servers by default");
     } else {
-        wprintln!(initial_indent = "   - ",
-                  "will use the following key servers");
+        weprintln!(initial_indent = "   - ",
+                   "will use the following key servers");
         for s in &key_servers {
-            wprintln!(initial_indent = "     - ", "{}", s);
+            weprintln!(initial_indent = "     - ", "{}", s);
         }
     }
-    wprintln!(initial_indent = "       - ",
-              "relevant setting: network.keyservers");
+    weprintln!(initial_indent = "       - ",
+               "relevant setting: network.keyservers");
     if ! key_servers.is_empty() {
-        wprintln!(initial_indent = "       - ", "see below for impact");
+        weprintln!(initial_indent = "       - ", "see below for impact");
     }
 
     if sq.config.network_search_iterations() > 1 {
-        wprintln!(initial_indent = "   - ",
-                  "will iteratively search up to {} steps from \
-                   your original query to discover related \
-                   certificates",
-                  sq.config.network_search_iterations().saturating_sub(1));
-        wprintln!(initial_indent = "     - ",
-                  "this will query certificates that you did not \
-                   request, hopefully finding relevant related \
-                   certificates, but increases the metadata \
-                   leakage and may query \"suspicious\" \
-                   certificates");
+        weprintln!(initial_indent = "   - ",
+                   "will iteratively search up to {} steps from \
+                    your original query to discover related \
+                    certificates",
+                   sq.config.network_search_iterations().saturating_sub(1));
+        weprintln!(initial_indent = "     - ",
+                   "this will query certificates that you did not \
+                    request, hopefully finding relevant related \
+                    certificates, but increases the metadata \
+                    leakage and may query \"suspicious\" \
+                    certificates");
     }
 
     // Then, sq network keyserver search.
-    wprintln!();
-    wprintln!(initial_indent = " - ", "sq network keyserver search");
+    weprintln!();
+    weprintln!(initial_indent = " - ", "sq network keyserver search");
     if key_servers.is_empty() {
-        wprintln!(initial_indent = "   - ",
-                  "will use no key servers by default");
+        weprintln!(initial_indent = "   - ",
+                   "will use no key servers by default");
     } else {
-        wprintln!(initial_indent = "   - ",
-                  "will use the following key servers");
+        weprintln!(initial_indent = "   - ",
+                   "will use the following key servers");
         for s in &key_servers {
-            wprintln!(initial_indent = "     - ", "{}", s);
+            weprintln!(initial_indent = "     - ", "{}", s);
         }
     }
-    wprintln!(initial_indent = "   - ",
-              "relevant setting: network.keyservers");
-    wprintln!(initial_indent = "   - ", "impact:");
-    wprintln!(initial_indent = "     - ",
-              "key servers and their operators can see all requests, \
-               and learn about your contacts, and track you");
-    wprintln!(initial_indent = "     - ",
-              "although the traffic is encrypted, network observers \
-               can use traffic analysis and observe the size of requests \
-               and responses, and infer information about you and \
-               your contacts, and track you");
+    weprintln!(initial_indent = "   - ",
+               "relevant setting: network.keyservers");
+    weprintln!(initial_indent = "   - ", "impact:");
+    weprintln!(initial_indent = "     - ",
+               "key servers and their operators can see all requests, \
+                and learn about your contacts, and track you");
+    weprintln!(initial_indent = "     - ",
+               "although the traffic is encrypted, network observers \
+                can use traffic analysis and observe the size of requests \
+                and responses, and infer information about you and \
+                your contacts, and track you");
 
     // Then, sq network wkd search.
-    wprintln!();
-    wprintln!(initial_indent = " - ", "sq network wkd search");
-    wprintln!(initial_indent = "   - ", "impact:");
-    wprintln!(initial_indent = "     - ",
-              "WKD servers and their operators can see all requests, \
-               and learn about your contacts, and track you");
-    wprintln!(initial_indent = "     - ",
-              "although the traffic is encrypted, network observers \
-               can use traffic analysis, and observe the size of requests \
-               and responses, and infer information about you and \
-               your contacts, and possibly track you");
+    weprintln!();
+    weprintln!(initial_indent = " - ", "sq network wkd search");
+    weprintln!(initial_indent = "   - ", "impact:");
+    weprintln!(initial_indent = "     - ",
+               "WKD servers and their operators can see all requests, \
+                and learn about your contacts, and track you");
+    weprintln!(initial_indent = "     - ",
+               "although the traffic is encrypted, network observers \
+                can use traffic analysis, and observe the size of requests \
+                and responses, and infer information about you and \
+                your contacts, and possibly track you");
 
     // Then, sq network dane search.
-    wprintln!();
-    wprintln!(initial_indent = " - ", "sq network dane search");
-    wprintln!(initial_indent = "   - ", "impact:");
-    wprintln!(initial_indent = "     - ",
-              "DNS servers and their operators can see all requests, \
-               and learn about your contacts, and track you");
-    wprintln!(initial_indent = "     - ",
-              "the traffic is not encrypted, network observers \
-               can see all requests, and learn about your contacts, \
-               and track you");
+    weprintln!();
+    weprintln!(initial_indent = " - ", "sq network dane search");
+    weprintln!(initial_indent = "   - ", "impact:");
+    weprintln!(initial_indent = "     - ",
+               "DNS servers and their operators can see all requests, \
+                and learn about your contacts, and track you");
+    weprintln!(initial_indent = "     - ",
+               "the traffic is not encrypted, network observers \
+                can see all requests, and learn about your contacts, \
+                and track you");
     Ok(())
 }
 
@@ -147,18 +147,18 @@ fn paths(sq: Sq, _: inspect::paths::Command) -> Result<()> {
     // Formats a path.
     let mut p = |path: &Path, name: &str, description: &str| -> Result<()> {
         if dirty {
-            wprintln!();
+            weprintln!();
         }
         dirty = true;
 
-        wprintln!(initial_indent = " - ", "{}", name);
-        wprintln!(initial_indent = "   - ", "{}", path.display());
+        weprintln!(initial_indent = " - ", "{}", name);
+        weprintln!(initial_indent = "   - ", "{}", path.display());
 
         if ! path.exists() {
-            wprintln!(initial_indent = "   - ", "does not exist");
+            weprintln!(initial_indent = "   - ", "does not exist");
         }
 
-        wprintln!(initial_indent = "   - ", "{}", description);
+        weprintln!(initial_indent = "   - ", "{}", description);
 
         Ok(())
     };

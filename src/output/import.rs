@@ -70,11 +70,11 @@ impl ImportStats {
             self.keys.print_summary()?;
         }
 
-        wprintln!("Imported {}, updated {}, {} unchanged, {}.",
-                  self.certs.new_certs().of("new certificate"),
-                  self.certs.updated_certs().of("certificate"),
-                  self.certs.unchanged_certs().of("certificate"),
-                  self.certs.errors().of("error"));
+        weprintln!("Imported {}, updated {}, {} unchanged, {}.",
+                   self.certs.new_certs().of("new certificate"),
+                   self.certs.updated_certs().of("certificate"),
+                   self.certs.unchanged_certs().of("certificate"),
+                   self.certs.errors().of("error"));
         Ok(())
     }
 }
@@ -115,11 +115,11 @@ impl KeyStats {
 
     /// Print key and certificate import summary.
     pub fn print_summary(&self) -> Result<()> {
-        wprintln!("Imported {}, updated {}, {} unchanged, {}.",
-                  self.new.of("new key"),
-                  self.updated.of("key"),
-                  self.unchanged.of("key"),
-                  self.errors.of("error"));
+        weprintln!("Imported {}, updated {}, {} unchanged, {}.",
+                   self.new.of("new key"),
+                   self.updated.of("key"),
+                   self.unchanged.of("key"),
+                   self.errors.of("error"));
         Ok(())
     }
 }

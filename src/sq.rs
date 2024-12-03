@@ -578,14 +578,14 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     }
 
                     if checked_id {
-                        wprintln!("Error: {} does not have a key with \
-                                   the required capabilities ({:?})",
-                                  cert.keyid(), keyflags);
+                        weprintln!("Error: {} does not have a key with \
+                                    the required capabilities ({:?})",
+                                   cert.keyid(), keyflags);
                     } else {
-                        wprintln!("Error: The subkey {} (cert: {}) \
-                                   does not the required capabilities \
-                                   ({:?})",
-                                  kh, cert.keyid(), keyflags);
+                        weprintln!("Error: The subkey {} (cert: {}) \
+                                    does not the required capabilities \
+                                    ({:?})",
+                                   kh, cert.keyid(), keyflags);
                     }
                     return false;
                 })
@@ -683,7 +683,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         for userid in userid.iter() {
             let matches: Vec<(Fingerprint, UserID)> = if email {
                 if let Err(err) = UserIDQueryParams::is_email(userid) {
-                    wprintln!("{:?} is not a valid email address", userid);
+                    weprintln!("{:?} is not a valid email address", userid);
                     if error.is_none() {
                         error = Some(err);
                     }
@@ -834,16 +834,16 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     }
                 };
 
-                wprintln!("{:?}:\n", err);
+                weprintln!("{:?}:\n", err);
                 if error.is_none() {
                     error = Some(err);
                 }
 
                 // Print the errors.
                 for (i, Entry { fpr, userid, cert }) in bad.into_iter().enumerate() {
-                    wprintln!("{}. When considering {} ({}):",
-                              i + 1, fpr,
-                              String::from_utf8_lossy(userid.value()));
+                    weprintln!("{}. When considering {} ({}):",
+                               i + 1, fpr,
+                               String::from_utf8_lossy(userid.value()));
                     let err = match cert {
                         Ok(_) => unreachable!(),
                         Err(err) => err,
@@ -888,8 +888,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                         // Not found.
                         Ok(None) => None,
                         Err(err) => {
-                            wprintln!("Error looking up local trust root: {}",
-                                      err);
+                            weprintln!("Error looking up local trust root: {}",
+                                       err);
                             None
                         }
                     }
@@ -900,21 +900,21 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                             match parser.next() {
                                 Some(Ok(cert)) => Some(cert.fingerprint()),
                                 Some(Err(err)) => {
-                                    wprintln!("Local trust root is \
-                                               corrupted: {}",
-                                              err);
+                                    weprintln!("Local trust root is \
+                                                corrupted: {}",
+                                               err);
                                     None
                                 }
                                 None =>  {
-                                    wprintln!("Local trust root is \
-                                               corrupted: no data");
+                                    weprintln!("Local trust root is \
+                                                corrupted: no data");
                                     None
                                 }
                             }
                         }
                         Err(err) => {
-                            wprintln!("Error parsing local trust root: {}",
-                                      err);
+                            weprintln!("Error parsing local trust root: {}",
+                                       err);
                             None
                         }
                     }
@@ -1262,10 +1262,10 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                 return Ok(key);
                             }
 
-                            wprintln!("Incorrect password.");
+                            weprintln!("Incorrect password.");
                         }
                         Err(err) => {
-                            wprintln!("While reading password: {}", err);
+                            weprintln!("While reading password: {}", err);
                             break;
                         }
                     }
@@ -1388,7 +1388,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                         .is_none()
                     {
                         if let Some(hint) = hint {
-                            wprintln!("{}", hint);
+                            weprintln!("{}", hint);
                         }
 
                         loop {
@@ -1397,7 +1397,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                 ka.cert().keyid(), ka.keyid(), uid))?;
 
                             if p == "".into() {
-                                wprintln!("Giving up.");
+                                weprintln!("Giving up.");
                                 continue 'key;
                             }
 
@@ -1407,7 +1407,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                     break;
                                 }
                                 Err(err) => {
-                                    wprintln!("Failed to unlock key: {}", err);
+                                    weprintln!("Failed to unlock key: {}", err);
                                 }
                             }
                         }
@@ -1735,7 +1735,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// Prints additional information in verbose mode.
     pub fn info(&self, msg: fmt::Arguments) {
         if self.verbose() {
-            wprintln!("{}", msg);
+            weprintln!("{}", msg);
         }
     }
 
@@ -2284,8 +2284,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         let (certs, errors) =
             self.resolve_certs(designators, trust_amount)?;
         if certs.len() > 1 {
-            wprintln!("{} is ambiguous.  It resolves to multiple certificates.",
-                      designators.designators[0].argument::<Prefix>());
+            weprintln!("{} is ambiguous.  It resolves to multiple certificates.",
+                       designators.designators[0].argument::<Prefix>());
             for cert in certs.iter() {
                 eprintln!("  - {} {}",
                           cert.fingerprint(),
@@ -2354,7 +2354,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     let err = format!(
                         "Selected key {} is a primary key, not a subkey.",
                         ka.fingerprint());
-                    wprintln!("{}", err);
+                    weprintln!("{}", err);
                     bad.push(anyhow::anyhow!(err));
                     continue;
                 }
@@ -2384,7 +2384,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     let err = anyhow::anyhow!(
                         "Can't use {}, it is hard revoked",
                         ka.fingerprint());
-                    wprintln!("{}", err);
+                    weprintln!("{}", err);
                     bad.push(err);
                 } else {
                     // Looks good!
@@ -2404,8 +2404,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     Err(err) => err,
                 };
 
-                wprintln!("Selected key {} is unusable: {}.",
-                          fingerprint, err);
+                weprintln!("Selected key {} is unusable: {}.",
+                           fingerprint, err);
 
                 bad.push(err);
 
@@ -2435,8 +2435,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     .done();
             } else {
                 // The key isn't bound to the certificate at all.
-                wprintln!("Selected key {} is not part of the certificate.",
-                          kh);
+                weprintln!("Selected key {} is not part of the certificate.",
+                           kh);
                 missing.push(kh);
             }
         }
@@ -2446,15 +2446,15 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                    keys.len(), kas.len(), missing.len(), bad.len());
 
         if ! missing.is_empty() {
-            wprintln!();
+            weprintln!();
             if only_subkeys {
-                wprintln!("{} has the following subkeys:", vc.fingerprint());
+                weprintln!("{} has the following subkeys:", vc.fingerprint());
             } else {
-                wprintln!("{} has the following keys:", vc.fingerprint());
+                weprintln!("{} has the following keys:", vc.fingerprint());
             }
-            wprintln!();
+            weprintln!();
             for ka in vc.keys().skip(if only_subkeys { 1 } else { 0 }) {
-                wprintln!(" - {}", ka.fingerprint());
+                weprintln!(" - {}", ka.fingerprint());
             }
         }
 

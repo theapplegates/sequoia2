@@ -86,16 +86,16 @@ fn prompt_for_new_internal(
         let password = prompt_password(sq, &p0)?;
 
         if password.is_empty() && ! allow_none {
-            wprintln!("Password required.  Please try again.");
-            wprintln!();
+            weprintln!("Password required.  Please try again.");
+            weprintln!();
             continue;
         }
 
         let password_repeat = prompt_password(sq, &p1)?;
 
         if password != password_repeat {
-            wprintln!("The passwords do not match.  Please try again.");
-            wprintln!();
+            weprintln!("The passwords do not match.  Please try again.");
+            weprintln!();
             continue;
         }
 

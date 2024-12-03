@@ -57,10 +57,10 @@ pub fn dispatch(sq: Sq, command: Command)
                 if let Some(path) = command.input.inner() {
                     if ! path.exists() &&
                         format!("{}", command.input).parse::<KeyHandle>().is_ok() {
-                            wprintln!("The file {} does not exist, \
-                                       did you mean \"sq packet dump \
-                                       --cert {}\"?",
-                                      path.display(), path.display());
+                            weprintln!("The file {} does not exist, \
+                                        did you mean \"sq packet dump \
+                                        --cert-file {}\"?",
+                                       path.display(), path.display());
                         }
                 }
 

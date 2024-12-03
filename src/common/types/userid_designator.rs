@@ -121,8 +121,8 @@ where
                         }
                         userids.push(designator.resolve_to(userid));
                     } else {
-                        wprintln!("{:?} is not a self-signed user ID.",
-                                  String::from_utf8_lossy(userid.value()));
+                        weprintln!("{:?} is not a self-signed user ID.",
+                                   String::from_utf8_lossy(userid.value()));
                         missing = true;
                     }
                 }
@@ -134,8 +134,8 @@ where
                     let userid = match UserID::from_address(None, None, email) {
                         Ok(userid) => userid,
                         Err(err) => {
-                            wprintln!("{:?} is not a valid email address: {}",
-                                      email, err);
+                            weprintln!("{:?} is not a valid email address: {}",
+                                       email, err);
                             bad = Some(err);
                             continue;
                         }
@@ -146,14 +146,14 @@ where
                     let email_normalized = match userid.email_normalized() {
                         Ok(Some(email)) => email,
                         Ok(None) => {
-                            wprintln!("{:?} is not a valid email address", email);
+                            weprintln!("{:?} is not a valid email address", email);
                             bad = Some(anyhow::anyhow!(format!(
                                 "{:?} is not a valid email address", email)));
                             continue;
                         }
                         Err(err) => {
-                            wprintln!("{:?} is not a valid email address: {}",
-                                      email, err);
+                            weprintln!("{:?} is not a valid email address: {}",
+                                       email, err);
                             bad = Some(err);
                             continue;
                         }
@@ -166,9 +166,9 @@ where
                             == ua.email_normalized().unwrap_or(None).as_ref()
                         {
                             if found {
-                                wprintln!("{} is ambiguous: it matches \
-                                           multiple self-signed user IDs.",
-                                          email);
+                                weprintln!("{} is ambiguous: it matches \
+                                            multiple self-signed user IDs.",
+                                           email);
                                 ambiguous_email = true;
                             }
 
@@ -203,7 +203,7 @@ where
                     if userid.name2().ok() != Some(Some(&name[..])) {
                         let err = format!("{:?} is not a valid display name",
                                           name);
-                        wprintln!("{}", err);
+                        weprintln!("{}", err);
                         bad = Some(anyhow::anyhow!(err));
                         continue;
                     };
@@ -213,9 +213,9 @@ where
                         if let Ok(Some(n)) = ua.userid().name2() {
                             if n == name {
                                 if found {
-                                    wprintln!("{:?} is ambiguous: it matches \
-                                               multiple self-signed user IDs.",
-                                              name);
+                                    weprintln!("{:?} is ambiguous: it matches \
+                                                multiple self-signed user IDs.",
+                                               name);
                                     ambiguous_name = true;
                                 }
 
@@ -247,23 +247,23 @@ where
         }
 
         if missing || ambiguous_email || ambiguous_name {
-            wprintln!("{}'s self-signed user IDs:", vc.fingerprint());
+            weprintln!("{}'s self-signed user IDs:", vc.fingerprint());
             let mut have_valid = false;
             for ua in vc.userids() {
                 if let Ok(u) = std::str::from_utf8(ua.userid().value()) {
                     have_valid = true;
-                    wprintln!(initial_indent="  - ",
-                              subsequent_indent="    ",
-                              "{:?}", u);
+                    weprintln!(initial_indent="  - ",
+                               subsequent_indent="    ",
+                               "{:?}", u);
                 }
             }
             if ! have_valid {
-                wprintln!("  - Certificate has no valid self-signed user IDs.");
+                weprintln!("  - Certificate has no valid self-signed user IDs.");
             }
 
             if let Ok(null) = vc.clone().with_policy(&NULL_POLICY, vc.time()) {
                 if vc.userids().count() < null.userids().count() {
-                    wprintln!("Invalid self-signed user IDs:");
+                    weprintln!("Invalid self-signed user IDs:");
                     let valid: BTreeSet<_>
                         = vc.userids().map(|ua| ua.userid().clone()).collect();
                     for ua in null.userids() {
@@ -273,9 +273,9 @@ where
 
                         if let Ok(u) = std::str::from_utf8(ua.userid().value()) {
                             if let Err(err) = ua.with_policy(vc.policy(), vc.time()) {
-                                wprintln!(initial_indent="  - ",
-                                          subsequent_indent="    ",
-                                          "{:?}: {}", u, err);
+                                weprintln!(initial_indent="  - ",
+                                           subsequent_indent="    ",
+                                           "{:?}: {}", u, err);
                             }
                         }
                     }
@@ -285,22 +285,22 @@ where
 
         if missing {
             if add_userid_arg && add_email_arg {
-                wprintln!("Use `--userid-or-add` or `--email-or-add` to use \
-                           a user ID even if it isn't self signed, or has \
-                           an invalid self signature.");
+                weprintln!("Use `--userid-or-add` or `--email-or-add` to use \
+                            a user ID even if it isn't self signed, or has \
+                            an invalid self signature.");
             }
             return Err(anyhow::anyhow!("No matching self-signed user ID"));
         }
         if ambiguous_email {
-            wprintln!("Use `--userid` with the full user ID, or \
-                       `--userid-or-add` to add a new user ID.");
+            weprintln!("Use `--userid` with the full user ID, or \
+                        `--userid-or-add` to add a new user ID.");
             return Err(anyhow::anyhow!("\
                 An email address does not unambiguously designate a \
                 self-signed user ID"));
         }
         if ambiguous_name {
-            wprintln!("Use `--userid` with the full user ID, or \
-                       `--userid-or-add` to add a new user ID.");
+            weprintln!("Use `--userid` with the full user ID, or \
+                        `--userid-or-add` to add a new user ID.");
             return Err(anyhow::anyhow!("\
                 A name does not unambiguously designate a \
                 self-signed user ID"));

@@ -44,9 +44,9 @@ pub fn dispatch(sq: Sq, command: cli::verify::Command)
     if result.is_err() {
         if let Some(path) = command.output.path() {
             if let Err(err) = std::fs::remove_file(path) {
-                wprintln!("Verification failed, failed to remove \
-                           unverified output saved to {}: {}",
-                          path.display(), err);
+                weprintln!("Verification failed, failed to remove \
+                            unverified output saved to {}: {}",
+                           path.display(), err);
             }
         }
     }
@@ -177,7 +177,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
         p(&mut status, "bad key", 1, self.broken_keys);
         p(&mut status, "broken signatures", 1, self.broken_signatures);
         if ! status.is_empty() {
-            wprintln!("{}.", status);
+            weprintln!("{}.", status);
         }
     }
 
@@ -193,7 +193,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
             let (sig, ka) = match result {
                 Ok(GoodChecksum { sig, ka, .. }) => (sig, ka),
                 Err(MalformedSignature { error, .. }) => {
-                    wprintln!("Malformed signature:");
+                    weprintln!("Malformed signature:");
                     print_error_chain(error);
                     self.broken_signatures += 1;
                     continue;
@@ -206,9 +206,9 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                         0 => "signature".into(),
                         n => format!("level {} notarization", n),
                     };
-                    wprintln!("Can't authenticate {} allegedly made by {}: \
-                               missing certificate.",
-                              what, issuer);
+                    weprintln!("Can't authenticate {} allegedly made by {}: \
+                                missing certificate.",
+                               what, issuer);
 
                     self.sq.hint(format_args!(
                         "Consider searching for the certificate using:"))
@@ -220,15 +220,15 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                     continue;
                 },
                 Err(UnboundKey { cert, error, .. }) => {
-                    wprintln!("Signing key on {} is not bound:",
-                              cert.fingerprint());
+                    weprintln!("Signing key on {} is not bound:",
+                               cert.fingerprint());
                     print_error_chain(error);
                     self.broken_keys += 1;
                     continue;
                 },
                 Err(BadKey { ka, error, .. }) => {
-                    wprintln!("Signing key on {} is bad:",
-                              ka.cert().fingerprint());
+                    weprintln!("Signing key on {} is bad:",
+                               ka.cert().fingerprint());
                     print_error_chain(error);
                     self.broken_keys += 1;
                     continue;
@@ -239,8 +239,8 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                         0 => "signature".into(),
                         n => format!("level {} notarizing signature", n),
                     };
-                    wprintln!("Error verifying {} made by {}:",
-                              what, issuer);
+                    weprintln!("Error verifying {} made by {}:",
+                               what, issuer);
                     print_error_chain(error);
                     self.bad_signatures += 1;
                     continue;
@@ -274,10 +274,10 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                         cert_store.certified_userids_of(&cert_fpr);
 
                     if userids.is_empty() {
-                        wprintln!(indent=prefix,
-                                  "{} cannot be authenticated.  \
-                                   It has no User IDs",
-                                  cert_fpr);
+                        weprintln!(indent=prefix,
+                                   "{} cannot be authenticated.  \
+                                    It has no User IDs",
+                                   cert_fpr);
                     } else {
                         let n = sequoia_wot::NetworkBuilder::rooted(
                             &cert_store, &*trust_roots).build();
@@ -294,29 +294,29 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
 
                                 let amount = paths.amount();
                                 let authenticated = if amount >= sequoia_wot::FULLY_TRUSTED {
-                                    wprintln!(indent=prefix,
-                                              "Fully authenticated \
-                                               ({} of {}) {}, {}",
-                                              amount,
-                                              sequoia_wot::FULLY_TRUSTED,
-                                              cert_fpr,
-                                              userid_str);
+                                    weprintln!(indent=prefix,
+                                               "Fully authenticated \
+                                                ({} of {}) {}, {}",
+                                               amount,
+                                               sequoia_wot::FULLY_TRUSTED,
+                                               cert_fpr,
+                                               userid_str);
                                     true
                                 } else if amount > 0 {
-                                    wprintln!(indent=prefix,
-                                              "Partially authenticated \
-                                               ({} of {}) {}, {:?} ",
-                                              amount,
-                                              sequoia_wot::FULLY_TRUSTED,
-                                              cert_fpr,
-                                              userid_str);
+                                    weprintln!(indent=prefix,
+                                               "Partially authenticated \
+                                                ({} of {}) {}, {:?} ",
+                                               amount,
+                                               sequoia_wot::FULLY_TRUSTED,
+                                               cert_fpr,
+                                               userid_str);
                                     false
                                 } else {
-                                    wprintln!(indent=prefix,
-                                              "{}: {:?} is unauthenticated \
-                                               and may be an impersonation!",
-                                              cert_fpr,
-                                              userid_str);
+                                    weprintln!(indent=prefix,
+                                               "{}: {:?} is unauthenticated \
+                                                and may be an impersonation!",
+                                               cert_fpr,
+                                               userid_str);
                                     false
                                 };
 
@@ -380,21 +380,21 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
             let level = sig.level();
             match (level == 0, authenticated) {
                 (true,  true)  => {
-                    wprintln!(indent=prefix,
-                              "Authenticated signature made by {} ({:?})",
-                              label, signer_userid);
+                    weprintln!(indent=prefix,
+                               "Authenticated signature made by {} ({:?})",
+                               label, signer_userid);
                 }
                 (false, true)  => {
-                    wprintln!(indent=prefix,
-                              "Authenticated level {} notarization \
-                               made by {} ({:?})",
-                              level, label, signer_userid);
+                    weprintln!(indent=prefix,
+                               "Authenticated level {} notarization \
+                                made by {} ({:?})",
+                               level, label, signer_userid);
                 }
                 (true,  false) => {
-                    wprintln!(indent=prefix,
-                              "Can't authenticate signature made by {} ({:?}): \
-                               the certificate can't be authenticated.",
-                              label, signer_userid);
+                    weprintln!(indent=prefix,
+                               "Can't authenticate signature made by {} ({:?}): \
+                                the certificate can't be authenticated.",
+                               label, signer_userid);
 
                     self.sq.hint(format_args!(
                         "After checking that {} belongs to {:?}, \
@@ -406,11 +406,11 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                         .done();
                 }
                 (false, false) => {
-                    wprintln!(indent=prefix,
-                              "Can't authenticate level {} notarization \
-                               made by {} ({:?}): the certificate \
-                               can't be authenticated.",
-                              level, label, signer_userid);
+                    weprintln!(indent=prefix,
+                               "Can't authenticate level {} notarization \
+                                made by {} ({:?}): the certificate \
+                                can't be authenticated.",
+                               level, label, signer_userid);
 
                     self.sq.hint(format_args!(
                         "After checking that {} belongs to {:?}, \

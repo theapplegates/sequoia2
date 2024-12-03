@@ -68,7 +68,7 @@ pub fn generate(
     }
 
     if command.userid.is_empty() {
-        wprintln!("No user ID given, using direct key signature");
+        weprintln!("No user ID given, using direct key signature");
     } else {
         // Make sure the user IDs are in canonical form.  If not, and
         // `--allow-non-canonical-userids` is not set, error out.
@@ -339,9 +339,9 @@ pub fn generate(
             &mut (Box::new(std::io::stderr()) as Box<dyn std::io::Write + Send + Sync>),
             false, false)
         {
-            wprintln!("Failed to display key: {}", err);
-            wprintln!("This is probably a bug in sq, please report it to \
-                       https://gitlab.com/sequoia-pgp/sequoia-sq/-/issues/new .");
+            weprintln!("Failed to display key: {}", err);
+            weprintln!("This is probably a bug in sq, please report it to \
+                        https://gitlab.com/sequoia-pgp/sequoia-sq/-/issues/new .");
         }
     }
 

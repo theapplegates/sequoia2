@@ -130,8 +130,8 @@ where
 #[allow(dead_code)]
 fn help_warning(arg: &str) {
     if arg == "help" {
-        wprintln!("Warning: \"help\" is not a subcommand here.  \
-                   Did you mean --help?");
+        weprintln!("Warning: \"help\" is not a subcommand here.  \
+                    Did you mean --help?");
     }
 }
 
@@ -396,7 +396,7 @@ fn real_main() -> Result<()> {
                     err.print()?;
 
                     if let Some(examples) = command.get_after_help() {
-                        wprintln!("\n{}", examples);
+                        weprintln!("\n{}", examples);
                     }
                 } else {
                     // Ummm... something went wrong: we should be able
@@ -476,10 +476,10 @@ fn error_chain(err: &anyhow::Error) -> Vec<String> {
 
 /// Prints the error and causes, if any.
 pub fn print_error_chain(err: &anyhow::Error) {
-    wprintln!();
-    wprintln!(initial_indent="  Error: ", "{}", err);
+    weprintln!();
+    weprintln!(initial_indent="  Error: ", "{}", err);
     err.chain().skip(1).for_each(
-        |cause| wprintln!(initial_indent="because: ", "{}", cause));
+        |cause| weprintln!(initial_indent="because: ", "{}", cause));
 }
 
 /// Returns the error chain as a string.
@@ -560,7 +560,7 @@ fn print_examples(cli: &clap::Command, usage: impl ToString) -> Result<()> {
 
     // And print the examples, if any.
     if let Some(examples) = cmd.get_after_help() {
-        wprintln!("\n{}", examples);
+        weprintln!("\n{}", examples);
     }
 
     Ok(())

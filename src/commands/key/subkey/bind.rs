@@ -158,10 +158,10 @@ pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
                 Ok((cert, key, builder)) => Some((cert, key, builder)),
                 Err(err) => {
                     if ! missing {
-                        wprintln!("Missing keys:");
+                        weprintln!("Missing keys:");
                     }
 
-                    wprintln!(initial_indent = "  - ", "{}: {}", id, err);
+                    weprintln!(initial_indent = "  - ", "{}: {}", id, err);
 
                     missing = true;
                     None
@@ -281,7 +281,7 @@ pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
                         }
 
                         if p == "".into() {
-                            wprintln!("Giving up.");
+                            weprintln!("Giving up.");
                             return Err(anyhow::anyhow!(
                                 "Failed to unlock key: {}",
                                 err.expect("must be set when we came here")));
@@ -404,7 +404,7 @@ pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
             sq.import_cert(cert).err()
         };
         if let Some(err) = result {
-            wprintln!("Error importing updated cert: {}", err);
+            weprintln!("Error importing updated cert: {}", err);
             return Err(err);
         } else {
             sq.hint(format_args!(

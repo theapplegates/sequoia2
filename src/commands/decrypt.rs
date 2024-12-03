@@ -69,9 +69,9 @@ pub fn dispatch(sq: Sq, command: cli::decrypt::Command) -> Result<()> {
     if result.is_err() {
         if let Some(path) = command.output.path() {
             if let Err(err) = std::fs::remove_file(path) {
-                wprintln!("Decryption failed, failed to remove \
-                           output saved to {}: {}",
-                          path.display(), err);
+                weprintln!("Decryption failed, failed to remove \
+                            output saved to {}: {}",
+                           path.display(), err);
             }
         }
     }
@@ -155,7 +155,7 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
     {
         if decrypt(algo, &sk) {
             if self.dump_session_key {
-                wprintln!("Session key: {}", hex::encode(&sk));
+                weprintln!("Session key: {}", hex::encode(&sk));
             }
             let id = self.key_identities.get(&KeyID::from(fpr)).cloned();
             if let Some(ref id) = id {
@@ -360,14 +360,14 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                                             }
                                             Ok(Some(password)) => {
                                                 if let Err(_err) = key.unlock(password) {
-                                                    wprintln!("Bad password.");
+                                                    weprintln!("Bad password.");
                                                     continue;
                                                 }
                                             }
                                             Ok(None) => {
                                                 // Cancelled.
-                                                wprintln!("Skipping {}, {}",
-                                                          keyid, userid);
+                                                weprintln!("Skipping {}, {}",
+                                                           keyid, userid);
                                                 break;
                                             }
                                         }
@@ -391,8 +391,8 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                 }
             }
             Err(err) => {
-                wprintln!("Warning: unable to connect to keystore: {}",
-                          err);
+                weprintln!("Warning: unable to connect to keystore: {}",
+                           err);
             }
         }
 
@@ -406,9 +406,9 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                         Some(recipient)
                     }
                 });
-            wprintln!("No key to decrypt message.  The message appears \
-                       to be encrypted to:");
-            wprintln!();
+            weprintln!("No key to decrypt message.  The message appears \
+                        to be encrypted to:");
+            weprintln!();
             for recipient in recipients.into_iter() {
                 let certs = self.sq.lookup(
                     std::iter::once(KeyHandle::from(recipient)),
@@ -421,28 +421,28 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                 match certs {
                     Ok(certs) => {
                         for cert in certs {
-                            wprintln!(initial_indent = "  - ",
-                                      "{}, {}",
-                                      cert.fingerprint(),
-                                      self.sq.best_userid(&cert, true));
+                            weprintln!(initial_indent = "  - ",
+                                       "{}, {}",
+                                       cert.fingerprint(),
+                                       self.sq.best_userid(&cert, true));
                         }
                     }
                     Err(err) => {
                         if let Some(StoreError::NotFound(_))
                             = err.downcast_ref()
                         {
-                            wprintln!(initial_indent = "  - ",
-                                      "{}, certificate not found",
-                                      recipient);
+                            weprintln!(initial_indent = "  - ",
+                                       "{}, certificate not found",
+                                       recipient);
                         } else {
-                            wprintln!(initial_indent = "  - ",
-                                      "{}, error looking up certificate: {}",
-                                      recipient, err);
+                            weprintln!(initial_indent = "  - ",
+                                       "{}, error looking up certificate: {}",
+                                       recipient, err);
                         }
                     }
                 };
             }
-            wprintln!();
+            weprintln!();
 
             return
                 Err(anyhow::anyhow!("No key to decrypt message"));
@@ -456,7 +456,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                     .and_then(|(algo, sk)| { if decrypt(algo, &sk) { Some(sk) } else { None }})
                 {
                     if self.dump_session_key {
-                        wprintln!("Session key: {}", hex::encode(&sk));
+                        weprintln!("Session key: {}", hex::encode(&sk));
                     }
                     return Ok(None);
                 }
@@ -474,7 +474,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                     .and_then(|(algo, sk)| { if decrypt(algo, &sk) { Some(sk) } else { None }})
                 {
                     if self.dump_session_key {
-                        wprintln!("Session key: {}", hex::encode(&sk));
+                        weprintln!("Session key: {}", hex::encode(&sk));
                     }
                     return Ok(None);
                 }
@@ -485,11 +485,11 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
             }
 
             if first {
-                wprintln!("Incorrect password.  \
-                           Hint: enter empty password to cancel.");
+                weprintln!("Incorrect password.  \
+                            Hint: enter empty password to cancel.");
                 first = false;
             } else {
-                wprintln!("Incorrect password.");
+                weprintln!("Incorrect password.");
             }
         }
     }

@@ -8,9 +8,9 @@ pub const NBSP: char = '\u{00A0}';
 
 /// Prints the given message to stderr.
 ///
-/// Hint: Use `wprintln!(..)` instead of invoking this function
+/// Hint: Use `weprintln!(..)` instead of invoking this function
 /// directly.
-pub fn wprintln(msg: fmt::Arguments) {
+pub fn weprintln(msg: fmt::Arguments) {
     let m = format!("{}", msg);
     for l in textwrap::wrap(&m, options()) {
         eprintln!("{}", l);
@@ -19,12 +19,12 @@ pub fn wprintln(msg: fmt::Arguments) {
 
 /// Prints the given message to stderr, indenting continuations.
 ///
-/// Hint: Use `wprintln!(indent="...", ..)` or
-/// `wprintln!(initial_indent="...", subsequent_indent="...", ..)`
+/// Hint: Use `weprintln!(indent="...", ..)` or
+/// `weprintln!(initial_indent="...", subsequent_indent="...", ..)`
 /// instead of invoking this function directly.
-pub fn iwprintln(initial_indent: &str,
-                 subsequent_indent: &str,
-                 msg: fmt::Arguments) {
+pub fn iweprintln(initial_indent: &str,
+                  subsequent_indent: &str,
+                  msg: fmt::Arguments) {
     let m = format!("{}", msg);
     for l in textwrap::wrap(&m,
                             options()

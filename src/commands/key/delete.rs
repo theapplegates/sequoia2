@@ -84,16 +84,16 @@ pub fn dispatch(sq: Sq, command: cli::key::delete::Command)
         }
     }
     if ! bad.is_empty() {
-        wprintln!("Some keys are not valid according \
-                   to the current policy:");
+        weprintln!("Some keys are not valid according \
+                    to the current policy:");
         for (fpr, err) in bad.into_iter() {
-            wprintln!("  - {}: {}",
-                      fpr,
-                      crate::one_line_error_chain(err));
+            weprintln!("  - {}: {}",
+                       fpr,
+                       crate::one_line_error_chain(err));
         }
-        wprintln!("Cowardly refusing to delete all of the secret key \
-                   material to avoid accidentally losing data.  Use \
-                   `sq key subkey delete` to delete the keys individually.");
+        weprintln!("Cowardly refusing to delete all of the secret key \
+                    material to avoid accidentally losing data.  Use \
+                    `sq key subkey delete` to delete the keys individually.");
 
         return Err(anyhow::anyhow!(
             "The authenticity of some subkeys is uncertain."));
@@ -120,20 +120,20 @@ pub fn dispatch(sq: Sq, command: cli::key::delete::Command)
             {
                 if certs.len() > 1 {
                     die = true;
-                    wprintln!("{} is associated with multiple certificates:",
-                              ka.fingerprint());
+                    weprintln!("{} is associated with multiple certificates:",
+                               ka.fingerprint());
                     for cert in certs.iter() {
-                        wprintln!(" - {}", cert.fingerprint());
+                        weprintln!(" - {}", cert.fingerprint());
                     }
                 }
             }
         }
 
         if die {
-            wprintln!("Cowardly refusing to delete secret key material to \
-                       avoid accidentally losing data.  Use \
-                       `sq key subkey delete` to delete the keys \
-                       individually.");
+            weprintln!("Cowardly refusing to delete secret key material to \
+                        avoid accidentally losing data.  Use \
+                        `sq key subkey delete` to delete the keys \
+                        individually.");
 
             return Err(anyhow::anyhow!(
                 "Some keys are associated with multiple certificates."));

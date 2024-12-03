@@ -140,15 +140,15 @@ pub(crate) fn lint_userids(uids: &[UserID]) -> Result<(), anyhow::Error> {
         Ok(())
     } else {
         if non_canonical.len() == 1 {
-            wprintln!("{}.", non_canonical[0]);
-            wprintln!();
+            weprintln!("{}.", non_canonical[0]);
+            weprintln!();
         } else {
-            wprintln!("The following user IDs are not in canonical form:");
-            wprintln!();
+            weprintln!("The following user IDs are not in canonical form:");
+            weprintln!();
             for err in non_canonical.iter() {
-                wprintln!(initial_indent = "  - ", "{}", err);
+                weprintln!(initial_indent = "  - ", "{}", err);
             }
-            wprintln!();
+            weprintln!();
         }
 
         let bare_email = non_canonical.iter()
@@ -161,18 +161,18 @@ pub(crate) fn lint_userids(uids: &[UserID]) -> Result<(), anyhow::Error> {
             })
             .next();
 
-        wprintln!("Canonical user IDs are of the form \
-                   `Name <localpart@example.org>`.  {}\
-                   Consider fixing the user IDs or passing \
-                   `--allow-non-canonical-userids`.",
-                  if let Some(uid) = bare_email {
-                      format!("Bare email addresses should be wrapped in angle \
-                               brackets like so `<{}>`.  ",
-                              String::from_utf8_lossy(uid.value()))
-                  } else {
-                      "".to_string()
-                  });
-        wprintln!();
+        weprintln!("Canonical user IDs are of the form \
+                    `Name <localpart@example.org>`.  {}\
+                    Consider fixing the user IDs or passing \
+                    `--allow-non-canonical-userids`.",
+                   if let Some(uid) = bare_email {
+                       format!("Bare email addresses should be wrapped in angle \
+                                brackets like so `<{}>`.  ",
+                               String::from_utf8_lossy(uid.value()))
+                   } else {
+                       "".to_string()
+                   });
+        weprintln!();
 
         Err(anyhow::anyhow!("\
             Some user IDs are not in canonical form"))
@@ -223,15 +223,15 @@ pub fn lint_names(names: &[String]) -> Result<(), anyhow::Error> {
         Ok(())
     } else {
         if non_canonical.len() == 1 {
-            wprintln!("{}.", non_canonical[0]);
-            wprintln!();
+            weprintln!("{}.", non_canonical[0]);
+            weprintln!();
         } else {
-            wprintln!("The following names have issues:");
-            wprintln!();
+            weprintln!("The following names have issues:");
+            weprintln!();
             for err in non_canonical.iter() {
-                wprintln!(initial_indent = "  - ", "{}", err);
+                weprintln!(initial_indent = "  - ", "{}", err);
             }
-            wprintln!();
+            weprintln!();
         }
 
         Err(anyhow::anyhow!("Some names had issues"))
@@ -282,15 +282,15 @@ pub fn lint_emails(emails: &[String]) -> Result<(), anyhow::Error> {
         Ok(())
     } else {
         if non_canonical.len() == 1 {
-            wprintln!("{}.", non_canonical[0]);
-            wprintln!();
+            weprintln!("{}.", non_canonical[0]);
+            weprintln!();
         } else {
-            wprintln!("The following email addresses have issues:");
-            wprintln!();
+            weprintln!("The following email addresses have issues:");
+            weprintln!();
             for err in non_canonical.iter() {
-                wprintln!(initial_indent = "  - ", "{}", err);
+                weprintln!(initial_indent = "  - ", "{}", err);
             }
-            wprintln!();
+            weprintln!();
         }
 
         Err(anyhow::anyhow!("Some email addresses had issues"))

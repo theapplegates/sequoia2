@@ -181,9 +181,9 @@ pub fn dispatch(sq: Sq, c: download::Command)
         let output_is_terminal
             = output.path().is_none() && std::io::stdout().is_terminal();
         if output_is_terminal {
-            wprintln!("Warning: will write the data to stdout, \
-                       which appears to be a terminal.  Use --output \
-                       to write to a file instead.");
+            weprintln!("Warning: will write the data to stdout, \
+                        which appears to be a terminal.  Use --output \
+                        to write to a file instead.");
         }
     }
 
@@ -406,15 +406,15 @@ pub fn dispatch(sq: Sq, c: download::Command)
                                     ).is_ok();
 
                                     if good {
-                                        wprintln!("Authenticated possible \
-                                                   signer: {}, {}",
-                                                  cert.fingerprint(),
-                                                  sq.best_userid(&cert, true));
+                                        weprintln!("Authenticated possible \
+                                                    signer: {}, {}",
+                                                   cert.fingerprint(),
+                                                   sq.best_userid(&cert, true));
                                     } else {
-                                        wprintln!("Couldn't authenticate the \
-                                                   alleged signer: {}, {}",
-                                                  cert.fingerprint(),
-                                                  sq.best_userid(&cert, true));
+                                        weprintln!("Couldn't authenticate the \
+                                                    alleged signer: {}, {}",
+                                                   cert.fingerprint(),
+                                                   sq.best_userid(&cert, true));
                                     }
 
                                     if good {
@@ -519,9 +519,9 @@ pub fn dispatch(sq: Sq, c: download::Command)
 
     drop(progress_bar);
 
-    wprintln!();
-    wprintln!("Finished downloading data.  Authenticating data.");
-    wprintln!();
+    weprintln!();
+    weprintln!("Finished downloading data.  Authenticating data.");
+    weprintln!();
 
     data_file.as_mut().rewind()?;
 
@@ -536,9 +536,9 @@ pub fn dispatch(sq: Sq, c: download::Command)
     if let Err(err) = result {
         if let Some(path) = output.path() {
             if let Err(err) = std::fs::remove_file(path) {
-                wprintln!("Verification failed, failed to remove \
-                           unverified output saved to {}: {}",
-                          path.display(), err);
+                weprintln!("Verification failed, failed to remove \
+                            unverified output saved to {}: {}",
+                           path.display(), err);
             }
         }
 

@@ -92,7 +92,7 @@ pub fn import_certs(sq: &mut Sq, source: &mut Box<dyn BufferedReader<Cookie>>,
         Err(e) => {
             // The decryption failed, but we should still import the
             // Autocrypt header.
-            wprintln!("Note: Decryption of message failed: {}", e);
+            weprintln!("Note: Decryption of message failed: {}", e);
             return Ok(());
         },
     };

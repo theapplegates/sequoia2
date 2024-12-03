@@ -27,8 +27,8 @@ impl Hint {
     /// follows.
     pub fn hint(mut self, msg: fmt::Arguments) -> Self {
         if ! self.quiet {
-            wprintln!();
-            wprintln!(
+            weprintln!();
+            weprintln!(
                 initial_indent=if self.first { "Hint: " } else { "      " },
                 subsequent_indent="      ",
                 "{}", msg);

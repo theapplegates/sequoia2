@@ -65,10 +65,11 @@ pub fn dispatch(mut sq: Sq, c: inspect::Command)
     if c.certs.is_empty() {
         if let Some(path) = input.inner() {
             if ! path.exists() &&
-                format!("{}", input).parse::<KeyHandle>().is_ok() {
-                wprintln!("The file {} does not exist, \
-                           did you mean \"sq inspect --cert {}\"?",
-                          input, input);
+                format!("{}", input).parse::<KeyHandle>().is_ok()
+            {
+                weprintln!("The file {} does not exist, \
+                            did you mean \"sq inspect --cert {}\"?",
+                           input, input);
             }
         }
 

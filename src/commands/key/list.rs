@@ -272,9 +272,9 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
                     .sum::<usize>();
 
                 if hex >= 16 {
-                    wprintln!("Warning: {} looks like a fingerprint or key ID, \
-                               but its invalid.  Treating it as a text pattern.",
-                              pattern);
+                    weprintln!("Warning: {} looks like a fingerprint or key ID, \
+                                but its invalid.  Treating it as a text pattern.",
+                               pattern);
                 }
             } else {
                 d = Some(cert_designator::CertDesignator::Cert(kh));
@@ -305,16 +305,16 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
     for backend in &mut backends {
         let devices = backend.list()?;
         if devices.len() == 0 {
-            wprintln!(initial_indent = " - ", "Backend {} has no keys.",
-                      backend.id()?);
+            weprintln!(initial_indent = " - ", "Backend {} has no keys.",
+                       backend.id()?);
             dirty = true;
         }
 
         for mut device in devices {
             let keys = device.list()?;
             if keys.len() == 0 {
-                wprintln!(initial_indent = " - ", "Device {}/{} has no keys.",
-                          backend.id()?, device.id()?);
+                weprintln!(initial_indent = " - ", "Device {}/{} has no keys.",
+                           backend.id()?, device.id()?);
                 dirty = true;
             }
 
@@ -410,13 +410,13 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
         }
 
         if dirty {
-            wprintln!();
+            weprintln!();
         }
         dirty = true;
 
         // Emit metadata.
-        wprintln!(initial_indent = " - ", "{}",
-                  association.key().fingerprint());
+        weprintln!(initial_indent = " - ", "{}",
+                   association.key().fingerprint());
 
         // Show the user IDs that can be authenticated or are self signed.
         if let Some(cert) = association.cert() {
@@ -455,11 +455,11 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
             }
 
             if userids.is_empty() {
-                wprintln!(initial_indent = "   - ", "no user IDs");
+                weprintln!(initial_indent = "   - ", "no user IDs");
             } else {
                 let userid_count = userids.len();
                 if userid_count > 1 {
-                    wprintln!(initial_indent = "   - ", "user IDs:");
+                    weprintln!(initial_indent = "   - ", "user IDs:");
                 }
 
                 userids.sort_by(
@@ -476,32 +476,32 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
                 {
                     if amount > 0 || self_signed {
                         if userid_count == 1 {
-                            wprintln!(initial_indent = "   - ", "user ID: {}{}",
-                                      userid,
-                                      if revoked { " revoked" } else { "" });
+                            weprintln!(initial_indent = "   - ", "user ID: {}{}",
+                                       userid,
+                                       if revoked { " revoked" } else { "" });
                         } else {
-                            wprintln!(initial_indent = "     - ", "{}{}",
-                                      userid,
-                                      if revoked { " revoked" } else { "" });
+                            weprintln!(initial_indent = "     - ", "{}{}",
+                                       userid,
+                                       if revoked { " revoked" } else { "" });
                         }
                     }
                 }
             }
         }
-        wprintln!(initial_indent = "   - ", "created {}",
-                  association.key().creation_time().convert());
+        weprintln!(initial_indent = "   - ", "created {}",
+                   association.key().creation_time().convert());
 
         if let Some(cert) = association.cert() {
             for info in key_validity(&sq, cert, None).into_iter() {
-                wprintln!(initial_indent = "   - ", "{}", info);
+                weprintln!(initial_indent = "   - ", "{}", info);
             }
         }
 
         // Primary key information, if any.
         if let Some(primary) = keys.get(&association.key().fingerprint()) {
-            wprintln!(initial_indent = "   - ", "usable {}", primary.usable_for());
+            weprintln!(initial_indent = "   - ", "usable {}", primary.usable_for());
             for loc in &primary.locations {
-                wprintln!(initial_indent = "   - ", "{}", loc);
+                weprintln!(initial_indent = "   - ", "{}", loc);
             }
         }
 
@@ -511,22 +511,22 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
             .enumerate()
         {
             if i == 0 {
-                wprintln!();
+                weprintln!();
             }
 
-            wprintln!(initial_indent = "   - ", "{}", fp);
-            wprintln!(initial_indent = "     - ", "created {}",
-                      key.key.creation_time().convert());
+            weprintln!(initial_indent = "   - ", "{}", fp);
+            weprintln!(initial_indent = "     - ", "created {}",
+                       key.key.creation_time().convert());
 
             if let Some(cert) = association.cert() {
                 for info in key_validity(&sq, cert, Some(fp)).into_iter() {
-                    wprintln!(initial_indent = "     - ", "{}", info);
+                    weprintln!(initial_indent = "     - ", "{}", info);
                 }
             }
 
-            wprintln!(initial_indent = "     - ", "usable {}", key.usable_for());
+            weprintln!(initial_indent = "     - ", "usable {}", key.usable_for());
             for loc in &key.locations {
-                wprintln!(initial_indent = "     - ", "{}", loc);
+                weprintln!(initial_indent = "     - ", "{}", loc);
             }
         }
     }

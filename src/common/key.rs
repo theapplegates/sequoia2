@@ -57,8 +57,8 @@ where
             for ka in kas.into_iter() {
                 let no_secret_key_material = ! ka.has_secret();
                 if no_secret_key_material {
-                    wprintln!("{}{} does not contain any secret key material",
-                              warning, ka.fingerprint());
+                    weprintln!("{}{} does not contain any secret key material",
+                               warning, ka.fingerprint());
                     no_secret_key_material_count += 1;
                     continue;
                 }
@@ -75,8 +75,8 @@ where
                 let no_secret_key_material = remote_keys.is_empty();
 
                 if no_secret_key_material {
-                    wprintln!("{}{} does not contain any secret key material",
-                              warning, ka.fingerprint());
+                    weprintln!("{}{} does not contain any secret key material",
+                               warning, ka.fingerprint());
                     no_secret_key_material_count += 1;
                     continue;
                 }

@@ -39,7 +39,7 @@ fn import_internal(sq: &Sq, command: cli::key::import::Command,
             let cert = match r {
                 Ok(cert) => cert,
                 Err(err) => {
-                    wprintln!("Error reading {}: {}", file.display(), err);
+                    weprintln!("Error reading {}: {}", file.display(), err);
                     if ret.is_ok() {
                         ret = Err(err);
                     }
@@ -54,19 +54,18 @@ fn import_internal(sq: &Sq, command: cli::key::import::Command,
             let cert_is_tsk = cert.is_tsk();
             match sq.import_key(cert, stats) {
                 Ok((key, cert)) => {
-                    wprintln!("Imported {} from {}: {}",
-                              id, file.display(),
-                              if key == cert {
-                                  key.to_string()
-                              } else {
-                                  format!("key {}, cert {}", key, cert)
-                              });
-
+                    weprintln!("Imported {} from {}: {}",
+                               id, file.display(),
+                               if key == cert {
+                                   key.to_string()
+                               } else {
+                                   format!("key {}, cert {}", key, cert)
+                               });
                 }
 
                 Err(err) => {
-                    wprintln!("Error importing {} from {}: {}",
-                              id, file.display(), err);
+                    weprintln!("Error importing {} from {}: {}",
+                               id, file.display(), err);
 
                     if ! cert_is_tsk {
                         sq.hint(format_args!(

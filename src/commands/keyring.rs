@@ -467,9 +467,9 @@ fn merge(sq: &Sq, inputs: Vec<PathBuf>, output: FileOrStdout,
             }
 
             if let Some((_sig, name, err)) = bad {
-                wprintln!("Could not add revocation certificate from {} \
-                           to certificate: {}",
-                          name, err);
+                weprintln!("Could not add revocation certificate from {} \
+                            to certificate: {}",
+                           name, err);
                 die = true;
             } else {
                 missing.push((issuers[0].clone(), name.clone()));
@@ -480,15 +480,15 @@ fn merge(sq: &Sq, inputs: Vec<PathBuf>, output: FileOrStdout,
         match missing.as_slice() {
             [] => (),
             [(issuer, name)] => {
-                wprintln!("Couldn't merge revocation certificate \
-                           from {}: missing {}.",
-                          name, issuer);
+                weprintln!("Couldn't merge revocation certificate \
+                            from {}: missing {}.",
+                           name, issuer);
             }
             _ => {
-                wprintln!("Couldn't some merge revocation certificates:");
+                weprintln!("Couldn't some merge revocation certificates:");
                 for (issuer, name) in missing.into_iter() {
-                    wprintln!("  - {}: missing {}",
-                              name, issuer);
+                    weprintln!("  - {}: missing {}",
+                               name, issuer);
                 }
             }
         }

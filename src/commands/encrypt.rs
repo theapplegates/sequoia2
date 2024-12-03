@@ -259,11 +259,11 @@ pub fn encrypt<'a, 'b: 'a>(
             }
 
             if ! bad.is_empty() {
-                wprintln!("Cannot encrypt to {}, {}:",
-                          cert.fingerprint(),
-                          sq.best_userid(&cert, true));
+                weprintln!("Cannot encrypt to {}, {}:",
+                           cert.fingerprint(),
+                           sq.best_userid(&cert, true));
                 for message in bad.into_iter() {
-                    wprintln!(initial_indent="  - ", "{}", message);
+                    weprintln!(initial_indent="  - ", "{}", message);
                 }
             }
             if ! use_expired_subkey && ! expired_keys.is_empty() {

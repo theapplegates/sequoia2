@@ -83,7 +83,7 @@ where
 
                     if ! unlocked {
                         if let Some(hint) = hint {
-                            wprintln!("{}", hint);
+                            weprintln!("{}", hint);
                         }
 
                         let time = key.creation_time().convert().to_string();
@@ -125,7 +125,7 @@ where
                                     break;
                                 }
                                 Err(err) => {
-                                    wprintln!("Failed to unlock key: {}", err);
+                                    weprintln!("Failed to unlock key: {}", err);
                                 }
                             }
                         }

@@ -241,7 +241,7 @@ where P: cert_designator::ArgumentPrefix,
 
         let fipr = cert.fingerprint();
         if let Err(err) = cert_store.update(Arc::new(cert.into())) {
-            wprintln!("Error importing updated cert: {}", err);
+            weprintln!("Error importing updated cert: {}", err);
             return Err(err);
         } else {
             sq.hint(format_args!(

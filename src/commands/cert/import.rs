@@ -110,7 +110,7 @@ where 'store: 'rstore
 
     let result = inner();
 
-    wprintln!();
+    weprintln!();
     stats.print_summary(&sq)?;
 
     Ok(result?)
@@ -163,12 +163,12 @@ fn import_certs(sq: &mut Sq,
         if let Err(err) = cert_store.update_by(Arc::new(cert.into()),
                                                stats)
         {
-            wprintln!("Error importing {}, {}: {}",
-                      fingerprint, sanitized_userid, err);
+            weprintln!("Error importing {}, {}: {}",
+                       fingerprint, sanitized_userid, err);
             stats.certs.inc_errors();
             continue;
         } else {
-            wprintln!("Imported {}, {}", fingerprint, sanitized_userid);
+            weprintln!("Imported {}, {}", fingerprint, sanitized_userid);
         }
     }
 
@@ -178,7 +178,7 @@ fn import_certs(sq: &mut Sq,
         Err(errors.pop().ok_or_else(|| anyhow::anyhow!("no cert found"))?)
     } else {
         for err in errors {
-            wprintln!("Error parsing input: {}", err);
+            weprintln!("Error parsing input: {}", err);
         }
         Ok(())
     }
@@ -248,15 +248,15 @@ fn import_rev(sq: &mut Sq,
                 if let Err(err) = cert_store.update_by(Arc::new(cert.into()),
                                                        stats)
                 {
-                    wprintln!("Error importing revocation certificate \
-                               for {}, {}: {}",
-                              fingerprint, sanitized_userid, err);
+                    weprintln!("Error importing revocation certificate \
+                                for {}, {}: {}",
+                               fingerprint, sanitized_userid, err);
                     stats.certs.inc_errors();
                     continue;
                 } else {
-                    wprintln!("Imported revocation certificate \
-                               for {}, {}",
-                              fingerprint, sanitized_userid);
+                    weprintln!("Imported revocation certificate \
+                                for {}, {}",
+                               fingerprint, sanitized_userid);
                 }
 
                 return Ok(());
@@ -267,17 +267,17 @@ fn import_rev(sq: &mut Sq,
     }
 
     let search: Option<&KeyHandle> = if let Some(bad) = bad.first() {
-        wprintln!("Appears to be a revocation for {}, \
-                   but the certificate is not available.",
-                  bad);
+        weprintln!("Appears to be a revocation for {}, \
+                    but the certificate is not available.",
+                   bad);
         Some(bad)
     } else if ! missing.is_empty() {
-        wprintln!("Appears to be a revocation for {}, \
-                   but the certificate is not available.",
-                  missing.iter()
-                  .map(|issuer| issuer.to_string())
-                  .collect::<Vec<_>>()
-                  .join(" or "));
+        weprintln!("Appears to be a revocation for {}, \
+                    but the certificate is not available.",
+                   missing.iter()
+                   .map(|issuer| issuer.to_string())
+                   .collect::<Vec<_>>()
+                   .join(" or "));
         Some(missing[0])
     } else {
         None

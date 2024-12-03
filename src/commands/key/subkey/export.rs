@@ -66,7 +66,7 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::export::Command)
 
     if secret_keys.is_empty() {
         for (fpr, err) in errs.into_iter() {
-            wprintln!("Exporting {}: {}", fpr, err);
+            weprintln!("Exporting {}: {}", fpr, err);
         }
         return Err(anyhow::anyhow!(
             "Failed to export {}: no secret key material is available",

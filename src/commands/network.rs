@@ -575,7 +575,7 @@ impl Method {
                         Some((cert, created)) => (cert, created),
                         None => {
                             if sq.verbose() {
-                                wprintln!(
+                                weprintln!(
                                     "Not recording provenance information: \
                                      {} is not known to be a verifying \
                                      keyserver",
@@ -608,7 +608,7 @@ impl Method {
             Ok(None) => return None,
             Err(err) => {
                 let print_err = || {
-                    wprintln!(
+                    weprintln!(
                         "Not recording provenance information: {}",
                         err);
                 };
@@ -633,7 +633,7 @@ impl Method {
         if sq.verbose() {
             let invalid = "invalid data".to_string();
 
-            wprintln!(
+            weprintln!(
                 "Created the local CA {} for certifying \
                  certificates downloaded from this service.  \
                  Use `sq pki link authorize --unconstrained --amount N {}` \
@@ -765,7 +765,7 @@ impl Response {
 
         if ! silent_errors || sq.verbose() || certs.is_empty() {
             for (method, query, e) in errors {
-                pb.suspend(|| wprintln!("{}: {}: {}", method, query, e));
+                pb.suspend(|| weprintln!("{}: {}: {}", method, query, e));
             }
         }
 
@@ -1167,7 +1167,7 @@ pub fn dispatch_keyserver(
                         // an error, and only print the message in
                         // verbose mode.
                         if sq.verbose() {
-                            wprintln!("{}: {}", url, e);
+                            weprintln!("{}: {}", url, e);
                         }
                     },
                     Err(e) => {
@@ -1187,7 +1187,7 @@ pub fn dispatch_keyserver(
                                  encryption-capable."));
                         }
 
-                        wprintln!("{}: {}", url, e);
+                        weprintln!("{}: {}", url, e);
                         if result.is_ok() {
                             result = Err((url, e));
                         }

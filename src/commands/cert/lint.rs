@@ -274,7 +274,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                             found_issue = true;
                         }
                         if ! sq.quiet() {
-                            wprintln!($($arg)*);
+                            weprintln!($($arg)*);
                         }
                     }
                 }};
@@ -408,14 +408,14 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                                 }
                                 Err(err) => {
                                     unfixed_issue += 1;
-                                    wprintln!("Certificate {}: \
-                                               Failed to update \
-                                               revocation certificate \
-                                               {:02X}{:02X}: {}",
-                                              cert.keyid().to_hex(),
-                                              rev.digest_prefix()[0],
-                                              rev.digest_prefix()[1],
-                                              err);
+                                    weprintln!("Certificate {}: \
+                                                Failed to update \
+                                                revocation certificate \
+                                                {:02X}{:02X}: {}",
+                                               cert.keyid().to_hex(),
+                                               rev.digest_prefix()[0],
+                                               rev.digest_prefix()[1],
+                                               err);
                                 }
                             }
                         }
@@ -531,13 +531,13 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                             }
                             Err(err) => {
                                 unfixed_issue += 1;
-                                wprintln!("Certificate {}: User ID {}: \
-                                           Failed to update \
-                                           binding signature: {}",
-                                          cert.keyid().to_hex(),
-                                          String::from_utf8_lossy(
-                                              ua.value()),
-                                          err);
+                                weprintln!("Certificate {}: User ID {}: \
+                                            Failed to update \
+                                            binding signature: {}",
+                                           cert.keyid().to_hex(),
+                                           String::from_utf8_lossy(
+                                               ua.value()),
+                                           err);
                             }
                         }
                     }
@@ -582,12 +582,12 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                                 Ok(sig) => updates.push(sig),
                                 Err(err) => {
                                     unfixed_issue += 1;
-                                    wprintln!("Certificate {}, key {}: \
-                                               Failed to update \
-                                               binding signature: {}",
-                                              cert.keyid().to_hex(),
-                                              ka.keyid().to_hex(),
-                                              err);
+                                    weprintln!("Certificate {}, key {}: \
+                                                Failed to update \
+                                                binding signature: {}",
+                                               cert.keyid().to_hex(),
+                                               ka.keyid().to_hex(),
+                                               err);
                                 }
                             }
                         }
@@ -631,8 +631,8 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                     backsigs.dedup();
 
                     if backsigs.len() > 1 {
-                        wprintln!("Warning: multiple cryptographically \
-                                   valid backsigs.");
+                        weprintln!("Warning: multiple cryptographically \
+                                    valid backsigs.");
                     }
 
                     if backsigs
@@ -670,12 +670,12 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                                 Ok(sig) => updates.push(sig),
                                 Err(err) => {
                                     unfixed_issue += 1;
-                                    wprintln!("Certificate {}, key: {}: \
-                                               Failed to update \
-                                               binding signature: {}",
-                                              cert.keyid().to_hex(),
-                                              ka.keyid().to_hex(),
-                                              err);
+                                    weprintln!("Certificate {}, key: {}: \
+                                                Failed to update \
+                                                binding signature: {}",
+                                               cert.keyid().to_hex(),
+                                               ka.keyid().to_hex(),
+                                               err);
                                 }
                             }
                         }
@@ -735,15 +735,15 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                     eprint!("GOOD");
                 }
             }
-            wprintln!(")");
+            weprintln!(")");
         }};
     }
 
     if certs_with_issues > 0 {
-        wprintln!("Examined {} {}.",
-                  certs_valid + certs_invalid,
-                  pl(certs_valid + certs_invalid,
-                     "certificate", "certificates"));
+        weprintln!("Examined {} {}.",
+                   certs_valid + certs_invalid,
+                   pl(certs_valid + certs_invalid,
+                      "certificate", "certificates"));
 
         if ! sq.quiet() {
             err!(certs_invalid,
@@ -752,10 +752,10 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                  pl(certs_invalid, "certificate is", "certificates are"),
                  pl(certs_invalid, "was", "were"));
             if certs_valid > 0 {
-                wprintln!("  {} {} linted.",
-                          certs_valid,
-                          pl(certs_valid,
-                             "certificate was", "certificates were"));
+                weprintln!("  {} {} linted.",
+                           certs_valid,
+                           pl(certs_valid,
+                              "certificate was", "certificates were"));
                 err!(certs_with_issues,
                      "  {} of the {} certificates ({}%) \
                       {} at least one issue.",
@@ -763,22 +763,22 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                      certs_valid + certs_invalid,
                      certs_with_issues * 100 / (certs_valid + certs_invalid),
                      pl(certs_with_issues, "has", "have"));
-                wprintln!("{} of the linted certificates {} revoked.",
-                          certs_revoked,
-                          pl(certs_revoked, "was", "were"));
+                weprintln!("{} of the linted certificates {} revoked.",
+                           certs_revoked,
+                           pl(certs_revoked, "was", "were"));
                 err!(certs_with_inadequota_revocations,
                      "  {} of the {} certificates has revocation certificates \
                       that are weaker than the certificate and should be \
                       recreated.",
                      certs_with_inadequota_revocations,
                      certs_revoked);
-                wprintln!("{} of the linted certificates {} expired.",
-                          certs_expired,
-                          pl(certs_expired, "was", "were"));
-                wprintln!("{} of the non-revoked linted {} at least one non-revoked User ID:",
-                          certs_sp_sha1_userids,
-                          pl(certs_sp_sha1_userids,
-                             "certificate has", "certificates have"));
+                weprintln!("{} of the linted certificates {} expired.",
+                           certs_expired,
+                           pl(certs_expired, "was", "were"));
+                weprintln!("{} of the non-revoked linted {} at least one non-revoked User ID:",
+                           certs_sp_sha1_userids,
+                           pl(certs_sp_sha1_userids,
+                              "certificate has", "certificates have"));
                 err!(certs_with_a_sha1_protected_userid,
                      "  {} {} at least one User ID protected by SHA-1.",
                      certs_with_a_sha1_protected_userid,
@@ -788,22 +788,22 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                      certs_with_only_sha1_protected_userids,
                      pl(certs_with_only_sha1_protected_userids,
                         "has", "have"));
-                wprintln!("{} of the non-revoked linted certificates {} at least one \
-                           non-revoked, live subkey:",
-                          certs_with_subkeys,
-                          pl(certs_with_subkeys,
-                             "has", "have"));
+                weprintln!("{} of the non-revoked linted certificates {} at least one \
+                            non-revoked, live subkey:",
+                           certs_with_subkeys,
+                           pl(certs_with_subkeys,
+                              "has", "have"));
                 err!(certs_with_a_sha1_protected_binding_sig,
                      "  {} {} at least one non-revoked, live subkey with \
                       a binding signature that uses SHA-1.",
                      certs_with_a_sha1_protected_binding_sig,
                      pl(certs_with_a_sha1_protected_binding_sig,
                         "has", "have"));
-                wprintln!("{} of the non-revoked linted certificates {} at least one non-revoked, live, \
+                weprintln!("{} of the non-revoked linted certificates {} at least one non-revoked, live, \
                            signing-capable subkey:",
-                          certs_with_signing_subkeys,
-                          pl(certs_with_signing_subkeys,
-                             "has", "have"));
+                           certs_with_signing_subkeys,
+                           pl(certs_with_signing_subkeys,
+                              "has", "have"));
                 err!(certs_with_sha1_protected_backsig,
                      "  {} {} at least one non-revoked, live, signing-capable subkey \
                       with a strong binding signature, but a backsig \

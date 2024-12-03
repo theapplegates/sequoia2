@@ -27,6 +27,7 @@ Import the keys into the key store.",
             command: &[
                 "sq", "key", "import", "alice-secret.pgp",
             ],
+            hide: &[],
         }),
     ]
 };

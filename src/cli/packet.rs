@@ -123,6 +123,7 @@ Print the packets of a certificate.",
                 "sq", "packet", "dump",
                 "juliet.pgp",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -132,6 +133,7 @@ Print the packets including cryptographic artifacts of a certificate.",
                 "sq", "packet", "dump",
                 "--mpis", "juliet.pgp",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -141,6 +143,7 @@ Print the packets including a dump of every byte of a certificate.",
                 "sq", "packet", "dump",
                 "--hex", "juliet.pgp",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -152,6 +155,7 @@ secret key file.",
                 "--recipient-file", "bob-secret.pgp",
                 "message.pgp",
             ],
+            hide: &[],
         }),
     ],
 };
@@ -236,6 +240,7 @@ Unwrap the encryption revealing the signed message.",
                 "--recipient-file", "bob-secret.pgp",
                 "message.pgp",
             ],
+            hide: &[],
         }),
     ],
 };
@@ -310,6 +315,7 @@ Split a certificate into individual packets printed to stdout.",
                 "--output=-",
                 "juliet.pgp",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -321,6 +327,7 @@ individual files with the prefix 'packet'.",
                 "--output-prefix", "packet",
                 "document.pgp",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -334,6 +341,7 @@ signed message with a prefix signature.",
                 "packet-2-Signature-Packet",
                 "packet-1-Literal-Data-Packet",
             ],
+            hide: &[],
         }),
     ],
 };
@@ -389,6 +397,7 @@ individual files with the prefix 'packet'.",
                 "--output-prefix", "packet",
                 "document.pgp",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -402,6 +411,7 @@ signed message with a prefix signature.",
                 "packet-2-Signature-Packet",
                 "packet-1-Literal-Data-Packet",
             ],
+            hide: &[],
         }),
     ],
 };

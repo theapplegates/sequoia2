@@ -43,6 +43,7 @@ Delete any secret key associated with Alice's certificate.",
                 "sq", "key", "delete",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
+            hide: &[],
         }),
 
         Action::Setup(Setup {
@@ -67,6 +68,7 @@ selected by user ID.",
                 "sq", "key", "delete",
                 "--cert-email=alice@example.org",
             ],
+            hide: &[],
         }),
     ]
 };

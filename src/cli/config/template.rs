@@ -36,6 +36,7 @@ Write a template configuration.",
             command: &[
                 "sq", "config", "template",
             ],
+            hide: &[],
         }),
     ]
 };

@@ -181,6 +181,7 @@ Add a new signing-capable subkey to Alice's key.",
                 "--can-sign",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
+            hide: &[],
         }),
     ]
 };

@@ -65,6 +65,7 @@ Set the default cipher suite for key generation.",
                 "sq", "config", "set", "key.generate.cipher-suite",
                 "rsa3k",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -74,6 +75,7 @@ Delete the default cipher suite for key generation.",
                 "sq", "config", "set", "key.generate.cipher-suite",
                 "--delete",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -83,6 +85,7 @@ Add a default key server for network queries.",
                 "sq", "config", "set", "network.keyservers",
                 "--add", "hkps://keys.example.org",
             ],
+            hide: &[],
         }),
     ]
 };

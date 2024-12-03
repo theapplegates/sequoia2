@@ -79,6 +79,7 @@ Certify EB28F26E2739A4870ECC47726F0073F60FD0CBF0 for alice@example.org.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -92,6 +93,7 @@ for example.org.",
                 "--domain=example.org",
                 "--all",
             ],
+            hide: &[],
         }),
     ],
 };

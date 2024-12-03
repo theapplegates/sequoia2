@@ -29,6 +29,7 @@ Create a signed message.",
                 "--message",
                 "document.txt",
             ],
+            hide: &[],
         }),
         Action::Example(Example {
             comment: "\
@@ -37,6 +38,7 @@ Create a detached signature.",
                 "sq", "sign", "--signer-file", "juliet-secret.pgp",
                 "--signature-file", "document.txt",
             ],
+            hide: &[],
         }),
         Action::Example(Example {
             comment: "\
@@ -46,6 +48,7 @@ Create a signature with the specified creation time.",
                 "--time", "2024-02-29",
                 "--signature-file", "document.txt",
             ],
+            hide: &[],
         }),
     ]
 };

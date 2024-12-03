@@ -66,6 +66,7 @@ Export Alice's certificate with all available secret key material.",
                 "sq", "key", "export",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -76,6 +77,7 @@ identified by email address.",
                 "sq", "key", "export",
                 "--cert-email", "alice@example.org",
             ],
+            hide: &[],
         }),
     ]
 };

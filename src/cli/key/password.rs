@@ -77,6 +77,7 @@ specified file.",
                 "--new-password-file", "password-file.txt",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0"
             ],
+            hide: &[],
         }),
         Action::Example(Example {
             comment: "\
@@ -87,6 +88,7 @@ Clear the password protection for all of Alice's keys.",
                 "--clear-password",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0"
             ],
+            hide: &[],
         }),
     ]
 };

@@ -31,6 +31,7 @@ List all configuration options.",
             command: &[
                 "sq", "config", "get",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -39,6 +40,7 @@ Get the default cipher suite for key generation.",
             command: &[
                 "sq", "config", "get", "key.generate.cipher-suite",
             ],
+            hide: &[],
         }),
     ]
 };

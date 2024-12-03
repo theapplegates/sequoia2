@@ -33,6 +33,7 @@ Verify a signed message.",
             command: &[
                 "sq", "verify", "--message", "document.pgp",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -41,6 +42,7 @@ Verify a detached signature.",
             command: &[
                 "sq", "verify", "--signature-file=document.sig", "document.txt",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -50,6 +52,7 @@ Verify a message as of June 19, 2024 at midnight UTC.",
                 "sq", "verify", "--time", "2024-06-19",
                 "--message", "document.pgp",
             ],
+            hide: &[],
         }),
     ]
 };

@@ -29,6 +29,7 @@ Download and verify the Debian 12 checksum file.",
                 "--signer=DF9B9C49EAA9298432589D76DA87E80D6294BE9B",
                 "--output=SHA512SUMS",
             ],
+            hide: &[],
         }),
     ]
 };

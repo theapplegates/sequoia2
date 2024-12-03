@@ -51,6 +51,7 @@ Add a new user ID to Alice's key.",
                 "--name", "Alice",
                 "--email", "alice@work.example.com",
             ],
+            hide: &[],
         }),
     ]
 };
@@ -178,6 +179,7 @@ Retire a user ID on Alice's key.",
                 "--reason", "retired",
                 "--message", "No longer at example.org.",
             ],
+            hide: &[],
         }),
     ]
 };

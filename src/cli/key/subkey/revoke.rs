@@ -185,6 +185,7 @@ Revoke Alice's signing subkey.",
                 "--reason", "retired",
                 "--message", "Subkey rotation.",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -198,6 +199,7 @@ Revoke Alice's signing subkey and encryption subkeys.",
                 "--reason", "retired",
                 "--message", "Subkey rotation.",
             ],
+            hide: &[],
         }),
     ],
 };

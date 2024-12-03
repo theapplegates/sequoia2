@@ -29,6 +29,7 @@ example.org, and that can be authenticated.",
             command: &[
                 "sq", "cert", "list", "@example.org",
             ],
+            hide: &[],
         })
     ]
 };

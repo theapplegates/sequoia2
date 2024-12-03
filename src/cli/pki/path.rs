@@ -70,6 +70,7 @@ Verify that Alice ceritified a particular User ID for Bob's certificate.",
                 "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
                 "--userid", "Bob <bob@example.org>",
             ],
+            hide: &[],
         })
     ],
 };

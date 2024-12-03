@@ -25,6 +25,7 @@ Decrypt a file using a secret key",
                 "sq", "decrypt",
                 "--recipient-file", "juliet-secret.pgp", "ciphertext.pgp",
             ],
+            hide: &[],
         }),
         Action::Example(Example {
             comment: "\
@@ -35,6 +36,7 @@ Decrypt a file verifying signatures",
                 "--signer-file", "romeo.pgp",
                 "ciphertext.pgp"
             ],
+            hide: &[],
         }),
         Action::Setup(Setup {
             command: &[
@@ -47,6 +49,7 @@ Decrypt a file using the key store",
             command: &[
                 "sq", "decrypt", "ciphertext.pgp",
             ],
+            hide: &[],
         }),
     ]
 };

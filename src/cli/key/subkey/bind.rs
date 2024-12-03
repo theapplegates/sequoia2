@@ -171,6 +171,7 @@ Bind Alice's old authentication subkey to Alice's new certificate.",
                 "--cert=C5999E8191BF7B503653BE958B1F7910D01F86E5",
                 "--key=0D45C6A756A038670FDFD85CB1C82E8D27DB23A1",
             ],
+            hide: &[],
         }),
         Action::Example(Example {
             comment: "\
@@ -184,6 +185,7 @@ keys, e.g., keys generated on an OpenPGP card, a TPM device, etc.",
                 "--key=B321BA8F650CB16443E06826DBFA98A78CF6562F",
                 "--can-encrypt=universal",
             ],
+            hide: &[],
         }),
     ]
 };

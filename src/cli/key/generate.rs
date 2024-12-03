@@ -268,6 +268,7 @@ Generate a key, and save it on the key store.",
                 "--name", "Alice",
                 "--email", "alice@example.org",
             ],
+            hide: &[],
         }),
         Action::Example(Example {
             comment: "\
@@ -280,6 +281,7 @@ Generate a key, and save it in a file instead of in the key store.",
                 "--output", "alice-priv.pgp",
                 "--rev-cert", "alice-priv.rev",
             ],
+            hide: &[],
         }),
         Action::Example(Example {
             comment: "\
@@ -289,6 +291,7 @@ Strip the secret key material from the new key.",
                 "--cert-file=alice-priv.pgp",
                 "--output=alice.pgp",
             ],
+            hide: &[],
         }),
     ]
 };

@@ -33,6 +33,7 @@ Encrypt a file for a recipient given by fingerprint.",
                 "--for", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "document.txt",
             ],
+            hide: &[],
         }),
         Action::Example(Example {
             comment: "\
@@ -41,6 +42,7 @@ Encrypt a file for a recipient given by email.",
                 "sq", "encrypt", "--for-email", "alice@example.org",
                 "document.txt",
             ],
+            hide: &[],
         }),
     ]
 };

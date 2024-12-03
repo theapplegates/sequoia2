@@ -192,6 +192,7 @@ Convert all keys to certificates (i.e. remove any secret key material).",
                 "--to-cert",
                 "certs.pgp",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -203,6 +204,7 @@ Get all certificates with a user ID on example.org.",
                 "--domain=example.org",
                 "certs.pgp",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -215,6 +217,7 @@ Get all certificates with a user ID on example.org or example.net.",
                 "--domain=example.net",
                 "certs.pgp",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -226,6 +229,7 @@ Get all certificates with a name user ID matching Romeo.",
                 "--name=Romeo",
                 "certs.pgp",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -240,6 +244,7 @@ Get all certificates with a name user ID matching Romeo on example.org.",
                 "--experimental",
                 "--name=Romeo",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -252,6 +257,7 @@ Get all certificates with a user ID on example.org, pruning other user IDs.",
                 "--prune-certs",
                 "certs.pgp",
             ],
+            hide: &[],
         }),
     ],
 };
@@ -298,6 +304,7 @@ const MERGE_EXAMPLES: Actions = Actions {
                 "sq", "keyring", "merge",
                 "bob.pgp", "bob-updates.pgp",
             ],
+            hide: &[],
         }),
     ],
 };
@@ -347,6 +354,7 @@ const LIST_EXAMPLES: Actions = Actions {
                 "sq", "keyring", "list",
                 "certs.pgp",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -359,6 +367,7 @@ List all certificates with a user ID on example.org.",
                 "certs.pgp",
                 "|", "sq", "keyring", "list",
             ],
+            hide: &[],
         }),
     ],
 };
@@ -409,6 +418,7 @@ const SPLIT_EXAMPLES: Actions = Actions {
                 "sq", "keyring", "split",
                 "certs.pgp",
             ],
+            hide: &[],
         }),
 
 
@@ -420,6 +430,7 @@ Split all certificates, merging them first to avoid duplicates.",
                 "certs.pgp",
                 "|", "sq", "keyring", "split",
             ],
+            hide: &[],
         }),
     ],
 };

@@ -73,6 +73,7 @@ Identify the user IDs that can be authenticated for the certificate.",
                 "sq", "pki", "identify",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
+            hide: &[],
         }),
         Action::Example(Example {
             comment: "\
@@ -81,6 +82,7 @@ List all user IDs that have that have been certified by anyone.",
                 "sq", "pki", "identify", "--gossip",
                 "--cert", "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
             ],
+            hide: &[],
         }),
     ]
 };

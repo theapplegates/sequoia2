@@ -124,6 +124,7 @@ const PUBLISH_EXAMPLES: Actions = Actions {
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--domain=example.org", "public_html",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -134,6 +135,7 @@ const PUBLISH_EXAMPLES: Actions = Actions {
                 "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
                 "--domain=example.org", "public_html",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -146,6 +148,7 @@ in example.org to the existing WKD hierarchy.",
                 "--all",
                 "public_html",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -156,6 +159,7 @@ in example.org to the existing WKD hierarchy.",
                 "sq", "network", "wkd", "publish",
                 "--domain=example.org", "public_html",
             ],
+            hide: &[],
         }),
     ],
 };

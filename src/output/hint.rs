@@ -97,7 +97,7 @@ impl Command {
 
             eprintln!();
             eprintln!("{}", crate::cli::examples::wrap_command(
-                &self.args, "  ", width, "    ", width));
+                &self.args, &[], "  ", width, "    ", width));
         }
 
         if cfg!(debug_assertions) && self.args[0] == "sq" {

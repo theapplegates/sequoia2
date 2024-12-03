@@ -43,6 +43,7 @@ for example.org and example.com.",
                 "--domain=example.com",
                 "--all",
             ],
+            hide: &[],
         }),
     ],
 };

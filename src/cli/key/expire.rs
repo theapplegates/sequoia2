@@ -23,6 +23,7 @@ const EXAMPLES: Actions = Actions {
                 "sq", "key", "expire", "--expiration", "1y",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -31,6 +32,7 @@ const EXAMPLES: Actions = Actions {
                 "sq", "key", "expire", "--expiration", "never",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
+            hide: &[],
         }),
     ],
 };

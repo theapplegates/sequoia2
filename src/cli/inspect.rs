@@ -19,6 +19,7 @@ Inspect a certificate.",
             command: &[
                 "sq", "inspect", "juliet.pgp",
             ],
+            hide: &[],
         }),
         Action::Example(Example {
             comment: "\
@@ -26,6 +27,7 @@ Show how the certificate looked on July 21, 2013.",
             command: &[
                 "sq", "inspect", "--time", "20130721", "juliet.pgp",
             ],
+            hide: &[],
         }),
         Action::Example(Example {
             comment: "\
@@ -33,6 +35,7 @@ Inspect an encrypted message.",
             command: &[
                 "sq", "inspect", "message.pgp",
             ],
+            hide: &[],
         }),
         Action::Example(Example {
             comment: "\
@@ -40,6 +43,7 @@ Inspect a detached signature.",
             command: &[
                 "sq", "inspect", "document.sig",
             ],
+            hide: &[],
         }),
     ]
 };

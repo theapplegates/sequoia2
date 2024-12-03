@@ -25,6 +25,7 @@ Revoke Alice's key, indicating that there is a new certificate.",
                 "--reason", "superseded",
                 "--message", "My new cert is C5999E8191BF7B503653BE958B1F7910D01F86E5",
             ],
+            hide: &[],
         }),
         Action::Example(Example {
             comment: "\
@@ -36,6 +37,7 @@ compromised.",
                 "--reason", "compromised",
                 "--message", "Computer attacked, secret key material compromised",
             ],
+            hide: &[],
         }),
     ]
 };

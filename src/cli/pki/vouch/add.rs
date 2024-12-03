@@ -33,6 +33,7 @@ Alice certifies that Bob controls 3F68CB84CE537C9A and bob@example.org.",
                 "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
                 "--email=bob@example.org",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -45,6 +46,7 @@ which is not a self-signed user ID.",
                 "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
                 "--email-or-add=bob@bobs.lair.net",
             ],
+            hide: &[],
         }),
     ],
 };

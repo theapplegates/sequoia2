@@ -98,6 +98,7 @@ Change Alice's authentication subkey to expire in 6 months.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--key=0D45C6A756A038670FDFD85CB1C82E8D27DB23A1",
             ],
+            hide: &[],
         }),
     ],
 };

@@ -87,6 +87,7 @@ Gather statistics on the certificates in a keyring.",
                 "sq", "cert", "lint",
                 "--cert-file", "certs.pgp",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -98,6 +99,7 @@ Fix a key with known problems.",
                 "|", "sq", "cert", "lint", "--fix", "--cert-file=-",
                 "|", "sq", "cert", "import"
             ],
+            hide: &[],
         }),
     ],
 };

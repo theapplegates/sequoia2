@@ -53,6 +53,7 @@ Lists the approved certifications on all the user IDs.",
                 "sq", "key", "approvals", "list",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -63,6 +64,7 @@ Lists the unapproved certifications on all the user IDs.",
                 "--pending",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -74,6 +76,7 @@ Lists all unapproved certifications on a given user ID.",
                 "--email=alice@example.org",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
+            hide: &[],
         }),
     ]
 };
@@ -170,6 +173,7 @@ Approve of all of the certifications on all of Alice's user IDs.",
                 "--add-all",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -182,6 +186,7 @@ discarding all prior approvals first.",
                 "--add-by=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -195,6 +200,7 @@ can be authenticated, discarding all prior approvals first.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--userid=Alice <alice@example.org>",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -205,6 +211,7 @@ Remove the approval of Bob's certification on all of Alice's user IDs.",
                 "--remove-by=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
+            hide: &[],
         }),
     ]
 };

@@ -48,6 +48,7 @@ Convert an ASCII armored OpenPGP message to a binary OpenPGP message.",
                 "--output=message.bin",
                 "message.pgp",
             ],
+            hide: &[],
         }),
     ],
 };

@@ -5,6 +5,8 @@
 //! data structures to describe the examples, mechanisms to format the
 //! examples, and infrastructure to execute the examples.
 
+use std::collections::BTreeMap;
+
 use clap::builder::IntoResettable;
 use clap::builder::Resettable;
 
@@ -51,6 +53,7 @@ pub struct Example<'a> {
     // A human-readable comment.
     pub comment: &'a str,
     pub command: &'a [ &'a str ],
+    pub hide: &'a [ &'a str ],
 }
 
 /// Builds up example actions in an extensible way.
@@ -65,7 +68,8 @@ impl<'a> ExampleBuilder<'a> {
             example: Example {
                 comment: "",
                 command: &[],
-            }
+                hide: &[],
+            },
         }
     }
 
@@ -84,6 +88,15 @@ impl<'a> ExampleBuilder<'a> {
     /// requires some ingenuity for it to stay const.
     pub const fn command(mut self, command: &'a [&'a str]) -> Self {
         self.example.command = command;
+        self
+    }
+
+    /// Hides the parameters in the output
+    ///
+    /// Skip these parameters when generating human readable output
+    #[allow(unused)]
+    pub const fn hide(mut self, hide: &'a [&'a str]) -> Self {
+        self.example.hide = hide;
         self
     }
 
@@ -200,6 +213,7 @@ impl<'a> IntoResettable<clap::builder::StyledStr> for Actions<'a> {
                 //
                 //   warning: Continuation in example exceeds 57 chars:
                 let command = wrap_command(&example.command,
+                                           &example.hide,
                                            "", width.min(64),
                                            "  ", width.min(57));
 
@@ -218,18 +232,35 @@ impl<'a> IntoResettable<clap::builder::StyledStr> for Actions<'a> {
 /// any continuations are prefixed with `continuation_indent` and
 /// wrapped to `continuation_width`.
 pub fn wrap_command<S: AsRef<str>>(command: &[S],
+                                   hide: &[S],
                                    indent: &str,
                                    to_width: usize,
                                    continuation_indent: &str,
                                    continuation_width: usize)
-                                   -> String
+    -> String
 {
     let prompt = platform! {
         unix => { "$" },
         windows => { ">" },
     };
 
-    command.iter()
+    let mut hide
+        = BTreeMap::from_iter(hide.iter().map(|s| (s.as_ref(), false)));
+
+    let result = command
+        .iter()
+        .filter(|&item| {
+            // Remove all of the items in command which are also in
+            // hide.
+            if let Some(used) = hide.get_mut(item.as_ref()) {
+                *used = true;
+                // Don't show it.
+                false
+            } else {
+                // Show it.
+                true
+            }
+        })
         .fold(vec![format!("{}{}", indent, prompt)], |mut s, arg| {
             let first = s.len() == 1;
 
@@ -273,7 +304,22 @@ pub fn wrap_command<S: AsRef<str>>(command: &[S],
 
             s
         })
-        .join("\n")
+        .join("\n");
+
+    #[cfg(debug_assertions)]
+    for (arg, used) in hide.into_iter() {
+        if ! used {
+            panic!("Example `{}` includes an argument to hide (`{}`), but the \
+                    argument wasn't used by the example!",
+                   command.iter()
+                       .map(|arg| arg.as_ref().to_string())
+                       .collect::<Vec<String>>()
+                       .join(" "),
+                   arg);
+        }
+    }
+
+    result
 }
 
 macro_rules! test_examples {

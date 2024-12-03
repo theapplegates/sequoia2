@@ -93,6 +93,7 @@ Search for the Qubes master signing certificate.",
             command: &[
                 "sq", "network", "search", "427F11FD0FAA4B080123F01CDDFA1A3E36879494",
             ],
+            hide: &[],
         }),
         Action::SyntaxCheck(Example {
             comment: "\
@@ -100,6 +101,7 @@ Search for certificates that have are associated with an email address.",
             command: &[
                 "sq", "network", "search", "alice@example.org",
             ],
+            hide: &[],
         })
     ]
 };

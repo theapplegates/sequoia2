@@ -65,6 +65,7 @@ Generate DANE records from juliet.pgp for example.org.",
                 "--domain=example.org",
                 "--cert-file=juliet.pgp",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -76,6 +77,7 @@ user ID in example.org.",
                 "--domain=example.org",
                 "--all",
             ],
+            hide: &[],
         }),
     ],
 };

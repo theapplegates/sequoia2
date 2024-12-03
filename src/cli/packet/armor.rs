@@ -65,6 +65,7 @@ Convert a binary OpenPGP message to an ASCII armored OpenPGP message.",
                 "sq", "packet", "armor",
                 "message.bin",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -76,6 +77,7 @@ explicitly choosing the armor label.",
                 "--label=message",
                 "message.bin",
             ],
+            hide: &[],
         }),
     ],
 };

@@ -73,6 +73,7 @@ with the email address alice@example.org.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -86,6 +87,7 @@ user IDs for a week.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -100,6 +102,7 @@ certificate is considered a trusted introducer for example.org.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -107,6 +110,7 @@ certificate is considered a trusted introducer for example.org.",
             command: &[
                 "sq", "pki", "link", "list",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -118,6 +122,7 @@ and any associated user IDs.  This effectively invalidates all links.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
+            hide: &[],
         }),
     ],
 };
@@ -244,6 +249,7 @@ with the email address alice@example.org.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -253,6 +259,7 @@ First, examine the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0.",
                 "sq", "inspect",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -266,6 +273,7 @@ user IDs for a week.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -278,6 +286,7 @@ user IDs.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
+            hide: &[],
         }),
     ],
 };
@@ -454,6 +463,7 @@ Add an unconstrained trusted introducer.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -466,6 +476,7 @@ Add a trusted introducer for example.org and example.com.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -478,6 +489,7 @@ Add a partially trusted introducer.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
+            hide: &[],
         }),
     ],
 };
@@ -554,6 +566,7 @@ with the email address alice@example.org.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -565,6 +578,7 @@ and the email address alice@example.org.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -576,6 +590,7 @@ and any associated user IDs.  This effectively invalidates all links.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--all",
             ],
+            hide: &[],
         }),
     ],
 };
@@ -632,6 +647,7 @@ with the email address alice@example.org.",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email=alice@example.org",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -639,6 +655,7 @@ with the email address alice@example.org.",
             command: &[
                 "sq", "pki", "link", "list",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -647,6 +664,7 @@ with the email address alice@example.org.",
                 "sq", "pki", "link", "list",
                 "--cert-domain=example.org",
             ],
+            hide: &[],
         }),
     ],
 };

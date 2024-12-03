@@ -69,6 +69,7 @@ Lookup certificates that can be authenticated for the given user ID.",
                 "sq", "pki", "lookup",
                 "--userid", "Alice <alice@example.org>"
             ],
+            hide: &[],
         }),
         Action::Example(Example {
             comment: "\
@@ -78,6 +79,7 @@ address, and that user ID can be authenticated.",
                 "sq", "pki", "lookup",
                 "--email", "alice@example.org",
             ],
+            hide: &[],
         }),
     ]
 };

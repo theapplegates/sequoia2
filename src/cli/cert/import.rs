@@ -14,6 +14,7 @@ const EXAMPLES: Actions = Actions {
             command: &[
                 "sq", "cert", "import", "juliet.pgp",
             ],
+            hide: &[],
         }),
     ]
 };

@@ -83,7 +83,8 @@ Authenticate a specific binding.",
                 "sq", "pki", "authenticate",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--userid", "Alice <alice@example.org>",
-            ]
+            ],
+            hide: &[],
         }),
         Action::Example(Example {
             comment: "\
@@ -94,6 +95,7 @@ address for the given certificate.",
                 "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
                 "--email", "alice@example.org",
             ],
+            hide: &[],
         }),
     ]
 };

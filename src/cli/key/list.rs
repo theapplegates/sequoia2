@@ -54,6 +54,7 @@ List the keys managed by the keystore server.",
             command: &[
                 "sq", "key", "list",
             ],
+            hide: &[],
         }),
 
         Action::Example(Example {
@@ -64,6 +65,7 @@ with a user ID in example.org.",
                 "sq", "key", "list",
                 "--cert-domain=example.org",
             ],
+            hide: &[],
         }),
     ]
 };

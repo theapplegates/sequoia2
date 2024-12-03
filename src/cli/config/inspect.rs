@@ -5,6 +5,7 @@ use clap::{
     Subcommand,
 };
 
+pub mod network;
 pub mod paths;
 pub mod policy;
 
@@ -32,5 +33,6 @@ pub struct Command {
 #[non_exhaustive]
 pub enum Subcommands {
     Paths(paths::Command),
+    Network(network::Command),
     Policy(policy::Command),
 }

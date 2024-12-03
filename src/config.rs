@@ -227,18 +227,20 @@ impl Config {
     /// - If the command line flag is not given, then
     ///   - use the value from the configuration file (if any),
     ///   - or use the default value.
-    pub fn key_servers<'s>(&'s self, cli: &'s Vec<String>,
-                           source: Option<ValueSource>)
-                           -> impl Iterator<Item = &'s str> + 's
+    pub fn key_servers<'s, S>(&'s self, cli: &'s [S],
+                              source: Option<ValueSource>)
+                              -> impl Iterator<Item = &'s str> + 's
+    where
+        S: AsRef<str> + 's,
     {
         match source.expect("set by the cli parser") {
             ValueSource::DefaultValue =>
                 self.key_servers.as_ref()
                 .map(|s| Box::new(s.iter().map(|s| s.as_str()))
                      as Box<dyn Iterator<Item = &str>>)
-                .unwrap_or_else(|| Box::new(cli.iter().map(|s| s.as_str()))
+                .unwrap_or_else(|| Box::new(cli.iter().map(|s| s.as_ref()))
                                 as Box<dyn Iterator<Item = &str>>),
-            _ => Box::new(cli.iter().map(|s| s.as_str()))
+            _ => Box::new(cli.iter().map(|s| s.as_ref()))
                 as Box<dyn Iterator<Item = &str>>,
         }
     }

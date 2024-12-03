@@ -1,6 +1,8 @@
 //! Formats hints for users.
 
 use std::fmt;
+use std::io::IsTerminal;
+use std::io::Write;
 
 /// Formats a hint for the user.
 pub struct Hint {
@@ -82,6 +84,15 @@ impl Command {
     /// Emits the command hint.
     pub fn done(self) -> Hint {
         if ! self.hint.quiet {
+            // If we're connected to a terminal, flush stdout to
+            // reduce the chance of incorrectly interleaving output
+            // and hints.
+            let mut stdout = std::io::stdout();
+            if stdout.is_terminal() {
+                // Best effort.
+                let _ = stdout.flush();
+            }
+
             let width = crate::output::wrapping::stderr_terminal_width();
 
             eprintln!();

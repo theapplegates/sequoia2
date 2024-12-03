@@ -21,8 +21,10 @@ macro_rules! weprintln {
 
     { indent=$i: expr, $($arg: expr),* } => {{
         let i = $i;
-        crate::output::wrapping::iweprintln(i.as_ref(), i.as_ref(),
-                                            format_args!($($arg),*))
+        crate::output::wrapping::iwwriteln(
+            &mut std::io::stderr(),
+            i.as_ref(), i.as_ref(),
+            format_args!($($arg),*))
     }};
 
     {
@@ -32,8 +34,10 @@ macro_rules! weprintln {
     } => {{
         let ii = $ii;
         let si = $si;
-        crate::output::wrapping::iweprintln(ii.as_ref(), si.as_ref(),
-                                            format_args!($($arg),*))
+        crate::output::wrapping::iwwriteln(
+            &mut std::io::stderr(),
+            ii.as_ref(), si.as_ref(),
+            format_args!($($arg),*))
     }};
 
     {
@@ -42,12 +46,15 @@ macro_rules! weprintln {
     } => {{
         let ii = $ii;
         let si = format!("{:1$}", "", ii.len());
-        crate::output::wrapping::iweprintln(ii.as_ref(), si.as_ref(),
-                                            format_args!($($arg),*))
+        crate::output::wrapping::iwwriteln(
+            &mut std::io::stderr(),
+            ii.as_ref(), si.as_ref(),
+            format_args!($($arg),*))
     }};
 
     { $($arg: expr),* } => {
-        crate::output::wrapping::weprintln(format_args!($($arg),*))
+        crate::output::wrapping::wwriteln(
+            &mut std::io::stderr(), format_args!($($arg),*))
     };
 }
 

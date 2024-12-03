@@ -1,36 +1,51 @@
 //! Line wrapping human-readable output.
 
 use std::fmt;
+use std::io::Write;
 use std::sync::OnceLock;
 
 /// A non-breaking space.
 pub const NBSP: char = '\u{00A0}';
 
-/// Prints the given message to stderr.
+/// Prints the given message to the specified stream.
 ///
 /// Hint: Use `weprintln!(..)` instead of invoking this function
 /// directly.
-pub fn weprintln(msg: fmt::Arguments) {
+///
+/// Like [`eprintln!`], panics if writing to the stream fails.
+///
+///   [`eprintln!`]: https://doc.rust-lang.org/stable/std/macro.eprintln.html
+pub fn wwriteln(stream: &mut dyn Write, msg: fmt::Arguments) {
     let m = format!("{}", msg);
     for l in textwrap::wrap(&m, options()) {
-        eprintln!("{}", l);
+        if let Err(err) = writeln!(stream, "{}", l) {
+            panic!("Writing to output: {}", err);
+        }
     }
 }
 
-/// Prints the given message to stderr, indenting continuations.
+/// Prints the given message to the specified stream, indenting
+/// continuations.
 ///
 /// Hint: Use `weprintln!(indent="...", ..)` or
 /// `weprintln!(initial_indent="...", subsequent_indent="...", ..)`
 /// instead of invoking this function directly.
-pub fn iweprintln(initial_indent: &str,
-                  subsequent_indent: &str,
-                  msg: fmt::Arguments) {
+///
+/// Like [`eprintln!`], panics if writing to the stream fails.
+///
+///   [`eprintln!`]: https://doc.rust-lang.org/stable/std/macro.eprintln.html
+pub fn iwwriteln(stream: &mut dyn Write,
+                 initial_indent: &str,
+                 subsequent_indent: &str,
+                 msg: fmt::Arguments) {
     let m = format!("{}", msg);
     for l in textwrap::wrap(&m,
                             options()
                             .initial_indent(initial_indent)
                             .subsequent_indent(subsequent_indent)) {
-        eprintln!("{}", l);
+        if let Err(err) = writeln!(stream, "{}", l) {
+            panic!("Writing to output: {}", err);
+        }
     }
 }
 

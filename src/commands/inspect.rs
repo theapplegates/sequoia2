@@ -42,6 +42,7 @@ use crate::SECONDS_IN_DAY;
 use crate::cli::inspect;
 use crate::cli::types::FileOrStdout;
 use crate::commands::packet::dump::PacketDumper;
+use crate::common::NULL_POLICY;
 use crate::common::PreferredUserID;
 
 /// Width of the largest key of any key, value pair we emit.
@@ -224,6 +225,34 @@ where
             }
             for pkesk in pkesks.iter() {
                 writeln!(output, "      Recipient: {}", pkesk.recipient())?;
+
+                // Lookup the certificate, if possible.  Prefer a
+                // binding that is valid according to the current
+                // policy.  Otherwise, fall back to the NULL policy.
+                if let Ok(certs) = sq.lookup(Some(KeyHandle::from(pkesk.recipient())),
+                                             None, true, true)
+                    .or_else(|_| {
+                        sq.lookup_with_policy(
+                            Some(KeyHandle::from(pkesk.recipient())),
+                            None, true, true,
+                            NULL_POLICY, sq.time)
+                    })
+                {
+                    if certs.len() == 1 {
+                        writeln!(output, "        Associated certificate:")?;
+                    } else {
+                        writeln!(output, "        Associated certificates:")?;
+                    }
+
+                    for cert in certs {
+                        writeln!(output, "          {}",
+                                 cert.fingerprint())?;
+                        writeln!(output, "          {}",
+                                 sq.best_userid(&cert, true))?;
+                    }
+                } else {
+                    writeln!(output, "        Associated certificate not available")?;
+                }
             }
             inspect_signatures(sq, output, &sigs)?;
             if ! literal_prefix.is_empty() {

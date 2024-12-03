@@ -62,6 +62,7 @@ pub fn add(sq: Sq, c: link::AddCommand)
     };
 
     crate::common::pki::certify::certify(
+        &mut std::io::stdout(),
         &sq,
         c.recreate, // Recreate.
         &trust_root,
@@ -94,6 +95,7 @@ pub fn authorize(sq: Sq, c: link::AuthorizeCommand)
     let notations = parse_notations(c.notation)?;
 
     crate::common::pki::certify::certify(
+        &mut std::io::stdout(),
         &sq,
         c.recreate, // Recreate.
         &trust_root,
@@ -126,6 +128,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
     let notations = parse_notations(c.notation)?;
 
     crate::common::pki::certify::certify(
+        &mut std::io::stdout(),
         &sq,
         c.recreate, // Recreate.
         &trust_root,

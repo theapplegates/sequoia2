@@ -39,11 +39,12 @@ use crate::commands::active_certification;
 //   - Regular expressions
 //   - Notations
 //   - Exportable
-pub fn diff_certification(sq: &Sq, old: &Signature, new: &SignatureBuilder,
+pub fn diff_certification(o: &mut dyn std::io::Write,
+                          sq: &Sq, old: &Signature, new: &SignatureBuilder,
                           new_ct: SystemTime)
     -> bool
 {
-    make_qprintln!(sq.quiet());
+    make_qprintln!(o, sq.quiet());
     let mut changed = false;
 
     let a_expiration = old.signature_expiration_time();
@@ -158,7 +159,8 @@ pub fn diff_certification(sq: &Sq, old: &Signature, new: &SignatureBuilder,
 ///
 /// If the trust amount is 0, the operation is interpreted as a
 /// retraction and the wording is changed accordingly.
-pub fn certify(sq: &Sq,
+pub fn certify(o: &mut dyn std::io::Write,
+               sq: &Sq,
                recreate: bool,
                certifier: &Cert,
                cert: &Cert,
@@ -177,7 +179,7 @@ pub fn certify(sq: &Sq,
 {
     assert!(templates.len() > 0);
     assert!(userids.len() > 0);
-    make_qprintln!(sq.quiet());
+    make_qprintln!(o, sq.quiet());
 
     if certifier.fingerprint() == cert.fingerprint() {
         sq.hint(
@@ -364,6 +366,7 @@ The certifier is the same as the certificate to certify."));
                 }
 
                 let changed = diff_certification(
+                    o,
                     &sq,
                     &active_certification,
                     &builders[0], sq.time);

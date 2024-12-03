@@ -27,6 +27,7 @@ pub fn add(sq: Sq, mut c: add::Command)
     let notations = parse_notations(&c.notation)?;
 
     crate::common::pki::certify::certify(
+        &mut std::io::stderr(),
         &sq,
         true, // Always recreate.
         &certifier,

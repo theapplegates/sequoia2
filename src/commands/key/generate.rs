@@ -278,6 +278,7 @@ pub fn generate(
                     // Mark all user IDs as authenticated, and mark
                     // the key as a trusted introducer.
                     crate::common::pki::certify::certify(
+                        &mut std::io::stderr(),
                         &sq,
                         false, // Recreate.
                         &trust_root,
@@ -299,6 +300,7 @@ pub fn generate(
                 } else if command.shared_key {
                     // Mark all user IDs as authenticated.
                     crate::common::pki::certify::certify(
+                        &mut std::io::stderr(),
                         &sq,
                         false, // Recreate.
                         &trust_root,

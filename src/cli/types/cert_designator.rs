@@ -14,6 +14,7 @@ use openpgp::packet::UserID;
 use crate::cli::config;
 use crate::cli::encrypt::ENCRYPT_FOR_SELF;
 use crate::cli::sign::SIGNER_SELF;
+use crate::cli::pki::vouch::CERTIFIER_SELF;
 use crate::cli::types::SpecialName;
 
 /// The prefix for the designators.
@@ -767,6 +768,29 @@ This adds the certificates listed in the configuration file under \
                             format!("The following keys will be added: {}.", certs)
                         } else {
                             "Currently, the list of keys to be added is empty."
+                                .into()
+                        }),
+                ),
+
+                "certifier" => (
+                    "Create the certification using your default certification \
+                     key",
+                    format!(
+"Create the certification using your default certification key
+
+This uses the certificates set in the configuration file under \
+`{}` as certification key.
+
+{}
+",
+                        CERTIFIER_SELF,
+                        if let Some(cert)
+                            = config::get_augmentation(CERTIFIER_SELF)
+                        {
+                            format!("The following key will be used: {}.",
+                                    cert)
+                        } else {
+                            "Currently, there is no default certification key."
                                 .into()
                         }),
                 ),

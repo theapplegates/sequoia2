@@ -2105,28 +2105,41 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 },
 
                 cert_designator::CertDesignator::Self_ => {
-                    let (certs, config) = match Prefix::name() {
-                        "for" => (self.config.encrypt_for_self(),
-                                  cli::encrypt::ENCRYPT_FOR_SELF),
-                        "signer" => (self.config.sign_signer_self(),
-                                     cli::sign::SIGNER_SELF),
+                    let (certs, config): (Box<dyn Iterator<Item=&Fingerprint>>, _)
+                        = match Prefix::name()
+                    {
+                        "for" => (
+                            Box::new(self.config.encrypt_for_self().iter()),
+                            cli::encrypt::ENCRYPT_FOR_SELF,
+                        ),
+                        "signer" => (
+                            Box::new(self.config.sign_signer_self().iter()),
+                            cli::sign::SIGNER_SELF,
+                        ),
+                        "certifier" => (
+                            Box::new(self.config.pki_vouch_certifier_self().iter()),
+                            cli::pki::vouch::CERTIFIER_SELF,
+                        ),
                         _ => return Err(anyhow::anyhow!(
                             "self designator used with unexpected prefix")),
                     };
 
-                    if certs.is_empty() {
-                        return Err(anyhow::anyhow!(
-                            "`--for-self` is given but the list of \
-                             certificates in `{}` is empty",
-                            config));
-                    }
-
+                    let mut one = false;
                     for fp in certs {
                         let cert = self.resolve_cert(
                             &openpgp::KeyHandle::from(fp.clone()).into(), 0)?.0;
                         ret(designator,
                             Ok(Arc::new(cert.into())),
                             true, true);
+                        one = true;
+                    }
+
+                    if ! one {
+                        return Err(anyhow::anyhow!(
+                            "`--{}-self` is given but no default \
+                             is set in the configuration file under `{}`",
+                            Prefix::name(),
+                            config));
                     }
                 },
             }

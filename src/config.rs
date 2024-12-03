@@ -54,6 +54,10 @@ pub struct Config {
     /// The set of signing keys selected using `--signer-self`.
     sign_signer_self: BTreeSet<Fingerprint>,
 
+    /// The default certification key selected using
+    /// `--certifier-self`.
+    pki_vouch_certifier_self: Option<Fingerprint>,
+
     policy_path: Option<PathBuf>,
     policy_inline: Option<Vec<u8>>,
     cipher_suite: Option<sequoia_openpgp::cert::CipherSuite>,
@@ -82,6 +86,7 @@ impl Default for Config {
             hints: None,
             encrypt_for_self: Default::default(),
             sign_signer_self: Default::default(),
+            pki_vouch_certifier_self: None,
             policy_path: None,
             policy_inline: None,
             cipher_suite: None,
@@ -166,6 +171,12 @@ impl Config {
     /// signers if `--signer-self` is given.
     pub fn sign_signer_self(&self) -> &BTreeSet<Fingerprint> {
         &self.sign_signer_self
+    }
+
+    /// Returns the key that should be used as certifier if
+    /// `--certifier-self` is given.
+    pub fn pki_vouch_certifier_self(&self) -> &Option<Fingerprint> {
+        &self.pki_vouch_certifier_self
     }
 
     /// Returns the path to the referenced cryptographic policy, if
@@ -288,6 +299,9 @@ impl ConfigFile {
 
 [sign]
 #signer-self = [\"fingerprint of your key\"]
+
+[pki.vouch]
+#certifier-self = \"fingerprint of your key\"
 
 [key.generate]
 #cipher-suite = <DEFAULT-CIPHER-SUITE>
@@ -704,6 +718,7 @@ const TOP_LEVEL_SCHEMA: Schema = &[
     ("encrypt", apply_encrypt),
     ("key", apply_key),
     ("network", apply_network),
+    ("pki", apply_pki),
     ("policy", apply_policy),
     ("servers", apply_servers),
     ("sign", apply_sign),
@@ -872,6 +887,62 @@ fn apply_sign_signer_self(config: &mut Option<&mut Config>,
 
     if let Some(config) = config {
         config.sign_signer_self = values;
+    }
+
+    Ok(())
+}
+
+/// Schema for the `pki` section.
+const PKI_SCHEMA: Schema = &[
+    ("vouch", apply_pki_vouch),
+];
+
+/// Validates the `pki` section.
+fn apply_pki(config: &mut Option<&mut Config>,
+              cli: &mut Option<&mut Augmentations>,
+              path: &str, item: &Item)
+              -> Result<()>
+{
+    let section = item.as_table_like()
+        .ok_or_else(|| Error::bad_item_type(path, item, "table"))?;
+    apply_schema(config, cli, Some(path), section.iter(), PKI_SCHEMA)?;
+    Ok(())
+}
+
+/// Schema for the `pki.vouch` section.
+const PKI_VOUCH_SCHEMA: Schema = &[
+    ("certifier-self", apply_pki_vouch_certifier_self),
+];
+
+/// Validates the `pki.vouch` section.
+fn apply_pki_vouch(config: &mut Option<&mut Config>,
+              cli: &mut Option<&mut Augmentations>,
+              path: &str, item: &Item)
+              -> Result<()>
+{
+    let section = item.as_table_like()
+        .ok_or_else(|| Error::bad_item_type(path, item, "table"))?;
+    apply_schema(config, cli, Some(path), section.iter(), PKI_VOUCH_SCHEMA)?;
+    Ok(())
+}
+
+/// Validates the `pki.vouch.certifier-self` value.
+fn apply_pki_vouch_certifier_self(config: &mut Option<&mut Config>,
+                                  cli: &mut Option<&mut Augmentations>,
+                                  path: &str, item: &Item)
+                                  -> Result<()>
+{
+    let s = item.as_str()
+        .ok_or_else(|| Error::bad_item_type(path, item, "string"))?;
+
+    let fp = s.parse::<Fingerprint>()?;
+
+    if let Some(cli) = cli {
+        cli.insert("pki.vouch.certifier-self", fp.to_string());
+    }
+
+    if let Some(config) = config {
+        config.pki_vouch_certifier_self = Some(fp);
     }
 
     Ok(())

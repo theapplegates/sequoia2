@@ -85,7 +85,7 @@ reference time.
 }))]
 pub struct Command {
     #[command(flatten)]
-    pub certifier: CertDesignators<CertUserIDEmailFileArgs,
+    pub certifier: CertDesignators<CertUserIDEmailFileSelfArgs,
                                    CertifierPrefix,
                                    OneValue,
                                    CertifierDoc>,

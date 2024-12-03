@@ -333,7 +333,8 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
 
                                     if ! self.quiet {
                                         let _ =
-                                            print_path(&path.into(), userid,
+                                            print_path(&mut std::io::stderr(),
+                                                       &path.into(), userid,
                                                        &prefix);
                                     }
                                 }

@@ -67,6 +67,7 @@ fn have_self_signed_userid(cert: &Cert,
 /// If `gossip` is specified, paths that are not rooted are still
 /// shown (with a trust amount of 0, of course).
 pub fn authenticate<'store, 'rstore>(
+    o: &mut dyn std::io::Write,
     sq: &Sq<'store, 'rstore>,
     precompute: bool,
     list_pattern: Option<String>,
@@ -222,7 +223,7 @@ pub fn authenticate<'store, 'rstore>(
     let mut lint_input = true;
 
     let mut output = ConciseHumanReadableOutputNetwork::new(
-        &sq, required_amount, show_paths);
+        o, &sq, required_amount, show_paths);
 
     for (fingerprint, userid) in bindings.iter() {
         let paths = if gossip {

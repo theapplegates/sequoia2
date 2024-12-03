@@ -394,6 +394,7 @@ pub fn dispatch(sq: Sq, c: download::Command)
                                               sq.best_userid(&cert, true));
 
                                     let good = authenticate(
+                                        &mut std::io::stderr(),
                                         &sq,
                                         false, // precompute
                                         None, // list pattern

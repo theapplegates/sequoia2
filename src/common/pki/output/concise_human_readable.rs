@@ -32,18 +32,20 @@ use crate::output::wrapping::NBSP;
 use super::OutputType;
 
 /// Prints a Path Error
-pub fn print_path_error(err: Error) {
-    weprintln!(initial_indent = "└   ", "Checking path: {}", err);
+pub fn print_path_error(output: &mut dyn std::io::Write, err: Error) {
+    wwriteln!(stream=output, initial_indent = "└   ", "Checking path: {}", err);
 }
 
 /// Prints information of a Path for a target UserID associated with a KeyHandle
 pub fn print_path_header(
+    output: &mut dyn std::io::Write,
     target_kh: &KeyHandle,
     target_userid: &UserID,
     amount: usize,
     required_amount: usize,
 ) {
-    weprintln!(
+    wwriteln!(
+        stream=output,
         initial_indent="",
         subsequent_indent="    ",
         "[{}] {} {}: {} authenticated ({}%)",
@@ -70,29 +72,30 @@ pub fn print_path_header(
 }
 
 /// Prints information on a Path for a UserID
-pub fn print_path(path: &PathLints, target_userid: &UserID, prefix: &str)
-                  -> Result<()>
+pub fn print_path(output: &mut dyn std::io::Write,
+                  path: &PathLints, target_userid: &UserID, prefix: &str)
+    -> Result<()>
 {
     let certification_count = path.certifications().count();
-    weprintln!(initial_indent=format!("{}◯─┬ ", prefix),
-               subsequent_indent=format!("{}│ │ ", prefix),
-               "{}", path.root().key_handle());
-    weprintln!(initial_indent=format!("{}│ └ ", prefix),
-               subsequent_indent=format!("{}│   ", prefix),
-               "{}",
-               if certification_count == 0 {
-                   format!("{:?}", String::from_utf8_lossy(target_userid.value()))
-               } else if let Some(userid) = path.root().primary_userid() {
-                   format!("({:?})", String::from_utf8_lossy(userid.value()))
-               } else {
-                   format!("")
-               });
+    wwriteln!(stream=output, initial_indent=format!("{}◯─┬ ", prefix),
+              subsequent_indent=format!("{}│ │ ", prefix),
+              "{}", path.root().key_handle());
+    wwriteln!(stream=output, initial_indent=format!("{}│ └ ", prefix),
+              subsequent_indent=format!("{}│   ", prefix),
+              "{}",
+              if certification_count == 0 {
+                  format!("{:?}", String::from_utf8_lossy(target_userid.value()))
+              } else if let Some(userid) = path.root().primary_userid() {
+                  format!("({:?})", String::from_utf8_lossy(userid.value()))
+              } else {
+                  format!("")
+              });
 
     if path.certifications().count() == 0 {
-        weprintln!(indent=prefix, "│");
-        weprintln!(initial_indent=format!("{}└── ", prefix),
-                   subsequent_indent=format!("{}    ", prefix),
-                   "Self-signed user ID.");
+        wwriteln!(stream=output, indent=prefix, "│");
+        wwriteln!(stream=output, initial_indent=format!("{}└── ", prefix),
+                  subsequent_indent=format!("{}    ", prefix),
+                  "Self-signed user ID.");
         return Ok(());
     }
 
@@ -157,13 +160,14 @@ pub fn print_path(path: &PathLints, target_userid: &UserID, prefix: &str)
             write!(&mut line, " No adequate certification found.")?;
         }
 
-        weprintln!(indent=prefix, "│");
-        weprintln!(indent=format!("{}│  ", prefix), "{}", line);
-        weprintln!(indent=prefix, "│");
+        wwriteln!(stream=output, indent=prefix, "│");
+        wwriteln!(stream=output, indent=format!("{}│  ", prefix), "{}", line);
+        wwriteln!(stream=output, indent=prefix, "│");
 
         for err in cert.errors().iter().chain(cert.lints()) {
             for (i, msg) in error_chain(err).into_iter().enumerate() {
-                weprintln!(
+                wwriteln!(
+                    stream=output,
                     indent=format!(
                         "{}│  {}", prefix, if i == 0 { "" } else { "  " }),
                     "{}", msg);
@@ -171,38 +175,42 @@ pub fn print_path(path: &PathLints, target_userid: &UserID, prefix: &str)
         }
         for err in certification.errors().iter().chain(certification.lints()) {
             for (i, msg) in error_chain(err).into_iter().enumerate() {
-                weprintln!(
+                wwriteln!(
+                    stream=output,
                     indent=format!(
                         "{}│  {}", prefix, if i == 0 { "" } else { "  " }),
                     "{}", msg);
             }
         }
 
-        weprintln!(initial_indent=format!("{}{}─┬ ", prefix,
-                                          if last { "└" } else { "├" }),
-                   subsequent_indent=format!("{}{} │ ", prefix,
-                                             if last { " " } else { "│" }),
-                   "{}", certification.target());
-        weprintln!(initial_indent=format!("{}{} └ ", prefix,
-                                          if last { " " } else { "│" }),
-                   subsequent_indent=format!("{}{}   ", prefix,
-                                             if last { " " } else { "│" }),
-                   "{}",
-                   if last {
-                       format!("{:?}", String::from_utf8_lossy(target_userid.value()))
-                   } else if let Some(userid) =
-                       certification.target_cert().and_then(|c| c.primary_userid())
-                   {
-                       format!("({:?})", String::from_utf8_lossy(userid.value()))
-                   } else {
-                       "".into()
-                   });
+        wwriteln!(stream=output,
+                  initial_indent=format!("{}{}─┬ ", prefix,
+                                         if last { "└" } else { "├" }),
+                  subsequent_indent=format!("{}{} │ ", prefix,
+                                            if last { " " } else { "│" }),
+                  "{}", certification.target());
+        wwriteln!(stream=output,
+                  initial_indent=format!("{}{} └ ", prefix,
+                                         if last { " " } else { "│" }),
+                  subsequent_indent=format!("{}{}   ", prefix,
+                                            if last { " " } else { "│" }),
+                  "{}",
+                  if last {
+                      format!("{:?}", String::from_utf8_lossy(target_userid.value()))
+                  } else if let Some(userid) =
+                  certification.target_cert().and_then(|c| c.primary_userid())
+                  {
+                      format!("({:?})", String::from_utf8_lossy(userid.value()))
+                  } else {
+                      "".into()
+                  });
 
         if last {
             let target = path.certs().last().expect("have one");
             for err in target.errors().iter().chain(target.lints()) {
                 for (i, msg) in error_chain(err).into_iter().enumerate() {
-                    weprintln!(
+                    wwriteln!(
+                        stream=output,
                         indent=format!(
                             "{}│  {}", prefix, if i == 0 { "" } else { "  " }),
                         "{}", msg);
@@ -211,13 +219,14 @@ pub fn print_path(path: &PathLints, target_userid: &UserID, prefix: &str)
         }
     }
 
-    weprintln!("");
+    wwriteln!(stream=output, "");
     Ok(())
 }
 
 /// The concise human-readable specific implementation of an
 /// OutputNetwork
 pub struct ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore> {
+    output: &'a mut dyn std::io::Write,
     sq: &'a Sq<'store, 'rstore>,
     paths: bool,
     required_amount: usize,
@@ -227,11 +236,13 @@ pub struct ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore> {
 
 impl<'a, 'store, 'rstore> ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore> {
     /// Creates a new ConciseHumanReadableOutputNetwork
-    pub fn new(sq: &'a Sq<'store, 'rstore>,
+    pub fn new(output: &'a mut dyn std::io::Write,
+               sq: &'a Sq<'store, 'rstore>,
                required_amount: usize, paths: bool)
         -> Self
     {
         Self {
+            output,
             sq,
             paths,
             required_amount,
@@ -341,20 +352,23 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
             }
 
             if ! first_shown {
-                weprintln!();
+                wwriteln!(stream=self.output);
             }
 
-            weprintln!(initial_indent = " - ", "{}", fingerprint);
+            wwriteln!(stream=self.output, initial_indent = " - ",
+                      "{}", fingerprint);
 
             if cert.primary_key().key().creation_time() != ca_creation_time() {
-                weprintln!(initial_indent = "   - ", "created {}",
-                           cert.primary_key().key().creation_time().convert());
+                wwriteln!(stream=self.output, initial_indent = "   - ",
+                          "created {}",
+                          cert.primary_key().key().creation_time().convert());
             }
 
             for info in extra_info.into_iter() {
-                weprintln!(initial_indent = "   - ", "{}", info);
+                wwriteln!(stream=self.output, initial_indent = "   - ",
+                          "{}", info);
             }
-            weprintln!();
+            wwriteln!(stream=self.output);
         }
 
         let revoked = if let Some(Ok(ref vc)) = vc {
@@ -375,22 +389,23 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
             None
         };
 
-        weprintln!(initial_indent = "   - ", "[ {} ] {}",
-                   if revoked.is_some() {
-                       "revoked".to_string()
-                   } else if aggregated_amount >= self.required_amount {
-                       "   ✓   ".to_string()
-                   } else {
-                       format!("{:3}/120", aggregated_amount)
-                   },
-                   String::from_utf8_lossy(userid.value()));
+        wwriteln!(stream=self.output, initial_indent = "   - ", "[ {} ] {}",
+                  if revoked.is_some() {
+                      "revoked".to_string()
+                  } else if aggregated_amount >= self.required_amount {
+                      "   ✓   ".to_string()
+                  } else {
+                      format!("{:3}/120", aggregated_amount)
+                  },
+                  String::from_utf8_lossy(userid.value()));
 
         if self.paths {
-            weprintln!();
+            wwriteln!(stream=self.output);
 
             for (i, (path, amount)) in paths.iter().enumerate() {
                 if paths.len() > 1 {
-                    weprintln!(
+                    wwriteln!(
+                        stream=self.output,
                         initial_indent="     ",
                         "Path #{}{}of{}{}, trust amount {}:",
                         i + 1, NBSP, NBSP,
@@ -399,7 +414,7 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
                     );
                 }
 
-                print_path(&path.into(), userid, "     ")?;
+                print_path(self.output, &path.into(), userid, "     ")?;
             }
         }
 

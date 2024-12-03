@@ -26,6 +26,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
             let userid = userid.designators.into_iter().next().unwrap();
 
             authenticate(
+                &mut std::io::stderr(),
                 &sq, false, None,
                 *gossip, *certification_network, *trust_amount,
                 Some(&userid), Some(&cert), *show_paths,
@@ -42,6 +43,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
             let userid = userid.designators.into_iter().next().unwrap();
 
             authenticate(
+                &mut std::io::stderr(),
                 &sq, false, None,
                 *gossip, *certification_network, *trust_amount,
                 Some(&userid), None, *show_paths)?;
@@ -56,6 +58,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
             let cert = sq.resolve_cert(&cert, 0)?.0;
 
             authenticate(
+                &mut std::io::stderr(),
                 &sq, false, None,
                 *gossip, *certification_network, *trust_amount,
                 None, Some(&cert), *show_paths)?;

@@ -35,11 +35,13 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
             {
                 let cert = sq.resolve_cert(&kh.into(), 0)?.0;
                 authenticate(
+                    &mut std::io::stderr(),
                     &sq, false, None,
                     *gossip, *certification_network, *trust_amount,
                     userid.as_ref(), Some(&cert), *show_paths)
             } else {
                 authenticate(
+                    &mut std::io::stderr(),
                     &sq, pattern.is_none(), pattern,
                     *gossip, *certification_network, *trust_amount,
                     userid.as_ref(), None, *show_paths)

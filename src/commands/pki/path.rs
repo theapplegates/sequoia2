@@ -46,6 +46,8 @@ pub fn path(sq: Sq, c: Command)
 
     assert!(path.len() > 0, "guaranteed by clap");
 
+    let o = &mut std::io::stderr();
+
     let r = q.lint_path(&path, userid.userid(), required_amount, sq.policy);
 
     let target_kh = path.last().expect("have one");
@@ -53,12 +55,13 @@ pub fn path(sq: Sq, c: Command)
     let trust_amount = match r {
         Ok(path) => {
             print_path_header(
+                o,
                 target_kh,
                 userid.userid(),
                 path.amount(),
                 required_amount,
             );
-            print_path(&path, userid.userid(), "  ")?;
+            print_path(o, &path, userid.userid(), "  ")?;
 
             let trust_amount = path.amount();
             if trust_amount >= required_amount {
@@ -69,13 +72,14 @@ pub fn path(sq: Sq, c: Command)
         }
         Err(err) => {
             print_path_header(
+                o,
                 target_kh,
                 userid.userid(),
                 0,
                 required_amount,
             );
 
-            print_path_error(err);
+            print_path_error(o, err);
 
             0
         }

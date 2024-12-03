@@ -114,10 +114,7 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::revoke::Command)
     -> Result<()>
 {
     let (cert, cert_source) =
-        sq.resolve_cert_with_policy(&command.cert,
-                                    sequoia_wot::FULLY_TRUSTED,
-                                    NULL_POLICY,
-                                    sq.time)?;
+        sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?;
 
     let vc = Cert::with_policy(&cert, NULL_POLICY, sq.time)
         .with_context(|| {

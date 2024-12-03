@@ -1775,22 +1775,6 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     )
         -> Result<(Vec<Cert>, Vec<anyhow::Error>)>
     where
-        Prefix: cert_designator::ArgumentPrefix
-    {
-        self.resolve_certs_with_policy(designators, trust_amount,
-                                       self.policy, self.time)
-    }
-
-    /// Like [`Sq::resolve_certs`] but with explicit policy.
-    pub fn resolve_certs_with_policy<Arguments, Prefix, Options, Doc>(
-        &self,
-        designators: &CertDesignators<Arguments, Prefix, Options, Doc>,
-        trust_amount: usize,
-        _policy: &dyn Policy,
-        _time: SystemTime,
-    )
-        -> Result<(Vec<Cert>, Vec<anyhow::Error>)>
-    where
         Prefix: cert_designator::ArgumentPrefix,
     {
         tracer!(TRACE, "Sq::resolve_certs");
@@ -2244,22 +2228,6 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     )
         -> Result<(Cert, FileStdinOrKeyHandle)>
     where
-        Prefix: cert_designator::ArgumentPrefix
-    {
-        self.resolve_cert_with_policy(designators, trust_amount,
-                                      self.policy, self.time)
-    }
-
-    /// Like [`Sq::resolve_cert`], but with explicit policy.
-    pub fn resolve_cert_with_policy<Arguments, Prefix, Options, Doc>(
-        &self,
-        designators: &CertDesignators<Arguments, Prefix, Options, Doc>,
-        trust_amount: usize,
-        policy: &dyn Policy,
-        time: SystemTime,
-    )
-        -> Result<(Cert, FileStdinOrKeyHandle)>
-    where
         Prefix: cert_designator::ArgumentPrefix,
     {
         // Assuming this is only called with OneValue, then the
@@ -2275,8 +2243,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         }
 
         let (certs, errors) =
-            self.resolve_certs_with_policy(designators, trust_amount,
-                                           policy, time)?;
+            self.resolve_certs(designators, trust_amount)?;
         if certs.len() > 1 {
             wprintln!("{} is ambiguous.  It resolves to multiple certificates.",
                       designators.designators[0].argument::<Prefix>());

@@ -9,7 +9,6 @@ use openpgp::Result;
 use crate::Sq;
 use crate::cli::key::revoke::Command;
 use crate::common::get_secret_signer;
-use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
 use crate::parse_notations;
 
@@ -88,10 +87,7 @@ pub fn certificate_revoke(
     command: Command,
 ) -> Result<()> {
     let cert =
-        sq.resolve_cert_with_policy(&command.cert,
-                                    sequoia_wot::FULLY_TRUSTED,
-                                    NULL_POLICY,
-                                    sq.time)?.0;
+        sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.0;
 
     let revoker = if command.revoker.is_empty() {
         None

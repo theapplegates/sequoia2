@@ -11,14 +11,18 @@ use crate::cli::types::FileOrStdin;
 use crate::Sq;
 use crate::Result;
 
-pub fn import(sq: Sq, command: cli::key::import::Command) -> Result<()> {
+pub fn import(sq: Sq, command: cli::key::import::Command)
+    -> Result<()>
+{
+    let o = &mut std::io::stdout();
     let mut stats = Default::default();
-    let r = import_internal(&sq, command, &mut stats);
-    stats.print_summary(&sq)?;
+    let r = import_internal(o, &sq, command, &mut stats);
+    stats.print_summary(o, &sq)?;
     r
 }
 
-fn import_internal(sq: &Sq, command: cli::key::import::Command,
+fn import_internal(o: &mut dyn std::io::Write,
+                   sq: &Sq, command: cli::key::import::Command,
                    stats: &mut ImportStats)
                    -> Result<()>
 {
@@ -39,7 +43,7 @@ fn import_internal(sq: &Sq, command: cli::key::import::Command,
             let cert = match r {
                 Ok(cert) => cert,
                 Err(err) => {
-                    weprintln!("Error reading {}: {}", file.display(), err);
+                    wwriteln!(o, "Error reading {}: {}", file.display(), err);
                     if ret.is_ok() {
                         ret = Err(err);
                     }
@@ -54,18 +58,18 @@ fn import_internal(sq: &Sq, command: cli::key::import::Command,
             let cert_is_tsk = cert.is_tsk();
             match sq.import_key(cert, stats) {
                 Ok((key, cert)) => {
-                    weprintln!("Imported {} from {}: {}",
-                               id, file.display(),
-                               if key == cert {
-                                   key.to_string()
-                               } else {
-                                   format!("key {}, cert {}", key, cert)
-                               });
+                    wwriteln!(o, "Imported {} from {}: {}",
+                              id, file.display(),
+                              if key == cert {
+                                  key.to_string()
+                              } else {
+                                  format!("key {}, cert {}", key, cert)
+                              });
                 }
 
                 Err(err) => {
-                    weprintln!("Error importing {} from {}: {}",
-                               id, file.display(), err);
+                    wwriteln!(o, "Error importing {} from {}: {}",
+                              id, file.display(), err);
 
                     if ! cert_is_tsk {
                         sq.hint(format_args!(

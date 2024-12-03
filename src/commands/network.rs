@@ -113,6 +113,8 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
 
     let mut stats = ImportStats::default();
 
+    let o = &mut std::io::stderr();
+
     for cert in certs.iter() {
         cert_store.update_by(Arc::new(cert.clone().into()), &mut stats)
             .with_context(|| {
@@ -123,7 +125,7 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
             })?;
     }
 
-    stats.print_summary(sq)?;
+    stats.print_summary(o, sq)?;
 
     for vcert in certs.iter()
         .filter_map(|cert| cert.with_policy(sq.policy, sq.time).ok())

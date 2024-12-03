@@ -41,6 +41,8 @@ where 'store: 'rstore
         cmd.input
     };
 
+    let o = &mut std::io::stdout();
+
     let mut stats = ImportStats::default();
 
     let inner = || -> Result<()> {
@@ -81,11 +83,11 @@ where 'store: 'rstore
             let result = match typ {
                 Type::Signature => {
                     import_rev(
-                        &mut sq, &mut input_reader, &mut stats)
+                        o, &mut sq, &mut input_reader, &mut stats)
                 }
                 Type::Keyring => {
                     import_certs(
-                        &mut sq, &mut input_reader,
+                        o, &mut sq, &mut input_reader,
                         input.path(), &mut stats)
                 }
                 Type::Other => {
@@ -110,14 +112,15 @@ where 'store: 'rstore
 
     let result = inner();
 
-    weprintln!();
-    stats.print_summary(&sq)?;
+    wwriteln!(o);
+    stats.print_summary(o, &sq)?;
 
     Ok(result?)
 }
 
 /// Imports certs encoded as OpenPGP keyring.
-fn import_certs(sq: &mut Sq,
+fn import_certs(o: &mut dyn std::io::Write,
+                sq: &mut Sq,
                 source: &mut Box<dyn BufferedReader<Cookie>>,
                 source_path: Option<&PathBuf>,
                 stats: &mut ImportStats)
@@ -163,12 +166,12 @@ fn import_certs(sq: &mut Sq,
         if let Err(err) = cert_store.update_by(Arc::new(cert.into()),
                                                stats)
         {
-            weprintln!("Error importing {}, {}: {}",
-                       fingerprint, sanitized_userid, err);
+            wwriteln!(o, "Error importing {}, {}: {}",
+                      fingerprint, sanitized_userid, err);
             stats.certs.inc_errors();
             continue;
         } else {
-            weprintln!("Imported {}, {}", fingerprint, sanitized_userid);
+            wwriteln!(o, "Imported {}, {}", fingerprint, sanitized_userid);
         }
     }
 
@@ -178,14 +181,15 @@ fn import_certs(sq: &mut Sq,
         Err(errors.pop().ok_or_else(|| anyhow::anyhow!("no cert found"))?)
     } else {
         for err in errors {
-            weprintln!("Error parsing input: {}", err);
+            wwriteln!(o, "Error parsing input: {}", err);
         }
         Ok(())
     }
 }
 
 /// Import a bare revocation certificate.
-fn import_rev(sq: &mut Sq,
+fn import_rev(o: &mut dyn std::io::Write,
+              sq: &mut Sq,
               source: &mut Box<dyn BufferedReader<Cookie>>,
               stats: &mut ImportStats)
               -> Result<()>
@@ -248,15 +252,17 @@ fn import_rev(sq: &mut Sq,
                 if let Err(err) = cert_store.update_by(Arc::new(cert.into()),
                                                        stats)
                 {
-                    weprintln!("Error importing revocation certificate \
-                                for {}, {}: {}",
-                               fingerprint, sanitized_userid, err);
+                    wwriteln!(o,
+                              "Error importing revocation certificate \
+                               for {}, {}: {}",
+                              fingerprint, sanitized_userid, err);
                     stats.certs.inc_errors();
                     continue;
                 } else {
-                    weprintln!("Imported revocation certificate \
-                                for {}, {}",
-                               fingerprint, sanitized_userid);
+                    wwriteln!(o,
+                              "Imported revocation certificate \
+                               for {}, {}",
+                              fingerprint, sanitized_userid);
                 }
 
                 return Ok(());
@@ -267,17 +273,19 @@ fn import_rev(sq: &mut Sq,
     }
 
     let search: Option<&KeyHandle> = if let Some(bad) = bad.first() {
-        weprintln!("Appears to be a revocation for {}, \
-                    but the certificate is not available.",
-                   bad);
+        wwriteln!(o,
+                  "Appears to be a revocation for {}, \
+                   but the certificate is not available.",
+                  bad);
         Some(bad)
     } else if ! missing.is_empty() {
-        weprintln!("Appears to be a revocation for {}, \
-                    but the certificate is not available.",
-                   missing.iter()
-                   .map(|issuer| issuer.to_string())
-                   .collect::<Vec<_>>()
-                   .join(" or "));
+        wwriteln!(o,
+                  "Appears to be a revocation for {}, \
+                   but the certificate is not available.",
+                  missing.iter()
+                  .map(|issuer| issuer.to_string())
+                  .collect::<Vec<_>>()
+                  .join(" or "));
         Some(missing[0])
     } else {
         None

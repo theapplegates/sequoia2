@@ -61,20 +61,23 @@ impl<'a> MergeCerts<'a> for ImportStats {
 
 impl ImportStats {
     /// Print key and certificate import summary.
-    pub fn print_summary(&self, sq: &crate::Sq) -> Result<()> {
+    pub fn print_summary(&self, o: &mut dyn std::io::Write, sq: &crate::Sq)
+        -> Result<()>
+    {
         if sq.quiet() {
             return Ok(());
         }
 
         if ! self.keys.is_empty() {
-            self.keys.print_summary()?;
+            self.keys.print_summary(o)?;
         }
 
-        weprintln!("Imported {}, updated {}, {} unchanged, {}.",
-                   self.certs.new_certs().of("new certificate"),
-                   self.certs.updated_certs().of("certificate"),
-                   self.certs.unchanged_certs().of("certificate"),
-                   self.certs.errors().of("error"));
+        wwriteln!(o,
+                  "Imported {}, updated {}, {} unchanged, {}.",
+                  self.certs.new_certs().of("new certificate"),
+                  self.certs.updated_certs().of("certificate"),
+                  self.certs.unchanged_certs().of("certificate"),
+                  self.certs.errors().of("error"));
         Ok(())
     }
 }
@@ -114,12 +117,13 @@ impl KeyStats {
     }
 
     /// Print key and certificate import summary.
-    pub fn print_summary(&self) -> Result<()> {
-        weprintln!("Imported {}, updated {}, {} unchanged, {}.",
-                   self.new.of("new key"),
-                   self.updated.of("key"),
-                   self.unchanged.of("key"),
-                   self.errors.of("error"));
+    pub fn print_summary(&self, o: &mut dyn std::io::Write) -> Result<()> {
+        wwriteln!(o,
+                  "Imported {}, updated {}, {} unchanged, {}.",
+                  self.new.of("new key"),
+                  self.updated.of("key"),
+                  self.unchanged.of("key"),
+                  self.errors.of("error"));
         Ok(())
     }
 }

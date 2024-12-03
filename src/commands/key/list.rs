@@ -270,7 +270,6 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
                         if c == ' ' { 0 } else { 1 }
                     })
                     .sum::<usize>();
-                eprintln!("{} hex characters", hex);
 
                 if hex >= 16 {
                     wprintln!("Warning: {} looks like a fingerprint or key ID, \

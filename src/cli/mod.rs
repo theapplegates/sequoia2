@@ -125,7 +125,7 @@ pub const KEY_VALIDITY_IN_YEARS: u64 = 3;
 pub const KEY_VALIDITY_DURATION: Duration =
     Duration::new(SECONDS_IN_YEAR * KEY_VALIDITY_IN_YEARS, 0);
 /// The default validity (in years) for third party certifications
-pub const THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS: u64 = 5;
+pub const THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS: u64 = 10;
 /// The default validity period (as Duration) for third party certifications
 pub const THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION: Duration = Duration::new(
     SECONDS_IN_YEAR * THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS,

@@ -1182,10 +1182,10 @@ pub fn dispatch_keyserver(
                                        .set_storage_encryption())
                             .next().is_none()
                         {
-                            sq.hint(format_args!(
-                                "The Mailvelope key server rejects \
-                                 certificates that are not \
-                                 encryption-capable."));
+                            qprintln!(
+                                "Warning: The Mailvelope key server \
+                                 rejects certificates that are not \
+                                 encryption-capable.");
                         }
 
                         wwriteln!(o, "{}: {}", url, e);

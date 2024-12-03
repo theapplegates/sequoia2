@@ -257,6 +257,8 @@ fn key_validity(sq: &Sq, cert: &Cert, key: Option<&Fingerprint>) -> Vec<String> 
 }
 
 pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
+    let o = &mut std::io::stdout();
+
     // Start and connect to the keystore.
     let ks = sq.key_store_or_else()?;
     let mut ks = ks.lock().unwrap();
@@ -305,16 +307,18 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
     for backend in &mut backends {
         let devices = backend.list()?;
         if devices.len() == 0 {
-            weprintln!(initial_indent = " - ", "Backend {} has no keys.",
-                       backend.id()?);
+            wwriteln!(stream=o, initial_indent = " - ",
+                      "Backend {} has no keys.",
+                      backend.id()?);
             dirty = true;
         }
 
         for mut device in devices {
             let keys = device.list()?;
             if keys.len() == 0 {
-                weprintln!(initial_indent = " - ", "Device {}/{} has no keys.",
-                           backend.id()?, device.id()?);
+                wwriteln!(stream=o, initial_indent = " - ",
+                          "Device {}/{} has no keys.",
+                          backend.id()?, device.id()?);
                 dirty = true;
             }
 
@@ -410,13 +414,13 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
         }
 
         if dirty {
-            weprintln!();
+            wwriteln!(stream=o);
         }
         dirty = true;
 
         // Emit metadata.
-        weprintln!(initial_indent = " - ", "{}",
-                   association.key().fingerprint());
+        wwriteln!(stream=o, initial_indent = " - ",
+                  "{}", association.key().fingerprint());
 
         // Show the user IDs that can be authenticated or are self signed.
         if let Some(cert) = association.cert() {
@@ -455,11 +459,11 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
             }
 
             if userids.is_empty() {
-                weprintln!(initial_indent = "   - ", "no user IDs");
+                wwriteln!(stream=o, initial_indent = "   - ", "no user IDs");
             } else {
                 let userid_count = userids.len();
                 if userid_count > 1 {
-                    weprintln!(initial_indent = "   - ", "user IDs:");
+                    wwriteln!(stream=o, initial_indent = "   - ", "user IDs:");
                 }
 
                 userids.sort_by(
@@ -476,32 +480,32 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
                 {
                     if amount > 0 || self_signed {
                         if userid_count == 1 {
-                            weprintln!(initial_indent = "   - ", "user ID: {}{}",
-                                       userid,
-                                       if revoked { " revoked" } else { "" });
+                            wwriteln!(stream=o, initial_indent = "   - ", "user ID: {}{}",
+                                      userid,
+                                      if revoked { " revoked" } else { "" });
                         } else {
-                            weprintln!(initial_indent = "     - ", "{}{}",
-                                       userid,
-                                       if revoked { " revoked" } else { "" });
+                            wwriteln!(stream=o, initial_indent = "     - ", "{}{}",
+                                      userid,
+                                      if revoked { " revoked" } else { "" });
                         }
                     }
                 }
             }
         }
-        weprintln!(initial_indent = "   - ", "created {}",
-                   association.key().creation_time().convert());
+        wwriteln!(stream=o, initial_indent = "   - ", "created {}",
+                  association.key().creation_time().convert());
 
         if let Some(cert) = association.cert() {
             for info in key_validity(&sq, cert, None).into_iter() {
-                weprintln!(initial_indent = "   - ", "{}", info);
+                wwriteln!(stream=o, initial_indent = "   - ", "{}", info);
             }
         }
 
         // Primary key information, if any.
         if let Some(primary) = keys.get(&association.key().fingerprint()) {
-            weprintln!(initial_indent = "   - ", "usable {}", primary.usable_for());
+            wwriteln!(stream=o, initial_indent = "   - ", "usable {}", primary.usable_for());
             for loc in &primary.locations {
-                weprintln!(initial_indent = "   - ", "{}", loc);
+                wwriteln!(stream=o, initial_indent = "   - ", "{}", loc);
             }
         }
 
@@ -511,22 +515,22 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
             .enumerate()
         {
             if i == 0 {
-                weprintln!();
+                wwriteln!(stream=o);
             }
 
-            weprintln!(initial_indent = "   - ", "{}", fp);
-            weprintln!(initial_indent = "     - ", "created {}",
-                       key.key.creation_time().convert());
+            wwriteln!(stream=o, initial_indent = "   - ", "{}", fp);
+            wwriteln!(stream=o, initial_indent = "     - ", "created {}",
+                      key.key.creation_time().convert());
 
             if let Some(cert) = association.cert() {
                 for info in key_validity(&sq, cert, Some(fp)).into_iter() {
-                    weprintln!(initial_indent = "     - ", "{}", info);
+                    wwriteln!(stream=o, initial_indent = "     - ", "{}", info);
                 }
             }
 
-            weprintln!(initial_indent = "     - ", "usable {}", key.usable_for());
+            wwriteln!(stream=o, initial_indent = "     - ", "usable {}", key.usable_for());
             for loc in &key.locations {
-                weprintln!(initial_indent = "     - ", "{}", loc);
+                wwriteln!(stream=o, initial_indent = "     - ", "{}", loc);
             }
         }
     }

@@ -1206,8 +1206,6 @@ pub fn dispatch_keyserver(
 pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
     -> Result<()>
 {
-    make_qprintln!(sq.quiet());
-
     let rt = tokio::runtime::Runtime::new()?;
 
     use crate::cli::network::wkd::Subcommands::*;
@@ -1252,6 +1250,9 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
         })?,
 
         Publish(mut c) => {
+            let o = &mut std::io::stdout();
+            make_qprintln!(o, sq.quiet());
+
             use wkd::Variant;
             let cert_store = sq.cert_store()?;
 
@@ -1371,7 +1372,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
 
             // Reports on certificate updates, or the lack thereof.
             let sq_ref = &sq;
-            let status = |cert: &Cert, msg: &str| {
+            let mut status = |cert: &Cert, msg: &str| {
                 qprintln!(initial_indent = " - ", "{}", cert.fingerprint());
                 qprintln!(initial_indent = "   - ", "{}",
                           sq_ref.best_userid(&cert, false));

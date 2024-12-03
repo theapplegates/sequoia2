@@ -258,15 +258,7 @@ fn key_validity(sq: &Sq, cert: &Cert, key: Option<&Fingerprint>) -> Vec<String> 
 
 pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
     // Start and connect to the keystore.
-    let ks = if let Some(ks) = sq.key_store()? {
-        ks
-    } else {
-        // The key store is disabled.  Don't fail, just return
-        // nothing.
-        sq.hint(format_args!(
-            "The key store is disabled using --home=none or --key-store=none."));
-        return Ok(());
-    };
+    let ks = sq.key_store_or_else()?;
     let mut ks = ks.lock().unwrap();
 
     if let Some(pattern) = cmd.pattern {

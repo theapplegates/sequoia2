@@ -1,8 +1,6 @@
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
 
-use anyhow::Context;
-
 use sequoia_wot as wot;
 
 use crate::Sq;
@@ -36,16 +34,7 @@ pub fn path(sq: Sq, c: Command)
     });
 
     // Build the network.
-    let cert_store = match sq.cert_store() {
-        Ok(Some(cert_store)) => cert_store,
-        Ok(None) => {
-            return Err(anyhow::anyhow!("Certificate store has been disabled"));
-        }
-        Err(err) => {
-            return Err(err).context("Opening certificate store");
-        }
-    };
-
+    let cert_store = sq.cert_store_or_else()?;
     let mut n = wot::NetworkBuilder::rooted(cert_store, &*sq.trust_roots());
     if *certification_network {
         n = n.certification_network();

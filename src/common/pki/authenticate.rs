@@ -1,5 +1,3 @@
-use anyhow::Context;
-
 use sequoia_openpgp as openpgp;
 use openpgp::Cert;
 use openpgp::Fingerprint;
@@ -84,16 +82,7 @@ pub fn authenticate<'store, 'rstore>(
     tracer!(TRACE, "authenticate");
 
     // Build the network.
-    let cert_store = match sq.cert_store() {
-        Ok(Some(cert_store)) => cert_store,
-        Ok(None) => {
-            return Err(anyhow::anyhow!("Certificate store has been disabled"));
-        }
-        Err(err) => {
-            return Err(err).context("Opening certificate store");
-        }
-    };
-
+    let cert_store = sq.cert_store_or_else()?;
     if precompute {
         cert_store.precompute();
     }

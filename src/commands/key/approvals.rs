@@ -25,6 +25,8 @@ pub fn dispatch(sq: Sq, command: approvals::Command)
 }
 
 fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
+    let o = &mut std::io::stdout();
+
     let store = sq.cert_store_or_else()?;
 
     let cert =
@@ -43,8 +45,9 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
             continue;
         }
 
-        weprintln!(initial_indent = " - ", "{}",
-                   String::from_utf8_lossy(uid.value()));
+        wwriteln!(stream=o,
+                  initial_indent = " - ", "{}",
+                  String::from_utf8_lossy(uid.value()));
 
         let approved =
             uid.attested_certifications().collect::<BTreeSet<_>>();
@@ -108,45 +111,48 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
                 }
             }
 
-            weprintln!(initial_indent = "   - ", "{}{}: {}",
-                       issuer.as_ref()
-                       .map(|c| format!("{} ", c.fingerprint()))
-                       .unwrap_or_else(|| "".into()),
-                       issuer.as_ref()
-                       .and_then(|i| Some(sq.best_userid(i.to_cert().ok()?, true)
-                                          .to_string()))
-                       .or(c.get_issuers().into_iter().next()
-                           .map(|h| h.to_string()))
-                       .unwrap_or_else(|| "no issuer information".into()),
-                       if issuer.is_none() {
-                           if let Some(e) = err {
-                               e.to_string()
-                           } else {
-                               "issuer cert not found".into()
-                           }
-                       } else if approved {
-                           "approved".into()
-                       } else {
-                           "unapproved".into()
-                       });
+            wwriteln!(stream=o,
+                      initial_indent = "   - ", "{}{}: {}",
+                      issuer.as_ref()
+                      .map(|c| format!("{} ", c.fingerprint()))
+                      .unwrap_or_else(|| "".into()),
+                      issuer.as_ref()
+                      .and_then(|i| Some(sq.best_userid(i.to_cert().ok()?, true)
+                                         .to_string()))
+                      .or(c.get_issuers().into_iter().next()
+                          .map(|h| h.to_string()))
+                      .unwrap_or_else(|| "no issuer information".into()),
+                      if issuer.is_none() {
+                          if let Some(e) = err {
+                              e.to_string()
+                          } else {
+                              "issuer cert not found".into()
+                          }
+                      } else if approved {
+                          "approved".into()
+                      } else {
+                          "unapproved".into()
+                      });
             any = true;
         }
 
         if ! any {
-            weprintln!(initial_indent = "   - ", "no {} certifications",
-                       if cmd.pending {
-                           "unapproved"
-                       } else {
-                           "approved"
-                       });
+            wwriteln!(stream=o,
+                      initial_indent = "   - ", "no {} certifications",
+                      if cmd.pending {
+                          "unapproved"
+                      } else {
+                          "approved"
+                      });
         }
     }
     assert!(designated_userids.is_empty());
 
     if ! cmd.pending && pending > 0 {
-        weprintln!("{} certifications are pending approval.  Using `--pending` \
-                    to see them.",
-                   pending);
+        wwriteln!(stream=o,
+                  "{} certifications are pending approval.  Using `--pending` \
+                   to see them.",
+                  pending);
     }
 
     Ok(())

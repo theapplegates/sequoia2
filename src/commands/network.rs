@@ -1372,7 +1372,13 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
 
             // Reports on certificate updates, or the lack thereof.
             let sq_ref = &sq;
+            let mut printed_updating = false;
             let mut status = |cert: &Cert, msg: &str| {
+                if ! printed_updating {
+                    printed_updating = true;
+                    qprintln!("Updating:");
+                }
+
                 qprintln!(initial_indent = " - ", "{}", cert.fingerprint());
                 qprintln!(initial_indent = "   - ", "{}",
                           sq_ref.best_userid(&cert, false));

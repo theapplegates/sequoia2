@@ -1070,8 +1070,6 @@ pub fn dispatch_keyserver(
     matches: &ArgMatches,
 ) -> Result<()>
 {
-    make_qprintln!(sq.quiet());
-
     let servers_source = matches.value_source("servers").unwrap();
     let default_servers =
         matches!(servers_source, clap::parser::ValueSource::DefaultValue);
@@ -1130,6 +1128,9 @@ pub fn dispatch_keyserver(
         })?,
 
         Publish(c) => rt.block_on(async {
+            let o = &mut std::io::stdout();
+            make_qprintln!(o, sq.quiet());
+
             let (certs, errors) = sq.resolve_certs(
                 &c.certs, sequoia_wot::FULLY_TRUSTED)?;
             for error in errors.iter() {
@@ -1167,7 +1168,7 @@ pub fn dispatch_keyserver(
                         // an error, and only print the message in
                         // verbose mode.
                         if sq.verbose() {
-                            weprintln!("{}: {}", url, e);
+                            wwriteln!(o, "{}: {}", url, e);
                         }
                     },
                     Err(e) => {
@@ -1187,7 +1188,7 @@ pub fn dispatch_keyserver(
                                  encryption-capable."));
                         }
 
-                        weprintln!("{}: {}", url, e);
+                        wwriteln!(o, "{}: {}", url, e);
                         if result.is_ok() {
                             result = Err((url, e));
                         }

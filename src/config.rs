@@ -286,6 +286,9 @@ impl ConfigFile {
 [encrypt]
 #for-self = [\"fingerprint of your key\"]
 
+[sign]
+#signer-self = [\"fingerprint of your key\"]
+
 [key.generate]
 #cipher-suite = <DEFAULT-CIPHER-SUITE>
 

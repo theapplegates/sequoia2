@@ -764,9 +764,9 @@ This adds the certificates listed in the configuration file under \
 ",
                         SIGNER_SELF,
                         if let Some(certs) = config::get_augmentation(SIGNER_SELF) {
-                            format!("The following certs will be added: {}.", certs)
+                            format!("The following keys will be added: {}.", certs)
                         } else {
-                            "Currently, the list of certificates to be added is empty."
+                            "Currently, the list of keys to be added is empty."
                                 .into()
                         }),
                 ),

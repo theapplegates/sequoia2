@@ -13,48 +13,123 @@ macro_rules! platform {
     }
 }
 
-/// Like eprintln, but nicely wraps lines.
-macro_rules! weprintln {
-    {} => {
-        eprintln!();
-    };
+/// Like `writeln!`, but nicely wraps lines.
+///
+/// Unlike `writeln` and like `eprintln` panics if it can't write to
+/// the specified stream.
+macro_rules! wwriteln {
+    {
+        stream=$stream: expr
+    } => {{
+        let stream: &mut dyn std::io::Write = $stream;
+        if let Err(err) = writeln!(stream) {
+            panic!("Error writing to output stream: {}", err);
+        }
+    }};
 
-    { indent=$i: expr, $($arg: expr),* } => {{
+    {
+        stream=$stream: expr,
+        indent=$i: expr,
+        $($arg: expr),*
+    } => {{
+        let stream: &mut dyn std::io::Write = $stream;
         let i = $i;
         crate::output::wrapping::iwwriteln(
-            &mut std::io::stderr(),
+            stream,
             i.as_ref(), i.as_ref(),
             format_args!($($arg),*))
     }};
 
     {
+        stream=$stream: expr,
         initial_indent=$ii: expr,
         subsequent_indent=$si: expr,
         $($arg: expr),*
     } => {{
+        let stream: &mut dyn std::io::Write = $stream;
         let ii = $ii;
         let si = $si;
         crate::output::wrapping::iwwriteln(
-            &mut std::io::stderr(),
+            stream,
             ii.as_ref(), si.as_ref(),
             format_args!($($arg),*))
     }};
 
     {
+        stream=$stream: expr,
         initial_indent=$ii: expr,
         $($arg: expr),*
     } => {{
+        let stream: &mut dyn std::io::Write = $stream;
         let ii = $ii;
         let si = format!("{:1$}", "", ii.len());
         crate::output::wrapping::iwwriteln(
-            &mut std::io::stderr(),
-            ii.as_ref(), si.as_ref(),
+            stream, ii.as_ref(), si.as_ref(),
             format_args!($($arg),*))
     }};
 
-    { $($arg: expr),* } => {
+    {
+        stream=$stream: expr,
+        $($arg: expr),*
+    } => {{
+        let stream: &mut dyn std::io::Write = $stream;
         crate::output::wrapping::wwriteln(
-            &mut std::io::stderr(), format_args!($($arg),*))
+            stream, format_args!($($arg),*))
+    }};
+
+    {
+        $stream: expr,
+        $($arg: expr),*
+    } => {
+        wwriteln!(stream=$stream, $($arg),*)
+    };
+
+    {
+        $stream: expr
+    } => {
+        wwriteln!(stream=$stream)
+    };
+}
+
+/// Like eprintln, but nicely wraps lines.
+macro_rules! weprintln {
+    { } => {
+        wwriteln!(stream=&mut std::io::stderr())
+    };
+
+    {
+        indent=$i: expr,
+        $($arg: expr),*
+    } => {
+        wwriteln!(stream=&mut std::io::stderr(),
+                  indent=$i,
+                  $($arg),*)
+    };
+
+    {
+        initial_indent=$ii: expr,
+        subsequent_indent=$si: expr,
+        $($arg: expr),*
+    } => {
+        wwriteln!(stream=&mut std::io::stderr(),
+                  initial_indent=$ii,
+                  subsequent_indent=$si,
+                  $($arg),*)
+    };
+
+    {
+        initial_indent=$ii: expr,
+        $($arg: expr),*
+    } => {
+        wwriteln!(stream=&mut std::io::stderr(),
+                  initial_indent=$ii,
+                  $($arg),*)
+    };
+
+    {
+        $($arg: expr),*
+    } => {
+        wwriteln!(stream=&mut std::io::stderr(), $($arg),*)
     };
 }
 

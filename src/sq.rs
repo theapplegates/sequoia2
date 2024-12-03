@@ -1786,8 +1786,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         &self,
         designators: &CertDesignators<Arguments, Prefix, Options, Doc>,
         trust_amount: usize,
-        policy: &dyn Policy,
-        time: SystemTime,
+        _policy: &dyn Policy,
+        _time: SystemTime,
     )
         -> Result<(Vec<Cert>, Vec<anyhow::Error>)>
     where
@@ -1915,64 +1915,9 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
                     match cert_store()?.lookup_by_cert(kh) {
                         Ok(matches) => {
-                            // If the designator doesn't match
-                            // anything, we can sometimes provide a
-                            // hint, e.g., weak crypto.
-                            let mut hint = Vec::new();
-
                             for cert in matches.into_iter() {
-                                if cert.key_handle().aliases(kh) {
-                                    // We matched on the primary key.
-                                    ret(designator, Ok(cert), true);
-                                } else {
-                                    // When matching on a subkey, we
-                                    // need to check that there is a
-                                    // valid binding signature (but
-                                    // not a back signature).
-                                    let cert = match cert.to_cert() {
-                                        Ok(cert) => cert,
-                                        Err(err) => {
-                                            hint.push(err.context(
-                                                format!("when considering {}",
-                                                        cert.fingerprint())));
-                                            continue;
-                                        }
-                                    };
-
-                                    for ka in cert.keys().subkeys() {
-                                        if ka.key_handle().aliases(kh) {
-                                            match ka.with_policy(policy, time) {
-                                                Ok(_ka) => {
-                                                    ret(designator,
-                                                        Ok(Arc::new(cert.into())),
-                                                        true);
-                                                }
-                                                Err(err) => {
-                                                    hint.push(err.context(
-                                                        format!("{} on {}",
-                                                                kh,
-                                                                cert.fingerprint())));
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            if ! *matched.borrow() {
-                                // The designator didn't match any
-                                // certificates.
-                                if hint.is_empty() {
-                                    ret(designator,
-                                        Err(anyhow::anyhow!("Didn't match any certificates")),
-                                        true);
-                                } else {
-                                    for hint in hint.into_iter() {
-                                        ret(designator,
-                                            Err(hint),
-                                            true);
-                                    }
-                                }
+                                // We matched on the primary key.
+                                ret(designator, Ok(cert), true);
                             }
                         }
                         Err(err) => {

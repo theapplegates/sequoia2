@@ -13,6 +13,7 @@ use clap::{
 use sequoia_directories::Home;
 
 pub mod get;
+pub mod inspect;
 pub mod set;
 pub mod template;
 
@@ -138,5 +139,6 @@ pub struct Command {
 #[non_exhaustive]
 pub enum Subcommands {
     Get(get::Command),
+    Inspect(inspect::Command),
     Template(template::Command),
 }

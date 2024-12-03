@@ -23,12 +23,15 @@ use crate::{
     config::ConfigFile,
 };
 
+mod inspect;
+
 pub fn dispatch(sq: Sq, cmd: config::Command)
                 -> Result<()>
 {
     match cmd.subcommand {
         config::Subcommands::Get(c) => get(sq, c),
         config::Subcommands::Template(c) => template(sq, c),
+        config::Subcommands::Inspect(c) => inspect::dispatch(sq, c),
     }
 }
 

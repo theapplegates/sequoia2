@@ -295,15 +295,6 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
         }));
     }
 
-    let certs = if cmd.certs.is_empty() {
-        None
-    } else {
-        Some(sq.resolve_certs_or_fail(&cmd.certs, 0)?
-             .into_iter()
-             .map(|c| c.fingerprint())
-             .collect::<BTreeSet<_>>())
-    };
-
     // First, collect information by iterating over the device tree.
     //
     // We want to display the information later grouped by OpenPGP
@@ -374,6 +365,33 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
             }
         }
     }
+
+    // Look up the certs.  As we now know what keys we have, we can
+    // hand a filter to Sq::resolve_certs_filter to only look up keys.
+    let certs = if cmd.certs.is_empty() {
+        None
+    } else {
+        let have_keys: BTreeSet<_> =
+            the_keys.keys().map(|a| a.key().fingerprint()).collect();
+
+        let (certs, errors) = sq.resolve_certs_filter(
+            &cmd.certs, 0,
+            &mut |fp| have_keys.contains(&fp)
+                .then_some(())
+                .ok_or(anyhow::anyhow!("{} has no secret key material", fp)))?;
+
+        for error in &errors {
+            crate::print_error_chain(error);
+        }
+        if ! errors.is_empty() {
+            return Err(anyhow::anyhow!("Failed to resolve keys"));
+        }
+
+        Some(certs
+             .into_iter()
+             .map(|c| c.fingerprint())
+             .collect::<BTreeSet<_>>())
+    };
 
     // Now display the keys grouped by OpenPGP certificates.
 

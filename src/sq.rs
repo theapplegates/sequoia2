@@ -1777,7 +1777,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     where
         Prefix: cert_designator::ArgumentPrefix,
     {
-        self.resolve_certs_filter(designators, trust_amount, &mut |_| Ok(()))
+        self.resolve_certs_filter(designators, trust_amount, &mut |_, _| Ok(()))
     }
 
 
@@ -1790,7 +1790,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         &self,
         designators: &CertDesignators<Arguments, Prefix, Options, Doc>,
         trust_amount: usize,
-        filter: &mut dyn Fn(Fingerprint) -> Result<()>,
+        filter: &mut dyn Fn(&cert_designator::CertDesignator, &LazyCert)
+                            -> Result<()>,
     )
         -> Result<(Vec<Cert>, Vec<anyhow::Error>)>
     where
@@ -1859,7 +1860,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             };
 
             if apply_filter {
-                if let Err(err) = filter(cert.fingerprint()) {
+                if let Err(err) = filter(designator, &cert) {
                     errors.push(
                         err.context(format!(
                             "Failed to resolve {}",
@@ -2164,7 +2165,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     t!("=> {} results", found.len());
 
                     // Apply the filter, if any.
-                    found.retain(|c| filter(c.fingerprint()).is_ok());
+                    found.retain(|c| filter(designator, &c).is_ok());
 
                     if found.is_empty() {
                         ret(designator,

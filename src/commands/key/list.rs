@@ -371,9 +371,12 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
 
         let (certs, errors) = sq.resolve_certs_filter(
             &cmd.certs, 0,
-            &mut |fp| have_keys.contains(&fp)
-                .then_some(())
-                .ok_or(anyhow::anyhow!("{} has no secret key material", fp)))?;
+            &mut |_, cert| {
+                let fp = cert.fingerprint();
+                have_keys.contains(&fp)
+                    .then_some(())
+                    .ok_or(anyhow::anyhow!("{} has no secret key material", fp))
+            })?;
 
         for error in &errors {
             crate::print_error_chain(error);

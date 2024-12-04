@@ -37,8 +37,10 @@ pub fn dispatch(sq: Sq, command: SqCommand, matches: &ArgMatches) -> Result<()>
 {
     let matches = matches.subcommand().unwrap().1;
     match command.subcommand {
-        SqSubcommands::Encrypt(command) =>
-            encrypt::dispatch(sq, command),
+        SqSubcommands::Encrypt(mut command) => {
+            command.profile_source = matches.value_source("profile");
+            encrypt::dispatch(sq, command)
+        },
         SqSubcommands::Decrypt(command) =>
             decrypt::dispatch(sq, command),
         SqSubcommands::Sign(command) =>

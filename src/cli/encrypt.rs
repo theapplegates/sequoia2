@@ -7,8 +7,10 @@ use super::types::EncryptPurpose;
 use super::types::FileOrStdin;
 use super::types::FileOrStdout;
 
+use crate::cli::config;
 use crate::cli::types::CertDesignators;
 use crate::cli::types::cert_designator::*;
+use crate::cli::types::Profile;
 
 use crate::cli::examples;
 use examples::*;
@@ -157,6 +159,36 @@ pub struct Command {
             to using the one that expired last",
     )]
     pub use_expired_subkey: bool,
+
+    #[clap(
+        long = "profile",
+        value_name = "PROFILE",
+        default_value_t = Default::default(),
+        help = "Select the OpenPGP standard for the encryption container",
+        long_help = config::augment_help(
+            "key.generate.profile",
+            "Select the default OpenPGP standard for the encryption container
+
+When encrypting for certificates, the encryption container is selected \
+based on the stated preferences of the recipients.  However, if there \
+is no guidance, for example because the message is encrypted only with \
+passwords, sq falls back to this profile.
+
+As OpenPGP evolves, new versions will become available.  This option \
+selects the version of OpenPGP to use for encrypting messages if the \
+version can not be inferred otherwise.
+
+Currently, sq supports only one version: RFC4880.  Consequently, this \
+is the default.  However, there is already a newer version of the \
+standard: RFC9580.  And, the default will change in a future version of \
+sq."),
+        value_enum,
+    )]
+    pub profile: Profile,
+
+    /// Workaround for https://github.com/clap-rs/clap/issues/3846
+    #[clap(skip)]
+    pub profile_source: Option<clap::parser::ValueSource>,
 }
 
 /// Documentation for signer arguments.

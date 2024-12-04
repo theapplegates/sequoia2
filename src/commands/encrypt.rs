@@ -67,6 +67,10 @@ pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
                                     but none are given"));
     }
 
+    // Profile.  XXX: Currently, this is not actionable.
+    let _profile = sq.config.encrypt_profile(
+        &command.profile, command.profile_source);
+
     encrypt(
         &sq,
         sq.policy,

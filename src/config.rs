@@ -51,6 +51,9 @@ pub struct Config {
     /// The set of encryption certs selected using `--for-self`.
     encrypt_for_self: BTreeSet<Fingerprint>,
 
+    /// The default profile for encryption containers.
+    encrypt_profile: Option<cli::types::Profile>,
+
     /// The set of signing keys selected using `--signer-self`.
     sign_signer_self: BTreeSet<Fingerprint>,
 
@@ -93,6 +96,7 @@ impl Default for Config {
             quiet: false,
             hints: None,
             encrypt_for_self: Default::default(),
+            encrypt_profile: None,
             sign_signer_self: Default::default(),
             pki_vouch_certifier_self: None,
             pki_vouch_expiration: None,
@@ -175,6 +179,25 @@ impl Config {
     /// recipients if `encrypt --for-self` is given.
     pub fn encrypt_for_self(&self) -> &BTreeSet<Fingerprint> {
         &self.encrypt_for_self
+    }
+
+    /// Returns the default profile for encryption containers.
+    ///
+    /// Handles the precedence of the various sources:
+    ///
+    /// - If the flag is given, use the given value.
+    /// - If the command line flag is not given, then
+    ///   - use the value from the configuration file (if any),
+    ///   - or use the default value.
+    pub fn encrypt_profile(&self, cli: &cli::types::Profile,
+                                source: Option<ValueSource>)
+                                -> cli::types::Profile
+    {
+        match source.expect("set by the cli parser") {
+            ValueSource::DefaultValue =>
+                self.encrypt_profile.as_ref().unwrap_or(cli),
+            _ => cli,
+        }.clone()
     }
 
     /// Returns the keys that should be added to the list of
@@ -344,6 +367,7 @@ impl ConfigFile {
 
 [encrypt]
 #for-self = [\"fingerprint of your key\"]
+#profile = <DEFAULT-ENCRYPT-PROFILE>
 
 [sign]
 #signer-self = [\"fingerprint of your key\"]
@@ -381,6 +405,7 @@ impl ConfigFile {
     const TEMPLATE_PATTERNS: &'static [&'static str] = &[
         "<SQ-VERSION>",
         "<SQ-CONFIG-PATH-HINT>",
+        "<DEFAULT-ENCRYPT-PROFILE>",
         "<DEFAULT-PKI-VOUCH-EXPIRATION>",
         "<DEFAULT-CIPHER-SUITE>",
         "<DEFAULT-KEY-GENERATE-PROFILE>",
@@ -415,6 +440,8 @@ impl ConfigFile {
             } else {
                 "".into()
             },
+            &format!("{:?}", cli::types::Profile::default()
+                     .to_possible_value().unwrap().get_name()),
             &cli::THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS.to_string(),
             &format!("{:?}", cli::key::CipherSuite::default().
                      to_possible_value().unwrap().get_name()),
@@ -855,6 +882,7 @@ fn apply_ui_verbosity(config: &mut Option<&mut Config>,
 /// Schema for the `encrypt` section.
 const ENCRYPT_SCHEMA: Schema = &[
     ("for-self", apply_encrypt_for_self),
+    ("profile", apply_encrypt_profile),
 ];
 
 /// Validates the `encrypt` section.
@@ -894,6 +922,30 @@ fn apply_encrypt_for_self(config: &mut Option<&mut Config>,
 
     if let Some(config) = config {
         config.encrypt_for_self = values;
+    }
+
+    Ok(())
+}
+
+/// Validates the `key.generate.profile` value.
+fn apply_encrypt_profile(config: &mut Option<&mut Config>,
+                         cli: &mut Option<&mut Augmentations>,
+                         path: &str, item: &Item)
+                         -> Result<()>
+{
+    let s = item.as_str()
+        .ok_or_else(|| Error::bad_item_type(path, item, "string"))?;
+    let v = cli::types::Profile::from_str(s, false)
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+
+    if let Some(config) = config {
+        config.encrypt_profile = Some(v.clone());
+    }
+
+    if let Some(cli) = cli {
+        cli.insert(
+            "encrypt.profile",
+            v.to_possible_value().expect("just validated").get_name().into());
     }
 
     Ok(())

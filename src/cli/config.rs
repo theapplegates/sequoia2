@@ -65,9 +65,19 @@ pub type Augmentations = BTreeMap<&'static str, String>;
 /// Includes values from the config file in help messages.
 pub fn augment_help(key: &'static str, text: &str) -> String {
     if let Some(a) = get_augmentation(key) {
-        format!("{}\n\n[config: {}] (overrides default)", text, a)
+        format!("{}\n\
+                 \n\
+                 The default can be changed in the configuration \
+                 file using the setting `{}`.
+                 \n\
+                 [config: {}] (overrides default)",
+                text.trim_end(), key, a)
     } else {
-        text.into()
+        format!("{}\n\
+                 \n\
+                 The default can be changed in the configuration \
+                 file using the setting `{}`.",
+                text.trim_end(), key)
     }
 }
 

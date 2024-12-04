@@ -419,6 +419,10 @@ pub fn authenticate<'store, 'rstore>(
                 .sq().arg("network").arg("search")
                 .arg("some-mail-address")
                 .done();
+
+            // We're listing everything and we have nothing.  That's
+            // not actually an error.
+            return Ok(());
         }
     } else if bindings.len() - bindings_shown > 0 {
         // Some of the matching bindings were not shown.  Tell the

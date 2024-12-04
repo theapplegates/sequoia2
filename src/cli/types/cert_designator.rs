@@ -233,6 +233,12 @@ pub type FileRequiresOutput = typenum::U4;
 pub type OneValueAndFileRequiresOutput
     = <OneValue as BitOr<FileRequiresOutput>>::Output;
 
+/// Require either a cert designator, or the `all` parameter.
+///
+/// Note: the `all` parameter is not part of the cert designators
+/// argument, but must be explicitly added.
+pub type CertOrAll = typenum::U8;
+
 // Additional documentation.
 
 /// The prefix for the designators.
@@ -541,6 +547,7 @@ where
         let optional_value = (options & OptionalValue::to_usize()) > 0;
         let file_requires_output =
             (options & FileRequiresOutput::to_usize()) > 0;
+        let cert_or_all = (options & CertOrAll::to_usize()) > 0;
 
         let group = format!("cert-designator-{}-{:X}-{:X}",
                             Prefix::name(),
@@ -557,6 +564,10 @@ where
             arg_group = arg_group.required(false);
         } else {
             arg_group = arg_group.required(true);
+        }
+
+        if cert_or_all {
+            arg_group = arg_group.arg("all");
         }
 
         let action = if one_value {

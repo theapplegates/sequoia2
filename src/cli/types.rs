@@ -59,6 +59,12 @@ where
     fn as_ref(&self) -> &T;
 }
 
+impl MyAsRef<UserID> for UserID {
+    fn as_ref(&self) -> &UserID {
+        self
+    }
+}
+
 impl MyAsRef<UserID> for &UserID {
     fn as_ref(&self) -> &UserID {
         self

@@ -16,10 +16,7 @@ fn list_empty() {
     sq.key_import(cert_path);
 
     // Not linked => error.
-
-    // Reenable when the following issue is fixed:
-    // https://gitlab.com/sequoia-pgp/sequoia-sq/-/issues/484
-    //assert!(sq.try_pki_link_list(&["alice"]).is_err());
+    assert!(sq.try_pki_link_list(&["alice"]).is_err());
 
     // Not found => error.
     assert!(sq.try_pki_link_list(&["not found"]).is_err());

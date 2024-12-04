@@ -191,7 +191,27 @@ pub fn list(sq: Sq, mut c: link::ListCommand)
     let (certs, errors) = if c.certs.is_empty() {
         (cert_store.certs(), Vec::new())
     } else {
-        let (c, e) = sq.resolve_certs(&c.certs, 0)?;
+        let (c, e) = sq.resolve_certs_filter(
+            &c.certs, 0, &mut |designator, cert| {
+                let userids = cert.userids().filter(|uid| {
+                    match designator.query_params() {
+                        Err(_) => false,
+                        Ok(None) => true,
+                        Ok(Some((q, p))) => q.check(uid, &p),
+                    }
+                });
+
+                if active_certification(
+                    &sq, cert.to_cert()?, userids, trust_root_key)
+                    .into_iter()
+                    .filter(|(_uid, certification)| certification.is_some())
+                    .next().is_some()
+                {
+                    Ok(())
+                } else {
+                    Err(anyhow::anyhow!("not linked"))
+                }
+            })?;
         (Box::new(c.into_iter().map(|c| Arc::new(LazyCert::from(c))))
          as Box<dyn Iterator<Item=Arc<LazyCert<'_>>>>,
          e)

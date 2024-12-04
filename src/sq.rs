@@ -1949,52 +1949,61 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 cert_designator::CertDesignator::UserID(userid) => {
                     t!("Looking up certificate by userid {:?}", userid);
 
-                    let q = UserIDQueryParams::new();
-                    userid_queries.push(
-                        (designator, q, userid.to_string()));
+                    match designator.query_params() {
+                        Ok(Some((q, pattern))) =>
+                            userid_queries.push((designator, q, pattern)),
+
+                        Ok(None) =>
+                            unreachable!("designator matches on user IDs"),
+
+                        Err(err) =>
+                            ret(designator, Err(err), true, false),
+                    }
                 }
 
                 cert_designator::CertDesignator::Email(email) => {
                     t!("Looking up certificate by email {:?}", email);
 
-                    match UserIDQueryParams::is_email(&email) {
-                        Ok(email) => {
-                            let mut q = UserIDQueryParams::new();
-                            q.set_email(true);
-                            userid_queries.push(
-                                (designator, q, email.clone()));
-                        }
-                        Err(err) => {
-                            ret(designator, Err(err), true, false);
-                        }
+                    match designator.query_params() {
+                        Ok(Some((q, pattern))) =>
+                            userid_queries.push((designator, q, pattern)),
+
+                        Ok(None) =>
+                            unreachable!("designator matches on user IDs"),
+
+                        Err(err) =>
+                            ret(designator, Err(err), true, false),
                     }
                 }
 
                 cert_designator::CertDesignator::Domain(domain) => {
                     t!("Looking up certificate by domain {:?}", domain);
 
-                    match UserIDQueryParams::is_domain(&domain) {
-                        Ok(domain) => {
-                            let mut q = UserIDQueryParams::new();
-                            q.set_email(true)
-                                .set_anchor_start(false);
-                            userid_queries.push(
-                                (designator, q, format!("@{}", domain)));
-                        }
-                        Err(err) => {
-                            ret(designator, Err(err), true, false);
-                        }
+                    match designator.query_params() {
+                        Ok(Some((q, pattern))) =>
+                            userid_queries.push((designator, q, pattern)),
+
+                        Ok(None) =>
+                            unreachable!("designator matches on user IDs"),
+
+                        Err(err) =>
+                            ret(designator, Err(err), true, false),
                     }
                 }
 
                 cert_designator::CertDesignator::Grep(pattern) => {
                     t!("Looking up certificate by pattern {:?}", pattern);
 
-                    let mut q = UserIDQueryParams::new();
-                    q.set_anchor_start(false)
-                        .set_anchor_end(false)
-                        .set_ignore_case(true);
-                    userid_queries.push((designator, q, pattern.clone()));
+                    match designator.query_params() {
+                        Ok(Some((q, pattern))) =>
+                            userid_queries.push((designator, q, pattern)),
+
+                        Ok(None) =>
+                            unreachable!("designator matches on user IDs"),
+
+                        Err(err) =>
+                            ret(designator, Err(err), true, false),
+                    }
                 }
 
                 cert_designator::CertDesignator::File(filename) => {

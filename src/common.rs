@@ -11,6 +11,7 @@ use sequoia_wot as wot;
 
 use crate::output::sanitize::Safe;
 
+pub mod cert_designator;
 pub mod file;
 
 mod revoke;

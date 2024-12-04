@@ -404,6 +404,7 @@ pub fn authenticate<'store, 'rstore>(
                 .sq().arg("key").arg("generate")
                 .arg_value("--name", "your-name")
                 .arg_value("--email", "your-email-address")
+                .arg("--own-key")
                 .done();
 
             sq.hint(format_args!(

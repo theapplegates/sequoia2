@@ -2,11 +2,10 @@
 
 use clap::Parser;
 
-use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION;
 use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS;
 
 use crate::cli::types::ClapData;
-use crate::cli::types::Expiration;
+use crate::cli::types::expiration;
 use crate::cli::types::ExpirationArg;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::TrustAmount;
@@ -82,9 +81,6 @@ reference time.
     ),
     after_help = ADD_EXAMPLES,
 )]
-#[clap(mut_arg("expiration", |arg| {
-    arg.default_value(Expiration::from_duration(THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION))
-}))]
 pub struct Command {
     #[command(flatten)]
     pub certifier: CertDesignators<CertUserIDEmailFileSelfArgs,
@@ -115,7 +111,7 @@ pub struct Command {
     pub amount: TrustAmount<u8>,
 
     #[command(flatten)]
-    pub expiration: ExpirationArg,
+    pub expiration: ExpirationArg<expiration::CertificationKind>,
 
     #[clap(
         long = "local",

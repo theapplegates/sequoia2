@@ -14,6 +14,7 @@ use clap::builder::Resettable;
 
 use typenum::Unsigned;
 
+use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION;
 use crate::cli::types::Time;
 use crate::Result;
 
@@ -22,6 +23,7 @@ use crate::Result;
 /// Expiration argument kind specialization.
 pub enum ExpirationKind {
     Default,
+    Certification,
 }
 
 impl From<usize> for ExpirationKind {
@@ -32,6 +34,11 @@ impl From<usize> for ExpirationKind {
                 ExpirationKind::Default
             },
 
+            1 => {
+                debug_assert_eq!(1, CertificationKind::to_usize());
+                ExpirationKind::Certification
+            },
+
             _ => unreachable!(),
         }
     }
@@ -39,6 +46,9 @@ impl From<usize> for ExpirationKind {
 
 /// Default expiration parameter.
 pub type DefaultKind = typenum::U0;
+
+/// Specialization for third-party certifications.
+pub type CertificationKind = typenum::U1;
 
 #[derive(Debug)]
 pub struct ExpirationArg<Kind = DefaultKind> {
@@ -86,10 +96,14 @@ Alternatively, the keyword `never` does not set an expiration time.";
                 .value_parser(Expiration::new)
                 .default_value(match kind {
                     ExpirationKind::Default => Expiration::Never,
+                    ExpirationKind::Certification =>
+                        Expiration::from_duration(
+                            THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION),
                 })
                 .help("Sets the expiration time")
                 .long_help(match kind {
                     ExpirationKind::Default => LONG_HELP,
+                    ExpirationKind::Certification => LONG_HELP,
                 })
         )
     }

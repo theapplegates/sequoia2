@@ -3,11 +3,10 @@
 use clap::ArgGroup;
 use clap::Parser;
 
-use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION;
 use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS;
 
 use crate::cli::types::ClapData;
-use crate::cli::types::Expiration;
+use crate::cli::types::expiration;
 use crate::cli::types::ExpirationArg;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::TrustAmount;
@@ -92,9 +91,6 @@ reference time.
     after_help = AUTHORIZE_EXAMPLES,
 )]
 #[clap(group(ArgGroup::new("constraint").args(&["regex", "domain", "unconstrained"]).required(true).multiple(true)))]
-#[clap(mut_arg("expiration", |arg| {
-    arg.default_value(Expiration::from_duration(THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION))
-}))]
 pub struct Command {
     #[command(flatten)]
     pub certifier: CertDesignators<CertUserIDEmailFileSelfArgs,
@@ -200,7 +196,7 @@ of power, you have to opt in to this behavior explicitly.",
     pub non_revocable: bool,
 
     #[command(flatten)]
-    pub expiration: ExpirationArg,
+    pub expiration: ExpirationArg<expiration::CertificationKind>,
 
     #[clap(
         long = "signature-notation",

@@ -48,50 +48,42 @@ pub type AddEmailArg = typenum::U256;
 /// self-signed user ID.
 pub type AddNameArg = typenum::U512;
 
-/// Enables --userid, and --email (but not --name, --userid-or-add,
-/// --email-or-add, or --name-or-add).
+/// Enables --userid, and --email.
 pub type ExistingUserIDEmailArgs
     = <ExistingUserIDArg as std::ops::BitOr<ExistingEmailArg>>::Output;
 
-/// Enables --userid, --email, --name (but not --userid-or-add,
-/// --email-or-add, or --name-or-add).
+/// Enables --userid, --email, --name.
 pub type ExistingUserIDEmailNameArgs
     = <ExistingUserIDEmailArgs as std::ops::BitOr<ExistingNameArg>>::Output;
 
-/// Enables --userid, and --email (but not --name, --userid-or-add,
-/// --email-or-add, or --name-or-add).
+/// Enables --userid, and --email.
 pub type AnyUserIDEmailArgs
     = <AnyUserIDArg as std::ops::BitOr<AnyEmailArg>>::Output;
 
-/// Enables --userid, --email, and --name (but not --userid-or-add,
-/// --email-or-add, or --name-or-add).
+/// Enables --userid, --email, and --name.
 pub type AnyUserIDEmailNameArgs
     = <AnyUserIDEmailArgs as std::ops::BitOr<AnyNameArg>>::Output;
 
-/// Enables --userid-or-add, and --email-or-add (but not --userid, --email,
-/// --name, or --name-or-add).
+/// Enables --userid-or-add, and --email-or-add.
 pub type AddUserIDEmailArgs
     = <AddUserIDArg as std::ops::BitOr<AddEmailArg>>::Output;
 
-/// Enables --userid, --email, --userid-or-add, and --email-or-add (but not
-/// --name or --name-or-add).
+/// Enables --userid, --email, --userid-or-add, and --email-or-add.
 pub type ExistingAndAddXUserIDEmailArgs
     = <ExistingUserIDEmailArgs
        as std::ops::BitOr<AddUserIDEmailArgs>>::Output;
 
-/// Enables --all, --userid, --email, --userid-or-add, and --email-or-add
-/// (but not --name).
+/// Enables --all, --userid, --email, --userid-or-add, and --email-or-add.
 pub type AllExistingAndAddXUserIDEmailArgs
     = <AllUserIDsArg
        as std::ops::BitOr<ExistingAndAddXUserIDEmailArgs>>::Output;
 
-/// Enables --all, --userid, and --email (but not --name, --userid-or-add,
-/// --email-or-add, or --name-or-add).
+/// Enables --all, --userid, and --email.
 pub type AllAnyUserIDEmailArgs
     = <AllUserIDsArg as std::ops::BitOr<AnyUserIDEmailArgs>>::Output;
 
 /// Enables --userid, --email, --name, --userid-or-add,
-/// --email-or-add, and --name-or-add (but not --all).
+/// --email-or-add, and --name-or-add.
 pub type ExistingAndAddXUserIDEmailNameArgs
     = <<ExistingAndAddXUserIDEmailArgs
         as std::ops::BitOr<ExistingNameArg>>::Output

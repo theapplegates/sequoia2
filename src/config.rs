@@ -1038,7 +1038,7 @@ fn apply_key_generate_cipher_suite(config: &mut Option<&mut Config>,
 {
     let s = item.as_str()
         .ok_or_else(|| Error::bad_item_type(path, item, "string"))?;
-    let v = cli::key::CipherSuite::from_str(s, true)
+    let v = cli::key::CipherSuite::from_str(s, false)
         .map_err(|e| anyhow::anyhow!("{}", e))?;
 
     if let Some(config) = config {

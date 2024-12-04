@@ -8,15 +8,16 @@ mod integration {
     mod sq_cli_version;
     mod sq_decrypt;
     mod sq_encrypt;
-    mod sq_key_subkey_bind;
     mod sq_key_approvals_update;
     mod sq_key_delete;
     mod sq_key_expire;
     mod sq_key_generate;
     mod sq_key_import_export;
+    mod sq_key_list;
     mod sq_key_password;
     mod sq_key_revoke;
     mod sq_key_subkey;
+    mod sq_key_subkey_bind;
     mod sq_key_subkey_delete;
     mod sq_key_subkey_expire;
     mod sq_key_subkey_export;

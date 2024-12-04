@@ -933,6 +933,26 @@ impl Sq {
         self.run(cmd, Some(true));
     }
 
+    /// Runs `sq key list` with the supplied arguments.
+    pub fn try_key_list(&self, args: &[&str]) -> Result<Vec<u8>> {
+        let mut cmd = self.command();
+        cmd.arg("key").arg("list");
+        for arg in args {
+            cmd.arg(arg);
+        }
+        let output = self.run(cmd, None);
+        if output.status.success() {
+            Ok(output.stdout)
+        } else {
+            Err(anyhow::anyhow!("sq cert list returned an error"))
+        }
+    }
+
+    /// Runs `sq key list` with the supplied arguments.
+    pub fn key_list(&self, args: &[&str]) -> Vec<u8> {
+        self.try_key_list(args).expect("success")
+    }
+
     /// Exports the specified key.
     pub fn key_export(&self, kh: KeyHandle) -> Cert {
         self.key_export_maybe(kh)

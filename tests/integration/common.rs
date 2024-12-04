@@ -1878,6 +1878,26 @@ impl Sq {
             .expect("success")
     }
 
+    /// Runs `sq pki link list` with the supplied arguments.
+    pub fn try_pki_link_list(&self, args: &[&str]) -> Result<Vec<u8>> {
+        let mut cmd = self.command();
+        cmd.arg("pki").arg("link").arg("list");
+        for arg in args {
+            cmd.arg(arg);
+        }
+        let output = self.run(cmd, None);
+        if output.status.success() {
+            Ok(output.stdout)
+        } else {
+            Err(anyhow::anyhow!("sq cert list returned an error"))
+        }
+    }
+
+    /// Runs `sq pki link list` with the supplied arguments.
+    pub fn pki_link_list(&self, args: &[&str]) -> Vec<u8> {
+        self.try_pki_link_list(args).expect("success")
+    }
+
     /// Authenticate a binding.
     pub fn pki_authenticate<'a, U>(&self, extra_args: &[&str],
                                    cert: &str, userid: U)

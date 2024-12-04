@@ -12,15 +12,43 @@ use clap::builder::IntoResettable;
 use clap::builder::OsStr;
 use clap::builder::Resettable;
 
+use typenum::Unsigned;
+
 use crate::cli::types::Time;
 use crate::Result;
 
-#[derive(Debug)]
-pub struct ExpirationArg {
-    expiration: Expiration,
+// Argument parser options.
+
+/// Expiration argument kind specialization.
+pub enum ExpirationKind {
+    Default,
 }
 
-impl Deref for ExpirationArg {
+impl From<usize> for ExpirationKind {
+    fn from(v: usize) -> ExpirationKind {
+        match v {
+            0 => {
+                debug_assert_eq!(0, DefaultKind::to_usize());
+                ExpirationKind::Default
+            },
+
+            _ => unreachable!(),
+        }
+    }
+}
+
+/// Default expiration parameter.
+pub type DefaultKind = typenum::U0;
+
+#[derive(Debug)]
+pub struct ExpirationArg<Kind = DefaultKind> {
+    expiration: Expiration,
+
+    /// Argument parser specializations.
+    arguments: std::marker::PhantomData<Kind>,
+}
+
+impl<Kind> Deref for ExpirationArg<Kind> {
     type Target = Expiration;
 
     fn deref(&self) -> &Self::Target {
@@ -28,30 +56,41 @@ impl Deref for ExpirationArg {
     }
 }
 
-impl ExpirationArg {
+impl<Kind> ExpirationArg<Kind> {
     /// Returns the expiration time.
     pub fn value(&self) -> Expiration {
         self.expiration.clone()
     }
 }
 
-impl clap::Args for ExpirationArg {
+impl<Kind> clap::Args for ExpirationArg<Kind>
+where
+    Kind: typenum::Unsigned,
+{
     fn augment_args(cmd: clap::Command) -> clap::Command {
+        let kind: ExpirationKind = Kind::to_usize().into();
+
+        const LONG_HELP: &str = "\
+Sets the expiration time
+
+EXPIRATION is either an ISO 8601 formatted date with an optional time \
+or a custom duration.  A duration takes the form `N[ymwds]`, where the \
+letters stand for years, months, weeks, days, and seconds, respectively. \
+Alternatively, the keyword `never` does not set an expiration time.";
+
         cmd.arg(
             clap::Arg::new("expiration")
                 .long("expiration")
                 .allow_hyphen_values(true)
                 .value_name("EXPIRATION")
                 .value_parser(Expiration::new)
-                .default_value(Expiration::Never)
+                .default_value(match kind {
+                    ExpirationKind::Default => Expiration::Never,
+                })
                 .help("Sets the expiration time")
-                .long_help("\
-Sets the expiration time
-
-EXPIRATION is either an ISO 8601 formatted date with an optional time \
-or a custom duration.  A duration takes the form `N[ymwds]`, where the \
-letters stand for years, months, weeks, days, and seconds, respectively. \
-Alternatively, the keyword `never` does not set an expiration time.")
+                .long_help(match kind {
+                    ExpirationKind::Default => LONG_HELP,
+                })
         )
     }
 
@@ -60,7 +99,7 @@ Alternatively, the keyword `never` does not set an expiration time.")
     }
 }
 
-impl clap::FromArgMatches for ExpirationArg {
+impl<Kind> clap::FromArgMatches for ExpirationArg<Kind> {
     fn update_from_arg_matches(&mut self, matches: &clap::ArgMatches)
                                -> clap::error::Result<()>
     {
@@ -76,6 +115,7 @@ impl clap::FromArgMatches for ExpirationArg {
     {
         let mut expiration = ExpirationArg {
             expiration: Expiration::Never,
+            arguments: Default::default(),
         };
 
         expiration.update_from_arg_matches(matches)?;

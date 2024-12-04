@@ -31,6 +31,7 @@ pub fn dispatch(sq: Sq, command: cli::key::Command, matches: &ArgMatches)
         List(c) => list(sq, c)?,
         Generate(mut c) => {
             c.cipher_suite_source = matches.value_source("cipher_suite");
+            c.profile_source = matches.value_source("profile");
             generate(sq, c)?
         },
         Import(c) => import(sq, c)?,

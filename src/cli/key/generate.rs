@@ -13,6 +13,7 @@ use crate::cli::types::EncryptPurpose;
 use crate::cli::types::Expiration;
 use crate::cli::types::ExpirationArg;
 use crate::cli::types::FileOrStdout;
+use crate::cli::types::Profile;
 
 use crate::cli::examples::*;
 use crate::cli::key::CipherSuite;
@@ -145,6 +146,30 @@ Canonical user IDs are of the form `Name (Comment) \
     /// Workaround for https://github.com/clap-rs/clap/issues/3846
     #[clap(skip)]
     pub cipher_suite_source: Option<clap::parser::ValueSource>,
+
+    #[clap(
+        long = "profile",
+        value_name = "PROFILE",
+        default_value_t = Default::default(),
+        help = "Select the OpenPGP standard for the key",
+        long_help = config::augment_help(
+            "key.generate.profile",
+            "Select the OpenPGP standard for the key
+
+As OpenPGP evolves, new versions will become available.  This option \
+selects the version of OpenPGP to use for the newly generated key.
+
+Currently, sq supports only one version: RFC4880.  Consequently, this \
+is the default.  However, there is already a newer version of the \
+standard: RFC9580.  And, the default will change in a future version of \
+sq."),
+        value_enum,
+    )]
+    pub profile: Profile,
+
+    /// Workaround for https://github.com/clap-rs/clap/issues/3846
+    #[clap(skip)]
+    pub profile_source: Option<clap::parser::ValueSource>,
 
     #[clap(
         long = "new-password-file",

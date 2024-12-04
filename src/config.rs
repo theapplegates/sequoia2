@@ -63,7 +63,12 @@ pub struct Config {
 
     policy_path: Option<PathBuf>,
     policy_inline: Option<Vec<u8>>,
+
+    /// The default cipher suite for newly generated keys.
     cipher_suite: Option<sequoia_openpgp::cert::CipherSuite>,
+
+    /// The default profile for newly generated keys.
+    key_generate_profile: Option<cli::types::Profile>,
 
     /// The set of keyservers to use.
     key_servers: Option<Vec<Url>>,
@@ -94,6 +99,7 @@ impl Default for Config {
             policy_path: None,
             policy_inline: None,
             cipher_suite: None,
+            key_generate_profile: None,
             key_servers: None,
             network_search_iterations: 3,
             network_search_wkd: true,
@@ -253,6 +259,25 @@ impl Config {
         }
     }
 
+    /// Returns the profile for generating new keys.
+    ///
+    /// Handles the precedence of the various sources:
+    ///
+    /// - If the flag is given, use the given value.
+    /// - If the command line flag is not given, then
+    ///   - use the value from the configuration file (if any),
+    ///   - or use the default value.
+    pub fn key_generate_profile(&self, cli: &cli::types::Profile,
+                                source: Option<ValueSource>)
+                                -> cli::types::Profile
+    {
+        match source.expect("set by the cli parser") {
+            ValueSource::DefaultValue =>
+                self.key_generate_profile.as_ref().unwrap_or(cli),
+            _ => cli,
+        }.clone()
+    }
+
     /// Returns the key servers to query or publish.
     ///
     /// Handles the precedence of the various sources:
@@ -329,6 +354,7 @@ impl ConfigFile {
 
 [key.generate]
 #cipher-suite = <DEFAULT-CIPHER-SUITE>
+#profile = <DEFAULT-KEY-GENERATE-PROFILE>
 
 [network]
 #keyservers = <DEFAULT-KEY-SERVERS>
@@ -357,6 +383,7 @@ impl ConfigFile {
         "<SQ-CONFIG-PATH-HINT>",
         "<DEFAULT-PKI-VOUCH-EXPIRATION>",
         "<DEFAULT-CIPHER-SUITE>",
+        "<DEFAULT-KEY-GENERATE-PROFILE>",
         "<DEFAULT-KEY-SERVERS>",
         "<DEFAULT-SERVERS-PATH>",
         "<DEFAULT-POLICY-FILE>",
@@ -391,6 +418,8 @@ impl ConfigFile {
             &cli::THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS.to_string(),
             &format!("{:?}", cli::key::CipherSuite::default().
                      to_possible_value().unwrap().get_name()),
+            &format!("{:?}", cli::types::Profile::default()
+                     .to_possible_value().unwrap().get_name()),
             &format!("{:?}", cli::network::keyserver::DEFAULT_KEYSERVERS),
             &format!("{:?}", {
                 sequoia_keystore::sequoia_ipc::Context::configure().build()
@@ -1016,6 +1045,7 @@ fn apply_key(config: &mut Option<&mut Config>, cli: &mut Option<&mut Augmentatio
 /// Schema for the `key.generate` section.
 const KEY_GENERATE_SCHEMA: Schema = &[
     ("cipher-suite", apply_key_generate_cipher_suite),
+    ("profile", apply_key_generate_profile),
 ];
 
 /// Validates the `key.generate` section.
@@ -1048,6 +1078,30 @@ fn apply_key_generate_cipher_suite(config: &mut Option<&mut Config>,
     if let Some(cli) = cli {
         cli.insert(
             "key.generate.cipher-suite",
+            v.to_possible_value().expect("just validated").get_name().into());
+    }
+
+    Ok(())
+}
+
+/// Validates the `key.generate.profile` value.
+fn apply_key_generate_profile(config: &mut Option<&mut Config>,
+                              cli: &mut Option<&mut Augmentations>,
+                              path: &str, item: &Item)
+                              -> Result<()>
+{
+    let s = item.as_str()
+        .ok_or_else(|| Error::bad_item_type(path, item, "string"))?;
+    let v = cli::types::Profile::from_str(s, false)
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+
+    if let Some(config) = config {
+        config.key_generate_profile = Some(v.clone());
+    }
+
+    if let Some(cli) = cli {
+        cli.insert(
+            "key.generate.profile",
             v.to_possible_value().expect("just validated").get_name().into());
     }
 

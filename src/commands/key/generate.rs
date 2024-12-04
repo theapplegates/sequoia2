@@ -96,6 +96,10 @@ pub fn generate(
         sq.config.cipher_suite(&command.cipher_suite,
                                command.cipher_suite_source));
 
+    // Profile.  XXX: Currently, this is not actionable.
+    let _profile = sq.config.key_generate_profile(
+        &command.profile, command.profile_source);
+
     // Primary key capabilities.
     builder = builder.set_primary_key_flags(
         key_flags_template.clone().set_certification());

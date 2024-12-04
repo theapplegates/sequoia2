@@ -702,7 +702,7 @@ fn sq_multiple_signers() -> Result<()> {
             "sign",
             "--signer-file", alice_pgp.to_str().unwrap(),
             "--signer-file", &bob_pgp.to_str().unwrap(),
-            "--signature-file",
+            "--signature-file=-",
         ])
         .write_stdin(&b"foo"[..])
         .assert().try_success()?;

@@ -14,6 +14,9 @@
      --unconstrained` can be used to fully trust the keys.openpgp.org
      key server.  This also creates the shadow CA if it doesn't exist
      yet.
+   - `sq sign --signature-file` now takes a value specifying where the
+     signature should be written to.  It conflicts with `--output`.
+
 * Changes in 0.40.0
 ** New functionality
    - New subcommand `sq download`, which downloads a file and a

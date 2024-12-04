@@ -40,7 +40,7 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
 
     let mut input = command.input.open("the data to sign")?;
     let output = &command.output;
-    let detached = command.detached;
+    let detached = &command.detached;
     let binary = command.binary;
     let append = command.append;
     let notarize = command.notarize;
@@ -74,10 +74,10 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
     } else {
         sign(sq,
              &mut input,
-             output,
+             detached.as_ref().unwrap_or(output),
              signers,
              command.mode,
-             detached,
+             detached.is_some(),
              binary,
              append,
              notarize,

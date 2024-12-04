@@ -1239,7 +1239,7 @@ given file hello.txt
 when I run sq key generate --own-key --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
 when I run sq key delete --cert-file key.pgp --output cert.pgp
 
-when I run sq sign --signature-file --signer-file key.pgp --output hello.txt.sig hello.txt
+when I run sq sign --signature-file=hello.txt.sig --signer-file key.pgp hello.txt
 then file hello.txt.sig contains "-----BEGIN PGP SIGNATURE-----"
 then file hello.txt.sig contains "-----END PGP SIGNATURE-----"
 when I run sq verify --signature-file=hello.txt.sig --signer-file=cert.pgp hello.txt
@@ -1260,7 +1260,7 @@ given file sed-in-place
 when I run sq key generate --own-key --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
 when I run sq key delete --cert-file key.pgp --output cert.pgp
 
-when I run sq sign --signature-file --signer-file key.pgp --output hello.txt.sig hello.txt
+when I run sq sign --signature-file=hello.txt.sig --signer-file key.pgp hello.txt
 when I run sh sed-in-place s/hello/HELLO/ hello.txt
 when I try to run sq verify --signature-file=hello.txt.sig --signer-file=cert.pgp hello.txt
 then exit code is 1

@@ -2008,7 +2008,9 @@ impl Sq {
         let output_file = output_file.into();
 
         let mut cmd = self.command();
-        cmd.arg("sign").arg("--signature-file");
+        let stdout: PathBuf = "-".into();
+        cmd.arg("sign")
+            .arg("--signature-file").arg(output_file.unwrap_or(&stdout));
 
         for arg in args {
             cmd.arg(arg);
@@ -2024,10 +2026,6 @@ impl Sq {
         };
 
         cmd.arg(input_file);
-
-        if let Some(output_file) = output_file {
-            cmd.arg("--output").arg(output_file);
-        };
 
         let output = self.run(cmd, None);
         if output.status.success() {

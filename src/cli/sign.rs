@@ -36,17 +36,7 @@ Create a signed message.",
 Create a detached signature.",
             command: &[
                 "sq", "sign", "--signer-file", "juliet-secret.pgp",
-                "--signature-file", "document.txt",
-            ],
-            hide: &[],
-        }),
-        Action::Example(Example {
-            comment: "\
-Create a signature with the specified creation time.",
-            command: &[
-                "sq", "sign", "--signer-file", "juliet-secret.pgp",
-                "--time", "2024-02-29",
-                "--signature-file", "document.txt",
+                "--signature-file=document.txt.sig", "document.txt",
             ],
             hide: &[],
         }),
@@ -98,9 +88,11 @@ pub struct Command {
 
     #[clap(
         long = "signature-file",
+        value_name = "SIG",
         help = "Create a detached signature file",
+        conflicts_with = "output",
     )]
-    pub detached: bool,
+    pub detached: Option<FileOrStdout>,
 
     #[clap(
         long = "message",

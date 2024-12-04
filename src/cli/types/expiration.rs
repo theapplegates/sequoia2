@@ -15,23 +15,8 @@ use clap::builder::Resettable;
 use crate::cli::types::Time;
 use crate::Result;
 
-#[derive(clap::Args, Debug)]
+#[derive(Debug)]
 pub struct ExpirationArg {
-    #[clap(
-        long = "expiration",
-        allow_hyphen_values = true,
-        value_name = "EXPIRATION",
-        default_value_t = Expiration::Never,
-        help =
-            "Sets the expiration time",
-        long_help = "\
-Sets the expiration time.
-
-EXPIRATION is either an ISO 8601 formatted date with an optional time \
-or a custom duration.  A duration takes the form `N[ymwds]`, where the \
-letters stand for years, months, weeks, days, and seconds, respectively. \
-Alternatively, the keyword `never` does not set an expiration time.",
-    )]
     expiration: Expiration,
 }
 
@@ -47,6 +32,54 @@ impl ExpirationArg {
     /// Returns the expiration time.
     pub fn value(&self) -> Expiration {
         self.expiration.clone()
+    }
+}
+
+impl clap::Args for ExpirationArg {
+    fn augment_args(cmd: clap::Command) -> clap::Command {
+        cmd.arg(
+            clap::Arg::new("expiration")
+                .long("expiration")
+                .allow_hyphen_values(true)
+                .value_name("EXPIRATION")
+                .value_parser(Expiration::new)
+                .default_value(Expiration::Never)
+                .help("Sets the expiration time")
+                .long_help("\
+Sets the expiration time
+
+EXPIRATION is either an ISO 8601 formatted date with an optional time \
+or a custom duration.  A duration takes the form `N[ymwds]`, where the \
+letters stand for years, months, weeks, days, and seconds, respectively. \
+Alternatively, the keyword `never` does not set an expiration time.")
+        )
+    }
+
+    fn augment_args_for_update(cmd: clap::Command) -> clap::Command {
+        Self::augment_args(cmd)
+    }
+}
+
+impl clap::FromArgMatches for ExpirationArg {
+    fn update_from_arg_matches(&mut self, matches: &clap::ArgMatches)
+                               -> clap::error::Result<()>
+    {
+        if let Some(v) = matches.get_one::<Expiration>("expiration") {
+            self.expiration = v.clone();
+        }
+
+        Ok(())
+    }
+
+    fn from_arg_matches(matches: &clap::ArgMatches)
+                        -> clap::error::Result<Self>
+    {
+        let mut expiration = ExpirationArg {
+            expiration: Expiration::Never,
+        };
+
+        expiration.update_from_arg_matches(matches)?;
+        Ok(expiration)
     }
 }
 

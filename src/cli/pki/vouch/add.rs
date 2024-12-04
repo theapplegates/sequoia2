@@ -113,6 +113,10 @@ pub struct Command {
     #[command(flatten)]
     pub expiration: ExpirationArg<expiration::CertificationKind>,
 
+    /// Workaround for https://github.com/clap-rs/clap/issues/3846
+    #[clap(skip)]
+    pub expiration_source: Option<clap::parser::ValueSource>,
+
     #[clap(
         long = "local",
         help = "Make the certification a local certification",

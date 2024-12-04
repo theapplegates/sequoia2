@@ -15,6 +15,8 @@ use clap::builder::Resettable;
 use typenum::Unsigned;
 
 use crate::cli::THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION;
+use crate::cli::config;
+use crate::cli::pki::vouch::CERTIFICATION_EXPIRATION;
 use crate::cli::types::Time;
 use crate::Result;
 
@@ -102,8 +104,10 @@ Alternatively, the keyword `never` does not set an expiration time.";
                 })
                 .help("Sets the expiration time")
                 .long_help(match kind {
-                    ExpirationKind::Default => LONG_HELP,
-                    ExpirationKind::Certification => LONG_HELP,
+                    ExpirationKind::Default => LONG_HELP.into(),
+                    ExpirationKind::Certification =>
+                        config::augment_help(CERTIFICATION_EXPIRATION,
+                                             LONG_HELP),
                 })
         )
     }

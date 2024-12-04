@@ -25,6 +25,8 @@ pub fn add(sq: Sq, mut c: add::Command)
     let userids = c.userids.resolve(&vc)?;
 
     let notations = parse_notations(&c.notation)?;
+    let expiration =
+        sq.config.pki_vouch_expiration(&c.expiration, c.expiration_source);
 
     crate::common::pki::certify::certify(
         &mut std::io::stderr(),
@@ -34,7 +36,7 @@ pub fn add(sq: Sq, mut c: add::Command)
         &cert,
         &userids[..],
         true, // User supplied user IDs.
-        &[(c.amount, c.expiration.value())],
+        &[(c.amount, expiration)],
         0,
         &[][..], &[][..], // Domain, regex.
         c.local,

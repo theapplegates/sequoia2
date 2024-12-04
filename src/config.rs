@@ -58,6 +58,9 @@ pub struct Config {
     /// `--certifier-self`.
     pki_vouch_certifier_self: Option<Fingerprint>,
 
+    /// The default validity period for third-party certifications.
+    pki_vouch_expiration: Option<cli::types::Expiration>,
+
     policy_path: Option<PathBuf>,
     policy_inline: Option<Vec<u8>>,
     cipher_suite: Option<sequoia_openpgp::cert::CipherSuite>,
@@ -87,6 +90,7 @@ impl Default for Config {
             encrypt_for_self: Default::default(),
             sign_signer_self: Default::default(),
             pki_vouch_certifier_self: None,
+            pki_vouch_expiration: None,
             policy_path: None,
             policy_inline: None,
             cipher_suite: None,
@@ -177,6 +181,25 @@ impl Config {
     /// `--certifier-self` is given.
     pub fn pki_vouch_certifier_self(&self) -> &Option<Fingerprint> {
         &self.pki_vouch_certifier_self
+    }
+
+    /// Returns the expiration for third-party certifications.
+    ///
+    /// Handles the precedence of the various sources:
+    ///
+    /// - If the flag is given, use the given value.
+    /// - If the command line flag is not given, then
+    ///   - use the value from the configuration file (if any),
+    ///   - or use the default value.
+    pub fn pki_vouch_expiration(&self, cli: &cli::types::Expiration,
+                                source: Option<ValueSource>)
+                                -> cli::types::Expiration
+    {
+        match source.expect("set by the cli parser") {
+            ValueSource::DefaultValue =>
+                self.pki_vouch_expiration.as_ref().unwrap_or(cli),
+            _ => cli,
+        }.clone()
     }
 
     /// Returns the path to the referenced cryptographic policy, if
@@ -302,6 +325,7 @@ impl ConfigFile {
 
 [pki.vouch]
 #certifier-self = \"fingerprint of your key\"
+#expiration = \"<DEFAULT-PKI-VOUCH-EXPIRATION>y\"
 
 [key.generate]
 #cipher-suite = <DEFAULT-CIPHER-SUITE>
@@ -331,6 +355,7 @@ impl ConfigFile {
     const TEMPLATE_PATTERNS: &'static [&'static str] = &[
         "<SQ-VERSION>",
         "<SQ-CONFIG-PATH-HINT>",
+        "<DEFAULT-PKI-VOUCH-EXPIRATION>",
         "<DEFAULT-CIPHER-SUITE>",
         "<DEFAULT-KEY-SERVERS>",
         "<DEFAULT-SERVERS-PATH>",
@@ -363,6 +388,7 @@ impl ConfigFile {
             } else {
                 "".into()
             },
+            &cli::THIRD_PARTY_CERTIFICATION_VALIDITY_IN_YEARS.to_string(),
             &format!("{:?}", cli::key::CipherSuite::default().
                      to_possible_value().unwrap().get_name()),
             &format!("{:?}", cli::network::keyserver::DEFAULT_KEYSERVERS),
@@ -912,6 +938,7 @@ fn apply_pki(config: &mut Option<&mut Config>,
 /// Schema for the `pki.vouch` section.
 const PKI_VOUCH_SCHEMA: Schema = &[
     ("certifier-self", apply_pki_vouch_certifier_self),
+    ("expiration", apply_pki_vouch_expiration),
 ];
 
 /// Validates the `pki.vouch` section.
@@ -943,6 +970,28 @@ fn apply_pki_vouch_certifier_self(config: &mut Option<&mut Config>,
 
     if let Some(config) = config {
         config.pki_vouch_certifier_self = Some(fp);
+    }
+
+    Ok(())
+}
+
+/// Validates the `pki.vouch.expiration` value.
+fn apply_pki_vouch_expiration(config: &mut Option<&mut Config>,
+                              cli: &mut Option<&mut Augmentations>,
+                              path: &str, item: &Item)
+                              -> Result<()>
+{
+    let s = item.as_str()
+        .ok_or_else(|| Error::bad_item_type(path, item, "string"))?;
+
+    let v = s.parse::<cli::types::Expiration>()?;
+
+    if let Some(cli) = cli {
+        cli.insert("pki.vouch.expiration", v.to_string());
+    }
+
+    if let Some(config) = config {
+        config.pki_vouch_expiration = Some(v);
     }
 
     Ok(())

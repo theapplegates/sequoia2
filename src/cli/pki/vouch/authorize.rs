@@ -198,6 +198,10 @@ of power, you have to opt in to this behavior explicitly.",
     #[command(flatten)]
     pub expiration: ExpirationArg<expiration::CertificationKind>,
 
+    /// Workaround for https://github.com/clap-rs/clap/issues/3846
+    #[clap(skip)]
+    pub expiration_source: Option<clap::parser::ValueSource>,
+
     #[clap(
         long = "signature-notation",
         value_names = &["NAME", "VALUE"],

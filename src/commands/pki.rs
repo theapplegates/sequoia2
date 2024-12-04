@@ -1,3 +1,5 @@
+use clap::ArgMatches;
+
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
 
@@ -10,9 +12,12 @@ use crate::cli;
 use crate::Sq;
 use crate::common::pki::authenticate;
 
-pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
+pub fn dispatch(sq: Sq, cli: cli::pki::Command, matches: &ArgMatches)
+                -> Result<()>
+{
     tracer!(TRACE, "pki::dispatch");
 
+    let matches = matches.subcommand().unwrap().1;
     use cli::pki::*;
     match cli.subcommand {
         // Authenticate a given binding.
@@ -69,7 +74,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command) -> Result<()> {
             self::path::path(sq, command)?,
 
         Subcommands::Vouch(command) =>
-            self::vouch::vouch(sq, command)?,
+            self::vouch::vouch(sq, command, matches)?,
 
         Subcommands::Link(command) =>
             self::link::link(sq, command)?,

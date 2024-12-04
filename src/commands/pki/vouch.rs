@@ -1,3 +1,5 @@
+use clap::ArgMatches;
+
 use sequoia_openpgp as openpgp;
 use openpgp::Result;
 
@@ -7,11 +9,18 @@ use crate::Sq;
 pub mod authorize;
 pub mod add;
 
-pub fn vouch(sq: Sq, c: vouch::Command) -> Result<()> {
+pub fn vouch(sq: Sq, c: vouch::Command, matches: &ArgMatches) -> Result<()> {
     use vouch::Subcommands::*;
+    let matches = matches.subcommand().unwrap().1;
+
     match c.subcommand {
-        Add(c) => add::add(sq, c)?,
-        Authorize(c) => authorize::authorize(sq, c)?,
+        Add(mut c) => {
+            c.expiration_source = matches.value_source("expiration");
+            add::add(sq, c)
+        },
+        Authorize(mut c) => {
+            c.expiration_source = matches.value_source("expiration");
+            authorize::authorize(sq, c)
+        },
     }
-    Ok(())
 }

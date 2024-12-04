@@ -25,6 +25,9 @@ pub fn authorize(sq: Sq, mut c: authorize::Command)
     let userids = c.userids.resolve(&vc)?;
 
     let notations = parse_notations(&c.notation)?;
+    let expiration =
+        sq.config.pki_vouch_expiration(&c.expiration, c.expiration_source);
+
 
     crate::common::pki::certify::certify(
         &mut std::io::stderr(),
@@ -34,7 +37,7 @@ pub fn authorize(sq: Sq, mut c: authorize::Command)
         &cert,
         &userids[..],
         true, // User supplied user IDs.
-        &[(c.amount, c.expiration.value())],
+        &[(c.amount, expiration)],
         c.depth,
         &c.domain[..],
         &c.regex[..],

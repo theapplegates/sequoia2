@@ -57,7 +57,7 @@ pub fn dispatch(sq: Sq, command: SqCommand, matches: &ArgMatches) -> Result<()>
             key::dispatch(sq, command, matches),
 
         SqSubcommands::Pki(command) =>
-            pki::dispatch(sq, command),
+            pki::dispatch(sq, command, matches),
 
         SqSubcommands::Network(command) =>
             network::dispatch(sq, command, matches),

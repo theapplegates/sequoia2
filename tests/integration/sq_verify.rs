@@ -75,6 +75,39 @@ fn sq_verify_bad() -> Result<()> {
     Ok(())
 }
 
+// Ensure bad/missing keyring produce errors
+#[test]
+fn sq_verify_bad_keyring() -> Result<()> {
+    let sq = Sq::new();
+    let msg = artifact("examples/document.pgp");
+
+    let error_doesnotexist = sq.verify_maybe(
+        &["--keyring", "doesnotexist"],
+        Verify::Message,
+        &msg,
+        None
+    );
+
+    assert!(format!("{error_doesnotexist:?}").contains("Open"));
+    assert!(format!("{error_doesnotexist:?}").contains("doesnotexist"));
+
+    // Just use the readme as an invalid keyring
+    let error_invalid = sq.verify_maybe(
+        &[
+            "--keyring",
+            &artifact("examples/README.md").display().to_string(),
+        ],
+        Verify::Message,
+        &msg,
+        None,
+    );
+
+    assert!(format!("{error_invalid:?}").contains("Parsing"));
+    assert!(format!("{error_invalid:?}").contains("examples/README.md"));
+
+    Ok(())
+}
+
 // Make sure --policy-as-of works
 #[test]
 fn sq_verify_policy_as_of() -> Result<()> {

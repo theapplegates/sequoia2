@@ -474,7 +474,7 @@ impl<'c, 'store, 'rstore> VerificationHelper for VHelper<'c, 'store, 'rstore>
         // Avoid initializing the certificate store if we don't actually
         // need to.
         if ! ids.is_empty() {
-            if let Ok(Some(cert_store)) = self.sq.cert_store() {
+            if let Some(cert_store) = self.sq.cert_store()? {
                 for id in ids.iter() {
                     for c in cert_store.lookup_by_cert_or_subkey(id)
                         .unwrap_or_default()

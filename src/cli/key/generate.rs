@@ -291,7 +291,8 @@ Generate a key, and save it on the key store."
             "--without-password",
             "--name", "Alice",
             "--email", "alice@example.org",
-        ]).build(),
+        ])
+        .hide(&["--without-password"]).build(),
 
         Action::example().comment("\
 Generate a key, and save it in a file instead of in the key store."
@@ -302,15 +303,8 @@ Generate a key, and save it in a file instead of in the key store."
             "--email", "alice@example.org",
             "--output", "alice-priv.pgp",
             "--rev-cert", "alice-priv.rev",
-        ]).build(),
-
-        Action::example().comment("\
-Strip the secret key material from the new key."
-        ).command(&[
-            "sq", "key", "delete",
-            "--cert-file=alice-priv.pgp",
-            "--output=alice.pgp",
-        ]).build(),
+        ])
+        .hide(&["--without-password"]).build(),
     ]
 };
 test_examples!(sq_key_generate, GENERATE_EXAMPLES);

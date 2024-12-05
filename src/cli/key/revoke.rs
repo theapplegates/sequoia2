@@ -11,34 +11,28 @@ use crate::cli::types::cert_designator::*;
 
 const REVOKE_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "key", "import", "alice-secret.pgp"
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Revoke Alice's key, indicating that there is a new certificate.",
-            command: &[
-                "sq", "key", "revoke",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--reason", "superseded",
-                "--message", "My new cert is C5999E8191BF7B503653BE958B1F7910D01F86E5",
-            ],
-            hide: &[],
-        }),
-        Action::Example(Example {
-            comment: "\
+        Action::setup().command(&[
+            "sq", "key", "import", "alice-secret.pgp"
+        ]).build(),
+
+        Action::example().comment("\
+Revoke Alice's key, indicating that there is a new certificate."
+        ).command(&[
+            "sq", "key", "revoke",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--reason", "superseded",
+            "--message", "My new cert is C5999E8191BF7B503653BE958B1F7910D01F86E5",
+        ]).build(),
+
+        Action::example().comment("\
 Revoke the key, indicating that the secret key material was \
-compromised.",
-            command: &[
-                "sq", "key", "revoke",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--reason", "compromised",
-                "--message", "Computer attacked, secret key material compromised",
-            ],
-            hide: &[],
-        }),
+compromised."
+        ).command(&[
+            "sq", "key", "revoke",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--reason", "compromised",
+            "--message", "Computer attacked, secret key material compromised",
+        ]).build(),
     ]
 };
 test_examples!(sq_key_revoke, REVOKE_EXAMPLES);

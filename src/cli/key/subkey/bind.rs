@@ -7,8 +7,6 @@ use openpgp::KeyHandle;
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
-use examples::Example;
-use examples::Setup;
 
 use crate::cli::types::CertDesignators;
 use crate::cli::types::ClapData;
@@ -157,36 +155,31 @@ modified certificate to stdout.",
 
 const EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "key", "import",
-                "alice-secret.pgp", "alice-new-secret.pgp",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Bind Alice's old authentication subkey to Alice's new certificate.",
-            command: &[
-                "sq", "key", "subkey", "bind",
-                "--cert=C5999E8191BF7B503653BE958B1F7910D01F86E5",
-                "--key=0D45C6A756A038670FDFD85CB1C82E8D27DB23A1",
-            ],
-            hide: &[],
-        }),
-        Action::Example(Example {
-            comment: "\
+
+        Action::setup().command(&[
+            "sq", "key", "import",
+            "alice-secret.pgp", "alice-new-secret.pgp",
+        ]).build(),
+
+        Action::example().comment("\
+Bind Alice's old authentication subkey to Alice's new certificate."
+        ).command(&[
+            "sq", "key", "subkey", "bind",
+            "--cert=C5999E8191BF7B503653BE958B1F7910D01F86E5",
+            "--key=0D45C6A756A038670FDFD85CB1C82E8D27DB23A1",
+        ]).build(),
+
+        Action::example().comment("\
 Bind a bare key to Alice's certificate.  A bare key is a public key \
 without any components or signatures.  This simplifies working with raw \
-keys, e.g., keys generated on an OpenPGP card, a TPM device, etc.",
-            command: &[
-                "sq", "key", "subkey", "bind",
-                "--keyring=bare.pgp",
-                "--cert=C5999E8191BF7B503653BE958B1F7910D01F86E5",
-                "--key=B321BA8F650CB16443E06826DBFA98A78CF6562F",
-                "--can-encrypt=universal",
-            ],
-            hide: &[],
-        }),
+keys, e.g., keys generated on an OpenPGP card, a TPM device, etc."
+        ).command(&[
+            "sq", "key", "subkey", "bind",
+            "--keyring=bare.pgp",
+            "--cert=C5999E8191BF7B503653BE958B1F7910D01F86E5",
+            "--key=B321BA8F650CB16443E06826DBFA98A78CF6562F",
+            "--can-encrypt=universal",
+        ]).build(),
     ]
 };
 test_examples!(sq_key_bind, EXAMPLES);

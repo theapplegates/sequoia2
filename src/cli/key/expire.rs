@@ -11,29 +11,24 @@ use crate::cli::types::cert_designator::*;
 
 const EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "key", "import",
-                "alice-secret.pgp",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "Change Alice's certificate to expire in a year.",
-            command: &[
-                "sq", "key", "expire", "--expiration", "1y",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-            ],
-            hide: &[],
-        }),
+        Action::setup().command(&[
+            "sq", "key", "import",
+            "alice-secret.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "Change Alice's certificate to never expire.",
-            command: &[
-                "sq", "key", "expire", "--expiration", "never",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Change Alice's certificate to expire in a year."
+        ).command(&[
+            "sq", "key", "expire", "--expiration", "1y",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+        ]).build(),
+
+        Action::example().comment(
+            "Change Alice's certificate to never expire."
+        ).command(&[
+            "sq", "key", "expire", "--expiration", "never",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+        ]).build(),
     ],
 };
 

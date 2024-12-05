@@ -21,14 +21,11 @@ pub struct Command {
 
 const IMPORT_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Import the keys into the key store.",
-            command: &[
-                "sq", "key", "import", "alice-secret.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment("\
+Import the keys into the key store."
+        ).command(&[
+            "sq", "key", "import", "alice-secret.pgp",
+        ]).build(),
     ]
 };
 test_examples!(sq_key_import, IMPORT_EXAMPLES);

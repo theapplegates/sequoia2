@@ -30,46 +30,34 @@ pub struct Command {
 
 const EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "key", "import", "alice-secret.pgp",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "key", "import", "alice-secret.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Delete any secret key associated with Alice's certificate.",
-            command: &[
-                "sq", "key", "delete",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment("\
+Delete any secret key associated with Alice's certificate."
+        ).command(&[
+            "sq", "key", "delete",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+        ]).build(),
 
-        Action::Setup(Setup {
-            command: &[
-                "sq", "key", "import", "alice-secret.pgp",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "key", "import", "alice-secret.pgp",
+        ]).build(),
 
-        Action::Setup(Setup {
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--userid=Alice <alice@example.org>",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "pki", "link", "add",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--userid=Alice <alice@example.org>",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
+        Action::example().comment("\
 Delete any secret key associated with Alice's certificate \
-selected by user ID.",
-            command: &[
-                "sq", "key", "delete",
-                "--cert-email=alice@example.org",
-            ],
-            hide: &[],
-        }),
+selected by user ID."
+        ).command(&[
+            "sq", "key", "delete",
+            "--cert-email=alice@example.org",
+        ]).build(),
     ]
 };
 test_examples!(sq_key_delete, EXAMPLES);

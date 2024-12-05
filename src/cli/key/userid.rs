@@ -14,8 +14,6 @@ use crate::cli::types::userid_designator;
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
-use examples::Example;
-use examples::Setup;
 
 #[derive(Debug, Subcommand)]
 #[clap(
@@ -37,22 +35,18 @@ pub enum Command {
 
 const USERID_ADD_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "key", "import", "alice-secret.pgp"
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Add a new user ID to Alice's key.",
-            command: &[
-                "sq", "key", "userid", "add",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--name", "Alice",
-                "--email", "alice@work.example.com",
-            ],
-            hide: &[],
-        }),
+        Action::setup().command(&[
+            "sq", "key", "import", "alice-secret.pgp"
+        ]).build(),
+
+        Action::example().comment("
+Add a new user ID to Alice's key."
+        ).command(&[
+            "sq", "key", "userid", "add",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--name", "Alice",
+            "--email", "alice@work.example.com",
+        ]).build(),
     ]
 };
 test_examples!(sq_key_userid_add, USERID_ADD_EXAMPLES);
@@ -164,23 +158,19 @@ impl AdditionalDocs for UserIDAddDoc {
 
 const USERID_REVOKE_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "key", "import", "alice-secret.pgp"
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Retire a user ID on Alice's key.",
-            command: &[
-                "sq", "key", "userid", "revoke",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--userid", "Alice <alice@example.org>",
-                "--reason", "retired",
-                "--message", "No longer at example.org.",
-            ],
-            hide: &[],
-        }),
+        Action::setup().command(&[
+            "sq", "key", "import", "alice-secret.pgp"
+        ]).build(),
+
+        Action::example().comment("\
+Retire a user ID on Alice's key."
+        ).command(&[
+            "sq", "key", "userid", "revoke",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--userid", "Alice <alice@example.org>",
+            "--reason", "retired",
+            "--message", "No longer at example.org.",
+        ]).build(),
     ]
 };
 test_examples!(sq_key_userid_revoke, USERID_REVOKE_EXAMPLES);

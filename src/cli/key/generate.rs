@@ -284,40 +284,33 @@ If `--output` is `-`, then this option must not also be `-`.",
 
 const GENERATE_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Generate a key, and save it on the key store.",
-            command: &[
-                "sq", "key", "generate", "--own-key",
-                "--without-password",
-                "--name", "Alice",
-                "--email", "alice@example.org",
-            ],
-            hide: &["--without-password"],
-        }),
-        Action::Example(Example {
-            comment: "\
-Generate a key, and save it in a file instead of in the key store.",
-            command: &[
-                "sq", "key", "generate", "--own-key",
-                "--without-password",
-                "--name", "Alice",
-                "--email", "alice@example.org",
-                "--output", "alice-priv.pgp",
-                "--rev-cert", "alice-priv.rev",
-            ],
-            hide: &["--without-password"],
-        }),
-        Action::Example(Example {
-            comment: "\
-Strip the secret key material from the new key.",
-            command: &[
-                "sq", "key", "delete",
-                "--cert-file=alice-priv.pgp",
-                "--output=alice.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment("\
+Generate a key, and save it on the key store."
+        ).command(&[
+            "sq", "key", "generate", "--own-key",
+            "--without-password",
+            "--name", "Alice",
+            "--email", "alice@example.org",
+        ]).build(),
+
+        Action::example().comment("\
+Generate a key, and save it in a file instead of in the key store."
+        ).command(&[
+            "sq", "key", "generate", "--own-key",
+            "--without-password",
+            "--name", "Alice",
+            "--email", "alice@example.org",
+            "--output", "alice-priv.pgp",
+            "--rev-cert", "alice-priv.rev",
+        ]).build(),
+
+        Action::example().comment("\
+Strip the secret key material from the new key."
+        ).command(&[
+            "sq", "key", "delete",
+            "--cert-file=alice-priv.pgp",
+            "--output=alice.pgp",
+        ]).build(),
     ]
 };
 test_examples!(sq_key_generate, GENERATE_EXAMPLES);

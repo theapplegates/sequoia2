@@ -139,80 +139,63 @@ impl AdditionalDocs for ApprovalsListDoc {
 
 const UPDATE_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "key", "import", "alice-secret.pgp",
-            ],
-        }),
-        Action::Setup(Setup {
-            command: &[
-                "sq", "key", "import", "bob-secret.pgp",
-            ],
-        }),
-        Action::Setup(Setup {
-            command: &[
-                "sq", "pki", "vouch", "add",
-                "--certifier=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--email=alice@example.org",
-            ],
-        }),
-        Action::Setup(Setup {
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "--email=bob@example.org",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "key", "import", "alice-secret.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Approve of all of the certifications on all of Alice's user IDs.",
-            command: &[
-                "sq", "key", "approvals", "update",
-                "--add-all",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-            ],
-            hide: &[],
-        }),
+        Action::setup().command(&[
+            "sq", "key", "import", "bob-secret.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
+        Action::setup().command(&[
+            "sq", "pki", "vouch", "add",
+            "--certifier=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--email=alice@example.org",
+        ]).build(),
+
+        Action::setup().command(&[
+            "sq", "pki", "link", "add",
+            "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+            "--email=bob@example.org",
+        ]).build(),
+
+        Action::example().comment("\
+Approve of all of the certifications on all of Alice's user IDs."
+        ).command(&[
+            "sq", "key", "approvals", "update",
+            "--add-all",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+        ]).build(),
+
+        Action::example().comment("\
 Approve of all of the certifications on all of Alice's user IDs made by Bob, \
-discarding all prior approvals first.",
-            command: &[
-                "sq", "key", "approvals", "update",
-                "--remove-all",
-                "--add-by=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-            ],
-            hide: &[],
-        }),
+discarding all prior approvals first."
+        ).command(&[
+            "sq", "key", "approvals", "update",
+            "--remove-all",
+            "--add-by=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
+        Action::example().comment("\
 Approve of all of the certifications on a specific user ID by certifiers that \
-can be authenticated, discarding all prior approvals first.",
-            command: &[
-                "sq", "key", "approvals", "update",
-                "--remove-all",
-                "--add-authenticated",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--userid=Alice <alice@example.org>",
-            ],
-            hide: &[],
-        }),
+can be authenticated, discarding all prior approvals first."
+        ).command(&[
+            "sq", "key", "approvals", "update",
+            "--remove-all",
+            "--add-authenticated",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--userid=Alice <alice@example.org>",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Remove the approval of Bob's certification on all of Alice's user IDs.",
-            command: &[
-                "sq", "key", "approvals", "update",
-                "--remove-by=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment("\
+Remove the approval of Bob's certification on all of Alice's user IDs."
+        ).command(&[
+            "sq", "key", "approvals", "update",
+            "--remove-by=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+        ]).build(),
     ]
 };
 test_examples!(sq_key_approvals_update, UPDATE_EXAMPLES);

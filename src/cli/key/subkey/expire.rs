@@ -3,8 +3,6 @@ use clap::Args;
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
-use examples::Example;
-use examples::Setup;
 
 use crate::cli::types::CertDesignators;
 use crate::cli::types::ClapData;
@@ -84,22 +82,17 @@ modified certificate to stdout.",
 
 const EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "key", "import",
-                "alice-secret.pgp",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Change Alice's authentication subkey to expire in 6 months.",
-            command: &[
-                "sq", "key", "subkey", "expire", "--expiration", "6m",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--key=0D45C6A756A038670FDFD85CB1C82E8D27DB23A1",
-            ],
-            hide: &[],
-        }),
+        Action::setup().command(&[
+            "sq", "key", "import", "alice-secret.pgp"
+        ]).build(),
+
+        Action::example().comment("\
+Change Alice's authentication subkey to expire in 6 months."
+        ).command(&[
+            "sq", "key", "subkey", "expire", "--expiration", "6m",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--key=0D45C6A756A038670FDFD85CB1C82E8D27DB23A1",
+        ]).build(),
     ],
 };
 test_examples!(sq_key_subkey_expire, EXAMPLES);

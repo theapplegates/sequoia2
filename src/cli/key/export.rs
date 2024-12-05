@@ -45,40 +45,30 @@ pub struct Command {
 
 const EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "key", "import", "alice-secret.pgp",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "key", "import", "alice-secret.pgp",
+        ]).build(),
 
-        Action::Setup(Setup {
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--userid=Alice <alice@example.org>",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "pki", "link", "add",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--userid=Alice <alice@example.org>",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Export Alice's certificate with all available secret key material.",
-            command: &[
-                "sq", "key", "export",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment("\
+Export Alice's certificate with all available secret key material."
+        ).command(&[
+            "sq", "key", "export",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
+        Action::example().comment("\
 Export Alice's certificate with all available secret key material \
-identified by email address.",
-            command: &[
-                "sq", "key", "export",
-                "--cert-email", "alice@example.org",
-            ],
-            hide: &[],
-        }),
+identified by email address."
+        ).command(&[
+            "sq", "key", "export",
+            "--cert-email", "alice@example.org",
+        ]).build(),
     ]
 };
 test_examples!(sq_key_export, EXAMPLES);

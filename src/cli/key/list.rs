@@ -36,37 +36,29 @@ fingerprint.  Otherwise, it is treated as if it were passed via \
 
 const EXAMPLES: Actions = Actions {
     actions: &[
-        Action::setup()
-            .command(&["sq", "key", "import", "alice-secret.pgp"])
-            .build(),
+        Action::setup().command(&[
+            "sq", "key", "import", "alice-secret.pgp"
+        ]).build(),
 
-        Action::Setup(Setup {
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--userid=Alice <alice@example.org>",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "pki", "link", "add",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--userid=Alice <alice@example.org>",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-List the keys managed by the keystore server.",
-            command: &[
-                "sq", "key", "list",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment("\
+List the keys managed by the keystore server."
+        ).command(&[
+            "sq", "key", "list",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
+        Action::example().comment("\
 List the keys managed by the keystore server \
-with a user ID in example.org.",
-            command: &[
-                "sq", "key", "list",
-                "--cert-domain=example.org",
-            ],
-            hide: &[],
-        }),
+with a user ID in example.org."
+        ).command(&[
+            "sq", "key", "list",
+            "--cert-domain=example.org",
+        ]).build(),
     ]
 };
 test_examples!(sq_key_list, EXAMPLES);

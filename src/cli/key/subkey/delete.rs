@@ -3,8 +3,6 @@ use clap::Args;
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
-use examples::Example;
-use examples::Setup;
 
 use crate::cli::types::CertDesignators;
 use crate::cli::types::ClapData;
@@ -89,21 +87,17 @@ file.  When deleting secret key material managed by the key store using \
 
 const EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "key", "import", "alice-secret.pgp",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Delete Alice's signing subkey.",
-            command: &[
-                "sq", "key", "subkey", "delete",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--key=42020B87D51877E5AF8D272124F3955B0B8DECC8",
-            ],
-            hide: &[],
-        }),
+        Action::setup().command(&[
+            "sq", "key", "import", "alice-secret.pgp"
+        ]).build(),
+
+        Action::example().comment("\
+Delete Alice's signing subkey."
+        ).command(&[
+            "sq", "key", "subkey", "delete",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--key=42020B87D51877E5AF8D272124F3955B0B8DECC8",
+        ]).build(),
     ]
 };
 test_examples!(sq_key_subkey_delete, EXAMPLES);

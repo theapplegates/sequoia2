@@ -25,6 +25,18 @@ const EXAMPLES: Actions = Actions {
         ).command (&[
             "sq", "cert", "list", "@example.org",
         ]).build(),
+
+        Action::example().comment(
+            "List all authenticated bindings for User IDs containing a specific email address."
+        ).command (&[
+            "sq", "cert", "list", "--email", "alice@example.org",
+        ]).build(),
+
+        Action::example().comment(
+            "List all paths to certificates containing a specific email address."
+        ).command (&[
+            "sq", "cert", "list", "--gossip", "--show-paths", "--email", "alice@example.org",
+        ]).build(),
     ]
 };
 test_examples!(sq_cert_list, EXAMPLES);

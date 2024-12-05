@@ -66,41 +66,31 @@ pub struct Command {
 
 const EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "keyring", "merge",
-                "--output=certs.pgp",
-                "bob.pgp", "romeo.pgp",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "keyring", "merge",
+            "--output=certs.pgp",
+            "bob.pgp", "romeo.pgp",
+        ]).build(),
 
-        Action::Setup(Setup {
-            command: &[
-                "sq", "key", "import", "alice-secret.pgp",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "key", "import", "alice-secret.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Gather statistics on the certificates in a keyring.",
-            command: &[
-                "sq", "cert", "lint",
-                "--cert-file", "certs.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            " Gather statistics on the certificates in a keyring."
+        ).command (&[
+            "sq", "cert", "lint",
+            "--cert-file", "certs.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Fix a key with known problems.",
-            command: &[
-                "sq", "key", "export",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "|", "sq", "cert", "lint", "--fix", "--cert-file=-",
-                "|", "sq", "cert", "import"
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Fix a key with known problems."
+        ).command (&[
+            "sq", "key", "export",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "|", "sq", "cert", "lint", "--fix", "--cert-file=-",
+            "|", "sq", "cert", "import"
+        ]).build(),
     ],
 };
 test_examples!(sq_cert_lint, EXAMPLES);

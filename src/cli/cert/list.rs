@@ -4,8 +4,6 @@ use clap::Parser;
 
 use crate::cli::examples::Action;
 use crate::cli::examples::Actions;
-use crate::cli::examples::Example;
-use crate::cli::examples::Setup;
 use crate::cli::pki::CertificationNetworkArg;
 use crate::cli::pki::GossipArg;
 use crate::cli::pki::RequiredTrustAmountArg;
@@ -15,22 +13,18 @@ use crate::cli::types::userid_designator;
 
 const EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-List all bindings for user IDs containing an email address from \
-example.org, and that can be authenticated.",
-            command: &[
-                "sq", "cert", "list", "@example.org",
-            ],
-            hide: &[],
-        })
+        Action::setup().command(&[
+            "sq", "pki", "link", "add",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--all",
+        ]).build(),
+
+        Action::example().comment(
+            "List all bindings for user IDs containing an email address from \
+             example.org, and that can be authenticated."
+        ).command (&[
+            "sq", "cert", "list", "@example.org",
+        ]).build(),
     ]
 };
 test_examples!(sq_cert_list, EXAMPLES);
@@ -83,4 +77,3 @@ pub struct Command {
     #[command(flatten)]
     pub trust_amount: RequiredTrustAmountArg,
 }
-

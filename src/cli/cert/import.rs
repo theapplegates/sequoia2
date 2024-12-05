@@ -5,17 +5,14 @@ use clap::Parser;
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
-use examples::Example;
 
 const EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "Import a certificate.",
-            command: &[
-                "sq", "cert", "import", "juliet.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Import a certificate."
+        ).command(&[
+            "sq", "cert", "import", "juliet.pgp",
+        ]).build(),
     ]
 };
 

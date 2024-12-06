@@ -8,6 +8,10 @@ use openpgp::Cert;
 use openpgp::cert::ValidCert;
 use openpgp::packet::UserID;
 
+// Whether to enable the --name parameters.  Currently disabled.
+// See https://gitlab.com/sequoia-pgp/sequoia-sq/-/issues/487 .
+const ENABLE_NAME: bool = false;
+
 /// Adds a `--all` argument.
 pub type AllUserIDsArg = typenum::U1;
 
@@ -640,28 +644,30 @@ Use all self-signed user IDs"));
         let render_by_name = |mut cmd: clap::Command,
                               mut arg_group: clap::ArgGroup|
         {
-            let full_name = if plain_is_by {
-                "name"
-            } else {
-                "userid-by-name"
-            };
+            if ENABLE_NAME {
+                let full_name = if plain_is_by {
+                    "name"
+                } else {
+                    "userid-by-name"
+                };
 
-            let (help, long_help) = Docs::help(Name, plain_is_by, By);
+                let (help, long_help) = Docs::help(Name, plain_is_by, By);
 
-            let mut arg = clap::Arg::new(&full_name)
-                .long(&full_name)
-                .value_name("DISPLAY_NAME")
-                .action(action.clone())
-                .help(help);
-            if let Some(long_help) = long_help {
-                arg = arg.long_help(long_help);
+                let mut arg = clap::Arg::new(&full_name)
+                    .long(&full_name)
+                    .value_name("DISPLAY_NAME")
+                    .action(action.clone())
+                    .help(help);
+                if let Some(long_help) = long_help {
+                    arg = arg.long_help(long_help);
+                }
+                if all_arg {
+                    arg = arg.conflicts_with("all");
+                }
+                cmd = cmd.arg(arg);
+
+                arg_group = arg_group.arg(full_name);
             }
-            if all_arg {
-                arg = arg.conflicts_with("all");
-            }
-            cmd = cmd.arg(arg);
-
-            arg_group = arg_group.arg(full_name);
 
             (cmd, arg_group)
         };
@@ -714,22 +720,24 @@ Use all self-signed user IDs"));
         }
 
         if exact_args {
-            let full_name = "name";
-            let (help, long_help) = Docs::help(Name, true, Exact);
-            let mut arg = clap::Arg::new(&full_name)
-                .long(&full_name)
-                .value_name("DISPLAY_NAME")
-                .action(action.clone())
-                .help(help);
-            if let Some(long_help) = long_help {
-                arg = arg.long_help(long_help);
-            }
-            if all_arg {
-                arg = arg.conflicts_with("all");
-            }
-            cmd = cmd.arg(arg);
+            if ENABLE_NAME {
+                let full_name = "name";
+                let (help, long_help) = Docs::help(Name, true, Exact);
+                let mut arg = clap::Arg::new(&full_name)
+                    .long(&full_name)
+                    .value_name("DISPLAY_NAME")
+                    .action(action.clone())
+                    .help(help);
+                if let Some(long_help) = long_help {
+                    arg = arg.long_help(long_help);
+                }
+                if all_arg {
+                    arg = arg.conflicts_with("all");
+                }
+                cmd = cmd.arg(arg);
 
-            arg_group = arg_group.arg(full_name);
+                arg_group = arg_group.arg(full_name);
+            }
         }
 
         if by_args && plain_is_by {
@@ -737,26 +745,28 @@ Use all self-signed user IDs"));
         }
 
         if add_args {
-            let full_name = if plain_is_add {
-                "name"
-            } else {
-                "add-name"
-            };
-            let (help, long_help) = Docs::help(Name, plain_is_add, Add);
-            let mut arg = clap::Arg::new(&full_name)
-                .long(&full_name)
-                .value_name("DISPLAY_NAME")
-                .action(action.clone())
-                .help(help);
-            if let Some(long_help) = long_help {
-                arg = arg.long_help(long_help);
-            }
-            if all_arg {
-                arg = arg.conflicts_with("all");
-            }
-            cmd = cmd.arg(arg);
+            if ENABLE_NAME {
+                let full_name = if plain_is_add {
+                    "name"
+                } else {
+                    "add-name"
+                };
+                let (help, long_help) = Docs::help(Name, plain_is_add, Add);
+                let mut arg = clap::Arg::new(&full_name)
+                    .long(&full_name)
+                    .value_name("DISPLAY_NAME")
+                    .action(action.clone())
+                    .help(help);
+                if let Some(long_help) = long_help {
+                    arg = arg.long_help(long_help);
+                }
+                if all_arg {
+                    arg = arg.conflicts_with("all");
+                }
+                cmd = cmd.arg(arg);
 
-            arg_group = arg_group.arg(full_name);
+                arg_group = arg_group.arg(full_name);
+            }
         }
 
         if ! no_linting && add_args {
@@ -1079,7 +1089,7 @@ mod test {
                     "--name", "alice",
                     "--name", "bob",
                 ]);
-                if let Some(plain) = plain.as_ref() {
+                if let (Some(plain), true) = (plain.as_ref(), ENABLE_NAME) {
                     let m = m.expect("valid arguments");
                     let c = CLI::from_arg_matches(&m).expect("ok");
                     assert_eq!(c.userids.designators.len(), 2);
@@ -1111,7 +1121,7 @@ mod test {
                     "--userid-by-name", "alice",
                     "--userid-by-name", "bob",
                 ]);
-                if $by {
+                if $by && ENABLE_NAME {
                     let m = m.expect("valid arguments");
                     let c = CLI::from_arg_matches(&m).expect("ok");
                     assert_eq!(c.userids.designators.len(), 2);
@@ -1164,7 +1174,7 @@ mod test {
                     "--add-name", "alice",
                     "--add-name", "bob",
                 ]);
-                if $add {
+                if $add && ENABLE_NAME {
                     let m = m.expect("valid arguments");
                     let c = CLI::from_arg_matches(&m).expect("ok");
                     assert_eq!(c.userids.designators.len(), 2);
@@ -1339,6 +1349,10 @@ mod test {
             ("--add-name", "foo"),
         ]
         {
+            if ! ENABLE_NAME && arg.contains("-name") {
+                continue;
+            }
+
             // Make sure the arg/value are recognized.
             eprintln!("Testing {} {}", arg, value);
             let m = command.clone().try_get_matches_from(vec![

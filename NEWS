@@ -8,9 +8,12 @@
      instead of `--email`.
    - `sq encrypt` now requires explicit opt-out for signing in the
      form of the `--without-signature` flag.
-   - The arguments `--userid-or-add`, `--email-or-add`, and
-     `--name-or-add` have respectively been renamed to `--add-userid`,
-     `--add-email`, and `--add-name`.
+   - Remove the `--name` argument from `sq key approvals list`, `sq
+     key approvals update`, `sq key userid revoke` and `sq pki path`,
+     and remove the `--name-or-add` argument from `sq key userid
+     revoke`.
+   - The arguments `--userid-or-add`, and `--email-or-add` have
+     respectively been renamed to `--add-userid`, and `--add-email`.
 
 * Changes in 0.41.0
 ** New functionality

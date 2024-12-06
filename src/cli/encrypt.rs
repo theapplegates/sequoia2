@@ -20,13 +20,11 @@ pub const ENCRYPT_FOR_SELF: &str = "encrypt.for-self";
 
 const ENCRYPT_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--email", "alice@example.org",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "pki", "link", "add",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--email", "alice@example.org",
+        ]).build(),
 
         Action::setup().command(&[
             "sq", "key", "import", "juliet-secret.pgp",
@@ -38,29 +36,26 @@ const ENCRYPT_EXAMPLES: Actions = Actions {
             "--email=juliet@example.org",
         ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Encrypt a file for a recipient given by fingerprint.",
-            command: &[
-                "sq", "encrypt",
-                "--for", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--signer-email=juliet@example.org",
-                "document.txt",
-            ],
-            hide: &[],
-        }),
-        Action::Example(Example {
-            comment: "\
-Encrypt a file for a recipient given by email.",
-            command: &[
-                "sq", "encrypt", "--for-email", "alice@example.org",
-                "--signer-email=juliet@example.org",
-                "document.txt",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Encrypt a file for a recipient given by fingerprint.",
+        ).command(&[
+            "sq", "encrypt",
+            "--for=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--signer-email=juliet@example.org",
+            "document.txt",
+        ]).build(),
+
+        Action::example().comment(
+            "Encrypt a file for a recipient given by email.",
+        ).command(&[
+            "sq", "encrypt",
+            "--for-email=alice@example.org",
+            "--signer-email=juliet@example.org",
+            "document.txt",
+        ]).build(),
     ]
 };
+
 test_examples!(sq_encrypt, ENCRYPT_EXAMPLES);
 
 #[derive(Parser, Debug)]

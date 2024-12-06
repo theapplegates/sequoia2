@@ -9,43 +9,33 @@ use super::types::cert_designator::*;
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
-use examples::Example;
 
 const INSPECT_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Inspect a certificate.",
-            command: &[
-                "sq", "inspect", "juliet.pgp",
-            ],
-            hide: &[],
-        }),
-        Action::Example(Example {
-            comment: "\
-Show how the certificate looked on July 21, 2013.",
-            command: &[
-                "sq", "inspect", "--time", "20130721", "juliet.pgp",
-            ],
-            hide: &[],
-        }),
-        Action::Example(Example {
-            comment: "\
-Inspect an encrypted message.",
-            command: &[
-                "sq", "inspect", "message.pgp",
-            ],
-            hide: &[],
-        }),
-        Action::Example(Example {
-            comment: "\
-Inspect a detached signature.",
-            command: &[
-                "sq", "inspect", "document.sig",
-            ],
-            hide: &[],
-        }),
-    ]
+        Action::example().comment(
+            "Inspect a certificate.",
+        ).command(&[
+            "sq", "inspect", "juliet.pgp",
+        ]).build(),
+
+        Action::example().comment(
+            "Show how the certificate looked on July 21, 2013.",
+        ).command(&[
+            "sq", "inspect", "--time", "20130721", "juliet.pgp",
+        ]).build(),
+
+        Action::example().comment(
+            "Inspect an encrypted message.",
+        ).command(&[
+            "sq", "inspect", "message.pgp",
+        ]).build(),
+
+        Action::example().comment(
+            "Inspect a detached signature.",
+        ).command(&[
+            "sq", "inspect", "document.sig",
+        ]).build(),
+    ],
 };
 test_examples!(sq_inspect, INSPECT_EXAMPLES);
 

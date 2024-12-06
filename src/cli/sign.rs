@@ -21,26 +21,21 @@ pub const SIGNER_SELF: &str = "sign.signer-self";
 
 const SIGN_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Create a signed message.",
-            command: &[
-                "sq", "sign", "--signer-file", "juliet-secret.pgp",
-                "--message",
-                "document.txt",
-            ],
-            hide: &[],
-        }),
-        Action::Example(Example {
-            comment: "\
-Create a detached signature.",
-            command: &[
-                "sq", "sign", "--signer-file", "juliet-secret.pgp",
-                "--signature-file=document.txt.sig", "document.txt",
-            ],
-            hide: &[],
-        }),
-    ]
+        Action::example().comment(
+            "Create a signed message.",
+        ).command(&[
+            "sq", "sign", "--signer-file", "juliet-secret.pgp",
+            "--message",
+            "document.txt",
+        ]).build(),
+
+        Action::example().comment(
+            "Create a detached signature.",
+        ).command(&[
+            "sq", "sign", "--signer-file", "juliet-secret.pgp",
+            "--signature-file=document.txt.sig", "document.txt",
+        ]).build(),
+    ],
 };
 test_examples!(sq_sign, SIGN_EXAMPLES);
 

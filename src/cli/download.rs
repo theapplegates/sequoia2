@@ -5,8 +5,6 @@ use clap::Parser;
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
-use examples::Example;
-use examples::Setup;
 
 use super::types::ClapData;
 use super::types::cert_designator::*;
@@ -14,24 +12,20 @@ use crate::cli::types::FileOrStdout;
 
 const EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "cert", "import", "debian/debian-cd-signing-key.pgp",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Download and verify the Debian 12 checksum file.",
-            command: &[
-                "sq", "download",
-                "--url=file://debian/SHA512SUMS",
-                "--signature=file://debian/SHA512SUMS.sign",
-                "--signer=DF9B9C49EAA9298432589D76DA87E80D6294BE9B",
-                "--output=SHA512SUMS",
-            ],
-            hide: &[],
-        }),
-    ]
+        Action::setup().command(&[
+            "sq", "cert", "import", "debian/debian-cd-signing-key.pgp",
+        ]).build(),
+
+        Action::example().comment(
+            "Download and verify the Debian 12 checksum file.",
+        ).command(&[
+            "sq", "download",
+            "--url=file://debian/SHA512SUMS",
+            "--signature=file://debian/SHA512SUMS.sign",
+            "--signer=DF9B9C49EAA9298432589D76DA87E80D6294BE9B",
+            "--output=SHA512SUMS",
+        ]).build(),
+    ],
 };
 test_examples!(sq_download, EXAMPLES);
 

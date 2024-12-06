@@ -13,45 +13,35 @@ use super::types::cert_designator::*;
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
-use examples::Example;
-use examples::Setup;
 
 const DECRYPT_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Decrypt a file using a secret key",
-            command: &[
-                "sq", "decrypt",
-                "--recipient-file", "juliet-secret.pgp", "ciphertext.pgp",
-            ],
-            hide: &[],
-        }),
-        Action::Example(Example {
-            comment: "\
-Decrypt a file verifying signatures",
-            command: &[
-                "sq", "decrypt",
-                "--recipient-file", "juliet-secret.pgp",
-                "--signer-file", "romeo.pgp",
-                "ciphertext.pgp"
-            ],
-            hide: &[],
-        }),
-        Action::Setup(Setup {
-            command: &[
-                "sq", "key", "import", "juliet-secret.pgp",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Decrypt a file using the key store",
-            command: &[
-                "sq", "decrypt", "ciphertext.pgp",
-            ],
-            hide: &[],
-        }),
-    ]
+        Action::example().comment(
+            "Decrypt a file using a secret key",
+        ).command(&[
+            "sq", "decrypt",
+            "--recipient-file", "juliet-secret.pgp", "ciphertext.pgp",
+        ]).build(),
+
+        Action::example().comment(
+            "Decrypt a file verifying signatures",
+        ).command(&[
+            "sq", "decrypt",
+            "--recipient-file", "juliet-secret.pgp",
+            "--signer-file", "romeo.pgp",
+            "ciphertext.pgp"
+        ]).build(),
+
+        Action::setup().command(&[
+            "sq", "key", "import", "juliet-secret.pgp",
+        ]).build(),
+
+        Action::example().comment(
+            "decrypt a file using the key store",
+        ).command(&[
+            "sq", "decrypt", "ciphertext.pgp",
+        ]).build(),
+    ],
 };
 test_examples!(sq_decrypt, DECRYPT_EXAMPLES);
 

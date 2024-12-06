@@ -14,47 +14,36 @@ use examples::*;
 
 const VERIFY_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "cert", "import", "juliet.pgp",
-            ],
-        }),
-        Action::Setup(Setup {
-            command: &[
-                "sq", "--time", "2024-06-19",
-                "pki", "link", "add",
-                "--cert", "7A58B15E3B9459483D9FFA8D40E299AC5F2B0872",
-                "--email", "juliet@example.org",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Verify a signed message.",
-            command: &[
-                "sq", "verify", "--message", "document.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::setup().command(&[
+            "sq", "cert", "import", "juliet.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Verify a detached signature.",
-            command: &[
-                "sq", "verify", "--signature-file=document.sig", "document.txt",
-            ],
-            hide: &[],
-        }),
+        Action::setup().command(&[
+            "sq", "--time", "2024-06-19",
+            "pki", "link", "add",
+            "--cert", "7A58B15E3B9459483D9FFA8D40E299AC5F2B0872",
+            "--email", "juliet@example.org",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Verify a message as of June 19, 2024 at midnight UTC.",
-            command: &[
-                "sq", "verify", "--time", "2024-06-19",
-                "--message", "document.pgp",
-            ],
-            hide: &[],
-        }),
-    ]
+        Action::example().comment(
+            "Verify a signed message.",
+        ).command(&[
+            "sq", "verify", "--message", "document.pgp",
+        ]).build(),
+
+        Action::example().comment(
+            "Verify a detached signature.",
+        ).command(&[
+            "sq", "verify", "--signature-file=document.sig", "document.txt",
+        ]).build(),
+
+        Action::example().comment(
+            "Verify a message as of June 19, 2024 at midnight UTC.",
+        ).command(&[
+            "sq", "verify", "--time", "2024-06-19",
+            "--message", "document.pgp",
+        ]).build(),
+    ],
 };
 test_examples!(sq_verify, VERIFY_EXAMPLES);
 

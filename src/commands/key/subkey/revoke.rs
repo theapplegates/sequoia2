@@ -16,7 +16,6 @@ use crate::Sq;
 use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
-use crate::parse_notations;
 
 /// Handle the revocation of a subkey
 struct SubkeyRevocation {
@@ -131,7 +130,7 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::revoke::Command)
         Some(sq.resolve_cert(&command.revoker, sequoia_wot::FULLY_TRUSTED)?.0)
     };
 
-    let notations = parse_notations(command.notation)?;
+    let notations = command.signature_notations.parse()?;
 
     let revocation = SubkeyRevocation::new(
         &sq,

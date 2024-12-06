@@ -33,7 +33,6 @@ use crate::common::userid::{
     lint_names,
     lint_userids,
 };
-use crate::parse_notations;
 
 /// Handle the revocation of a User ID
 struct UserIDRevocation {
@@ -324,7 +323,7 @@ pub fn userid_revoke(
         Some(sq.resolve_cert(&command.revoker, sequoia_wot::FULLY_TRUSTED)?.0)
     };
 
-    let notations = parse_notations(command.notation)?;
+    let notations = command.signature_notations.parse()?;
 
     let revocation = UserIDRevocation::new(
         &sq,

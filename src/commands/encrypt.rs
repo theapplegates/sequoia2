@@ -59,8 +59,7 @@ pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
                                  sequoia_wot::FULLY_TRUSTED)?;
     let signers = sq.get_signing_keys(&signers, None)?;
 
-    let notations =
-        crate::parse_notations(command.signature_notations)?;
+    let notations = command.signature_notations.parse()?;
 
     if signers.is_empty() && ! notations.is_empty() {
         return Err(anyhow::anyhow!("--signature-notation requires signers, \

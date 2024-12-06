@@ -25,7 +25,6 @@ use openpgp::types::SignatureType;
 
 
 use crate::Sq;
-use crate::parse_notations;
 
 use crate::cli;
 use crate::cli::sign::Mode;
@@ -55,7 +54,7 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
         return Err(anyhow::anyhow!("No signing keys found"));
     }
 
-    let notations = parse_notations(command.notation)?;
+    let notations = command.signature_notations.parse()?;
 
     if let Some(merge) = command.merge {
         let output = output.create_pgp_safe(

@@ -20,8 +20,6 @@ use sequoia_openpgp as openpgp;
 use openpgp::Result;
 use openpgp::Cert;
 use openpgp::parse::Parse;
-use openpgp::packet::signature::subpacket::NotationData;
-use openpgp::packet::signature::subpacket::NotationDataFlags;
 use openpgp::cert::prelude::*;
 
 use clap::FromArgMatches;
@@ -419,37 +417,6 @@ fn real_main() -> Result<()> {
             }
         }
     }
-}
-
-fn parse_notations<N>(n: N) -> Result<Vec<(bool, NotationData)>>
-where
-    N: AsRef<[String]>,
-{
-    let n = n.as_ref();
-    assert_eq!(n.len() % 2, 0, "notations must be pairs of key and value");
-
-    // Each --notation takes two values.  Iterate over them in chunks of 2.
-    let notations: Vec<(bool, NotationData)> = n
-        .chunks(2)
-        .map(|arg_pair| {
-            let name = &arg_pair[0];
-            let value = &arg_pair[1];
-
-            let (critical, name) = match name.strip_prefix('!') {
-                Some(name) => (true, name),
-                None => (false, name.as_str()),
-            };
-
-            let notation_data = NotationData::new(
-                name,
-                value,
-                NotationDataFlags::empty().set_human_readable(),
-            );
-            (critical, notation_data)
-        })
-        .collect();
-
-    Ok(notations)
 }
 
 // Sometimes the same error cascades, e.g.:

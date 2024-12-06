@@ -202,20 +202,8 @@ of power, you have to opt in to this behavior explicitly.",
     #[clap(skip)]
     pub expiration_source: Option<clap::parser::ValueSource>,
 
-    #[clap(
-        long = "signature-notation",
-        value_names = &["NAME", "VALUE"],
-        number_of_values = 2,
-        help = "Add a notation to the certification.",
-        long_help = "Add a notation to the certification.  \
-            A user-defined notation's name must be of the form \
-            `name@a.domain.you.control.org`. If the notation's name starts \
-            with a !, then the notation is marked as being critical.  If a \
-            consumer of a signature doesn't understand a critical notation, \
-            then it will ignore the signature.  The notation is marked as \
-            being human readable."
-    )]
-    pub notation: Vec<String>,
+    #[command(flatten)]
+    pub signature_notations: crate::cli::types::SignatureNotationsArg,
 
     #[clap(
         help = FileOrStdout::HELP_OPTIONAL,

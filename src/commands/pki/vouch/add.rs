@@ -4,7 +4,6 @@ use openpgp::Result;
 use crate::Sq;
 use crate::cli::pki::vouch::add;
 use crate::commands::FileOrStdout;
-use crate::parse_notations;
 
 pub fn add(sq: Sq, mut c: add::Command)
     -> Result<()>
@@ -24,7 +23,7 @@ pub fn add(sq: Sq, mut c: add::Command)
     let vc = cert.with_policy(sq.policy, Some(sq.time))?;
     let userids = c.userids.resolve(&vc)?;
 
-    let notations = parse_notations(&c.notation)?;
+    let notations = c.signature_notations.parse()?;
     let expiration =
         sq.config.pki_vouch_expiration(&c.expiration, c.expiration_source);
 

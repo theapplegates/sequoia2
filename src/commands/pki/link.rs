@@ -16,7 +16,6 @@ use cert_store::{LazyCert, Store};
 use crate::Sq;
 use crate::commands::active_certification;
 use crate::common::NULL_POLICY;
-use crate::parse_notations;
 
 use crate::cli::pki::link;
 use crate::cli::types::Expiration;
@@ -46,7 +45,7 @@ pub fn add(sq: Sq, c: link::AddCommand)
     let vc = cert.with_policy(sq.policy, Some(sq.time))?;
     let userids = c.userids.resolve(&vc)?;
 
-    let notations = parse_notations(c.notation)?;
+    let notations = c.signature_notations.parse()?;
 
     let templates: Vec<(TrustAmount<_>, Expiration)> = if c.temporary {
         // Make the partially trusted link one second younger.  When
@@ -97,7 +96,7 @@ pub fn authorize(sq: Sq, c: link::AuthorizeCommand)
     let vc = cert.with_policy(sq.policy, Some(sq.time))?;
     let userids = c.userids.resolve(&vc)?;
 
-    let notations = parse_notations(c.notation)?;
+    let notations = c.signature_notations.parse()?;
 
     crate::common::pki::certify::certify(
         &mut std::io::stdout(),
@@ -130,7 +129,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
     let vc = cert.with_policy(NULL_POLICY, Some(sq.time))?;
     let userids = c.userids.resolve(&vc)?;
 
-    let notations = parse_notations(c.notation)?;
+    let notations = c.signature_notations.parse()?;
 
     crate::common::pki::certify::certify(
         &mut std::io::stdout(),

@@ -865,7 +865,8 @@ This uses the certificates set in the configuration file under \
                     "with-password-file",
                     "Prompt to add a password to encrypt with"))
                 .long_help("\
-Prompt to add a password to encrypt with.  \
+Prompt to add a password to encrypt with
+
 When using this option, the user is asked to provide a password, \
 which is used to encrypt the message. \
 This option can be provided more than once to provide more than \
@@ -886,7 +887,7 @@ the recipient's keys, or one of the provided passwords.");
                     "with-password-file",
                     "File containing password to encrypt the message"))
                 .long_help("\
-File containing password to encrypt the message.
+File containing password to encrypt the message
 
 Note that the entire key file will be used as the password including \
 any surrounding whitespace like a trailing newline.

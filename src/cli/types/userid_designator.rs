@@ -444,7 +444,7 @@ Use all self-signed user IDs"));
                     .action(action.clone())
                     .help("Use the specified self-signed user ID")
                     .long_help("\
-Use the specified self-signed user ID.
+Use the specified self-signed user ID
 
 The specified user ID must be self signed."));
             arg_group = arg_group.arg(full_name);
@@ -459,7 +459,7 @@ The specified user ID must be self signed."));
                     .action(action.clone())
                     .help("Use the specified user ID")
                     .long_help("\
-Use the specified user ID.
+Use the specified user ID
 
 The specified user ID does not need to be self signed."));
             arg_group = arg_group.arg(full_name);
@@ -474,7 +474,7 @@ The specified user ID does not need to be self signed."));
                     .action(action.clone())
                     .help("Use the specified user ID")
                     .long_help("\
-Use the specified user ID.
+Use the specified user ID
 
 The specified user ID does not need to be self signed.
 
@@ -510,7 +510,7 @@ Use the self-signed user ID with the specified email address"));
                     .help("\
 Use a user ID with the specified email address")
                     .long_help("\
-Use a user ID with the specified email address.
+Use a user ID with the specified email address
 
 This first searches for a matching self-signed user ID.  If there is \
 no self-signed user ID with the specified email, it uses a new user ID \
@@ -528,7 +528,7 @@ with the specified email address, and no display name."));
                     .action(action.clone())
                     .help("Use a user ID with the specified email address")
                     .long_help("\
-Use a user ID with the specified email address.
+Use a user ID with the specified email address
 
 This first searches for a matching self-signed user ID.  If there is \
 no self-signed user ID with the specified email address, it uses a new \
@@ -558,7 +558,7 @@ Use the self-signed user ID with the specified display name"));
                     .help("\
 Use a user ID with the specified display name")
                     .long_help("\
-Use a user ID with the specified display name.
+Use a user ID with the specified display name
 
 This first searches for a matching self-signed user ID.  If there is \
 no self-signed user ID with the specified name, it uses a new user ID \
@@ -575,7 +575,7 @@ with the specified display name, and no email address."));
                     .action(action.clone())
                     .help("Use a user ID with the specified display name")
                     .long_help("\
-Use a user ID with the specified display name.
+Use a user ID with the specified display name
 
 This first searches for a matching self-signed user ID.  If there is \
 no self-signed user ID with the specified name, it uses a new user ID \
@@ -596,7 +596,7 @@ with the specified display name, and no email address."));
                     .help("\
 Don't reject new user IDs that are not in canonical form")
                     .long_help("\
-Don't reject new user IDs that are not in canonical form.
+Don't reject new user IDs that are not in canonical form
 
 Canonical user IDs are of the form `Name (Comment) \
 <localpart@example.org>`."));

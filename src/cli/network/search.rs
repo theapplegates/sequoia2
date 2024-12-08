@@ -51,9 +51,10 @@ pub struct Command {
         long = "server",
         default_values_t = DEFAULT_KEYSERVERS.iter().map(ToString::to_string),
         value_name = "URI",
-        help = config::augment_help(
+        help = "Set a key server to use (can be given multiple times)",
+        long_help = config::augment_help(
             "network.keyserver.servers",
-            "Set a key server to use.  Can be given multiple times."),
+            "Set a key server to use (can be given multiple times)"),
     )]
     pub servers: Vec<String>,
 
@@ -78,9 +79,11 @@ pub struct Command {
     #[clap(
         value_name = "QUERY",
         required = true,
-        help = "Retrieve certificate(s) using QUERY. \
-            This may be a fingerprint, a KeyID, \
-            an email address, or a https URL.",
+        help = "Retrieve certificate(s) using QUERY",
+        long_help = "Retrieve certificate(s) using QUERY
+
+This may be a fingerprint, a KeyID, \
+an email address, or a https URL.",
     )]
     pub query: Vec<String>,
 }

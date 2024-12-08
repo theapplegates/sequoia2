@@ -109,7 +109,7 @@ pub struct GenerateCommand {
         long = "all",
         help = "Publish authenticated certs with a user ID matching domain",
         long_help = "\
-Use all authenticated certificates with a user ID in the given domain
+Publish authenticated certs with a user ID matching domain
 
 Use all certificates that have a user ID matching the domain given \
 to the `--domain` parameter that can be fully authenticated.",

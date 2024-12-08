@@ -39,7 +39,7 @@ test_examples!(sq_key_expire, EXAMPLES);
     name = "expire",
     about = "Change a certificate's expiration time",
     long_about =
-"Change a certificate's expiration time.
+"Change a certificate's expiration time
 
 This subcommand changes a certificate's expiration time.  To change \
 the expiration time of an individual subkey, use the `sq key subkey \

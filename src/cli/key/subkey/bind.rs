@@ -39,7 +39,7 @@ impl cert_designator::AdditionalDocs for AdditionalDocs {
     name = "bind",
     about = "Bind keys from one certificate to another",
     long_about = "\
-Bind keys from one certificate to another.
+Bind keys from one certificate to another
 
 This command allows the user to attach a primary key or a subkey \
 attached to one certificate to another certificate.  Say you want to \
@@ -80,7 +80,7 @@ pub struct Command {
         value_name = "CREATION_TIME",
         help = "Make bound subkeys have the specified creation time",
         long_help = "\
-Make bound subkeys have the specified creation time.
+Make bound subkeys have the specified creation time
 
 Normally, the key's creation time is preserved.  The exception is if \
 the key's creation time is the Unix epoch.  In that case, the current \
@@ -126,6 +126,8 @@ the purpose of signature verification, for example.",
         value_name = "PURPOSE",
         help = "Set the encryption-capable flag",
         long_help = "\
+Set the encryption-capable flag
+
 Encryption-capable subkeys can be marked as suitable for transport \
 encryption, storage encryption, or both, i.e., universal.  [default: \
 universal]",
@@ -143,7 +145,7 @@ universal]",
         value_name = FileOrStdout::VALUE_NAME,
         help = "Write to the specified FILE",
         long_help = "\
-Write to the specified FILE.
+Write to the specified FILE
 
 If not specified, and the certificate was read from the certificate \
 store, imports the modified certificate into the cert store.  If not \

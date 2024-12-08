@@ -249,7 +249,7 @@ pub struct SqCommand {
         help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Select a CLI version",
         long_help = format!("\
-Select a CLI version.
+Select a CLI version
 
 `sq`'s CLI is versioned using a semantic versioning scheme.  Setting \
 this options causes `sq` to error out if it does not implement an \
@@ -281,14 +281,14 @@ This version of `sq` implements version {}.{}.{} of the CLI interface.
     pub overwrite: bool,
 
     #[clap(
-        long,
+        long = "home",
         value_name = "PATH",
         env = "SEQUOIA_HOME",
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
-        help = "Set the home directory.",
+        help = "Set the home directory",
         long_help = format!("\
-Set the home directory.
+Set the home directory
 
 Sequoia's default home directory is `{}`.  When using the default \
 location, files are placed according to the local standard, \
@@ -316,13 +316,14 @@ not use a home directory.",
     pub home: Option<StateDirectory>,
 
     #[clap(
-        long,
+        long = "key-store",
         value_name = "PATH",
         env = "SEQUOIA_KEY_STORE",
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Override the key store server and its data",
-        long_help = format!("\
+        long_help = format!("Override the key store server and its data
+
 A key store server manages and protects secret key material.  By \
 default, `sq` connects to the key store server for Sequoia's default \
 home directory (see `--home`), {}.  If no key store server is running, \
@@ -352,14 +353,16 @@ not use a key store.",
     pub key_store: Option<StateDirectory>,
 
     #[clap(
-        long,
+        long = "cert-store",
         value_name = "PATH",
         env = "SEQUOIA_CERT_STORE",
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Specify the location of the certificate store",
         long_help = format!("\
-Specify the location of the certificate store.  By default, `sq` uses \
+Specify the location of the certificate store
+
+By default, `sq` uses \
 the OpenPGP certificate directory in Sequoia's home directory (see `--home`), \
 {}.  This can be overridden by setting the `PGP_CERT_D` environment \
 variable.
@@ -390,7 +393,9 @@ not use a cert store.",
         help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Specify the location of a keyring to use",
         long_help = "\
-Specify the location of a keyring to use.  Keyrings are used in \
+Specify the location of a keyring to use
+
+Keyrings are used in \
 addition to any certificate store.  The content of the keyring is \
 not imported into the certificate store.  When a certificate is \
 looked up, it is looked up in all keyrings and any certificate \
@@ -404,10 +409,12 @@ store, and the results are merged together."
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Add NOTATION to the list of known notations",
-        long_help = "Add NOTATION to the list of known notations. \
-            This is used when validating signatures. \
-            Signatures that have unknown notations with the \
-            critical bit set are considered invalid."
+        long_help = "Add NOTATION to the list of known notations
+
+
+This is used when validating signatures. \
+Signatures that have unknown notations with the \
+critical bit set are considered invalid."
     )]
     // TODO is this the right type?
     pub known_notation: Vec<String>,
@@ -420,7 +427,9 @@ store, and the results are merged together."
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
         long_help = "\
-Set the reference time as an ISO 8601 formatted timestamp.  Normally, \
+Set the reference time as an ISO 8601 formatted timestamp
+
+Normally, \
 commands use the current time as the reference time.  This argument allows \
 the user to use a difference reference time.  For instance, when creating a \
 key using `sq key generate`, the creation time is normally set to the \
@@ -448,7 +457,9 @@ $ sq --time 20130721T0550+0200 verify msg.pgp
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
         long_help = "\
-Select the cryptographic policy as of the specified time, which is \
+Select the cryptographic policy as of the specified time
+
+The time is \
 expressed as an ISO 8601 formatted timestamp.  The policy determines \
 what cryptographic constructs are allowed.
 
@@ -475,9 +486,10 @@ Defaults to the reference time, which can be set using --time.
         global = true,
         help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Consider the specified certificate to be a trust root",
-        long_help = "Consider the specified certificate to be a trust root. \
-                     Trust roots are used by trust models, e.g., the Web of \
-                     Trust, to authenticate certificates and User IDs."
+        long_help = "Consider the specified certificate to be a trust root
+
+Trust roots are used by trust models, e.g., the Web of \
+Trust, to authenticate certificates and User IDs."
     )]
     pub trust_roots: Vec<Fingerprint>,
     #[clap(
@@ -487,7 +499,7 @@ Defaults to the reference time, which can be set using --time.
         help_heading = GLOBAL_OPTIONS_HEADER,
         help = "Seed the password cache with the specified password",
         long_help = "\
-Seed the password cache with the specified password.
+Seed the password cache with the specified password
 
 The password is added to the password cache.  When decrypting secret \
 key material, the password cache is only used if the key is not \

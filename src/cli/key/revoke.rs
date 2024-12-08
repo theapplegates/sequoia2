@@ -41,7 +41,7 @@ test_examples!(sq_key_revoke, REVOKE_EXAMPLES);
 #[clap(
     about = "Revoke a certificate",
     long_about = "\
-Revoke a certificate.
+Revoke a certificate
 
 Creates a revocation certificate for a certificate.
 
@@ -78,7 +78,7 @@ pub struct Command {
         required = true,
         help = "The reason for the revocation",
         long_help = "\
-The reason for the revocation.
+The reason for the revocation
 
 If the reason happened in the past, you should specify that using the \
 `--time` argument.  This allows OpenPGP implementations to more \
@@ -94,7 +94,7 @@ of the certificate.",
         required = true,
         help = "A short, explanatory text",
         long_help = "\
-A short, explanatory text.
+A short, explanatory text
 
 The text is shown to a viewer of the revocation certificate, and \
 explains why the certificate has been revoked.  For instance, if Alice \
@@ -113,7 +113,7 @@ future.`",
         value_name = FileOrStdout::VALUE_NAME,
         help = "Write to the specified FILE",
         long_help = "\
-Write to the specified FILE.
+Write to the specified FILE
 
 If not specified, and the certificate was read from the certificate \
 store, imports the modified certificate into the cert store.  If not \

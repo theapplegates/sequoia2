@@ -561,13 +561,13 @@ impl From<ArmorKind> for Option<openpgp::armor::Kind> {
 /// Describes the purpose of the encryption.
 #[derive(ValueEnum, Clone, Debug)]
 pub enum EncryptPurpose {
-    /// Protects data in transport.
+    /// Selects subkeys marked as suitable for transport encryption.
     Transport,
 
-    /// Protects data at rest.
+    /// Selects those for encrypting data at rest.
     Storage,
 
-    /// Protects data in transport and at rest.
+    /// Selects all encryption-capable subkeys.
     Universal,
 }
 

@@ -13,7 +13,7 @@ pub mod revoke;
     name = "subkey",
     about = "Manage subkeys",
     long_about = "\
-Manage subkeys.
+Manage subkeys
 
 Add new subkeys to an existing certificate, change their expiration, \
 and revoke them.",

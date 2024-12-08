@@ -21,7 +21,7 @@ pub struct Command {
         value_name = "FINGERPRINT|KEYID|PATTERN",
         help = "A pattern to filter the displayed certificates",
         long_help = "\
-A pattern to filter the displayed certificates.
+A pattern to filter the displayed certificates
 
 If the pattern appears to be a fingerprint or key ID, it is treated as \
 if it were passed to `--cert`, and matches on the certificate's \

@@ -22,7 +22,7 @@ use crate::cli::types::userid_designator;
     name = "approvals",
     about = "Manages certification approvals",
     long_about = "\
-Manages certification approvals.
+Manages certification approvals
 
 Key holders may approve of third-party certifications associated with \
 their certificate.  This subcommand manages the approvals.
@@ -85,9 +85,9 @@ test_examples!(sq_key_approvals_list, LIST_EXAMPLES);
 #[derive(Debug, Args)]
 #[clap(
     name = "list",
-    about = "Lists third-party certifications",
+    about = "Lists third-party certifications and their approval status",
     long_about = "\
-Lists third-party certifications and their approval status.
+Lists third-party certifications and their approval status
 
 To prevent certificate flooding attacks, modern key servers prevent \
 uncontrolled distribution of third-party certifications on \
@@ -203,9 +203,9 @@ test_examples!(sq_key_approvals_update, UPDATE_EXAMPLES);
 #[derive(Debug, Args)]
 #[clap(
     name = "update",
-    about = "Approves of third-party certifications",
+    about = "Approves of third-party certifications allowing for their distribution",
     long_about = "\
-Approves of third-party certifications allowing for their distribution.
+Approves of third-party certifications allowing for their distribution
 
 To prevent certificate flooding attacks, modern key servers prevent \
 uncontrolled distribution of third-party certifications on \
@@ -251,7 +251,7 @@ pub struct UpdateCommand {
         help = "Remove all prior approvals",
         conflicts_with = "add_all",
         long_help = "\
-Remove all prior approvals.
+Remove all prior approvals
 
 By default, this command adds to the set of already approved
 certifications.  If this flag is given, the existing approvals are
@@ -289,7 +289,7 @@ if any.
         value_name = "AMOUNT",
         help = "Approve of all certifications by authenticated certifiers",
         long_help = "\
-Approve of all certifications by authenticated certifiers.
+Approve of all certifications by authenticated certifiers
 
 For all pending approvals, try to authenticate any user ID on the
 certifier, and if any can be authenticated, approve of the certification.",
@@ -302,7 +302,7 @@ certifier, and if any can be authenticated, approve of the certification.",
         value_name = FileOrStdout::VALUE_NAME,
         help = "Write to the specified FILE",
         long_help = "\
-Write to the specified FILE.
+Write to the specified FILE
 
 If not specified, and the certificate was read from the certificate \
 store, imports the modified certificate into the cert store.  If not \

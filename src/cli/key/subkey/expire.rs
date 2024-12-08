@@ -36,7 +36,7 @@ impl cert_designator::AdditionalDocs for AdditionalDocs {
     name = "expire",
     about = "Change a subkey's expiration time",
     long_about = "\
-Change a subkey's expiration time.
+Change a subkey's expiration time
 
 This subcommand changes a key's expiration time.  To change the \
 expiration time of the certificate, use the `sq key expire` \
@@ -70,7 +70,7 @@ pub struct Command {
         value_name = FileOrStdout::VALUE_NAME,
         help = "Write to the specified FILE",
         long_help = "\
-Write to the specified FILE.
+Write to the specified FILE
 
 If not specified, and the certificate was read from the certificate \
 store, imports the modified certificate into the cert store.  If not \

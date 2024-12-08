@@ -55,7 +55,7 @@ pub enum Subcommands {
 
 #[derive(clap::Args, Debug)]
 pub struct GossipArg {
-    /// Treats all certificates as unreliable trust roots.
+    /// Treats all certificates as unreliable trust roots
     ///
     /// This option is useful for figuring out what others think about
     /// a certificate (i.e., gossip or hearsay).  In other words, this
@@ -84,7 +84,7 @@ impl Deref for GossipArg {
 
 #[derive(clap::Args, Debug)]
 pub struct CertificationNetworkArg {
-    /// Treats the network as a certification network.
+    /// Treats the network as a certification network
     ///
     /// Normally, `sq pki` treats the Web of Trust network as an
     /// authentication network where a certification only means that
@@ -108,7 +108,7 @@ impl Deref for CertificationNetworkArg {
 
 #[derive(clap::Args, Debug)]
 pub struct RequiredTrustAmountArg {
-    /// The required amount of trust.
+    /// The required amount of trust
     ///
     /// 120 indicates full authentication; values less than 120
     /// indicate partial authentication.  When
@@ -128,7 +128,7 @@ impl Deref for RequiredTrustAmountArg {
 
 #[derive(clap::Args, Debug)]
 pub struct ShowPathsArg {
-    /// Show why a binding is authenticated.
+    /// Show why a binding is authenticated
     ///
     /// By default, only a user ID and certificate binding's degree of
     /// authentication (a value between 0 and 120) is shown.  This

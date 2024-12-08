@@ -14,7 +14,7 @@ use crate::cli::types::userid_designator;
 use super::CertificationNetworkArg;
 use super::RequiredTrustAmountArg;
 
-/// Verify the specified path.
+/// Verify the specified path
 ///
 /// A path is a sequence of certificates starting at the root, and
 /// a User ID.  This function checks that each path segment has a
@@ -38,7 +38,7 @@ pub struct Command {
         num_args = 1..,
         help = "The path to authenticate",
         long_help = "\
-The path to authenticate.
+The path to authenticate
 
 A path consists of one or more certificates.  The first certificate is \
 the root, and the last certificate is the one being authenticated for \

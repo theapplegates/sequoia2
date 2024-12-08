@@ -55,11 +55,14 @@ pub struct Command {
     #[clap(
         long,
         value_name = FileOrStdout::VALUE_NAME,
-        help = "Write to the specified FILE.  If not specified, and the \
-                certificate was read from the certificate store, imports the \
-                modified certificate into the cert store.  If not specified, \
-                and the certificate was read from a file, writes the modified \
-                certificate to stdout.",
+        help = "Write to the specified FILE",
+        long_help = "Write to the specified FILE
+
+If not specified, and the \
+certificate was read from the certificate store, imports the \
+modified certificate into the cert store.  If not specified, \
+and the certificate was read from a file, writes the modified \
+certificate to stdout.",
     )]
     pub output: Option<FileOrStdout>,
 }

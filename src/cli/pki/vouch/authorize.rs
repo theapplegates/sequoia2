@@ -53,7 +53,7 @@ test_examples!(sq_pki_vouch_authorize, AUTHORIZE_EXAMPLES);
     name = "authorize",
     about = "Mark a certificate as a trusted introducer",
     long_about = format!(
-"Mark a certificate as a trusted introducer.
+"Mark a certificate as a trusted introducer
 
 Creates a certification that says that the issuer considers the \
 certificate to be a trusted introducer.  Trusted introducer is another \
@@ -114,9 +114,11 @@ pub struct Command {
         default_value = "full",
         help = "Set the amount of trust",
         long_help =
-            "Set the amount of trust.  Values between 1 and 120 are meaningful. \
-            120 means fully trusted.  Values less than 120 indicate the degree \
-            of trust.  60 is usually used for partially trusted.",
+            "Set the amount of trust
+
+Values between 1 and 120 are meaningful. \
+120 means fully trusted.  Values less than 120 indicate the degree \
+of trust.  60 is usually used for partially trusted.",
     )]
     pub amount: TrustAmount<u8>,
 
@@ -126,10 +128,12 @@ pub struct Command {
         default_value = "1",
         help = "Set the trust depth",
         long_help =
-            "Set the trust depth (sometimes referred to as the trust level).  \
-            1 means CERTIFICATE is a trusted introducer (default), 2 means \
-            CERTIFICATE is a meta-trusted introducer and can authorize \
-            another trusted introducer, etc.",
+            "Set the trust depth
+
+This is sometimes referred to as the trust level.  \
+1 means CERTIFICATE is a trusted introducer (default), 2 means \
+CERTIFICATE is a meta-trusted introducer and can authorize \
+another trusted introducer, etc.",
     )]
     pub depth: u8,
 
@@ -138,7 +142,7 @@ pub struct Command {
         value_name = "DOMAIN",
         help = "Add a domain constraint to the introducer",
         long_help = "\
-Add a domain constraint to the introducer.
+Add a domain constraint to the introducer
 
 Add a domain to constrain what certifications are respected.  A \
 certification made by the certificate is only respected if it is over \
@@ -151,7 +155,7 @@ domains may be specified.  In that case, one must match.",
         value_name = "REGEX",
         help = "Add a regular expression to constrain the introducer",
         long_help = "\
-Add a regular expression to constrain the introducer.
+Add a regular expression to constrain the introducer
 
 Add a regular expression to constrain what certifications are \
 respected.  A certification made by the certificate is only respected \
@@ -165,7 +169,7 @@ case, at least one must match.",
         conflicts_with = "regex",
         help = "Don't constrain the introducer",
         long_help = "\
-Don't constrain the introducer.
+Don't constrain the introducer
 
 Normally an introducer is constrained so that only certain user IDs \
 are respected, e.g., those that have an email address for a certain \
@@ -179,19 +183,20 @@ of power, you have to opt in to this behavior explicitly.",
         long = "local",
         help = "Make the certification a local certification",
         long_help =
-            "Make the certification a local \
-            certification.  Normally, local \
-            certifications are not exported.",
+            "Make the certification a local certification
+
+Normally, local certifications are not exported.",
     )]
     pub local: bool,
     #[clap(
         long = "non-revocable",
         help = "Mark the certification as being non-revocable",
         long_help =
-            "Mark the certification as being non-revocable. \
-            That is, you cannot later revoke this \
-            certification.  This should normally only \
-            be used with an expiration.",
+            "Mark the certification as being non-revocable
+
+That is, you cannot later revoke this \
+certification.  This should normally only \
+be used with an expiration.",
     )]
     pub non_revocable: bool,
 

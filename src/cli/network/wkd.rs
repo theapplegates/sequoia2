@@ -202,7 +202,7 @@ pub struct PublishCommand {
         long = "all",
         help = "Publish authenticated certs with a user ID matching domain",
         long_help = "\
-Use all authenticated certificates with a user ID in the given domain
+Publish authenticated certs with a user ID matching domain
 
 Use all certificates that have a user ID matching the domain given \
 to the `--domain` parameter that can be fully authenticated.",
@@ -250,10 +250,10 @@ The direct method is hosted on the same domain (e.g. example.org).",
     pub domain: String,
     #[clap(
         value_name = "DEST",
-        help = "WKD location on the server, passed to rsync(1)",
-        long_help = "Location of the WKD hierarchy on the local machine or \
-                     a remote server.  If --rsync is given, this is passed \
-                     as-is to rsync(1).",
+        help = "Location of the WKD on the local or remote machine",
+        long_help = "Location of the WKD on the local or remote machine
+
+If --rsync is given, this is passed as-is to rsync(1).",
     )]
     pub destination: String,
 }

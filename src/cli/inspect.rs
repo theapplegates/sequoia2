@@ -54,7 +54,7 @@ test_examples!(sq_inspect, INSPECT_EXAMPLES);
     name = "inspect",
     about = "Inspect data, like file(1)",
     long_about =
-"Inspect data, like file(1).
+"Inspect data, like file(1)
 
 It is often difficult to tell from cursory inspection using cat(1) or \
 file(1) what kind of OpenPGP one is looking at.  This subcommand \
@@ -104,7 +104,7 @@ impl AdditionalDocs for ToInspectDoc {
         match arg {
             "cert" | "file" => help,
             _ => format!(
-                "{}.  Note: User IDs are not authenticated.",
+                "{} (note: User IDs are not authenticated)",
                 help),
         }.into()
     }

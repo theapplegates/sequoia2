@@ -38,7 +38,7 @@ impl cert_designator::AdditionalDocs for AdditionalDocs {
 #[clap(
     about = "Add a new subkey to a certificate",
     long_about = "\
-Add a new subkey to a certificate.
+Add a new subkey to a certificate
 
 A subkey has one or more capabilities.
 
@@ -89,7 +89,8 @@ pub struct Command {
         long,
         value_name = "CIPHER-SUITE",
         default_value_t = CipherSuite::Cv25519,
-        help = config::augment_help(
+        help = "Select the cryptographic algorithms for the subkey",
+        long_help = config::augment_help(
             "key.generate.cipher-suite",
             "Select the cryptographic algorithms for the subkey"),
         value_enum,
@@ -118,11 +119,10 @@ pub struct Command {
         value_name = "PURPOSE",
         help = "Add an encryption-capable subkey [default: universal]",
         long_help = "\
-Add an encryption-capable subkey.
+Add an encryption-capable subkey [default: universal]
 
 Encryption-capable subkeys can be marked as suitable for transport \
-encryption, storage encryption, or both, i.e., universal.  [default: \
-universal]",
+encryption, storage encryption, or both, i.e., universal.",
         value_enum,
     )]
     pub can_encrypt: Option<EncryptPurpose>,
@@ -133,7 +133,7 @@ universal]",
         help = "\
 File containing password to encrypt the secret key material",
         long_help = "\
-File containing password to encrypt the secret key material.
+File containing password to encrypt the secret key material
 
 Note that the entire key file will be used as the password including \
 any surrounding whitespace like a trailing newline.",
@@ -152,7 +152,7 @@ any surrounding whitespace like a trailing newline.",
         value_name = FileOrStdout::VALUE_NAME,
         help = "Write to the specified FILE",
         long_help = "\
-Write to the specified FILE.
+Write to the specified FILE
 
 If not specified, and the certificate was read from the certificate \
 store, imports the modified certificate into the key store.  If not \

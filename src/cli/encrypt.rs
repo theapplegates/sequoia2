@@ -110,10 +110,11 @@ pub struct Command {
         help = "Set the filename of the encrypted file as metadata",
         long = "set-metadata-filename",
         long_help =
-            "Set the filename of the encrypted file as metadata.  \
-            Do note, that this metadata is not signed and as such relying on \
-            it - on sender or receiver side - is generally considered \
-            dangerous.",
+            "Set the filename of the encrypted file as metadata
+
+Do note, that this metadata is not signed and as such relying on \
+it - on sender or receiver side - is generally considered \
+dangerous.",
     )]
     pub set_metadata_filename: Option<String>,
 
@@ -131,14 +132,7 @@ pub struct Command {
         long = "encrypt-for",
         value_name = "PURPOSE",
         default_value_t = EncryptPurpose::Universal,
-        help = "Select what kind of keys are considered for encryption.",
-        long_help =
-            "Select what kind of keys are considered for \
-            encryption.  'transport' selects subkeys marked \
-            as suitable for transport encryption, 'storage' \
-            selects those for encrypting data at rest, \
-            and 'universal' selects all encryption-capable \
-            subkeys.",
+        help = "Select what kind of keys are considered for encryption",
         value_enum,
     )]
     pub mode: EncryptPurpose,
@@ -154,10 +148,11 @@ pub struct Command {
     #[clap(
         long = "use-expired-subkey",
         help = "Fall back to expired encryption subkeys",
-        long_help =
-            "If a certificate has only expired \
-            encryption-capable subkeys, fall back \
-            to using the one that expired last",
+        long_help = "Fall back to expired encryption subkeys
+
+If a certificate has only expired \
+encryption-capable subkeys, fall back \
+to using the one that expired last",
     )]
     pub use_expired_subkey: bool,
 
@@ -165,7 +160,7 @@ pub struct Command {
         long = "profile",
         value_name = "PROFILE",
         default_value_t = Default::default(),
-        help = "Select the OpenPGP standard for the encryption container",
+        help = "Select the default OpenPGP standard for the encryption container",
         long_help = config::augment_help(
             "key.generate.profile",
             "Select the default OpenPGP standard for the encryption container

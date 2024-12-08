@@ -16,7 +16,7 @@ use super::ShowPathsArg;
 use crate::cli::types::userid_designator;
 use crate::cli::types::UserIDDesignators;
 
-/// Lookup the certificates associated with a User ID.
+/// Lookup the certificates associated with a User ID
 ///
 /// Identifies authenticated bindings (User ID and certificate
 /// pairs) where the User ID matches the specified User ID.

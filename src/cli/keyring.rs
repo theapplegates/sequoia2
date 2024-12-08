@@ -100,26 +100,32 @@ silently.
         long = "userid",
         value_name = "USERID",
         help = "Match on USERID",
-        long_help = "Case-sensitively matches on the \
-                user id, requiring an exact match.",
+        long_help = "Match on USERID
+
+Case-sensitively matches on the \
+user ID, requiring an exact match.",
     )]
     pub userid: Vec<String>,
     #[clap(
         long = "name",
         value_name = "NAME",
         help = "Match on NAME",
-        long_help = "Parse user ids into name and email \
-            and case-sensitively matches on the \
-            name, requiring an exact match.",
+        long_help = "Match on NAME
+
+Parse user IDs into name and email \
+and case-sensitively matches on the \
+name, requiring an exact match.",
     )]
     pub name: Vec<String>,
     #[clap(
         long = "email",
         value_name = "ADDRESS",
         help = "Match on email ADDRESS",
-        long_help = "Parse user ids into name and email \
-            address and case-sensitively matches \
-            on the email address, requiring an exact match.",
+        long_help = "Match on email ADDRESS
+
+Parse user IDs into name and email \
+address and case-sensitively matches \
+on the email address, requiring an exact match.",
     )]
     pub email: Vec<String>,
     #[clap(
@@ -127,10 +133,12 @@ silently.
         value_name = "FQDN",
         help = "Match on email domain FQDN",
         long_help =
-            "Parse user ids into name and email \
-            address and case-sensitively matches \
-            on the domain of the email address, \
-            requiring an exact match.",
+            "Match on email domain FQDN
+
+Parse user IDs into name and email \
+address and case-sensitively matches \
+on the domain of the email address, \
+requiring an exact match.",
     )]
     pub domain: Vec<String>,
 
@@ -139,9 +147,11 @@ silently.
         value_name = "FINGERPRINT|KEYID",
         help = "Match on certificate fingerprints and key IDs",
         long_help =
-            "Match on primary keys, \
-            including those certificates that match the \
-            given fingerprint or key ID.",
+            "Match on certificate fingerprints and key IDs
+
+Match on primary keys, \
+including those certificates that match the \
+given fingerprint or key ID.",
     )]
     pub cert: Vec<KeyHandle>,
 
@@ -150,9 +160,11 @@ silently.
         value_name = "FINGERPRINT|KEYID",
         help = "Match on (sub)key fingerprints and key IDs",
         long_help =
-            "Match on both primary keys and subkeys, \
-            including those certificates that match the \
-            given fingerprint or key ID.",
+            "Match on (sub)key fingerprints and key IDs
+
+Match on both primary keys and subkeys, \
+including those certificates that match the \
+given fingerprint or key ID.",
     )]
     pub key: Vec<KeyHandle>,
 
@@ -164,11 +176,14 @@ silently.
 
     #[clap(
         long = "to-cert",
-        help = "Convert any keys in the input to \
-            certificates.  Converting a key to a \
-            certificate removes secret key material \
-            from the key thereby turning it into \
-            a certificate.",
+        help = "Convert any keys in the input to certificates",
+        long_help =
+            "Convert any keys in the input to certificates
+
+Converting a key to a \
+certificate removes secret key material \
+from the key thereby turning it into \
+a certificate.",
     )]
     pub to_certificate: bool,
 }
@@ -330,10 +345,12 @@ pub struct ListCommand {
     pub input: FileOrStdin,
     #[clap(
         long = "all-userids",
-        help = "List all user ids",
-        long_help = "List all user ids, even those that are \
-            expired, revoked, or not valid under the \
-            standard policy.",
+        help = "List all user IDs",
+        long_help = "List all user IDs
+
+Include user IDs that are \
+expired, revoked, or not valid under the \
+standard policy.",
     )]
     pub all_userids: bool,
 }

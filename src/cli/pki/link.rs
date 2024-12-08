@@ -188,9 +188,11 @@ pub struct AddCommand {
         default_value = "full",
         help = "Set the amount of trust",
         long_help =
-            "Set the amount of trust.  Values between 1 and 120 are meaningful. \
-            120 means fully trusted.  Values less than 120 indicate the degree \
-            of trust.  60 is usually used for partially trusted.",
+            "Set the amount of trust
+
+Values between 1 and 120 are meaningful. \
+120 means fully trusted.  Values less than 120 indicate the degree \
+of trust.  60 is usually used for partially trusted.",
     )]
     pub amount: TrustAmount<u8>,
 
@@ -199,11 +201,13 @@ pub struct AddCommand {
         conflicts_with_all = &[ "amount" ],
         help = "Temporarily accepts the binding",
         long_help =
-            "Temporarily accepts the binding.  Creates a fully
-            trust link between a certificate and one or more
-            User IDs for a week.  After that, the link is
-            automatically downgraded to a partially trusted link
-            (trust = 40).",
+            "Temporarily accepts the binding
+
+Creates a fully \
+trust link between a certificate and one or more \
+User IDs for a week.  After that, the link is \
+automatically downgraded to a partially trusted link \
+(trust = 40).",
     )]
     pub temporary: bool,
     #[command(flatten)]
@@ -285,7 +289,7 @@ test_examples!(sq_pki_link_add, ADD_EXAMPLES);
     name = "authorize",
     about = "Make a certificate a trusted introducer",
     long_about = "\
-Make a certificate a trusted introducer.
+Make a certificate a trusted introducer
 
 This causes `sq` to consider the certificate to be a be a trusted \
 introducer.  Trusted introducer is another word for certification \
@@ -348,9 +352,11 @@ pub struct AuthorizeCommand {
         default_value = "full",
         help = "Set the amount of trust",
         long_help =
-            "Set the amount of trust.  Values between 1 and 120 are meaningful. \
-            120 means fully trusted.  Values less than 120 indicate the degree \
-            of trust.  60 is usually used for partially trusted.",
+            "Set the amount of trust
+
+Values between 1 and 120 are meaningful. \
+120 means fully trusted.  Values less than 120 indicate the degree \
+of trust.  60 is usually used for partially trusted.",
     )]
     pub amount: TrustAmount<u8>,
 
@@ -359,8 +365,9 @@ pub struct AuthorizeCommand {
         value_name = "TRUST_DEPTH",
         default_value = "255",
         help = "Set the trust depth",
-        long_help = "\
-Set the trust depth (sometimes referred to as the trust level).  1 \
+        long_help = "Set the trust depth
+
+This is sometimes referred to as the trust level.  1 \
 means CERTIFICATE is a trusted introducer (default), 2 means \
 CERTIFICATE is a meta-trusted introducer and can authorize another \
 trusted introducer, etc.",
@@ -372,7 +379,7 @@ trusted introducer, etc.",
         value_name = "DOMAIN",
         help = "Add a domain constraint to the introducer",
         long_help = "\
-Add a domain constraint to the introducer.
+Add a domain constraint to the introducer
 
 Add a domain to constrain what certifications are respected.  A \
 certification made by the certificate is only respected if it is over \
@@ -385,7 +392,7 @@ domains may be specified.  In that case, one must match.",
         value_name = "REGEX",
         help = "Add a regular expression to constrain the introducer",
         long_help = "\
-Add a regular expression to constrain the introducer.
+Add a regular expression to constrain the introducer
 
 Add a regular expression to constrain what certifications are \
 respected.  A certification made by the certificate is only respected \
@@ -399,7 +406,7 @@ case, at least one must match.",
         conflicts_with = "regex",
         help = "Don't constrain the introducer",
         long_help = "\
-Don't constrain the introducer.
+Don't constrain the introducer
 
 Normally an introducer is constrained so that only certain user IDs \
 are respected, e.g., those that have an email address for a certain \
@@ -578,7 +585,7 @@ pub struct ListCommand {
                                CertPrefix,
                                OptionalValue>,
 
-    /// A pattern to select the bindings to authenticate.
+    /// A pattern to select the bindings to authenticate
     ///
     /// The pattern is treated as a UTF-8 encoded string and a
     /// case insensitive substring search (using the current
@@ -593,9 +600,10 @@ pub struct ListCommand {
     #[clap(
         long = "ca",
         required = false,
-        help = "Only lists bindings linked as CAs.",
-        long_help = "Only lists bindings linked as CAs.  That is, only list \
-                     a link if its trust depth is greater than 0.",
+        help = "Only lists bindings linked as CAs",
+        long_help = "Only lists bindings linked as CAs
+
+That is, only list a link if its trust depth is greater than 0.",
     )]
     pub ca: bool,
 }

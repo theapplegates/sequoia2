@@ -40,7 +40,7 @@ test_examples!(sq_download, EXAMPLES);
     name = "download",
     about = "Download and authenticate the data",
     long_about =
-"Download and authenticates the data.
+"Download and authenticate the data
 
 This command downloads the data from the specified URL, checks the
 signature, and then authenticates the signer.  If the signer cannot be
@@ -61,7 +61,7 @@ pub struct Command {
         value_name = "URL",
         help = "URL of the signature",
         long_help = "\
-URL of the signature.
+URL of the signature
 
 Use this when the signature is detached from the data.
 
@@ -82,9 +82,10 @@ inline.
         value_name = "N",
         default_value_t = 1,
         help = "Set the threshold of valid signatures to N",
-        long_help = "Set the threshold of valid signatures to N. \
-                     If this threshold is not reached, the message \
-                     will not be considered verified."
+        long_help = "Set the threshold of valid signatures to N
+
+If this threshold is not reached, the message \
+will not be considered verified.",
     )]
     pub signatures: usize,
 

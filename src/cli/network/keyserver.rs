@@ -39,11 +39,13 @@ pub struct Command {
         // that they are sorted to the bottom.
         display_order = 800,
         value_name = "URI",
-        help = config::augment_help(
+        help = "Set a key server to use (can be given multiple times)",
+        long_help = config::augment_help(
             "network.keyserver.servers",
-            "Set a key server to use.  Can be given multiple times."),
+            "Set a key server to use (can be given multiple times)"),
     )]
     pub servers: Vec<String>,
+
     #[clap(subcommand)]
     pub subcommand: Subcommands,
 }
@@ -94,9 +96,11 @@ pub struct SearchCommand {
     #[clap(
         value_name = "QUERY",
         required = true,
-        help = "Retrieve certificate(s) using QUERY. \
-            This may be a fingerprint, a KeyID, \
-            or an email address.",
+        help = "Retrieve certificate(s) using QUERY",
+        long_help = "Retrieve certificate(s) using QUERY
+
+This may be a fingerprint, a KeyID, \
+or an email address.",
     )]
     pub query: Vec<String>,
 }

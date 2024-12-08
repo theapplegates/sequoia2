@@ -103,11 +103,11 @@ pub struct Command {
         value_name = "N",
         help = "Set the threshold of valid signatures to N",
         long_help =
-            "Set the threshold of valid signatures to N. \
-            The message will only be considered \
-            verified if this threshold is reached. \
-            [default: 1 if at least one signer cert file \
-                              is given, 0 otherwise]",
+            "Set the threshold of valid signatures to N
+
+The message will only be considered \
+verified if this threshold is reached. \
+[default: 1 if at least one signer cert file is given, 0 otherwise]",
     )]
     pub signatures: Option<usize>,
 

@@ -16,7 +16,7 @@ use super::GossipArg;
 use super::RequiredTrustAmountArg;
 use super::ShowPathsArg;
 
-/// Identify a certificate.
+/// Identify a certificate
 ///
 /// Identify a certificate by finding authenticated bindings (User
 /// ID and certificate pairs).

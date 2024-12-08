@@ -98,14 +98,14 @@ might want to do this is a shared mailbox."
         long = "userid",
         value_name = "USERID",
         help = "Add a user ID to the key",
-        long_help = "
-Add a user ID to the key.
+        long_help = "\
+Add a user ID to the key
 
-This user ID can combine name and email address, can optionally
-contain a comment, or even be free-form if
-`--allow-non-canonical-userids` is given.  However, user IDs that
-include different information such as name and email address are more
-difficult to reason about, so using distinct user IDs for name and
+This user ID can combine name and email address, can optionally \
+contain a comment, or even be free-form if \
+`--allow-non-canonical-userids` is given.  However, user IDs that \
+include different information such as name and email address are more \
+difficult to reason about, so using distinct user IDs for name and \
 email address is preferred nowadays.
 
 In doubt, prefer `--name` and `--email`.
@@ -117,7 +117,7 @@ In doubt, prefer `--name` and `--email`.
         long = "allow-non-canonical-userids",
         help = "Don't reject user IDs that are not in canonical form",
         long_help = "\
-Don't reject user IDs that are not in canonical form.
+Don't reject user IDs that are not in canonical form
 
 Canonical user IDs are of the form `Name (Comment) \
 <localpart@example.org>`.",
@@ -136,7 +136,8 @@ Canonical user IDs are of the form `Name (Comment) \
         long = "cipher-suite",
         value_name = "CIPHER-SUITE",
         default_value_t = Default::default(),
-        help = config::augment_help(
+        help = "Select the cryptographic algorithms for the key",
+        long_help = config::augment_help(
             "key.generate.cipher-suite",
             "Select the cryptographic algorithms for the key"),
         value_enum,
@@ -177,7 +178,7 @@ sq."),
         help = "\
 File containing password to encrypt the secret key material",
         long_help = "\
-File containing password to encrypt the secret key material.
+File containing password to encrypt the secret key material
 
 Note that the entire key file will be used as the password including \
 any surrounding whitespace like a trailing newline.",
@@ -223,11 +224,10 @@ any surrounding whitespace like a trailing newline.",
         value_name = "PURPOSE",
         help = "Add an encryption-capable subkey [default: universal]",
         long_help = "\
-Add an encryption-capable subkey.
+Add an encryption-capable subkey [default: universal]
 
 Encryption-capable subkeys can be marked as suitable for transport \
-encryption, storage encryption, or both, i.e., universal.  [default: \
-universal]",
+encryption, storage encryption, or both, i.e., universal.",
         value_enum,
     )]
     pub can_encrypt: Option<EncryptPurpose>,
@@ -243,7 +243,7 @@ universal]",
         value_name = FileOrStdout::VALUE_NAME,
         help = "Write the key to the specified file",
         long_help = "\
-Write the key to the specified file.
+Write the key to the specified file
 
 When not specified, the key is saved on the key store.",
         requires = "rev_cert",
@@ -255,7 +255,7 @@ When not specified, the key is saved on the key store.",
         value_name = "FILE",
         help = "Write the emergency revocation certificate to FILE",
         long_help = format!("\
-Write the emergency revocation certificate to FILE.
+Write the emergency revocation certificate to FILE
 
 When the key is stored on the key store, the revocation certificate is \
 stored in {} by default.

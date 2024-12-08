@@ -18,7 +18,7 @@ pub const CERTIFICATION_EXPIRATION: &str = "pki.vouch.expiration";
     name = "vouch",
     about = "Manage certifications",
     long_about =
-"Manage certifications.
+"Manage certifications
 
 A vouch is a potentially public statement that something is true.  In \
 OpenPGP there are two main types of statements that you can make: \

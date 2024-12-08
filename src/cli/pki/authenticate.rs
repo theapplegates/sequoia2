@@ -18,7 +18,7 @@ use super::GossipArg;
 use super::RequiredTrustAmountArg;
 use super::ShowPathsArg;
 
-/// Authenticate a binding.
+/// Authenticate a binding
 ///
 /// Authenticate a binding (a certificate and User ID) by looking
 /// for a path from the trust roots to the specified binding in

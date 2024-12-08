@@ -103,10 +103,11 @@ pub struct Command {
         value_name = "AMOUNT",
         default_value = "full",
         help = "Set the amount of trust",
-        long_help =
-            "Set the amount of trust.  Values between 1 and 120 are meaningful. \
-            120 means fully trusted.  Values less than 120 indicate the degree \
-            of trust.  60 is usually used for partially trusted.",
+        long_help = "Set the amount of trust
+
+Values between 1 and 120 are meaningful.  \
+120 means fully trusted.  Values less than 120 indicate the degree \
+of trust.  60 is usually used for partially trusted.",
     )]
     pub amount: TrustAmount<u8>,
 
@@ -120,20 +121,20 @@ pub struct Command {
     #[clap(
         long = "local",
         help = "Make the certification a local certification",
-        long_help =
-            "Make the certification a local \
-            certification.  Normally, local \
-            certifications are not exported.",
+        long_help = "Make the certification a local certification
+
+Normally, local certifications are not exported.",
     )]
     pub local: bool,
     #[clap(
         long = "non-revocable",
         help = "Mark the certification as being non-revocable",
         long_help =
-            "Mark the certification as being non-revocable. \
-            That is, you cannot later revoke this \
-            certification.  This should normally only \
-            be used with an expiration.",
+            "Mark the certification as being non-revocable
+
+That is, you cannot later revoke this \
+certification.  This should normally only \
+be used with an expiration.",
     )]
     pub non_revocable: bool,
 

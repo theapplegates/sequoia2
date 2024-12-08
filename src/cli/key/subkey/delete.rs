@@ -43,7 +43,7 @@ impl key_designator::AdditionalDocs for KeyAdditionalDocs {
     name = "delete",
     about = "Delete a certificate's secret key material",
     long_about = "\
-Delete a certificate's secret key material.
+Delete a certificate's secret key material
 
 Unlike `sq key delete`, which deletes all the secret key material, this \
 command only deletes the specified secret key material.
@@ -76,7 +76,7 @@ pub struct Command {
         conflicts_with = "cert",
         help = "Write the stripped certificate to the specified file",
         long_help = "\
-Write the stripped certificate to the specified file.
+Write the stripped certificate to the specified file
 
 This option only makes sense when deleting the secret key material from a \
 file.  When deleting secret key material managed by the key store using \

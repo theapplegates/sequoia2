@@ -43,7 +43,7 @@ const EXAMPLES: Actions = Actions {
 test_examples!(sq_cert_list, EXAMPLES);
 
 /// List all authenticated bindings (User ID and certificate
-/// pairs).
+/// pairs)
 ///
 /// Only bindings that meet the specified trust amount (by default
 /// bindings that are fully authenticated, i.e., have a trust
@@ -72,7 +72,7 @@ pub struct Command {
         value_name = "FINGERPRINT|KEYID|PATTERN",
         help = "A pattern to filter the displayed certificates",
         long_help = "\
-A pattern to filter the displayed certificates.
+A pattern to filter the displayed certificates
 
 If the pattern appears to be a fingerprint or key ID, it is treated as \
 if it were passed to `--cert`, and matches on the certificate's \

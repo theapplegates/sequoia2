@@ -67,7 +67,7 @@ impl key_designator::AdditionalDocs for KeyAdditionalDocs {
 #[clap(
     about = "Revoke a subkey",
     long_about =
-"Revoke a subkey.
+"Revoke a subkey
 
 Creates a revocation certificate for a subkey.
 
@@ -111,7 +111,7 @@ pub struct Command {
         required = true,
         help = "The reason for the revocation",
         long_help = "\
-The reason for the revocation.
+The reason for the revocation
 
 If the reason happened in the past, you should specify that using the \
 `--time` argument.  This allows OpenPGP implementations to more \
@@ -127,7 +127,7 @@ of the user ID.",
         required = true,
         help = "A short, explanatory text",
         long_help = "\
-A short, explanatory text.
+A short, explanatory text
 
 The text is shown to a viewer of the revocation certificate, and \
 explains why the subkey has been revoked.  For instance, if Alice has \
@@ -145,7 +145,7 @@ created a new subkey, please refresh the certificate.\"",
         value_name = FileOrCertStore::VALUE_NAME,
         help = "Write to the specified FILE",
         long_help = "\
-Write to the specified FILE.
+Write to the specified FILE
 
 If not specified, and the certificate was read from the certificate \
 store, imports the modified certificate into the cert store.  If not \

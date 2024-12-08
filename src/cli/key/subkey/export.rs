@@ -22,9 +22,9 @@ impl key_designator::AdditionalDocs for AdditionalDocs {
 
 #[derive(Debug, Args)]
 #[clap(
-    about = "Export keys from the key store",
-    long_about = "
-Export secret key material from the secret key store.
+    about = "Export secret key material from the secret key store",
+    long_about = "\
+Export secret key material from the secret key store
 
 Exports the secret key material.  Note that even if secret key \
 material is available, it may not be exportable.  For instance, secret \

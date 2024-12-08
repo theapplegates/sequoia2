@@ -55,7 +55,7 @@ test_examples!(sq_key_userid_add, USERID_ADD_EXAMPLES);
 #[clap(
     about = "Add a user ID",
     long_about =
-"Add a user ID.
+"Add a user ID
 
 A user ID can contain a name, like `Juliet`, or an email address, like \
 `<juliet@example.org>`.  Historically, a name and an email address were \
@@ -96,8 +96,8 @@ pub struct AddCommand {
         long,
         value_name = "USERID",
         help = "Add a user ID to the key",
-        long_help = "
-Add a user ID to the key.
+        long_help = "\
+Add a user ID to the key
 
 This user ID can combine name and email address, can optionally
 contain a comment, or even be free-form if
@@ -115,7 +115,7 @@ In doubt, prefer `--name` and `--email`.
         long,
         help = "Don't reject user IDs that are not in canonical form",
         long_help = "\
-Don't reject user IDs that are not in canonical form.
+Don't reject user IDs that are not in canonical form
 
 Canonical user IDs are of the form `Name (Comment) \
 <localpart@example.org>`.",
@@ -126,7 +126,7 @@ Canonical user IDs are of the form `Name (Comment) \
         value_name = FileOrCertStore::VALUE_NAME,
         help = "Write to the specified FILE",
         long_help = "\
-Write to the specified FILE.
+Write to the specified FILE
 
 If not specified, and the certificate was read from the certificate \
 store, imports the modified certificate into the cert store.  If not \
@@ -179,7 +179,7 @@ test_examples!(sq_key_userid_revoke, USERID_REVOKE_EXAMPLES);
 #[clap(
     about = "Revoke a user ID",
     long_about = "\
-Revoke a user ID.
+Revoke a user ID
 
 Creates a revocation certificate for a user ID.
 
@@ -229,7 +229,7 @@ pub struct RevokeCommand {
         required = true,
         help = "The reason for the revocation",
         long_help = "\
-The reason for the revocation.
+The reason for the revocation
 
 If the reason happened in the past, you should specify that using the \
 `--time` argument.  This allows OpenPGP implementations to more \
@@ -244,7 +244,7 @@ of the user ID."
         required = true,
         help = "A short, explanatory text",
         long_help = "\
-A short, explanatory text.
+A short, explanatory text
 
 The text is shown to a viewer of the revocation certificate, and \
 explains why the certificate has been revoked.  For instance, if Alice \
@@ -260,7 +260,7 @@ has left the organization, it might say who to contact instead.",
         value_name = FileOrCertStore::VALUE_NAME,
         help = "Write to the specified FILE",
         long_help = "\
-Write to the specified FILE.
+Write to the specified FILE
 
 If not specified, and the certificate was read from the certificate \
 store, imports the modified certificate into the cert store.  If not \

@@ -142,9 +142,10 @@ pub struct Command {
         value_name = "N",
         default_value_t = 1,
         help = "Set the threshold of valid signatures to N",
-        long_help = "Set the threshold of valid signatures to N. \
-                            If this threshold is not reached, the message \
-                            will not be considered verified."
+        long_help = "Set the threshold of valid signatures to N
+
+If this threshold is not reached, the message \
+will not be considered verified.",
     )]
     pub signatures: usize,
 

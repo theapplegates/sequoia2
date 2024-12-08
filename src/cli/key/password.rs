@@ -12,8 +12,8 @@ use crate::cli::types::cert_designator::*;
 #[clap(
     name = "password",
     about = "Change the password protecting secret key material",
-    long_about = "
-Change the password protecting secret key material.
+    long_about = "\
+Change the password protecting secret key material
 
 Secret key material can be protected by a password.  This subcommand \
 changes or clears the password.
@@ -36,12 +36,12 @@ pub struct Command {
                               KeyPasswordDoc>,
 
     #[clap(
-        long,
+        long = "new-password-file",
         value_name = "PASSWORD_FILE",
         help = "\
 File containing password to encrypt the secret key material",
         long_help = "\
-File containing password to encrypt the secret key material.
+File containing password to encrypt the secret key material
 
 Note that the entire key file will be used as the password including \
 any surrounding whitespace like a trailing newline."

@@ -166,7 +166,7 @@ pub struct AddCommand {
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::AllPlainByAndAddArgs>,
+        userid_designator::AllExactByAndAddArgs>,
 
     #[clap(
         long = "amount",
@@ -318,7 +318,7 @@ pub struct AuthorizeCommand {
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::AllPlainByAndAddArgs>,
+        userid_designator::AllExactByAndAddArgs>,
 
     #[clap(
         long = "amount",

@@ -14,6 +14,19 @@
      revoke`.
    - The arguments `--userid-or-add`, and `--email-or-add` have
      respectively been renamed to `--add-userid`, and `--add-email`.
+   - Change `sq pki link add --email` and `sq pki link authorize
+     --email` to use a user ID with just the specified email address,
+     if the email address is part of a self-signed user ID.  That is,
+     if the certificate has the self-signed user ID "Alice
+     <alice@example.org>", then `--email alice@example.org` would have
+     selected "Alice <alice@example.org>" to link, but now it selects
+     "<alice@example.org>".
+   - Add `sq pki link add --userid-by-email`, and `sq pki link
+     authorize --userid-by-email`, which use the self-signed user ID
+     with the specified email address.  That is, if the certificate
+     has the self-signed user ID "Alice <alice@example.org>", then
+     `--userid-by-email alice@example.org` selects "Alice
+     <alice@example.org>" to link.
 
 * Changes in 0.41.0
 ** New functionality

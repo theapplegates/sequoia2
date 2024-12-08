@@ -785,11 +785,17 @@ fn no_ambiguous_email() {
 
     sq.tick(1);
 
-    // --email links the matching self-signed user ID: Ambiguous is
-    // not allowed.
+    // --email links a user ID with the specified email address, if it
+    // occurs in a self-signed user ID: Ambiguous is allowed.
     assert!(
         sq.pki_link_add_maybe(
             &[], alice.key_handle(), &[UserIDArg::Email("alice@example.org")])
+            .is_ok());
+    // --userid-by-email links the matching self-signed user ID:
+    // Ambiguous is not allowed.
+    assert!(
+        sq.pki_link_add_maybe(
+            &[], alice.key_handle(), &[UserIDArg::ByEmail("alice@example.org")])
             .is_err());
     // --add-email links a user ID with the email address:
     // Ambiguous is allowed.
@@ -882,6 +888,11 @@ fn link_userid_designators() {
                 .expect("success")
         };
 
+        let retract = |sq: &mut Sq, kh: KeyHandle| {
+            sq.tick(1);
+            sq.pki_link_retract(&[ "--all" ], kh.clone(), NO_USERIDS);
+        };
+
         // Check that the different user ID designators work.
         let mut sq = Sq::new();
 
@@ -903,6 +914,7 @@ fn link_userid_designators() {
         assert!(sq.pki_authenticate(
             &[], &fpr, UserIDArg::UserID("Alice <alice@an.org>")).is_ok());
 
+        retract(&mut sq, cert.key_handle());
 
         // 2. Use --add-userid to link "Alice <alice@some.org>", which
         // is not a self-signed user ID.
@@ -919,29 +931,59 @@ fn link_userid_designators() {
             &[], &fpr, UserIDArg::UserID("Alice <alice@some.org>")).is_ok());
 
 
-        // 3. Use --email to link "Alice <alice@example.org>", which is
-        // a self-signed user ID.
+        retract(&mut sq, cert.key_handle());
+
+        // 3. Use --email to link "<alice@example.org>", which is part
+        // of a self-signed user ID.
         //
-        // --email => the email address must be part of a self-signed user
-        // ID.
+        // --email => the email address must be part of a self-signed
+        // user ID, but uses a user ID with just email address.
         link(&mut sq, cert.key_handle(),
              UserIDArg::Email("alice@example.org"));
+
+        assert!(sq.pki_authenticate(
+            &[], &fpr, UserIDArg::UserID("<alice@example.org>")).is_ok());
+        if ! authorize {
+            // If '<alice@example.org>' is a trusted introducer, then
+            // it is used to authenticate the self-signed user ID.
+            assert!(sq.pki_authenticate(
+                &[], &fpr,
+                UserIDArg::UserID("Alice <alice@example.org>")).is_err());
+        }
+
+
+        retract(&mut sq, cert.key_handle());
+
+        // 4. Use --userid-by-email to link "Alice
+        // <alice@example.org>", which is a self signed user ID.
+        //
+        // --userid-by-email => use the matching self signed user ID.
+        link(&mut sq, cert.key_handle(),
+             UserIDArg::ByEmail("alice@example.org"));
 
         assert!(sq.pki_authenticate(
             &[], &fpr, UserIDArg::UserID("<alice@example.org>")).is_err());
         assert!(sq.pki_authenticate(
             &[], &fpr, UserIDArg::UserID("Alice <alice@example.org>")).is_ok());
 
+        retract(&mut sq, cert.key_handle());
 
-        // 4. Use --add-email to link "<alice@example.com>", which is
+        // 5. Use --add-email to link "<alice@example.com>", which is
         // not part of a self signed user ID.
 
-        // This fails with --email, because it expects a self-signed user ID.
+        // This fails with --email, because it expects a self-signed
+        // user ID.
         assert!(link_maybe(
             &mut sq, cert.key_handle(),
             UserIDArg::Email("alice@example.com")).is_err());
 
-        // But it works with --add-email.
+        // This fails with --userid-by-email, because there is no
+        // self-signed user ID with the email address.
+        assert!(link_maybe(
+            &mut sq, cert.key_handle(),
+            UserIDArg::ByEmail("alice@example.com")).is_err());
+
+        // But it works with --email-or-add.
         link(&mut sq,
              cert.key_handle(), UserIDArg::AddEmail("alice@example.com"));
         assert!(sq.pki_authenticate(
@@ -956,6 +998,8 @@ fn link_userid_designators() {
         assert!(sq.pki_authenticate(
             &[], &fpr, UserIDArg::UserID("<alice@third.org>")).is_ok());
         if ! authorize {
+            // If '<alice@example.org>' is a trusted introducer, then
+            // it is used to authenticate the self-signed user ID.
             assert!(sq.pki_authenticate(
                 &[], &fpr, UserIDArg::UserID("Alice <alice@third.org>")).is_err());
         }

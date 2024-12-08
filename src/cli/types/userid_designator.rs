@@ -67,15 +67,12 @@ pub type PlainByAndAddArgs
 pub type AllPlainByAndAddArgs
     = <AllUserIDsArg as std::ops::BitOr<PlainByAndAddArgs>>::Output;
 
-#[cfg(test)]
 pub type ExactAndAddArgs
     = <ExactArgs as std::ops::BitOr<AddArgs>>::Output;
 
-#[cfg(test)]
 pub type ExactByAndAddArgs
     = <ByArgs as std::ops::BitOr<ExactAndAddArgs>>::Output;
 
-#[cfg(test)]
 pub type AllExactByAndAddArgs
     = <AllUserIDsArg as std::ops::BitOr<ExactByAndAddArgs>>::Output;
 

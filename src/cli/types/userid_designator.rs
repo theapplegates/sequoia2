@@ -57,9 +57,6 @@ pub type PlainByArgs
 pub type PlainAddArgs
     = <AddArgs as std::ops::BitOr<PlainIsAdd>>::Output;
 
-pub type AllPlainAddArgs
-    = <AllUserIDsArg as std::ops::BitOr<PlainAddArgs>>::Output;
-
 pub type PlainByAndAddArgs
     = <<PlainIsBy as std::ops::BitOr<ByArgs>>::Output
        as std::ops::BitOr<AddArgs>>::Output;
@@ -78,6 +75,9 @@ pub type AllExactByAndAddArgs
 
 pub type PlainAddAndByArgs
     = <ByArgs as std::ops::BitOr<PlainAddArgs>>::Output;
+
+pub type AllPlainAddAndByArgs
+    = <AllUserIDsArg as std::ops::BitOr<PlainAddAndByArgs>>::Output;
 
 /// Argument parser options.
 
@@ -1192,13 +1192,13 @@ mod test {
         check!(AddArgs,                  None, false, true);
         check!(PlainByArgs,                By, false, false);
         check!(PlainAddArgs,              Add, false, false);
-        check!(AllPlainAddArgs,           Add, false, false);
         check!(PlainByAndAddArgs,          By, false,  true);
         check!(AllPlainByAndAddArgs,       By, false,  true);
         check!(ExactAndAddArgs,         Exact, false,  true);
         check!(ExactByAndAddArgs,       Exact,  true,  true);
         check!(AllExactByAndAddArgs,    Exact,  true,  true);
         check!(PlainAddAndByArgs,         Add,  true, false);
+        check!(AllPlainAddAndByArgs,      Add,  true, false);
     }
 
     #[test]

@@ -1063,8 +1063,7 @@ fn link_retract_userid_designators() {
     assert!(sq.pki_authenticate(
         &[], &fpr, UserIDArg::UserID("Alice <alice@example.com>")).is_err());
 
-    // 2. Retract using "--email".  It uses a user ID with just the
-    // email address.
+    // 2. Retract using "--userid-by-email".
 
     // Link "Alice <alice@example.org>", which is a self signed user
     // ID.
@@ -1074,21 +1073,34 @@ fn link_retract_userid_designators() {
         &[ UserIDArg::UserID("Alice <alice@example.org>") ]);
     assert!(sq.pki_authenticate(
         &[], &fpr, UserIDArg::UserID("Alice <alice@example.org>")).is_ok());
-    assert!(sq.pki_authenticate(
-        &[], &fpr, UserIDArg::UserID("<alice@example.org>")).is_err());
 
-    // We can't unlink it using --email, because that doesn't match on
-    // self-signed user IDs.
+    sq.tick(1);
+    sq.pki_link_retract(&[], cert.key_handle(),
+                        &[ UserIDArg::ByEmail("alice@example.org") ]);
+    assert!(sq.pki_authenticate(
+        &[], &fpr, UserIDArg::UserID("Alice <alice@example.org>")).is_err());
+
+
+    // 3. Retract using "--email".  It uses a user ID with just the
+    // email address.
+
+    // Link "<alice@example.org>", which is NOT a self signed user
+    // ID.
+    sq.tick(1);
+    sq.pki_link_add(
+        &[], cert.key_handle(),
+        &[ UserIDArg::AddUserID("<alice@example.org>") ]);
+    assert!(sq.pki_authenticate(
+        &[], &fpr, UserIDArg::UserID("Alice <alice@example.org>")).is_err());
+    assert!(sq.pki_authenticate(
+        &[], &fpr, UserIDArg::UserID("<alice@example.org>")).is_ok());
+
+    // We can unlink it using --email, because that doesn't hvae to
+    // match on self-signed user IDs.
     sq.tick(1);
     assert!(sq.pki_link_retract_maybe(
         &[], cert.key_handle(),
-        &[ UserIDArg::Email("alice@example.org") ]).is_err());
-    assert!(sq.pki_authenticate(
-        &[], &fpr, UserIDArg::UserID("Alice <alice@example.org>")).is_ok());
-
-    assert!(sq.pki_link_retract_maybe(
-        &[], cert.key_handle(),
-        &[ UserIDArg::UserID("Alice <alice@example.org>") ]).is_ok());
+        &[ UserIDArg::Email("alice@example.org") ]).is_ok());
     assert!(sq.pki_authenticate(
         &[], &fpr, UserIDArg::UserID("Alice <alice@example.org>")).is_err());
 
@@ -1109,20 +1121,29 @@ fn link_retract_userid_designators() {
     assert!(sq.pki_authenticate(
         &[], &fpr, UserIDArg::UserID("<alice@some.org>")).is_err());
 
-    // Link "<alice@example.com>", which is not part of a self signed
-    // user ID.
+    // Link "Alice <alice@example.org>", which is a self signed user
+    // ID.
     sq.tick(1);
     sq.pki_link_add(
         &[], cert.key_handle(),
-        &[ UserIDArg::AddUserID("<alice@example.com>") ]);
+        &[ UserIDArg::AddUserID("Alice <alice@example.org>") ]);
     assert!(sq.pki_authenticate(
-        &[], &fpr, UserIDArg::UserID("<alice@example.com>")).is_ok());
+        &[], &fpr, UserIDArg::UserID("Alice <alice@example.org>")).is_ok());
 
+    // We can't use --email to retract it: that retracts , as that
+    // "<alice@example.org>".
     sq.tick(1);
-    sq.pki_link_retract(&[], cert.key_handle(),
-                        &[ UserIDArg::Email("alice@example.com") ]);
+    assert!(sq.pki_link_retract_maybe(
+        &[], cert.key_handle(),
+        &[ UserIDArg::Email("alice@example.com") ]).is_err());
     assert!(sq.pki_authenticate(
-        &[], &fpr, UserIDArg::UserID("<alice@example.com>")).is_err());
+        &[], &fpr, UserIDArg::UserID("Alice <alice@example.org>")).is_ok());
+    // But we can use --userid-by-email
+    assert!(sq.pki_link_retract_maybe(
+        &[], cert.key_handle(),
+        &[ UserIDArg::ByEmail("alice@example.org") ]).is_ok());
+    assert!(sq.pki_authenticate(
+        &[], &fpr, UserIDArg::UserID("Alice <alice@example.org>")).is_err());
 }
 
 #[test]

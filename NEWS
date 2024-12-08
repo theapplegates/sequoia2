@@ -27,6 +27,8 @@
      has the self-signed user ID "Alice <alice@example.org>", then
      `--userid-by-email alice@example.org` selects "Alice
      <alice@example.org>" to link.
+   - Add `sq pki link retract --userid-by-email`, which selects a
+     self-signed user ID with the specified email address.
 
 * Changes in 0.41.0
 ** New functionality

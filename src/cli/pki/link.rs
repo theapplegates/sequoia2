@@ -487,7 +487,7 @@ to force the signature to be re-created anyway.",
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::AllPlainAddArgs,
+        userid_designator::AllPlainAddAndByArgs,
         userid_designator::AllMatchesNonSelfSignedNoLinting>,
 }
 

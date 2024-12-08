@@ -249,12 +249,20 @@ pub type SignerOrWithoutSignature = typenum::U16;
 ///
 /// See [`NoPrefix`], [`CertPrefix`], etc.
 pub trait AdditionalDocs {
-    /// Text to be added to the help text.
+    /// The short help for clap.
     // XXX: This should return a Cow<'static, str>, but there is no
     // implementation of From<Cow<'static, str>> for StyledStr,
     // see https://github.com/clap-rs/clap/issues/5785
     fn help(_arg: &'static str, help: &'static str) -> clap::builder::StyledStr {
         help.into()
+    }
+
+    /// The long help for clap, if any.
+    // XXX: This should return a Cow<'static, str>, but there is no
+    // implementation of From<Cow<'static, str>> for StyledStr,
+    // see https://github.com/clap-rs/clap/issues/5785
+    fn long_help(_arg: &'static str, _help: &'static str) -> Option<clap::builder::StyledStr> {
+        None
     }
 }
 
@@ -645,107 +653,121 @@ where
 
         if cert_arg {
             let full_name = full_name("cert");
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("FINGERPRINT|KEYID")
-                    .value_parser(parse_as_key_handle)
-                    .action(action.clone())
-                    .help(Doc::help(
-                        "cert",
-                        "Use certificates with the specified \
-                         fingerprint or key ID")));
+            let help = "Use certificates with the specified \
+                        fingerprint or key ID";
+            let mut arg = clap::Arg::new(&full_name)
+                .long(&full_name)
+                .value_name("FINGERPRINT|KEYID")
+                .value_parser(parse_as_key_handle)
+                .action(action.clone())
+                .help(Doc::help("cert", help));
+            if let Some(l) = Doc::long_help("cert", help) {
+                arg = arg.long_help(l);
+            }
+            cmd = cmd.arg(arg);
             arg_group = arg_group.arg(full_name);
         }
 
         if special_arg {
             let full_name = full_name("special");
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("SPECIAL")
-                    .value_parser(
-                        clap::builder::EnumValueParser::<SpecialName>::new())
-                    .action(action.clone())
-                    .help(Doc::help(
-                        "special",
-                        "Use certificates identified by the special name")));
+            let help = "Use certificates identified by the special name";
+            let mut arg = clap::Arg::new(&full_name)
+                .long(&full_name)
+                .value_name("SPECIAL")
+                .value_parser(
+                    clap::builder::EnumValueParser::<SpecialName>::new())
+                .action(action.clone())
+                .help(Doc::help("special", help));
+            if let Some(l) = Doc::long_help("cert", help) {
+                arg = arg.long_help(l);
+            }
+            cmd = cmd.arg(arg);
             arg_group = arg_group.arg(full_name);
         }
 
         if userid_arg {
             let full_name = full_name("userid");
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("USERID")
-                    .action(action.clone())
-                    .help(Doc::help(
-                        "userid",
-                        "Use certificates with the specified user ID")));
+            let help = "Use certificates with the specified user ID";
+            let mut arg = clap::Arg::new(&full_name)
+                .long(&full_name)
+                .value_name("USERID")
+                .action(action.clone())
+                .help(Doc::help("userid", help));
+            if let Some(l) = Doc::long_help("cert", help) {
+                arg = arg.long_help(l);
+            }
+            cmd = cmd.arg(arg);
             arg_group = arg_group.arg(full_name);
         }
 
         if email_arg {
             let full_name = full_name("email");
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("EMAIL")
-                    .value_parser(parse_as_email)
-                    .action(action.clone())
-                    .help(Doc::help(
-                        "email",
-                        "Use certificates where a user ID includes \
-                         the specified email address")));
+            let help = "Use certificates where a user ID includes \
+                        the specified email address";
+            let mut arg = clap::Arg::new(&full_name)
+                .long(&full_name)
+                .value_name("EMAIL")
+                .value_parser(parse_as_email)
+                .action(action.clone())
+                .help(Doc::help("email", help));
+            if let Some(l) = Doc::long_help("cert", help) {
+                arg = arg.long_help(l);
+            }
+            cmd = cmd.arg(arg);
             arg_group = arg_group.arg(full_name);
         }
 
         if domain_arg {
             let full_name = full_name("domain");
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("DOMAIN")
-                    .value_parser(parse_as_domain)
-                    .action(action.clone())
-                    .help(Doc::help(
-                        "domain",
-                        "Use certificates where a user ID includes \
-                         an email address for the specified domain")));
+            let help = "Use certificates where a user ID includes \
+                        an email address for the specified domain";
+            let mut arg = clap::Arg::new(&full_name)
+                .long(&full_name)
+                .value_name("DOMAIN")
+                .value_parser(parse_as_domain)
+                .action(action.clone())
+                .help(Doc::help("domain", help));
+            if let Some(l) = Doc::long_help("cert", help) {
+                arg = arg.long_help(l);
+            }
+            cmd = cmd.arg(arg);
             arg_group = arg_group.arg(full_name);
         }
 
         if grep_arg {
             let full_name = full_name("grep");
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("PATTERN")
-                    .action(action.clone())
-                    .help(Doc::help(
-                        "grep",
-                        "Use certificates with a user ID that \
-                         matches the pattern, case insensitively")));
+            let help = "Use certificates with a user ID that \
+                        matches the pattern, case insensitively";
+            let mut arg = clap::Arg::new(&full_name)
+                .long(&full_name)
+                .value_name("PATTERN")
+                .action(action.clone())
+                .help(Doc::help("grep", help));
+            if let Some(l) = Doc::long_help("cert", help) {
+                arg = arg.long_help(l);
+            }
+            cmd = cmd.arg(arg);
             arg_group = arg_group.arg(full_name);
         }
 
         // Add all of the variants that are enabled.
         if file_arg {
             let full_name = full_name("file");
+            let help = "Read certificates from PATH";
             let mut arg = clap::Arg::new(&full_name)
                 .long(&full_name)
                 .value_name("PATH")
                 .value_parser(clap::value_parser!(PathBuf))
                 .action(action.clone())
-                .help(Doc::help(
-                    "file",
-                    "Read certificates from PATH"));
+                .help(Doc::help("file", help));
 
             if file_requires_output {
                 arg = arg.requires("output");
             }
 
+            if let Some(l) = Doc::long_help("cert", help) {
+                arg = arg.long_help(l);
+            }
             cmd = cmd.arg(arg);
             arg_group = arg_group.arg(full_name);
         }

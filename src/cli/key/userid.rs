@@ -295,12 +295,17 @@ pub struct UserIDRevokeRevokerDoc {}
 
 impl AdditionalDocs for UserIDRevokeRevokerDoc {
     fn help(_: &'static str, help: &'static str) -> clap::builder::StyledStr {
-        format!("{} to create the revocation certificate.
+        format!("{} to create the revocation certificate",
+                help.replace("certificates", "key")).into()
+    }
+
+    fn long_help(_: &'static str, help: &'static str) -> Option<clap::builder::StyledStr> {
+        Some(format!("{} to create the revocation certificate
 
 Sign the revocation certificate using the specified key.  By default, \
 the certificate being revoked is used.  Using this option, it is \
 possible to create a third-party revocation.",
-                help.replace("certificates", "key")).into()
+                     help.replace("certificates", "key")).into())
     }
 }
 

@@ -612,7 +612,11 @@ impl ConfigFile {
         let mut doc: DocumentMut = std::str::from_utf8(&raw)?.parse()?;
 
         // Tweak a few settings.
-        doc.get_mut("ui".into()).unwrap()
+        if doc.get("ui").is_none() {
+            doc.as_table_mut().insert("ui".into(),
+                                      Item::Table(Default::default()));
+        }
+        doc.get_mut("ui").expect("just created on demand")
             .set(&"hints".into(), sq.config.hints().into())?;
 
         // Double check that it is well-formed.

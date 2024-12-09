@@ -64,66 +64,52 @@ pub struct Command {
 
 const LINK_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
-with the email address alice@example.org.",
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--email=alice@example.org",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+             with the email address alice@example.org.",
+        ).command(&[
+            "sq", "pki", "link", "add",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--email=alice@example.org",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Then, temporarily accept the certificate \
-EB28F26E2739A4870ECC47726F0073F60FD0CBF0 with all of its self-signed \
-user IDs for a week.",
-            command: &[
-                "sq", "pki", "link", "add",
-                "--expiration=1w",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Then, temporarily accept the certificate \
+             EB28F26E2739A4870ECC47726F0073F60FD0CBF0 with all of \
+             its self-signed user IDs for a week.",
+        ).command(&[
+            "sq", "pki", "link", "add",
+            "--expiration=1w",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--all",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Accept the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+        Action::example().comment(
+            "Accept the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 with all of its self-signed user IDs as a trusted certification \
 authority constrained to the domain example.org.  That is, the \
 certificate is considered a trusted introducer for example.org.",
-            command: &[
-                "sq", "pki", "link", "authorize",
-                "--domain=example.org",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
-            ],
-            hide: &[],
-        }),
+        ).command(&[
+            "sq", "pki", "link", "authorize",
+            "--domain=example.org",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--all",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "List all links.",
-            command: &[
-                "sq", "pki", "link", "list",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "List all links.",
+        ).command(&[
+            "sq", "pki", "link", "list",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Retract the acceptance of certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+        Action::example().comment(
+            "Retract the acceptance of certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 and any associated user IDs.  This effectively invalidates all links.",
-            command: &[
-                "sq", "pki", "link", "retract",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
-            ],
-            hide: &[],
-        }),
+        ).command(&[
+            "sq", "pki", "link", "retract",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--all",
+        ]).build(),
     ],
 };
 test_examples!(sq_pki_link, LINK_EXAMPLES);
@@ -232,54 +218,42 @@ to force the signature to be re-created anyway.",
 
 const ADD_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+        Action::example().comment(
+            "Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 with the email address alice@example.org.",
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--email=alice@example.org",
-            ],
-            hide: &[],
-        }),
+        ).command(&[
+            "sq", "pki", "link", "add",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--email=alice@example.org",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-First, examine the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0.",
-            command: &[
-                "sq", "inspect",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "First, examine the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0.",
+        ).command(&[
+            "sq", "inspect",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Then, temporarily accept the certificate \
+        Action::example().comment(
+            "Then, temporarily accept the certificate \
 EB28F26E2739A4870ECC47726F0073F60FD0CBF0 with all of its self-signed \
 user IDs for a week.",
-            command: &[
-                "sq", "pki", "link", "add",
-                "--expiration=1w",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
-            ],
-            hide: &[],
-        }),
+        ).command(&[
+            "sq", "pki", "link", "add",
+            "--expiration=1w",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--all",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Once satisfied, permanently accept the certificate \
+        Action::example().comment(
+            "Once satisfied, permanently accept the certificate \
 EB28F26E2739A4870ECC47726F0073F60FD0CBF0 with all of its self-signed \
 user IDs.",
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
-            ],
-            hide: &[],
-        }),
+        ).command(&[
+            "sq", "pki", "link", "add",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--all",
+        ]).build(),
     ],
 };
 test_examples!(sq_pki_link_add, ADD_EXAMPLES);
@@ -437,43 +411,34 @@ to force the signature to be recreated anyway.",
 
 const AUTHORIZE_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Add an unconstrained trusted introducer.",
-            command: &[
-                "sq", "pki", "link", "authorize",
-                "--unconstrained",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Add an unconstrained trusted introducer.",
+        ).command(&[
+            "sq", "pki", "link", "authorize",
+            "--unconstrained",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--all",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Add a trusted introducer for example.org and example.com.",
-            command: &[
-                "sq", "pki", "link", "authorize",
-                "--domain=example.org",
-                "--domain=example.com",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Add a trusted introducer for example.org and example.com.",
+        ).command(&[
+            "sq", "pki", "link", "authorize",
+            "--domain=example.org",
+            "--domain=example.com",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--all",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Add a partially trusted introducer.",
-            command: &[
-                "sq", "pki", "link", "authorize",
-                "--unconstrained",
-                "--amount=60",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Add a partially trusted introducer.",
+        ).command(&[
+            "sq", "pki", "link", "authorize",
+            "--unconstrained",
+            "--amount=60",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--all",
+        ]).build(),
     ],
 };
 test_examples!(sq_pki_link_authorize, AUTHORIZE_EXAMPLES);
@@ -528,41 +493,32 @@ to force the signature to be re-created anyway.",
 
 const RETRACT_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
-with the email address alice@example.org.",
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--add-email=alice@example.org",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+             with the email address alice@example.org."
+        ).command(&[
+            "sq", "pki", "link", "add",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--add-email=alice@example.org",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Retract the acceptance of certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+        Action::example().comment(
+            "Retract the acceptance of certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 and the email address alice@example.org.",
-            command: &[
-                "sq", "pki", "link", "retract",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--email=alice@example.org",
-            ],
-            hide: &[],
-        }),
+        ).command(&[
+            "sq", "pki", "link", "retract",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--email=alice@example.org",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Retract the acceptance of certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+        Action::example().comment(
+            "Retract the acceptance of certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 and any associated user IDs.  This effectively invalidates all links.",
-            command: &[
-                "sq", "pki", "link", "retract",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
-            ],
-            hide: &[],
-        }),
+        ).command(&[
+            "sq", "pki", "link", "retract",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--all",
+        ]).build(),
     ],
 };
 test_examples!(sq_pki_link_retract, RETRACT_EXAMPLES);
@@ -610,34 +566,27 @@ That is, only list a link if its trust depth is greater than 0.",
 
 const LIST_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
+        Action::example().comment(
+            "Link the certificate EB28F26E2739A4870ECC47726F0073F60FD0CBF0 \
 with the email address alice@example.org.",
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--email=alice@example.org",
-            ],
-            hide: &[],
-        }),
+        ).command(&[
+            "sq", "pki", "link", "add",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--email=alice@example.org",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "List all links.",
-            command: &[
-                "sq", "pki", "link", "list",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "List all links.",
+        ).command(&[
+            "sq", "pki", "link", "list",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "List all links in the example.org domain.",
-            command: &[
-                "sq", "pki", "link", "list",
-                "--cert-domain=example.org",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "List all links in the example.org domain.",
+        ).command(&[
+            "sq", "pki", "link", "list",
+            "--cert-domain=example.org",
+        ]).build(),
     ],
 };
 test_examples!(sq_pki_link_list, LIST_EXAMPLES);

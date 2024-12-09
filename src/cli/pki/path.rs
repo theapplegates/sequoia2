@@ -6,7 +6,6 @@ use openpgp::KeyHandle;
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
-use examples::Example;
 
 use crate::cli::types::UserIDDesignators;
 use crate::cli::types::userid_designator;
@@ -62,17 +61,14 @@ the specified user ID.
 
 const EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Verify that Alice ceritified a particular User ID for Bob's certificate.",
-            command: &[
-                "sq", "pki", "path",
-                "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "--userid", "Bob <bob@example.org>",
-            ],
-            hide: &[],
-        })
+        Action::example().comment(
+            "Verify that Alice ceritified a particular User ID for Bob's certificate.",
+        ).command(&[
+            "sq", "pki", "path",
+            "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+            "--userid", "Bob <bob@example.org>",
+        ]).build(),
     ],
 };
 test_examples!(sq_pki_path, EXAMPLES);

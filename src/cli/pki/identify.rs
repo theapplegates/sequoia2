@@ -5,8 +5,6 @@ use clap::Parser;
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
-use examples::Example;
-use examples::Setup;
 
 use crate::cli::types::cert_designator;
 use crate::cli::types::CertDesignators;
@@ -59,31 +57,25 @@ pub struct Command {
 const EXAMPLES: Actions = Actions {
     actions: &[
         // Link Alice's certificate.
-        Action::Setup(Setup {
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Identify the user IDs that can be authenticated for the certificate.",
-            command: &[
-                "sq", "pki", "identify",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-            ],
-            hide: &[],
-        }),
-        Action::Example(Example {
-            comment: "\
-List all user IDs that have that have been certified by anyone.",
-            command: &[
-                "sq", "pki", "identify", "--gossip",
-                "--cert", "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-            ],
-            hide: &[],
-        }),
-    ]
+        Action::setup().command(&[
+            "sq", "pki", "link", "add",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--all",
+        ]).build(),
+
+        Action::example().comment(
+            "Identify the user IDs that can be authenticated for the certificate.",
+        ).command(&[
+            "sq", "pki", "identify",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+        ]).build(),
+
+        Action::example().comment(
+            "List all user IDs that have that have been certified by anyone.",
+        ).command(&[
+            "sq", "pki", "identify", "--gossip",
+            "--cert", "511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+        ]).build(),
+    ],
 };
 test_examples!(sq_pki_identify, EXAMPLES);

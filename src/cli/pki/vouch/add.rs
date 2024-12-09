@@ -17,36 +17,29 @@ use crate::cli::examples::*;
 
 const ADD_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "key", "import",
-                "alice-secret.pgp",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Alice certifies that Bob controls 3F68CB84CE537C9A and bob@example.org.",
-            command: &[
-                "sq", "pki", "vouch", "add",
-                "--certifier=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "--email=bob@example.org",
-            ],
-            hide: &[],
-        }),
+        Action::setup().command(&[
+            "sq", "key", "import",
+            "alice-secret.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Alice certifies that Bob controls 3F68CB84CE537C9A and bob@bobs.lair.net, \
+        Action::example().comment(
+            "Alice certifies that Bob controls 3F68CB84CE537C9A and bob@example.org.",
+        ).command(&[
+            "sq", "pki", "vouch", "add",
+            "--certifier=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+            "--email=bob@example.org",
+        ]).build(),
+
+        Action::example().comment(
+            "Alice certifies that Bob controls 3F68CB84CE537C9A and bob@bobs.lair.net, \
 which is not a self-signed user ID.",
-            command: &[
-                "sq", "pki", "vouch", "add",
-                "--certifier=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "--add-email=bob@bobs.lair.net",
-            ],
-            hide: &[],
-        }),
+        ).command(&[
+            "sq", "pki", "vouch", "add",
+            "--certifier=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+            "--add-email=bob@bobs.lair.net",
+        ]).build(),
     ],
 };
 test_examples!(sq_pki_vouch_add, ADD_EXAMPLES);

@@ -18,32 +18,27 @@ use crate::cli::examples::*;
 
 const AUTHORIZE_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "key", "import",
-                "alice-secret.pgp",
-            ],
-        }),
-        Action::Setup(Setup {
-            command: &[
-                "sq", "cert", "import",
-                "ca-secret.pgp",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Certify that E7FC51AD886BBB5C4F44C3D7A9DA14F3E740F63F is a trusted introducer \
-for example.org and example.com.",
-            command: &[
-                "sq", "pki", "vouch", "authorize",
-                "--certifier=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--cert=E7FC51AD886BBB5C4F44C3D7A9DA14F3E740F63F",
-                "--domain=example.org",
-                "--domain=example.com",
-                "--all",
-            ],
-            hide: &[],
-        }),
+        Action::setup().command(&[
+            "sq", "key", "import",
+            "alice-secret.pgp",
+        ]).build(),
+
+        Action::setup().command(&[
+            "sq", "cert", "import",
+            "ca-secret.pgp",
+        ]).build(),
+
+        Action::example().comment(
+            "Certify that E7FC51AD886BBB5C4F44C3D7A9DA14F3E740F63F \
+             is a trusted introducer for example.org and example.com.",
+        ).command(&[
+            "sq", "pki", "vouch", "authorize",
+            "--certifier=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--cert=E7FC51AD886BBB5C4F44C3D7A9DA14F3E740F63F",
+            "--domain=example.org",
+            "--domain=example.com",
+            "--all",
+        ]).build(),
     ],
 };
 test_examples!(sq_pki_vouch_authorize, AUTHORIZE_EXAMPLES);

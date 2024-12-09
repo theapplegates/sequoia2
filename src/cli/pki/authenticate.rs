@@ -5,8 +5,6 @@ use clap::Parser;
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
-use examples::Example;
-use examples::Setup;
 
 use crate::cli::types::CertDesignators;
 use crate::cli::types::UserIDDesignators;
@@ -70,34 +68,28 @@ pub struct Command {
 const EXAMPLES: Actions = Actions {
     actions: &[
         // Link Alice's certificate.
-        Action::Setup(Setup {
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Authenticate a specific binding.",
-            command: &[
-                "sq", "pki", "authenticate",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--userid", "Alice <alice@example.org>",
-            ],
-            hide: &[],
-        }),
-        Action::Example(Example {
-            comment: "\
-Check whether we can authenticate any user ID with the specified email \
+        Action::setup().command(&[
+            "sq", "pki", "link", "add",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--all",
+        ]).build(),
+
+        Action::example().comment(
+            "Authenticate a specific binding.",
+        ).command(&[
+            "sq", "pki", "authenticate",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--userid", "Alice <alice@example.org>",
+        ]).build(),
+
+        Action::example().comment(
+        "Check whether we can authenticate any user ID with the specified email \
 address for the given certificate.",
-            command: &[
-                "sq", "pki", "authenticate",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--email", "alice@example.org",
-            ],
-            hide: &[],
-        }),
-    ]
+        ).command(&[
+            "sq", "pki", "authenticate",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--email", "alice@example.org",
+        ]).build(),
+    ],
 };
 test_examples!(sq_pki_authenticate, EXAMPLES);

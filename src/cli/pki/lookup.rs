@@ -5,8 +5,6 @@ use clap::Parser;
 use crate::cli::examples;
 use examples::Action;
 use examples::Actions;
-use examples::Example;
-use examples::Setup;
 
 use super::CertificationNetworkArg;
 use super::GossipArg;
@@ -56,32 +54,26 @@ pub struct Command {
 const EXAMPLES: Actions = Actions {
     actions: &[
         // Link Alice's certificate.
-        Action::Setup(Setup {
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--all",
-            ],
-        }),
-        Action::Example(Example {
-            comment: "\
-Lookup certificates that can be authenticated for the given user ID.",
-            command: &[
-                "sq", "pki", "lookup",
-                "--userid", "Alice <alice@example.org>"
-            ],
-            hide: &[],
-        }),
-        Action::Example(Example {
-            comment: "\
-Lookup certificates that have a user ID with the specified email \
+        Action::setup().command(&[
+            "sq", "pki", "link", "add",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--all",
+        ]).build(),
+
+        Action::example().comment(
+            "Lookup certificates that can be authenticated for the given user ID.",
+        ).command(&[
+            "sq", "pki", "lookup",
+            "--userid", "Alice <alice@example.org>"
+        ]).build(),
+
+        Action::example().comment(
+            "Lookup certificates that have a user ID with the specified email \
 address, and that user ID can be authenticated.",
-            command: &[
-                "sq", "pki", "lookup",
-                "--email", "alice@example.org",
-            ],
-            hide: &[],
-        }),
-    ]
+        ).command(&[
+            "sq", "pki", "lookup",
+            "--email", "alice@example.org",
+        ]).build(),
+    ],
 };
 test_examples!(sq_pki_lookup, EXAMPLES);

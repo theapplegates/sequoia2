@@ -43,42 +43,32 @@ pub enum Subcommands {
 
 const GENERATE_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "cert", "import", "juliet.pgp",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "cert", "import", "juliet.pgp",
+        ]).build(),
 
-        Action::Setup(Setup {
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--userid=Alice <alice@example.org>",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "pki", "link", "add",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--userid=Alice <alice@example.org>",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Generate DANE records from juliet.pgp for example.org.",
-            command: &[
-                "sq", "network", "dane", "generate",
-                "--domain=example.org",
-                "--cert-file=juliet.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Generate DANE records from juliet.pgp for example.org.",
+        ).command(&[
+            "sq", "network", "dane", "generate",
+            "--domain=example.org",
+            "--cert-file=juliet.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Generate DANE records for all certs with an authenticated \
-user ID in example.org.",
-            command: &[
-                "sq", "network", "dane", "generate",
-                "--domain=example.org",
-                "--all",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Generate DANE records for all certs with an authenticated \
+             user ID in example.org.",
+        ).command(&[
+            "sq", "network", "dane", "generate",
+            "--domain=example.org",
+            "--all",
+        ]).build(),
     ],
 };
 test_examples!(sq_network_dane_generate, GENERATE_EXAMPLES);

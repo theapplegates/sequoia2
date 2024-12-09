@@ -102,65 +102,52 @@ test_examples!(sq_network_wkd_search, SEARCH_EXAMPLES);
 
 const PUBLISH_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "cert", "import", "juliet.pgp",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "cert", "import", "juliet.pgp",
+        ]).build(),
 
-        Action::Setup(Setup {
-            command: &[
-                "sq", "pki", "link", "add",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--userid=Alice <alice@example.org>",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "pki", "link", "add",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--userid=Alice <alice@example.org>",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "Create a new WKD hierarchy in the local directory \
-                      `public_html`, and insert Alice's cert.",
-            command: &[
-                "sq", "network", "wkd", "publish", "--create",
-                "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--domain=example.org", "public_html",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Create a new WKD hierarchy in the local directory \
+             `public_html`, and insert Alice's cert.",
+        ).command(&[
+            "sq", "network", "wkd", "publish", "--create",
+            "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+            "--domain=example.org", "public_html",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "Add Bob's cert to the existing WKD hierarchy \
-                      in the local directory `public_html`.",
-            command: &[
-                "sq", "network", "wkd", "publish",
-                "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
-                "--domain=example.org", "public_html",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Add Bob's cert to the existing WKD hierarchy \
+             in the local directory `public_html`.",
+        ).command(&[
+            "sq", "network", "wkd", "publish",
+            "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
+            "--domain=example.org", "public_html",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Add all certs with an authenticated user ID \
-in example.org to the existing WKD hierarchy.",
-            command: &[
-                "sq", "network", "wkd", "publish",
-                "--domain=example.org",
-                "--all",
-                "public_html",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Add all certs with an authenticated user ID \
+             in example.org to the existing WKD hierarchy.",
+        ).command(&[
+            "sq", "network", "wkd", "publish",
+            "--domain=example.org",
+            "--all",
+            "public_html",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "Refresh all certs in the existing WKD hierarchy \
-                      in the local directory `public_html` from the \
-                      cert store.",
-            command: &[
-                "sq", "network", "wkd", "publish",
-                "--domain=example.org", "public_html",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Refresh all certs in the existing WKD hierarchy \
+             in the local directory `public_html` from the \
+             cert store.",
+        ).command(&[
+            "sq", "network", "wkd", "publish",
+            "--domain=example.org", "public_html",
+        ]).build(),
     ],
 };
 

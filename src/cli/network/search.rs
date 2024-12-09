@@ -3,7 +3,6 @@ use clap::Parser;
 use crate::cli::config;
 use crate::cli::examples::Action;
 use crate::cli::examples::Actions;
-use crate::cli::examples::Example;
 
 use crate::cli::types::ClapData;
 use crate::cli::types::FileOrCertStore;
@@ -135,22 +134,19 @@ an email address, or a https URL.",
 
 const EXAMPLES: Actions = Actions {
     actions: &[
-        Action::SyntaxCheck(Example {
-            comment: "\
-Search for the Qubes master signing certificate.",
-            command: &[
-                "sq", "network", "search", "427F11FD0FAA4B080123F01CDDFA1A3E36879494",
-            ],
-            hide: &[],
-        }),
-        Action::SyntaxCheck(Example {
-            comment: "\
-Search for certificates that have are associated with an email address.",
-            command: &[
-                "sq", "network", "search", "alice@example.org",
-            ],
-            hide: &[],
-        })
-    ]
+        Action::example().comment(
+            "Search for the Qubes master signing certificate.",
+        ).command(&[
+            "sq", "network", "search",
+            "427F11FD0FAA4B080123F01CDDFA1A3E36879494",
+        ]).syntax_check(),
+
+        Action::example().comment(
+            "Search for certificates that have are associated \
+             with an email address.",
+        ).command(&[
+            "sq", "network", "search", "alice@example.org",
+        ]).syntax_check(),
+    ],
 };
 test_examples!(sq_network_search, EXAMPLES);

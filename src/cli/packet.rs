@@ -116,47 +116,35 @@ pub struct DumpCommand {
 
 const DUMP_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Print the packets of a certificate.",
-            command: &[
-                "sq", "packet", "dump",
-                "juliet.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Print the packets of a certificate.",
+        ).command(&[
+            "sq", "packet", "dump",
+            "juliet.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Print the packets including cryptographic artifacts of a certificate.",
-            command: &[
-                "sq", "packet", "dump",
-                "--mpis", "juliet.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Print the packets including cryptographic artifacts of a certificate.",
+        ).command(&[
+            "sq", "packet", "dump",
+            "--mpis", "juliet.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Print the packets including a dump of every byte of a certificate.",
-            command: &[
-                "sq", "packet", "dump",
-                "--hex", "juliet.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Print the packets including a dump of every byte of a certificate.",
+        ).command(&[
+            "sq", "packet", "dump",
+            "--hex", "juliet.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Prints the packets of an encrypted message, decrypting it using a \
-secret key file.",
-            command: &[
-                "sq", "packet", "dump",
-                "--recipient-file", "bob-secret.pgp",
-                "message.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Prints the packets of an encrypted message, decrypting it using a \
+             secret key file.",
+        ).command(&[
+            "sq", "packet", "dump",
+            "--recipient-file", "bob-secret.pgp",
+            "message.pgp",
+        ]).build(),
     ],
 };
 test_examples!(sq_packet_dump, DUMP_EXAMPLES);
@@ -232,16 +220,13 @@ pub struct DecryptCommand {
 
 const DECRYPT_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Unwrap the encryption revealing the signed message.",
-            command: &[
-                "sq", "packet", "decrypt",
-                "--recipient-file", "bob-secret.pgp",
-                "message.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Unwrap the encryption revealing the signed message.",
+        ).command(&[
+            "sq", "packet", "decrypt",
+            "--recipient-file", "bob-secret.pgp",
+            "message.pgp",
+        ]).build(),
     ],
 };
 test_examples!(sq_packet_decrypt, DECRYPT_EXAMPLES);
@@ -307,42 +292,33 @@ a human-readable packet type with dashes ('-').
 
 const SPLIT_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Split a certificate into individual packets printed to stdout.",
-            command: &[
-                "sq", "packet", "split",
-                "--output=-",
-                "juliet.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Split a certificate into individual packets printed to stdout.",
+        ).command(&[
+            "sq", "packet", "split",
+            "--output=-",
+            "juliet.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Split a inline-signed message into individual packets written to \
-individual files with the prefix 'packet'.",
-            command: &[
-                "sq", "packet", "split",
-                "--output-prefix", "packet",
-                "document.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Split a inline-signed message into individual packets written to \
+             individual files with the prefix 'packet'.",
+        ).command(&[
+            "sq", "packet", "split",
+            "--output-prefix", "packet",
+            "document.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Then reassemble the message, transforming it into an old-style \
-signed message with a prefix signature.",
-            command: &[
-                "sq", "packet", "join",
-                "--output", "prefix-signature.pgp",
-                "--label", "message",
-                "packet-2-Signature-Packet",
-                "packet-1-Literal-Data-Packet",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Then reassemble the message, transforming it into an old-style \
+             signed message with a prefix signature.",
+        ).command(&[
+            "sq", "packet", "join",
+            "--output", "prefix-signature.pgp",
+            "--label", "message",
+            "packet-2-Signature-Packet",
+            "packet-1-Literal-Data-Packet",
+        ]).build(),
     ],
 };
 test_examples!(sq_packet_split, SPLIT_EXAMPLES);
@@ -388,31 +364,25 @@ pub struct JoinCommand {
 
 const JOIN_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Split a inline-signed message into individual packets written to \
-individual files with the prefix 'packet'.",
-            command: &[
-                "sq", "packet", "split",
-                "--output-prefix", "packet",
-                "document.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Split a inline-signed message into individual packets written to \
+             individual files with the prefix 'packet'.",
+        ).command(&[
+            "sq", "packet", "split",
+            "--output-prefix", "packet",
+            "document.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Then reassemble the message, transforming it into an old-style \
-signed message with a prefix signature.",
-            command: &[
-                "sq", "packet", "join",
-                "--output", "prefix-signature.pgp",
-                "--label", "message",
-                "packet-2-Signature-Packet",
-                "packet-1-Literal-Data-Packet",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Then reassemble the message, transforming it into an old-style \
+             signed message with a prefix signature.",
+        ).command(&[
+            "sq", "packet", "join",
+            "--output", "prefix-signature.pgp",
+            "--label", "message",
+            "packet-2-Signature-Packet",
+            "packet-1-Literal-Data-Packet",
+        ]).build(),
     ],
 };
 test_examples!(sq_packet_join, JOIN_EXAMPLES);

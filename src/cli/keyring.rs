@@ -190,90 +190,70 @@ a certificate.",
 
 const FILTER_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "keyring", "merge",
-                "--output=certs.pgp",
-                "bob.pgp", "romeo.pgp",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "keyring", "merge",
+            "--output=certs.pgp",
+            "bob.pgp", "romeo.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Convert all keys to certificates (i.e. remove any secret key material).",
-            command: &[
-                "sq", "keyring", "filter",
-                "--experimental",
-                "--to-cert",
-                "certs.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Convert all keys to certificates (i.e. remove any secret key material).",
+        ).command(&[
+            "sq", "keyring", "filter",
+            "--experimental",
+            "--to-cert",
+            "certs.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Get all certificates with a user ID on example.org.",
-            command: &[
-                "sq", "keyring", "filter",
-                "--experimental",
-                "--domain=example.org",
-                "certs.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Get all certificates with a user ID on example.org.",
+        ).command(&[
+            "sq", "keyring", "filter",
+            "--experimental",
+            "--domain=example.org",
+            "certs.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Get all certificates with a user ID on example.org or example.net.",
-            command: &[
-                "sq", "keyring", "filter",
-                "--experimental",
-                "--domain=example.org",
-                "--domain=example.net",
-                "certs.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Get all certificates with a user ID on example.org or example.net.",
+        ).command(&[
+            "sq", "keyring", "filter",
+            "--experimental",
+            "--domain=example.org",
+            "--domain=example.net",
+            "certs.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Get all certificates with a name user ID matching Romeo.",
-            command: &[
-                "sq", "keyring", "filter",
-                "--experimental",
-                "--name=Romeo",
-                "certs.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Get all certificates with a name user ID matching Romeo.",
+        ).command(&[
+            "sq", "keyring", "filter",
+            "--experimental",
+            "--name=Romeo",
+            "certs.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Get all certificates with a name user ID matching Romeo on example.org.",
-            command: &[
-                "sq", "keyring", "filter",
-                "--experimental",
-                "--domain=example.org",
-                "certs.pgp",
-                "|", "sq", "keyring", "filter",
-                "--experimental",
-                "--name=Romeo",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Get all certificates with a name user ID matching Romeo on example.org.",
+        ).command(&[
+            "sq", "keyring", "filter",
+            "--experimental",
+            "--domain=example.org",
+            "certs.pgp",
+            "|", "sq", "keyring", "filter",
+            "--experimental",
+            "--name=Romeo",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Get all certificates with a user ID on example.org, pruning other user IDs.",
-            command: &[
-                "sq", "keyring", "filter",
-                "--experimental",
-                "--domain=example.org",
-                "--prune-certs",
-                "certs.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Get all certificates with a user ID on example.org, pruning other user IDs.",
+        ).command(&[
+            "sq", "keyring", "filter",
+            "--experimental",
+            "--domain=example.org",
+            "--prune-certs",
+            "certs.pgp",
+        ]).build(),
     ],
 };
 test_examples!(sq_keyring_filter, FILTER_EXAMPLES);
@@ -305,22 +285,18 @@ pub struct MergeCommand {
 
 const MERGE_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "packet", "dearmor",
-                "--output=bob-updates.pgp",
-                "bob.pgp",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "packet", "dearmor",
+            "--output=bob-updates.pgp",
+            "bob.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "Merge certificate updates.",
-            command: &[
-                "sq", "keyring", "merge",
-                "bob.pgp", "bob-updates.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Merge certificate updates.",
+        ).command(&[
+            "sq", "keyring", "merge",
+            "bob.pgp", "bob-updates.pgp",
+        ]).build(),
     ],
 };
 test_examples!(sq_keyring_merge, MERGE_EXAMPLES);
@@ -357,35 +333,28 @@ standard policy.",
 
 const LIST_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "keyring", "merge",
-                "--output=certs.pgp",
-                "bob.pgp", "romeo.pgp",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "keyring", "merge",
+            "--output=certs.pgp",
+            "bob.pgp", "romeo.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "List all certificates.",
-            command: &[
-                "sq", "keyring", "list",
-                "certs.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "List all certificates.",
+        ).command(&[
+            "sq", "keyring", "list",
+            "certs.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-List all certificates with a user ID on example.org.",
-            command: &[
-                "sq", "keyring", "filter",
-                "--experimental",
-                "--domain=example.org",
-                "certs.pgp",
-                "|", "sq", "keyring", "list",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "List all certificates with a user ID on example.org.",
+        ).command(&[
+            "sq", "keyring", "filter",
+            "--experimental",
+            "--domain=example.org",
+            "certs.pgp",
+            "|", "sq", "keyring", "list",
+        ]).build(),
     ],
 };
 test_examples!(sq_keyring_list, LIST_EXAMPLES);
@@ -421,34 +390,26 @@ pub struct SplitCommand {
 
 const SPLIT_EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "keyring", "merge",
-                "--output=certs.pgp",
-                "bob.pgp", "romeo.pgp",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "keyring", "merge",
+            "--output=certs.pgp",
+            "bob.pgp", "romeo.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "Split all certificates.",
-            command: &[
-                "sq", "keyring", "split",
-                "certs.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Split all certificates.",
+        ).command(&[
+            "sq", "keyring", "split",
+            "certs.pgp",
+        ]).build(),
 
-
-        Action::Example(Example {
-            comment: "\
-Split all certificates, merging them first to avoid duplicates.",
-            command: &[
-                "sq", "keyring", "merge",
-                "certs.pgp",
-                "|", "sq", "keyring", "split",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Split all certificates, merging them first to avoid duplicates.",
+        ).command(&[
+            "sq", "keyring", "merge",
+            "certs.pgp",
+            "|", "sq", "keyring", "split",
+        ]).build(),
     ],
 };
 test_examples!(sq_keyring_split, SPLIT_EXAMPLES);

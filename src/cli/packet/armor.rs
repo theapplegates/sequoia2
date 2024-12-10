@@ -50,35 +50,27 @@ pub struct Command {
 
 const EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Setup(Setup {
-            command: &[
-                "sq", "packet", "dearmor",
-                "--output=message.bin",
-                "message.pgp",
-            ],
-        }),
+        Action::setup().command(&[
+            "sq", "packet", "dearmor",
+            "--output=message.bin",
+            "message.pgp",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Convert a binary OpenPGP message to an ASCII armored OpenPGP message.",
-            command: &[
-                "sq", "packet", "armor",
-                "message.bin",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Convert a binary OpenPGP message to an ASCII armored OpenPGP message.",
+        ).command(&[
+            "sq", "packet", "armor",
+            "message.bin",
+        ]).build(),
 
-        Action::Example(Example {
-            comment: "\
-Convert a binary OpenPGP message to an ASCII armored OpenPGP message
+        Action::example().comment(
+            "Convert a binary OpenPGP message to an ASCII armored OpenPGP message
 explicitly choosing the armor label.",
-            command: &[
-                "sq", "packet", "armor",
-                "--label=message",
-                "message.bin",
-            ],
-            hide: &[],
-        }),
+        ).command(&[
+            "sq", "packet", "armor",
+            "--label=message",
+            "message.bin",
+        ]).build(),
     ],
 };
 test_examples!(sq_packet_armor, EXAMPLES);

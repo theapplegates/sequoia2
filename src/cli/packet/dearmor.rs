@@ -40,16 +40,13 @@ pub struct Command {
 
 const EXAMPLES: Actions = Actions {
     actions: &[
-        Action::Example(Example {
-            comment: "\
-Convert an ASCII armored OpenPGP message to a binary OpenPGP message.",
-            command: &[
-                "sq", "packet", "dearmor",
-                "--output=message.bin",
-                "message.pgp",
-            ],
-            hide: &[],
-        }),
+        Action::example().comment(
+            "Convert an ASCII armored OpenPGP message to a binary OpenPGP message.",
+        ).command(&[
+            "sq", "packet", "dearmor",
+            "--output=message.bin",
+            "message.pgp",
+        ]).build(),
     ],
 };
 test_examples!(sq_packet_dearmor, EXAMPLES);

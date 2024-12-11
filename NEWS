@@ -6,6 +6,8 @@
 ** Notable changes
    - `sq cert list` now takes cert designators, like `--cert-email`
      instead of `--email`.
+   - `sq encrypt` now requires explicit opt-out for signing in the
+     form of the `--without-signature` flag.
 
 * Changes in 0.41.0
 ** New functionality

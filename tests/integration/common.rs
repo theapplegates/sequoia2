@@ -738,6 +738,10 @@ impl Sq {
             cmd.arg(arg.as_ref());
         }
 
+        if ! args.iter().any(|a| a.as_ref().starts_with("--signer")) {
+            cmd.arg("--without-signature");
+        }
+
         match msg.into() {
             FileOrBytes::FileOrStdin(path) => {
                 cmd.arg(path);

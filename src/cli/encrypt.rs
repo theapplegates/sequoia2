@@ -27,12 +27,24 @@ const ENCRYPT_EXAMPLES: Actions = Actions {
                 "--email", "alice@example.org",
             ],
         }),
+
+        Action::setup().command(&[
+            "sq", "key", "import", "juliet-secret.pgp",
+        ]).build(),
+
+        Action::setup().command(&[
+            "sq", "pki", "link", "add",
+            "--cert=7A58B15E3B9459483D9FFA8D40E299AC5F2B0872",
+            "--email=juliet@example.org",
+        ]).build(),
+
         Action::Example(Example {
             comment: "\
 Encrypt a file for a recipient given by fingerprint.",
             command: &[
                 "sq", "encrypt",
                 "--for", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
+                "--signer-email=juliet@example.org",
                 "document.txt",
             ],
             hide: &[],
@@ -42,6 +54,7 @@ Encrypt a file for a recipient given by fingerprint.",
 Encrypt a file for a recipient given by email.",
             command: &[
                 "sq", "encrypt", "--for-email", "alice@example.org",
+                "--signer-email=juliet@example.org",
                 "document.txt",
             ],
             hide: &[],
@@ -107,7 +120,7 @@ pub struct Command {
     #[command(flatten)]
     pub signers: CertDesignators<CertUserIDEmailFileSelfArgs,
                                  SignerPrefix,
-                                 OptionalValue,
+                                 SignerOrWithoutSignature,
                                  SignerDoc>,
 
 

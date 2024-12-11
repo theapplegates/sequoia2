@@ -239,6 +239,10 @@ pub type OneValueAndFileRequiresOutput
 /// argument, but must be explicitly added.
 pub type CertOrAll = typenum::U8;
 
+/// Require either a cert designator, or the `without-signature`
+/// parameter.
+pub type SignerOrWithoutSignature = typenum::U16;
+
 // Additional documentation.
 
 /// The prefix for the designators.
@@ -548,6 +552,8 @@ where
         let file_requires_output =
             (options & FileRequiresOutput::to_usize()) > 0;
         let cert_or_all = (options & CertOrAll::to_usize()) > 0;
+        let signer_or_without_signature =
+            (options & SignerOrWithoutSignature::to_usize()) > 0;
 
         let group = format!("cert-designator-{}-{:X}-{:X}",
                             Prefix::name(),
@@ -623,14 +629,18 @@ where
         }
 
         let prefix = Prefix::prefix();
-        let full_name = |name| {
-            if ! prefix.is_empty() && name == "cert" {
+        let mut full_argument_names = Vec::new();
+        let mut full_name = |name| {
+            let name = if ! prefix.is_empty() && name == "cert" {
                 // We want `--cert`, not `--cert-cert`, or
                 // `--for` instead of `--for-cert`.
                 prefix.strip_suffix("-").expect("prefix must end with -").into()
             } else {
                 format!("{}{}", prefix, name)
-            }
+            };
+
+            full_argument_names.push(name.clone());
+            name
         };
 
         if cert_arg {
@@ -866,6 +876,16 @@ the recipient's keys, or one of the provided passwords.");
 
             cmd = cmd.arg(arg);
             arg_group = arg_group.arg(full_name);
+        }
+
+        if signer_or_without_signature {
+            cmd = cmd.arg(
+                clap::Arg::new("without-signature")
+                    .long("without-signature")
+                    .action(clap::ArgAction::SetTrue)
+                    .conflicts_with_all(&full_argument_names)
+                    .help("Do not sign the message"));
+            arg_group = arg_group.arg("without-signature");
         }
 
         cmd = cmd.group(arg_group);

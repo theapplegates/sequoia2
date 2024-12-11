@@ -410,6 +410,7 @@ fn sq_encrypt_with_password() -> Result<()>
     let mut cmd = sq.command();
     cmd.args(["encrypt",
               "--with-password-file", &password_file.display().to_string(),
+              "--without-signature",
               "--output", &cipher_file.display().to_string(),
               &plain_file.display().to_string()]);
     sq.run(cmd, Some(true));

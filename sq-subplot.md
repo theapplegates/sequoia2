@@ -851,7 +851,7 @@ given an installed sq
 given file hello.txt
 when I run sq key generate --own-key --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
 when I run sq key delete --cert-file key.pgp --output cert.pgp
-when I run sq encrypt --for-file cert.pgp hello.txt
+when I run sq encrypt --without-signature --for-file cert.pgp hello.txt
 then stdout contains "-----BEGIN PGP MESSAGE-----"
 then stdout doesn't contain "hello, world"
 ~~~
@@ -870,7 +870,7 @@ given an installed sq
 given file hello.txt
 when I run sq key generate --own-key --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
 when I run sq key delete --cert-file key.pgp --output cert.pgp
-when I run sq encrypt --binary --for-file cert.pgp hello.txt
+when I run sq encrypt --without-signature --binary --for-file cert.pgp hello.txt
 then stdout doesn't contain "-----BEGIN PGP MESSAGE-----"
 then stdout doesn't contain "hello, world"
 ~~~
@@ -892,7 +892,7 @@ given an installed sq
 given file hello.txt
 when I run sq key generate --own-key --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev
 when I run sq key delete --cert-file key.pgp --output cert.pgp
-when I run sq encrypt --output x.pgp --for-file cert.pgp hello.txt
+when I run sq encrypt --without-signature --output x.pgp --for-file cert.pgp hello.txt
 when I run sq decrypt --output output.txt --recipient-file key.pgp x.pgp
 then files hello.txt and output.txt match
 ~~~
@@ -911,7 +911,7 @@ when I run sq key delete --cert-file alice.pgp --output alice-cert.pgp
 when I run sq key generate --own-key --without-password --no-userids --output bob.pgp --rev-cert bob.pgp.rev
 when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 
-when I run sq encrypt --for-file alice-cert.pgp --for-file bob-cert.pgp hello.txt --output x.pgp
+when I run sq encrypt --without-signature --for-file alice-cert.pgp --for-file bob-cert.pgp hello.txt --output x.pgp
 
 when I run sq decrypt --recipient-file alice.pgp --output alice.txt x.pgp
 then files hello.txt and alice.txt match

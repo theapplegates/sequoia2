@@ -8,8 +8,7 @@ use crate::cli::pki::CertificationNetworkArg;
 use crate::cli::pki::GossipArg;
 use crate::cli::pki::RequiredTrustAmountArg;
 use crate::cli::pki::ShowPathsArg;
-use crate::cli::types::UserIDDesignators;
-use crate::cli::types::userid_designator;
+use crate::cli::types::cert_designator::*;
 
 const EXAMPLES: Actions = Actions {
     actions: &[
@@ -29,13 +28,15 @@ const EXAMPLES: Actions = Actions {
         Action::example().comment(
             "List all authenticated bindings for User IDs containing a specific email address."
         ).command (&[
-            "sq", "cert", "list", "--email", "alice@example.org",
+            "sq", "cert", "list",
+            "--cert-email=alice@example.org",
         ]).build(),
 
         Action::example().comment(
             "List all paths to certificates containing a specific email address."
         ).command (&[
-            "sq", "cert", "list", "--gossip", "--show-paths", "--email", "alice@example.org",
+            "sq", "cert", "list", "--gossip", "--show-paths",
+            "--cert-email=alice@example.org",
         ]).build(),
     ]
 };
@@ -62,18 +63,24 @@ test_examples!(sq_cert_list, EXAMPLES);
 )]
 pub struct Command {
     #[command(flatten)]
-    pub userid: UserIDDesignators<
-        userid_designator::AnyUserIDEmailArgs,
-        userid_designator::OptionalValueNoLinting>,
+    pub certs: CertDesignators<CertUserIDEmailDomainGrepArgs,
+                               CertPrefix,
+                               OptionalValue,
+                               ListCertDoc>,
 
-    /// A pattern to select the bindings to authenticate.
-    ///
-    /// The pattern is treated as a UTF-8 encoded string and a
-    /// case insensitive substring search (using the current
-    /// locale) is performed against each User ID.  If a User ID
-    /// is not valid UTF-8, the binding is ignored.
     #[clap(
-        conflicts_with_all = &[ "userid", "email" ]
+        value_name = "FINGERPRINT|KEYID|PATTERN",
+        help = "A pattern to filter the displayed certificates",
+        long_help = "\
+A pattern to filter the displayed certificates.
+
+If the pattern appears to be a fingerprint or key ID, it is treated as \
+if it were passed to `--cert`, and matches on the certificate's \
+fingerprint.  Otherwise, it is treated as if it were passed via \
+`--cert-grep`, and matches on user IDs.
+",
+        conflicts_with_all = &["cert", "cert-userid", "cert-email",
+                               "cert-domain", "cert-grep"],
     )]
     pub pattern: Option<String>,
 
@@ -88,4 +95,14 @@ pub struct Command {
 
     #[command(flatten)]
     pub trust_amount: RequiredTrustAmountArg,
+}
+
+/// Documentation for the cert designators for the cert list.
+pub struct ListCertDoc {}
+
+impl AdditionalDocs for ListCertDoc {
+    fn help(_: &'static str, help: &'static str) -> clap::builder::StyledStr {
+        debug_assert!(help.starts_with("Use certificates"));
+        help.replace("Use certificates", "List certs").into()
+    }
 }

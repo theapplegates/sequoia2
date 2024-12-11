@@ -118,9 +118,6 @@ pub type AllMatchesNonSelfSigned = typenum::U8;
 pub type OneValueNoLinting
     = <OneValue as std::ops::BitOr<NoLinting>>::Output;
 
-pub type OptionalValueNoLinting
-    = <OptionalValue as std::ops::BitOr<NoLinting>>::Output;
-
 pub type AllMatchesNonSelfSignedNoLinting
     = <AllMatchesNonSelfSigned as std::ops::BitOr<NoLinting>>::Output;
 

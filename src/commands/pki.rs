@@ -34,7 +34,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command, matches: &ArgMatches)
                 &mut std::io::stdout(),
                 &sq, false, None,
                 *gossip, *certification_network, *trust_amount,
-                Some(&userid), Some(&cert), *show_paths,
+                Some(&userid), Some(&cert), None, *show_paths,
             )?
         }
 
@@ -51,7 +51,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command, matches: &ArgMatches)
                 &mut std::io::stdout(),
                 &sq, false, None,
                 *gossip, *certification_network, *trust_amount,
-                Some(&userid), None, *show_paths)?;
+                Some(&userid), None, None, *show_paths)?;
         }
 
         // Find and list all authenticated bindings for a given
@@ -66,7 +66,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command, matches: &ArgMatches)
                 &mut std::io::stdout(),
                 &sq, false, None,
                 *gossip, *certification_network, *trust_amount,
-                None, Some(&cert), *show_paths)?;
+                None, Some(&cert), None, *show_paths)?;
         }
 
         // Authenticates a given path.

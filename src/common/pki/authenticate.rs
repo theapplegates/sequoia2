@@ -76,6 +76,7 @@ pub fn authenticate<'store, 'rstore>(
     trust_amount: Option<TrustAmount<usize>>,
     userid_designator: Option<&userid_designator::UserIDDesignator>,
     certificate: Option<&Cert>,
+    certs: Option<Vec<Cert>>,
     show_paths: bool,
 ) -> Result<()>
     where 'store: 'rstore,
@@ -169,6 +170,14 @@ pub fn authenticate<'store, 'rstore>(
             .into_iter()
             .map(|fpr| (fpr, UserID::from(userid)))
             .collect();
+    } else if let Some(certs) = certs {
+        // List all certs.
+        t!("Authenticating given certs");
+        bindings = certs.iter().flat_map(|cert| {
+            let fp = cert.fingerprint();
+            let userids = n.certified_userids_of(&fp);
+            userids.into_iter().map(move |uid| (fp.clone(), uid))
+        }).collect();
     } else {
         // No User ID, no Fingerprint.
         // List everything.

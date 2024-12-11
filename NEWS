@@ -2,6 +2,11 @@
 #+TITLE: sequoia-sq NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 1.0.0
+** Notable changes
+   - `sq cert list` now takes cert designators, like `--cert-email`
+     instead of `--email`.
+
 * Changes in 0.41.0
 ** New functionality
    - `sq encrypt --for-self` now adds the certs configured under

@@ -403,6 +403,7 @@ pub fn dispatch(sq: Sq, c: download::Command)
                                         Some(TrustAmount::Full), // trust amount
                                         None, // user ID
                                         Some(&cert),
+                                        None,
                                         true, // show paths
                                     ).is_ok();
 

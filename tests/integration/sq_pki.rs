@@ -121,12 +121,30 @@ where
             cmd.arg(&target.to_string());
         }
         if let Some(userid) = userid {
-            userid.as_arg(&mut cmd);
+            if command == "list" {
+                userid.as_cert_designator(&mut cmd);
+            } else {
+                userid.as_arg(&mut cmd);
+            }
         }
         for arg in args {
             cmd.arg(arg);
         }
         cmd.args(&["--amount", &format!("{}", amount)]);
+
+        eprintln!("Running: {}",
+                  std::iter::once(cmd.get_program())
+                  .chain(cmd.get_args())
+                  .map(|arg| {
+                      let arg = arg.to_string_lossy();
+                      if arg.contains(" ") {
+                          format!("{:?}", arg)
+                      } else {
+                          arg.into_owned()
+                      }
+                  })
+                  .collect::<Vec<_>>()
+                  .join(" "));
 
         if success {
             let assertion = cmd.assert();
@@ -140,8 +158,8 @@ where
 
                     assert_eq!(
                         occurrences, *expected_occurrences,
-                        "Failed to find: '{}' {} times\n\
-                         in output:\n\
+                        "Failed to find: '{}' {} times \
+                         in output:\n\n\
                          {}",
                         s, expected_occurrences,
                         String::from_utf8_lossy(haystack),
@@ -160,8 +178,8 @@ where
 
                     assert_eq!(
                         occurrences, *expected_occurrences,
-                        "Failed to find: '{}' {} times\n\
-                         in output:\n\
+                        "Failed to find: '{}' {} times \
+                         in output:\n\n\
                          {}",
                         s, expected_occurrences,
                         String::from_utf8_lossy(haystack),
@@ -1316,7 +1334,7 @@ fn list_pattern() -> Result<()> {
         .map(|(userid, target)| {
             (1, format!("- {} {}", HR_OK, userid).to_string())
         })
-        .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
+        .chain(vec![(3, HR_OK.to_string())].into_iter())
         .collect::<Vec<_>>();
 
     test(

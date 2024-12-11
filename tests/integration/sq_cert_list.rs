@@ -18,11 +18,11 @@ fn list() {
 
     // By user ID.
     sq.cert_list(&[userid]);
-    sq.cert_list(&["--userid", userid]);
+    sq.cert_list(&["--cert-userid", userid]);
 
     // By email.
     sq.cert_list(&[email]);
-    sq.cert_list(&["--email", email]);
+    sq.cert_list(&["--cert-email", email]);
 
     // By name.
     sq.cert_list(&[name]);
@@ -34,10 +34,10 @@ fn list() {
     sq.cert_list(&["ExAmPlE.Or"]);
 
     // When we use --userid, then we don't do substring matching.
-    assert!(sq.cert_list_maybe(&["--userid", &userid[1..]]).is_err());
+    assert!(sq.cert_list_maybe(&["--cert-userid", &userid[1..]]).is_err());
 
     // When we use --email, then we don't do substring matching.
-    assert!(sq.cert_list_maybe(&["--email", &email[1..]]).is_err());
+    assert!(sq.cert_list_maybe(&["--cert-email", &email[1..]]).is_err());
 }
 
 #[test]

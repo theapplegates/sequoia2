@@ -285,6 +285,25 @@ impl UserIDArg<'_> {
                 cmd.arg("--email-or-add").arg(email),
         };
     }
+
+    /// Add the argument to a `Command` as a cert designator.
+    ///
+    /// Note: only a subset of user ID arguments are expressible as
+    /// cert designators.
+    pub fn as_cert_designator(&self, cmd: &mut Command) {
+        match self {
+            UserIDArg::UserID(userid) =>
+                cmd.arg("--cert-userid").arg(userid),
+            UserIDArg::Email(email) =>
+                cmd.arg("--cert-email").arg(email),
+            UserIDArg::Name(name) =>
+                unreachable!(),
+            UserIDArg::AddUserID(userid) =>
+                unreachable!(),
+            UserIDArg::AddEmail(email) =>
+                unreachable!(),
+        };
+    }
 }
 
 impl std::fmt::Display for UserIDArg<'_> {

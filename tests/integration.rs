@@ -29,6 +29,7 @@ mod integration {
     mod sq_packet_decrypt;
     mod sq_packet_dump;
     mod sq_pki;
+    mod sq_pki_authenticate;
     mod sq_pki_link;
     mod sq_pki_link_authorize;
     mod sq_pki_link_list;

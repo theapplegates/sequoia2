@@ -1640,8 +1640,7 @@ impl Sq {
         &self, extra_args: &[&str],
         certifier: H,
         cert: C, userids: &[U],
-        output_file: Q,
-        success: bool)
+        output_file: Q)
         -> Result<Cert>
     where H: Into<FileOrKeyHandle>,
           C: Into<FileOrKeyHandle>,
@@ -1685,7 +1684,7 @@ impl Sq {
             cmd.arg("--overwrite").arg("--output").arg(output_file);
         }
 
-        let output = self.run(cmd, Some(success));
+        let output = self.run(cmd, None);
         self.handle_cert_output(output, cert, output_file, false)
     }
 
@@ -1702,7 +1701,7 @@ impl Sq {
           Q: Into<Option<&'b Path>>,
     {
         self.try_pki_vouch_add(
-            extra_args, certifier, cert, userids, output_file, true)
+            extra_args, certifier, cert, userids, output_file)
             .expect("success")
     }
 
@@ -1714,8 +1713,7 @@ impl Sq {
         &self, extra_args: &[&str],
         certifier: H,
         cert: C, userids: &[U],
-        output_file: Q,
-        success: bool)
+        output_file: Q)
         -> Result<Cert>
     where H: Into<FileOrKeyHandle>,
           C: Into<FileOrKeyHandle>,
@@ -1759,7 +1757,7 @@ impl Sq {
             cmd.arg("--overwrite").arg("--output").arg(output_file);
         }
 
-        let output = self.run(cmd, Some(success));
+        let output = self.run(cmd, None);
         self.handle_cert_output(output, cert, output_file, false)
     }
 
@@ -1776,7 +1774,7 @@ impl Sq {
           Q: Into<Option<&'b Path>>,
     {
         self.pki_vouch_authorize_p(
-            extra_args, certifier, cert, userids, output_file, true)
+            extra_args, certifier, cert, userids, output_file)
             .expect("success")
     }
 

@@ -161,7 +161,7 @@ fn sq_pki_vouch_add() -> Result<()> {
         // It should fail if the User ID doesn't exist.
         assert!(sq.try_pki_vouch_add(
             &[], &alice_handle, bob_pgp.last().unwrap(), &["bob"],
-            None, false).is_err());
+            None).is_err());
 
         // With a notation.
         sq.tick(1);
@@ -358,7 +358,7 @@ fn sq_pki_vouch_add_with_expired_key() -> Result<()>
 
         // Make sure using an expired key fails by default.
         assert!(sq.try_pki_vouch_add(
-            &[], &alice_handle, &bob_pgp, &[bob], Some(&*bob_pgp), false).is_err());
+            &[], &alice_handle, &bob_pgp, &[bob], Some(&*bob_pgp)).is_err());
     }
 
     Ok(())
@@ -419,7 +419,7 @@ fn sq_pki_vouch_add_with_revoked_key() -> Result<()>
 
         // Make sure using an expired key fails by default.
         assert!(sq.try_pki_vouch_add(
-            &[], &alice_handle, &bob_pgp, &[bob], None, false).is_err());
+            &[], &alice_handle, &bob_pgp, &[bob], None).is_err());
     }
 
     Ok(())
@@ -496,8 +496,7 @@ fn sq_pki_vouch_add_no_self_signatures() -> Result<()>
     let r = sq.try_pki_vouch_add(
         &[], &alice.key_handle(),
         alice.key_handle(), &[alice_userid],
-        None,
-        false);
+        None);
     assert!(r.is_err());
 
     Ok(())

@@ -855,3 +855,68 @@ fn special_names() {
     }
     check("retract", &["--all"], "xxx", false);
 }
+
+#[test]
+fn link_add_userid_designators() {
+    // Check that the different user ID designators work.
+    let mut sq = Sq::new();
+
+    let (cert, cert_path, _rev_path) = sq.key_generate(
+        &[], &["Alice <alice@example.org>", "Alice <alice@an.org>" ]);
+    let fpr = cert.fingerprint().to_string();
+    sq.key_import(cert_path);
+
+
+    // 1. Use --userid to link "Alice <alice@an.org>", which is a
+    // self-signed user ID.
+    sq.tick(1);
+    sq.pki_link_add(
+        &[], cert.key_handle(), &[ UserIDArg::UserID("Alice <alice@an.org>") ]);
+    assert!(sq.pki_authenticate(
+        &[], &fpr, UserIDArg::UserID("Alice <alice@an.org>")).is_ok());
+
+
+    // 2. Use --userid-or-add to link "Alice <alice@some.org>", which
+    // is not a self-signed user ID.
+
+    // This fails with --userid, because it expects a self-signed user ID.
+    sq.tick(1);
+    assert!(sq.pki_link_add_maybe(
+        &[], cert.key_handle(), &[ UserIDArg::UserID("Alice <alice@some.org>") ]).is_err());
+
+    // But it works with --userid-or-add.
+    sq.pki_link_add(
+        &[], cert.key_handle(), &[ UserIDArg::AddUserID("Alice <alice@some.org>") ]);
+    assert!(sq.pki_authenticate(
+        &[], &fpr, UserIDArg::UserID("Alice <alice@some.org>")).is_ok());
+
+
+    // 3. Use --email to link "Alice <alice@example.org>", which is
+    // a self-signed user ID.
+    //
+    // --email => the email address must be part of a self-signed user
+    // ID.
+    sq.tick(1);
+    sq.pki_link_add(
+        &[], cert.key_handle(), &[ UserIDArg::Email("alice@example.org") ]);
+
+    assert!(sq.pki_authenticate(
+        &[], &fpr, UserIDArg::UserID("<alice@example.org>")).is_err());
+    assert!(sq.pki_authenticate(
+        &[], &fpr, UserIDArg::UserID("Alice <alice@example.org>")).is_ok());
+
+
+    // 4. Use --email-or-add to link "<alice@example.com>", which is
+    // not part of a self signed user ID.
+
+    // This fails with --email, because it expects a self-signed user ID.
+    sq.tick(1);
+    assert!(sq.pki_link_add_maybe(
+        &[], cert.key_handle(), &[ UserIDArg::Email("alice@example.com") ]).is_err());
+
+    // But it works with --email-or-add.
+    sq.pki_link_add(
+        &[], cert.key_handle(), &[ UserIDArg::AddEmail("alice@example.com") ]);
+    assert!(sq.pki_authenticate(
+        &[], &fpr, UserIDArg::UserID("<alice@example.com>")).is_ok());
+}

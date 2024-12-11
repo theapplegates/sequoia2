@@ -1709,7 +1709,7 @@ impl Sq {
     ///
     /// If `output_file` is `Some`, then the output is written to that
     /// file.  Otherwise, the default behavior is followed.
-    pub fn pki_vouch_authorize_p<'a, 'b, H, C, U, Q>(
+    pub fn try_pki_vouch_authorize<'a, 'b, H, C, U, Q>(
         &self, extra_args: &[&str],
         certifier: H,
         cert: C, userids: &[U],
@@ -1773,7 +1773,7 @@ impl Sq {
           U: Into<UserIDArg<'a>> + Clone,
           Q: Into<Option<&'b Path>>,
     {
-        self.pki_vouch_authorize_p(
+        self.try_pki_vouch_authorize(
             extra_args, certifier, cert, userids, output_file)
             .expect("success")
     }

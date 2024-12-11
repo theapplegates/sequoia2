@@ -182,7 +182,7 @@ pub fn generate(
         builder.generate()
     };
 
-    let (cert, rev);
+    let (mut cert, rev);
 
     let rev_path = if let Some(rev_cert) = command.rev_cert {
         (cert, rev) = gen()?;
@@ -250,8 +250,12 @@ pub fn generate(
             None => {
                 // write the key to the key store
 
-                // Certify the key with a per-host shadow CA.
-                let cert = certify_generated(&mut sq, &cert)?;
+                // Certify the key with a per-host shadow CA if there
+                // are any user IDs to certify.
+                let have_userids = cert.userids().next().is_some();
+                if have_userids {
+                    cert = certify_generated(&mut sq, &cert)?;
+                }
 
                 match sq.import_key(cert.clone(), &mut Default::default())
                     .map(|(key_status, _cert_status)| key_status)
@@ -278,7 +282,7 @@ pub fn generate(
                 let trust_root = sq.local_trust_root()?;
                 let trust_root = trust_root.to_cert()?;
 
-                if command.own_key {
+                if command.own_key && have_userids {
                     // Mark all user IDs as authenticated, and mark
                     // the key as a trusted introducer.
                     crate::common::pki::certify::certify(
@@ -301,7 +305,7 @@ pub fn generate(
                         None, // Output.
                         false, // Binary.
                     )?;
-                } else if command.shared_key {
+                } else if command.shared_key && have_userids {
                     // Mark all user IDs as authenticated.
                     crate::common::pki::certify::certify(
                         &mut std::io::stderr(),

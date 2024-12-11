@@ -8,6 +8,23 @@ use super::common::UserIDArg;
 use super::common::NO_USERIDS;
 
 #[test]
+fn sq_key_generate_no_userid() -> Result<()> {
+    let sq = common::Sq::new();
+
+    // Stateless key generation.
+    let (cert, _, _) = sq.key_generate::<&str>(&[], &[]);
+    assert_eq!(cert.userids().count(), 0);
+
+    // Stateful key generation.
+    let mut cmd = sq.command();
+    cmd.args(["key", "generate", "--own-key", "--no-userids",
+              "--without-password"]);
+    sq.run(cmd, true);
+
+    Ok(())
+}
+
+#[test]
 fn sq_key_generate_creation_time() -> Result<()>
 {
     let sq = common::Sq::new();

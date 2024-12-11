@@ -15,7 +15,9 @@ use openpgp::policy::StandardPolicy;
 use openpgp::serialize::{Serialize, SerializeInto};
 
 use super::common::FileOrKeyHandle;
+use super::common::NO_USERIDS;
 use super::common::Sq;
+use super::common::UserIDArg;
 
 const P: &StandardPolicy = &StandardPolicy::new();
 
@@ -500,4 +502,105 @@ fn sq_pki_vouch_add_no_self_signatures() -> Result<()>
     assert!(r.is_err());
 
     Ok(())
+}
+
+#[test]
+fn userid_designators() {
+    // Check that the different user ID designators work.
+    for authorize in [false, true] {
+        let mut sq = Sq::new();
+
+        let (ca, ca_path, _rev_path) = sq.key_generate(
+            &[], &["CA <ca@example.org>" ]);
+        sq.key_import(ca_path);
+
+        sq.pki_link_authorize(
+            &["--unconstrained", "--all"],
+            ca.key_handle(), NO_USERIDS);
+
+
+        let vouch_maybe = |sq: &mut Sq,
+                           kh: KeyHandle, userid_arg: UserIDArg|
+            -> Result<_>
+        {
+            sq.tick(1);
+            if authorize {
+                sq.try_pki_vouch_authorize(
+                    &["--unconstrained"], ca.key_handle(),
+                    kh, &[ userid_arg ],
+                    None)
+            } else {
+                sq.try_pki_vouch_add(
+                    &[], ca.key_handle(),
+                    kh, &[ userid_arg ],
+                    None)
+            }
+        };
+
+        let vouch = |sq: &mut Sq,
+                    kh: KeyHandle, userid_arg: UserIDArg|
+        {
+            vouch_maybe(sq, kh, userid_arg)
+                .expect("success")
+        };
+
+        let (cert, cert_path, _rev_path) = sq.key_generate(
+            &[], &["Alice <alice@example.org>", "Alice <alice@an.org>" ]);
+        let fpr = cert.fingerprint().to_string();
+        sq.key_import(cert_path);
+
+
+        // 1. Use --userid to certify "Alice <alice@an.org>", which is a
+        // self-signed user ID.
+        vouch(&mut sq, cert.key_handle(),
+             UserIDArg::UserID("Alice <alice@an.org>"));
+        assert!(sq.pki_authenticate(
+            &[], &fpr, UserIDArg::UserID("Alice <alice@an.org>")).is_ok());
+
+
+        // 2. Use --userid-or-add to certify "Alice <alice@some.org>",
+        // which is not a self-signed user ID.
+
+        // This fails with --userid, because it expects a self-signed
+        // user ID.
+        assert!(vouch_maybe(
+            &mut sq, cert.key_handle(),
+            UserIDArg::UserID("Alice <alice@some.org>")).is_err());
+
+        // But it works with --userid-or-add.
+        vouch(&mut sq, cert.key_handle(),
+             UserIDArg::AddUserID("Alice <alice@some.org>"));
+        assert!(sq.pki_authenticate(
+            &[], &fpr, UserIDArg::UserID("Alice <alice@some.org>")).is_ok());
+
+
+        // 3. Use --email to certify "Alice <alice@example.org>",
+        // which is a self-signed user ID.
+        //
+        // --email => the email address must be part of a self-signed
+        // user ID.
+        vouch(&mut sq, cert.key_handle(),
+             UserIDArg::Email("alice@example.org"));
+
+        assert!(sq.pki_authenticate(
+            &[], &fpr, UserIDArg::UserID("<alice@example.org>")).is_err());
+        assert!(sq.pki_authenticate(
+            &[], &fpr, UserIDArg::UserID("Alice <alice@example.org>")).is_ok());
+
+
+        // 4. Use --email-or-add to certify "<alice@example.com>",
+        // which is not part of a self signed user ID.
+
+        // This fails with --email, because it expects a self-signed
+        // user ID.
+        assert!(vouch_maybe(
+            &mut sq, cert.key_handle(),
+            UserIDArg::Email("alice@example.com")).is_err());
+
+        // But it works with --email-or-add.
+        vouch(&mut sq,
+              cert.key_handle(), UserIDArg::AddEmail("alice@example.com"));
+        assert!(sq.pki_authenticate(
+            &[], &fpr, UserIDArg::UserID("<alice@example.com>")).is_ok());
+    }
 }

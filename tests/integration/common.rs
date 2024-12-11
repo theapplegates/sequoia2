@@ -1943,6 +1943,29 @@ impl Sq {
         }
     }
 
+    /// Lookup a binding.
+    pub fn pki_lookup<'a, U>(&self, extra_args: &[&str],
+                             userid: U)
+        -> Result<()>
+        where U: Into<UserIDArg<'a>>,
+    {
+        let mut cmd = self.command();
+        cmd.args([ "pki", "lookup", "--show-paths" ]);
+        for arg in extra_args {
+            cmd.arg(arg);
+        }
+        userid.into().as_arg(&mut cmd);
+
+        let output = self.run(cmd, None);
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!(format!(
+                "Command failed:\n{}",
+                String::from_utf8_lossy(&output.stderr))))
+        }
+    }
+
     pub fn sign<'a, H, Q>(&self,
                           signer: H,
                           password_file: Option<&Path>,

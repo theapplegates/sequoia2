@@ -235,6 +235,7 @@ pub enum UserIDArg<'a> {
     Name(&'a str),
     AddUserID(&'a str),
     AddEmail(&'a str),
+    ByEmail(&'a str),
 }
 
 impl<'a> From<&'a str> for UserIDArg<'a> {
@@ -263,7 +264,8 @@ impl UserIDArg<'_> {
                 | UserIDArg::Email(s)
                 | UserIDArg::Name(s)
                 | UserIDArg::AddUserID(s)
-                | UserIDArg::AddEmail(s) =>
+                | UserIDArg::AddEmail(s)
+                | UserIDArg::ByEmail(s) =>
             {
                 s
             }
@@ -283,6 +285,8 @@ impl UserIDArg<'_> {
                 cmd.arg("--userid-or-add").arg(userid),
             UserIDArg::AddEmail(email) =>
                 cmd.arg("--email-or-add").arg(email),
+            UserIDArg::ByEmail(email) =>
+                cmd.arg("--userid-by-email").arg(email),
         };
     }
 
@@ -301,6 +305,8 @@ impl UserIDArg<'_> {
             UserIDArg::AddUserID(userid) =>
                 unreachable!(),
             UserIDArg::AddEmail(email) =>
+                unreachable!(),
+            UserIDArg::ByEmail(userid) =>
                 unreachable!(),
         };
     }

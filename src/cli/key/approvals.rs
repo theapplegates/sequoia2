@@ -107,7 +107,7 @@ pub struct ListCommand {
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::ExactArgs,
+        userid_designator::PlainByArgs,
         userid_designator::OptionalValue>,
 
     #[clap(
@@ -243,7 +243,7 @@ pub struct UpdateCommand {
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::ExactArgs,
+        userid_designator::PlainByArgs,
         userid_designator::OptionalValue>,
 
     #[clap(

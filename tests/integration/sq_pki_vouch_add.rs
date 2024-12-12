@@ -545,7 +545,11 @@ fn userid_designators() {
         };
 
         let (cert, cert_path, _rev_path) = sq.key_generate(
-            &[], &["Alice <alice@example.org>", "Alice <alice@an.org>" ]);
+            &[], &[
+                "Alice <alice@example.org>",
+                "Alice <alice@an.org>",
+                "Alice <alice@third.org>",
+            ]);
         let fpr = cert.fingerprint().to_string();
         sq.key_import(cert_path);
 
@@ -602,5 +606,18 @@ fn userid_designators() {
               cert.key_handle(), UserIDArg::AddEmail("alice@example.com"));
         assert!(sq.pki_authenticate(
             &[], &fpr, UserIDArg::UserID("<alice@example.com>")).is_ok());
+
+        // Use --email-or-add to link "<alice@third.org>", which is
+        // part of the self signed user ID "Alice <alice@third.org>".
+        // This should link "<alice@third.org>", not the self-signed
+        // user ID.
+        vouch(&mut sq,
+              cert.key_handle(), UserIDArg::AddEmail("alice@third.org"));
+        assert!(sq.pki_authenticate(
+            &[], &fpr, UserIDArg::UserID("<alice@third.org>")).is_ok());
+        if ! authorize {
+            assert!(sq.pki_authenticate(
+                &[], &fpr, UserIDArg::UserID("Alice <alice@third.org>")).is_err());
+        }
     }
 }

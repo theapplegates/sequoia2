@@ -320,9 +320,7 @@ fn userid_designators() {
                    UserIDArg::Email(other_email)).is_err());
     revocations(&sq, cert.key_handle(), other_userid, 0);
 
-    // 4. --email-or-add: use the self-signed user ID with the
-    // specified email address, or use a user ID with the email
-    // address.
+    // 4. --email-or-add: use a user ID with the email address.
     let (cert, fpr, sq) = setup();
 
     // Self-signed and authenticated.
@@ -330,9 +328,10 @@ fn userid_designators() {
         &[], &fpr, UserIDArg::UserID(self_signed_userid)).is_ok());
     assert!(revoke(&sq, cert.key_handle(),
                    UserIDArg::AddEmail(self_signed_email)).is_ok());
-    revocations(&sq, cert.key_handle(), self_signed_userid, 1);
+    revocations(&sq, cert.key_handle(), self_signed_userid, 0);
+    revocations(&sq, cert.key_handle(), &format!("<{}>", self_signed_email), 1);
     assert!(sq.pki_authenticate(
-        &[], &fpr, UserIDArg::UserID(self_signed_userid)).is_err());
+        &[], &fpr, UserIDArg::UserID(&format!("<{}>", self_signed_email))).is_err());
 
     // Authenticated, but not self-signed.
     assert!(sq.pki_authenticate(

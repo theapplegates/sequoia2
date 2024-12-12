@@ -180,7 +180,7 @@ pub struct AddCommand {
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::AllExactAndAddArgs>,
+        userid_designator::AllPlainByAndAddArgs>,
 
     #[clap(
         long = "amount",
@@ -344,7 +344,7 @@ pub struct AuthorizeCommand {
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::AllExactAndAddArgs>,
+        userid_designator::AllPlainByAndAddArgs>,
 
     #[clap(
         long = "amount",
@@ -535,7 +535,7 @@ with the email address alice@example.org.",
             command: &[
                 "sq", "pki", "link", "add",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--email=alice@example.org",
+                "--email-or-add=alice@example.org",
             ],
             hide: &[],
         }),

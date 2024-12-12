@@ -169,20 +169,26 @@ where
                                 ambiguous_email = true;
                             }
 
-                            if semantics == &Exact || semantics == &Add {
+                            found = true;
+
+                            if semantics == &By {
                                 userids.push(designator.clone()
                                              .resolve_to(ua.userid().clone()));
                             } else {
                                 userids.push(designator.clone()
                                              .resolve_to(email_userid.clone()));
+                                // Since we're not returning the
+                                // matching self-signed user ID, we
+                                // don't need to worry about ambiguous
+                                // matches.
+                                break;
                             }
-                            found = true;
                         }
                     }
 
                     if ! found {
                         match semantics {
-                            Exact => {
+                            Exact | By => {
                                 eprintln!("None of the self-signed user IDs \
                                            are for the email address {:?}.",
                                           email);
@@ -221,21 +227,27 @@ where
                                     ambiguous_name = true;
                                 }
 
-                                if semantics == &Exact || semantics == &Add {
+                                found = true;
+
+                                if semantics == &By {
                                     userids.push(designator.clone()
                                                  .resolve_to(ua.userid().clone()));
                                 } else {
                                     userids.push(designator.clone()
                                                  .resolve_to(name_userid.clone()));
+                                    // Since we're not returning the
+                                    // matching self-signed user ID, we
+                                    // don't need to worry about ambiguous
+                                    // matches.
+                                    break;
                                 }
-                                found = true;
                             }
                         }
                     }
 
                     if ! found {
                         match semantics {
-                            Exact => {
+                            Exact | By => {
                                 eprintln!("None of the self-signed user IDs \
                                            are for the display name {:?}.",
                                           name);

@@ -219,7 +219,7 @@ pub struct RevokeCommand {
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::ExactAndAddArgs,
+        userid_designator::PlainByAndAddArgs,
         userid_designator::OneValue>,
 
     #[clap(

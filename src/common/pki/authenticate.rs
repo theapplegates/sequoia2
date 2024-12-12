@@ -170,7 +170,7 @@ pub fn authenticate<'store, 'rstore>(
             .into_iter()
             .map(|fpr| (fpr, UserID::from(userid)))
             .collect();
-    } else if let Some(certs) = certs {
+    } else if let Some(certs) = &certs {
         // List all certs.
         t!("Authenticating given certs");
         bindings = certs.iter().flat_map(|cert| {
@@ -273,7 +273,7 @@ pub fn authenticate<'store, 'rstore>(
     // We didn't show anything.  Try to figure out what was wrong.
     if lint_input {
         // See if the target certificate exists.
-        if let Some(cert) = certificate {
+        for cert in certificate.iter().cloned().chain(certs.iter().flatten()) {
             match cert.with_policy(sq.policy, sq.time) {
                 Ok(vc) => {
                     // The certificate is valid under the current

@@ -103,7 +103,7 @@ pub fn authenticate<'store, 'rstore>(
     let email = userid_designator.map(|u| u.is_email()).unwrap_or(false);
     let userid = userid_designator.map(|u| u.value());
 
-    let mut bindings = Vec::new();
+    let mut bindings: Vec<(Fingerprint, Option<UserID>)> = Vec::new();
     if matches!(userid, Some(_)) && email {
         t!("Authenticating email: {:?}", userid);
 
@@ -128,18 +128,23 @@ pub fn authenticate<'store, 'rstore>(
         bindings = if let Some(fingerprint) = fingerprint.as_ref() {
             n.certified_userids_of(fingerprint)
                 .into_iter()
-                .map(|userid| (fingerprint.clone(), userid))
+                .map(|userid| (fingerprint.clone(), Some(userid)))
                 .collect::<Vec<_>>()
         } else {
             n.lookup_synopses_by_email(&email)
+                .into_iter()
+                .map(|(fp, userid)| (fp, Some(userid)))
+                .collect()
         };
 
         let email_normalized = userid_check.email_normalized()
             .expect("checked").expect("checked");
         bindings = bindings.into_iter()
             .filter_map(|(fingerprint, userid_other)| {
-                if let Ok(Some(email_other_normalized))
-                    = userid_other.email_normalized()
+                if let Some(email_other_normalized)
+                    = userid_other.as_ref()
+                    .and_then(|u| u.email_normalized().ok())
+                    .flatten()
                 {
                     if email_normalized == email_other_normalized {
                         Some((fingerprint, userid_other.clone()))
@@ -153,13 +158,13 @@ pub fn authenticate<'store, 'rstore>(
     } else if let Some(fingerprint) = fingerprint.as_ref() {
         if let Some(userid) = userid {
             t!("Authenticating {}, {:?}", fingerprint, userid);
-            bindings.push((fingerprint.clone(), UserID::from(userid)));
+            bindings.push((fingerprint.clone(), Some(UserID::from(userid))));
         } else {
             // Fingerprint, no User ID.
             t!("Authenticating {}", fingerprint);
             bindings = n.certified_userids_of(&fingerprint)
                 .into_iter()
-                .map(|userid| (fingerprint.clone(), userid))
+                .map(|userid| (fingerprint.clone(), Some(userid)))
                 .collect();
         }
     } else if let Some(userid) = userid {
@@ -168,7 +173,7 @@ pub fn authenticate<'store, 'rstore>(
         t!("Authenticating user ID: {:?}", userid);
         bindings = n.lookup_synopses_by_userid(UserID::from(userid))
             .into_iter()
-            .map(|fpr| (fpr, UserID::from(userid)))
+            .map(|fpr| (fpr, Some(UserID::from(userid))))
             .collect();
     } else if let Some(certs) = &certs {
         // List all certs.
@@ -176,14 +181,17 @@ pub fn authenticate<'store, 'rstore>(
         bindings = certs.iter().flat_map(|cert| {
             let fp = cert.fingerprint();
             let userids = n.certified_userids_of(&fp);
-            userids.into_iter().map(move |uid| (fp.clone(), uid))
+            userids.into_iter().map(move |uid| (fp.clone(), Some(uid)))
         }).collect();
     } else {
         // No User ID, no Fingerprint.
         // List everything.
         t!("Authenticating everything");
 
-        bindings = n.certified_userids();
+        bindings = n.certified_userids()
+            .into_iter()
+            .map(|(fp, userid)| (fp, Some(userid)))
+            .collect();
 
         if let Some(ref pattern) = list_pattern {
             // Or rather, just User IDs that match the pattern.
@@ -195,22 +203,28 @@ pub fn authenticate<'store, 'rstore>(
                     if email {
                         // Compare with the normalized email address,
                         // and the raw email address.
-                        if let Ok(Some(email)) = userid.email_normalized() {
+                        if let Some(email) = userid.as_ref()
+                            .and_then(|u| u.email_normalized().ok())
+                            .flatten()
+                        {
                             // A normalized email is already lowercase.
                             if email.contains(&pattern) {
                                 return true;
                             }
                         }
 
-                        if let Ok(Some(email)) = userid.email2() {
+                        if let Some(email) = userid.as_ref()
+                            .and_then(|u| u.email2().ok())
+                            .flatten()
+                        {
                             if email.to_lowercase().contains(&pattern) {
                                 return true;
                             }
                         }
 
                         return false;
-                    } else if let Ok(userid)
-                        = std::str::from_utf8(userid.value())
+                    } else if let Some(userid) = userid.as_ref()
+                        .and_then(|u| std::str::from_utf8(u.value()).ok())
                     {
                         userid.to_lowercase().contains(&pattern)
                     } else {
@@ -235,6 +249,12 @@ pub fn authenticate<'store, 'rstore>(
         o, &sq, required_amount, show_paths);
 
     for (fingerprint, userid) in bindings.iter() {
+        let userid = if let Some(u) = userid {
+            u
+        } else {
+            continue;
+        };
+
         let paths = if gossip {
             n.gossip(fingerprint.clone(), userid.clone())
         } else {

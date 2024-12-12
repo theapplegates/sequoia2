@@ -12,16 +12,19 @@ use openpgp::cert::amalgamation::ValidateAmalgamation;
 
 use crate::Result;
 use crate::cli::types::UserIDDesignators;
-use crate::cli::types::userid_designator::AddEmailArg;
-use crate::cli::types::userid_designator::AddUserIDArg;
+use crate::cli::types::userid_designator::AddArgs;
 use crate::cli::types::userid_designator::ResolvedUserID;
 use crate::cli::types::userid_designator::UserIDDesignator;
+use crate::cli::types::userid_designator::UserIDDesignatorSemantics;
 use crate::common::userid::lint_email;
 use crate::common::userid::lint_name;
 use crate::common::userid::lint_userid;
 use crate::sq::NULL_POLICY;
 
-impl<Arguments, Options> UserIDDesignators<Arguments, Options>
+const TRACE: bool = false;
+
+impl<Arguments, Options, Documentation>
+    UserIDDesignators<Arguments, Options, Documentation>
 where
     Arguments: typenum::Unsigned,
 {
@@ -44,9 +47,11 @@ where
     /// is, if multiple designators resolve to the same user ID, only
     /// one is kept.
     pub fn resolve(&self, vc: &ValidCert) -> Result<Vec<ResolvedUserID>> {
+        tracer!(TRACE, "UserIDDesignators::resolve");
+        t!("{:?}", self.designators);
+
         let arguments = Arguments::to_usize();
-        let add_userid_arg = (arguments & AddUserIDArg::to_usize()) > 0;
-        let add_email_arg = (arguments & AddEmailArg::to_usize()) > 0;
+        let add_args = (arguments & AddArgs::to_usize()) > 0;
 
         // Find the matching User IDs.
         let mut userids = Vec::new();
@@ -97,11 +102,9 @@ where
         }
 
         for designator in self.iter() {
+            use UserIDDesignatorSemantics::*;
             match designator {
-                UserIDDesignator::UserID(userid)
-                    | UserIDDesignator::AnyUserID(userid)
-                    | UserIDDesignator::AddUserID(userid) =>
-                {
+                UserIDDesignator::UserID(semantics, userid) => {
                     let userid = UserID::from(&userid[..]);
 
                     if let Some(_) = vc.userids()
@@ -110,10 +113,7 @@ where
                         })
                     {
                         userids.push(designator.resolve_to(userid.clone()));
-                    } else if matches!(designator,
-                                       UserIDDesignator::AnyUserID(_)
-                                       | UserIDDesignator::AddUserID(_))
-                    {
+                    } else if semantics == &Add {
                         if ! self.allow_non_canonical_userids {
                             // We're going to add a user ID.  Lint it
                             // first.
@@ -126,12 +126,9 @@ where
                         missing = true;
                     }
                 }
-                UserIDDesignator::Email(email)
-                    | UserIDDesignator::AnyEmail(email)
-                    | UserIDDesignator::AddEmail(email) =>
-                {
+                UserIDDesignator::Email(semantics, email) => {
                     // Validate the email address.
-                    let userid = match UserID::from_address(None, None, email) {
+                    let email_userid = match UserID::from_address(None, None, email) {
                         Ok(userid) => userid,
                         Err(err) => {
                             weprintln!("{:?} is not a valid email address: {}",
@@ -143,7 +140,7 @@ where
 
                     // Extract a normalized version for comparison
                     // purposes.
-                    let email_normalized = match userid.email_normalized() {
+                    let email_normalized = match email_userid.email_normalized() {
                         Ok(Some(email)) => email,
                         Ok(None) => {
                             weprintln!("{:?} is not a valid email address", email);
@@ -159,7 +156,7 @@ where
                         }
                     };
 
-                    // Find any the matching self-signed user IDs.
+                    // Find any matching self-signed user IDs.
                     let mut found = false;
                     for ua in vc.userids() {
                         if Some(&email_normalized)
@@ -172,35 +169,40 @@ where
                                 ambiguous_email = true;
                             }
 
-                            userids.push(designator.clone()
-                                         .resolve_to(ua.userid().clone()));
+                            if semantics == &Exact || semantics == &Add {
+                                userids.push(designator.clone()
+                                             .resolve_to(ua.userid().clone()));
+                            } else {
+                                userids.push(designator.clone()
+                                             .resolve_to(email_userid.clone()));
+                            }
                             found = true;
                         }
                     }
 
                     if ! found {
-                        if matches!(designator, UserIDDesignator::Email(_)) {
-                            eprintln!("None of the self-signed user IDs \
-                                       are for the email address {:?}.",
-                                      email);
-                            missing = true;
-                        } else {
-                            if ! self.allow_non_canonical_userids {
-                                // We're going to add a user ID.  Lint it
-                                // first.
-                                lint_email(email)?;
+                        match semantics {
+                            Exact => {
+                                eprintln!("None of the self-signed user IDs \
+                                           are for the email address {:?}.",
+                                          email);
+                                missing = true;
                             }
-                            userids.push(
-                                designator.clone().resolve_to(userid));
+                            Add => {
+                                if ! self.allow_non_canonical_userids {
+                                    // We're going to add a user ID.  Lint it
+                                    // first.
+                                    lint_email(email)?;
+                                }
+                                userids.push(
+                                    designator.clone().resolve_to(email_userid));
+                            }
                         }
                     }
                 }
-                UserIDDesignator::Name(name)
-                    | UserIDDesignator::AnyName(name)
-                    | UserIDDesignator::AddName(name) =>
-                {
-                    let userid = UserID::from(&name[..]);
-                    if userid.name2().ok() != Some(Some(&name[..])) {
+                UserIDDesignator::Name(semantics, name) => {
+                    let name_userid = UserID::from(&name[..]);
+                    if name_userid.name2().ok() != Some(Some(&name[..])) {
                         let err = format!("{:?} is not a valid display name",
                                           name);
                         weprintln!("{}", err);
@@ -219,27 +221,35 @@ where
                                     ambiguous_name = true;
                                 }
 
-                                userids.push(designator.clone()
-                                             .resolve_to(ua.userid().clone()));
+                                if semantics == &Exact || semantics == &Add {
+                                    userids.push(designator.clone()
+                                                 .resolve_to(ua.userid().clone()));
+                                } else {
+                                    userids.push(designator.clone()
+                                                 .resolve_to(name_userid.clone()));
+                                }
                                 found = true;
                             }
                         }
                     }
 
                     if ! found {
-                        if matches!(designator, UserIDDesignator::Name(_)) {
-                            eprintln!("None of the self-signed user IDs \
-                                       are for the display name {:?}.",
-                                      name);
-                            missing = true;
-                        } else {
-                            if ! self.allow_non_canonical_userids {
-                                // We're going to add a user ID.  Lint it
-                                // first.
-                                lint_name(&name[..])?;
+                        match semantics {
+                            Exact => {
+                                eprintln!("None of the self-signed user IDs \
+                                           are for the display name {:?}.",
+                                          name);
+                                missing = true;
                             }
-                            userids.push(designator.resolve_to(
-                                UserID::from(&name[..])));
+                            Add => {
+                                if ! self.allow_non_canonical_userids {
+                                    // We're going to add a user ID.  Lint it
+                                    // first.
+                                    lint_name(&name[..])?;
+                                }
+                                userids.push(designator.resolve_to(
+                                    name_userid));
+                            }
                         }
                     }
                 }
@@ -284,7 +294,7 @@ where
         }
 
         if missing {
-            if add_userid_arg && add_email_arg {
+            if add_args {
                 weprintln!("Use `--userid-or-add` or `--email-or-add` to use \
                             a user ID even if it isn't self signed, or has \
                             an invalid self signature.");
@@ -314,6 +324,13 @@ where
         let mut seen = HashSet::new();
         userids.retain(|userid| seen.insert(userid.userid().clone()));
 
+        t!(" => {:?}",
+           userids.iter()
+               .map(|u| {
+                   String::from_utf8_lossy(u.userid().value()).to_string()
+               })
+               .collect::<Vec<String>>()
+               .join(", "));
         Ok(userids)
     }
 }

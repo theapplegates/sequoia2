@@ -100,8 +100,28 @@ pub fn authenticate<'store, 'rstore>(
 
     let fingerprint: Option<Fingerprint> = certificate.map(|c| c.fingerprint());
 
-    let email = userid_designator.map(|u| u.is_email()).unwrap_or(false);
-    let userid = userid_designator.map(|u| u.value());
+    // If email is true, then userid is an unbracketed email address.
+    let (userid, email) = if let Some(designator) = userid_designator {
+        t!("User ID: {:?}", designator);
+
+        use userid_designator::UserIDDesignator::*;
+        // use userid_designator::UserIDDesignatorSemantics::*;
+        match designator {
+            UserID(_semantics, userid) => {
+                (Some(&userid[..]), false)
+            }
+            Email(_semantics, email) => {
+                // Match all user IDs with the specified email
+                // address.
+                (Some(&email[..]), true)
+            }
+            Name(_semantics, _name) => {
+                unimplemented!("--name not implement");
+            }
+        }
+    } else {
+        (None, false)
+    };
 
     let mut bindings: Vec<(Fingerprint, Option<UserID>)> = Vec::new();
     if matches!(userid, Some(_)) && email {

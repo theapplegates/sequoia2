@@ -337,26 +337,21 @@ The certifier is the same as the certificate to certify."));
                         }
                     }
                 }
-            } else if userid.existing() {
-                if retract {
-                    qprintln!("You never certified {:?} for {}, \
-                               there is nothing to retract.",
-                              userid_str(), cert.fingerprint());
-                    if user_supplied_userids {
-                        return Err(anyhow::anyhow!(
-                            "You never certified {:?} for {}, \
-                             there is nothing to retract.",
-                            userid_str(), cert.fingerprint()));
-                    } else {
-                        // Return a signature packet to indicate that we
-                        // processed something.  But don't return a
-                        // signature.
-                        return Ok(vec![ Packet::from(userid.userid().clone()) ]);
-                    }
-                } else {
+            } else if retract {
+                qprintln!("You never certified {:?} for {}, \
+                           there is nothing to retract.",
+                          userid_str(), cert.fingerprint());
+                if user_supplied_userids {
                     return Err(anyhow::anyhow!(
-                        "{:?} is NOT a self-signed user ID.",
-                        userid_str()));
+                        "You never certified {:?} for {}, \
+                         there is nothing to retract.",
+                        userid_str(), cert.fingerprint()));
+                } else {
+                    // The user passed --all.  Don't error out if some
+                    // user IDs were not linked.  Instead, return a
+                    // signature packet to indicate that we processed
+                    // something; just don't return a signature.
+                    return Ok(vec![ Packet::from(userid.userid().clone()) ]);
                 }
             }
 

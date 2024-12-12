@@ -11,90 +11,38 @@ use openpgp::packet::UserID;
 /// Adds a `--all` argument.
 pub type AllUserIDsArg = typenum::U1;
 
-/// Adds a `--userid` argument.  The value must correspond to a
-/// self-signed user ID.  Conflicts with `AnyUserIDArg`.
-pub type ExistingUserIDArg = typenum::U2;
+/// Adds `--userid` `--email`, and `--name` arguments.
+///
+/// For `UserIDDesignator::resolve`, the value must match on a
+/// self-signed user ID, and returns the value as is.
+pub type ExactArgs = typenum::U2;
 
-/// Adds a `--email` argument.  The value must correspond to a
-/// self-signed user ID.  Conflicts with `AnyEmailArg`.
-pub type ExistingEmailArg = typenum::U4;
+/// Adds a `--userid-or-add`, `--email-or-add`, and `--name-or-add`
+/// argument.
+///
+/// For `UserIDDesignator::resolve`, acts like `ExactArgs`, but if
+/// there is no matching self-signed user ID, creates one from the
+/// value.
+pub type AddArgs = typenum::U4;
 
-/// Adds a `--name` argument.  The value need not correspond to a
-/// self-signed user ID.
-pub type ExistingNameArg = typenum::U8;
+/// Requires AddArgs, conflicts with ExactArgs.  Renames AddArgs'
+/// arguments to `--userid`, `--email`, and `--name`.
+pub type PlainIsAdd = typenum::U8;
 
-/// Adds a `--userid` argument.  Unlike ExistingUserIDArg, the value
-/// need not correspond to a self-signed user ID.  Conflicts with
-/// `ExistingUserIDArg`.
-pub type AnyUserIDArg = typenum::U16;
 
-/// Adds a `--email` argument.  Unlike ExistingEmailArg, the value
-/// need not correspond to a self-signed user ID.  Conflicts with
-/// `ExistingEmailArg`.
-pub type AnyEmailArg = typenum::U32;
+pub type PlainAddArgs
+    = <AddArgs as std::ops::BitOr<PlainIsAdd>>::Output;
 
-/// Adds a `--name` argument.  Unlike ExistingNameArg, the value
-/// need not correspond to a self-signed user ID.  Conflicts with
-/// `ExistingEmailArg`.
-pub type AnyNameArg = typenum::U64;
+pub type AllPlainAddArgs
+    = <AllUserIDsArg as std::ops::BitOr<PlainAddArgs>>::Output;
 
-/// Adds a `--userid-or-add` argument.
-pub type AddUserIDArg = typenum::U128;
+pub type ExactAndAddArgs
+    = <<ExactArgs as std::ops::BitOr<AddArgs>>::Output
+       as std::ops::BitOr<AddArgs>>::Output;
 
-/// Adds a `--email-or-add` argument.
-pub type AddEmailArg = typenum::U256;
-
-/// Adds a `--name-or-add` argument.  The value need not correspond to a
-/// self-signed user ID.
-pub type AddNameArg = typenum::U512;
-
-/// Enables --userid, and --email.
-pub type ExistingUserIDEmailArgs
-    = <ExistingUserIDArg as std::ops::BitOr<ExistingEmailArg>>::Output;
-
-/// Enables --userid, --email, --name.
-pub type ExistingUserIDEmailNameArgs
-    = <ExistingUserIDEmailArgs as std::ops::BitOr<ExistingNameArg>>::Output;
-
-/// Enables --userid, and --email.
-pub type AnyUserIDEmailArgs
-    = <AnyUserIDArg as std::ops::BitOr<AnyEmailArg>>::Output;
-
-/// Enables --userid, --email, and --name.
-pub type AnyUserIDEmailNameArgs
-    = <AnyUserIDEmailArgs as std::ops::BitOr<AnyNameArg>>::Output;
-
-/// Enables --userid-or-add, and --email-or-add.
-pub type AddUserIDEmailArgs
-    = <AddUserIDArg as std::ops::BitOr<AddEmailArg>>::Output;
-
-/// Enables --userid, --email, --userid-or-add, and --email-or-add.
-pub type ExistingAndAddXUserIDEmailArgs
-    = <ExistingUserIDEmailArgs
-       as std::ops::BitOr<AddUserIDEmailArgs>>::Output;
-
-/// Enables --all, --userid, --email, --userid-or-add, and --email-or-add.
-pub type AllExistingAndAddXUserIDEmailArgs
-    = <AllUserIDsArg
-       as std::ops::BitOr<ExistingAndAddXUserIDEmailArgs>>::Output;
-
-/// Enables --all, --userid, and --email.
-pub type AllAnyUserIDEmailArgs
-    = <AllUserIDsArg as std::ops::BitOr<AnyUserIDEmailArgs>>::Output;
-
-/// Enables --userid, --email, --name, --userid-or-add,
-/// --email-or-add, and --name-or-add.
-pub type ExistingAndAddXUserIDEmailNameArgs
-    = <<ExistingAndAddXUserIDEmailArgs
-        as std::ops::BitOr<ExistingNameArg>>::Output
-       as std::ops::BitOr<AddNameArg>>::Output;
-
-/// Enables --all, --userid, --email, --name, --userid-or-add,
-/// --email-or-add, and --name-or-add.
-#[cfg(test)]
-pub type AllExistingAndAddXUserIDEmailNameArgs
-    = <AllUserIDsArg
-       as std::ops::BitOr<ExistingAndAddXUserIDEmailNameArgs>>::Output;
+pub type AllExactAndAddArgs
+    = <<AllUserIDsArg as std::ops::BitOr<ExactAndAddArgs>>::Output
+       as std::ops::BitOr<AddArgs>>::Output;
 
 /// Argument parser options.
 
@@ -120,90 +68,235 @@ pub type OneValueNoLinting
 pub type AllMatchesNonSelfSignedNoLinting
     = <AllMatchesNonSelfSigned as std::ops::BitOr<NoLinting>>::Output;
 
+
+/// The documentation.
+pub trait Documentation {
+    /// Returns the help text to display.
+    fn help(typ: UserIDDesignatorType,
+            plain: bool,
+            semantics: UserIDDesignatorSemantics)
+        -> (&'static str, Option<&'static str>);
+}
+
+/// Documentation for user ID designators when the designator selects
+/// a self-signed user ID in a certificate.
+///
+/// This is for commands like `sq key userid revoke`.
+#[derive(Debug, Clone)]
+pub struct SelfSignedDocumentation(());
+
+impl Documentation for SelfSignedDocumentation {
+    fn help(typ: UserIDDesignatorType,
+            plain: bool,
+            semantics: UserIDDesignatorSemantics)
+        -> (&'static str, Option<&'static str>)
+    {
+        use UserIDDesignatorType::*;
+        use UserIDDesignatorSemantics::*;
+        match (typ, semantics) {
+            (UserID, Exact) => {
+                ("Use the specified self-signed user ID",
+                 Some("\
+Use the specified self-signed user ID
+
+The specified user ID must be self signed."))
+            }
+            (UserID, Add) => {
+                ("Use the specified user ID",
+                 if plain {
+                     Some("\
+Use the specified user ID
+
+The specified user ID does not need to be self signed.")
+                 } else {
+                     Some("\
+Use the specified user ID
+
+The specified user ID does not need to be self signed.
+
+Because using a user ID that is not self-signed is often a mistake, \
+you need to use this option to explicitly opt in.")
+                 })
+            }
+            (Email, Exact) => {
+                ("Use the self-signed user ID with the specified email address",
+                 None)
+            }
+            (Email, Add) => {
+                ("\
+Use the self-signed user ID with the specified email address or use a \
+new user ID",
+                 Some("\
+Use the self-signed user ID with the specified email address or use a \
+new user ID
+
+This first searches for a matching self-signed user ID.  If there is \
+no self-signed user ID with the specified email, it uses \
+a new user ID with the specified email address, and no display name."))
+            }
+            (Name, Exact) => {
+                ("Use the self-signed user ID with the specified display name",
+                 None)
+            }
+            (Name, Add) => {
+                ("\
+Use the self-signed user ID with the specified display name or use a \
+new user ID",
+                 Some("\
+Use the self-signed user ID with the specified display name or use a \
+new user ID
+
+This first searches for a matching self-signed user ID.  If there is \
+no self-signed user ID with the specified name, it uses a new user ID \
+with the specified display name, and no email address."))
+            }
+        }
+    }
+}
+
+/// Documentation for user ID designators when the designator selects
+/// any user ID (i.e. not just self signed user IDs).
+///
+/// This is for commands like `sq pki authenticate`.
+#[derive(Debug, Clone)]
+pub struct AnyDocumentation(());
+
+impl Documentation for AnyDocumentation {
+    fn help(typ: UserIDDesignatorType,
+            _plain: bool,
+            semantics: UserIDDesignatorSemantics)
+        -> (&'static str, Option<&'static str>)
+    {
+        use UserIDDesignatorType::*;
+        //use UserIDDesignatorSemantics::*;
+        match (typ, semantics) {
+            (UserID, _) => {
+                ("Use the specified user ID",
+                 Some("\
+Use the specified user ID
+
+The specified user ID does not need to be self signed."))
+            }
+            (Email, _) => {
+                ("Use user IDs that contain the specified email address",
+                 None)
+            }
+            (Name, _) => {
+                ("Use user IDs that contain the specified display name",
+                 None)
+            }
+        }
+    }
+}
+
+/// The designator type.
+pub enum UserIDDesignatorType {
+    /// --userid.
+    UserID,
+    /// --email.
+    Email,
+    /// --name.
+    Name,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UserIDDesignatorSemantics {
+    /// For `UserIDDesignator::resolve`, the value must match on a
+    /// self-signed user ID and returns the self-signed user ID.  That
+    /// is, if there is a self-signed user ID "Alice
+    /// <alice@example.org>", "--email alice@example.org" matches and
+    /// returns the user ID "Alice <alice@example.org>".
+    Exact,
+
+    /// For `UserIDDesignator::resolve`, acts like `ExactArgs`, but if
+    /// there is no matching self-signed user ID, creates one from the
+    /// value.
+    Add,
+}
+
+#[allow(unused)]
+impl UserIDDesignatorSemantics {
+    /// If `self` is `UserIDDesignatorSemantics::Exact`.
+    fn is_exact(&self) -> bool {
+        matches!(self, &UserIDDesignatorSemantics::Exact)
+    }
+
+    /// If `self` is `UserIDDesignatorSemantics::Add`.
+    fn is_add(&self) -> bool {
+        matches!(self, &UserIDDesignatorSemantics::Add)
+    }
+}
+
 /// A user ID designator.
 #[derive(Debug, Clone)]
 pub enum UserIDDesignator {
-    /// A self-signed user ID.
-    UserID(String),
-
-    /// A self-signed email address.
-    Email(String),
-
-    /// A self-signed display name.
-    Name(String),
-
     /// A user ID.
-    AnyUserID(String),
+    UserID(UserIDDesignatorSemantics, String),
 
     /// An email address.
-    AnyEmail(String),
+    Email(UserIDDesignatorSemantics, String),
 
-    /// A name.
-    AnyName(String),
-
-    /// A user ID.
-    AddUserID(String),
-
-    /// An email address.
-    AddEmail(String),
-
-    /// A name.
-    AddName(String),
+    /// A display name.
+    Name(UserIDDesignatorSemantics, String),
 }
 
 #[allow(dead_code)]
 impl UserIDDesignator {
-    /// Whether the designator must refer to a valid self signature.
-    pub fn existing(&self) -> bool {
-        use UserIDDesignator::*;
-        matches!(self, UserID(_) | Email(_) | Name(_))
-    }
-
     /// Whether the designator is a user ID.
     pub fn is_userid(&self) -> bool {
         use UserIDDesignator::*;
-        matches!(self, UserID(_) | AnyUserID(_) | AddUserID(_))
+        match self {
+            UserID(_, _) => true,
+            Email(_, _) => false,
+            Name(_, _) => false,
+        }
     }
 
     /// Whether the designator is an email address.
     pub fn is_email(&self) -> bool {
         use UserIDDesignator::*;
-        matches!(self, Email(_) | AnyEmail(_) | AddEmail(_))
+        match self {
+            UserID(_, _) => false,
+            Email(_, _) => true,
+            Name(_, _) => false,
+        }
     }
 
     /// Whether the designator is a display name.
     pub fn is_name(&self) -> bool {
         use UserIDDesignator::*;
-        matches!(self, Name(_) | AnyName(_) | AddName(_))
+        match self {
+            UserID(_, _) => false,
+            Email(_, _) => false,
+            Name(_, _) => true,
+        }
+    }
+
+    /// Returns the semantics.
+    fn semantics(&self) -> &UserIDDesignatorSemantics {
+        use UserIDDesignator::*;
+        match self {
+            UserID(s, _) | Email(s, _) | Name(s, _) => {
+                s
+            }
+        }
+    }
+
+    /// If `self` is `UserIDDesignatorSemantics::Exact`.
+    pub fn is_exact(&self) -> bool {
+        self.semantics().is_exact()
+    }
+
+    /// If `self` is `UserIDDesignatorSemantics::Add`.
+    pub fn is_add(&self) -> bool {
+        self.semantics().is_add()
     }
 
     /// Returns the argument's value.
     pub fn value(&self) -> &str {
         use UserIDDesignator::*;
         match self {
-            UserID(s) | Email(s) | Name(s)
-                | AnyUserID(s) | AnyEmail(s) | AnyName(s)
-                | AddUserID(s) | AddEmail(s) | AddName(s) =>
-            {
-                s
-            }
-        }
-    }
-
-    /// Returns the argument's name, e.g., `--userid`.
-    pub fn argument_name(&self) -> &str
-    {
-        use UserIDDesignator::*;
-        match self {
-            UserID(_userid) => "--userid",
-            Email(_email) => "--email",
-            Name(_name) => "--name",
-            AnyUserID(_userid) => "--userid",
-            AnyEmail(_email) => "--email",
-            AnyName(_name) => "--name",
-            AddUserID(_userid) => "--userid-or-add",
-            AddEmail(_email) => "--email-or-add",
-            AddName(_name) => "--name-or-add",
+            UserID(_, s) | Email(_, s) | Name(_, s) => s,
         }
     }
 
@@ -214,35 +307,9 @@ impl UserIDDesignator {
     {
         use UserIDDesignator::*;
         match self {
-            UserID(userid) => format!("{:?}", userid),
-            Email(email) => format!("{:?}", email),
-            Name(name) => format!("{:?}", name),
-            AnyUserID(userid) => format!("{:?}", userid),
-            AnyEmail(email) => format!("{:?}", email),
-            AnyName(name) => format!("{:?}", name),
-            AddUserID(userid) => format!("{:?}", userid),
-            AddEmail(email) => format!("{:?}", email),
-            AddName(name) => format!("{:?}", name),
-        }
-    }
-
-    /// Returns the argument's name and value, e.g., `--userid-or-add
-    /// userid`.
-    pub fn argument(&self) -> String
-    {
-        let argument_name = self.argument_name();
-
-        use UserIDDesignator::*;
-        match self {
-            UserID(userid) => format!("{} {:?}", argument_name, userid),
-            Email(email) => format!("{} {:?}", argument_name, email),
-            Name(name) => format!("{} {:?}", argument_name, name),
-            AnyUserID(userid) => format!("{} {:?}", argument_name, userid),
-            AnyEmail(email) => format!("{} {:?}", argument_name, email),
-            AnyName(name) => format!("{} {:?}", argument_name, name),
-            AddUserID(userid) => format!("{} {:?}", argument_name, userid),
-            AddEmail(email) => format!("{} {:?}", argument_name, email),
-            AddName(name) => format!("{} {:?}", argument_name, name),
+            UserID(userid, _) => format!("{:?}", userid),
+            Email(email, _) => format!("{:?}", email),
+            Name(name, _) => format!("{:?}", name),
         }
     }
 
@@ -261,11 +328,11 @@ impl UserIDDesignator {
     pub fn resolve_to_self(&self) -> ResolvedUserID {
         use UserIDDesignator::*;
         let userid = match self {
-            UserID(userid) | AnyUserID(userid) | AddUserID(userid) =>
+            UserID(_, userid) =>
                 openpgp::packet::UserID::from(&userid[..]),
-            Email(email) | AnyEmail(email) | AddEmail(email) =>
+            Email(_, email) =>
                 openpgp::packet::UserID::from(&format!("<{}>", email)[..]),
-            Name(name) | AnyName(name) | AddName(name) =>
+            Name(_, name) =>
                 openpgp::packet::UserID::from(&name[..]),
         };
 
@@ -280,12 +347,14 @@ impl UserIDDesignator {
 /// adds arguments to address user IDs.
 ///
 /// Depending on `Arguments`, it adds zero or more arguments to the
-/// subcommand.  If `UserIDArg` is selected, for instance, then a
-/// `--userid` argument is added.
+/// subcommand.  If `ExistingUserIDArg` is selected, for instance,
+/// then a `--userid` argument is added.
 ///
 /// `Options` are the set of options to the argument parser.  By
 /// default, at least one user ID designator must be specified.
-pub struct UserIDDesignators<Arguments, Options=typenum::U0>
+pub struct UserIDDesignators<Arguments,
+                             Options=typenum::U0,
+                             Documentation=SelfSignedDocumentation>
 {
     /// The set of certificate designators.
     pub designators: Vec<UserIDDesignator>,
@@ -299,11 +368,11 @@ pub struct UserIDDesignators<Arguments, Options=typenum::U0>
     /// Whether --allow-non-canonical-userids was passed.
     pub allow_non_canonical_userids: bool,
 
-    arguments: std::marker::PhantomData<(Arguments, Options)>,
+    arguments: std::marker::PhantomData<(Arguments, Options, Documentation)>,
 }
 
-impl<Arguments, Options> std::fmt::Debug
-    for UserIDDesignators<Arguments, Options>
+impl<Arguments, Options, Documentation> std::fmt::Debug
+    for UserIDDesignators<Arguments, Options, Documentation>
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("UserIDDesignators")
@@ -314,7 +383,9 @@ impl<Arguments, Options> std::fmt::Debug
 }
 
 #[allow(dead_code)]
-impl<Arguments, Options> UserIDDesignators<Arguments, Options> {
+impl<Arguments, Options, Documentation>
+    UserIDDesignators<Arguments, Options, Documentation>
+{
     /// Like `Vec::push`.
     pub fn push(&mut self, designator: UserIDDesignator) {
         self.designators.push(designator)
@@ -353,30 +424,28 @@ impl<Arguments, Options> UserIDDesignators<Arguments, Options> {
     }
 }
 
-impl<Arguments, Options> clap::Args
-    for UserIDDesignators<Arguments, Options>
+impl<Arguments, Options, Docs> clap::Args
+    for UserIDDesignators<Arguments, Options, Docs>
 where
     Arguments: typenum::Unsigned,
     Options: typenum::Unsigned,
+    Docs: Documentation + std::fmt::Debug,
 {
     fn augment_args(mut cmd: clap::Command) -> clap::Command
     {
         let arguments = Arguments::to_usize();
         let all_arg = (arguments & AllUserIDsArg::to_usize()) > 0;
-        let userid_arg = (arguments & ExistingUserIDArg::to_usize()) > 0;
-        let email_arg = (arguments & ExistingEmailArg::to_usize()) > 0;
-        let name_arg = (arguments & ExistingNameArg::to_usize()) > 0;
-        let any_userid_arg = (arguments & AnyUserIDArg::to_usize()) > 0;
-        let any_email_arg = (arguments & AnyEmailArg::to_usize()) > 0;
-        let any_name_arg = (arguments & AnyNameArg::to_usize()) > 0;
-        let add_userid_arg = (arguments & AddUserIDArg::to_usize()) > 0;
-        let add_email_arg = (arguments & AddEmailArg::to_usize()) > 0;
-        let add_name_arg = (arguments & AddNameArg::to_usize()) > 0;
+        let exact_args = (arguments & ExactArgs::to_usize()) > 0;
+        let add_args = (arguments & AddArgs::to_usize()) > 0;
 
-        // Can't provide both ExistingUserIDArg and AnyUserIDArg.
-        assert!(! (userid_arg && any_userid_arg));
-        assert!(! (email_arg && any_email_arg));
-        assert!(! (name_arg && any_name_arg));
+        let plain_is_add = (arguments & PlainIsAdd::to_usize()) > 0;
+
+        // Can't use PlainIsAdd with ExactArgs.
+        assert!(! (exact_args && plain_is_add));
+        // If plain_is_xxx is set, then by_xxx must be set.
+        if plain_is_add {
+            assert!(add_args);
+        }
 
         let options = Options::to_usize();
         let one_value = (options & OneValue::to_usize()) > 0;
@@ -406,7 +475,7 @@ where
         };
 
         fn parse_as_email(s: &str) -> Result<String> {
-            let userid = UserID::from(format!("<{}>", s));
+            let userid = openpgp::packet::UserID::from(format!("<{}>", s));
             match userid.email_normalized() {
                 Ok(Some(email)) => {
                     Ok(email)
@@ -434,17 +503,21 @@ Use all self-signed user IDs"));
             arg_group = arg_group.arg(full_name);
         }
 
-        if userid_arg {
+        use UserIDDesignatorType::*;
+        use UserIDDesignatorSemantics::*;
+        if exact_args {
             let full_name = "userid";
+            let (help, long_help) = Docs::help(
+                UserID, true, Exact);
+
             let mut arg = clap::Arg::new(&full_name)
                 .long(&full_name)
                 .value_name("USERID")
                 .action(action.clone())
-                .help("Use the specified self-signed user ID")
-                .long_help("\
-Use the specified self-signed user ID
-
-The specified user ID must be self signed.");
+                .help(help);
+            if let Some(long_help) = long_help {
+                arg = arg.long_help(long_help);
+            }
             if all_arg {
                 arg = arg.conflicts_with("all");
             }
@@ -453,17 +526,22 @@ The specified user ID must be self signed.");
             arg_group = arg_group.arg(full_name);
         }
 
-        if any_userid_arg {
-            let full_name = "userid";
+        if add_args {
+            let full_name = if plain_is_add {
+                "userid"
+            } else {
+                "userid-or-add"
+            };
+
+            let (help, long_help) = Docs::help(UserID, false, Add);
             let mut arg = clap::Arg::new(&full_name)
                 .long(&full_name)
                 .value_name("USERID")
                 .action(action.clone())
-                .help("Use the specified user ID")
-                .long_help("\
-Use the specified user ID
-
-The specified user ID does not need to be self signed.");
+                .help(help);
+            if let Some(long_help) = long_help {
+                arg = arg.long_help(long_help);
+            }
             if all_arg {
                 arg = arg.conflicts_with("all");
             }
@@ -472,40 +550,18 @@ The specified user ID does not need to be self signed.");
             arg_group = arg_group.arg(full_name);
         }
 
-        if add_userid_arg {
-            let full_name = "userid-or-add";
-            let mut arg = clap::Arg::new(&full_name)
-                .long(&full_name)
-                .value_name("USERID")
-                .action(action.clone())
-                .help("Use the specified user ID")
-                .long_help("\
-Use the specified user ID
-
-The specified user ID does not need to be self signed.
-
-Because using a user ID that is not self-signed is often a mistake, \
-you need to use this option to explicitly opt in.  That said, \
-certifying a user ID that is not self-signed is useful.  For instance, \
-you can associate an alternate email address with a certificate, or \
-you can add a petname, i.e., a memorable, personal name like \"mom\".");
-            if all_arg {
-                arg = arg.conflicts_with("all");
-            }
-            cmd = cmd.arg(arg);
-
-            arg_group = arg_group.arg(full_name);
-        }
-
-        if email_arg {
+        if exact_args {
             let full_name = "email";
+            let (help, long_help) = Docs::help(Email, true, Exact);
             let mut arg = clap::Arg::new(&full_name)
-                .long(&full_name)
-                .value_name("EMAIL")
-                .value_parser(parse_as_email)
-                .action(action.clone())
-                .help("\
-Use the self-signed user ID with the specified email address");
+                    .long(&full_name)
+                    .value_name("EMAIL")
+                    .value_parser(parse_as_email)
+                    .action(action.clone())
+                    .help(help);
+            if let Some(long_help) = long_help {
+                arg = arg.long_help(long_help);
+            }
             if all_arg {
                 arg = arg.conflicts_with("all");
             }
@@ -514,21 +570,22 @@ Use the self-signed user ID with the specified email address");
             arg_group = arg_group.arg(full_name);
         }
 
-        if any_email_arg {
-            let full_name = "email";
+        if add_args {
+            let full_name = if plain_is_add {
+                "email"
+            } else {
+                "email-or-add"
+            };
+            let (help, long_help) = Docs::help(Email, plain_is_add, Add);
             let mut arg = clap::Arg::new(&full_name)
                 .long(&full_name)
                 .value_name("EMAIL")
                 .value_parser(parse_as_email)
                 .action(action.clone())
-                .help("\
-Use a user ID with the specified email address")
-                .long_help("\
-Use a user ID with the specified email address
-
-This first searches for a matching self-signed user ID.  If there is \
-no self-signed user ID with the specified email, it uses a new user ID \
-with the specified email address, and no display name.");
+                .help(help);
+            if let Some(long_help) = long_help {
+                arg = arg.long_help(long_help);
+            }
             if all_arg {
                 arg = arg.conflicts_with("all");
             }
@@ -537,36 +594,17 @@ with the specified email address, and no display name.");
             arg_group = arg_group.arg(full_name);
         }
 
-        if add_email_arg {
-            let full_name = "email-or-add";
-            let mut arg = clap::Arg::new(&full_name)
-                .long(&full_name)
-                .value_name("EMAIL")
-                .value_parser(parse_as_email)
-                .action(action.clone())
-                .help("Use a user ID with the specified email address")
-                .long_help("\
-Use a user ID with the specified email address
-
-This first searches for a matching self-signed user ID.  If there is \
-no self-signed user ID with the specified email address, it uses a new \
-user ID with the specified email address, and no display name.");
-            if all_arg {
-                arg = arg.conflicts_with("all");
-            }
-            cmd = cmd.arg(arg);
-
-            arg_group = arg_group.arg(full_name);
-        }
-
-        if name_arg {
+        if exact_args {
             let full_name = "name";
+            let (help, long_help) = Docs::help(Name, true, Exact);
             let mut arg = clap::Arg::new(&full_name)
                 .long(&full_name)
                 .value_name("DISPLAY_NAME")
                 .action(action.clone())
-                .help("\
-Use the self-signed user ID with the specified display name");
+                .help(help);
+            if let Some(long_help) = long_help {
+                arg = arg.long_help(long_help);
+            }
             if all_arg {
                 arg = arg.conflicts_with("all");
             }
@@ -575,20 +613,21 @@ Use the self-signed user ID with the specified display name");
             arg_group = arg_group.arg(full_name);
         }
 
-        if any_name_arg {
-            let full_name = "name";
+        if add_args {
+            let full_name = if plain_is_add {
+                "name"
+            } else {
+                "name-or-add"
+            };
+            let (help, long_help) = Docs::help(Name, plain_is_add, Add);
             let mut arg = clap::Arg::new(&full_name)
                 .long(&full_name)
                 .value_name("DISPLAY_NAME")
                 .action(action.clone())
-                .help("\
-Use a user ID with the specified display name")
-                .long_help("\
-Use a user ID with the specified display name
-
-This first searches for a matching self-signed user ID.  If there is \
-no self-signed user ID with the specified name, it uses a new user ID \
-with the specified display name, and no email address.");
+                .help(help);
+            if let Some(long_help) = long_help {
+                arg = arg.long_help(long_help);
+            }
             if all_arg {
                 arg = arg.conflicts_with("all");
             }
@@ -597,32 +636,7 @@ with the specified display name, and no email address.");
             arg_group = arg_group.arg(full_name);
         }
 
-        if add_name_arg {
-            let full_name = "name-or-add";
-            let mut arg = clap::Arg::new(&full_name)
-                .long(&full_name)
-                .value_name("DISPLAY_NAME")
-                .action(action.clone())
-                .help("Use a user ID with the specified display name")
-                .long_help("\
-Use a user ID with the specified display name
-
-This first searches for a matching self-signed user ID.  If there is \
-no self-signed user ID with the specified name, it uses a new user ID \
-with the specified display name, and no email address.");
-            if all_arg {
-                arg = arg.conflicts_with("all");
-            }
-            cmd = cmd.arg(arg);
-
-            arg_group = arg_group.arg(full_name);
-        }
-
-        if ! no_linting
-            && (add_userid_arg || any_userid_arg
-                || add_email_arg || any_email_arg
-                || add_name_arg || any_name_arg)
-        {
+        if ! no_linting && add_args {
             let full_name = "allow-non-canonical-userids";
             cmd = cmd.arg(
                 clap::Arg::new(&full_name)
@@ -648,11 +662,12 @@ Canonical user IDs are of the form `Name (Comment) \
     }
 }
 
-impl<Arguments, Options> clap::FromArgMatches
-    for UserIDDesignators<Arguments, Options>
+impl<Arguments, Options, Documentation> clap::FromArgMatches
+    for UserIDDesignators<Arguments, Options, Documentation>
 where
     Arguments: typenum::Unsigned,
     Options: typenum::Unsigned,
+    Documentation: std::fmt::Debug,
 {
     fn update_from_arg_matches(&mut self, matches: &clap::ArgMatches)
         -> Result<(), clap::Error>
@@ -661,25 +676,22 @@ where
 
         let arguments = Arguments::to_usize();
         let all_arg = (arguments & AllUserIDsArg::to_usize()) > 0;
-        let userid_arg = (arguments & ExistingUserIDArg::to_usize()) > 0;
-        let email_arg = (arguments & ExistingEmailArg::to_usize()) > 0;
-        let name_arg = (arguments & ExistingNameArg::to_usize()) > 0;
-        let any_userid_arg = (arguments & AnyUserIDArg::to_usize()) > 0;
-        let any_email_arg = (arguments & AnyEmailArg::to_usize()) > 0;
-        let any_name_arg = (arguments & AnyNameArg::to_usize()) > 0;
-        let add_userid_arg = (arguments & AddUserIDArg::to_usize()) > 0;
-        let add_email_arg = (arguments & AddEmailArg::to_usize()) > 0;
-        let add_name_arg = (arguments & AddNameArg::to_usize()) > 0;
+        let exact_args = (arguments & ExactArgs::to_usize()) > 0;
+        let add_args = (arguments & AddArgs::to_usize()) > 0;
+
+        let plain_is_add = (arguments & PlainIsAdd::to_usize()) > 0;
+
+        // Can't use PlainIsAdd with ExactArgs or with each other.
+        assert!(! (exact_args && plain_is_add));
+        // If plain_is_xxx is set, then by_xxx must be set.
+        if plain_is_add {
+            assert!(add_args);
+        }
 
         let options = Options::to_usize();
         let no_linting = (options & NoLinting::to_usize()) > 0;
         let all_matches_non_self_signed =
             (options & AllMatchesNonSelfSigned::to_usize()) > 0;
-
-        // Can't provide both ExistingUserIDArg and AnyUserIDArg.
-        assert!(! (userid_arg && any_userid_arg));
-        assert!(! (email_arg && any_email_arg));
-        assert!(! (name_arg && any_name_arg));
 
         let mut designators = Vec::new();
 
@@ -694,96 +706,60 @@ where
         };
         self.all_matches_non_self_signed = all_matches_non_self_signed;
 
-        if let Some(Some(userids))
-            = matches.try_get_many::<String>("userid")
-            .ok().filter(|_| userid_arg)
-        {
-            for userid in userids.cloned() {
-                designators.push(
-                    UserIDDesignator::UserID(userid));
+        use UserIDDesignatorSemantics::*;
+        if exact_args {
+            if let Ok(Some(userids)) = matches.try_get_many::<String>("userid") {
+                for userid in userids.cloned() {
+                    designators.push(
+                        UserIDDesignator::UserID(Exact, userid));
+                }
+            }
+            if let Ok(Some(emails)) = matches.try_get_many::<String>("email") {
+                for email in emails.cloned() {
+                    designators.push(
+                        UserIDDesignator::Email(Exact, email));
+                }
+            }
+            if let Ok(Some(names)) = matches.try_get_many::<String>("name") {
+                for name in names.cloned() {
+                    designators.push(
+                        UserIDDesignator::Name(Exact, name));
+                }
             }
         }
 
-        if let Some(Some(emails))
-            = matches.try_get_many::<String>("email")
-            .ok().filter(|_| email_arg)
-        {
-            for email in emails.cloned() {
-                designators.push(UserIDDesignator::Email(email));
+        if add_args {
+            if let Ok(Some(userids))
+                = matches.try_get_many::<String>(
+                    if plain_is_add { "userid" } else { "userid-or-add" }) {
+                for userid in userids.cloned() {
+                    designators.push(
+                        UserIDDesignator::UserID(Add, userid));
+                }
             }
-        }
-
-        if let Some(Some(names))
-            = matches.try_get_many::<String>("name")
-            .ok().filter(|_| name_arg)
-        {
-            for name in names.cloned() {
-                designators.push(UserIDDesignator::Name(name));
+            if let Ok(Some(emails))
+                = matches.try_get_many::<String>(
+                    if plain_is_add { "email" } else { "email-or-add" })
+            {
+                for email in emails.cloned() {
+                    designators.push(
+                        UserIDDesignator::Email(Add, email));
+                }
             }
-        }
-
-        if let Some(Some(userids))
-            = matches.try_get_many::<String>("userid")
-            .ok().filter(|_| any_userid_arg)
-        {
-            for userid in userids.cloned() {
-                designators.push(
-                    UserIDDesignator::AnyUserID(userid));
-            }
-        }
-
-        if let Some(Some(emails))
-            = matches.try_get_many::<String>("email")
-            .ok().filter(|_| any_email_arg)
-        {
-            for email in emails.cloned() {
-                designators.push(UserIDDesignator::AnyEmail(email));
-            }
-        }
-
-        if let Some(Some(names))
-            = matches.try_get_many::<String>("name")
-            .ok().filter(|_| any_name_arg)
-        {
-            for name in names.cloned() {
-                designators.push(UserIDDesignator::AnyName(name));
-            }
-        }
-
-        if let Some(Some(add_userids))
-            = matches.try_get_many::<String>("userid-or-add")
-            .ok().filter(|_| add_userid_arg)
-        {
-            for add_userid in add_userids.cloned() {
-                designators.push(
-                    UserIDDesignator::AddUserID(add_userid));
-            }
-        }
-
-        if let Some(Some(add_emails))
-            = matches.try_get_many::<String>("email-or-add")
-            .ok().filter(|_| add_email_arg)
-        {
-            for add_email in add_emails.cloned() {
-                designators.push(UserIDDesignator::AddEmail(add_email));
-            }
-        }
-
-        if let Some(Some(add_names))
-            = matches.try_get_many::<String>("name-or-add")
-            .ok().filter(|_| add_name_arg)
-        {
-            for add_name in add_names.cloned() {
-                designators.push(UserIDDesignator::AddName(add_name));
+            if let Ok(Some(names))
+                = matches.try_get_many::<String>(
+                    if plain_is_add { "name" } else { "name-or-add" })
+            {
+                for name in names.cloned() {
+                    designators.push(
+                        UserIDDesignator::Name(Add, name));
+                }
             }
         }
 
         if no_linting {
             self.allow_non_canonical_userids = true;
-        } else if add_userid_arg || any_userid_arg
-            || add_email_arg || any_email_arg
-            || add_name_arg || any_name_arg
-        {
+        } else if add_args {
             self.allow_non_canonical_userids
                 = matches.get_flag("allow-non-canonical-userids");
         }
@@ -875,26 +851,6 @@ impl ResolvedUserID {
     pub fn userid(&self) -> &UserID {
         &self.userid
     }
-
-    /// Whether the user ID was designated with --userid, --email or
-    /// --name.
-    pub fn existing(&self) -> bool {
-        use UserIDDesignator::*;
-        match self.designator.as_ref() {
-            Some(UserID(_userid)) => true,
-            Some(Email(_email)) => true,
-            Some(Name(_email)) => true,
-            Some(AnyUserID(_userid)) => true,
-            Some(AnyEmail(_email)) => true,
-            Some(AnyName(_name)) => true,
-
-            Some(AddUserID(_userid)) => false,
-            Some(AddEmail(_email)) => false,
-            Some(AddName(_name)) => false,
-
-            None => false,
-        }
-    }
 }
 
 #[cfg(test)]
@@ -910,9 +866,7 @@ mod test {
 
         macro_rules! check {
             ($t:ty,
-             $userid:expr, $email:expr, $name:expr,
-             $any_userid:expr, $any_email:expr, $any_name:expr,
-             $add_userid:expr, $add_email:expr, $add_name: expr) =>
+             $plain:expr, $add:expr) =>
             {{
                 #[derive(Parser, Debug)]
                 #[clap(name = "prog")]
@@ -923,14 +877,20 @@ mod test {
 
                 let command = CLI::command();
 
+                let plain: Option<UserIDDesignatorSemantics> =
+                    $plain.into();
+
                 // Check if --userid is recognized.
                 let m = command.clone().try_get_matches_from(vec![
                     "prog", "--userid", "alice", "--userid", "bob",
                 ]);
-                if $userid || $any_userid {
+                if let Some(plain) = plain.as_ref() {
                     let m = m.expect("valid arguments");
                     let c = CLI::from_arg_matches(&m).expect("ok");
                     assert_eq!(c.userids.designators.len(), 2);
+                    assert!(c.userids.designators.iter().all(|d| {
+                        d.semantics() == plain
+                    }));
                 } else {
                     assert!(m.is_err());
                 }
@@ -942,10 +902,13 @@ mod test {
                     "--email", "alice@example.org",
                     "--email", "bob@example.org",
                 ]);
-                if $email || $any_email {
+                if let Some(plain) = plain.as_ref() {
                     let m = m.expect("valid arguments");
                     let c = CLI::from_arg_matches(&m).expect("ok");
                     assert_eq!(c.userids.designators.len(), 2);
+                    assert!(c.userids.designators.iter().all(|d| {
+                        d.semantics() == plain
+                    }));
                 } else {
                     assert!(m.is_err());
                 }
@@ -956,10 +919,13 @@ mod test {
                     "--name", "alice",
                     "--name", "bob",
                 ]);
-                if $name || $any_name {
+                if let Some(plain) = plain.as_ref() {
                     let m = m.expect("valid arguments");
                     let c = CLI::from_arg_matches(&m).expect("ok");
                     assert_eq!(c.userids.designators.len(), 2);
+                    assert!(c.userids.designators.iter().all(|d| {
+                        d.semantics() == plain
+                    }));
                 } else {
                     assert!(m.is_err());
                 }
@@ -978,10 +944,11 @@ mod test {
                     "--userid-or-add", "alice",
                     "--userid-or-add", "bob",
                 ]);
-                if $add_userid {
+                if $add {
                     let m = m.expect("valid arguments");
                     let c = CLI::from_arg_matches(&m).expect("ok");
                     assert_eq!(c.userids.designators.len(), 2);
+                    assert!(c.userids.designators.iter().all(|d| d.is_add()));
                 } else {
                     assert!(m.is_err());
                 }
@@ -992,10 +959,11 @@ mod test {
                     "--email-or-add", "alice@example.org",
                     "--email-or-add", "bob@example.org",
                 ]);
-                if $add_email {
+                if $add {
                     let m = m.expect("valid arguments");
                     let c = CLI::from_arg_matches(&m).expect("ok");
                     assert_eq!(c.userids.designators.len(), 2);
+                    assert!(c.userids.designators.iter().all(|d| d.is_add()));
                 } else {
                     assert!(m.is_err());
                 }
@@ -1006,35 +974,26 @@ mod test {
                     "--name-or-add", "alice",
                     "--name-or-add", "bob",
                 ]);
-                if $add_name {
+                if $add {
                     let m = m.expect("valid arguments");
                     let c = CLI::from_arg_matches(&m).expect("ok");
                     assert_eq!(c.userids.designators.len(), 2);
+                    assert!(c.userids.designators.iter().all(|d| d.is_add()));
                 } else {
                     assert!(m.is_err());
                 }
             }}
         }
 
-        //                             userid  email  name ?userid ?email  ?name +userid +email +name
-        check!(typenum::U0,             false, false, false, false, false, false, false, false, false);
-        check!(ExistingUserIDArg,        true, false, false, false, false, false, false, false, false);
-        check!(ExistingEmailArg,        false,  true, false, false, false, false, false, false, false);
-        check!(ExistingNameArg,         false, false,  true, false, false, false, false, false, false);
-        check!(ExistingUserIDEmailArgs,  true,  true, false, false, false, false, false, false, false);
-        check!(AnyUserIDArg,            false, false, false,  true, false, false, false, false, false);
-        check!(AnyEmailArg,             false, false, false, false,  true, false, false, false, false);
-        check!(AnyNameArg,              false, false, false, false, false,  true, false, false, false);
-        check!(AnyUserIDEmailArgs,      false, false, false,  true,  true, false, false, false, false);
-        check!(AddUserIDArg,            false, false, false, false, false, false,  true, false, false);
-        check!(AddEmailArg,             false, false, false, false, false, false, false,  true, false);
-        check!(AddNameArg,              false, false, false, false, false, false, false, false,  true);
-        check!(AddUserIDEmailArgs,      false, false, false, false, false, false,  true,  true, false);
-        check!(ExistingUserIDEmailNameArgs,true,true, true, false, false,  false, false, false, false);
-        check!(ExistingAndAddXUserIDEmailArgs,
-                                         true,  true, false, false, false, false,  true,  true, false);
-        check!(ExistingAndAddXUserIDEmailNameArgs,
-                                         true,  true,  true, false, false, false,  true,  true,  true);
+        use UserIDDesignatorSemantics::*;
+        //                              plain,   add
+        check!(typenum::U0,              None, false);
+        check!(ExactArgs,               Exact, false);
+        check!(AddArgs,                  None, true);
+        check!(PlainAddArgs,              Add, false);
+        check!(AllPlainAddArgs,           Add, false);
+        check!(ExactAndAddArgs,         Exact,  true);
+        check!(AllExactAndAddArgs,      Exact,  true);
     }
 
     #[test]
@@ -1047,8 +1006,7 @@ mod test {
         #[clap(name = "prog")]
         struct CLI {
             #[command(flatten)]
-            pub userids: UserIDDesignators<ExistingUserIDEmailArgs,
-                                           OneValue>,
+            pub userids: UserIDDesignators<ExactArgs, OneValue>,
         }
 
         let command = CLI::command();
@@ -1095,7 +1053,7 @@ mod test {
         #[clap(name = "prog")]
         struct CLI {
             #[command(flatten)]
-            pub userids: UserIDDesignators<ExistingUserIDEmailArgs,
+            pub userids: UserIDDesignators<ExactArgs,
                                            OptionalValue>,
         }
 
@@ -1149,7 +1107,7 @@ mod test {
         #[clap(name = "prog")]
         struct CLI {
             #[command(flatten)]
-            pub userids: UserIDDesignators<AllExistingAndAddXUserIDEmailNameArgs>,
+            pub userids: UserIDDesignators<AllExactAndAddArgs>,
         }
 
         let command = CLI::command();

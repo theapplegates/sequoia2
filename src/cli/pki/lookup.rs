@@ -36,8 +36,9 @@ use crate::cli::types::UserIDDesignators;
 pub struct Command {
     #[command(flatten)]
     pub userid: UserIDDesignators<
-        userid_designator::AnyUserIDEmailArgs,
-        userid_designator::OneValueNoLinting>,
+        userid_designator::PlainAddArgs,
+        userid_designator::OneValueNoLinting,
+        userid_designator::AnyDocumentation>,
 
     #[command(flatten)]
     pub show_paths: ShowPathsArg,

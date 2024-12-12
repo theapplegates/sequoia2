@@ -4,11 +4,6 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 
-use sequoia_policy_config::{
-    ConfiguredStandardPolicy,
-    DumpDefault,
-};
-
 use crate::{
     Sq,
     cli::config::inspect,
@@ -16,13 +11,15 @@ use crate::{
     config::ConfigFile,
 };
 
+pub mod policy;
+
 pub fn dispatch(sq: Sq, cmd: inspect::Command)
                 -> Result<()>
 {
     match cmd.subcommand {
         inspect::Subcommands::Network(c) => network(sq, c),
         inspect::Subcommands::Paths(c) => paths(sq, c),
-        inspect::Subcommands::Policy(c) => policy(sq, c),
+        inspect::Subcommands::Policy(c) => policy::dispatch(sq, c),
     }
 }
 
@@ -209,15 +206,6 @@ fn paths(sq: Sq, _: inspect::paths::Command) -> Result<()> {
            and metadata.",
         )?;
     }
-
-    Ok(())
-}
-
-/// Implements `sq config inspect policy`.
-fn policy(sq: Sq, _: inspect::policy::Command) -> Result<()> {
-    let p = ConfiguredStandardPolicy::from_policy(sq.policy.clone());
-
-    p.dump(&mut std::io::stdout(), DumpDefault::Explicit)?;
 
     Ok(())
 }

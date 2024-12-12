@@ -11,11 +11,9 @@ use crate::cli::examples::*;
     long_about = "\
 Inspect the cryptographic policy
 
-Prints the cryptographic policy in the format that Sequoia uses to \
-configure acceptance, rejection, and cutoff times for cryptographic \
-algorithms.
-
-See https://docs.rs/sequoia-policy-config/
+Explains the cryptographic policy that Sequoia uses to \
+either accept or reject algorithms and packets outright, \
+or at a configured point in time.
 ",
     after_help = EXAMPLES,
 )]

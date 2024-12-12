@@ -1,7 +1,7 @@
 use std::ffi::OsStr;
 use std::path::Path;
 
-use super::common::{artifact, NO_USERIDS, Sq, STANDARD_POLICY};
+use super::common::{artifact, NO_USERIDS, Sq, STANDARD_POLICY, UserIDArg};
 
 use sequoia_openpgp as openpgp;
 use openpgp::{
@@ -313,4 +313,41 @@ fn ignore_unexportable_certifications() {
     // With zero attestations.
     assert_eq!(approval_ua.with_policy(STANDARD_POLICY, None).unwrap()
                .attested_certifications().count(), 0);
+}
+
+#[test]
+fn userid_designators() {
+    let self_signed_email = "alice@example.org";
+    let self_signed_userid
+        = &format!("Alice <{}>", self_signed_email);
+
+    let other_email = "alice@other.org";
+    let other_userid = &format!("Alice <{}>", other_email);
+
+    let mut sq = Sq::new();
+
+    let (cert, cert_path, _rev_path)
+        = sq.key_generate(&[], &[ self_signed_userid ]);
+    sq.key_import(cert_path);
+
+    // 1. --userid: use the specified self-signed user ID.
+    sq.tick(10);
+    sq.key_approvals_update(
+        &["--add-all"], cert.key_handle(),
+        &[ UserIDArg::UserID(self_signed_userid) ], None);
+    sq.tick(10);
+    assert!(sq.try_key_approvals_update(
+        &["--add-all"], cert.key_handle(),
+        &[ UserIDArg::UserID(other_userid) ], None).is_err());
+
+    // 2. --email: use the self-signed user ID with the specified
+    // email address.
+    sq.tick(10);
+    sq.key_approvals_update(
+        &["--add-all"], cert.key_handle(),
+        &[ UserIDArg::Email(self_signed_email) ], None);
+    sq.tick(10);
+    assert!(sq.try_key_approvals_update(
+        &["--add-all"], cert.key_handle(),
+        &[ UserIDArg::Email(other_email) ], None).is_err());
 }

@@ -1198,19 +1198,27 @@ impl Sq {
             .expect("success")
     }
 
-    pub fn key_approvals_update<'a, H, Q>(&self,
-                                          cert: H,
-                                          args: &[&str],
-                                          output_file: Q)
-        -> Cert
+    pub fn try_key_approvals_update<'a, H, U, Q>(&self,
+                                                 args: &[&str],
+                                                 cert: H,
+                                                 userids: &[U],
+                                                 output_file: Q)
+        -> Result<Cert>
     where H: Into<FileOrKeyHandle>,
+          U: Into<UserIDArg<'a>> + Clone,
           Q: Into<Option<&'a Path>>,
     {
         let cert = cert.into();
+        let userids: Vec<UserIDArg> = userids.iter()
+            .cloned()
+            .map(|u| u.into())
+            .collect();
         let output_file = output_file.into();
 
         let mut cmd = self.command();
         cmd.arg("key").arg("approvals").arg("update");
+
+        cmd.args(args);
 
         match &cert {
             FileOrKeyHandle::FileOrStdin(file) => {
@@ -1222,15 +1230,30 @@ impl Sq {
             }
         }
 
-        cmd.args(args);
+        for userid in userids.iter() {
+            userid.as_arg(&mut cmd);
+        }
 
         if let Some(output_file) = output_file {
             cmd.arg("--output").arg(output_file);
         }
 
-        let output = self.run(cmd, Some(true));
+        let output = self.run(cmd, None);
         self.handle_cert_output(output, cert, output_file, None)
-            .expect("can parse certificate")
+    }
+
+    pub fn key_approvals_update<'a, H, U, Q>(&self,
+                                             args: &[&str],
+                                             cert: H,
+                                             userids: &[U],
+                                             output_file: Q)
+        -> Cert
+    where H: Into<FileOrKeyHandle>,
+          U: Into<UserIDArg<'a>> + Clone,
+          Q: Into<Option<&'a Path>>,
+    {
+        self.try_key_approvals_update(args, cert, userids, output_file)
+            .expect("success")
     }
 
     /// Change the certificate's expiration.

@@ -1,7 +1,7 @@
 use std::ffi::OsStr;
 use std::path::Path;
 
-use super::common::{artifact, Sq, STANDARD_POLICY};
+use super::common::{artifact, NO_USERIDS, Sq, STANDARD_POLICY};
 
 use sequoia_openpgp as openpgp;
 use openpgp::{
@@ -43,7 +43,7 @@ fn update_files() -> Result<()> {
             &*format!("{}-approval", public.display()));
 
         let approval = sq.key_approvals_update(
-            &priv_file, &["--add-all"], &*approval_file);
+            &["--add-all"], &priv_file, NO_USERIDS, &*approval_file);
 
         eprintln!("{}", sq.inspect(&approval_file));
 
@@ -99,7 +99,7 @@ fn update_all() -> Result<()> {
 
     // Attest the zero certifications.
     let approval = sq.key_approvals_update(
-        alice.key_handle(), &["--add-all"], None);
+        &["--add-all"], alice.key_handle(), NO_USERIDS, None);
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
@@ -117,7 +117,7 @@ fn update_all() -> Result<()> {
 
     // Attest Bob's certification.
     let approval = sq.key_approvals_update(
-        &alice.key_handle(), &["--add-all"], None);
+        &["--add-all"], &alice.key_handle(), NO_USERIDS, None);
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
@@ -127,7 +127,7 @@ fn update_all() -> Result<()> {
 
     // Drop the approval of Bob's certification.
     let approval = sq.key_approvals_update(
-        &alice.key_handle(), &["--remove-all"], None);
+        &["--remove-all"], &alice.key_handle(), NO_USERIDS, None);
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
@@ -150,7 +150,7 @@ fn update_by() -> Result<()> {
 
     // Attest the zero certifications.
     let approval = sq.key_approvals_update(
-        alice.key_handle(), &["--add-by", &bob_fp], None);
+        &["--add-by", &bob_fp], alice.key_handle(), NO_USERIDS, None);
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
@@ -168,7 +168,7 @@ fn update_by() -> Result<()> {
 
     // Attest Bob's certification.
     let approval = sq.key_approvals_update(
-        &alice.key_handle(), &["--add-by", &bob_fp], None);
+        &["--add-by", &bob_fp], &alice.key_handle(), NO_USERIDS, None);
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
@@ -178,7 +178,7 @@ fn update_by() -> Result<()> {
 
     // Drop the approval of Bob's certification.
     let approval = sq.key_approvals_update(
-        &alice.key_handle(), &["--remove-by", &bob_fp], None);
+        &["--remove-by", &bob_fp], &alice.key_handle(), NO_USERIDS, None);
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
@@ -210,7 +210,7 @@ fn update_authenticated() -> Result<()> {
 
     // Attest the zero certifications.
     let approval = sq.key_approvals_update(
-        alice.key_handle(), &["--add-authenticated"], None);
+        &["--add-authenticated"], alice.key_handle(), NO_USERIDS, None);
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
@@ -227,7 +227,7 @@ fn update_authenticated() -> Result<()> {
 
     // Attest Bob's certification.
     let approval = sq.key_approvals_update(
-        &alice.key_handle(), &["--add-authenticated"], None);
+        &["--add-authenticated"], &alice.key_handle(), NO_USERIDS, None);
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
@@ -270,7 +270,7 @@ fn ignore_shadow_ca() {
     // Attest to all certifications.  This should ignore the shadow
     // CA's certification.
     let approval = sq.key_approvals_update(
-        &alice.key_handle(), &["--add-all"], None);
+        &["--add-all"], &alice.key_handle(), NO_USERIDS, None);
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
@@ -301,7 +301,7 @@ fn ignore_unexportable_certifications() {
     // Attest to all certifications.  This should ignore
     // non-exportable certifications.
     let approval = sq.key_approvals_update(
-        &alice.key_handle(), &["--add-all"], None);
+        &["--add-all"], &alice.key_handle(), NO_USERIDS, None);
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();

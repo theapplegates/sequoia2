@@ -64,3 +64,15 @@ fn list_empty() {
     sq.pki_link_add(&[], cert.key_handle(), &["alice"]);
     sq.cert_list(&["alice"]);
 }
+
+/// Tests that listing a cert without user IDs works.
+#[test]
+fn list_no_userids() {
+    let sq = Sq::new();
+    let (cert, cert_path, _rev_path)
+        = sq.key_generate::<&str>(&[], &[]);
+    sq.key_import(&cert_path);
+    let fp = cert.fingerprint().to_string();
+    let output = sq.cert_list(&[&fp]);
+    assert!(std::str::from_utf8(&output).unwrap().contains(&fp));
+}

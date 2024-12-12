@@ -181,7 +181,13 @@ pub fn authenticate<'store, 'rstore>(
         bindings = certs.iter().flat_map(|cert| {
             let fp = cert.fingerprint();
             let userids = n.certified_userids_of(&fp);
-            userids.into_iter().map(move |uid| (fp.clone(), Some(uid)))
+            if userids.is_empty() {
+                Box::new(std::iter::once((fp, None)))
+                    as Box<dyn Iterator<Item = (Fingerprint, Option<UserID>)>>
+            } else {
+                Box::new(userids.into_iter()
+                         .map(move |uid| (fp.clone(), Some(uid))))
+            }
         }).collect();
     } else {
         // No User ID, no Fingerprint.
@@ -252,6 +258,12 @@ pub fn authenticate<'store, 'rstore>(
         let userid = if let Some(u) = userid {
             u
         } else {
+            // A cert without bindings.  This was provided explicitly
+            // via `certs`, is therefore authenticated, and we want to
+            // display it.
+            output.add_cert(fingerprint)?;
+            bindings_shown += 1;
+            authenticated += 1;
             continue;
         };
 

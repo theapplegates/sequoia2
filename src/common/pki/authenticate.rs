@@ -404,7 +404,7 @@ pub fn authenticate<'store, 'rstore>(
                 .sq().arg("network").arg("search")
                 .arg(pattern)
                 .done();
-        } else {
+        } else if n.iter_fingerprints().next().is_none() {
             weprintln!("The certificate store does not contain any \
                         certificates.");
 

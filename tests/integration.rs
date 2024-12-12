@@ -8,6 +8,7 @@ mod integration {
     mod sq_cli_version;
     mod sq_decrypt;
     mod sq_encrypt;
+    mod sq_key_approvals_list;
     mod sq_key_approvals_update;
     mod sq_key_delete;
     mod sq_key_expire;

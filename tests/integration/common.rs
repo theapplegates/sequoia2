@@ -1146,6 +1146,58 @@ impl Sq {
             .expect("sq key subkey bind succeeds")
     }
 
+    pub fn try_key_approvals_list<'a, H, U>(&self,
+                                            args: &[&str],
+                                            cert: H,
+                                            userids: &[U])
+        -> Result<Vec<u8>>
+    where H: Into<FileOrKeyHandle>,
+          U: Into<UserIDArg<'a>> + Clone,
+    {
+        let cert = cert.into();
+        let userids: Vec<UserIDArg> = userids.iter()
+            .cloned()
+            .map(|u| u.into())
+            .collect();
+
+        let mut cmd = self.command();
+        cmd.arg("key").arg("approvals").arg("list");
+
+        cmd.args(args);
+
+        match &cert {
+            FileOrKeyHandle::FileOrStdin(file) => {
+                cmd.arg("--cert-file").arg(file);
+            }
+            FileOrKeyHandle::KeyHandle((_kh, s)) => {
+                cmd.arg("--cert").arg(s);
+            }
+        }
+
+        for userid in userids.iter() {
+            userid.as_arg(&mut cmd);
+        }
+
+        let output = self.run(cmd, None);
+        if output.status.success() {
+            Ok(output.stdout)
+        } else {
+            Err(anyhow::anyhow!("sq key approvals list returned an error"))
+        }
+    }
+
+    pub fn key_approvals_list<'a, H, U>(&self,
+                                        args: &[&str],
+                                        cert: H,
+                                        userids: &[U])
+        -> Vec<u8>
+    where H: Into<FileOrKeyHandle>,
+          U: Into<UserIDArg<'a>> + Clone,
+    {
+        self.try_key_approvals_list(args, cert, userids)
+            .expect("success")
+    }
+
     pub fn key_approvals_update<'a, H, Q>(&self,
                                           cert: H,
                                           args: &[&str],

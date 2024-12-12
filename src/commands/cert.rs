@@ -32,7 +32,7 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
             mut certs, pattern, gossip, certification_network, trust_amount,
             show_paths,
         }) => {
-            let pattern = if let Some(pattern) = pattern {
+            if let Some(pattern) = pattern {
                 let mut d = None;
                 if let Ok(kh) = pattern.parse::<KeyHandle>() {
                     if matches!(kh, KeyHandle::Fingerprint(Fingerprint::Invalid(_))) {
@@ -52,17 +52,10 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
                     }
                 };
 
-                if let Some(d) = d {
-                    certs.push(d);
-                    None
-                } else {
-                    certs.push(
-                        cert_designator::CertDesignator::Grep(pattern.clone()));
-                    Some(pattern)
-                }
-            } else {
-                None
-            };
+                certs.push(d.unwrap_or_else(|| {
+                    cert_designator::CertDesignator::Grep(pattern)
+                }));
+            }
 
             let certs = sq.resolve_certs_or_fail(
                 &certs, trust_amount.map(|t| t.amount())
@@ -70,7 +63,7 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
 
             authenticate(
                 &mut std::io::stdout(),
-                &sq, certs.is_empty(), pattern,
+                &sq, certs.is_empty(), None,
                 *gossip, *certification_network, *trust_amount,
                 None, None,
                 (! certs.is_empty()).then_some(certs),

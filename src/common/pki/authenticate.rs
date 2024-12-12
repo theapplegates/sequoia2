@@ -243,7 +243,9 @@ pub fn authenticate<'store, 'rstore>(
         };
 
         let aggregated_amount = paths.amount();
-        if certificate.is_some() && userid_designator.is_none()
+        if (certificate.is_some()
+            || certs.as_ref().map(|c| ! c.is_empty()).unwrap_or(false))
+            && userid_designator.is_none()
             && list_pattern.is_none()
         {
             // We're authenticating a certificate, which was

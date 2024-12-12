@@ -82,7 +82,7 @@ pub fn augment_help(key: &'static str, text: &str) -> String {
 }
 
 /// Returns the value of an augmentation, if any.
-pub fn get_augmentation(key: &'static str) -> Option<&str> {
+pub fn get_augmentation(key: &str) -> Option<&str> {
     AUGMENTATIONS.get().and_then(|a| a.get(key).map(|v| v.as_str()))
 }
 

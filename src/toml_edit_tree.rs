@@ -198,7 +198,7 @@ pub trait Node: fmt::Debug {
     fn remove(&mut self, key: &PathComponent) -> Result<()>;
 
     /// Iterates over the children of this node.
-    fn iter<'i>(&'i self) -> Box<(dyn Iterator<Item = (PathComponent, &dyn Node)> + 'i)>;
+    fn iter<'i>(&'i self) -> Box<(dyn Iterator<Item = (PathComponent, &'i dyn Node)> + 'i)>;
 
     /// Returns a reference to the node that is reached by traversing
     /// `path` from the current node.
@@ -335,7 +335,7 @@ impl Node for Item {
         }
     }
 
-    fn iter<'i>(&'i self) -> Box<(dyn Iterator<Item = (PathComponent, &dyn Node)> + 'i)> {
+    fn iter<'i>(&'i self) -> Box<(dyn Iterator<Item = (PathComponent, &'i dyn Node)> + 'i)> {
         match self {
             Item::None => Box::new(std::iter::empty()),
             Item::Value(v) => v.iter(),
@@ -389,7 +389,7 @@ impl Node for Table {
         Ok(())
     }
 
-    fn iter<'i>(&'i self) -> Box<(dyn Iterator<Item = (PathComponent, &dyn Node)> + 'i)> {
+    fn iter<'i>(&'i self) -> Box<(dyn Iterator<Item = (PathComponent, &'i dyn Node)> + 'i)> {
         Box::new(self.iter().map(|(k, v)| (k.into(), &*v as &dyn Node)))
     }
 }
@@ -531,7 +531,7 @@ impl Node for Value {
         }
     }
 
-    fn iter<'i>(&'i self) -> Box<(dyn Iterator<Item = (PathComponent, &dyn Node)> + 'i)> {
+    fn iter<'i>(&'i self) -> Box<(dyn Iterator<Item = (PathComponent, &'i dyn Node)> + 'i)> {
         match self {
             | Value::String(_)
                 | Value::Integer(_)

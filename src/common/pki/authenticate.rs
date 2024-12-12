@@ -267,6 +267,7 @@ pub fn authenticate<'store, 'rstore>(
         bindings_shown += 1;
         let paths = paths.into_iter().collect::<Vec<(wot::Path, usize)>>();
 
+        output.add_cert(fingerprint)?;
         output.add_paths(paths, fingerprint, userid, aggregated_amount)?;
     }
 

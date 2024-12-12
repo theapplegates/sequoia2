@@ -253,13 +253,7 @@ impl<'a, 'store, 'rstore> ConciseHumanReadableOutputNetwork<'a, 'store, 'rstore>
 }
 
 impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
-    fn add_paths(
-        &mut self,
-        paths: Vec<(Path, usize)>,
-        fingerprint: &Fingerprint,
-        userid: &UserID,
-        aggregated_amount: usize,
-    ) -> Result<()> {
+    fn add_cert(&mut self, fingerprint: &Fingerprint) -> Result<()> {
         let first_shown = self.current_cert.is_none();
 
         let current_fingerprint =
@@ -371,7 +365,30 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
             wwriteln!(stream=self.output);
         }
 
-        let revoked = if let Some(Ok(ref vc)) = vc {
+        Ok(())
+    }
+
+    fn add_paths(
+        &mut self,
+        paths: Vec<(Path, usize)>,
+        fingerprint: &Fingerprint,
+        userid: &UserID,
+        aggregated_amount: usize,
+    ) -> Result<()> {
+        let vc;
+        if let Some(cert) = &self.current_cert {
+            if cert.fingerprint() != *fingerprint {
+                return Err(
+                    anyhow::anyhow!("missing call to OutputFormat::add_cert"));
+            }
+
+            vc = cert.with_policy(self.sq.policy, self.sq.time);
+        } else {
+            return Err(
+                anyhow::anyhow!("missing call to OutputFormat::add_cert"));
+        };
+
+        let revoked = if let Ok(ref vc) = vc {
             vc.userids()
                 .filter_map(|u| {
                     if u.userid() != userid {

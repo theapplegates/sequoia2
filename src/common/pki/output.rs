@@ -20,6 +20,12 @@ pub use concise_human_readable::ConciseHumanReadableOutputNetwork;
 /// target UserID) to allow further processing and eventual output in a desired
 /// output format.
 pub trait OutputType {
+    /// Starts emitting a new cert.
+    ///
+    /// Must be called before calling [`OutputType::add_paths`] with a
+    /// new fingerprint.
+    fn add_cert(&mut self, fingerprint: &Fingerprint) -> Result<()>;
+
     /// Add Paths for a UserID associated with a Fingerprint
     ///
     /// Paths are provided in a vector of Path, trust amount tuples.

@@ -84,6 +84,7 @@ pub fn dispatch(sq: Sq, c: cli::network::Command, matches: &ArgMatches)
     match c.subcommand {
         Subcommands::Search(mut command) => {
             command.servers_source = matches.value_source("servers");
+            command.use_wkd_source = matches.value_source("use_wkd");
             dispatch_search(sq, command)
         },
 
@@ -902,6 +903,9 @@ pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
              .map(Arc::new))
         .collect::<Result<Vec<_>>>()?;
 
+    let use_wkd =
+        sq.config.network_search_use_wkd(c.use_wkd, c.use_wkd_source);
+
     let mut seen_emails = HashSet::new();
     let mut seen_fps = HashSet::new();
     let mut seen_ids = HashSet::new();
@@ -958,7 +962,7 @@ pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
             }
 
             if let Some(address) = query.as_address()
-                .filter(|_| sq.config.network_search_wkd())
+                .filter(|_| use_wkd)
             {
                 let a = address.to_string();
                 let http_client = http_client.clone();

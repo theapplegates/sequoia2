@@ -63,6 +63,21 @@ pub struct Command {
     pub servers_source: Option<clap::parser::ValueSource>,
 
     #[clap(
+        long = "use-wkd",
+        value_name = "ENABLE",
+        default_value = "true",
+        help = "Use WKD to search for certs",
+        long_help = config::augment_help(
+            "network.search.use-wkd",
+            "Use WKD to search for certs"),
+    )]
+    pub use_wkd: Option<bool>,
+
+    /// Workaround for https://github.com/clap-rs/clap/issues/3846
+    #[clap(skip)]
+    pub use_wkd_source: Option<clap::parser::ValueSource>,
+
+    #[clap(
         help = FileOrCertStore::HELP_OPTIONAL,
         long,
         value_name = FileOrCertStore::VALUE_NAME,

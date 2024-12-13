@@ -3,6 +3,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::Result;
+use clap::parser::ValueSource;
 
 use crate::{
     Sq,
@@ -34,12 +35,14 @@ fn network(sq: Sq, _: inspect::network::Command) -> Result<()> {
     let o = &mut std::io::stdout();
 
     // First, sq network search, the most general interface.
+    let use_wkd = sq.config.network_search_use_wkd(
+        Some(true), Some(ValueSource::DefaultValue));
     wwriteln!(stream=o, initial_indent = " - ", "sq network search");
     wwriteln!(stream=o, initial_indent = "   - ", "{}",
-              may_use("WKD", sq.config.network_search_wkd()));
+              may_use("WKD", use_wkd));
     wwriteln!(stream=o, initial_indent = "     - ",
               "relevant setting: network.search.use-wkd");
-    if sq.config.network_search_wkd() {
+    if use_wkd {
         wwriteln!(stream=o, initial_indent = "     - ", "see below for impact");
     }
 

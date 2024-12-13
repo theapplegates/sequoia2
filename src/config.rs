@@ -80,7 +80,7 @@ pub struct Config {
     network_search_iterations: u8,
 
     /// Whether network search should use WKD.
-    network_search_wkd: bool,
+    network_search_use_wkd: Option<bool>,
 
     /// Whether network search should use DANE.
     network_search_dane: bool,
@@ -106,7 +106,7 @@ impl Default for Config {
             key_generate_profile: None,
             key_servers: None,
             network_search_iterations: 3,
-            network_search_wkd: true,
+            network_search_use_wkd: None,
             network_search_dane: true,
             servers_path: None,
         }
@@ -333,8 +333,23 @@ impl Config {
     }
 
     /// Returns whether network search should use WKD.
-    pub fn network_search_wkd(&self) -> bool {
-        self.network_search_wkd
+    ///
+    /// Handles the precedence of the various sources:
+    ///
+    /// - If the flag is given, use the given value.
+    /// - If the command line flag is not given, then
+    ///   - use the value from the configuration file (if any),
+    ///   - or use the default value.
+    pub fn network_search_use_wkd(&self, cli: Option<bool>,
+                                  source: Option<ValueSource>)
+                                  -> bool
+    {
+        let cli = cli.expect("has a default");
+        match source.expect("set by the cli parser") {
+            ValueSource::DefaultValue =>
+                self.network_search_use_wkd.unwrap_or(cli),
+            _ => cli,
+        }
     }
 
     /// Returns whether network search should use DANE.
@@ -1280,7 +1295,7 @@ fn apply_network_search_use_dane(config: &mut Option<&mut Config>,
 
 /// Validates the `network.search.use-wkd` value.
 fn apply_network_search_use_wkd(config: &mut Option<&mut Config>,
-                                _cli: &mut Option<&mut Augmentations>,
+                                cli: &mut Option<&mut Augmentations>,
                                 path: &str, item: &Item)
                                 -> Result<()>
 {
@@ -1288,7 +1303,11 @@ fn apply_network_search_use_wkd(config: &mut Option<&mut Config>,
         .ok_or_else(|| Error::bad_item_type(path, item, "bool"))?;
 
     if let Some(config) = config {
-        config.network_search_wkd = s;
+        config.network_search_use_wkd = Some(s);
+    }
+
+    if let Some(cli) = cli {
+        cli.insert("network.search.use-wkd", s.to_string());
     }
 
     Ok(())

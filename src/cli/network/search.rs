@@ -48,6 +48,21 @@ the usual way.
 )]
 pub struct Command {
     #[clap(
+        long = "iterations",
+        value_name = "N",
+        default_value_t = 3,
+        help = "Iterate to find related updates and certs",
+        long_help = config::augment_help(
+            "network.search.iterations",
+            "Iterate to find related updates and certs"),
+    )]
+    pub iterations: u8,
+
+    /// Workaround for https://github.com/clap-rs/clap/issues/3846
+    #[clap(skip)]
+    pub iterations_source: Option<clap::parser::ValueSource>,
+
+    #[clap(
         long = "server",
         default_values_t = DEFAULT_KEYSERVERS.iter().map(ToString::to_string),
         value_name = "URI",

@@ -77,7 +77,7 @@ pub struct Config {
     key_servers: Option<Vec<Url>>,
 
     /// Iterations for network search.
-    network_search_iterations: u8,
+    network_search_iterations: Option<u8>,
 
     /// Whether network search should use WKD.
     network_search_use_wkd: Option<bool>,
@@ -105,7 +105,7 @@ impl Default for Config {
             cipher_suite: None,
             key_generate_profile: None,
             key_servers: None,
-            network_search_iterations: 3,
+            network_search_iterations: None,
             network_search_use_wkd: None,
             network_search_use_dane: None,
             servers_path: None,
@@ -328,8 +328,22 @@ impl Config {
     }
 
     /// Returns the iteration count for network search.
-    pub fn network_search_iterations(&self) -> u8 {
-        self.network_search_iterations
+    ///
+    /// Handles the precedence of the various sources:
+    ///
+    /// - If the flag is given, use the given value.
+    /// - If the command line flag is not given, then
+    ///   - use the value from the configuration file (if any),
+    ///   - or use the default value.
+    pub fn network_search_iterations(&self, cli: u8,
+                                     source: Option<ValueSource>)
+                                     -> u8
+    {
+        match source.expect("set by the cli parser") {
+            ValueSource::DefaultValue =>
+                self.network_search_iterations.unwrap_or(cli),
+            _ => cli,
+        }
     }
 
     /// Returns whether network search should use WKD.
@@ -1273,7 +1287,7 @@ fn apply_network_search(config: &mut Option<&mut Config>,
 
 /// Validates the `network.search.iterations` value.
 fn apply_network_search_iterations(config: &mut Option<&mut Config>,
-                                   _cli: &mut Option<&mut Augmentations>,
+                                   cli: &mut Option<&mut Augmentations>,
                                    path: &str, item: &Item)
                                    -> Result<()>
 {
@@ -1285,8 +1299,14 @@ fn apply_network_search_iterations(config: &mut Option<&mut Config>,
             return Err(anyhow::anyhow!("value must be at least 1"));
         }
 
-        config.network_search_iterations = s.try_into()
-            .map_err(|_| anyhow::anyhow!("value must not exceed 255"))?;
+        config.network_search_iterations = Some(
+            s.try_into()
+                .map_err(|_| anyhow::anyhow!("value must not exceed 255"))?
+        );
+    }
+
+    if let Some(cli) = cli {
+        cli.insert("network.search.iterations", s.to_string());
     }
 
     Ok(())

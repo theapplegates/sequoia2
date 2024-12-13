@@ -77,12 +77,19 @@ fn network(sq: Sq, _: inspect::network::Command) -> Result<()> {
         wwriteln!(stream=o, initial_indent = "       - ", "see below for impact");
     }
 
-    if sq.config.network_search_iterations() > 1 {
+    let iterations = sq.config.network_search_iterations(
+        3, Some(ValueSource::DefaultValue));
+    if iterations == 0 {
+        wwriteln!(stream=o, initial_indent = "   - ",
+                  "will not search iteratively from \
+                   your original query to discover related \
+                   certificates");
+    } else {
         wwriteln!(stream=o, initial_indent = "   - ",
                   "will iteratively search up to {} steps from \
                    your original query to discover related \
                    certificates",
-                  sq.config.network_search_iterations().saturating_sub(1));
+                  iterations.saturating_sub(1));
         wwriteln!(stream=o, initial_indent = "     - ",
                   "this will query certificates that you did not \
                    request, hopefully finding relevant related \
@@ -90,6 +97,8 @@ fn network(sq: Sq, _: inspect::network::Command) -> Result<()> {
                    leakage and may query \"suspicious\" \
                    certificates");
     }
+    wwriteln!(stream=o, initial_indent = "     - ",
+              "relevant setting: network.search.iterations");
 
     // Then, sq network keyserver search.
     wwriteln!(stream=o);

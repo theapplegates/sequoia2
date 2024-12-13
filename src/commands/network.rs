@@ -83,6 +83,7 @@ pub fn dispatch(sq: Sq, c: cli::network::Command, matches: &ArgMatches)
     use cli::network::Subcommands;
     match c.subcommand {
         Subcommands::Search(mut command) => {
+            command.iterations_source = matches.value_source("iterations");
             command.servers_source = matches.value_source("servers");
             command.use_wkd_source = matches.value_source("use_wkd");
             command.use_dane_source = matches.value_source("use_dane");
@@ -904,6 +905,8 @@ pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
              .map(Arc::new))
         .collect::<Result<Vec<_>>>()?;
 
+    let iterations =
+        sq.config.network_search_iterations(c.iterations, c.iterations_source);
     let use_wkd =
         sq.config.network_search_use_wkd(c.use_wkd, c.use_wkd_source);
     let use_dane =
@@ -923,7 +926,7 @@ pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
 
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async {
-      for _ in 0..sq.config.network_search_iterations() {
+      for _ in 0..iterations {
         let mut requests = JoinSet::new();
         let mut converged = true;
         std::mem::take(&mut queries).into_iter().for_each(|query| {

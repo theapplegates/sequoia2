@@ -46,11 +46,13 @@ fn network(sq: Sq, _: inspect::network::Command) -> Result<()> {
         wwriteln!(stream=o, initial_indent = "     - ", "see below for impact");
     }
 
+    let use_dane = sq.config.network_search_use_dane(
+        Some(true), Some(ValueSource::DefaultValue));
     wwriteln!(stream=o, initial_indent = "   - ", "{}",
-              may_use("DANE", sq.config.network_search_dane()));
+              may_use("DANE", use_dane));
     wwriteln!(stream=o, initial_indent = "     - ",
               "relevant setting: network.search.use-dane");
-    if sq.config.network_search_dane() {
+    if use_dane {
         wwriteln!(stream=o, initial_indent = "     - ", "see below for impact");
     }
 

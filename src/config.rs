@@ -83,7 +83,7 @@ pub struct Config {
     network_search_use_wkd: Option<bool>,
 
     /// Whether network search should use DANE.
-    network_search_dane: bool,
+    network_search_use_dane: Option<bool>,
 
     /// The location of the backend server executables.
     servers_path: Option<PathBuf>,
@@ -107,7 +107,7 @@ impl Default for Config {
             key_servers: None,
             network_search_iterations: 3,
             network_search_use_wkd: None,
-            network_search_dane: true,
+            network_search_use_dane: None,
             servers_path: None,
         }
     }
@@ -353,8 +353,23 @@ impl Config {
     }
 
     /// Returns whether network search should use DANE.
-    pub fn network_search_dane(&self) -> bool {
-        self.network_search_dane
+    ///
+    /// Handles the precedence of the various sources:
+    ///
+    /// - If the flag is given, use the given value.
+    /// - If the command line flag is not given, then
+    ///   - use the value from the configuration file (if any),
+    ///   - or use the default value.
+    pub fn network_search_use_dane(&self, cli: Option<bool>,
+                                  source: Option<ValueSource>)
+                                  -> bool
+    {
+        let cli = cli.expect("has a default");
+        match source.expect("set by the cli parser") {
+            ValueSource::DefaultValue =>
+                self.network_search_use_dane.unwrap_or(cli),
+            _ => cli,
+        }
     }
 
     /// Returns the path to the backend servers.
@@ -1279,7 +1294,7 @@ fn apply_network_search_iterations(config: &mut Option<&mut Config>,
 
 /// Validates the `network.search.use-dane` value.
 fn apply_network_search_use_dane(config: &mut Option<&mut Config>,
-                                 _cli: &mut Option<&mut Augmentations>,
+                                 cli: &mut Option<&mut Augmentations>,
                                  path: &str, item: &Item)
                                  -> Result<()>
 {
@@ -1287,7 +1302,11 @@ fn apply_network_search_use_dane(config: &mut Option<&mut Config>,
         .ok_or_else(|| Error::bad_item_type(path, item, "bool"))?;
 
     if let Some(config) = config {
-        config.network_search_dane = s;
+        config.network_search_use_dane = Some(s);
+    }
+
+    if let Some(cli) = cli {
+        cli.insert("network.search.use-dane", s.to_string());
     }
 
     Ok(())

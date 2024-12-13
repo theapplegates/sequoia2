@@ -85,6 +85,7 @@ pub fn dispatch(sq: Sq, c: cli::network::Command, matches: &ArgMatches)
         Subcommands::Search(mut command) => {
             command.servers_source = matches.value_source("servers");
             command.use_wkd_source = matches.value_source("use_wkd");
+            command.use_dane_source = matches.value_source("use_dane");
             dispatch_search(sq, command)
         },
 
@@ -905,6 +906,8 @@ pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
 
     let use_wkd =
         sq.config.network_search_use_wkd(c.use_wkd, c.use_wkd_source);
+    let use_dane =
+        sq.config.network_search_use_dane(c.use_dane, c.use_dane_source);
 
     let mut seen_emails = HashSet::new();
     let mut seen_fps = HashSet::new();
@@ -979,7 +982,7 @@ pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
             }
 
             if let Some(address) = query.as_address()
-                .filter(|_| sq.config.network_search_dane())
+                .filter(|_| use_dane)
             {
                 let a = address.to_string();
                 pb.inc_length(1);

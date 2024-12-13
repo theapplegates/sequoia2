@@ -78,6 +78,21 @@ pub struct Command {
     pub use_wkd_source: Option<clap::parser::ValueSource>,
 
     #[clap(
+        long = "use-dane",
+        value_name = "ENABLE",
+        default_value = "true",
+        help = "Use DANE to search for certs",
+        long_help = config::augment_help(
+            "network.search.use-dane",
+            "Use DANE to search for certs"),
+    )]
+    pub use_dane: Option<bool>,
+
+    /// Workaround for https://github.com/clap-rs/clap/issues/3846
+    #[clap(skip)]
+    pub use_dane_source: Option<clap::parser::ValueSource>,
+
+    #[clap(
         help = FileOrCertStore::HELP_OPTIONAL,
         long,
         value_name = FileOrCertStore::VALUE_NAME,

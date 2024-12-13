@@ -48,7 +48,7 @@ the specified user ID.
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::PlainAddArgs,
+        userid_designator::PlainAddAndByArgs,
         userid_designator::OneValueNoLinting,
         userid_designator::AnyDocumentation>,
 

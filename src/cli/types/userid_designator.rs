@@ -79,6 +79,9 @@ pub type ExactByAndAddArgs
 pub type AllExactByAndAddArgs
     = <AllUserIDsArg as std::ops::BitOr<ExactByAndAddArgs>>::Output;
 
+pub type PlainAddAndByArgs
+    = <ByArgs as std::ops::BitOr<PlainAddArgs>>::Output;
+
 /// Argument parser options.
 
 /// Normally it is possible to designate multiple certificates.  This
@@ -1198,6 +1201,7 @@ mod test {
         check!(ExactAndAddArgs,         Exact, false,  true);
         check!(ExactByAndAddArgs,       Exact,  true,  true);
         check!(AllExactByAndAddArgs,    Exact,  true,  true);
+        check!(PlainAddAndByArgs,         Add,  true, false);
     }
 
     #[test]

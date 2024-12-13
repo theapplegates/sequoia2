@@ -75,7 +75,7 @@ fn update_files() -> Result<()> {
 const ALICE_USERID: &str = "<alice@example.org>";
 const BOB_USERID: &str = "<bob@example.org>";
 
-fn make_keys(sq: &Sq) -> Result<(Cert, Cert)> {
+fn make_keys(sq: &mut Sq) -> Result<(Cert, Cert)> {
     let (alice, alice_pgp, _alice_rev)
         = sq.key_generate(&[], &[ALICE_USERID]);
     let (bob, bob_pgp, _bob_rev)
@@ -83,6 +83,10 @@ fn make_keys(sq: &Sq) -> Result<(Cert, Cert)> {
 
     sq.key_import(alice_pgp);
     sq.key_import(bob_pgp);
+
+    // Give Sequoia a little space to backdate the signatures.  Note:
+    // It will not backdate them past the key creation time.
+    sq.tick(10);
 
     Ok((alice, bob))
 }
@@ -94,8 +98,8 @@ fn update_all() -> Result<()> {
     let now = std::time::SystemTime::now()
         - std::time::Duration::new(60 * 60, 0);
 
-    let sq = Sq::at(now);
-    let (alice, bob) = make_keys(&sq)?;
+    let mut sq = Sq::at(now);
+    let (alice, bob) = make_keys(&mut sq)?;
 
     // Attest the zero certifications.
     let approval = sq.key_approvals_update(
@@ -144,8 +148,8 @@ fn update_by() -> Result<()> {
     let now = std::time::SystemTime::now()
         - std::time::Duration::new(60 * 60, 0);
 
-    let sq = Sq::at(now);
-    let (alice, bob) = make_keys(&sq)?;
+    let mut sq = Sq::at(now);
+    let (alice, bob) = make_keys(&mut sq)?;
     let bob_fp = bob.fingerprint().to_string();
 
     // Attest the zero certifications.
@@ -196,8 +200,8 @@ fn update_authenticated() -> Result<()> {
     let now = std::time::SystemTime::now()
         - std::time::Duration::new(60 * 60, 0);
 
-    let sq = Sq::at(now);
-    let (alice, bob) = make_keys(&sq)?;
+    let mut sq = Sq::at(now);
+    let (alice, bob) = make_keys(&mut sq)?;
     let bob_fp = bob.fingerprint().to_string();
 
     // Have Bob certify Alice.
@@ -244,8 +248,8 @@ fn ignore_shadow_ca() {
     let now = std::time::SystemTime::now()
         - std::time::Duration::new(60 * 60, 0);
 
-    let sq = Sq::at(now);
-    let (alice, bob) = make_keys(&sq).unwrap();
+    let mut sq = Sq::at(now);
+    let (alice, bob) = make_keys(&mut sq).unwrap();
 
     // Have Bob certify Alice.
     let alice2 = sq.pki_vouch_add(&[],
@@ -287,8 +291,8 @@ fn ignore_unexportable_certifications() {
     let now = std::time::SystemTime::now()
         - std::time::Duration::new(60 * 60, 0);
 
-    let sq = Sq::at(now);
-    let (alice, bob) = make_keys(&sq).unwrap();
+    let mut sq = Sq::at(now);
+    let (alice, bob) = make_keys(&mut sq).unwrap();
 
     // Have Bob create a non-exportable certification for Alice.
     let alice2 = sq.pki_vouch_add(&["--local"],
@@ -330,23 +334,23 @@ fn userid_designators() {
         = sq.key_generate(&[], &[ self_signed_userid ]);
     sq.key_import(cert_path);
 
-    // 1. --userid: use the specified self-signed user ID.
+    // Give Sequoia a little space to backdate the signatures.  Note:
+    // It will not backdate them past the key creation time.
     sq.tick(10);
+
+    // 1. --userid: use the specified self-signed user ID.
     sq.key_approvals_update(
         &["--add-all"], cert.key_handle(),
         &[ UserIDArg::UserID(self_signed_userid) ], None);
-    sq.tick(10);
     assert!(sq.try_key_approvals_update(
         &["--add-all"], cert.key_handle(),
         &[ UserIDArg::UserID(other_userid) ], None).is_err());
 
     // 2. --email: use the self-signed user ID with the specified
     // email address.
-    sq.tick(10);
     sq.key_approvals_update(
         &["--add-all"], cert.key_handle(),
         &[ UserIDArg::Email(self_signed_email) ], None);
-    sq.tick(10);
     assert!(sq.try_key_approvals_update(
         &["--add-all"], cert.key_handle(),
         &[ UserIDArg::Email(other_email) ], None).is_err());

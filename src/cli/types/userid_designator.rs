@@ -89,6 +89,13 @@ pub type ExistingAndAddXUserIDEmailNameArgs
         as std::ops::BitOr<ExistingNameArg>>::Output
        as std::ops::BitOr<AddNameArg>>::Output;
 
+/// Enables --all, --userid, --email, --name, --userid-or-add,
+/// --email-or-add, and --name-or-add.
+#[cfg(test)]
+pub type AllExistingAndAddXUserIDEmailNameArgs
+    = <AllUserIDsArg
+       as std::ops::BitOr<ExistingAndAddXUserIDEmailNameArgs>>::Output;
+
 /// Argument parser options.
 
 /// Normally it is possible to designate multiple certificates.  This
@@ -429,43 +436,50 @@ Use all self-signed user IDs"));
 
         if userid_arg {
             let full_name = "userid";
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("USERID")
-                    .action(action.clone())
-                    .help("Use the specified self-signed user ID")
-                    .long_help("\
+            let mut arg = clap::Arg::new(&full_name)
+                .long(&full_name)
+                .value_name("USERID")
+                .action(action.clone())
+                .help("Use the specified self-signed user ID")
+                .long_help("\
 Use the specified self-signed user ID
 
-The specified user ID must be self signed."));
+The specified user ID must be self signed.");
+            if all_arg {
+                arg = arg.conflicts_with("all");
+            }
+            cmd = cmd.arg(arg);
+
             arg_group = arg_group.arg(full_name);
         }
 
         if any_userid_arg {
             let full_name = "userid";
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("USERID")
-                    .action(action.clone())
-                    .help("Use the specified user ID")
-                    .long_help("\
+            let mut arg = clap::Arg::new(&full_name)
+                .long(&full_name)
+                .value_name("USERID")
+                .action(action.clone())
+                .help("Use the specified user ID")
+                .long_help("\
 Use the specified user ID
 
-The specified user ID does not need to be self signed."));
+The specified user ID does not need to be self signed.");
+            if all_arg {
+                arg = arg.conflicts_with("all");
+            }
+            cmd = cmd.arg(arg);
+
             arg_group = arg_group.arg(full_name);
         }
 
         if add_userid_arg {
             let full_name = "userid-or-add";
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("USERID")
-                    .action(action.clone())
-                    .help("Use the specified user ID")
-                    .long_help("\
+            let mut arg = clap::Arg::new(&full_name)
+                .long(&full_name)
+                .value_name("USERID")
+                .action(action.clone())
+                .help("Use the specified user ID")
+                .long_help("\
 Use the specified user ID
 
 The specified user ID does not need to be self signed.
@@ -474,104 +488,133 @@ Because using a user ID that is not self-signed is often a mistake, \
 you need to use this option to explicitly opt in.  That said, \
 certifying a user ID that is not self-signed is useful.  For instance, \
 you can associate an alternate email address with a certificate, or \
-you can add a petname, i.e., a memorable, personal name like \"mom\"."));
+you can add a petname, i.e., a memorable, personal name like \"mom\".");
+            if all_arg {
+                arg = arg.conflicts_with("all");
+            }
+            cmd = cmd.arg(arg);
+
             arg_group = arg_group.arg(full_name);
         }
 
         if email_arg {
             let full_name = "email";
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("EMAIL")
-                    .value_parser(parse_as_email)
-                    .action(action.clone())
-                    .help("\
-Use the self-signed user ID with the specified email address"));
+            let mut arg = clap::Arg::new(&full_name)
+                .long(&full_name)
+                .value_name("EMAIL")
+                .value_parser(parse_as_email)
+                .action(action.clone())
+                .help("\
+Use the self-signed user ID with the specified email address");
+            if all_arg {
+                arg = arg.conflicts_with("all");
+            }
+            cmd = cmd.arg(arg);
+
             arg_group = arg_group.arg(full_name);
         }
 
         if any_email_arg {
             let full_name = "email";
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("EMAIL")
-                    .value_parser(parse_as_email)
-                    .action(action.clone())
-                    .help("\
+            let mut arg = clap::Arg::new(&full_name)
+                .long(&full_name)
+                .value_name("EMAIL")
+                .value_parser(parse_as_email)
+                .action(action.clone())
+                .help("\
 Use a user ID with the specified email address")
-                    .long_help("\
+                .long_help("\
 Use a user ID with the specified email address
 
 This first searches for a matching self-signed user ID.  If there is \
 no self-signed user ID with the specified email, it uses a new user ID \
-with the specified email address, and no display name."));
+with the specified email address, and no display name.");
+            if all_arg {
+                arg = arg.conflicts_with("all");
+            }
+            cmd = cmd.arg(arg);
+
             arg_group = arg_group.arg(full_name);
         }
 
         if add_email_arg {
             let full_name = "email-or-add";
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("EMAIL")
-                    .value_parser(parse_as_email)
-                    .action(action.clone())
-                    .help("Use a user ID with the specified email address")
-                    .long_help("\
+            let mut arg = clap::Arg::new(&full_name)
+                .long(&full_name)
+                .value_name("EMAIL")
+                .value_parser(parse_as_email)
+                .action(action.clone())
+                .help("Use a user ID with the specified email address")
+                .long_help("\
 Use a user ID with the specified email address
 
 This first searches for a matching self-signed user ID.  If there is \
 no self-signed user ID with the specified email address, it uses a new \
-user ID with the specified email address, and no display name."));
+user ID with the specified email address, and no display name.");
+            if all_arg {
+                arg = arg.conflicts_with("all");
+            }
+            cmd = cmd.arg(arg);
+
             arg_group = arg_group.arg(full_name);
         }
 
         if name_arg {
             let full_name = "name";
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("DISPLAY_NAME")
-                    .action(action.clone())
-                    .help("\
-Use the self-signed user ID with the specified display name"));
+            let mut arg = clap::Arg::new(&full_name)
+                .long(&full_name)
+                .value_name("DISPLAY_NAME")
+                .action(action.clone())
+                .help("\
+Use the self-signed user ID with the specified display name");
+            if all_arg {
+                arg = arg.conflicts_with("all");
+            }
+            cmd = cmd.arg(arg);
+
             arg_group = arg_group.arg(full_name);
         }
 
         if any_name_arg {
             let full_name = "name";
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("DISPLAY_NAME")
-                    .action(action.clone())
-                    .help("\
+            let mut arg = clap::Arg::new(&full_name)
+                .long(&full_name)
+                .value_name("DISPLAY_NAME")
+                .action(action.clone())
+                .help("\
 Use a user ID with the specified display name")
-                    .long_help("\
+                .long_help("\
 Use a user ID with the specified display name
 
 This first searches for a matching self-signed user ID.  If there is \
 no self-signed user ID with the specified name, it uses a new user ID \
-with the specified display name, and no email address."));
+with the specified display name, and no email address.");
+            if all_arg {
+                arg = arg.conflicts_with("all");
+            }
+            cmd = cmd.arg(arg);
+
             arg_group = arg_group.arg(full_name);
         }
 
         if add_name_arg {
             let full_name = "name-or-add";
-            cmd = cmd.arg(
-                clap::Arg::new(&full_name)
-                    .long(&full_name)
-                    .value_name("DISPLAY_NAME")
-                    .action(action.clone())
-                    .help("Use a user ID with the specified display name")
-                    .long_help("\
+            let mut arg = clap::Arg::new(&full_name)
+                .long(&full_name)
+                .value_name("DISPLAY_NAME")
+                .action(action.clone())
+                .help("Use a user ID with the specified display name")
+                .long_help("\
 Use a user ID with the specified display name
 
 This first searches for a matching self-signed user ID.  If there is \
 no self-signed user ID with the specified name, it uses a new user ID \
-with the specified display name, and no email address."));
+with the specified display name, and no email address.");
+            if all_arg {
+                arg = arg.conflicts_with("all");
+            }
+            cmd = cmd.arg(arg);
+
             arg_group = arg_group.arg(full_name);
         }
 
@@ -1106,12 +1149,12 @@ mod test {
         #[clap(name = "prog")]
         struct CLI {
             #[command(flatten)]
-            pub userids: UserIDDesignators<AllExistingAndAddXUserIDEmailArgs>,
+            pub userids: UserIDDesignators<AllExistingAndAddXUserIDEmailNameArgs>,
         }
 
         let command = CLI::command();
 
-        // Check if --all is recognized.
+        // Sanity check.
         let m = command.clone().try_get_matches_from(vec![
             "prog",
             "--userid", "alice",
@@ -1121,6 +1164,7 @@ mod test {
         assert_eq!(c.userids.designators.len(), 1);
         assert_eq!(c.userids.all(), Some(false));
 
+        // Make sure --all by itself is accepted.
         let m = command.clone().try_get_matches_from(vec![
             "prog",
             "--all"
@@ -1130,14 +1174,35 @@ mod test {
         assert_eq!(c.userids.designators.len(), 0);
         assert_eq!(c.userids.all(), Some(true));
 
-        let m = command.clone().try_get_matches_from(vec![
-            "prog",
-            "--userid", "alice",
-            "--all",
-        ]);
-        let m = m.expect("valid arguments");
-        let c = CLI::from_arg_matches(&m).expect("ok");
-        assert_eq!(c.userids.designators.len(), 1);
-        assert_eq!(c.userids.all(), Some(true));
+        // Can't combine --all with any other designator.
+        for (arg, value) in &[
+            ("--userid", "foo"),
+            ("--userid-or-add", "foo"),
+            ("--email", "foo@example.org"),
+            ("--email-or-add", "foo@example.org"),
+            ("--name", "foo"),
+            ("--name-or-add", "foo"),
+        ]
+        {
+            // Make sure the arg/value are recognized.
+            eprintln!("Testing {} {}", arg, value);
+            let m = command.clone().try_get_matches_from(vec![
+                "prog",
+                arg, value,
+            ]);
+            let m = m.expect("valid arguments");
+            let c = CLI::from_arg_matches(&m).expect("ok");
+            assert_eq!(c.userids.designators.len(), 1);
+            assert_eq!(c.userids.all(), Some(false));
+
+            // Make sure adding --all causes it to fail.
+            eprintln!("Testing {} {} --all", arg, value);
+            let m = command.clone().try_get_matches_from(vec![
+                "prog",
+                arg, value,
+                "--all",
+            ]);
+            assert!(m.is_err());
+        }
     }
 }

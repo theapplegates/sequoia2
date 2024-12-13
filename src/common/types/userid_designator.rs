@@ -13,6 +13,7 @@ use openpgp::cert::amalgamation::ValidateAmalgamation;
 use crate::Result;
 use crate::cli::types::UserIDDesignators;
 use crate::cli::types::userid_designator::AddArgs;
+use crate::cli::types::userid_designator::PlainIsAdd;
 use crate::cli::types::userid_designator::ResolvedUserID;
 use crate::cli::types::userid_designator::UserIDDesignator;
 use crate::cli::types::userid_designator::UserIDDesignatorSemantics;
@@ -52,6 +53,7 @@ where
 
         let arguments = Arguments::to_usize();
         let add_args = (arguments & AddArgs::to_usize()) > 0;
+        let plain_is_add = (arguments & PlainIsAdd::to_usize()) > 0;
 
         // Find the matching User IDs.
         let mut userids = Vec::new();
@@ -306,7 +308,7 @@ where
         }
 
         if missing {
-            if add_args {
+            if add_args && ! plain_is_add {
                 weprintln!("Use `--add-userid` or `--add-email` to use \
                             a user ID even if it isn't self signed, or has \
                             an invalid self signature.");
@@ -314,15 +316,23 @@ where
             return Err(anyhow::anyhow!("No matching self-signed user ID"));
         }
         if ambiguous_email {
-            weprintln!("Use `--userid` with the full user ID, or \
-                        `--add-userid` to add a new user ID.");
+            if add_args && ! plain_is_add {
+                weprintln!("Use `--userid` with the full user ID, or \
+                            `--add-userid` to add a new user ID.");
+            } else {
+                weprintln!("Use `--userid` with the full user ID.");
+            }
             return Err(anyhow::anyhow!("\
                 An email address does not unambiguously designate a \
                 self-signed user ID"));
         }
         if ambiguous_name {
-            weprintln!("Use `--userid` with the full user ID, or \
-                        `--add-userid` to add a new user ID.");
+            if add_args && ! plain_is_add {
+                weprintln!("Use `--userid` with the full user ID, or \
+                            `--add-userid` to add a new user ID.");
+            } else {
+                weprintln!("Use `--userid` with the full user ID.");
+            }
             return Err(anyhow::anyhow!("\
                 A name does not unambiguously designate a \
                 self-signed user ID"));

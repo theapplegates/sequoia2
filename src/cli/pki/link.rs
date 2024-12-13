@@ -535,7 +535,7 @@ with the email address alice@example.org.",
             command: &[
                 "sq", "pki", "link", "add",
                 "--cert=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-                "--email-or-add=alice@example.org",
+                "--add-email=alice@example.org",
             ],
             hide: &[],
         }),

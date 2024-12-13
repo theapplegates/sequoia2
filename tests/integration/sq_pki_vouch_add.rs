@@ -562,7 +562,7 @@ fn userid_designators() {
             &[], &fpr, UserIDArg::UserID("Alice <alice@an.org>")).is_ok());
 
 
-        // 2. Use --userid-or-add to certify "Alice <alice@some.org>",
+        // 2. Use --add-userid to certify "Alice <alice@some.org>",
         // which is not a self-signed user ID.
 
         // This fails with --userid, because it expects a self-signed
@@ -571,7 +571,7 @@ fn userid_designators() {
             &mut sq, cert.key_handle(),
             UserIDArg::UserID("Alice <alice@some.org>")).is_err());
 
-        // But it works with --userid-or-add.
+        // But it works with --add-userid.
         vouch(&mut sq, cert.key_handle(),
              UserIDArg::AddUserID("Alice <alice@some.org>"));
         assert!(sq.pki_authenticate(
@@ -592,7 +592,7 @@ fn userid_designators() {
             &[], &fpr, UserIDArg::UserID("Alice <alice@example.org>")).is_ok());
 
 
-        // 4. Use --email-or-add to certify "<alice@example.com>",
+        // 4. Use --add-email to certify "<alice@example.com>",
         // which is not part of a self signed user ID.
 
         // This fails with --email, because it expects a self-signed
@@ -601,13 +601,13 @@ fn userid_designators() {
             &mut sq, cert.key_handle(),
             UserIDArg::Email("alice@example.com")).is_err());
 
-        // But it works with --email-or-add.
+        // But it works with --add-email.
         vouch(&mut sq,
               cert.key_handle(), UserIDArg::AddEmail("alice@example.com"));
         assert!(sq.pki_authenticate(
             &[], &fpr, UserIDArg::UserID("<alice@example.com>")).is_ok());
 
-        // Use --email-or-add to link "<alice@third.org>", which is
+        // Use --add-email to link "<alice@third.org>", which is
         // part of the self signed user ID "Alice <alice@third.org>".
         // This should link "<alice@third.org>", not the self-signed
         // user ID.

@@ -103,7 +103,7 @@ fn unbound_userid() {
             updated_path.as_path())
             .is_err());
 
-    // But it should work with --userid-or-add.
+    // But it should work with --add-userid.
     sq.key_userid_revoke(
         &[],
         &cert_path,
@@ -281,7 +281,7 @@ fn userid_designators() {
     assert!(sq.pki_authenticate(
         &[], &fpr, UserIDArg::UserID(other_userid)).is_ok());
 
-    // 2. --userid-or-add: use the specified user ID.
+    // 2. --add-userid: use the specified user ID.
     let (cert, fpr, sq) = setup();
 
     // Self-signed and authenticated.
@@ -320,7 +320,7 @@ fn userid_designators() {
                    UserIDArg::Email(other_email)).is_err());
     revocations(&sq, cert.key_handle(), other_userid, 0);
 
-    // 4. --email-or-add: use a user ID with the email address.
+    // 4. --add-email: use a user ID with the email address.
     let (cert, fpr, sq) = setup();
 
     // Self-signed and authenticated.

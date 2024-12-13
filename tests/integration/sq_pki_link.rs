@@ -791,7 +791,7 @@ fn no_ambiguous_email() {
         sq.pki_link_add_maybe(
             &[], alice.key_handle(), &[UserIDArg::Email("alice@example.org")])
             .is_err());
-    // --email-or-add links a user ID with the email address:
+    // --add-email links a user ID with the email address:
     // Ambiguous is allowed.
     assert!(
         sq.pki_link_add_maybe(
@@ -904,7 +904,7 @@ fn link_userid_designators() {
             &[], &fpr, UserIDArg::UserID("Alice <alice@an.org>")).is_ok());
 
 
-        // 2. Use --userid-or-add to link "Alice <alice@some.org>", which
+        // 2. Use --add-userid to link "Alice <alice@some.org>", which
         // is not a self-signed user ID.
 
         // This fails with --userid, because it expects a self-signed user ID.
@@ -912,7 +912,7 @@ fn link_userid_designators() {
             &mut sq, cert.key_handle(),
             UserIDArg::UserID("Alice <alice@some.org>")).is_err());
 
-        // But it works with --userid-or-add.
+        // But it works with --add-userid.
         link(&mut sq, cert.key_handle(),
              UserIDArg::AddUserID("Alice <alice@some.org>"));
         assert!(sq.pki_authenticate(
@@ -933,7 +933,7 @@ fn link_userid_designators() {
             &[], &fpr, UserIDArg::UserID("Alice <alice@example.org>")).is_ok());
 
 
-        // 4. Use --email-or-add to link "<alice@example.com>", which is
+        // 4. Use --add-email to link "<alice@example.com>", which is
         // not part of a self signed user ID.
 
         // This fails with --email, because it expects a self-signed user ID.
@@ -941,13 +941,13 @@ fn link_userid_designators() {
             &mut sq, cert.key_handle(),
             UserIDArg::Email("alice@example.com")).is_err());
 
-        // But it works with --email-or-add.
+        // But it works with --add-email.
         link(&mut sq,
              cert.key_handle(), UserIDArg::AddEmail("alice@example.com"));
         assert!(sq.pki_authenticate(
             &[], &fpr, UserIDArg::UserID("<alice@example.com>")).is_ok());
 
-        // Use --email-or-add to link "<alice@third.org>", which is
+        // Use --add-email to link "<alice@third.org>", which is
         // part of the self signed user ID "Alice <alice@third.org>".
         // This should link "<alice@third.org>", not the self-signed
         // user ID.

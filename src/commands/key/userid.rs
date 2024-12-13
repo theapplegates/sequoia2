@@ -304,7 +304,7 @@ pub fn userid_revoke(
     // To revoke a user ID, we require the certificate be valid under
     // the current policy.  Users can still revoke user IDs whose
     // binding signature relies on weak cryptography using
-    // `--user-or-add`.
+    // `--add-user`.
     let vcert = cert.with_policy(sq.policy, sq.time)
         .with_context(|| {
             format!("The certificate is not valid under the current \

@@ -1041,7 +1041,7 @@ when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 when I run sq inspect bob-cert.pgp
 then stdout doesn't contain "Certifications:"
 
-when I run sq pki vouch add --certifier-file alice.pgp --cert-file bob-cert.pgp --userid-or-add "My friend Bob" --output cert.pgp
+when I run sq pki vouch add --certifier-file alice.pgp --cert-file bob-cert.pgp --add-userid "My friend Bob" --output cert.pgp
 when I run sq inspect cert.pgp
 then stdout contains "My friend Bob"
 then stdout contains "Certifications: 1,"
@@ -1060,7 +1060,7 @@ when I run sq key delete --cert-file alice.pgp --output alice-cert.pgp
 when I run sq key generate --own-key --without-password --userid Bob --output bob.pgp --rev-cert bob.pgp.rev
 when I run sq key delete --cert-file bob.pgp --output bob-cert.pgp
 
-when I run sq pki vouch add --certifier-file alice.pgp --cert-file bob-cert.pgp --email-or-add "bob@example.org" --output cert.pgp
+when I run sq pki vouch add --certifier-file alice.pgp --cert-file bob-cert.pgp --add-email "bob@example.org" --output cert.pgp
 when I run sq inspect cert.pgp
 then stdout contains "<bob@example.org>"
 then stdout contains "Certifications: 1,"

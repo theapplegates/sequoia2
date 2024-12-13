@@ -30,8 +30,7 @@ pub type ExactArgs = typenum::U2;
 /// <alice@example.org>".
 pub type ByArgs = typenum::U4;
 
-/// Adds a `--userid-or-add`, `--email-or-add`, and `--name-or-add`
-/// argument.
+/// Adds a `--add-userid`, `--add-email`, and `--add-name` argument.
 ///
 /// For `UserIDDesignator::resolve`, acts like `ExactArgs`, but if
 /// there is no matching self-signed user ID, creates one from the
@@ -591,7 +590,7 @@ Use all self-signed user IDs"));
             let full_name = if plain_is_add {
                 "userid"
             } else {
-                "userid-or-add"
+                "add-userid"
             };
 
             let (help, long_help) = Docs::help(UserID, false, Add);
@@ -694,7 +693,7 @@ Use all self-signed user IDs"));
             let full_name = if plain_is_add {
                 "email"
             } else {
-                "email-or-add"
+                "add-email"
             };
             let (help, long_help) = Docs::help(Email, plain_is_add, Add);
             let mut arg = clap::Arg::new(&full_name)
@@ -741,7 +740,7 @@ Use all self-signed user IDs"));
             let full_name = if plain_is_add {
                 "name"
             } else {
-                "name-or-add"
+                "add-name"
             };
             let (help, long_help) = Docs::help(Name, plain_is_add, Add);
             let mut arg = clap::Arg::new(&full_name)
@@ -892,7 +891,7 @@ where
         if add_args {
             if let Ok(Some(userids))
                 = matches.try_get_many::<String>(
-                    if plain_is_add { "userid" } else { "userid-or-add" }) {
+                    if plain_is_add { "userid" } else { "add-userid" }) {
                 for userid in userids.cloned() {
                     designators.push(
                         UserIDDesignator::UserID(Add, userid));
@@ -900,7 +899,7 @@ where
             }
             if let Ok(Some(emails))
                 = matches.try_get_many::<String>(
-                    if plain_is_add { "email" } else { "email-or-add" })
+                    if plain_is_add { "email" } else { "add-email" })
             {
                 for email in emails.cloned() {
                     designators.push(
@@ -909,7 +908,7 @@ where
             }
             if let Ok(Some(names))
                 = matches.try_get_many::<String>(
-                    if plain_is_add { "name" } else { "name-or-add" })
+                    if plain_is_add { "name" } else { "add-name" })
             {
                 for name in names.cloned() {
                     designators.push(
@@ -1129,11 +1128,11 @@ mod test {
                 ]);
                 assert!(m.is_err());
 
-                // Check if --userid-or-add is recognized.
+                // Check if --add-userid is recognized.
                 let m = command.clone().try_get_matches_from(vec![
                     "prog",
-                    "--userid-or-add", "alice",
-                    "--userid-or-add", "bob",
+                    "--add-userid", "alice",
+                    "--add-userid", "bob",
                 ]);
                 if $add {
                     let m = m.expect("valid arguments");
@@ -1144,11 +1143,11 @@ mod test {
                     assert!(m.is_err());
                 }
 
-                // Check if --email-or-add is recognized.
+                // Check if --add-email is recognized.
                 let m = command.clone().try_get_matches_from(vec![
                     "prog",
-                    "--email-or-add", "alice@example.org",
-                    "--email-or-add", "bob@example.org",
+                    "--add-email", "alice@example.org",
+                    "--add-email", "bob@example.org",
                 ]);
                 if $add {
                     let m = m.expect("valid arguments");
@@ -1159,11 +1158,11 @@ mod test {
                     assert!(m.is_err());
                 }
 
-                // Check if --name-or-add is recognized.
+                // Check if --add-name is recognized.
                 let m = command.clone().try_get_matches_from(vec![
                     "prog",
-                    "--name-or-add", "alice",
-                    "--name-or-add", "bob",
+                    "--add-name", "alice",
+                    "--add-name", "bob",
                 ]);
                 if $add {
                     let m = m.expect("valid arguments");
@@ -1333,11 +1332,11 @@ mod test {
             ("--userid", "foo"),
             ("--userid-by-email", "foo@example.org"),
             ("--userid-by-name", "foo"),
-            ("--userid-or-add", "foo"),
+            ("--add-userid", "foo"),
             ("--email", "foo@example.org"),
-            ("--email-or-add", "foo@example.org"),
+            ("--add-email", "foo@example.org"),
             ("--name", "foo"),
-            ("--name-or-add", "foo"),
+            ("--add-name", "foo"),
         ]
         {
             // Make sure the arg/value are recognized.

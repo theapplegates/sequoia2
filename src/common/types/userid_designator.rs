@@ -307,7 +307,7 @@ where
 
         if missing {
             if add_args {
-                weprintln!("Use `--userid-or-add` or `--email-or-add` to use \
+                weprintln!("Use `--add-userid` or `--add-email` to use \
                             a user ID even if it isn't self signed, or has \
                             an invalid self signature.");
             }
@@ -315,14 +315,14 @@ where
         }
         if ambiguous_email {
             weprintln!("Use `--userid` with the full user ID, or \
-                        `--userid-or-add` to add a new user ID.");
+                        `--add-userid` to add a new user ID.");
             return Err(anyhow::anyhow!("\
                 An email address does not unambiguously designate a \
                 self-signed user ID"));
         }
         if ambiguous_name {
             weprintln!("Use `--userid` with the full user ID, or \
-                        `--userid-or-add` to add a new user ID.");
+                        `--add-userid` to add a new user ID.");
             return Err(anyhow::anyhow!("\
                 A name does not unambiguously designate a \
                 self-signed user ID"));

@@ -310,7 +310,14 @@ The certifier is the same as the certificate to certify."));
                         qprintln!("You never certified {:?} for {}, \
                                    there is nothing to retract.",
                                   userid_str(), cert.fingerprint());
-                        return Ok(vec![ Packet::from(userid.userid().clone()) ]);
+                        if user_supplied_userids {
+                            return Err(anyhow::anyhow!(
+                                "You never certified {:?} for {}, \
+                                 there is nothing to retract.",
+                                userid_str(), cert.fingerprint()));
+                        } else {
+                            return Ok(vec![ Packet::from(userid.userid().clone()) ]);
+                        }
                     }
                 } else {
                     if let RevocationStatus::Revoked(_)
@@ -335,10 +342,17 @@ The certifier is the same as the certificate to certify."));
                     qprintln!("You never certified {:?} for {}, \
                                there is nothing to retract.",
                               userid_str(), cert.fingerprint());
-                    // Return a signature packet to indicate that we
-                    // processed something.  But don't return a
-                    // signature.
-                    return Ok(vec![ Packet::from(userid.userid().clone()) ]);
+                    if user_supplied_userids {
+                        return Err(anyhow::anyhow!(
+                            "You never certified {:?} for {}, \
+                             there is nothing to retract.",
+                            userid_str(), cert.fingerprint()));
+                    } else {
+                        // Return a signature packet to indicate that we
+                        // processed something.  But don't return a
+                        // signature.
+                        return Ok(vec![ Packet::from(userid.userid().clone()) ]);
+                    }
                 } else {
                     return Err(anyhow::anyhow!(
                         "{:?} is NOT a self-signed user ID.",
@@ -419,10 +433,16 @@ The certifier is the same as the certificate to certify."));
         .collect::<Vec<Packet>>();
 
     if certifications.is_empty() {
-        return Err(anyhow::anyhow!(
-            "Can't certify {}.  The certificate has no self-signed \
-             user IDs and you didn't specify any user IDs to certify.",
-            cert.fingerprint()));
+        if retract {
+            return Err(anyhow::anyhow!(
+                "Can't retract links for {}.  There is nothing to retract.",
+                cert.fingerprint()));
+        } else {
+            return Err(anyhow::anyhow!(
+                "Can't certify {}.  The certificate has no self-signed \
+                 user IDs and you didn't specify any user IDs to certify.",
+                cert.fingerprint()));
+        }
     }
 
     if certifications.iter().all(|p| matches!(p, Packet::UserID(_))) {

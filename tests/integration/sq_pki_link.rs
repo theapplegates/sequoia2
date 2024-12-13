@@ -1019,3 +1019,80 @@ fn link_retract_userid_designators() {
     assert!(sq.pki_authenticate(
         &[], &fpr, UserIDArg::UserID("<alice@example.com>")).is_err());
 }
+
+#[test]
+fn retract() {
+    let mut sq = Sq::new();
+
+    let (cert, cert_path, _rev_path) = sq.key_generate(
+        &[], &["Alice <alice@example.org>" ]);
+    sq.key_import(cert_path);
+
+    // If a user ID was never linked, retract fails.
+
+    // Check for a self-signed user ID.
+    sq.tick(1);
+    assert!(sq.pki_link_retract_maybe(
+        &[], cert.key_handle(),
+        &[ UserIDArg::UserID("Alice <alice@example.org>") ]).is_err());
+
+    assert!(sq.pki_link_retract_maybe(
+        &[], cert.key_handle(),
+        &[ UserIDArg::Email("alice@example.org") ]).is_err());
+
+    // Check for a user ID that is not self signed.
+    assert!(sq.pki_link_retract_maybe(
+        &[], cert.key_handle(),
+        &[ UserIDArg::UserID("Alice <alice@example.com>") ]).is_err());
+
+    assert!(sq.pki_link_retract_maybe(
+        &[], cert.key_handle(),
+        &[ UserIDArg::Email("alice@example.com") ]).is_err());
+
+    // --all doesn't care.
+    assert!(sq.pki_link_retract_maybe(
+        &["--all"], cert.key_handle(), NO_USERIDS).is_ok());
+
+    // Now create a link.  If we retract the same link multiple times,
+    // we don't get an error, but the subsequent calls won't do
+    // anything except emit the message "Certification parameters are
+    // unchanged.")
+    sq.tick(1);
+    sq.pki_link_add(
+        &[], cert.key_handle(),
+        &[ UserIDArg::UserID("Alice <alice@example.org>") ]);
+
+    for _ in 1..4 {
+        sq.tick(1);
+        sq.pki_link_retract(
+            &[], cert.key_handle(),
+            &[ UserIDArg::UserID("Alice <alice@example.org>") ]);
+
+        sq.tick(1);
+        sq.pki_link_retract(
+            &[], cert.key_handle(),
+            &[ UserIDArg::Email("alice@example.org") ]);
+    }
+
+    sq.pki_link_add(
+        &[], cert.key_handle(),
+        &[ UserIDArg::AddUserID("Alice <alice@example.com>") ]);
+
+    for _ in 1..4 {
+        sq.tick(1);
+        sq.pki_link_retract(
+            &[], cert.key_handle(),
+            &[ UserIDArg::UserID("Alice <alice@example.com>") ]);
+
+        // We can't name "Alice <alice@example.com>" by email, because
+        // it is not self-signed.
+        sq.tick(1);
+        assert!(sq.pki_link_retract_maybe(
+            &[], cert.key_handle(),
+            &[ UserIDArg::Email("alice@example.com") ]).is_err());
+    }
+
+    // --all doesn't care.
+    assert!(sq.pki_link_retract_maybe(
+        &["--all"], cert.key_handle(), NO_USERIDS).is_ok());
+}

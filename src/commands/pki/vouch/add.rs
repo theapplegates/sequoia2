@@ -34,7 +34,7 @@ pub fn add(sq: Sq, mut c: add::Command)
         &certifier,
         &cert,
         &userids[..],
-        true, // User supplied user IDs.
+        ! c.userids.all().unwrap_or(false), // User-supplied user IDs.
         &[(c.amount, expiration)],
         0,
         &[][..], &[][..], // Domain, regex.

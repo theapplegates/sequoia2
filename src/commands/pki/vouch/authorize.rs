@@ -35,7 +35,7 @@ pub fn authorize(sq: Sq, mut c: authorize::Command)
         &certifier,
         &cert,
         &userids[..],
-        true, // User supplied user IDs.
+        ! c.userids.all().unwrap_or(false), // User-supplied user IDs.
         &[(c.amount, expiration)],
         c.depth,
         &c.domain[..],

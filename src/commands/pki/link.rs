@@ -72,7 +72,7 @@ pub fn add(sq: Sq, c: link::AddCommand)
         &trust_root,
         &cert,
         &userids[..],
-        true, // User-supplied user IDs.
+        ! c.userids.all().unwrap_or(false), // User-supplied user IDs.
         &templates,
         0, // Trust depth.
         &[][..], // Domain.
@@ -105,7 +105,7 @@ pub fn authorize(sq: Sq, c: link::AuthorizeCommand)
         &trust_root,
         &cert,
         &userids[..],
-        true, // User supplied user IDs.
+        ! c.userids.all().unwrap_or(false), // User-supplied user IDs.
         &[(c.amount, c.expiration.value())][..],
         c.depth,
         &c.domain[..],
@@ -138,7 +138,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
         &trust_root,
         &cert,
         &userids[..],
-        true, // User supplied user IDs.
+        ! c.userids.all().unwrap_or(false), // User-supplied user IDs.
         &[(TrustAmount::None, Expiration::Never)],
         0,
         &[][..], &[][..], // Domain, regex.

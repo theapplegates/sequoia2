@@ -560,7 +560,6 @@ where
             cmd = cmd.arg(
                 clap::Arg::new(&full_name)
                     .long(&full_name)
-                    .requires(&group)
                     .action(clap::ArgAction::SetTrue)
                     .help("\
 Use all self-signed user IDs"));

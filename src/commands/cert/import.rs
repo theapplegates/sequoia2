@@ -68,9 +68,15 @@ where 'store: 'rstore
                 // See if it is a keyring, or a bare revocation
                 // certificate.
                 if let PacketParserResult::Some(ref pp) = ppr {
-                    if let Packet::Signature(_) = pp.packet {
-                        // Looks like a bare revocation.
-                        typ = Type::Signature;
+                    if let Packet::Signature(sig) = &pp.packet {
+                        typ = match sig.typ() {
+                            SignatureType::KeyRevocation |
+                            SignatureType::SubkeyRevocation |
+                            SignatureType::CertificationRevocation =>
+                            // Looks like a bare revocation.
+                                Type::Signature,
+                            _ => Type::Other,
+                        };
                     } else if pp.possible_keyring().is_ok() {
                         typ = Type::Keyring;
                     } else {

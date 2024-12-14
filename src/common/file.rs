@@ -38,14 +38,10 @@ impl FileOrStdout {
 
     /// Opens the file (or stdout) for writing data that is NOT safe
     /// for non-interactive use.
-    ///
-    /// If our heuristic detects non-interactive use, we will emit a
-    /// warning once.
     pub fn create_unsafe(
         &self,
         sq: &Sq,
     ) -> Result<Box<dyn Write + Sync + Send>> {
-        CliWarningOnce::warn();
         self.create(sq)
     }
 
@@ -168,29 +164,5 @@ impl<W: io::Write + Send + Sync> SecretLeakDetector<W> {
         }
 
         Ok(())
-    }
-}
-
-struct CliWarningOnce(());
-impl CliWarningOnce {
-    /// Emit a warning message only once
-    pub fn warn() {
-        use std::sync::Once;
-        static WARNING: Once = Once::new();
-        WARNING.call_once(|| {
-            // stdout is connected to a terminal, assume interactive use.
-            use std::io::IsTerminal;
-            if ! std::io::stdout().is_terminal()
-                // For bash shells, we can use a very simple heuristic.
-                // We simply look at whether the COLUMNS variable is defined in
-                // our environment.
-                && std::env::var_os("COLUMNS").is_none() {
-                eprintln!(
-                    "\nWARNING: sq does not have a stable CLI interface, \
-                     and the human-readable output should not be parsed.\n\
-                    Use with caution in scripts.\n"
-                );
-            }
-        });
     }
 }

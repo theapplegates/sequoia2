@@ -69,6 +69,10 @@ pub fn dispatch(sq: Sq, command: cli::decrypt::Command) -> Result<()> {
                          session_keys);
     if result.is_err() {
         if let Some(path) = command.output.path() {
+            // Drop output here so that the file is persisted and
+            // can be deleted.
+            drop(output);
+
             if let Err(err) = std::fs::remove_file(path) {
                 weprintln!("Decryption failed, failed to remove \
                             output saved to {}: {}",

@@ -60,6 +60,11 @@
      if the certificate has the self-signed user ID "Alice
      <alice@example.org>", then `--userid-by-email alice@example.org`
      selects "Alice <alice@example.org>" for revocation.
+   - When writing to a file output, we first write to a temporary
+     file, then rename the file at the end of the operation so that it
+     has its desired name.  There are two benefits: no one sees
+     partially written files, and one can safely use the same file as
+     input and output.
 
 * Changes in 0.41.0
 ** New functionality

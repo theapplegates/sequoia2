@@ -46,6 +46,10 @@ pub fn dispatch(sq: Sq, command: cli::verify::Command)
                         &mut output, signatures, signers);
     if result.is_err() {
         if let Some(path) = command.output.path() {
+            // Drop output here so that the file is persisted and
+            // can be deleted.
+            drop(output);
+
             if let Err(err) = std::fs::remove_file(path) {
                 weprintln!("Verification failed, failed to remove \
                             unverified output saved to {}: {}",

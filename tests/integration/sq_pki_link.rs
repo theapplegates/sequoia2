@@ -153,7 +153,7 @@ fn sq_retract(sq: &Sq, cert: &str, userids: &[&str], emails: &[&str])
 //
 // The certification is imported into the cert store.
 fn sq_certify(sq: &Sq,
-              certifier: &str, cert: &str, userid: &str,
+              certifier: &Path, cert: &str, userid: &str,
               trust_amount: Option<usize>)
 {
     let mut extra_args = Vec::new();
@@ -165,7 +165,8 @@ fn sq_certify(sq: &Sq,
     }
 
     let certification = sq.scratch_file(Some(&format!(
-        "certification {} {} by {}", cert, userid, certifier)[..]));
+        "certification {} {} by {}", cert, userid,
+        PathBuf::from(certifier.file_name().unwrap()).display())[..]));
 
     let cert = if let Ok(kh) = cert.parse::<KeyHandle>() {
         kh.into()
@@ -179,7 +180,7 @@ fn sq_certify(sq: &Sq,
 }
 
 fn sq_authorize(sq: &Sq,
-                certifier: &str, cert: &str, userid: &str,
+                certifier: &Path, cert: &str, userid: &str,
                 trust_amount: Option<usize>, depth: Option<usize>)
 {
     let mut extra_args = vec![ "--unconstrained" ];
@@ -197,7 +198,8 @@ fn sq_authorize(sq: &Sq,
     }
 
     let certification = sq.scratch_file(Some(&format!(
-        "certification {} {} by {}", cert, userid, certifier)[..]));
+        "certification {} {} by {}", cert, userid,
+        PathBuf::from(certifier.file_name().unwrap()).display())[..]));
 
     let cert = if let Ok(kh) = cert.parse::<KeyHandle>() {
         kh.into()
@@ -220,7 +222,7 @@ fn sq_pki_link_add_retract() -> Result<()> {
     std::fs::create_dir(&certd).expect("mkdir works");
 
     struct Data {
-        key_file: String,
+        key_file: PathBuf,
         cert: Cert, // unused
         sig_file: String,
     }
@@ -230,7 +232,7 @@ fn sq_pki_link_add_retract() -> Result<()> {
     let (alice, alice_pgp, _) = sq.key_generate(&[], &[alice_userid]);
     sq.cert_import(&alice_pgp);
     let alice = Data {
-        key_file: alice_pgp.display().to_string(),
+        key_file: alice_pgp,
         cert: alice,
         sig_file: dir.path().join("alice.sig").display().to_string(),
     };
@@ -240,7 +242,7 @@ fn sq_pki_link_add_retract() -> Result<()> {
     let (bob, bob_pgp, _) = sq.key_generate(&[], &[bob_userid]);
     sq.cert_import(&bob_pgp);
     let bob = Data {
-        key_file: bob_pgp.display().to_string(),
+        key_file: bob_pgp,
         cert: bob,
         sig_file: dir.path().join("bob.sig").display().to_string(),
     };
@@ -250,7 +252,7 @@ fn sq_pki_link_add_retract() -> Result<()> {
     let (carol, carol_pgp, _) = sq.key_generate(&[], &[carol_userid]);
     sq.cert_import(&carol_pgp);
     let carol = Data {
-        key_file: carol_pgp.display().to_string(),
+        key_file: carol_pgp,
         cert: carol,
         sig_file: dir.path().join("carol.sig").display().to_string(),
     };
@@ -260,7 +262,7 @@ fn sq_pki_link_add_retract() -> Result<()> {
     let (dave, dave_pgp, _) = sq.key_generate(&[], &[dave_userid]);
     sq.cert_import(&dave_pgp);
     let dave = Data {
-        key_file: dave_pgp.display().to_string(),
+        key_file: dave_pgp,
         cert: dave,
         sig_file: dir.path().join("dave.sig").display().to_string(),
     };
@@ -272,7 +274,7 @@ fn sq_pki_link_add_retract() -> Result<()> {
     for data in data.iter() {
         sq.sign_args(
             &["--time", &tick()],
-            PathBuf::from(data.key_file.as_str()), None,
+            &data.key_file, None,
             &artifact("messages/a-cypherpunks-manifesto.txt"),
             PathBuf::from(data.sig_file.clone()).as_path());
     }

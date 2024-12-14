@@ -71,3 +71,34 @@ fn sq_autocrypt_import() -> Result<()>
 
     Ok(())
 }
+
+#[test]
+fn sq_autocrypt_import_signed() -> Result<()>
+{
+    let t = chrono::DateTime::parse_from_str("20241214T0100z", "%Y%m%dT%H%M%#z")
+        .expect("valid date");
+    let sq = Sq::at(t.into());
+
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let eml = manifest_dir.join("tests").join("data").join("autocrypt")
+        .join("signed.eml");
+
+    // Import the message.
+    let mut cmd = sq.command();
+    cmd.arg("cert").arg("import").arg(&eml);
+    sq.run(cmd, true);
+
+    // Check that the cert is imported.
+    sq.cert_export("64F4DD76866EA6896E4A869BA0FCAE2B43465576".parse::<KeyHandle>()?);
+
+    // We can now partially authenticate the sender.
+    let mut cmd = sq.command();
+    cmd.arg("pki").arg("authenticate")
+        .arg("--amount=40")
+        .arg("--cert").arg("64F4DD76866EA6896E4A869BA0FCAE2B43465576")
+        .arg("--email").arg("patrick@enigmail.net");
+    eprintln!("Running: {:?}", cmd);
+    sq.run(cmd, true);
+
+    Ok(())
+}

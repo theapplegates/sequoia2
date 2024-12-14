@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 
 use buffered_reader::{BufferedReader, Dup};
 use sequoia_openpgp as openpgp;
@@ -91,13 +91,15 @@ pub fn import_certs(sq: &mut Sq, source: &mut Box<dyn BufferedReader<Cookie>>,
     let dup = Dup::with_cookie(source, Cookie::default());
     let mut decryptor = match DecryptorBuilder::from_buffered_reader(dup)?
         .with_policy(&policy, None, helper)
-        .context("Decryption failed")
     {
         Ok(d) => d,
         Err(e) => {
             // The decryption failed, but we should still import the
             // Autocrypt header.
-            weprintln!("Note: Decryption of message failed: {}", e);
+            if sq.verbose() {
+                weprintln!("Note: Processing of message failed: {}", e);
+            }
+
             return Ok(());
         },
     };
@@ -110,7 +112,11 @@ pub fn import_certs(sq: &mut Sq, source: &mut Box<dyn BufferedReader<Cookie>>,
     // be encrypted for the purpose of the certification, but
     // Autocrypt requires messages to be signed and encrypted.
     if helper.sym_algo.is_none() {
-        return Err(anyhow::anyhow!("Message is not encrypted."));
+        if sq.verbose() {
+            weprintln!("Note: Message is not encrypted, ignoring message");
+        }
+
+        return Ok(());
     }
 
     let mut acc = Vec::new();

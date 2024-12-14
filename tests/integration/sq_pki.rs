@@ -313,28 +313,28 @@ fn authenticate_email() -> Result<()> {
     let alice_fpr: Fingerprint =
         "85DAB65713B2D0ABFC5A4F28BC10C9CE4A699D8D"
         .parse().expect("valid fingerprint");
-    // Yes, UserIDArg::Email, not UserIDArg::UserID.  We're testing
-    // what --email matches!
+    // Yes, UserIDArg::ByEmail, not UserIDArg::UserID.  We're testing
+    // what --userid-by-email matches!
     let alice_uid
-        = UserIDArg::Email("<alice@example.org>");
+        = UserIDArg::ByEmail("<alice@example.org>");
 
     let dave_fpr: Fingerprint =
         "329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281"
         .parse().expect("valid fingerprint");
-    // Yes, UserIDArg::Email, not UserIDArg::UserID.
+    // Yes, UserIDArg::ByEmail, not UserIDArg::UserID.
     let dave_uid
-        = UserIDArg::Email("<dave@example.org>");
-    let dave_email = UserIDArg::Email("dave@example.org");
-    let dave_email_uc1 = UserIDArg::Email("DAVE@example.org");
-    let dave_email_uc2 = UserIDArg::Email("DAVE@EXAMPLE.ORG");
+        = UserIDArg::ByEmail("<dave@example.org>");
+    let dave_email = UserIDArg::ByEmail("dave@example.org");
+    let dave_email_uc1 = UserIDArg::ByEmail("DAVE@example.org");
+    let dave_email_uc2 = UserIDArg::ByEmail("DAVE@EXAMPLE.ORG");
 
     let ellen_fpr: Fingerprint =
         "A7319A9B166AB530A5FBAC8AB43CA77F7C176AF4"
         .parse().expect("valid fingerprint");
-    // Yes, UserIDArg::Email, not UserIDArg::UserID.
+    // Yes, UserIDArg::ByEmail, not UserIDArg::UserID.
     let ellen_uid
-        = UserIDArg::Email("<ellen@example.org>");
-    let ellen_email = UserIDArg::Email("ellen@example.org");
+        = UserIDArg::ByEmail("<ellen@example.org>");
+    let ellen_email = UserIDArg::ByEmail("ellen@example.org");
     // Certified by: 329D5AAF73DC70B4E3DD2D11677CB70FFBFE1281
 
     // defaults
@@ -529,7 +529,7 @@ fn authenticate_email() -> Result<()> {
     let alice_uid
         = UserIDArg::UserID("<alice@example.org>");
     let alice_email
-        = UserIDArg::Email("alice@example.org");
+        = UserIDArg::ByEmail("alice@example.org");
 
     let hans_fpr: Fingerprint =
         "74767C4F2B15F57F3394FCA99DE867E6CA6A2756"
@@ -539,13 +539,13 @@ fn authenticate_email() -> Result<()> {
     // Certified by: B8DA8B318149B1C8C0CBD1ECB1CEC6D3CD00E69D
 
     let hans_email
-        = UserIDArg::Email("hÄNS@bücher.tld");
+        = UserIDArg::ByEmail("hÄNS@bücher.tld");
     let hans_email_lowercase
-        = UserIDArg::Email("häns@bücher.tld");
+        = UserIDArg::ByEmail("häns@bücher.tld");
     let hans_email_punycode
-        = UserIDArg::Email("hÄNS@xn--bcher-kva.tld");
+        = UserIDArg::ByEmail("hÄNS@xn--bcher-kva.tld");
     let hans_email_punycode_lowercase
-        = UserIDArg::Email("häns@xn--bcher-kva.tld");
+        = UserIDArg::ByEmail("häns@xn--bcher-kva.tld");
 
     let carol_fpr: Fingerprint =
         "7432C123761B94EC50D50CF6562B9ADEE7F789F6"
@@ -555,7 +555,7 @@ fn authenticate_email() -> Result<()> {
     // Certified by: 74767C4F2B15F57F3394FCA99DE867E6CA6A2756
 
     let carol_email
-        = UserIDArg::Email("carol@example.org");
+        = UserIDArg::ByEmail("carol@example.org");
 
     // defaults
     let keyring = "puny-code.pgp";

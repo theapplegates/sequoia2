@@ -34,7 +34,7 @@ use crate::cli::types::UserIDDesignators;
 pub struct Command {
     #[command(flatten)]
     pub userid: UserIDDesignators<
-        userid_designator::PlainAddArgs,
+        userid_designator::PlainAddAndByArgs,
         userid_designator::OneValueNoLinting,
         userid_designator::AnyDocumentation>,
 
@@ -72,7 +72,7 @@ const EXAMPLES: Actions = Actions {
 address, and that user ID can be authenticated.",
         ).command(&[
             "sq", "pki", "lookup",
-            "--email", "alice@example.org",
+            "--userid-by-email", "alice@example.org",
         ]).build(),
     ],
 };

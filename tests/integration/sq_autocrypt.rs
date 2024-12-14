@@ -41,7 +41,7 @@ fn sq_autocrypt_import() -> Result<()>
     cmd.arg("pki").arg("authenticate")
         .arg("--amount=40")
         .arg("--cert").arg("A614C91D0392D83EE6B1C4A4DD4147FEF78AD630")
-        .arg("--email").arg("pink@probier.email");
+        .arg("--userid-by-email").arg("pink@probier.email");
     eprintln!("Running: {:?}", cmd);
     eprintln!("pre: {}", time_as_string(std::time::SystemTime::now().into()));
     sq.run(cmd, true);
@@ -96,7 +96,7 @@ fn sq_autocrypt_import_signed() -> Result<()>
     cmd.arg("pki").arg("authenticate")
         .arg("--amount=40")
         .arg("--cert").arg("64F4DD76866EA6896E4A869BA0FCAE2B43465576")
-        .arg("--email").arg("patrick@enigmail.net");
+        .arg("--userid-by-email").arg("patrick@enigmail.net");
     eprintln!("Running: {:?}", cmd);
     sq.run(cmd, true);
 

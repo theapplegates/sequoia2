@@ -101,16 +101,22 @@ pub fn authenticate<'store, 'rstore>(
     let fingerprint: Option<Fingerprint> = certificate.map(|c| c.fingerprint());
 
     // If email is true, then userid is an unbracketed email address.
+    let userid_;
     let (userid, email) = if let Some(designator) = userid_designator {
         t!("User ID: {:?}", designator);
 
         use userid_designator::UserIDDesignator::*;
-        // use userid_designator::UserIDDesignatorSemantics::*;
+        use userid_designator::UserIDDesignatorSemantics::*;
         match designator {
             UserID(_semantics, userid) => {
                 (Some(&userid[..]), false)
             }
-            Email(_semantics, email) => {
+            Email(Exact | Add, email) => {
+                // Exactly the email address.
+                userid_ = format!("<{}>", email);
+                (Some(&userid_[..]), false)
+            }
+            Email(By, email) => {
                 // Match all user IDs with the specified email
                 // address.
                 (Some(&email[..]), true)

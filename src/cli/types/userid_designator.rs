@@ -207,7 +207,7 @@ impl Documentation for AnyDocumentation {
         -> (&'static str, Option<&'static str>)
     {
         use UserIDDesignatorType::*;
-        //use UserIDDesignatorSemantics::*;
+        use UserIDDesignatorSemantics::*;
         match (typ, semantics) {
             (UserID, _) => {
                 ("Use the specified user ID",
@@ -216,8 +216,16 @@ Use the specified user ID
 
 The specified user ID does not need to be self signed."))
             }
-            (Email, _) => {
-                ("Use user IDs that contain the specified email address",
+            (Email, Exact | Add) => {
+                ("Use a user ID with the specified email address",
+                 Some("\
+Use a user ID with the specified email address
+
+The user ID consists of just the email address.  The email address does not \
+have to appear in a self-signed user ID."))
+            }
+            (Email, By) => {
+                ("Use the user IDs that contain the specified email address",
                  None)
             }
             (Name, _) => {

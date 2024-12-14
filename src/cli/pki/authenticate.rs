@@ -48,7 +48,7 @@ pub struct Command {
 
     #[command(flatten)]
     pub userid: UserIDDesignators<
-        userid_designator::PlainAddArgs,
+        userid_designator::PlainAddAndByArgs,
         userid_designator::OneValueNoLinting,
         userid_designator::AnyDocumentation>,
 
@@ -88,7 +88,7 @@ address for the given certificate.",
         ).command(&[
             "sq", "pki", "authenticate",
             "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-            "--email", "alice@example.org",
+            "--userid-by-email", "alice@example.org",
         ]).build(),
     ],
 };

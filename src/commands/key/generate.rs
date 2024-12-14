@@ -437,6 +437,6 @@ fn certify_generated<'store, 'rstore>(sq: &mut Sq<'store, 'rstore>, cert: &Cert)
         1,
         &[])?;
 
-    Ok(certify_downloads(sq, ca, vec![cert.clone()], None)
+    Ok(certify_downloads(sq, false, ca, vec![cert.clone()], None)
        .into_iter().next().expect("exactly one"))
 }

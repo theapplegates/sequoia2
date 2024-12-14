@@ -52,7 +52,7 @@ pub fn import_certs(sq: &mut Sq, source: &mut Box<dyn BufferedReader<Cookie>>,
                     .and_then(|certd| certd.shadow_ca_autocrypt())
                 {
                     acc.append(&mut certify_downloads(
-                        sq, ca,
+                        sq, false, ca,
                         vec![cert], Some(&addr[..])));
                 } else {
                     acc.push(cert);

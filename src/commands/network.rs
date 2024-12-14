@@ -229,6 +229,7 @@ fn serialize_keyring(sq: &Sq, file: &FileOrStdout, certs: Vec<Cert>,
 /// This does not import the certification or the certificate into
 /// the certificate store.
 fn certify(sq: &Sq,
+           emit_provenance_messages: bool,
            signer: &mut dyn Signer, cert: &Cert, userids: &[UserID],
            depth: u8, amount: usize)
     -> Result<Cert>
@@ -244,17 +245,19 @@ fn certify(sq: &Sq,
     builder = builder.set_exportable_certification(false)?;
 
     let certifications = active_certification(
-            sq, cert,
-            userids.iter(),
-            signer.public())
+        sq, cert,
+        userids.iter(),
+        signer.public())
         .into_iter()
         .map(|(userid, active_certification)| {
             if let Some(_) = active_certification {
-                sq.info(format_args!(
-                          "Provenance information for {}, {:?} \
-                           exists and is current, not updating it",
-                          cert.fingerprint(),
-                          String::from_utf8_lossy(userid.value())));
+                if emit_provenance_messages {
+                    sq.info(format_args!(
+                        "Provenance information for {}, {:?} \
+                         exists and is current, not updating it",
+                        cert.fingerprint(),
+                        String::from_utf8_lossy(userid.value())));
+                }
                 return vec![];
             }
 
@@ -269,11 +272,13 @@ fn certify(sq: &Sq,
                 })
             {
                 Ok(sig) => {
-                sq.info(format_args!(
-                              "Recorded provenance information \
-                               for {}, {:?}",
-                              cert.fingerprint(),
-                              String::from_utf8_lossy(userid.value())));
+                    if emit_provenance_messages {
+                        sq.info(format_args!(
+                            "Recorded provenance information \
+                             for {}, {:?}",
+                            cert.fingerprint(),
+                            String::from_utf8_lossy(userid.value())));
+                    }
                     vec![ Packet::from(userid.clone()), Packet::from(sig) ]
                 }
                 Err(err) => {
@@ -309,6 +314,7 @@ fn certify(sq: &Sq,
 /// If a certificate cannot be certified for whatever reason, a
 /// diagnostic is emitted, and the certificate is returned as is.
 pub fn certify_downloads<'store, 'rstore>(sq: &mut Sq<'store, 'rstore>,
+                                          emit_provenance_messages: bool,
                                           ca: Arc<LazyCert<'store>>,
                                           certs: Vec<Cert>, email: Option<&str>)
     -> Vec<Cert>
@@ -386,7 +392,8 @@ pub fn certify_downloads<'store, 'rstore>(sq: &mut Sq<'store, 'rstore>,
         };
 
         match certify(
-            sq, &mut ca_signer, &cert, &userids[..],
+            sq, emit_provenance_messages,
+            &mut ca_signer, &cert, &userids[..],
             0, sequoia_wot::FULLY_TRUSTED)
         {
             Ok(cert) => cert,
@@ -747,7 +754,7 @@ impl Response {
                             if let Some(ca) = response.method.ca(sq)
                             {
                                 for cert in certify_downloads(
-                                    sq, ca, vec![cert], None)
+                                    sq, true, ca, vec![cert], None)
                                 {
                                     merge(certs, &mut new,
                                           response.method.clone(), cert)?;

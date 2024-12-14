@@ -124,6 +124,67 @@ where 'store: 'rstore
     Ok(result?)
 }
 
+/// Reports on a successfully imported cert.
+pub fn emit_cert(o: &mut dyn std::io::Write, sq: &Sq, cert: &openpgp::Cert)
+                 -> Result<()>
+{
+    wwriteln!(stream = o,
+              initial_indent = " - ┌ ", subsequent_indent = "   │ ",
+              "{}", cert.fingerprint());
+    wwriteln!(stream = o,
+              initial_indent = "   └ ",
+              "{}", sq.best_userid(cert, true));
+    Ok(())
+}
+
+/// Imports the certs and reports on the individual certs.
+pub fn import_and_report<F>(o: &mut dyn std::io::Write,
+                            sq: &mut Sq,
+                            certs: Vec<openpgp::Cert>,
+                            source_path: Option<&PathBuf>,
+                            stats: &mut ImportStats,
+                            additional: F)
+                            -> Result<()>
+where
+    F: Fn(&mut dyn std::io::Write, &openpgp::Cert)
+          -> Result<()>,
+{
+    let cert_store = sq.cert_store_or_else()?;
+
+    for cert in certs {
+        emit_cert(o, sq, &cert)?;
+        let cert = Arc::new(LazyCert::from(cert));
+        if let Err(err) = cert_store.update_by(cert.clone(), stats) {
+            wwriteln!(stream = o,
+                      initial_indent = "   - ", "failed: {}", err);
+            wwriteln!(o);
+            stats.certs.inc_errors();
+            continue;
+        } else {
+            wwriteln!(stream = o,
+                      initial_indent = "   - ", "imported");
+        }
+
+        additional(o, cert.to_cert().expect("was a cert"))?;
+
+        if cert.is_tsk() {
+            let mut cmd = sq.hint(format_args!(
+                "Certificate {} contains secret key material.  \
+                 To import keys, do:", cert.fingerprint()))
+                    .sq().arg("key").arg("import");
+
+            if let Some(file) = source_path {
+                cmd = cmd.arg(file.display());
+            }
+
+            cmd.done();
+        }
+    }
+
+    wwriteln!(o);
+    Ok(())
+}
+
 /// Imports certs encoded as OpenPGP keyring.
 fn import_certs(o: &mut dyn std::io::Write,
                 sq: &mut Sq,
@@ -134,7 +195,6 @@ fn import_certs(o: &mut dyn std::io::Write,
 {
     let dup = Dup::with_cookie(source, Cookie::default());
     let raw_certs = RawCertParser::from_buffered_reader(dup)?;
-    let cert_store = sq.cert_store_or_else()?;
 
     let mut one_ok = false;
     let mut errors = Vec::new();
@@ -153,32 +213,8 @@ fn import_certs(o: &mut dyn std::io::Write,
             }
         };
 
-        if cert.is_tsk() {
-            let mut cmd = sq.hint(format_args!(
-                "Certificate {} contains secret key material.  \
-                 To import keys, do:", cert.fingerprint()))
-                .sq().arg("key").arg("import");
-
-            if let Some(file) = source_path {
-                cmd = cmd.arg(file.display());
-            }
-
-            cmd.done();
-        }
-
-
-        let fingerprint = cert.fingerprint();
-        let sanitized_userid = sq.best_userid(&cert, true);
-        if let Err(err) = cert_store.update_by(Arc::new(cert.into()),
-                                               stats)
-        {
-            wwriteln!(o, "Error importing {}, {}: {}",
-                      fingerprint, sanitized_userid, err);
-            stats.certs.inc_errors();
-            continue;
-        } else {
-            wwriteln!(o, "Imported {}, {}", fingerprint, sanitized_userid);
-        }
+        import_and_report(o, sq, vec![cert], source_path, stats,
+                          |_, _| Ok(()))?;
     }
 
     if ! one_ok {

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use anyhow::{Context, Result};
 
 use buffered_reader::{BufferedReader, Dup};
@@ -9,12 +7,12 @@ use openpgp::{
     parse::{Cookie, Parse, stream::DecryptorBuilder},
 };
 use sequoia_autocrypt as autocrypt;
-use sequoia_cert_store::{LazyCert, StoreUpdate};
 
 use crate::{
     Sq,
-    commands::network::{
-        certify_downloads,
+    commands::{
+        cert::import::import_and_report,
+        network::certify_downloads,
     },
     output::import::ImportStats,
 };
@@ -26,6 +24,7 @@ pub fn import_certs(sq: &mut Sq, source: &mut Box<dyn BufferedReader<Cookie>>,
                     stats: &mut ImportStats)
                     -> Result<()>
 {
+    let o = &mut std::io::stdout();
     let mut acc = Vec::new();
 
     // First, get the Autocrypt headers from the outside.
@@ -39,6 +38,7 @@ pub fn import_certs(sq: &mut Sq, source: &mut Box<dyn BufferedReader<Cookie>>,
 
     use autocrypt::AutocryptHeaderType::*;
     let mut sender_cert = None;
+    let mut provenance_recorded = false;
     for h in ac.headers.into_iter().filter(|h| h.header_type == Sender) {
         if let Some(addr) = h.attributes.iter()
             .find_map(|a| (&a.key == "addr"
@@ -54,6 +54,7 @@ pub fn import_certs(sq: &mut Sq, source: &mut Box<dyn BufferedReader<Cookie>>,
                     acc.append(&mut certify_downloads(
                         sq, false, ca,
                         vec![cert], Some(&addr[..])));
+                    provenance_recorded = true;
                 } else {
                     acc.push(cert);
                 }
@@ -61,10 +62,14 @@ pub fn import_certs(sq: &mut Sq, source: &mut Box<dyn BufferedReader<Cookie>>,
         }
     }
 
-    let cert_store = sq.cert_store_or_else()?;
-    for cert in acc.drain(..) {
-        cert_store.update_by(Arc::new(LazyCert::from(cert)), stats)?;
-    }
+    import_and_report(o, sq, acc, None, stats, |o, _| {
+        if provenance_recorded {
+            wwriteln!(stream = o, initial_indent = "   - ",
+                      "provenance information recorded");
+        }
+
+        Ok(())
+    })?;
 
     // If there is no Autocrypt header, don't bother looking for
     // gossip.
@@ -108,6 +113,7 @@ pub fn import_certs(sq: &mut Sq, source: &mut Box<dyn BufferedReader<Cookie>>,
         return Err(anyhow::anyhow!("Message is not encrypted."));
     }
 
+    let mut acc = Vec::new();
     for h in ac.headers.into_iter().filter(|h| h.header_type == Gossip) {
         if let Some(_addr) = h.attributes.iter()
             .find_map(|a| (&a.key == "addr").then(|| a.value.clone()))
@@ -118,9 +124,7 @@ pub fn import_certs(sq: &mut Sq, source: &mut Box<dyn BufferedReader<Cookie>>,
         }
     }
 
-    for cert in acc {
-        cert_store.update_by(Arc::new(LazyCert::from(cert)), stats)?;
-    }
+    import_and_report(o, sq, acc, None, stats, |_, _| Ok(()))?;
 
     Ok(())
 }

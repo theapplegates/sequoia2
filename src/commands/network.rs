@@ -927,6 +927,8 @@ pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async {
       for _ in 0..iterations {
+        let cert_store = sq.cert_store()?;
+
         let mut requests = JoinSet::new();
         let mut converged = true;
         std::mem::take(&mut queries).into_iter().for_each(|query| {
@@ -1024,7 +1026,7 @@ pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
             // Finally, we also consult the certificate store to
             // discover more identifiers.  This is sync, but we use
             // the same mechanism to merge the result back in.
-            if let Ok(Some(store)) = sq.cert_store() {
+            if let Some(store) = &cert_store {
                 pb.inc_length(1);
                 let mut email_query = UserIDQueryParams::new();
                 email_query.set_email(true);

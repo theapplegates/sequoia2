@@ -181,7 +181,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
         }
     }
 
-    fn print_sigs(&mut self, results: &[VerificationResult]) {
+    fn print_sigs(&mut self, results: &[VerificationResult]) -> Result<()> {
         make_qprintln!(self.quiet);
         use crate::common::pki::output::print_path;
         use crate::print_error_chain;
@@ -265,7 +265,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                 qprintln!("Authenticating {} ({:?}) using the web of trust:",
                           cert_fpr, signer_userid);
 
-                if let Ok(Some(cert_store)) = self.sq.cert_store() {
+                if let Some(cert_store) = self.sq.cert_store()? {
                     // Build the network.
                     let cert_store = sequoia_wot::store::CertStore::from_store(
                         cert_store, self.sq.policy, reference_time);
@@ -432,6 +432,8 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
 
             qprintln!("");
         }
+
+        Ok(())
     }
 }
 
@@ -514,8 +516,9 @@ impl<'c, 'store, 'rstore> VerificationHelper for VHelper<'c, 'store, 'rstore>
                         qprintln!("Encrypted using {}", sym_algo);
                     }
                 },
-                MessageLayer::SignatureGroup { ref results } =>
-                    self.print_sigs(results),
+                MessageLayer::SignatureGroup { ref results } => {
+                    self.print_sigs(results)?;
+                },
             }
         }
 

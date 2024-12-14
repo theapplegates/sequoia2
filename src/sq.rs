@@ -456,18 +456,18 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
     /// Returns the secret keys found in any specified keyrings.
     pub fn keyring_tsks(&self)
-        -> &BTreeMap<Fingerprint,
-                     (Fingerprint, Key<key::PublicParts, key::UnspecifiedRole>)>
+        -> Result<&BTreeMap<Fingerprint,
+                            (Fingerprint, Key<key::PublicParts, key::UnspecifiedRole>)>>
     {
         if let Some(keyring_tsks) = self.keyring_tsks.get() {
-            keyring_tsks
+            Ok(keyring_tsks)
         } else {
             // This also initializes keyring_tsks.
-            let _ = self.cert_store();
+            self.cert_store()?;
 
             // If something went wrong, we just set it to an empty
             // map.
-            self.keyring_tsks.get_or_init(|| BTreeMap::new())
+            Ok(self.keyring_tsks.get_or_init(|| BTreeMap::new()))
         }
     }
 
@@ -1293,7 +1293,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         let try_keyrings = |cert: &Cert, key: &Key<_, _>|
             -> Result<_>
         {
-            let keyring_tsks = self.keyring_tsks();
+            let keyring_tsks = self.keyring_tsks()?;
             if let Some((cert_fpr, key))
                 = keyring_tsks.get(&key.fingerprint())
             {
@@ -1353,7 +1353,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         let try_keyrings = |cert: &Cert, key: &Key<_, _>|
             -> Result<_>
         {
-            let keyring_tsks = self.keyring_tsks();
+            let keyring_tsks = self.keyring_tsks()?;
             if let Some((cert_fpr, key))
                 = keyring_tsks.get(&key.fingerprint())
             {

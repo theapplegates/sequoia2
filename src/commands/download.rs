@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::fs::File;
+use std::io;
 use std::io::IsTerminal;
 use std::io::Seek;
 use std::io::Write;
@@ -38,6 +39,7 @@ use crate::cli::types::TrustAmount;
 use crate::commands::network::CONNECT_TIMEOUT;
 use crate::commands::network::USER_AGENT;
 use crate::commands::verify::verify;
+use crate::common::ui;
 use crate::common::pki::authenticate;
 
 // So we can deal with either named temp files or files.
@@ -390,9 +392,8 @@ pub fn dispatch(sq: Sq, c: download::Command)
                                 }
 
                                 let mut auth = || {
-                                    eprintln!("Alleged signer: {}, {}",
-                                              cert.fingerprint(),
-                                              sq.best_userid(&cert, true));
+                                    let _ = ui::emit_cert(
+                                        &mut io::stderr(), sq, &cert);
 
                                     let good = authenticate(
                                         &mut std::io::stderr(),
@@ -409,15 +410,13 @@ pub fn dispatch(sq: Sq, c: download::Command)
                                     ).is_ok();
 
                                     if good {
-                                        weprintln!("Authenticated possible \
-                                                    signer: {}, {}",
-                                                   cert.fingerprint(),
-                                                   sq.best_userid(&cert, true));
+                                        weprintln!(initial_indent = "   - ",
+                                                   "authenticated possible \
+                                                    signer");
                                     } else {
-                                        weprintln!("Couldn't authenticate the \
-                                                    alleged signer: {}, {}",
-                                                   cert.fingerprint(),
-                                                   sq.best_userid(&cert, true));
+                                        weprintln!(initial_indent = "   - ",
+                                                   "couldn't authenticate the \
+                                                    alleged signer");
                                     }
 
                                     if good {
@@ -450,7 +449,7 @@ pub fn dispatch(sq: Sq, c: download::Command)
                         eprintln!();
                         for sig in signatures.iter() {
                             for issuer in sig.get_issuers() {
-                                eprintln!("  - {}", issuer);
+                                eprintln!(" - {}", issuer);
                             }
                         }
 

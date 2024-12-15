@@ -51,6 +51,18 @@
      has the self-signed user ID "Alice <alice@example.org>", then
      `--userid-by-email alice@example.org` selects "Alice
      <alice@example.org>" for certification.
+   - Change `sq key userid revoke --email` to use a user ID with just
+     the specified email address, if the email address is part of a
+     self-signed user ID.  That is, if the certificate has the
+     self-signed user ID "Alice <alice@example.org>", then `--email
+     alice@example.org` would have selected "Alice
+     <alice@example.org>" for revocation, but now it selects
+     "<alice@example.org>".
+   - Add `sq key userid revoke --userid-by-email`, which uses the
+     self-signed user ID with the specified email address.  That is,
+     if the certificate has the self-signed user ID "Alice
+     <alice@example.org>", then `--userid-by-email alice@example.org`
+     selects "Alice <alice@example.org>" for revocation.
 
 * Changes in 0.41.0
 ** New functionality

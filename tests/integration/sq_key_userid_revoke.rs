@@ -300,15 +300,15 @@ fn userid_designators() {
                    UserIDArg::AddUserID(other_userid)).is_ok());
     revocations(&sq, cert.key_handle(), other_userid, 1);
 
-    // 3. --email: use the self-signed user ID with the specified
-    // email address.
+    // 3. --userid-by-email: use the self-signed user ID with the
+    // specified email address.
     let (cert, fpr, sq) = setup();
 
     // Self-signed and authenticated.
     assert!(sq.pki_authenticate(
         &[], &fpr, UserIDArg::UserID(self_signed_userid)).is_ok());
     assert!(revoke(&sq, cert.key_handle(),
-                   UserIDArg::Email(self_signed_email)).is_ok());
+                   UserIDArg::ByEmail(self_signed_email)).is_ok());
     revocations(&sq, cert.key_handle(), self_signed_userid, 1);
     assert!(sq.pki_authenticate(
         &[], &fpr, UserIDArg::UserID(self_signed_userid)).is_err());
@@ -317,10 +317,32 @@ fn userid_designators() {
     assert!(sq.pki_authenticate(
         &[], &fpr, UserIDArg::UserID(other_userid)).is_ok());
     assert!(revoke(&sq, cert.key_handle(),
-                   UserIDArg::Email(other_email)).is_err());
+                   UserIDArg::ByEmail(other_email)).is_err());
     revocations(&sq, cert.key_handle(), other_userid, 0);
 
-    // 4. --add-email: use a user ID with the email address.
+    // 4. --email: use a user ID with just the email address if there
+    // is a self-signed user ID with the specified email address.
+    let (cert, fpr, sq) = setup();
+
+    // Self-signed and authenticated.
+    assert!(sq.pki_authenticate(
+        &[], &fpr, UserIDArg::UserID(self_signed_userid)).is_ok());
+    assert!(revoke(&sq, cert.key_handle(),
+                   UserIDArg::Email(self_signed_email)).is_ok());
+    revocations(&sq, cert.key_handle(), self_signed_userid, 0);
+    revocations(&sq, cert.key_handle(), &format!("<{}>", self_signed_email), 1);
+    assert!(sq.pki_authenticate(
+        &[], &fpr, UserIDArg::UserID(self_signed_userid)).is_ok());
+
+    // Authenticated, but not self-signed.
+    assert!(sq.pki_authenticate(
+        &[], &fpr, UserIDArg::UserID(other_userid)).is_ok());
+    assert!(revoke(&sq, cert.key_handle(),
+                   UserIDArg::Email(other_email)).is_err());
+    revocations(&sq, cert.key_handle(), other_userid, 0);
+    revocations(&sq, cert.key_handle(), &format!("<{}>", other_email), 0);
+
+    // 5. --add-email: use a user ID with the email address.
     let (cert, fpr, sq) = setup();
 
     // Self-signed and authenticated.

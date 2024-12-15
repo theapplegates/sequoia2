@@ -277,22 +277,18 @@ fn import_rev(o: &mut dyn std::io::Write,
             {
                 let cert = cert.insert_packets(sig.clone())?;
 
-                let fingerprint = cert.fingerprint();
-                let sanitized_userid = sq.best_userid(&cert, true);
+                ui::emit_cert(o, sq, &cert)?;
                 if let Err(err) = cert_store.update_by(Arc::new(cert.into()),
                                                        stats)
                 {
-                    wwriteln!(o,
-                              "Error importing revocation certificate \
-                               for {}, {}: {}",
-                              fingerprint, sanitized_userid, err);
+                    wwriteln!(stream = o, initial_indent = "   - ",
+                              "error importing revocation certificate: {}",
+                               err);
                     stats.certs.inc_errors();
                     continue;
                 } else {
-                    wwriteln!(o,
-                              "Imported revocation certificate \
-                               for {}, {}",
-                              fingerprint, sanitized_userid);
+                    wwriteln!(stream = o, initial_indent = "   - ",
+                              "imported revocation certificate");
                 }
 
                 return Ok(());

@@ -10,6 +10,8 @@ use sequoia_openpgp::{
     Cert,
     cert::amalgamation::ValidAmalgamation,
     packet::UserID,
+    parse::Cookie,
+    parse::buffered_reader::BufferedReader,
     parse::stream::*,
     parse::Parse,
     types::{
@@ -31,14 +33,14 @@ pub fn dispatch(sq: Sq, command: cli::verify::Command)
 {
     tracer!(TRACE, "verify::dispatch");
 
-    let mut input = command.input.open("a signed message")?;
+    let input = command.input.open("a signed message")?;
     let mut output = command.output.create_safe(&sq)?;
     let signatures = command.signatures;
 
     let signers =
         sq.resolve_certs_or_fail(&command.signers, sequoia_wot::FULLY_TRUSTED)?;
 
-    let result = verify(sq, &mut input,
+    let result = verify(sq, input,
                         command.detached,
                         &mut output, signatures, signers);
     if result.is_err() {
@@ -54,7 +56,7 @@ pub fn dispatch(sq: Sq, command: cli::verify::Command)
 }
 
 pub fn verify(mut sq: Sq,
-              input: &mut (dyn io::Read + Sync + Send),
+              input: Box<dyn BufferedReader<Cookie>>,
               detached: Option<PathBuf>,
               output: &mut dyn io::Write,
               signatures: usize, certs: Vec<Cert>)
@@ -75,16 +77,7 @@ pub fn verify(mut sq: Sq,
     let helper = if let Some(dsig) = detached {
         let mut v = DetachedVerifierBuilder::from_reader(dsig)?
             .with_policy(sq.policy, Some(sq.time), helper)?;
-
-        // XXX: This is inefficient, as input was originally a
-        // buffered reader, then we "cast it down" to a io::Reader,
-        // and this will be wrapped into a buffered_reader::Generic by
-        // sequoia-openpgp, incurring an extra copy of the data.  If
-        // it weren't for that, we could verify mmap'ed files,
-        // exceeding the speed of sha256sum(1).
-        //
-        // See https://gitlab.com/sequoia-pgp/sequoia/-/issues/1135
-        v.verify_reader(input)?;
+        v.verify_buffered_reader(input)?;
         v.into_helper()
     } else {
         let mut v = VerifierBuilder::from_reader(input)?

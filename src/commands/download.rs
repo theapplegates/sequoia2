@@ -27,6 +27,7 @@ use openpgp::Packet;
 use openpgp::parse::PacketParser;
 use openpgp::parse::PacketParserResult;
 use openpgp::parse::Parse;
+use openpgp::parse::buffered_reader::{self, BufferedReader};
 use openpgp::types::KeyFlags;
 use sequoia_openpgp as openpgp;
 
@@ -529,7 +530,9 @@ pub fn dispatch(sq: Sq, c: download::Command)
 
     let result = verify(
         sq,
-        data_file.as_mut(),
+        buffered_reader::File::new_with_cookie(
+            data_file.as_ref().try_clone()?, data_file.path(),
+            Default::default())?.into_boxed(),
         signature_file.as_ref().map(|f| f.path().to_path_buf()),
         &mut output_file,
         signatures,

@@ -19,7 +19,7 @@ use crate::cli::types::cert_designator::*;
 "Manage authenticated certificate and User ID links
 
 Linking a certificate and User ID is one way of making `sq` consider a \
-binding to be authentic.  Another way is to use `sq pki vouch certify` to \
+binding to be authentic.  Another way is to use `sq pki vouch add` to \
 certify the binding with an explicitly configured trust root.  The \
 linking functionality is often easier to work with, and the \
 information is private by default.
@@ -138,7 +138,7 @@ be a trusted introducer use `sq pki link authorize`.
 
 A link can be retracted using `sq pki link retract`.
 
-This command is similar to `sq pki vouch certify`, but the certifications it \
+This command is similar to `sq pki vouch add`, but the certifications it \
 makes are done using the certificate directory's trust root, not an \
 arbitrary key.  Further, the certificates are marked as \
 non-exportable.  The former makes it easier to manage certifications, \

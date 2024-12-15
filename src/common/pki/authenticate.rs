@@ -451,7 +451,7 @@ pub fn authenticate<'store, 'rstore>(
             weprintln!("After checking that a user ID really belongs to \
                         a certificate, use `sq pki link add` to mark \
                         the binding as authenticated, or use \
-                        `sq network fetch FINGERPRINT|EMAIL` to look for \
+                        `sq network search FINGERPRINT|EMAIL` to look for \
                         new certifications.");
         }
     } else if bindings.is_empty() {

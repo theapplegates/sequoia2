@@ -64,7 +64,7 @@ However, user IDs that include different information such as name and \
 email address are more difficult to reason about, so using distinct \
 user IDs for name and email address is preferred nowadays.
 
-`sq userid add` respects the reference time set by the top-level \
+`sq key userid add` respects the reference time set by the top-level \
 `--time` argument.  It sets the creation time of the user ID's \
 binding signature to the specified time.
 ",

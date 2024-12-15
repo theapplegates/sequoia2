@@ -32,6 +32,7 @@ use crate::{
         verify::VHelper,
     },
     common::password,
+    common::ui,
     Sq,
     load_keys,
 };
@@ -421,21 +422,18 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                 match certs {
                     Ok(certs) => {
                         for cert in certs {
-                            weprintln!(initial_indent = "  - ",
-                                       "{}, {}",
-                                       cert.fingerprint(),
-                                       self.sq.best_userid(&cert, true));
+                            ui::emit_cert(&mut io::stderr(), self.sq, &cert)?;
                         }
                     }
                     Err(err) => {
                         if let Some(StoreError::NotFound(_))
                             = err.downcast_ref()
                         {
-                            weprintln!(initial_indent = "  - ",
+                            weprintln!(initial_indent = " - ",
                                        "{}, certificate not found",
                                        recipient);
                         } else {
-                            weprintln!(initial_indent = "  - ",
+                            weprintln!(initial_indent = " - ",
                                        "{}, error looking up certificate: {}",
                                        recipient, err);
                         }

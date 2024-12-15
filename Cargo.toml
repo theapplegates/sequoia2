@@ -34,7 +34,7 @@ buffered-reader = { version = "1.3.1", default-features = false, features = ["co
 dirs = "5"
 fs_extra = "1"
 sequoia-directories = "0.1"
-sequoia-openpgp = { version = "1.18", default-features = false, features = ["compression"] }
+sequoia-openpgp = { version = "1.22", default-features = false, features = ["compression"] }
 sequoia-autocrypt = { version = "0.25", default-features = false }
 sequoia-net = { version = "0.29", default-features = false }
 sequoia-policy-config = ">= 0.7, <0.8"
@@ -77,7 +77,7 @@ dirs = "5"
 roff = "0.2.1"
 serde = { version = "1.0.137", features = ["derive"] }
 sequoia-directories = "0.1"
-sequoia-openpgp = { version = "1.21.1", default-features = false }
+sequoia-openpgp = { version = "1.22", default-features = false }
 sequoia-net = { version = "0.29", default-features = false }
 textwrap = ">=0.15, <0.17"
 typenum = "1"

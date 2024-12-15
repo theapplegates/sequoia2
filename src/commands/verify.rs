@@ -395,7 +395,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                          you can mark it as authenticated using:",
                         cert_fpr, signer_userid))
                         .sq().arg("pki").arg("link").arg("add")
-                        .arg("--cert").arg(cert_fpr)
+                        .arg_value("--cert", cert_fpr)
                         .arg_value("--userid", signer_userid)
                         .done();
                 }
@@ -411,7 +411,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                          you can mark it as authenticated using:",
                         cert_fpr, signer_userid))
                         .sq().arg("pki").arg("link").arg("add")
-                        .arg("--cert").arg(cert_fpr)
+                        .arg_value("--cert", cert_fpr)
                         .arg_value("--userid", signer_userid)
                         .done();
                 }

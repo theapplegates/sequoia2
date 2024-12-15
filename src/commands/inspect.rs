@@ -1027,7 +1027,7 @@ impl Kind {
                         "To verify the detached signature {}:",
                         input_path_text))
                         .sq().arg("verify")
-                        .arg("--signature-file").arg(&input_path_arg)
+                        .arg_value("--signature-file", &input_path_arg)
                         .arg("the-data-file")
                         .done();
                 },
@@ -1056,7 +1056,7 @@ impl Kind {
                             "To verify the detached signature \
                              over the data in {}:", input_path_text))
                             .sq().arg("verify")
-                            .arg("--signature-file").arg("the-signature-file")
+                            .arg_value("--signature-file", "the-signature-file")
                             .arg(&input_path_arg)
                             .done();
                     }

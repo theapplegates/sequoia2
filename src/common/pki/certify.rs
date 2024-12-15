@@ -187,8 +187,8 @@ pub fn certify(o: &mut dyn std::io::Write,
 The certificate to certify is the same as the certificate being certified. \
 If you are trying to add a user ID, try:"))
             .sq().arg("key").arg("userid").arg("add")
-            .arg("--cert").arg(cert.fingerprint())
-            .arg("--userid").arg(userids[0].userid())
+            .arg_value("--cert", cert.fingerprint())
+            .arg_value("--userid", userids[0].userid())
             .done();
 
         return Err(

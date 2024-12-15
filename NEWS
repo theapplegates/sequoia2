@@ -38,6 +38,19 @@
      address.  For example, if a certificate has the user ID "Alice
      <alice@example.org>", then `--userid-by-email alice@example.org`
      selects it.
+   - Change `sq pki vouch add --email` and `sq pki vouch authorize
+     --email` to use a user ID with just the specified email address,
+     if the email address is part of a self-signed user ID.  That is,
+     if the certificate has the self-signed user ID "Alice
+     <alice@example.org>", then `--email alice@example.org` would have
+     selected "Alice <alice@example.org>" for certification, but now
+     it selects "<alice@example.org>".
+   - Add `sq pki vouch add --userid-by-email`, and `sq pki vouch
+     authorize --userid-by-email`, which use the self-signed user ID
+     with the specified email address.  That is, if the certificate
+     has the self-signed user ID "Alice <alice@example.org>", then
+     `--userid-by-email alice@example.org` selects "Alice
+     <alice@example.org>" for certification.
 
 * Changes in 0.41.0
 ** New functionality

@@ -61,9 +61,6 @@ pub type PlainByAndAddArgs
     = <<PlainIsBy as std::ops::BitOr<ByArgs>>::Output
        as std::ops::BitOr<AddArgs>>::Output;
 
-pub type AllPlainByAndAddArgs
-    = <AllUserIDsArg as std::ops::BitOr<PlainByAndAddArgs>>::Output;
-
 pub type ExactAndAddArgs
     = <ExactArgs as std::ops::BitOr<AddArgs>>::Output;
 
@@ -1201,7 +1198,6 @@ mod test {
         check!(PlainByArgs,                By, false, false);
         check!(PlainAddArgs,              Add, false, false);
         check!(PlainByAndAddArgs,          By, false,  true);
-        check!(AllPlainByAndAddArgs,       By, false,  true);
         check!(ExactAndAddArgs,         Exact, false,  true);
         check!(ExactByAndAddArgs,       Exact,  true,  true);
         check!(AllExactByAndAddArgs,    Exact,  true,  true);

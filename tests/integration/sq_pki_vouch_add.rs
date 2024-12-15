@@ -548,6 +548,7 @@ fn userid_designators() {
             &[], &[
                 "Alice <alice@example.org>",
                 "Alice <alice@an.org>",
+                "Alice <alice@fourth.org>",
                 "Alice <alice@third.org>",
             ]);
         let fpr = cert.fingerprint().to_string();
@@ -578,13 +579,13 @@ fn userid_designators() {
             &[], &fpr, UserIDArg::UserID("Alice <alice@some.org>")).is_ok());
 
 
-        // 3. Use --email to certify "Alice <alice@example.org>",
+        // 3. Use --userid-by-email to certify "Alice <alice@example.org>",
         // which is a self-signed user ID.
         //
-        // --email => the email address must be part of a self-signed
-        // user ID.
+        // --userid-by-email => the email address must be part of a
+        // self-signed user ID.
         vouch(&mut sq, cert.key_handle(),
-             UserIDArg::Email("alice@example.org"));
+             UserIDArg::ByEmail("alice@example.org"));
 
         assert!(sq.pki_authenticate(
             &[], &fpr, UserIDArg::UserID("<alice@example.org>")).is_err());
@@ -592,7 +593,24 @@ fn userid_designators() {
             &[], &fpr, UserIDArg::UserID("Alice <alice@example.org>")).is_ok());
 
 
-        // 4. Use --add-email to certify "<alice@example.com>",
+        // 4. Use --email to certify "<alice@fourth.org>", which is part
+        // of the self-signed user ID "Alice <alice@fourth.org>".
+        //
+        // --email => there must be a self-signed user ID with the
+        // email address, but a user ID with just the email address is
+        // used.
+        vouch(&mut sq, cert.key_handle(),
+             UserIDArg::Email("alice@fourth.org"));
+
+        assert!(sq.pki_authenticate(
+            &[], &fpr, UserIDArg::UserID("<alice@fourth.org>")).is_ok());
+        if ! authorize {
+            assert!(sq.pki_authenticate(
+                &[], &fpr, UserIDArg::UserID("Alice <alice@fourth.org>")).is_err());
+        }
+
+
+        // 5. Use --add-email to certify "<alice@example.com>",
         // which is not part of a self signed user ID.
 
         // This fails with --email, because it expects a self-signed

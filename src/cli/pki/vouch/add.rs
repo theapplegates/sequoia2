@@ -89,7 +89,7 @@ pub struct Command {
 
     #[command(flatten)]
     pub userids: UserIDDesignators<
-        userid_designator::AllPlainByAndAddArgs>,
+        userid_designator::AllExactByAndAddArgs>,
 
     #[clap(
         long = "amount",

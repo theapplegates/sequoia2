@@ -784,7 +784,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                          required level ({} of {}).  After checking \
                          that {} really controls {}, you could certify \
                          their certificate by running \
-                         `sq pki link add {} {:?}`.",
+                         `sq pki link add --cert {} --userid {:?}`.",
                         cert.fingerprint(),
                         String::from_utf8_lossy(userid.value()),
                         paths.amount(), wot::FULLY_TRUSTED,
@@ -2208,7 +2208,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                              After checking that {} really \
                                              controls {}, you could certify \
                                              their certificate by running \
-                                             `sq pki link add {} {:?}`.",
+                                             `sq pki link add --cert {} \
+                                             --userid {:?}`.",
                                             cert.fingerprint(),
                                             String::from_utf8_lossy(userid.value()),
                                             paths.amount(), trust_amount,

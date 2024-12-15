@@ -21,12 +21,14 @@ use sequoia_cert_store as cert_store;
 use cert_store::StoreUpdate;
 use cert_store::store::UserIDQueryParams;
 
+use crate::Convert;
 use crate::Sq;
 use crate::cli::types::Expiration;
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::TrustAmount;
 use crate::cli::types::userid_designator::ResolvedUserID;
 use crate::commands::active_certification;
+use crate::common::ui;
 
 // Returns whether two certifications have the same parameters.
 //
@@ -39,12 +41,11 @@ use crate::commands::active_certification;
 //   - Regular expressions
 //   - Notations
 //   - Exportable
-pub fn diff_certification(o: &mut dyn std::io::Write,
-                          sq: &Sq, old: &Signature, new: &SignatureBuilder,
+pub fn diff_certification(unless_quiet: &mut dyn std::io::Write,
+                          old: &Signature, new: &SignatureBuilder,
                           new_ct: SystemTime)
     -> bool
 {
-    make_qprintln!(o, sq.quiet());
     let mut changed = false;
 
     let a_expiration = old.signature_expiration_time();
@@ -55,8 +56,8 @@ pub fn diff_certification(o: &mut dyn std::io::Write,
     };
     if a_expiration != b_expiration {
         changed = true;
-        qprintln!(
-            "  Updating expiration time: {} -> {}.",
+        wwriteln!(stream = unless_quiet, initial_indent = "   - ",
+            "updating expiration time: {} -> {}",
             if let Some(a_expiration) = a_expiration {
                 chrono::DateTime::<chrono::offset::Utc>::from(
                     a_expiration).to_string()
@@ -76,12 +77,14 @@ pub fn diff_certification(o: &mut dyn std::io::Write,
 
     if a_amount != b_amount {
         changed = true;
-        qprintln!("  Updating trust amount: {} -> {}.",
+        wwriteln!(stream = unless_quiet, initial_indent = "   - ",
+                  "updating trust amount: {} -> {}",
                   a_amount, b_amount);
     }
     if a_depth != b_depth {
         changed = true;
-        qprintln!("  Updating trust depth: {} -> {}.",
+        wwriteln!(stream = unless_quiet, initial_indent = "   - ",
+                  "updating trust depth: {} -> {}",
                   a_depth, b_depth);
     }
 
@@ -94,26 +97,22 @@ pub fn diff_certification(o: &mut dyn std::io::Write,
 
     if a_regex != b_regex {
         changed = true;
-        qprintln!("  Updating regular expressions:");
-        let a_regex: Vec<String> = a_regex.into_iter()
-            .enumerate()
-            .map(|(i, r)| {
-                format!("{}. {:?}",
-                        i + 1, String::from_utf8_lossy(r))
-            })
-            .collect();
-        qprintln!("    Current certification:\n      {}",
-                  a_regex.join("\n      "));
+        wwriteln!(stream = unless_quiet, initial_indent = "   - ",
+                  "updating regular expressions");
 
-        let b_regex: Vec<String> = b_regex.into_iter()
-            .enumerate()
-            .map(|(i, r)| {
-                format!("{}. {:?}",
-                        i + 1, String::from_utf8_lossy(r))
-            })
-            .collect();
-        qprintln!("    New certification:\n      {}",
-                  b_regex.join("\n      "));
+        wwriteln!(stream = unless_quiet, initial_indent = "     - ",
+                  "current certification");
+        for (i, r) in a_regex.into_iter().enumerate() {
+            wwriteln!(stream = unless_quiet, initial_indent = "       - ",
+                      "{}. {}", i + 1, String::from_utf8_lossy(r));
+        }
+
+        wwriteln!(stream = unless_quiet, initial_indent = "     - ",
+                  "new certification");
+        for (i, r) in b_regex.into_iter().enumerate() {
+            wwriteln!(stream = unless_quiet, initial_indent = "       - ",
+                      "{}. {}", i + 1, String::from_utf8_lossy(r));
+        }
     }
 
     let a_notations: Vec<_> = old.notation_data()
@@ -124,31 +123,30 @@ pub fn diff_certification(o: &mut dyn std::io::Write,
         .collect();
     if a_notations != b_notations {
         changed = true;
-        qprintln!("  Updating notations.");
-        let a_notations: Vec<String> = a_notations.into_iter()
-            .enumerate()
-            .map(|(i, n)| {
-                format!("{}. {:?}", i + 1, n)
-            })
-            .collect();
-        qprintln!("    Current certification:\n      {}",
-                  a_notations.join("\n      "));
+        wwriteln!(stream = unless_quiet, initial_indent = "   - ",
+                  "updating notations");
 
-        let b_notations: Vec<String> = b_notations.into_iter()
-            .enumerate()
-            .map(|(i, n)| {
-                format!("{}. {:?}", i + 1, n)
-            })
-            .collect();
-        qprintln!("    Updated certification:\n       {}",
-                  b_notations.join("\n      "));
+        wwriteln!(stream = unless_quiet, initial_indent = "     - ",
+                  "current certification");
+        for (i, n) in a_notations.into_iter().enumerate() {
+            wwriteln!(stream = unless_quiet, initial_indent = "       - ",
+                      "{}. {:?}", i + 1, n);
+        }
+
+        wwriteln!(stream = unless_quiet, initial_indent = "     - ",
+                  "updated certification");
+        for (i, n) in b_notations.into_iter().enumerate() {
+            wwriteln!(stream = unless_quiet, initial_indent = "       - ",
+                      "{}. {:?}", i + 1, n);
+        }
     }
 
     let a_exportable = old.exportable_certification().unwrap_or(true);
     let b_exportable = new.exportable_certification().unwrap_or(true);
     if a_exportable != b_exportable {
         changed = true;
-        qprintln!("  Updating exportable flag: {} -> {}.",
+        wwriteln!(stream = unless_quiet, initial_indent = "   - ",
+                  "updating exportable flag: {} -> {}",
                   a_exportable, b_exportable);
     }
 
@@ -179,7 +177,13 @@ pub fn certify(o: &mut dyn std::io::Write,
 {
     assert!(templates.len() > 0);
     assert!(userids.len() > 0);
-    make_qprintln!(o, sq.quiet());
+
+    let unless_quiet = if sq.quiet() {
+        &mut std::io::sink()
+    } else {
+        o
+    };
+
 
     if certifier.fingerprint() == cert.fingerprint() {
         sq.hint(
@@ -307,9 +311,11 @@ The certifier is the same as the certificate to certify."));
                             .any(|issuer| issuer.aliases(&certifier.key_handle()))
                     })
                     {
-                        qprintln!("You never certified {:?} for {}, \
-                                   there is nothing to retract.",
-                                  userid_str(), cert.fingerprint());
+                        ui::emit_cert_userid(unless_quiet, cert, userid.userid())?;
+                        wwriteln!(stream = unless_quiet, initial_indent = "   - ",
+                                  "this binding was never certified; \
+                                   there is nothing to retract");
+
                         if user_supplied_userids {
                             return Err(anyhow::anyhow!(
                                 "You never certified {:?} for {}, \
@@ -338,9 +344,11 @@ The certifier is the same as the certificate to certify."));
                     }
                 }
             } else if retract {
-                qprintln!("You never certified {:?} for {}, \
-                           there is nothing to retract.",
-                          userid_str(), cert.fingerprint());
+                ui::emit_cert_userid(unless_quiet, cert, userid.userid())?;
+                wwriteln!(stream = unless_quiet, initial_indent = "   - ",
+                          "this binding was never certified; \
+                           there is nothing to retract");
+
                 if user_supplied_userids {
                     return Err(anyhow::anyhow!(
                         "You never certified {:?} for {}, \
@@ -363,25 +371,26 @@ The certifier is the same as the certificate to certify."));
                 let retracted = matches!(active_certification.trust_signature(),
                                          Some((_depth, 0)));
                 if retracted {
-                    qprintln!("A prior certification for {}, {} was retracted at {}.",
-                              cert.fingerprint(), userid_str(),
-                              chrono::DateTime::<chrono::offset::Utc>::from(
-                                  active_certification_ct));
+                    ui::emit_cert_userid(unless_quiet, cert, userid.userid())?;
+                    wwriteln!(stream = unless_quiet, initial_indent = "   - ",
+                              "a prior certification was retracted at {}",
+                              active_certification_ct.convert());
                 } else {
-                    qprintln!("{}, {} was previously certified at {}.",
-                              cert.fingerprint(), userid_str(),
-                              chrono::DateTime::<chrono::offset::Utc>::from(
-                                  active_certification_ct));
+                    ui::emit_cert_userid(unless_quiet, cert, userid.userid())?;
+                    wwriteln!(stream = unless_quiet, initial_indent = "   - ",
+                              "was previously certified at {}",
+                              active_certification_ct.convert());
                 }
 
                 let changed = diff_certification(
-                    o,
-                    &sq,
+                    unless_quiet,
                     &active_certification,
                     &builders[0], sq.time);
 
                 if ! changed {
-                    qprintln!("  Certification parameters are unchanged.");
+                    wwriteln!(stream = unless_quiet, initial_indent = "   - ",
+                              "certification parameters are unchanged; \
+                               there is nothing to do");
 
                     if ! recreate {
                         // Return a signature packet to indicate that we
@@ -390,16 +399,18 @@ The certifier is the same as the certificate to certify."));
                         return Ok(vec![ Packet::from(userid.userid().clone()) ]);
                     }
                 } else {
-                    qprintln!("  Parameters changed, creating a new certification.");
+                    wwriteln!(stream = unless_quiet, initial_indent = "   - ",
+                              "certification parameters changed, \
+                               creating a new certification");
                 }
             }
 
             if retract {
-                qprintln!("Retracting {:?} for {}.",
-                          userid_str(), cert.fingerprint());
+                wwriteln!(stream = unless_quiet, initial_indent = "   - ",
+                          "certification retracted");
             } else {
-                qprintln!("Certifying {:?} for {}.",
-                          userid_str(), cert.fingerprint());
+                wwriteln!(stream = unless_quiet, initial_indent = "   - ",
+                          "certification created");
             }
 
             let mut sigs = builders.iter()
@@ -416,7 +427,7 @@ The certifier is the same as the certificate to certify."));
                 })
                 .collect::<Result<Vec<Packet>>>()?;
 
-            qprintln!();
+            wwriteln!(stream = unless_quiet);
 
             let mut packets = vec![ Packet::from(userid.userid().clone()) ];
             packets.append(&mut sigs);

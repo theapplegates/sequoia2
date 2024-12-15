@@ -7,6 +7,9 @@ use sequoia_openpgp::{
 };
 
 /// Safely displays values.
+///
+/// This type MUST be used to display attacker controlled strings,
+/// such as user IDs, notation data, and reasons for revocations.
 pub struct Safe<T>(pub T);
 
 impl fmt::Display for Safe<&UserID> {

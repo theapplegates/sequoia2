@@ -484,7 +484,7 @@ fn sq_pki_link_update_detection() -> Result<()> {
 
     // Retract it.  There is nothing to retract (but this doesn't fail).
     let output = sq_retract(&sq, &alice_fpr, &[], &[]);
-    assert!(output.1.contains("You never certified"),
+    assert!(output.1.contains("never certified"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
@@ -495,7 +495,7 @@ fn sq_pki_link_update_detection() -> Result<()> {
     // As no parameters changed, this should succeeded, but no
     // certification should be written.
     let output = sq_link(&sq, &alice_fpr, &[], &[], &["--all"], true);
-    assert!(output.1.contains("Certification parameters are unchanged"),
+    assert!(output.1.contains("certification parameters are unchanged"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
@@ -519,7 +519,7 @@ fn sq_pki_link_update_detection() -> Result<()> {
 
     let output = sq_link(&sq, &alice_fpr, &[], &[],
                          &["--amount", "30", "--all"], true);
-    assert!(output.1.contains("Certification parameters are unchanged"),
+    assert!(output.1.contains("certification parameters are unchanged"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
@@ -530,7 +530,7 @@ fn sq_pki_link_update_detection() -> Result<()> {
     let bytes = compare(bytes, &alice_cert_pgp, false);
 
     let output = sq_retract(&sq, &alice_fpr, &[], &[]);
-    assert!(output.1.contains("Certification parameters are unchanged"),
+    assert!(output.1.contains("certification parameters are unchanged"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
@@ -544,7 +544,7 @@ fn sq_pki_link_update_detection() -> Result<()> {
 
     let output = sq_link(&sq, &alice_fpr, &[], &[],
                          &["--amount", "10", "--all"], true);
-    assert!(output.1.contains("Certification parameters are unchanged"),
+    assert!(output.1.contains("certification parameters are unchanged"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
@@ -557,7 +557,7 @@ fn sq_pki_link_update_detection() -> Result<()> {
 
     let output = sq_link(&sq, &alice_fpr, &[], &[],
                          &["--signature-notation", "foo", "10", "--all"], true);
-    assert!(output.1.contains("Certification parameters are unchanged"),
+    assert!(output.1.contains("certification parameters are unchanged"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
@@ -568,7 +568,7 @@ fn sq_pki_link_update_detection() -> Result<()> {
     let bytes = compare(bytes, &alice_cert_pgp, false);
 
     let output = sq_link(&sq, &alice_fpr, &[], &[], &["--all"], true);
-    assert!(output.1.contains("Certification parameters are unchanged"),
+    assert!(output.1.contains("certification parameters are unchanged"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, true);
 
@@ -613,7 +613,7 @@ fn sq_pki_link_add_temporary() -> Result<()> {
     sq_verify(&sq, None, &[], &[], &alice_sig_file, 0, 1);
 
     let output = sq_link(&sq, &alice_fpr, &[], &[], &["--temporary", "--all"], true);
-    assert!(output.1.contains("Certifying "),
+    assert!(output.1.contains("certification created"),
             "stdout:\n{}\nstderr:\n{}", output.1, output.2);
     let bytes = compare(bytes, &alice_cert_pgp, false);
 

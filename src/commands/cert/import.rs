@@ -23,6 +23,7 @@ use cert_store::StoreUpdate;
 use crate::Sq;
 use crate::cli::cert::import;
 use crate::cli::types::FileOrStdin;
+use crate::common::ui;
 use crate::commands::autocrypt;
 use crate::output::import::ImportStats;
 
@@ -124,19 +125,6 @@ where 'store: 'rstore
     Ok(result?)
 }
 
-/// Reports on a successfully imported cert.
-pub fn emit_cert(o: &mut dyn std::io::Write, sq: &Sq, cert: &openpgp::Cert)
-                 -> Result<()>
-{
-    wwriteln!(stream = o,
-              initial_indent = " - ┌ ", subsequent_indent = "   │ ",
-              "{}", cert.fingerprint());
-    wwriteln!(stream = o,
-              initial_indent = "   └ ",
-              "{}", sq.best_userid(cert, true));
-    Ok(())
-}
-
 /// Imports the certs and reports on the individual certs.
 pub fn import_and_report<F>(o: &mut dyn std::io::Write,
                             sq: &mut Sq,
@@ -152,7 +140,7 @@ where
     let cert_store = sq.cert_store_or_else()?;
 
     for cert in certs {
-        emit_cert(o, sq, &cert)?;
+        ui::emit_cert(o, sq, &cert)?;
         let cert = Arc::new(LazyCert::from(cert));
         if let Err(err) = cert_store.update_by(cert.clone(), stats) {
             wwriteln!(stream = o,

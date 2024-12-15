@@ -3,6 +3,12 @@
 #+STARTUP: content hidestars
 
 * Changes in 1.0.0
+** New functionality
+   - `sq` now automatically imports certificates from GnuPG's
+     certificate store.  Note: we only do this for the default Sequoia
+     and GnuPG state directories.  Further, We don't parse the GnuPG
+     configuration file, we just scan GnuPG's default cert stores.
+
 ** Notable changes
    - `sq cert list` now takes cert designators, like `--cert-email`
      instead of `--email`.

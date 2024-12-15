@@ -46,6 +46,7 @@ use cli::types::Version;
 use cli::types::paths::StateDirectory;
 
 mod commands;
+pub mod compat;
 pub mod config;
 pub mod output;
 pub use output::Model;

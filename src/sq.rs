@@ -295,6 +295,18 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             Box::new(keyring),
             cert_store::AccessMode::Always);
 
+        // Sync certs from GnuPG's state if we are using the user's
+        // default home directory.
+        if self.home.as_ref().map(|h| h.is_default_location())
+            .unwrap_or(false)
+            && std::env::var("GNUPGHOME").is_err()
+        {
+            if let Err(e) = crate::compat::sync_from_gnupg(self, &cert_store) {
+                self.info(format_args!(
+                    "Syncing state from GnuPG failed: {}", e));
+            }
+        }
+
         let cert_store = WotStore::from_store(
             cert_store, self.policy, self.time);
 

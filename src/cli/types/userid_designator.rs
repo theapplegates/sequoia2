@@ -186,49 +186,6 @@ have to appear in a self-signed user ID."))
     }
 }
 
-/// Documentation for user ID designators when the designator selects
-/// any user ID (i.e. not just self signed user IDs).
-///
-/// This is for commands like `sq pki authenticate`.
-#[derive(Debug, Clone)]
-pub struct AnyDocumentation(());
-
-impl Documentation for AnyDocumentation {
-    fn help(typ: UserIDDesignatorType,
-            _plain: bool,
-            semantics: UserIDDesignatorSemantics)
-        -> (&'static str, Option<&'static str>)
-    {
-        use UserIDDesignatorType::*;
-        use UserIDDesignatorSemantics::*;
-        match (typ, semantics) {
-            (UserID, _) => {
-                ("Use the specified user ID",
-                 Some("\
-Use the specified user ID
-
-The specified user ID does not need to be self signed."))
-            }
-            (Email, Exact | Add) => {
-                ("Use a user ID with the specified email address",
-                 Some("\
-Use a user ID with the specified email address
-
-The user ID consists of just the email address.  The email address does not \
-have to appear in a self-signed user ID."))
-            }
-            (Email, By) => {
-                ("Use the user IDs that contain the specified email address",
-                 None)
-            }
-            (Name, _) => {
-                ("Use user IDs that contain the specified display name",
-                 None)
-            }
-        }
-    }
-}
-
 /// The designator type.
 pub enum UserIDDesignatorType {
     /// --userid.

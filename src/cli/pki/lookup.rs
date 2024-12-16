@@ -36,7 +36,7 @@ pub struct Command {
     pub userid: UserIDDesignators<
         userid_designator::PlainByArgs,
         userid_designator::OneValueNoLinting,
-        userid_designator::AnyDocumentation>,
+        Documentation>,
 
     #[command(flatten)]
     pub show_paths: ShowPathsArg,
@@ -49,6 +49,58 @@ pub struct Command {
 
     #[command(flatten)]
     pub trust_amount: RequiredTrustAmountArg,
+}
+
+/// Documentation for the user ID designators.
+#[derive(Debug, Clone)]
+pub struct Documentation(());
+
+impl userid_designator::Documentation for Documentation {
+    fn help(typ: userid_designator::UserIDDesignatorType,
+            _plain: bool,
+            semantics: userid_designator::UserIDDesignatorSemantics)
+        -> (&'static str, Option<&'static str>)
+    {
+        use userid_designator::UserIDDesignatorType::*;
+        match (typ, semantics) {
+            (UserID, _) => {
+                ("\
+Find certificates that can be authenticated for the specified user ID",
+                 Some("\
+Find certificates that can be authenticated for the specified user ID
+
+The specified user ID does not need to be self signed."))
+            }
+            (Email, _) => {
+                ("\
+Find certificates that can be authenticated for the specified email \
+address",
+                 Some("\
+Find certificates that can be authenticated for the specified email \
+address
+
+A certificate is returned if a user ID with the specified email \
+address can be authenticated for that certificate.
+
+To search for a certificate with a user ID containing just \
+the specified email address, use `--userid <EMAIL>`."))
+            }
+            (Name, _) => {
+                ("\
+Find certificates that can be authenticated for the specified display \
+name",
+                 Some("\
+Find certificates that can be authenticated for the specified display \
+name
+
+A certificate is returned if a user ID with the specified display \
+name can be authenticated for that certificate.
+
+To search for a certificate with a user ID containing just \
+the specified display name, use `--userid NAME`."))
+            }
+        }
+    }
 }
 
 const EXAMPLES: Actions = Actions {

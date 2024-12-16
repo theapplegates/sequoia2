@@ -50,7 +50,7 @@ pub struct Command {
     pub userid: UserIDDesignators<
         userid_designator::PlainByArgs,
         userid_designator::OneValueNoLinting,
-        userid_designator::AnyDocumentation>,
+        Documentation>,
 
     #[command(flatten)]
     pub show_paths: ShowPathsArg,
@@ -63,6 +63,49 @@ pub struct Command {
 
     #[command(flatten)]
     pub trust_amount: RequiredTrustAmountArg,
+}
+
+/// Documentation for the user ID designators.
+#[derive(Debug, Clone)]
+pub struct Documentation(());
+
+impl userid_designator::Documentation for Documentation {
+    fn help(typ: userid_designator::UserIDDesignatorType,
+            _plain: bool,
+            semantics: userid_designator::UserIDDesignatorSemantics)
+        -> (&'static str, Option<&'static str>)
+    {
+        use userid_designator::UserIDDesignatorType::*;
+        match (typ, semantics) {
+            (UserID, _) => {
+                ("Authenticate the specified user ID",
+                 Some("\
+Authenticate the specified user ID
+
+The specified user ID does not need to be self signed."))
+            }
+            (Email, _) => {
+                ("Authenticate the specified email address",
+                 Some("\
+Authenticate the specified email address
+
+This checks whether it is possible to authenticate a user ID with the \
+specified email address.  The user IDs do not need to be self signed.  \
+To authenticate a user ID containing just the specified email address, \
+use `--userid <EMAIL>`."))
+            }
+            (Name, _) => {
+                ("Authenticate the specified display name",
+                 Some("\
+Authenticate the specified display name
+
+This checks whether it is possible to authenticate a user ID with the \
+specified display name.  The user IDs do not need to be self signed.  \
+To authenticate a user ID containing just the specified display name, \
+use `--userid NAME`."))
+            }
+        }
+    }
 }
 
 const EXAMPLES: Actions = Actions {

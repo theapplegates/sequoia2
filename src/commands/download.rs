@@ -174,7 +174,7 @@ pub fn dispatch(sq: Sq, c: download::Command)
     -> Result<()>
 {
     let url = c.url;
-    let signature = c.signature;
+    let signature_url = c.detached;
     let signatures = c.signatures;
     let signers =
         sq.resolve_certs_or_fail(&c.signers, sequoia_wot::FULLY_TRUSTED)?;
@@ -285,9 +285,10 @@ pub fn dispatch(sq: Sq, c: download::Command)
     // than 'static.  Instead, we set up a scoped thread, which can
     // use variables with lifetimes less than static, and then do the
     // processing there.
+    let signature_url_ = signature_url.clone();
     let (mut data_file, signature_file) = std::thread::scope(|scope| {
         // Schedule the download of the signature.
-        if let Some(ref url) = signature {
+        if let Some(ref url) = signature_url_ {
             let sig_file = tempfile::NamedTempFile::new()?;
 
             let getter = get!(
@@ -508,7 +509,7 @@ pub fn dispatch(sq: Sq, c: download::Command)
                     "Internal error while downloading data file"));
             };
 
-            if signature.is_some() && signature_file.is_none() {
+            if signature_url_.is_some() && signature_file.is_none() {
                 return Err(anyhow::anyhow!(
                     "Internal error while downloading signature file"));
             }
@@ -533,6 +534,8 @@ pub fn dispatch(sq: Sq, c: download::Command)
             data_file.as_ref().try_clone()?, data_file.path(),
             Default::default())?.into_boxed(),
         signature_file.as_ref().map(|f| f.path().to_path_buf()),
+        "--signature-url",
+        signature_url.map(PathBuf::from),
         &mut output_file,
         signatures,
         signers);

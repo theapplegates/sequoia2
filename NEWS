@@ -65,6 +65,10 @@
      has its desired name.  There are two benefits: no one sees
      partially written files, and one can safely use the same file as
      input and output.
+   - `sq download --signature` is now called `sq download
+     --signature-url`.
+   - `sq download` now requires one of `--signature-url`, `--message`,
+     or `--cleartext` like `sq verify`.
 
 * Changes in 0.41.0
 ** New functionality

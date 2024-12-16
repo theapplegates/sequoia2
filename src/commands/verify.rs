@@ -42,6 +42,8 @@ pub fn dispatch(sq: Sq, command: cli::verify::Command)
         sq.resolve_certs_or_fail(&command.signers, sequoia_wot::FULLY_TRUSTED)?;
 
     let result = verify(sq, input,
+                        command.detached.clone(),
+                        "--signature-file",
                         command.detached,
                         &mut output, signatures, signers);
     if result.is_err() {
@@ -63,6 +65,8 @@ pub fn dispatch(sq: Sq, command: cli::verify::Command)
 pub fn verify(mut sq: Sq,
               input: Box<dyn BufferedReader<Cookie>>,
               detached: Option<PathBuf>,
+              detached_sig_arg: &str,
+              detached_sig_value: Option<PathBuf>,
               output: &mut dyn io::Write,
               signatures: usize, certs: Vec<Cert>)
               -> Result<()> {
@@ -71,7 +75,8 @@ pub fn verify(mut sq: Sq,
 
         let (kind, sig) = Kind::identify(&mut sq, sig)?;
         kind.expect_or_else(&sq, "verify", Kind::DetachedSig,
-                            "--signature-file", Some(&sig_path))?;
+                            detached_sig_arg,
+                            detached_sig_value.as_deref())?;
 
         Some(sig)
     } else {

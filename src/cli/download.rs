@@ -1,6 +1,6 @@
 //! Command-line parser for `sq download`.
 
-use clap::Parser;
+use clap::{ArgGroup, Parser};
 
 use crate::cli::examples;
 use examples::Action;
@@ -21,7 +21,7 @@ const EXAMPLES: Actions = Actions {
         ).command(&[
             "sq", "download",
             "--url=file://debian/SHA512SUMS",
-            "--signature=file://debian/SHA512SUMS.sign",
+            "--signature-url=file://debian/SHA512SUMS.sign",
             "--signer=DF9B9C49EAA9298432589D76DA87E80D6294BE9B",
             "--output=SHA512SUMS",
         ]).build(),
@@ -42,6 +42,8 @@ authenticated, the data is deleted, if possible.
 ",
     after_help = EXAMPLES,
 )]
+#[clap(group(ArgGroup::new("kind")
+             .args(&["detached", "message", "cleartext"]).required(true)))]
 pub struct Command {
     #[clap(
         long = "url",
@@ -51,7 +53,7 @@ pub struct Command {
     pub url: String,
 
     #[clap(
-        long = "signature",
+        long = "signature-url",
         value_name = "URL",
         help = "URL of the signature",
         long_help = "\
@@ -63,7 +65,21 @@ If no signature is specified, then the signature is assumed to be \
 inline.
 ",
     )]
-    pub signature: Option<String>,
+    pub detached: Option<String>,
+
+    #[clap(
+        long = "message",
+        value_name = "SIG",
+        help = "Verify an inline signed message"
+    )]
+    pub message: bool,
+
+    #[clap(
+        long = "cleartext",
+        value_name = "SIG",
+        help = "Verify a cleartext-signed message"
+    )]
+    pub cleartext: bool,
 
     #[command(flatten)]
     pub signers: CertDesignators<FileCertUserIDEmailDomainArgs,

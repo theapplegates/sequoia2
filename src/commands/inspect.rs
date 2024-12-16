@@ -44,6 +44,7 @@ use crate::cli::types::FileOrStdout;
 use crate::commands::packet::dump::PacketDumper;
 use crate::common::NULL_POLICY;
 use crate::common::PreferredUserID;
+use crate::common::ui;
 
 /// Width of the largest key of any key, value pair we emit.
 const WIDTH: usize = 17;
@@ -570,7 +571,7 @@ fn print_reasons(output: &mut dyn io::Write,
         }
         if let Some(msg) = message {
             writeln!(output, "{:>WIDTH$}     Message: {}", "",
-                     String::from_utf8_lossy(msg))?;
+                     ui::Safe(msg))?;
         }
     }
     Ok(())

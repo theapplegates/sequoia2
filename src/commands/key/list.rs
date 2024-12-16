@@ -26,6 +26,7 @@ use crate::Time;
 use crate::cli::types::cert_designator;
 use crate::cli;
 use crate::common::NULL_POLICY;
+use crate::common::ui;
 
 /// Keys may either be grouped into a certificate or be bare.
 ///
@@ -157,8 +158,7 @@ fn key_validity(sq: &Sq, cert: &Cert, key: Option<&Fingerprint>) -> Vec<String> 
                 reason_ = reason.to_string();
                 if ! message.is_empty() {
                     reason_.push_str(": ");
-                    reason_.push_str(&format!(
-                        "{:?}", String::from_utf8_lossy(message)));
+                    reason_.push_str(&ui::Safe(message).to_string());
                 }
                 &reason_
             } else {

@@ -22,6 +22,7 @@ use self::openpgp::parse::{
 
 use crate::Convert;
 use crate::cli::types::SessionKey;
+use crate::common::ui;
 use crate::Sq;
 
 #[derive(Debug)]
@@ -909,9 +910,9 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
                 write!(output, "{}    Signer's User ID: {}", i,
                        String::from_utf8_lossy(u))?,
             ReasonForRevocation{code, ref reason} => {
-                let reason = String::from_utf8_lossy(reason);
                 write!(output, "{}    Reason for revocation: {}{}{}", i, code,
-                       if reason.len() > 0 { ", " } else { "" }, reason)?
+                       if reason.len() > 0 { ", " } else { "" },
+                       ui::Safe(reason))?
             }
             Features(ref f) =>
                 write!(output, "{}    Features: {:?}", i, f)?,

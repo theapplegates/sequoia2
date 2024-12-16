@@ -16,7 +16,10 @@ use cli::types::userid_designator;
 use super::output::ConciseHumanReadableOutputNetwork;
 use super::output::OutputType;
 
-use crate::Sq;
+use crate::{
+    Sq,
+    common::ui,
+};
 
 const TRACE: bool = false;
 
@@ -364,12 +367,7 @@ pub fn authenticate<'store, 'rstore>(
                     weprintln!("Warning: {} is revoked: {}{}",
                                cert.fingerprint(),
                                reason,
-                               if message.is_empty() {
-                                   "".to_string()
-                               } else {
-                                   format!(": {:?}",
-                                           String::from_utf8_lossy(message))
-                               });
+                               ui::Safe(message));
                 } else {
                     weprintln!("Warning: {} is revoked: unspecified reason",
                                cert.fingerprint());

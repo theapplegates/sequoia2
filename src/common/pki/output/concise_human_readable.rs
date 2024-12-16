@@ -27,6 +27,7 @@ use crate::Convert;
 use crate::Sq;
 use crate::Time;
 use crate::common::ca_creation_time;
+use crate::common::ui;
 use crate::error_chain;
 use crate::output::wrapping::NBSP;
 use super::OutputType;
@@ -305,8 +306,7 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
                     reason_ = reason.to_string();
                     if ! message.is_empty() {
                         reason_.push_str(": ");
-                        reason_.push_str(&format!(
-                            "{:?}", String::from_utf8_lossy(message)));
+                        reason_.push_str(&ui::Safe(message).to_string());
                     }
                     &reason_
                 } else {

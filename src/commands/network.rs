@@ -56,6 +56,7 @@ use crate::{
         FileOrStdout,
         active_certification,
     },
+    common::ui,
     output::{
         import::ImportStats,
         pluralize::Pluralize,
@@ -834,7 +835,7 @@ impl Response {
                             {
                                 qprintln!(initial_indent = "   - ",
                                           "revoked: {}, {}", reason,
-                                          String::from_utf8_lossy(message));
+                                          ui::Safe(message));
                             } else {
                                 qprintln!(initial_indent = "   - ",
                                           "revoked");
@@ -847,7 +848,7 @@ impl Response {
                             {
                                 qprintln!(initial_indent = "   - ",
                                           "possibly revoked: {}, {}", reason,
-                                          String::from_utf8_lossy(message));
+                                          ui::Safe(message));
                             } else {
                                 qprintln!(initial_indent = "   - ",
                                           "possibly revoked");

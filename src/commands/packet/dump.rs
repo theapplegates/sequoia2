@@ -86,8 +86,8 @@ pub fn dump<W>(sq: &crate::Sq,
                 let mut prefix = vec![0; 40];
                 let n = pp.read(&mut prefix)?;
                 vec![
-                    format!("Content: {:?}{}",
-                            String::from_utf8_lossy(&prefix[..n]),
+                    format!("Content: {}{}",
+                            ui::Safe(&prefix[..n]),
                             if n == prefix.len() { "..." } else { "" }),
                 ]
             },
@@ -410,8 +410,8 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
             Literal(ref l) => {
                 writeln!(output, "{}  Format: {}", i, l.format())?;
                 if let Some(filename) = l.filename() {
-                    writeln!(output, "{}  Filename: {:?}", i,
-                             String::from_utf8_lossy(filename))?;
+                    writeln!(output, "{}  Filename: {}", i,
+                             ui::Safe(filename))?;
                 }
                 if let Some(timestamp) = l.date() {
                     writeln!(output, "{}  Timestamp: {}", i,

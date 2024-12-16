@@ -258,8 +258,8 @@ where
             }
             inspect_signatures(sq, output, &sigs)?;
             if ! literal_prefix.is_empty() {
-                writeln!(output, "           Data: {:?}{}",
-                         String::from_utf8_lossy(&literal_prefix),
+                writeln!(output, "           Data: {}{}",
+                         ui::Safe(&literal_prefix),
                          if literal_prefix.len() == 40 { "..." } else { "" })?;
             }
 

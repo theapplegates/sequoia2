@@ -258,7 +258,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                 prefix = "  ";
 
                 // Web of trust.
-                qprintln!("Authenticating {} ({:?}) using the web of trust:",
+                qprintln!("Authenticating {} ({}) using the web of trust:",
                           cert_fpr, signer_userid);
 
                 if let Some(cert_store) = self.sq.cert_store()? {
@@ -377,23 +377,23 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
             match (level == 0, authenticated) {
                 (true,  true)  => {
                     weprintln!(indent=prefix,
-                               "Authenticated signature made by {} ({:?})",
+                               "Authenticated signature made by {} ({})",
                                label, signer_userid);
                 }
                 (false, true)  => {
                     weprintln!(indent=prefix,
                                "Authenticated level {} notarization \
-                                made by {} ({:?})",
+                                made by {} ({})",
                                level, label, signer_userid);
                 }
                 (true,  false) => {
                     weprintln!(indent=prefix,
-                               "Can't authenticate signature made by {} ({:?}): \
+                               "Can't authenticate signature made by {} ({}): \
                                 the certificate can't be authenticated.",
                                label, signer_userid);
 
                     self.sq.hint(format_args!(
-                        "After checking that {} belongs to {:?}, \
+                        "After checking that {} belongs to {}, \
                          you can mark it as authenticated using:",
                         cert_fpr, signer_userid))
                         .sq().arg("pki").arg("link").arg("add")
@@ -404,12 +404,12 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                 (false, false) => {
                     weprintln!(indent=prefix,
                                "Can't authenticate level {} notarization \
-                                made by {} ({:?}): the certificate \
+                                made by {} ({}): the certificate \
                                 can't be authenticated.",
                                level, label, signer_userid);
 
                     self.sq.hint(format_args!(
-                        "After checking that {} belongs to {:?}, \
+                        "After checking that {} belongs to {}, \
                          you can mark it as authenticated using:",
                         cert_fpr, signer_userid))
                         .sq().arg("pki").arg("link").arg("add")

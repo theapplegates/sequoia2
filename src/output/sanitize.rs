@@ -3,19 +3,30 @@
 use std::fmt;
 
 use sequoia_openpgp::{
-    packet::UserID,
+    packet::{
+        UserID,
+        signature::subpacket::NotationData,
+    },
 };
 
 /// Safely displays values.
 ///
 /// This type MUST be used to display attacker controlled strings,
-/// such as user IDs, notation data, and reasons for revocations.
+/// such as:
+///
+///  - user IDs
+///  - literal data's file name
+///  - regular expressions
+///  - notation data, both name and value
+///  - preferred key server
+///  - policy URI
+///  - signer's user ID
+///  - reason for revocation
 pub struct Safe<T>(pub T);
 
 impl fmt::Display for Safe<&UserID> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = String::from_utf8_lossy(self.0.value());
-        write!(f, "{}", Safe(s.as_ref()))
+        Safe(self.0.value()).fmt(f)
     }
 }
 
@@ -38,6 +49,12 @@ impl fmt::Display for Safe<&[u8]> {
     }
 }
 
+impl fmt::Display for Safe<&Vec<u8>> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Safe(self.0.as_slice()).fmt(f)
+    }
+}
+
 impl fmt::Display for Safe<std::borrow::Cow<'_, str>> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Safe(&self.0[..]).fmt(f)
@@ -53,5 +70,11 @@ impl fmt::Display for Safe<&String> {
 impl fmt::Display for Safe<String> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Safe(&self.0[..]).fmt(f)
+    }
+}
+
+impl fmt::Display for Safe<&NotationData> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}", Safe(self.0.name()), Safe(self.0.value()))
     }
 }

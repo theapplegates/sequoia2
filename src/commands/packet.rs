@@ -37,6 +37,7 @@ use crate::cli::packet::{
 use crate::cli::types::FileOrStdout;
 use crate::cli::types::StdinWarning;
 use crate::commands;
+use crate::common::ui;
 use crate::load_keys;
 
 pub mod armor;
@@ -234,8 +235,7 @@ pub fn split(sq: Sq, c: SplitCommand) -> Result<()>
                         }
                     },
                     Packet::UserID(u) => headers.push(
-                        ("Comment", format!("UserID: {}",
-                                            String::from_utf8_lossy(u.value())))),
+                        ("Comment", format!("UserID: {}", ui::Safe(u)))),
                     _ => (),
                 }
 

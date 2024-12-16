@@ -32,6 +32,7 @@ use crate::{
     cli::cert::lint::Command,
     cli::types::cert_designator::CertDesignator,
     commands::FileOrStdout,
+    common::ui,
 };
 
 
@@ -514,9 +515,9 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                 let sig = ua.binding_signature();
                 if sig.hash_algo() == HashAlgorithm::SHA1 {
                     diag!("Certificate {} contains a \
-                           User ID ({:?}) protected by SHA-1",
+                           User ID ({}) protected by SHA-1",
                           cert.keyid().to_hex(),
-                          String::from_utf8_lossy(ua.value()));
+                          ui::Safe(ua.userid()));
 
                     if !sha1_protected_userid {
                         sha1_protected_userid = true;
@@ -535,8 +536,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                                             Failed to update \
                                             binding signature: {}",
                                            cert.keyid().to_hex(),
-                                           String::from_utf8_lossy(
-                                               ua.value()),
+                                           ui::Safe(ua.userid()),
                                            err);
                             }
                         }

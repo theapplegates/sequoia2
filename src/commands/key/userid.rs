@@ -28,6 +28,7 @@ use crate::cli::types::userid_designator::ResolvedUserID;
 use crate::cli;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
+use crate::common::ui;
 use crate::common::userid::{
     lint_emails,
     lint_names,
@@ -39,7 +40,6 @@ struct UserIDRevocation {
     cert: Cert,
     revoker: Cert,
     revocation_packet: Packet,
-    userid: String,
     uid: UserID,
 }
 
@@ -56,8 +56,6 @@ impl UserIDRevocation {
     ) -> Result<Self> {
         let (revoker, mut signer)
             = get_secret_signer(sq, &cert, revoker.as_ref())?;
-
-        let userid = String::from_utf8_lossy(uid.userid().value()).to_string();
 
         let revocation_packet = {
             // Create a revocation for a User ID.
@@ -85,7 +83,6 @@ impl UserIDRevocation {
             cert,
             revoker,
             revocation_packet,
-            userid,
             uid: uid.userid().clone(),
         })
     }
@@ -106,7 +103,7 @@ impl RevocationOutput for UserIDRevocation
     fn comment(&self) -> String {
         format!("This is a revocation certificate for \
                  the User ID {} of cert {}.",
-                self.userid,
+                ui::Safe(&self.uid),
                 self.cert.fingerprint())
     }
 
@@ -164,7 +161,8 @@ fn userid_add(
     if !exists.is_empty() {
         return Err(anyhow::anyhow!(
             "The certificate already contains the User ID(s) {}.",
-            exists.iter().map(|s| format!("{:?}", String::from_utf8_lossy(s.value()))).collect::<Vec<_>>()
+            exists.iter().map(|s| ui::Safe(*s).to_string())
+                .collect::<Vec<_>>()
                 .join(", "),
         ));
     }

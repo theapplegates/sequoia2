@@ -104,14 +104,14 @@ pub fn diff_certification(unless_quiet: &mut dyn std::io::Write,
                   "current certification");
         for (i, r) in a_regex.into_iter().enumerate() {
             wwriteln!(stream = unless_quiet, initial_indent = "       - ",
-                      "{}. {}", i + 1, String::from_utf8_lossy(r));
+                      "{}. {}", i + 1, ui::Safe(r));
         }
 
         wwriteln!(stream = unless_quiet, initial_indent = "     - ",
                   "new certification");
         for (i, r) in b_regex.into_iter().enumerate() {
             wwriteln!(stream = unless_quiet, initial_indent = "       - ",
-                      "{}. {}", i + 1, String::from_utf8_lossy(r));
+                      "{}. {}", i + 1, ui::Safe(r));
         }
     }
 
@@ -301,8 +301,6 @@ The certifier is the same as the certificate to certify."));
             certifier.primary_key().key().role_as_unspecified())
         .into_iter()
         .map(|(userid, active_certification)| {
-            let userid_str = || String::from_utf8_lossy(userid.userid().value());
-
             if let Some(ua) = cert.userids().find(|ua| ua.userid() == userid.userid()) {
                 if retract {
                     // Check if we certified it.
@@ -318,9 +316,9 @@ The certifier is the same as the certificate to certify."));
 
                         if user_supplied_userids {
                             return Err(anyhow::anyhow!(
-                                "You never certified {:?} for {}, \
+                                "You never certified {} for {}, \
                                  there is nothing to retract.",
-                                userid_str(), cert.fingerprint()));
+                                ui::Safe(userid.userid()), cert.fingerprint()));
                         } else {
                             return Ok(vec![ Packet::from(userid.userid().clone()) ]);
                         }
@@ -334,8 +332,8 @@ The certifier is the same as the certificate to certify."));
                             // It was explicitly mentioned.  Return an
                             // error.
                             return Err(anyhow::anyhow!(
-                                "Can't certify {:?} for {}, it's revoked",
-                                userid_str(), cert.fingerprint()));
+                                "Can't certify {} for {}, it's revoked",
+                                ui::Safe(userid.userid()), cert.fingerprint()));
                         } else {
                             // We're just considering valid, self-signed
                             // user IDs.  Silently, skip it.
@@ -351,9 +349,9 @@ The certifier is the same as the certificate to certify."));
 
                 if user_supplied_userids {
                     return Err(anyhow::anyhow!(
-                        "You never certified {:?} for {}, \
+                        "You never certified {} for {}, \
                          there is nothing to retract.",
-                        userid_str(), cert.fingerprint()));
+                        ui::Safe(userid.userid()), cert.fingerprint()));
                 } else {
                     // The user passed --all.  Don't error out if some
                     // user IDs were not linked.  Instead, return a
@@ -420,8 +418,8 @@ The certifier is the same as the certificate to certify."));
                         cert.primary_key().key(),
                         userid.userid())
                         .with_context(|| {
-                            format!("Creating certification for {:?}",
-                                    userid_str())
+                            format!("Creating certification for {}",
+                                    ui::Safe(userid.userid()))
                         })
                         .map(Into::into)
                 })

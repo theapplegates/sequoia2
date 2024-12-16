@@ -56,7 +56,7 @@ pub fn print_path_header(
             " "
         },
         target_kh,
-        String::from_utf8_lossy(target_userid.value()),
+        ui::Safe(target_userid),
         if amount >= 2 * FULLY_TRUSTED {
             "doubly"
         } else if amount >= FULLY_TRUSTED {
@@ -85,9 +85,9 @@ pub fn print_path(output: &mut dyn std::io::Write,
               subsequent_indent=format!("{}│   ", prefix),
               "{}",
               if certification_count == 0 {
-                  format!("{:?}", String::from_utf8_lossy(target_userid.value()))
+                  format!("{}", ui::Safe(target_userid))
               } else if let Some(userid) = path.root().primary_userid() {
-                  format!("({:?})", String::from_utf8_lossy(userid.value()))
+                  format!("({})", ui::Safe(&userid))
               } else {
                   format!("")
               });
@@ -197,11 +197,11 @@ pub fn print_path(output: &mut dyn std::io::Write,
                                             if last { " " } else { "│" }),
                   "{}",
                   if last {
-                      format!("{:?}", String::from_utf8_lossy(target_userid.value()))
+                      format!("{}", ui::Safe(target_userid))
                   } else if let Some(userid) =
                   certification.target_cert().and_then(|c| c.primary_userid())
                   {
-                      format!("({:?})", String::from_utf8_lossy(userid.value()))
+                      format!("({})", ui::Safe(userid.userid()))
                   } else {
                       "".into()
                   });
@@ -414,7 +414,7 @@ impl OutputType for ConciseHumanReadableOutputNetwork<'_, '_, '_> {
                   } else {
                       format!("{:3}/120", aggregated_amount)
                   },
-                  String::from_utf8_lossy(userid.value()));
+                  ui::Safe(userid));
 
         if self.paths {
             wwriteln!(stream=self.output);

@@ -13,7 +13,7 @@ use sequoia_wot as wot;
 use crate::Sq;
 use crate::cli::key::approvals;
 use crate::cli;
-use crate::common::ca_creation_time;
+use crate::common::{ca_creation_time, ui};
 
 pub fn dispatch(sq: Sq, command: approvals::Command)
                 -> Result<()>
@@ -47,7 +47,7 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
 
         wwriteln!(stream=o,
                   initial_indent = " - ", "{}",
-                  String::from_utf8_lossy(uid.value()));
+                  ui::Safe(uid.userid()));
 
         let approved =
             uid.attested_certifications().collect::<BTreeSet<_>>();
@@ -63,7 +63,7 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
                         .next()
                         .map(|kh| kh.to_string())
                         .unwrap_or_else(|| "unknown certificate".to_string()),
-                    String::from_utf8_lossy(uid.value())));
+                    ui::Safe(uid.userid())));
                 continue;
             }
 
@@ -99,14 +99,14 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
                     sq.info(format_args!(
                         "Ignoring certification from non-exportable \
                          certificate {} on {}.",
-                        i.fingerprint(), String::from_utf8_lossy(uid.value())));
+                        i.fingerprint(), ui::Safe(uid.userid())));
                     continue;
                 }
                 if i.primary_key().creation_time() == ca_creation_time() {
                     sq.info(format_args!(
                         "Ignoring certification from local shadow CA \
                          {} on {}.",
-                        i.fingerprint(), String::from_utf8_lossy(uid.value())));
+                        i.fingerprint(), ui::Safe(uid.userid())));
                     continue;
                 }
             }
@@ -199,7 +199,7 @@ fn update(
         }
 
         weprintln!(initial_indent = " - ", "{}",
-                   String::from_utf8_lossy(uid.value()));
+                   ui::Safe(uid.userid()));
 
         let previously_approved =
             uid.attested_certifications().collect::<BTreeSet<_>>();
@@ -231,7 +231,7 @@ fn update(
                         .next()
                         .map(|kh| kh.to_string())
                         .unwrap_or_else(|| "unknown certificate".to_string()),
-                    String::from_utf8_lossy(uid.value())));
+                    ui::Safe(uid.userid())));
                 continue;
             }
 
@@ -279,14 +279,14 @@ fn update(
                     sq.info(format_args!(
                         "Ignoring certification from non-exportable \
                          certificate {} on {}.",
-                        i.fingerprint(), String::from_utf8_lossy(uid.value())));
+                        i.fingerprint(), ui::Safe(uid.userid())));
                     continue;
                 }
                 if i.primary_key().creation_time() == ca_creation_time() {
                     sq.info(format_args!(
                         "Ignoring certification from local shadow CA \
                          {} on {}.",
-                        i.fingerprint(), String::from_utf8_lossy(uid.value())));
+                        i.fingerprint(), ui::Safe(uid.userid())));
                     continue;
                 }
             }

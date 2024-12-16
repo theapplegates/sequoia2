@@ -27,6 +27,7 @@ use crate::Sq;
 use crate::Result;
 use crate::cli;
 use crate::commands::inspect::Kind;
+use crate::common::{PreferredUserID, ui};
 
 pub fn dispatch(sq: Sq, command: cli::verify::Command)
     -> Result<()>
@@ -243,9 +244,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
             let cert = ka.cert();
             let cert_fpr = cert.fingerprint();
             let issuer = ka.key().keyid();
-            let mut signer_userid = ka.cert().primary_userid()
-                .map(|ua| String::from_utf8_lossy(ua.value()).to_string())
-                .unwrap_or_else(|_| "<unknown>".to_string());
+            let mut signer_userid = self.sq.best_userid(ka.cert(), false);
 
             // Direct trust.
             let mut authenticated = self.trusted.contains(&issuer);
@@ -277,9 +276,6 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
 
                         let authenticated_userids
                             = userids.into_iter().filter(|userid| {
-                                let userid_str =
-                                    String::from_utf8_lossy(userid.value());
-
                                 let paths = n.authenticate(
                                     userid, cert.fingerprint(),
                                     // XXX: Make this user squrable.
@@ -293,23 +289,23 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                                                amount,
                                                sequoia_wot::FULLY_TRUSTED,
                                                cert_fpr,
-                                               userid_str);
+                                               ui::Safe(userid));
                                     true
                                 } else if amount > 0 {
                                     weprintln!(indent=prefix,
                                                "Partially authenticated \
-                                                ({} of {}) {}, {:?} ",
+                                                ({} of {}) {}, {} ",
                                                amount,
                                                sequoia_wot::FULLY_TRUSTED,
                                                cert_fpr,
-                                               userid_str);
+                                               ui::Safe(userid));
                                     false
                                 } else {
                                     weprintln!(indent=prefix,
-                                               "{}: {:?} is unauthenticated \
+                                               "{}: {} is unauthenticated \
                                                 and may be an impersonation!",
                                                cert_fpr,
-                                               userid_str);
+                                               ui::Safe(userid));
                                     false
                                 };
 
@@ -350,13 +346,15 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                                         .then_some(u)
                                 })
                             {
-                                signer_userid = String::from_utf8_lossy(u)
-                                    .to_string();
+                                signer_userid = PreferredUserID::from_string(
+                                    String::from_utf8_lossy(u),
+                                    sequoia_wot::FULLY_TRUSTED);
                             } else {
                                 // Else just pick the first one.
-                                signer_userid = String::from_utf8_lossy(
-                                    authenticated_userids[0].value())
-                                    .to_string();
+                                signer_userid = PreferredUserID::from_string(
+                                    String::from_utf8_lossy(
+                                        authenticated_userids[0].value()),
+                                    sequoia_wot::FULLY_TRUSTED);
                             }
                         }
                     }

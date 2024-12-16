@@ -67,6 +67,7 @@ mod keyring {
         cert::Cert,
     };
     use crate::Sq;
+    use crate::common::ui;
     use super::{Version, Write};
     use serde::Serialize;
 
@@ -190,7 +191,7 @@ mod keyring {
         }
 
         fn userid(bytes: &[u8]) -> String {
-            String::from_utf8_lossy(bytes).into()
+            ui::Safe(bytes).to_string()
         }
     }
 }

@@ -17,6 +17,7 @@ use crate::cli::types::userid_designator::PlainIsAdd;
 use crate::cli::types::userid_designator::ResolvedUserID;
 use crate::cli::types::userid_designator::UserIDDesignator;
 use crate::cli::types::userid_designator::UserIDDesignatorSemantics;
+use crate::common::ui;
 use crate::common::userid::lint_email;
 use crate::common::userid::lint_name;
 use crate::common::userid::lint_userid;
@@ -123,8 +124,8 @@ where
                         }
                         userids.push(designator.resolve_to(userid));
                     } else {
-                        weprintln!("{:?} is not a self-signed user ID.",
-                                   String::from_utf8_lossy(userid.value()));
+                        weprintln!("{} is not a self-signed user ID.",
+                                   ui::Safe(&userid));
                         missing = true;
                     }
                 }
@@ -274,11 +275,11 @@ where
             weprintln!("{}'s self-signed user IDs:", vc.fingerprint());
             let mut have_valid = false;
             for ua in vc.userids() {
-                if let Ok(u) = std::str::from_utf8(ua.userid().value()) {
+                if std::str::from_utf8(ua.userid().value()).is_ok() {
                     have_valid = true;
                     weprintln!(initial_indent="  - ",
                                subsequent_indent="    ",
-                               "{:?}", u);
+                               "{}", ui::Safe(ua.userid()));
                 }
             }
             if ! have_valid {
@@ -295,11 +296,13 @@ where
                             continue;
                         }
 
-                        if let Ok(u) = std::str::from_utf8(ua.userid().value()) {
+                        if std::str::from_utf8(ua.userid().value()).is_ok() {
+                            let userid = ui::Safe(ua.userid());
                             if let Err(err) = ua.with_policy(vc.policy(), vc.time()) {
                                 weprintln!(initial_indent="  - ",
                                            subsequent_indent="    ",
-                                           "{:?}: {}", u, err);
+                                           "{}: {}",
+                                           userid, err);
                             }
                         }
                     }
@@ -349,7 +352,7 @@ where
         t!(" => {:?}",
            userids.iter()
                .map(|u| {
-                   String::from_utf8_lossy(u.userid().value()).to_string()
+                   ui::Safe(u.userid()).to_string()
                })
                .collect::<Vec<String>>()
                .join(", "));

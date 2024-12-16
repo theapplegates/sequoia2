@@ -371,7 +371,7 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
 
             UserID(ref u) => {
                 writeln!(output, "{}  Value: {}", i,
-                         String::from_utf8_lossy(u.value()))?;
+                         ui::Safe(u.value()))?;
             },
 
             UserAttribute(ref u) => {
@@ -907,7 +907,7 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
                 write!(output, "{}    Key flags: {:?}", i, k)?,
             SignersUserID(ref u) =>
                 write!(output, "{}    Signer's User ID: {}", i,
-                       String::from_utf8_lossy(u))?,
+                       ui::Safe(u))?,
             ReasonForRevocation{code, ref reason} => {
                 write!(output, "{}    Reason for revocation: {}{}{}", i, code,
                        if reason.len() > 0 { ", " } else { "" },

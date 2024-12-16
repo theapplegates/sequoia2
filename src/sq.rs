@@ -58,6 +58,7 @@ use crate::cli::types::cert_designator;
 use crate::cli::types::key_designator;
 use crate::cli::types::paths::StateDirectory;
 use crate::common::password;
+use crate::common::ui;
 use crate::output::hint::Hint;
 use crate::output::import::{ImportStats, ImportStatus};
 use crate::PreferredUserID;
@@ -719,8 +720,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     Ok(cert) => cert,
                     Err(err) => {
                         let err = err.context(format!(
-                            "Error fetching {} ({:?})",
-                            fpr, String::from_utf8_lossy(userid.value())));
+                            "Error fetching {} ({})",
+                            fpr, ui::Safe(&userid)));
                         return Entry { fpr, userid, cert: Err(err), };
                     }
                 };
@@ -730,8 +731,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     Ok(cert) => cert.clone(),
                     Err(err) => {
                         let err = err.context(format!(
-                            "Error parsing {} ({:?})",
-                            fpr, String::from_utf8_lossy(userid.value())));
+                            "Error parsing {} ({})",
+                            fpr, ui::Safe(&userid)));
                         return Entry { fpr, userid, cert: Err(err), };
                     }
                 };
@@ -741,23 +742,23 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     Ok(vc) => vc,
                     Err(err) => {
                         let err = err.context(format!(
-                            "Certificate {} ({:?}) is invalid",
-                            fpr, String::from_utf8_lossy(userid.value())));
+                            "Certificate {} ({}) is invalid",
+                            fpr, ui::Safe(&userid)));
                         return Entry { fpr, userid, cert: Err(err) };
                     }
                 };
 
                 if let Err(err) = vc.alive() {
                     let err = err.context(format!(
-                        "Certificate {} ({:?}) is invalid",
-                        fpr, String::from_utf8_lossy(userid.value())));
+                        "Certificate {} ({}) is invalid",
+                        fpr, ui::Safe(&userid)));
                     return Entry { fpr, userid, cert: Err(err), };
                 }
 
                 if let RevocationStatus::Revoked(_) = vc.revocation_status() {
                     let err = anyhow::anyhow!(
-                        "Certificate {} ({:?}) is revoked",
-                        fpr, String::from_utf8_lossy(userid.value()));
+                        "Certificate {} ({}) is revoked",
+                        fpr, ui::Safe(&userid));
                     return Entry { fpr, userid, cert: Err(err), };
                 }
 
@@ -767,8 +768,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 {
                     if let RevocationStatus::Revoked(_) = ua.revocation_status() {
                         let err = anyhow::anyhow!(
-                            "User ID {:?} on certificate {} is revoked",
-                            String::from_utf8_lossy(userid.value()), fpr);
+                            "User ID {} on certificate {} is revoked",
+                            ui::Safe(&userid), fpr);
                         return Entry { fpr, userid, cert: Err(err), };
                     }
                 }
@@ -780,15 +781,15 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     wot::FULLY_TRUSTED);
                 let r = if paths.amount() < wot::FULLY_TRUSTED {
                     Err(anyhow::anyhow!(
-                        "{}, {:?} cannot be authenticated at the \
+                        "{}, {} cannot be authenticated at the \
                          required level ({} of {}).  After checking \
                          that {} really controls {}, you could certify \
                          their certificate by running \
                          `sq pki link add --cert {} --userid {:?}`.",
                         cert.fingerprint(),
-                        String::from_utf8_lossy(userid.value()),
+                        ui::Safe(&userid),
                         paths.amount(), wot::FULLY_TRUSTED,
-                        String::from_utf8_lossy(userid.value()),
+                        ui::Safe(&userid),
                         cert.fingerprint(),
                         cert.fingerprint(),
                         String::from_utf8_lossy(userid.value())))
@@ -811,26 +812,26 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     // We got nothing :/.
                     if email {
                         anyhow::anyhow!(
-                            "No known certificates have the email address {:?}",
-                            userid)
+                            "No known certificates have the email address {}",
+                            ui::Safe(userid))
                     } else {
                         anyhow::anyhow!(
-                            "No known certificates have the User ID {:?}",
-                            userid)
+                            "No known certificates have the User ID {}",
+                            ui::Safe(userid))
                     }
                 } else {
                     if email {
                         anyhow::anyhow!(
                             "None of the certificates with the email \
-                             address {:?} can be authenticated using \
+                             address {} can be authenticated using \
                              the configured trust model",
-                            userid)
+                            ui::Safe(userid))
                     } else {
                         anyhow::anyhow!(
                             "None of the certificates with the User ID \
-                             {:?} can be authenticated using \
+                             {} can be authenticated using \
                              the configured trust model",
-                            userid)
+                            ui::Safe(userid))
                     }
                 };
 
@@ -843,7 +844,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 for (i, Entry { fpr, userid, cert }) in bad.into_iter().enumerate() {
                     weprintln!("{}. When considering {} ({}):",
                                i + 1, fpr,
-                               String::from_utf8_lossy(userid.value()));
+                               ui::Safe(&userid));
                     let err = match cert {
                         Ok(_) => unreachable!(),
                         Err(err) => err,
@@ -2203,7 +2204,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                         trust_amount);
                                     if paths.amount() < trust_amount {
                                         hint.push(Err(anyhow::anyhow!(
-                                            "{}, {:?} cannot be authenticated \
+                                            "{}, {} cannot be authenticated \
                                              at the required level ({} of {}). \
                                              After checking that {} really \
                                              controls {}, you could certify \
@@ -2211,9 +2212,9 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                              `sq pki link add --cert {} \
                                              --userid {:?}`.",
                                             cert.fingerprint(),
-                                            String::from_utf8_lossy(userid.value()),
+                                            ui::Safe(&userid),
                                             paths.amount(), trust_amount,
-                                            String::from_utf8_lossy(userid.value()),
+                                            ui::Safe(&userid),
                                             cert.fingerprint(),
                                             cert.fingerprint(),
                                             String::from_utf8_lossy(userid.value()))));

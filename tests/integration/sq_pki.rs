@@ -711,7 +711,7 @@ fn lookup() -> Result<()> {
 
     let human_output = [
         (1, format!("- {} {}", HR_OK, &dave_uid)),
-        (1, format!("{}{} (\"{}\")", HR_PATH, &alice_fpr, &alice_uid)),
+        (1, format!("{}{} ({})", HR_PATH, &alice_fpr, &alice_uid)),
     ];
     test(
         keyring,

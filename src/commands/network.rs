@@ -254,10 +254,10 @@ fn certify(sq: &Sq,
             if let Some(_) = active_certification {
                 if emit_provenance_messages {
                     sq.info(format_args!(
-                        "Provenance information for {}, {:?} \
+                        "Provenance information for {}, {} \
                          exists and is current, not updating it",
                         cert.fingerprint(),
-                        String::from_utf8_lossy(userid.value())));
+                        ui::Safe(userid)));
                 }
                 return vec![];
             }
@@ -267,27 +267,27 @@ fn certify(sq: &Sq,
                 cert.primary_key().key(),
                 &userid)
                 .with_context(|| {
-                    format!("Creating certification for {} {:?}",
+                    format!("Creating certification for {}, {}",
                             cert.fingerprint(),
-                            String::from_utf8_lossy(userid.value()))
+                            ui::Safe(userid))
                 })
             {
                 Ok(sig) => {
                     if emit_provenance_messages {
                         sq.info(format_args!(
                             "Recorded provenance information \
-                             for {}, {:?}",
+                             for {}, {}",
                             cert.fingerprint(),
-                            String::from_utf8_lossy(userid.value())));
+                            ui::Safe(userid)));
                     }
                     vec![ Packet::from(userid.clone()), Packet::from(sig) ]
                 }
                 Err(err) => {
                     let err = err.context(format!(
                         "Warning: recording provenance information \
-                         for {}, {:?}",
+                         for {}, {}",
                         cert.fingerprint(),
-                        String::from_utf8_lossy(userid.value())));
+                        ui::Safe(userid)));
                     print_error_chain(&err);
                     vec![]
                 }

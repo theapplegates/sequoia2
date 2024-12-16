@@ -21,6 +21,7 @@ use crate::cli::pki::link;
 use crate::cli::types::Expiration;
 use crate::cli::types::TrustAmount;
 use crate::cli::types::cert_designator;
+use crate::common::ui;
 
 pub fn link(sq: Sq, c: link::Command) -> Result<()> {
     use link::Subcommands::*;
@@ -261,12 +262,7 @@ pub fn list(sq: Sq, mut c: link::ListCommand)
             }
             dirty = true;
 
-            wwriteln!(stream=o,
-                      initial_indent=" - ┌ ", subsequent_indent="   │ ",
-                      "{}", cert.fingerprint());
-            wwriteln!(stream=o,
-                      initial_indent="   └ ",
-                      "{:?}", String::from_utf8_lossy(userid.value()));
+            ui::emit_cert_userid(o, &cert, userid)?;
 
             const INDENT: &'static str = "     - ";
 
@@ -275,7 +271,7 @@ pub fn list(sq: Sq, mut c: link::ListCommand)
                           "link was retracted");
             } else {
                 let mut regex: Vec<_> = certification.regular_expressions()
-                    .map(|re| String::from_utf8_lossy(re))
+                    .map(|re| ui::Safe(re).to_string())
                     .collect();
                 regex.sort();
                 regex.dedup();

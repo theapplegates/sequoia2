@@ -869,13 +869,13 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
                 }
             }
             NotationData(n) => if n.flags().human_readable() {
-                write!(output, "{}    Notation: {}", i, n)?;
+                write!(output, "{}    Notation: {}", i, ui::Safe(n))?;
                 if s.critical() {
                     write!(output, " (critical)")?;
                 }
                 writeln!(output)?;
             } else {
-                write!(output, "{}    Notation: {}", i, n.name())?;
+                write!(output, "{}    Notation: {}", i, ui::Safe(n.name()))?;
                 let flags = format!("{:?}", n.flags());
                 if ! flags.is_empty() {
                     write!(output, "{}", flags)?;

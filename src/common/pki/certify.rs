@@ -130,14 +130,14 @@ pub fn diff_certification(unless_quiet: &mut dyn std::io::Write,
                   "current certification");
         for (i, n) in a_notations.into_iter().enumerate() {
             wwriteln!(stream = unless_quiet, initial_indent = "       - ",
-                      "{}. {:?}", i + 1, n);
+                      "{}. {}", i + 1, ui::Safe(n));
         }
 
         wwriteln!(stream = unless_quiet, initial_indent = "     - ",
                   "updated certification");
         for (i, n) in b_notations.into_iter().enumerate() {
             wwriteln!(stream = unless_quiet, initial_indent = "       - ",
-                      "{}. {:?}", i + 1, n);
+                      "{}. {}", i + 1, ui::Safe(n));
         }
     }
 

@@ -29,15 +29,6 @@
      <alice@example.org>" to link.
    - Add `sq pki link retract --userid-by-email`, which selects a
      self-signed user ID with the specified email address.
-   - Change `sq pki authenticate --email` and `sq pki lookup --email`
-     to match user IDs with the specified email address.  For example,
-     if a certificate has the user ID "Alice <alice@example.org>",
-     then `--email alice@example.org` no longer selects it.
-   - Add `sq pki authenticate --userid-by-email`, and `sq pki lookup
-     --userid-by-email`, which match user IDs with the specified email
-     address.  For example, if a certificate has the user ID "Alice
-     <alice@example.org>", then `--userid-by-email alice@example.org`
-     selects it.
    - Change `sq pki vouch add --email` and `sq pki vouch authorize
      --email` to use a user ID with just the specified email address,
      if the email address is part of a self-signed user ID.  That is,

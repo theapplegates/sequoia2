@@ -840,7 +840,7 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
                        level, trust)?,
             RegularExpression(ref r) =>
                 write!(output, "{}    Regular expression: {}", i,
-                       String::from_utf8_lossy(r))?,
+                       ui::Safe(r))?,
             Revocable(r) =>
                 write!(output, "{}    Revocable: {}", i, r)?,
             KeyExpirationTime(t) =>

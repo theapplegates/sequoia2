@@ -780,13 +780,13 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
             }
             for re in sig.regular_expressions() {
                 if let Ok(re) = String::from_utf8(re.to_vec()) {
-                    writeln!(output, "{:>WIDTH$}  Regular expression: {:?}", "",
-                             re)?;
+                    writeln!(output, "{:>WIDTH$}  Regular expression: {}", "",
+                             ui::Safe(re))?;
                 } else {
                     writeln!(output,
-                             "{:>WIDTH$}  Regular expression (invalid UTF-8): {:?}",
+                             "{:>WIDTH$}  Regular expression (invalid UTF-8): {}",
                              "",
-                             String::from_utf8_lossy(re))?;
+                             ui::Safe(re))?;
                 }
             }
 

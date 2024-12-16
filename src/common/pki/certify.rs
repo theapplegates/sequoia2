@@ -401,6 +401,8 @@ The certifier is the same as the certificate to certify."));
                               "certification parameters changed, \
                                creating a new certification");
                 }
+            } else {
+                ui::emit_cert_userid(unless_quiet, cert, userid.userid())?;
             }
 
             if retract {

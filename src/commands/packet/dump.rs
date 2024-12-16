@@ -898,12 +898,11 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
                 write!(output, "{}    Keyserver preferences: {:?}", i, p)?,
             PreferredKeyServer(ref k) =>
                 write!(output, "{}    Preferred keyserver: {}", i,
-                       String::from_utf8_lossy(k))?,
+                       ui::Safe(k))?,
             PrimaryUserID(p) =>
                 write!(output, "{}    Primary User ID: {}", i, p)?,
             PolicyURI(ref p) =>
-                write!(output, "{}    Policy URI: {}", i,
-                       String::from_utf8_lossy(p))?,
+                write!(output, "{}    Policy URI: {}", i, ui::Safe(p))?,
             KeyFlags(ref k) =>
                 write!(output, "{}    Key flags: {:?}", i, k)?,
             SignersUserID(ref u) =>

@@ -4,12 +4,29 @@
 
 * Changes in 1.0.0
 ** New functionality
+   - `sq encrypt --for-self` now adds the certs configured under
+     `encrypt.for-self` to the list of recipients.
+   - `sq sign --signer-self` and `sq encrypt --signer-self` now add
+     the keys configured under `sign.signer-self` to the list of
+     signers.
+   - `sq pki vouch add --certifier-self` and `sq pki vouch authorize
+     --certifier-self` now use the key configured under
+     `pki.vouch.certifier-self` as certification key.
    - `sq` now automatically imports certificates from GnuPG's
      certificate store.  Note: we only do this for the default Sequoia
      and GnuPG state directories.  Further, We don't parse the GnuPG
      configuration file, we just scan GnuPG's default cert stores.
 
 ** Notable changes
+   - `sq pki link add`, `sq pki link authorize`, and `sq pki link
+     retract` gain a new parameter, `--cert-special`, which allows
+     addressing shadow CAs by symbolic names.  For instance, `sq pki
+     link authorize --cert-special keys.openpgp.org --all
+     --unconstrained` can be used to fully trust the keys.openpgp.org
+     key server.  This also creates the shadow CA if it doesn't exist
+     yet.
+   - `sq sign --signature-file` now takes a value specifying where the
+     signature should be written to.  It conflicts with `--output`.
    - `sq cert list` now takes cert designators, like `--cert-email`
      instead of `--email`.
    - `sq encrypt` now requires explicit opt-out for signing in the
@@ -69,21 +86,6 @@
      --signature-url`.
    - `sq download` now requires one of `--signature-url`, `--message`,
      or `--cleartext` like `sq verify`.
-
-* Changes in 0.41.0
-** New functionality
-   - `sq encrypt --for-self` now adds the certs configured under
-     `encrypt.for-self` to the list of recipients.
-** Notable changes
-   - `sq pki link add`, `sq pki link authorize`, and `sq pki link
-     retract` gain a new parameter, `--cert-special`, which allows
-     addressing shadow CAs by symbolic names.  For instance, `sq pki
-     link authorize --cert-special keys.openpgp.org --all
-     --unconstrained` can be used to fully trust the keys.openpgp.org
-     key server.  This also creates the shadow CA if it doesn't exist
-     yet.
-   - `sq sign --signature-file` now takes a value specifying where the
-     signature should be written to.  It conflicts with `--output`.
 
 * Changes in 0.40.0
 ** New functionality

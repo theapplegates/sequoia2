@@ -58,8 +58,13 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
             }
 
             let certs = sq.resolve_certs_or_fail(
-                &certs, trust_amount.map(|t| t.amount())
-                    .unwrap_or(sequoia_wot::FULLY_TRUSTED))?;
+                &certs,
+                if *gossip {
+                    0
+                } else {
+                    trust_amount.map(|t| t.amount())
+                        .unwrap_or(sequoia_wot::FULLY_TRUSTED)
+                })?;
 
             authenticate(
                 &mut std::io::stdout(),

@@ -33,7 +33,7 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
             certs, pattern, gossip, certification_network, trust_amount,
             show_paths,
         }) => {
-            let mut certs: Vec<Query> = Query::for_cert_designators(certs);
+            let mut certs: Vec<Query> = Query::for_cert_designators(certs, true);
 
             if let Some(pattern) = pattern.as_ref() {
                 let mut query_kind = None;
@@ -51,7 +51,7 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
                                        pattern);
                         }
                     } else {
-                        query_kind = Some(QueryKind::Cert(kh));
+                        query_kind = Some(QueryKind::AuthenticatedCert(kh));
                     }
                 };
 

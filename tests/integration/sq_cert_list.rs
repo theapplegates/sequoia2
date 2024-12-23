@@ -1,4 +1,11 @@
+use sequoia_openpgp as openpgp;
+use openpgp::Cert;
+use openpgp::cert::amalgamation::ValidateAmalgamation;
+use openpgp::parse::Parse;
+
+use super::common::artifact;
 use super::common::Sq;
+use super::common::STANDARD_POLICY;
 use super::common::UserIDArg;
 
 #[test]
@@ -296,4 +303,119 @@ fn list_no_userids() {
 
     let output = sq.cert_list(&["--gossip", &fp]);
     assert!(std::str::from_utf8(&output).unwrap().contains(&fp));
+}
+
+/// Check that --cert FPR shows certificates that are otherwise
+/// unauthenticate.
+#[test]
+fn list_unauthenticated_cert() {
+    let sq = Sq::new();
+
+    let email = "alice@example.org";
+    let name = "Alice Lovelace";
+    let userid = &format!("{} <{}>", name, email);
+    let (cert, cert_path, _rev_path)
+        = sq.key_generate(&[], &[ userid ]);
+
+    sq.key_import(&cert_path);
+
+    // The certificate is unauthenticated so the following won't work:
+    assert!(sq.cert_list_maybe(&[email]).is_err());
+
+    // If we use --cert FINGERPRINT or provide the fingerprint, it
+    // will.
+    sq.cert_list(&[&cert.fingerprint().to_string()]);
+    sq.cert_list(&["--cert", &cert.fingerprint().to_string()]);
+
+    // When we link it, the above will work.
+    sq.pki_link_add(&[], cert.key_handle(), &[userid]);
+    sq.cert_list(&[email]);
+    sq.cert_list(&[&cert.fingerprint().to_string()]);
+    sq.cert_list(&["--cert", &cert.fingerprint().to_string()]);
+}
+
+#[test]
+fn list_invalid_certs() {
+    // Check that we can't list invalid certificates.
+    //
+    // Check:
+    //
+    // - a certificate that only uses SHA-1
+    // - a certificate that is revoked
+    // - a certificate that is expired
+    for path in [
+        "keys/only-sha1-priv.pgp",
+        "keys/soft-revoked-cert.pgp",
+        "keys/expired-cert.pgp",
+    ] {
+        eprintln!("Checking {}", path);
+
+        let sq = Sq::new();
+
+        let cert_file = artifact(path);
+        let cert = Cert::from_file(&cert_file).expect("valid cert");
+        let fpr = &cert.fingerprint().to_string()[..];
+        let userids = cert.userids()
+            .map(|ua| String::from_utf8_lossy(ua.userid().value()))
+            .collect::<Vec<_>>();
+
+        sq.cert_import(&cert_file);
+
+        assert!(sq.cert_list_maybe(&[fpr]).is_err());
+        assert!(sq.cert_list_maybe(&["--gossip", fpr]).is_err());
+
+        for userid in userids.iter() {
+            assert!(sq.cert_list_maybe(&["--userid", &userid[..]]).is_err());
+            assert!(sq.cert_list_maybe(&["--gossip", "--userid", &userid[..]])
+                    .is_err());
+        }
+    }
+}
+
+#[test]
+fn list_sha1_userid() {
+    // Check that we can list a user ID with --gossip even if it is
+    // only bound by a self-signature that relies on SHA-1.
+    let sq = Sq::new();
+
+    let cert_file = artifact("keys/sha1-userid-priv.pgp");
+    let cert = Cert::from_file(&cert_file).expect("valid cert");
+    let fpr = &cert.fingerprint().to_string()[..];
+
+    sq.cert_import(&cert_file);
+
+    // Listing the certificate is okay.
+    sq.cert_list(&[fpr]);
+    sq.cert_list(&["--gossip", fpr]);
+
+    let mut saw_invalid = false;
+
+    for ua in cert.userids() {
+        let userid = String::from_utf8_lossy(ua.userid().value());
+
+        if ua.with_policy(STANDARD_POLICY, None).is_err() {
+            saw_invalid = true;
+        }
+
+        // Not linked, so should fail.
+        assert!(
+            sq.cert_list_maybe(&["--cert-userid", &userid[..]]).is_err());
+        // Using --gossip should succeed.
+        sq.cert_list(&["--gossip", "--cert-userid", &userid[..]]);
+    }
+
+    assert!(saw_invalid);
+
+    // We now link all of the user IDs.  Even though the
+    // self-signature relies on SHA-1, the links don't so we'll be
+    // able to authenticate the user IDs.
+    for ua in cert.userids() {
+        let userid = String::from_utf8_lossy(ua.userid().value()).to_string();
+        sq.pki_link_add(&[], cert.key_handle(), &[UserIDArg::AddUserID(&userid)]);
+
+        assert!(
+            sq.cert_list_maybe(&["--cert-userid", &userid[..]]).is_ok());
+        assert!(
+            sq.cert_list_maybe(&["--gossip", "--cert-userid", &userid[..]]).is_ok());
+    }
 }

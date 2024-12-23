@@ -2,6 +2,14 @@
 #+TITLE: sequoia-sq NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 1.0.1
+ * Notable changes
+   - `sq cert list --cert FPR` incorrectly failed if all of a
+     certificate's bindings are invalid (i.e., the bindings are
+     invalid according to the cryptographic policy, or the user ID is
+     revoked).  `sq cert list --cert FPR` now only considers the
+     validity of the certificate.  Note: this command correctly
+     succeeded when the certificate had no bindings.
 * Changes in 1.0.0
 ** New functionality
    - `sq encrypt --for-self` now adds the certs configured under

@@ -37,6 +37,7 @@ const TRACE: bool = false;
 
 /// The different kinds of queries that we support.
 pub enum QueryKind {
+    AuthenticatedCert(KeyHandle),
     Cert(KeyHandle),
     UserID(String),
     Email(String),
@@ -53,7 +54,9 @@ impl QueryKind {
         use QueryKind::*;
 
         match self {
-            Cert(kh) | UserIDBinding(kh, _) | EmailBinding(kh, _) => {
+            AuthenticatedCert(kh) | Cert(kh)
+                | UserIDBinding(kh, _) | EmailBinding(kh, _) =>
+            {
                 Some(kh.clone())
             }
             _ => None
@@ -116,7 +119,8 @@ impl Query {
 
     /// Converts a set of certificate designators to a set of queries.
     pub fn for_cert_designators<Arguments, Prefix, Options, Doc>(
-        designators: CertDesignators<Arguments, Prefix, Options, Doc>)
+        designators: CertDesignators<Arguments, Prefix, Options, Doc>,
+        certs_are_authenticated: bool)
         -> Vec<Query>
     where
         Arguments: typenum::Unsigned,
@@ -139,7 +143,11 @@ impl Query {
                         unreachable!("Not allowed in this context");
                     }
                     Cert(kh) => {
-                        QueryKind::Cert(kh.clone())
+                        if certs_are_authenticated {
+                            QueryKind::AuthenticatedCert(kh.clone())
+                        } else {
+                            QueryKind::Cert(kh.clone())
+                        }
                     }
                     UserID(userid) => QueryKind::UserID(userid.clone()),
                     Email(email) => QueryKind::Email(email.clone()),
@@ -230,7 +238,7 @@ where
     fn from(designators: CertDesignators<Arguments, Prefix, Options, Doc>)
         -> Vec<Query>
     {
-        Query::for_cert_designators(designators)
+        Query::for_cert_designators(designators, false)
     }
 }
 
@@ -376,8 +384,11 @@ where 'store: 'rstore,
 
     for (i, query) in queries.iter().enumerate() {
         match &query.kind {
-            QueryKind::Cert(kh) => {
+            QueryKind::AuthenticatedCert(kh) | QueryKind::Cert(kh) => {
                 t!("Authenticating {}", kh);
+
+                let cert_authenticated
+                    = matches!(query.kind, QueryKind::AuthenticatedCert(_));
 
                 for fpr in resolve_key_handle(kh) {
                     let count = bindings.len();
@@ -386,13 +397,13 @@ where 'store: 'rstore,
                             .into_iter()
                             .map(|userid| {
                                 (fpr.clone(), Some(userid),
-                                 true, vec![ i ])
+                                 cert_authenticated, vec![ i ])
                             }));
 
                     if bindings.len() == count {
                         // No user IDs.  Add the certificate.
                         bindings.push((fpr.clone(), None,
-                                       true, vec![ i ]));
+                                       cert_authenticated, vec![ i ]));
                     }
                 }
             }
@@ -597,8 +608,35 @@ where 'store: 'rstore,
     let mut output = ConciseHumanReadableOutputNetwork::new(
         o, &sq, required_amount, show_paths);
 
-    for (fingerprint, userid, always_show, i) in bindings.iter() {
-        let authenticated = if let Some(userid) = userid {
+    // Look up the certificate, and return it if it is valid.
+    let check_cert = |fpr: &Fingerprint| -> Result<Cert> {
+        // Look up the certificate.
+        let certs = cert_store.lookup_by_cert(&KeyHandle::from(fpr))?;
+        assert_eq!(certs.len(), 1, "there can be only one");
+
+        let lc = certs.into_iter().next().unwrap();
+
+        let cert = lc.to_cert()?;
+
+        // Check if the certificate is valid according to the current
+        // policy.
+        let vc = cert.with_policy(sq.policy, sq.time)?;
+
+        // Check if the certificate is live.
+        let _ = vc.alive()?;
+
+        // Check that it is not revoked.
+        if let RevocationStatus::Revoked(_)
+            = cert.revocation_status(sq.policy, sq.time)
+        {
+            return Err(anyhow::anyhow!("{} is revoked", cert.fingerprint()));
+        }
+
+        Ok(cert.clone())
+    };
+
+    for (fingerprint, userid, cert_authenticated, i) in bindings.iter() {
+        if let Some(userid) = userid {
             let paths = if gossip {
                 n.gossip(fingerprint.clone(), userid.clone())
             } else {
@@ -608,16 +646,29 @@ where 'store: 'rstore,
 
             let aggregated_amount = paths.amount();
             t!("{}, {:?}: {}", fingerprint, userid, aggregated_amount);
-            let authenticated = if aggregated_amount >= required_amount {
+            let userid_authenticated = if aggregated_amount >= required_amount {
                 // We authenticated the binding!
                 true
-            } else if gossip {
-                // We're in gossip mode, show everything.
+            } else if gossip && aggregated_amount > 0 {
+                // We're in gossip mode, show all bindings...
                 true
-            } else if *always_show {
-                // We're authenticating a certificate, which was specified
-                // explicitly.  We don't consider it authenticated, but we
-                // do want to show it.
+            } else if gossip && aggregated_amount == 0 {
+                // ... as long as the certificate is valid.
+                match check_cert(&fingerprint) {
+                    Err(err) => {
+                        t!("Skipping {}: {}", fingerprint, err);
+                        continue;
+                    }
+                    Ok(_cert) => true,
+                }
+            } else if *cert_authenticated {
+                // The binding is not authenticated, but we should
+                // show the certificate if it is valid.
+                if let Err(err) = check_cert(&fingerprint) {
+                    t!("Skipping {}: {}", fingerprint, err);
+                    continue;
+                }
+
                 false
             } else {
                 // Don't show it.
@@ -625,25 +676,26 @@ where 'store: 'rstore,
                 continue;
             };
 
-            let paths = paths.into_iter().collect::<Vec<(wot::Path, usize)>>();
-
             output.add_cert(fingerprint)?;
-            output.add_paths(paths, fingerprint, userid, aggregated_amount)?;
+            if userid_authenticated {
+                let paths = paths.into_iter().collect::<Vec<(wot::Path, usize)>>();
+                output.add_paths(paths, fingerprint, userid, aggregated_amount)?;
 
-            authenticated
+                bindings_shown += 1;
+            }
         } else {
             // A cert without bindings.
-            output.add_cert(fingerprint)?;
+            if let Err(err) = check_cert(fingerprint) {
+                t!("Skipping {}: {}", fingerprint, err);
+                continue;
+            }
 
-            true
+            output.add_cert(fingerprint)?;
+            bindings_shown += 1;
         };
 
-        bindings_shown += 1;
-
-        if authenticated {
-            for i in i.into_iter() {
-                queries_satisfied[*i] = true;
-            }
+        for i in i.into_iter() {
+            queries_satisfied[*i] = true;
         }
     }
 
@@ -660,7 +712,7 @@ where 'store: 'rstore,
         let query = &queries[i];
 
         if gossip {
-            weprintln!("No bindings match {}.",
+            weprintln!("No valid bindings match {}.",
                        query.argument.as_deref().unwrap_or("the query"));
         } else {
             weprintln!("No bindings matching {} could be authenticated.",
@@ -791,7 +843,7 @@ where 'store: 'rstore,
     if bindings.is_empty() {
         // There are no matching bindings.
 
-        weprintln!("No bindings match.");
+        weprintln!("No bindings match the query.");
 
         if queries.len() == 1 {
             if let QueryKind::Pattern(pattern) = &queries[0].kind {
@@ -832,12 +884,14 @@ where 'store: 'rstore,
     } else if gossip {
         // We are in gossip mode.  Mention `sq pki link` as a way to
         // mark bindings as authenticated.
-        if ! bindings.is_empty() {
+        if bindings_shown > 0 {
             weprintln!("After checking that a user ID really belongs to \
                         a certificate, use `sq pki link add` to mark \
                         the binding as authenticated, or use \
                         `sq network search FINGERPRINT|EMAIL` to look for \
                         new certifications.");
+        } else {
+            weprintln!("No bindings are valid.");
         }
     } else if bindings.len() - bindings_shown > 0 {
         // Some of the matching bindings were not shown.  Tell the

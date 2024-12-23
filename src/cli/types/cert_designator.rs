@@ -13,6 +13,7 @@ use openpgp::packet::UserID;
 
 use crate::cli::config;
 use crate::cli::encrypt::ENCRYPT_FOR_SELF;
+use crate::cli::escape_for_shell;
 use crate::cli::sign::SIGNER_SELF;
 use crate::cli::pki::vouch::CERTIFIER_SELF;
 use crate::cli::types::SpecialName;
@@ -430,6 +431,23 @@ impl CertDesignator {
             Grep(pattern) => format!("{} {:?}", argument_name, pattern),
             Special(special) => format!("{} {:?}", argument_name, special),
             Self_ => argument_name,
+        }
+    }
+
+    /// Returns the argument's value.
+    pub fn argument_value(&self) -> Option<String>
+    {
+        use CertDesignator::*;
+        match self {
+            Stdin => Some(format!("-")),
+            File(path) => Some(format!("{}", path.display())),
+            Cert(kh) => Some(format!("{}", kh)),
+            UserID(userid) => Some(escape_for_shell(userid).to_string()),
+            Email(email) => Some(escape_for_shell(email).to_string()),
+            Domain(domain) => Some(escape_for_shell(domain).to_string()),
+            Grep(pattern) => Some(escape_for_shell(pattern).to_string()),
+            Special(special) => Some(special.to_string()),
+            Self_ => None,
         }
     }
 

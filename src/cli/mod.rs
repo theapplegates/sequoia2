@@ -78,6 +78,7 @@
 #[allow(dead_code)]
 pub const USER_INTERFACE_GUIDELINES: () = ();
 
+use std::borrow::Cow;
 use std::fmt::Write;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -112,6 +113,25 @@ pub mod types;
 use types::paths::{StateDirectory, StateDirectoryValueParser};
 use types::version::Version;
 use types::version::VersionInvalidPositionValueParser;
+
+/// Escapes `s` so when used on the command line, it is recognized as
+/// a single token with the same value.
+///
+/// "{:?}" escapes a string, but it always adds quotes, which can be
+/// ugly.  We first check check if adding quotes is necessary.
+/// Specifically, if `s` just consists of alphanumeric characters and
+/// a few others, then we don't need quotes.
+pub fn escape_for_shell(s: &str) -> Cow<str> {
+    if s.chars().all(|c| {
+        c.is_ascii_alphanumeric()
+            || ['@', '.', ',', '+', '-', '_', '/'].contains(&c)
+    })
+    {
+        Cow::Borrowed(s)
+    } else {
+        Cow::Owned(format!("{:?}", s))
+    }
+}
 
 /// The seconds in a day
 pub const SECONDS_IN_DAY : u64 = 24 * 60 * 60;

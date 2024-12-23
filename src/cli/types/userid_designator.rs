@@ -314,6 +314,69 @@ impl UserIDDesignator {
         }
     }
 
+    /// Returns the argument's name.
+    pub fn argument_name<Arguments>(&self) -> String
+    where Arguments: Unsigned
+    {
+        let arguments = Arguments::to_usize();
+        let _all_arg = (arguments & AllUserIDsArg::to_usize()) > 0;
+        let exact_args = (arguments & ExactArgs::to_usize()) > 0;
+        let by_args = (arguments & ByArgs::to_usize()) > 0;
+        let add_args = (arguments & AddArgs::to_usize()) > 0;
+
+        let plain_is_by = (arguments & PlainIsBy::to_usize()) > 0;
+        let plain_is_add = (arguments & PlainIsAdd::to_usize()) > 0;
+
+        // Can't use PlainIsBy or PlainIsAdd with ExactArgs or with
+        // each other.
+        assert!(! (exact_args && plain_is_by));
+        assert!(! (exact_args && plain_is_add));
+        assert!(! (plain_is_by && plain_is_add));
+        // If plain_is_xxx is set, then by_xxx must be set.
+        if plain_is_by {
+            assert!(by_args);
+        }
+        if plain_is_add {
+            assert!(add_args);
+        }
+
+        use UserIDDesignator::*;
+        let thing = match self {
+            UserID(_, _) => {
+                "userid"
+            }
+            Email(_, _) => {
+                "email"
+            }
+            Name(_, _) => {
+                "name"
+            }
+        };
+
+        let semantics = match self {
+            UserID(semantics, _) | Email(semantics, _) | Name(semantics, _) => {
+                semantics
+            }
+        };
+
+        use UserIDDesignatorSemantics::*;
+        match semantics {
+            Exact => format!("--{}", thing),
+            By if plain_is_by => format!("--{}", thing),
+            Add if plain_is_add => format!("--{}", thing),
+            By => {
+                if self.is_userid() {
+                    format!("--userid")
+                } else {
+                    format!("--userid-by-{}", thing)
+                }
+            }
+            Add => {
+                format!("--add-{}", thing)
+            }
+        }
+    }
+
     /// Returns the argument's value.
     ///
     /// The returned string is escaped.
@@ -325,6 +388,15 @@ impl UserIDDesignator {
             Email(email, _) => format!("{:?}", email),
             Name(name, _) => format!("{:?}", name),
         }
+    }
+
+    /// Returns the argument, e.g., `--email=alice@example.org`
+    pub fn argument<Arguments>(&self) -> String
+    where Arguments: Unsigned
+    {
+        format!("{} {}",
+                self.argument_name::<Arguments>(),
+                self.argument_value())
     }
 
     /// Resolves to the specified user IDs.

@@ -153,15 +153,6 @@ pub fn encrypt<'a, 'b: 'a>(
         // true), it'd be nice to use the cert designator that the
         // user used, instead or additionally.
 
-        if let RevocationStatus::Revoked(_)
-            = cert.revocation_status(policy, time)
-        {
-            return Err(anyhow::anyhow!(
-                "Can't encrypt to {}, {}: it is revoked",
-                cert.fingerprint(),
-                sq.best_userid(&cert, true)));
-        }
-
         let mut encryption_keys = 0;
         let mut bad: Vec<String> = Vec::new();
 

@@ -384,9 +384,9 @@ impl UserIDDesignator {
     {
         use UserIDDesignator::*;
         match self {
-            UserID(userid, _) => format!("{:?}", userid),
-            Email(email, _) => format!("{:?}", email),
-            Name(name, _) => format!("{:?}", name),
+            UserID(_, userid) => format!("{:?}", userid),
+            Email(_, email) => format!("{:?}", email),
+            Name(_, name) => format!("{:?}", name),
         }
     }
 

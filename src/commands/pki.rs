@@ -11,6 +11,7 @@ use crate::cli;
 
 use crate::Sq;
 use crate::common::pki::authenticate;
+use crate::commands::pki::authenticate::Query;
 
 pub fn dispatch(sq: Sq, cli: cli::pki::Command, matches: &ArgMatches)
                 -> Result<()>
@@ -25,16 +26,17 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command, matches: &ArgMatches)
             userid, gossip, certification_network, trust_amount,
             cert, show_paths,
         }) => {
-            let cert = sq.resolve_cert(&cert, 0)?.0;
-
+            assert_eq!(cert.len(), 1);
             assert_eq!(userid.len(), 1);
-            let userid = userid.designators.into_iter().next().unwrap();
 
             authenticate(
                 &mut std::io::stdout(),
-                &sq, false, None,
-                *gossip, *certification_network, *trust_amount,
-                Some(&userid), Some(&cert), None, *show_paths,
+                &sq,
+                Query::for_binding(cert, userid),
+                *gossip,
+                *certification_network,
+                *trust_amount,
+                *show_paths,
             )?
         }
 
@@ -45,13 +47,15 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command, matches: &ArgMatches)
             userid, show_paths,
         }) => {
             assert_eq!(userid.len(), 1);
-            let userid = userid.designators.into_iter().next().unwrap();
 
             authenticate(
                 &mut std::io::stdout(),
-                &sq, false, None,
-                *gossip, *certification_network, *trust_amount,
-                Some(&userid), None, None, *show_paths)?;
+                &sq,
+                userid.into(),
+                *gossip,
+                *certification_network,
+                *trust_amount,
+                *show_paths)?;
         }
 
         // Find and list all authenticated bindings for a given
@@ -60,13 +64,16 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command, matches: &ArgMatches)
             gossip, certification_network, trust_amount,
             cert, show_paths,
         }) => {
-            let cert = sq.resolve_cert(&cert, 0)?.0;
+            assert_eq!(cert.len(), 1);
 
             authenticate(
                 &mut std::io::stdout(),
-                &sq, false, None,
-                *gossip, *certification_network, *trust_amount,
-                None, Some(&cert), None, *show_paths)?;
+                &sq,
+                cert.into(),
+                *gossip,
+                *certification_network,
+                *trust_amount,
+                *show_paths)?;
         }
 
         // Authenticates a given path.

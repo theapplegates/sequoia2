@@ -1334,7 +1334,7 @@ fn list_pattern() -> Result<()> {
         .map(|(userid, target)| {
             (1, format!("- {} {}", HR_OK, userid).to_string())
         })
-        .chain(vec![(3, HR_OK.to_string())].into_iter())
+        .chain(vec![(bindings.len(), HR_OK.to_string())].into_iter())
         .collect::<Vec<_>>();
 
     test(

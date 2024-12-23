@@ -10,7 +10,8 @@ use crate::{
     Sq,
     Result,
     cli::cert::{Command, list, Subcommands},
-    cli::types::cert_designator,
+    commands::cert::authenticate::Query,
+    commands::cert::authenticate::QueryKind,
     common::pki::authenticate,
 };
 
@@ -29,11 +30,13 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
 
         // List all authenticated bindings.
         Subcommands::List(list::Command {
-            mut certs, pattern, gossip, certification_network, trust_amount,
+            certs, pattern, gossip, certification_network, trust_amount,
             show_paths,
         }) => {
-            if let Some(pattern) = pattern {
-                let mut d = None;
+            let mut certs: Vec<Query> = Query::for_cert_designators(certs);
+
+            if let Some(pattern) = pattern.as_ref() {
+                let mut query_kind = None;
                 if let Ok(kh) = pattern.parse::<KeyHandle>() {
                     if matches!(kh, KeyHandle::Fingerprint(Fingerprint::Invalid(_))) {
                         let hex = pattern.chars()
@@ -44,34 +47,30 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
 
                         if hex >= 16 {
                             weprintln!("Warning: {} looks like a fingerprint or key ID, \
-                                        but its invalid.  Treating it as a text pattern.",
+                                        but it is invalid.  Treating it as a text pattern.",
                                        pattern);
                         }
                     } else {
-                        d = Some(cert_designator::CertDesignator::Cert(kh));
+                        query_kind = Some(QueryKind::Cert(kh));
                     }
                 };
 
-                certs.push(d.unwrap_or_else(|| {
-                    cert_designator::CertDesignator::Grep(pattern)
-                }));
+                let query_kind = query_kind.unwrap_or_else(|| {
+                    QueryKind::Pattern(pattern.clone())
+                });
+                certs.push(Query {
+                    argument: Some(format!("{:?}", pattern)),
+                    kind: query_kind,
+                });
             }
-
-            let certs = sq.resolve_certs_or_fail(
-                &certs,
-                if *gossip {
-                    0
-                } else {
-                    trust_amount.map(|t| t.amount())
-                        .unwrap_or(sequoia_wot::FULLY_TRUSTED)
-                })?;
 
             authenticate(
                 &mut std::io::stdout(),
-                &sq, certs.is_empty(), None,
-                *gossip, *certification_network, *trust_amount,
-                None, None,
-                (! certs.is_empty()).then_some(certs),
+                &sq,
+                certs,
+                *gossip,
+                *certification_network,
+                *trust_amount,
                 *show_paths)
         },
 

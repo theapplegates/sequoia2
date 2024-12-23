@@ -1,4 +1,4 @@
-mod authenticate;
+pub mod authenticate;
 pub use authenticate::authenticate;
 pub use authenticate::required_trust_amount;
 

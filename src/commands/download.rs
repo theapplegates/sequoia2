@@ -41,6 +41,7 @@ use crate::commands::network::USER_AGENT;
 use crate::commands::verify::verify;
 use crate::common::ui;
 use crate::common::pki::authenticate;
+use crate::common::pki::authenticate::Query;
 
 // So we can deal with either named temp files or files.
 enum SomeFile {
@@ -399,14 +400,13 @@ pub fn dispatch(sq: Sq, c: download::Command)
                                     let good = authenticate(
                                         &mut std::io::stderr(),
                                         &sq,
-                                        false, // precompute
-                                        None, // list pattern
+                                        vec![
+                                            Query::for_key_handle(
+                                                None, cert.key_handle())
+                                        ],
                                         false, // gossip
                                         false, // certification network
                                         Some(TrustAmount::Full), // trust amount
-                                        None, // user ID
-                                        Some(&cert),
-                                        None,
                                         true, // show paths
                                     ).is_ok();
 

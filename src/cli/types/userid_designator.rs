@@ -8,6 +8,8 @@ use openpgp::Cert;
 use openpgp::cert::ValidCert;
 use openpgp::packet::UserID;
 
+use crate::cli::escape_for_shell;
+
 // Whether to enable the --name parameters.  Currently disabled.
 // See https://gitlab.com/sequoia-pgp/sequoia-sq/-/issues/487 .
 const ENABLE_NAME: bool = false;
@@ -383,11 +385,13 @@ impl UserIDDesignator {
     pub fn argument_value(&self) -> String
     {
         use UserIDDesignator::*;
-        match self {
-            UserID(_, userid) => format!("{:?}", userid),
-            Email(_, email) => format!("{:?}", email),
-            Name(_, name) => format!("{:?}", name),
-        }
+        let value = match self {
+            UserID(_, userid) => userid,
+            Email(_, email) => email,
+            Name(_, name) => name,
+        };
+
+        escape_for_shell(value).to_string()
     }
 
     /// Returns the argument, e.g., `--email=alice@example.org`

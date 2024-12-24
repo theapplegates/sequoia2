@@ -653,14 +653,34 @@ where 'store: 'rstore,
                 // We're in gossip mode, show all bindings...
                 true
             } else if gossip && aggregated_amount == 0 {
-                // ... as long as the certificate is valid.
-                match check_cert(&fingerprint) {
+                // ... as long as the certificate is valid...
+                let cert = match check_cert(&fingerprint) {
                     Err(err) => {
                         t!("Skipping {}: {}", fingerprint, err);
                         continue;
                     }
-                    Ok(_cert) => true,
+                    Ok(cert) => cert
+                };
+
+                // ... and the user ID is not revoked.
+                let mut userid_authenticated = true;
+                if let Some(ua)
+                    = cert.userids().find(|ua| ua.userid() == userid)
+                {
+                    if let RevocationStatus::Revoked(_)
+                        = ua.revocation_status(sq.policy, sq.time)
+                    {
+                        t!("Skipping {}: {} is revoked",
+                           fingerprint,
+                           String::from_utf8_lossy(userid.value()));
+                        if ! *cert_authenticated {
+                            continue;
+                        }
+                        userid_authenticated = false;
+                    }
                 }
+
+                userid_authenticated
             } else if *cert_authenticated {
                 // The binding is not authenticated, but we should
                 // show the certificate if it is valid.

@@ -2,6 +2,7 @@ use sequoia_openpgp as openpgp;
 use openpgp::Cert;
 use openpgp::cert::amalgamation::ValidateAmalgamation;
 use openpgp::parse::Parse;
+use openpgp::types::RevocationStatus;
 
 use super::common::artifact;
 use super::common::Sq;
@@ -418,4 +419,46 @@ fn list_sha1_userid() {
         assert!(
             sq.cert_list_maybe(&["--gossip", "--cert-userid", &userid[..]]).is_ok());
     }
+}
+
+
+#[test]
+fn list_revoked_userid() {
+    // Check that we can't list a user ID that is revoked.
+    let sq = Sq::new();
+
+    let cert_file = artifact("keys/retired-userid.pgp");
+    let cert = Cert::from_file(&cert_file).expect("valid cert");
+    let fpr = &cert.fingerprint().to_string()[..];
+
+    sq.cert_import(&cert_file);
+
+    // Listing the certificate is okay.
+    sq.cert_list(&[fpr]);
+    sq.cert_list(&["--gossip", fpr]);
+
+    let mut saw_revoked = false;
+
+    for ua in cert.userids() {
+        let userid = String::from_utf8_lossy(ua.userid().value());
+
+        let good = if let RevocationStatus::Revoked(_)
+            = ua.revocation_status(STANDARD_POLICY, None)
+        {
+            saw_revoked = true;
+            false
+        } else {
+            true
+        };
+
+        // Not linked, so should fail.
+        assert!(
+            sq.cert_list_maybe(&["--cert-userid", &userid[..]]).is_err());
+        // Using --gossip, so should succeed if the user ID is valid.
+        assert_eq!(
+            sq.cert_list_maybe(&["--gossip", "--cert-userid", &userid[..]]).is_ok(),
+            good);
+    }
+
+    assert!(saw_revoked);
 }

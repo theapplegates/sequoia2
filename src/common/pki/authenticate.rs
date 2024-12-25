@@ -270,6 +270,8 @@ where 'store: 'rstore,
 {
     tracer!(TRACE, "authenticate");
 
+    make_qprintln!(sq.quiet());
+
     let mut queries: Vec<Query>
         = queries.into_iter().map(|q| q.into()).collect();
     if queries.is_empty() {
@@ -750,11 +752,11 @@ where 'store: 'rstore,
         let query = &queries[i];
 
         if gossip {
-            weprintln!("No valid bindings match {}.",
-                       query.argument.as_deref().unwrap_or("the query"));
+            qprintln!("No valid bindings match {}.",
+                      query.argument.as_deref().unwrap_or("the query"));
         } else {
-            weprintln!("No bindings matching {} could be authenticated.",
-                       query.argument.as_deref().unwrap_or("the query"));
+            qprintln!("No bindings matching {} could be authenticated.",
+                      query.argument.as_deref().unwrap_or("the query"));
         }
 
         for (lint, for_cert, is) in lints.iter() {
@@ -774,8 +776,8 @@ where 'store: 'rstore,
                 }
             }
             if is.contains(&i) {
-                weprintln!(initial_indent = "  - ",
-                           "Warning: {}", crate::one_line_error_chain(lint));
+                qprintln!(initial_indent = "  - ",
+                          "Warning: {}", crate::one_line_error_chain(lint));
             }
         }
     }
@@ -785,22 +787,22 @@ where 'store: 'rstore,
         if n.roots().iter().all(|r| {
             let fpr = r.fingerprint();
             if let Err(err) = n.lookup_synopsis_by_fpr(&fpr) {
-                weprintln!("Looking up trust root ({}): {}.",
-                           fpr, err);
+                qprintln!("Looking up trust root ({}): {}.",
+                          fpr, err);
                 true
             } else {
                 false
             }
         })
         {
-            weprintln!("Warning: No trust roots found.");
+            qprintln!("Warning: No trust roots found.");
         }
     }
 
     if bindings.is_empty() {
         // There are no matching bindings.
 
-        weprintln!("No valid bindings match the query.");
+        qprintln!("No valid bindings match the query.");
 
         if queries.len() == 1 {
             if let QueryKind::Pattern(pattern) = &queries[0].kind {
@@ -812,8 +814,8 @@ where 'store: 'rstore,
                     .done();
             }
         } else if n.iter_fingerprints().next().is_none() {
-            weprintln!("Warning: The certificate store does not contain any \
-                        certificates.");
+            qprintln!("Warning: The certificate store does not contain any \
+                       certificates.");
 
             if return_all {
                 sq.hint(format_args!(
@@ -842,13 +844,13 @@ where 'store: 'rstore,
         // We are in gossip mode.  Mention `sq pki link` as a way to
         // mark bindings as authenticated.
         if bindings_authenticated > 0 {
-            weprintln!("After checking that a user ID really belongs to \
-                        a certificate, use `sq pki link add` to mark \
-                        the binding as authenticated, or use \
-                        `sq network search FINGERPRINT|EMAIL` to look for \
-                        new certifications.");
+            qprintln!("After checking that a user ID really belongs to \
+                       a certificate, use `sq pki link add` to mark \
+                       the binding as authenticated, or use \
+                       `sq network search FINGERPRINT|EMAIL` to look for \
+                       new certifications.");
         } else {
-            weprintln!("No bindings are valid.");
+            qprintln!("No bindings are valid.");
         }
     } else if bindings.len() - bindings_authenticated > 0 {
         // Some of the matching bindings were not shown.  Tell the
@@ -859,25 +861,25 @@ where 'store: 'rstore,
             = bindings - bindings_authenticated - bindings_invalid;
 
         if bindings == 1 {
-            weprintln!("1 binding found.");
+            qprintln!("1 binding found.");
         } else {
-            weprintln!("{} bindings found.", bindings);
+            qprintln!("{} bindings found.", bindings);
         }
 
         if bindings_invalid == 1 {
-            weprintln!("Skipped 1 binding, which is invalid.");
+            qprintln!("Skipped 1 binding, which is invalid.");
         } else if bindings_invalid > 1 {
-            weprintln!("Skipped {} bindings, which are invalid.",
-                       bindings_invalid);
+            qprintln!("Skipped {} bindings, which are invalid.",
+                      bindings_invalid);
         }
 
         if bindings_not_authenticated == 1 {
-            weprintln!("Skipped 1 binding, which could not be authenticated.");
-            weprintln!("Pass `--gossip` to see the unauthenticated binding.");
+            qprintln!("Skipped 1 binding, which could not be authenticated.");
+            qprintln!("Pass `--gossip` to see the unauthenticated binding.");
         } else if bindings_not_authenticated > 1 {
-            weprintln!("Skipped {} bindings, which could not be authenticated.",
-                       bindings_not_authenticated);
-            weprintln!("Pass `--gossip` to see the unauthenticated bindings.");
+            qprintln!("Skipped {} bindings, which could not be authenticated.",
+                      bindings_not_authenticated);
+            qprintln!("Pass `--gossip` to see the unauthenticated bindings.");
         }
     }
 

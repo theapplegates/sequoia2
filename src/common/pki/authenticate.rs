@@ -261,6 +261,7 @@ pub fn authenticate<'store, 'rstore, Q>(
     sq: &Sq<'store, 'rstore>,
     queries: Vec<Q>,
     gossip: bool,
+    unusable: bool,
     certification_network: bool,
     trust_amount: Option<TrustAmount<usize>>,
     show_paths: bool,
@@ -660,7 +661,7 @@ where 'store: 'rstore,
             let userid_authenticated = if aggregated_amount >= required_amount {
                 // We authenticated the binding!
                 true
-            } else if gossip && aggregated_amount > 0 {
+            } else if gossip && (aggregated_amount > 0 || unusable) {
                 // We're in gossip mode, show all bindings...
                 true
             } else if gossip && aggregated_amount == 0 {
@@ -723,11 +724,13 @@ where 'store: 'rstore,
             }
         } else {
             // A cert without bindings.
-            if let Err(err) = check_cert(fingerprint) {
-                t!("Skipping {}: {}", fingerprint, err);
-                bindings_unusable += 1;
-                lints.push((err, true, &i));
-                continue;
+            if ! unusable {
+                if let Err(err) = check_cert(fingerprint) {
+                    t!("Skipping {}: {}", fingerprint, err);
+                    bindings_unusable += 1;
+                    lints.push((err, true, &i));
+                    continue;
+                }
             }
 
             output.add_cert(fingerprint)?;

@@ -13,6 +13,7 @@ use super::CertificationNetworkArg;
 use super::GossipArg;
 use super::RequiredTrustAmountArg;
 use super::ShowPathsArg;
+use super::UnusableArg;
 
 /// Identify a certificate
 ///
@@ -46,6 +47,9 @@ pub struct Command {
 
     #[command(flatten)]
     pub gossip: GossipArg,
+
+    #[command(flatten)]
+    pub unusable: UnusableArg,
 
     #[command(flatten)]
     pub certification_network: CertificationNetworkArg,

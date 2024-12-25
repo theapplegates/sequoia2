@@ -405,6 +405,7 @@ pub fn dispatch(sq: Sq, c: download::Command)
                                                 None, cert.key_handle())
                                         ],
                                         false, // gossip
+                                        false, // show unusable
                                         false, // certification network
                                         Some(TrustAmount::Full), // trust amount
                                         true, // show paths

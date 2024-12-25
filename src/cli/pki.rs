@@ -83,6 +83,31 @@ impl Deref for GossipArg {
 }
 
 #[derive(clap::Args, Debug)]
+pub struct UnusableArg {
+    /// Show bindings that are unusable
+    ///
+    /// Normally, unusable certificates and bindings are not shown.
+    /// This option considers bindings, even if they are not unusable,
+    /// because they (or the certificates) are not valid according to
+    /// the policy, are revoked, or are not live.
+    ///
+    /// This option only makes sense with `--gossip`, because unusable
+    /// bindings are still considered unauthenticated.
+    ///
+    /// Stable since 1.1.0.
+    #[arg(long, requires="gossip")]
+    pub unusable: bool,
+}
+
+impl Deref for UnusableArg {
+    type Target = bool;
+
+    fn deref(&self) -> &Self::Target {
+        &self.unusable
+    }
+}
+
+#[derive(clap::Args, Debug)]
 pub struct CertificationNetworkArg {
     /// Treats the network as a certification network
     ///

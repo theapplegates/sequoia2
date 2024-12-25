@@ -23,8 +23,8 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command, matches: &ArgMatches)
     match cli.subcommand {
         // Authenticate a given binding.
         Subcommands::Authenticate(authenticate::Command {
-            userid, gossip, certification_network, trust_amount,
-            cert, show_paths,
+            userid, gossip, unusable, certification_network,
+            trust_amount, cert, show_paths,
         }) => {
             assert_eq!(cert.len(), 1);
             assert_eq!(userid.len(), 1);
@@ -34,6 +34,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command, matches: &ArgMatches)
                 &sq,
                 Query::for_binding(cert, userid),
                 *gossip,
+                *unusable,
                 *certification_network,
                 *trust_amount,
                 *show_paths,
@@ -43,7 +44,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command, matches: &ArgMatches)
         // Find all authenticated bindings for a given User ID, list
         // the certificates.
         Subcommands::Lookup(lookup::Command {
-            gossip, certification_network, trust_amount,
+            gossip, unusable, certification_network, trust_amount,
             userid, show_paths,
         }) => {
             assert_eq!(userid.len(), 1);
@@ -53,6 +54,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command, matches: &ArgMatches)
                 &sq,
                 userid.into(),
                 *gossip,
+                *unusable,
                 *certification_network,
                 *trust_amount,
                 *show_paths)?;
@@ -61,7 +63,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command, matches: &ArgMatches)
         // Find and list all authenticated bindings for a given
         // certificate.
         Subcommands::Identify(identify::Command {
-            gossip, certification_network, trust_amount,
+            gossip, unusable, certification_network, trust_amount,
             cert, show_paths,
         }) => {
             assert_eq!(cert.len(), 1);
@@ -71,6 +73,7 @@ pub fn dispatch(sq: Sq, cli: cli::pki::Command, matches: &ArgMatches)
                 &sq,
                 cert.into(),
                 *gossip,
+                *unusable,
                 *certification_network,
                 *trust_amount,
                 *show_paths)?;

@@ -30,8 +30,8 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
 
         // List all authenticated bindings.
         Subcommands::List(list::Command {
-            certs, pattern, gossip, certification_network, trust_amount,
-            show_paths,
+            certs, pattern, gossip, unusable, certification_network,
+            trust_amount, show_paths,
         }) => {
             let mut certs: Vec<Query> = Query::for_cert_designators(certs, true);
 
@@ -69,6 +69,7 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
                 &sq,
                 certs,
                 *gossip,
+                *unusable,
                 *certification_network,
                 *trust_amount,
                 *show_paths)

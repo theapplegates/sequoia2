@@ -366,9 +366,11 @@ fn list_invalid_certs() {
         assert!(sq.cert_list_maybe(&["--gossip", fpr]).is_err());
 
         for userid in userids.iter() {
-            assert!(sq.cert_list_maybe(&["--userid", &userid[..]]).is_err());
-            assert!(sq.cert_list_maybe(&["--gossip", "--userid", &userid[..]])
+            assert!(sq.cert_list_maybe(&["--cert-userid", &userid[..]]).is_err());
+            assert!(sq.cert_list_maybe(&["--gossip", "--cert-userid", &userid[..]])
                     .is_err());
+            sq.cert_list(&["--gossip", "--unusable",
+                           "--cert-userid", &userid[..]]);
         }
     }
 }
@@ -403,6 +405,7 @@ fn list_sha1_userid() {
             sq.cert_list_maybe(&["--cert-userid", &userid[..]]).is_err());
         // Using --gossip should succeed.
         sq.cert_list(&["--gossip", "--cert-userid", &userid[..]]);
+        sq.cert_list(&["--gossip", "--unusable", "--cert-userid", &userid[..]]);
     }
 
     assert!(saw_invalid);
@@ -418,6 +421,7 @@ fn list_sha1_userid() {
             sq.cert_list_maybe(&["--cert-userid", &userid[..]]).is_ok());
         assert!(
             sq.cert_list_maybe(&["--gossip", "--cert-userid", &userid[..]]).is_ok());
+        sq.cert_list(&["--gossip", "--unusable", "--cert-userid", &userid[..]]);
     }
 }
 
@@ -458,6 +462,8 @@ fn list_revoked_userid() {
         assert_eq!(
             sq.cert_list_maybe(&["--gossip", "--cert-userid", &userid[..]]).is_ok(),
             good);
+        // Using --gossip --unusable, so should always succeed.
+        sq.cert_list(&["--gossip", "--unusable", "--cert-userid", &userid[..]]);
     }
 
     assert!(saw_revoked);

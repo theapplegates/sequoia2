@@ -2,8 +2,14 @@
 #+TITLE: sequoia-sq NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
-* Changes in 1.0.1
- * Notable changes
+* Changes in 1.1.0
+** New functionality
+   - New argument `--unusable` for `sq cert list`, `sq pki identify`,
+     `sq pki lookup`, and `sq pki authenticate`.  This option causes
+     these commands to also show unusable bindings and certificates
+     (i.e., those that are not valid according to the current policy,
+     are revoked, or are expired).  Requires `--gossip`.
+** Notable changes
    - `sq cert list --cert FPR` incorrectly failed if all of a
      certificate's bindings are invalid (i.e., the bindings are
      invalid according to the cryptographic policy, or the user ID is

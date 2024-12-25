@@ -8,6 +8,7 @@ use crate::cli::pki::CertificationNetworkArg;
 use crate::cli::pki::GossipArg;
 use crate::cli::pki::RequiredTrustAmountArg;
 use crate::cli::pki::ShowPathsArg;
+use crate::cli::pki::UnusableArg;
 use crate::cli::types::cert_designator::*;
 
 const EXAMPLES: Actions = Actions {
@@ -89,6 +90,9 @@ fingerprint.  Otherwise, it is treated as if it were passed via \
 
     #[command(flatten)]
     pub gossip: GossipArg,
+
+    #[command(flatten)]
+    pub unusable: UnusableArg,
 
     #[command(flatten)]
     pub certification_network: CertificationNetworkArg,

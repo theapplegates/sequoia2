@@ -545,8 +545,8 @@ where 'store: 'rstore,
     let mut bindings_authenticated = 0;
 
     // The number of bindings that we skipped because the certificate
-    // or user ID was invalid.
-    let mut bindings_invalid = 0;
+    // or user ID was invalid / unusable.
+    let mut bindings_unusable = 0;
 
     let mut output = ConciseHumanReadableOutputNetwork::new(
         o, &sq, required_amount, show_paths);
@@ -581,12 +581,12 @@ where 'store: 'rstore,
         };
 
         let cert = lc.to_cert()
-            .with_context(|| format!("{} is invalid", fpr))?;
+            .with_context(|| format!("{} is unusable", fpr))?;
 
         // Check if the certificate is valid according to the current
         // policy.
         let vc = cert.with_policy(sq.policy, sq.time)
-            .with_context(|| format!("{} is invalid", fpr))?;
+            .with_context(|| format!("{} is unusable", fpr))?;
 
         // Check if the certificate is live.
         let _ = vc.alive()
@@ -668,7 +668,7 @@ where 'store: 'rstore,
                 let cert = match check_cert(&fingerprint) {
                     Err(err) => {
                         t!("Skipping {}: {}", fingerprint, err);
-                        bindings_invalid += 1;
+                        bindings_unusable += 1;
                         lints.push((err, true, &i));
                         continue;
                     }
@@ -680,7 +680,7 @@ where 'store: 'rstore,
                 {
                     t!("Skipping {}, {}: {}", fingerprint, userid, err);
                     if ! *cert_authenticated {
-                        bindings_invalid += 1;
+                        bindings_unusable += 1;
                         lints.push((err, false, &i));
                         continue;
                     }
@@ -693,7 +693,7 @@ where 'store: 'rstore,
                 // show the certificate if it is valid.
                 if let Err(err) = check_cert(&fingerprint) {
                     t!("Skipping {}: {}", fingerprint, err);
-                    bindings_invalid += 1;
+                    bindings_unusable += 1;
                     lints.push((err, true, &i));
                     continue;
                 }
@@ -706,7 +706,7 @@ where 'store: 'rstore,
                 if aggregated_amount == 0 {
                     if let Err(err) = check_cert(&fingerprint) {
                         t!("{}: {}", fingerprint, err);
-                        bindings_invalid += 1;
+                        bindings_unusable += 1;
                         lints.push((err, true, &i));
                     }
                 }
@@ -725,7 +725,7 @@ where 'store: 'rstore,
             // A cert without bindings.
             if let Err(err) = check_cert(fingerprint) {
                 t!("Skipping {}: {}", fingerprint, err);
-                bindings_invalid += 1;
+                bindings_unusable += 1;
                 lints.push((err, true, &i));
                 continue;
             }
@@ -858,7 +858,7 @@ where 'store: 'rstore,
         let bindings = bindings.len();
         assert!(bindings > 0);
         let bindings_not_authenticated
-            = bindings - bindings_authenticated - bindings_invalid;
+            = bindings - bindings_authenticated - bindings_unusable;
 
         if bindings == 1 {
             qprintln!("1 binding found.");
@@ -866,11 +866,11 @@ where 'store: 'rstore,
             qprintln!("{} bindings found.", bindings);
         }
 
-        if bindings_invalid == 1 {
-            qprintln!("Skipped 1 binding, which is invalid.");
-        } else if bindings_invalid > 1 {
-            qprintln!("Skipped {} bindings, which are invalid.",
-                      bindings_invalid);
+        if bindings_unusable == 1 {
+            qprintln!("Skipped 1 binding, which is unusable.");
+        } else if bindings_unusable > 1 {
+            qprintln!("Skipped {} bindings, which are unusable.",
+                      bindings_unusable);
         }
 
         if bindings_not_authenticated == 1 {

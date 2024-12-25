@@ -539,11 +539,12 @@ where 'store: 'rstore,
         });
     t!("Checking {} bindings", bindings.len());
 
-    // The number of matching bindings that we showed.  Note: this may
-    // be more than the number of bindings we really authenticated,
-    // because when a certificate is addressed by fingerprint, we
-    // always show it.
-    let mut bindings_shown = 0;
+    // The number of matching bindings that we showed.
+    let mut bindings_authenticated = 0;
+
+    // The number of bindings that we skipped because the certificate
+    // or user ID was invalid.
+    let mut bindings_invalid = 0;
 
     let mut output = ConciseHumanReadableOutputNetwork::new(
         o, &sq, required_amount, show_paths);
@@ -665,6 +666,7 @@ where 'store: 'rstore,
                 let cert = match check_cert(&fingerprint) {
                     Err(err) => {
                         t!("Skipping {}: {}", fingerprint, err);
+                        bindings_invalid += 1;
                         lints.push((err, true, &i));
                         continue;
                     }
@@ -676,6 +678,7 @@ where 'store: 'rstore,
                 {
                     t!("Skipping {}, {}: {}", fingerprint, userid, err);
                     if ! *cert_authenticated {
+                        bindings_invalid += 1;
                         lints.push((err, false, &i));
                         continue;
                     }
@@ -688,6 +691,7 @@ where 'store: 'rstore,
                 // show the certificate if it is valid.
                 if let Err(err) = check_cert(&fingerprint) {
                     t!("Skipping {}: {}", fingerprint, err);
+                    bindings_invalid += 1;
                     lints.push((err, true, &i));
                     continue;
                 }
@@ -700,6 +704,7 @@ where 'store: 'rstore,
                 if aggregated_amount == 0 {
                     if let Err(err) = check_cert(&fingerprint) {
                         t!("{}: {}", fingerprint, err);
+                        bindings_invalid += 1;
                         lints.push((err, true, &i));
                     }
                 }
@@ -712,18 +717,19 @@ where 'store: 'rstore,
                 let paths = paths.into_iter().collect::<Vec<(wot::Path, usize)>>();
                 output.add_paths(paths, fingerprint, userid, aggregated_amount)?;
 
-                bindings_shown += 1;
+                bindings_authenticated += 1;
             }
         } else {
             // A cert without bindings.
             if let Err(err) = check_cert(fingerprint) {
                 t!("Skipping {}: {}", fingerprint, err);
+                bindings_invalid += 1;
                 lints.push((err, true, &i));
                 continue;
             }
 
             output.add_cert(fingerprint)?;
-            bindings_shown += 1;
+            bindings_authenticated += 1;
         };
 
         for i in i.into_iter() {
@@ -835,7 +841,7 @@ where 'store: 'rstore,
     } else if gossip {
         // We are in gossip mode.  Mention `sq pki link` as a way to
         // mark bindings as authenticated.
-        if bindings_shown > 0 {
+        if bindings_authenticated > 0 {
             weprintln!("After checking that a user ID really belongs to \
                         a certificate, use `sq pki link add` to mark \
                         the binding as authenticated, or use \
@@ -844,12 +850,13 @@ where 'store: 'rstore,
         } else {
             weprintln!("No bindings are valid.");
         }
-    } else if bindings.len() - bindings_shown > 0 {
+    } else if bindings.len() - bindings_authenticated > 0 {
         // Some of the matching bindings were not shown.  Tell the
         // user about the `--gossip` option.
         let bindings = bindings.len();
         assert!(bindings > 0);
-        let bindings_not_shown = bindings - bindings_shown;
+        let bindings_not_authenticated
+            = bindings - bindings_authenticated - bindings_invalid;
 
         if bindings == 1 {
             weprintln!("1 binding found.");
@@ -857,12 +864,19 @@ where 'store: 'rstore,
             weprintln!("{} bindings found.", bindings);
         }
 
-        if bindings_not_shown == 1 {
+        if bindings_invalid == 1 {
+            weprintln!("Skipped 1 binding, which is invalid.");
+        } else if bindings_invalid > 1 {
+            weprintln!("Skipped {} bindings, which are invalid.",
+                       bindings_invalid);
+        }
+
+        if bindings_not_authenticated == 1 {
             weprintln!("Skipped 1 binding, which could not be authenticated.");
             weprintln!("Pass `--gossip` to see the unauthenticated binding.");
-        } else {
+        } else if bindings_not_authenticated > 1 {
             weprintln!("Skipped {} bindings, which could not be authenticated.",
-                       bindings_not_shown);
+                       bindings_not_authenticated);
             weprintln!("Pass `--gossip` to see the unauthenticated bindings.");
         }
     }

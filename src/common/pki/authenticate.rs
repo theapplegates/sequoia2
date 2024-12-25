@@ -1,5 +1,7 @@
 use std::collections::BTreeSet;
 
+use anyhow::Context;
+
 use typenum::Unsigned;
 
 use sequoia_openpgp as openpgp;
@@ -11,6 +13,7 @@ use openpgp::types::RevocationStatus;
 use openpgp::packet::UserID;
 
 use sequoia_cert_store as cert_store;
+use cert_store::store::StoreError;
 use cert_store::store::UserIDQueryParams;
 use cert_store::Store as _;
 
@@ -46,46 +49,6 @@ pub enum QueryKind {
     Domain(String),
     Pattern(String),
     All,
-}
-
-impl QueryKind {
-    /// Returns the queried key handle, if any.
-    fn key_handle(&self) -> Option<KeyHandle> {
-        use QueryKind::*;
-
-        match self {
-            AuthenticatedCert(kh) | Cert(kh)
-                | UserIDBinding(kh, _) | EmailBinding(kh, _) =>
-            {
-                Some(kh.clone())
-            }
-            _ => None
-        }
-    }
-
-    /// Returns the queried user ID, if any.
-    fn userid(&self) -> Option<&str> {
-        use QueryKind::*;
-
-        match self {
-            UserID(userid) | UserIDBinding(_, userid) => {
-                Some(&userid[..])
-            }
-            _ => None
-        }
-    }
-
-    /// Returns the queried email address, if any.
-    fn email(&self) -> Option<&str> {
-        use QueryKind::*;
-
-        match self {
-            Email(email) | EmailBinding(_, email) => {
-                Some(&email[..])
-            }
-            _ => None
-        }
-    }
 }
 
 pub struct Query {
@@ -287,29 +250,6 @@ pub fn required_trust_amount(trust_amount: Option<TrustAmount<usize>>,
     };
 
     Ok(amount)
-}
-
-// Returns whether there is a matching self-signed User ID.
-fn have_self_signed_userid(cert: &Cert,
-                           pattern: &UserID, email: bool)
-    -> bool
-{
-    if email {
-        if let Ok(Some(pattern)) = pattern.email_normalized() {
-            // userid contains a valid email address.
-            cert.userids().any(|u| {
-                if let Ok(Some(userid)) = u.userid().email_normalized() {
-                    pattern == userid
-                } else {
-                    false
-                }
-            })
-        } else {
-            false
-        }
-    } else {
-        cert.userids().any(|u| u.userid() == pattern)
-    }
 }
 
 /// Authenticate bindings defined by a Query on a Network
@@ -611,29 +551,97 @@ where 'store: 'rstore,
     // Look up the certificate, and return it if it is valid.
     let check_cert = |fpr: &Fingerprint| -> Result<Cert> {
         // Look up the certificate.
-        let certs = cert_store.lookup_by_cert(&KeyHandle::from(fpr))?;
-        assert_eq!(certs.len(), 1, "there can be only one");
+        let kh = KeyHandle::from(fpr);
+        let lc = match cert_store.lookup_by_cert(&kh) {
+            Ok(certs) => {
+                assert_eq!(certs.len(), 1, "there can be only one");
+                certs.into_iter().next().unwrap()
+            }
+            Err(err) => {
+                // See if it is a subkey.
+                if let Some(StoreError::NotFound(_)) = err.downcast_ref() {
+                    if let Ok(certs)
+                        = cert_store.lookup_by_cert_or_subkey(&kh)
+                    {
+                        return Err(anyhow::anyhow!(
+                            "{} appears to be a subkey of {}",
+                            fpr,
+                            certs.iter()
+                                .map(|c| c.fingerprint().to_string())
+                                .collect::<Vec<String>>()
+                                .join(", ")));
+                    }
+                }
 
-        let lc = certs.into_iter().next().unwrap();
+                return Err(err);
+            }
+        };
 
-        let cert = lc.to_cert()?;
+        let cert = lc.to_cert()
+            .with_context(|| format!("{} is invalid", fpr))?;
 
         // Check if the certificate is valid according to the current
         // policy.
-        let vc = cert.with_policy(sq.policy, sq.time)?;
+        let vc = cert.with_policy(sq.policy, sq.time)
+            .with_context(|| format!("{} is invalid", fpr))?;
 
         // Check if the certificate is live.
-        let _ = vc.alive()?;
+        let _ = vc.alive()
+            .with_context(|| format!("{} is not live", fpr))?;
 
         // Check that it is not revoked.
-        if let RevocationStatus::Revoked(_)
+        if let RevocationStatus::Revoked(sigs)
             = cert.revocation_status(sq.policy, sq.time)
         {
-            return Err(anyhow::anyhow!("{} is revoked", cert.fingerprint()));
+            if let Some((reason, message))
+                = sigs[0].reason_for_revocation()
+            {
+                return Err(anyhow::anyhow!(
+                    "{} is revoked: {}{}.",
+                    cert.fingerprint(),
+                    reason,
+                    ui::Safe(message)));
+            } else {
+                return Err(anyhow::anyhow!(
+                    "{} is revoked: unspecified reason.",
+                    cert.fingerprint()));
+            }
         }
 
         Ok(cert.clone())
     };
+
+    // Check that the user ID is valid.
+    let check_userid = |cert: &Cert, userid: &UserID| -> Result<()> {
+        if let Some(ua)
+            = cert.userids().find(|ua| ua.userid() == userid)
+        {
+            if let RevocationStatus::Revoked(sigs)
+                = ua.revocation_status(sq.policy, sq.time)
+            {
+                if let Some((reason, message))
+                    = sigs[0].reason_for_revocation()
+                {
+                    return Err(anyhow::anyhow!(
+                        "{}, {} is revoked: {}{}.",
+                        cert.fingerprint(),
+                        userid,
+                        reason,
+                        ui::Safe(message)));
+                } else {
+                    return Err(anyhow::anyhow!(
+                        "{}, {} is revoked: unspecified reason.",
+                        cert.fingerprint(), userid));
+                }
+            }
+        }
+
+        Ok(())
+    };
+
+    // bool: true if the lint is for the certificate (not the user ID).
+    let mut lints: Vec<(anyhow::Error, bool, &[usize])>
+        = Vec::with_capacity(queries.len());
 
     for (fingerprint, userid, cert_authenticated, i) in bindings.iter() {
         if let Some(userid) = userid {
@@ -657,35 +665,30 @@ where 'store: 'rstore,
                 let cert = match check_cert(&fingerprint) {
                     Err(err) => {
                         t!("Skipping {}: {}", fingerprint, err);
+                        lints.push((err, true, &i));
                         continue;
                     }
                     Ok(cert) => cert
                 };
 
                 // ... and the user ID is not revoked.
-                let mut userid_authenticated = true;
-                if let Some(ua)
-                    = cert.userids().find(|ua| ua.userid() == userid)
+                if let Err(err) = check_userid(&cert, &userid)
                 {
-                    if let RevocationStatus::Revoked(_)
-                        = ua.revocation_status(sq.policy, sq.time)
-                    {
-                        t!("Skipping {}: {} is revoked",
-                           fingerprint,
-                           String::from_utf8_lossy(userid.value()));
-                        if ! *cert_authenticated {
-                            continue;
-                        }
-                        userid_authenticated = false;
+                    t!("Skipping {}, {}: {}", fingerprint, userid, err);
+                    if ! *cert_authenticated {
+                        lints.push((err, false, &i));
+                        continue;
                     }
+                    false
+                } else {
+                    true
                 }
-
-                userid_authenticated
             } else if *cert_authenticated {
                 // The binding is not authenticated, but we should
                 // show the certificate if it is valid.
                 if let Err(err) = check_cert(&fingerprint) {
                     t!("Skipping {}: {}", fingerprint, err);
+                    lints.push((err, true, &i));
                     continue;
                 }
 
@@ -693,6 +696,14 @@ where 'store: 'rstore,
             } else {
                 // Don't show it.
                 t!("Failed to sufficiently authenticate the binding");
+
+                if aggregated_amount == 0 {
+                    if let Err(err) = check_cert(&fingerprint) {
+                        t!("{}: {}", fingerprint, err);
+                        lints.push((err, true, &i));
+                    }
+                }
+
                 continue;
             };
 
@@ -707,6 +718,7 @@ where 'store: 'rstore,
             // A cert without bindings.
             if let Err(err) = check_cert(fingerprint) {
                 t!("Skipping {}: {}", fingerprint, err);
+                lints.push((err, true, &i));
                 continue;
             }
 
@@ -739,108 +751,27 @@ where 'store: 'rstore,
                        query.argument.as_deref().unwrap_or("the query"));
         }
 
-        if let Some(kh) = query.kind.key_handle() { 'lint_cert: {
-            // See if the target certificate exists.
-            let certs_;
-            let cert = match cert_store.lookup_by_cert_or_subkey(&kh) {
-                Ok(certs) => {
-                    assert!(certs.len() > 0);
-
-                    certs_ = certs;
-                    if let Some(cert) = certs_.iter().find(|c| c.key_handle() == kh) {
-                        match cert.to_cert() {
-                            Ok(cert) => cert,
-                            Err(err) => {
-                                weprintln!("{} is invalid: {}",
-                                           cert.fingerprint(), err);
-                                break 'lint_cert;
-                            }
-                        }
-                    } else {
-                        weprintln!("{} is a subkey of {}",
-                                   kh,
-                                   certs_.iter()
-                                       .map(|c| {
-                                           c.fingerprint().to_string()
-                                       })
-                                       .collect::<Vec<_>>()
-                                       .join(", "));
-                        break 'lint_cert;
+        for (lint, for_cert, is) in lints.iter() {
+            if ! gossip && *for_cert {
+                use QueryKind::*;
+                match queries[i].kind {
+                    AuthenticatedCert(_) | Cert(_)
+                        | UserIDBinding(_, _) | EmailBinding(_, _) | All =>
+                    {
+                        ()
+                    }
+                    UserID(_) | Email(_) | Domain(_) | Pattern(_) => {
+                        // It's a certificate-specific lint, but we're
+                        // matching on user IDs.  Skip it.
+                        continue;
                     }
                 }
-                Err(err) => {
-                    weprintln!("Looking up {}: {}", kh, err);
-                    break 'lint_cert;
-                }
-            };
-
-            // Check that it is valid.
-            match cert.with_policy(sq.policy, sq.time) {
-                Ok(vc) => {
-                    // The certificate is valid under the current
-                    // policy.
-
-                    // Check if the certificate has expired.
-                    if let Err(err) = vc.alive() {
-                        weprintln!("Warning: {} is not live: {}.",
-                                   cert.fingerprint(), err);
-                    }
-                }
-                Err(err) => {
-                    weprintln!("Warning: {} is not valid according to \
-                                the current policy: {}.",
-                               cert.fingerprint(),
-                               crate::one_line_error_chain(err));
-                }
-            };
-
-            // Check if the certificate was revoked.
-            if let RevocationStatus::Revoked(sigs)
-                = cert.revocation_status(sq.policy, sq.time)
-            {
-                if let Some((reason, message))
-                    = sigs[0].reason_for_revocation()
-                {
-                    weprintln!("Warning: {} is revoked: {}{}.",
-                               cert.fingerprint(),
-                               reason,
-                               ui::Safe(message));
-                } else {
-                    weprintln!("Warning: {} is revoked: unspecified reason.",
-                               cert.fingerprint());
-                }
             }
-
-            // See if there is a matching self-signed User ID.
-            if let Some(userid) = query.kind.userid() {
-                if ! have_self_signed_userid(cert, &UserID::from(userid), false) {
-                    weprintln!("Warning: {} is not a \
-                                self-signed User ID for {}.",
-                               userid, cert.fingerprint());
-                }
-            } else if let Some(email) = query.kind.email() {
-                if ! have_self_signed_userid(cert, &UserID::from(email), true) {
-                    weprintln!("Warning: {} does not appear in \
-                                self-signed User ID for {}.",
-                               email, cert.fingerprint());
-                }
+            if is.contains(&i) {
+                weprintln!(initial_indent = "  - ",
+                           "Warning: {}", crate::one_line_error_chain(lint));
             }
-
-            // See if there are any certifications made on
-            // this certificate.
-            if let Ok(cs) = n.certifications_of(&cert.fingerprint(), 0.into()) {
-                if cs.iter().all(|cs| {
-                    cs.certifications()
-                        .all(|(_userid, certifications)| {
-                            certifications.is_empty()
-                        })
-                })
-                {
-                    weprintln!("Warning: {} was never certified.",
-                               cert.fingerprint());
-                }
-            }
-        }}
+        }
     }
 
     // See if the trust roots exist.
@@ -863,7 +794,7 @@ where 'store: 'rstore,
     if bindings.is_empty() {
         // There are no matching bindings.
 
-        weprintln!("No bindings match the query.");
+        weprintln!("No valid bindings match the query.");
 
         if queries.len() == 1 {
             if let QueryKind::Pattern(pattern) = &queries[0].kind {
@@ -931,17 +862,26 @@ where 'store: 'rstore,
             weprintln!("Pass `--gossip` to see the unauthenticated binding.");
         } else {
             weprintln!("Skipped {} bindings, which could not be authenticated.",
-                      bindings_not_shown);
+                       bindings_not_shown);
             weprintln!("Pass `--gossip` to see the unauthenticated bindings.");
         }
     }
 
     if unsatisfied == 1 {
         if gossip {
-            Err(anyhow::anyhow!("No bindings match the query."))
+            if queries.len() == 1 {
+                Err(anyhow::anyhow!("No bindings match the query."))
+            } else {
+                Err(anyhow::anyhow!("No bindings match one of the queries."))
+            }
         } else {
-            Err(anyhow::anyhow!(
-                "No bindings matching the query could be authenticated."))
+            if queries.len() == 1 {
+                Err(anyhow::anyhow!(
+                    "No bindings matching the query could be authenticated."))
+            } else {
+                Err(anyhow::anyhow!(
+                    "No bindings matching one of the queries could be authenticated."))
+            }
         }
     } else if unsatisfied > 1 {
         if gossip {

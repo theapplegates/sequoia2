@@ -10,6 +10,11 @@
      (i.e., those that are not valid according to the current policy,
      are revoked, or are expired).  Requires `--gossip`.
 ** Notable changes
+   - Fix `--gossip`.  The `--gossip` option for `sq cert list`, `sq
+     pki identify`, `sq pki lookup`, and `sq pki authenticate` was
+     broken.  It is now fixed, and works as documented.  In terms of
+     the API, this should be considered a new feature, as although the
+     option was present, it did not work.
    - `sq cert list --cert FPR` incorrectly failed if all of a
      certificate's bindings are invalid (i.e., the bindings are
      invalid according to the cryptographic policy, or the user ID is

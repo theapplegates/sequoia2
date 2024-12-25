@@ -852,7 +852,9 @@ where 'store: 'rstore,
         } else {
             qprintln!("No bindings are valid.");
         }
-    } else if bindings.len() - bindings_authenticated > 0 {
+    }
+
+    if bindings.len() - bindings_authenticated > 0 {
         // Some of the matching bindings were not shown.  Tell the
         // user about the `--gossip` option.
         let bindings = bindings.len();

@@ -70,6 +70,8 @@ pub struct GossipArg {
     /// introducer, and authenticating Micah's certificate is easier
     /// than authenticating Laura's certificate, then Ed has learned
     /// about an easier way to authenticate Laura's certificate.
+    ///
+    /// Stable since 1.1.0.
     #[arg(long)]
     pub gossip: bool,
 }

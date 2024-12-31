@@ -723,19 +723,24 @@ where 'store: 'rstore,
                 bindings_authenticated += 1;
             }
         } else {
-            // A cert without bindings.
-            if ! unusable {
-                if let Err(err) = check_cert(fingerprint) {
-                    t!("Skipping {}: {}", fingerprint, err);
-                    bindings_unusable += 1;
-                    lints.push((err, true, &i));
-                    continue;
+            // A certificate with no User ID bindings.
+            if gossip || *cert_authenticated {
+                if ! unusable {
+                    if let Err(err) = check_cert(fingerprint) {
+                        t!("Skipping {}: {}", fingerprint, err);
+                        bindings_unusable += 1;
+                        lints.push((err, true, &i));
+                        continue;
+                    }
                 }
-            }
 
-            output.add_cert(fingerprint)?;
-            bindings_authenticated += 1;
-        };
+                output.add_cert(fingerprint)?;
+                bindings_authenticated += 1;
+            } else {
+                t!("Skipping {}: no user IDs", fingerprint);
+                continue;
+            }
+        }
 
         for i in i.into_iter() {
             queries_satisfied[*i] = true;

@@ -709,6 +709,16 @@ where 'store: 'rstore,
                         t!("{}: {}", fingerprint, err);
                         bindings_unusable += 1;
                         lints.push((err, true, &i));
+                    } else {
+                        if ! n.certified_userids_of(fingerprint)
+                            .contains(userid)
+                        {
+                            lints.push((
+                                anyhow::anyhow!(
+                                    "{:?} was never certified for {}",
+                                    userid, fingerprint),
+                                false, &i));
+                        }
                     }
                 }
 

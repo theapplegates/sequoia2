@@ -696,7 +696,7 @@ where
                     clap::builder::EnumValueParser::<SpecialName>::new())
                 .action(action.clone())
                 .help(Doc::help("special", help));
-            if let Some(l) = Doc::long_help("cert", help) {
+            if let Some(l) = Doc::long_help("special", help) {
                 arg = arg.long_help(l);
             }
             cmd = cmd.arg(arg);
@@ -711,7 +711,7 @@ where
                 .value_name("USERID")
                 .action(action.clone())
                 .help(Doc::help("userid", help));
-            if let Some(l) = Doc::long_help("cert", help) {
+            if let Some(l) = Doc::long_help("userid", help) {
                 arg = arg.long_help(l);
             }
             cmd = cmd.arg(arg);
@@ -728,7 +728,7 @@ where
                 .value_parser(parse_as_email)
                 .action(action.clone())
                 .help(Doc::help("email", help));
-            if let Some(l) = Doc::long_help("cert", help) {
+            if let Some(l) = Doc::long_help("email", help) {
                 arg = arg.long_help(l);
             }
             cmd = cmd.arg(arg);
@@ -745,7 +745,7 @@ where
                 .value_parser(parse_as_domain)
                 .action(action.clone())
                 .help(Doc::help("domain", help));
-            if let Some(l) = Doc::long_help("cert", help) {
+            if let Some(l) = Doc::long_help("domain", help) {
                 arg = arg.long_help(l);
             }
             cmd = cmd.arg(arg);
@@ -761,7 +761,7 @@ where
                 .value_name("PATTERN")
                 .action(action.clone())
                 .help(Doc::help("grep", help));
-            if let Some(l) = Doc::long_help("cert", help) {
+            if let Some(l) = Doc::long_help("grep", help) {
                 arg = arg.long_help(l);
             }
             cmd = cmd.arg(arg);
@@ -783,7 +783,7 @@ where
                 arg = arg.requires("output");
             }
 
-            if let Some(l) = Doc::long_help("cert", help) {
+            if let Some(l) = Doc::long_help("file", help) {
                 arg = arg.long_help(l);
             }
             cmd = cmd.arg(arg);

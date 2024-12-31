@@ -150,7 +150,11 @@ fn lint_short_long(lints: &mut Vec<String>,
     };
 
     if ! long.starts_with(&format!("{}\n\n", short)) {
-        lints.push(format!("{}: long help doesn't start with subject (short help + \\n\\n)", slug));
+        lints.push(format!("\
+{}: long help doesn't start with subject (short help + \\n\\n)
+long help: {}
+short help: {}",
+                           slug, long, short));
     }
 
     if long.split("\n").count() == 1 {

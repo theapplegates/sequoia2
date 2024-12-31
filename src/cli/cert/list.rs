@@ -43,20 +43,23 @@ const EXAMPLES: Actions = Actions {
 };
 test_examples!(sq_cert_list, EXAMPLES);
 
-/// List all authenticated bindings (User ID and certificate
-/// pairs)
+/// List certificates and user IDs
 ///
-/// Only bindings that meet the specified trust amount (by default
-/// bindings that are fully authenticated, i.e., have a trust
-/// amount of 120), are shown.
+/// List certificates and user IDs that match a query, are usable, and
+/// can be authenticated.  By default, bindings (certificate and user
+/// ID pairs) must be fully authenticated.  If no certificates or
+/// bindings match a query, then the command returns a non-zero exit
+/// code.
 ///
-/// Even if no bindings are shown, the exit status is 0.
+/// If no queries are provided, then all bindings that are usable, and
+/// can be authenticated are listed.  If there are no such bindings,
+/// the command still succeeds.
 ///
-/// If `--email` is provided, then a pattern matches if it is a case
-/// insensitive substring of the email address as-is or the
-/// normalized email address.  Note: unlike the email address, the
-/// pattern is not normalized.  In particular, puny code
-/// normalization is not done on the pattern.
+/// By default, unusable certificates, i.e., those that are not valid
+/// according to the policy, are revoked, or are not live, are
+/// skipped.  Likewise, user ID self signatures and certifications
+/// that are not valid according to the policy, and user IDs that are
+/// revoked are skipped.
 #[derive(Parser, Debug)]
 #[clap(
     name = "list",
@@ -71,15 +74,14 @@ pub struct Command {
 
     #[clap(
         value_name = "FINGERPRINT|KEYID|PATTERN",
-        help = "A pattern to filter the displayed certificates",
+        help = "List certs that match the pattern",
         long_help = "\
-A pattern to filter the displayed certificates
+List certs that match the pattern
 
 If the pattern appears to be a fingerprint or key ID, it is treated as \
-if it were passed to `--cert`, and matches on the certificate's \
-fingerprint.  Otherwise, it is treated as if it were passed via \
-`--cert-grep`, and matches on user IDs.
-",
+if it were passed to `--cert`, which matches on the certificate's \
+fingerprint.  Otherwise, it is treated as if it were passed to \
+`--cert-grep`, which matches on user IDs.",
         conflicts_with_all = &["cert", "cert-userid", "cert-email",
                                "cert-domain", "cert-grep"],
     )]
@@ -105,8 +107,61 @@ fingerprint.  Otherwise, it is treated as if it were passed via \
 pub struct ListCertDoc {}
 
 impl AdditionalDocs for ListCertDoc {
-    fn help(_: &'static str, help: &'static str) -> clap::builder::StyledStr {
-        debug_assert!(help.starts_with("Use certificates"));
-        help.replace("Use certificates", "List certs").into()
+    fn help(arg: &'static str, _help: &'static str) -> clap::builder::StyledStr {
+        match arg {
+            "cert" => "\
+List certificates with the specified fingerprint or key ID".into(),
+            "userid" => "\
+List bindings with the specified user ID".into(),
+            "email" => "\
+List bindings with user IDs that contain the specified email address".into(),
+            "domain" => "\
+List bindings with user IDs that contain an email address in the \
+specified domain".into(),
+            "grep" => "\
+List bindings with a user ID that contains the pattern".into(),
+            _ => unreachable!(),
+        }
+    }
+
+    fn long_help(arg: &'static str, _help: &'static str)
+        -> Option<clap::builder::StyledStr>
+    {
+        match arg {
+            "cert" => Some(format!("\
+{}
+
+Note: fingerprints and key IDs are self-authenticating identifiers.  As \
+such, a certificate with the specified fingerprint or key ID is \
+considered authenticated; no user IDs have to be authenticated.",
+                                    Self::help(arg, "")).into()),
+            "userid" => Some(format!("\
+{}
+
+The user ID must match exactly.",
+                                     Self::help(arg, "")).into()),
+            "email" => Some(format!("\
+{}
+
+Email addresses are first normalized by doing puny-code normalization on \
+the domain, and lower casing the local part in the so-called empty \
+locale.",
+                                    Self::help(arg, "")).into()),
+            "domain" => Some(format!("\
+{}
+
+A user ID's domain is extracted from the email address, if any, and is \
+normalized by doing puny-code normalization.",
+                                    Self::help(arg, "")).into()),
+            "grep" => Some(format!("\
+{}
+
+Performs a case-insensitive substring search.  Case-folding is done in \
+the empty locale.",
+                                    Self::help(arg, "")).into()),
+            _ => {
+                None
+            }
+        }
     }
 }

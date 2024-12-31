@@ -111,14 +111,14 @@ impl Deref for UnusableArg {
 pub struct CertificationNetworkArg {
     /// Treats the network as a certification network
     ///
-    /// Normally, `sq pki` treats the Web of Trust network as an
-    /// authentication network where a certification only means that
-    /// the binding is correct, not that the target should be treated
-    /// as a trusted introducer.  In a certification network, the
-    /// targets of certifications are treated as trusted introducers
-    /// with infinite depth, and any regular expressions are ignored.
-    /// Note: The trust amount remains unchanged.  This is how most
-    /// so-called PGP path-finding algorithms work.
+    /// Normally, the authentication machinery treats the Web of Trust
+    /// network as an authentication network where a certification
+    /// only means that the binding is correct, not that the target
+    /// should be treated as a trusted introducer.  In a certification
+    /// network, the targets of certifications are treated as trusted
+    /// introducers with infinite depth, and any regular expressions
+    /// are ignored.  Note: The trust amount remains unchanged.  This
+    /// is how most so-called PGP path-finding algorithms work.
     #[arg(long)]
     pub certification_network: bool,
 }
@@ -138,7 +138,7 @@ pub struct RequiredTrustAmountArg {
     /// 120 indicates full authentication; values less than 120
     /// indicate partial authentication.  When
     /// `--certification-network` is passed, this defaults to 1200,
-    /// i.e., `sq pki` tries to find 10 paths.
+    /// i.e., this command tries to find 10 paths.
     #[arg(long="amount", value_name = "AMOUNT")]
     pub trust_amount: Option<TrustAmount<usize>>,
 }

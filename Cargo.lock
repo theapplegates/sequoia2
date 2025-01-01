@@ -3713,7 +3713,7 @@ dependencies = [
 
 [[package]]
 name = "sequoia-sq"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "aho-corasick",
  "anyhow",
@@ -3755,7 +3755,7 @@ dependencies = [
  "termcolor",
  "terminal_size",
  "textwrap",
- "thiserror 2.0.9",
+ "thiserror 1.0.69",
  "tokio",
  "toml_edit",
  "typenum",

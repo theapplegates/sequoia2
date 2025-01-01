@@ -67,7 +67,7 @@ typenum = "1"
 
 # This is for subplot only.  If you don't enable the subplot feature,
 # feel free to patch it out.
-subplotlib = { version = "0.11", optional = true }
+subplotlib = { version = ">=0.11, <0.13", optional = true }
 culpa = { version = "1", optional = true }
 
 [build-dependencies]
@@ -89,7 +89,7 @@ terminal_size = ">=0.2.6, <0.5"
 
 # This is for subplot only.  If you don't enable the subplot feature,
 # feel free to patch it out.
-subplot-build = { version = "0.11", optional = true }
+subplot-build = { version = ">=0.11, <0.13", optional = true }
 
 [dev-dependencies]
 assert_cmd = "2"

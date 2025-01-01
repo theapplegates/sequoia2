@@ -716,7 +716,8 @@ where 'store: 'rstore,
                             lints.push((
                                 anyhow::anyhow!(
                                     "{:?} was never certified for {}",
-                                    userid, fingerprint),
+                                    String::from_utf8_lossy(userid.value()),
+                                    fingerprint),
                                 false, &i));
                         }
                     }

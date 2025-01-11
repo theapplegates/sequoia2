@@ -2,6 +2,7 @@
 
 pub mod authorize;
 pub mod add;
+pub mod list;
 
 use clap::{Parser, Subcommand};
 
@@ -99,4 +100,5 @@ test_examples!(sq_pki_vouch, VOUCH_EXAMPLES);
 pub enum Subcommands {
     Add(add::Command),
     Authorize(authorize::Command),
+    List(list::Command),
 }

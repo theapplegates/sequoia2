@@ -1859,6 +1859,46 @@ impl Sq {
             .expect("success")
     }
 
+    /// List certifications made by certifier.
+    pub fn try_pki_vouch_list<H>(&self, extra_args: &[&str], certifier: H)
+        -> Result<String>
+    where H: Into<FileOrKeyHandle>,
+    {
+        let certifier = certifier.into();
+
+        let mut cmd = self.command();
+        cmd.args([ "pki", "vouch", "list" ]);
+        for arg in extra_args {
+            cmd.arg(arg);
+        }
+        match &certifier {
+            FileOrKeyHandle::FileOrStdin(file) => {
+                cmd.arg("--certifier-file").arg(file);
+            }
+            FileOrKeyHandle::KeyHandle((_kh, s)) => {
+                cmd.arg("--certifier").arg(s);
+            }
+        }
+
+        let output = self.run(cmd, None);
+        if output.status.success() {
+            Ok(String::from_utf8_lossy(&output.stdout).to_string())
+        } else {
+            Err(anyhow::anyhow!(
+                "Failed: {}",
+                String::from_utf8_lossy(&output.stderr).to_string()))
+        }
+    }
+
+    /// List certifications made by certifier.
+    pub fn pki_vouch_list<H>(&self, extra_args: &[&str], certifier: H)
+        -> String
+    where H: Into<FileOrKeyHandle>,
+    {
+        self.try_pki_vouch_list(extra_args, certifier)
+            .expect("success")
+    }
+
     /// Add a link for the binding.
     pub fn pki_link_add_maybe<'a, U>(&self, extra_args: &[&str],
                                      cert: KeyHandle, userids: &[U])

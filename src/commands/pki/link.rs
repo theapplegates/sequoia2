@@ -151,7 +151,7 @@ pub fn list(sq: Sq, c: link::ListCommand)
     let trust_root = trust_root.to_cert()?;
 
     crate::common::pki::list::list(
-        sq, &trust_root, c.certs, c.pattern, c.ca)?;
+        sq, &trust_root, c.certs, c.pattern, c.ca, true)?;
 
     Ok(())
 }

@@ -21,16 +21,26 @@ use crate::common::ui;
 /// If `certs` or `pattern` is set, only list matching bindings.
 ///
 /// If `ca` is true, only list delegations.
+///
+/// `link` is purely decorative and controls whether "link" or
+/// "certification" is shown.
 pub fn list<Arguments, Prefix, Options, Doc>(
     sq: Sq,
     certifier: &Cert,
     mut certs: CertDesignators<Arguments, Prefix, Options, Doc>,
     pattern: Option<String>,
-    ca: bool)
+    ca: bool,
+    link: bool)
     -> Result<()>
 where
     Prefix: cert_designator::ArgumentPrefix,
 {
+    let (link, linked) = if link {
+        ("link", "linked")
+    } else {
+        ("certification", "certified")
+    };
+
     let cert_store = sq.cert_store_or_else()?;
 
     if let Some(pattern) = pattern {
@@ -80,7 +90,7 @@ where
                 {
                     Ok(())
                 } else {
-                    Err(anyhow::anyhow!("not linked"))
+                    Err(anyhow::anyhow!("not {}", linked))
                 }
             })?;
         (Box::new(c.into_iter().map(|c| Arc::new(LazyCert::from(c))))
@@ -141,7 +151,7 @@ where
 
             if amount == 0 {
                 wwriteln!(stream=o, initial_indent=INDENT,
-                          "link was retracted");
+                          "{} was retracted", link);
             } else {
                 let mut regex: Vec<_> = certification.regular_expressions()
                     .map(|re| ui::Safe(re).to_string())
@@ -153,12 +163,12 @@ where
                     if amount == sequoia_wot::FULLY_TRUSTED as u8
                         && regex.is_empty()
                     {
-                        "is linked as a fully trusted CA"
+                        format!("is {} as a fully trusted CA", linked)
                     } else {
-                        "is linked as a partially trusted CA"
+                        format!("is {} as a partially trusted CA", linked)
                     }
                 } else {
-                    "is linked"
+                    format!("is {}", linked)
                 };
                 wwriteln!(stream=o, initial_indent=INDENT, "{}", summary);
 

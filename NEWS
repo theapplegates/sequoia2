@@ -2,6 +2,10 @@
 #+TITLE: sequoia-sq NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 1.2.0
+** New functionality
+   - `sq pki vouch list` lists certifications made by a particular
+     certificate.
 * Changes in 1.1.0
 ** New functionality
    - New argument `--unusable` for `sq cert list`, `sq pki identify`,

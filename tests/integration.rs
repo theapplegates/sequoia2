@@ -37,6 +37,7 @@ mod integration {
     mod sq_pki_lookup;
     mod sq_pki_vouch_add;
     mod sq_pki_vouch_authorize;
+    mod sq_pki_vouch_list;
     mod sq_sign;
     mod sq_verify;
 }

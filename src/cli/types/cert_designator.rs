@@ -179,6 +179,10 @@ pub type CertUserIDEmailFileArgs
 pub type CertUserIDEmailFileSelfArgs
     = <CertUserIDEmailFileArgs as std::ops::BitOr<SelfArg>>::Output;
 
+/// Enables --cert, --userid, --email, --file, --self, and --special.
+pub type CertUserIDEmailFileSelfSpecialArgs
+    = <CertUserIDEmailFileSelfArgs as std::ops::BitOr<SpecialArg>>::Output;
+
 /// Enables --cert, --userid, and --email (i.e., not --domain, --grep,
 /// --file, --with-password, --with-password-file, or --special).
 pub type CertUserIDEmailArgs
@@ -1305,6 +1309,8 @@ mod test {
                true,  true,  true, false, false, true, false, false, true);
         check!(CertUserIDEmailFileSelfWithPasswordArgs,
                true,  true,  true, false, false, true, true, false, true);
+        check!(CertUserIDEmailFileSelfSpecialArgs,
+               true,  true,  true, false, false, true, true, true, false);
         // No Args.
         check!(typenum::U0,false, false, false, false, false, false, false, false, false);
         check!(CertArg,     true, false, false, false, false, false, false, false, false);

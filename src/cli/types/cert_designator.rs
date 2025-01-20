@@ -392,8 +392,14 @@ impl CertDesignator {
     pub fn argument_name<Prefix>(&self) -> String
     where Prefix: ArgumentPrefix
     {
-        let prefix = Prefix::prefix();
+        self.argument_name_with_prefix(Prefix::prefix())
+    }
 
+    /// Returns the argument's name like
+    /// [`CertDesignator::argument_name`], but with the prefix given
+    /// as string, not as generic parameter.
+    pub fn argument_name_with_prefix(&self, prefix: &str) -> String
+    {
         use CertDesignator::*;
         match self {
             Stdin => format!("--{}file", prefix),
@@ -422,7 +428,16 @@ impl CertDesignator {
     pub fn argument<Prefix>(&self) -> String
     where Prefix: ArgumentPrefix,
     {
-        let argument_name = self.argument_name::<Prefix>();
+        self.argument_with_prefix(Prefix::prefix())
+    }
+
+    /// Returns the argument's name and value like
+    /// [`CertDesignator::argument`], but with the prefix given as
+    /// string, not as generic parameter.
+    pub fn argument_with_prefix(&self, prefix: &str) -> String
+    {
+
+        let argument_name = self.argument_name_with_prefix(prefix);
 
         use CertDesignator::*;
         match self {

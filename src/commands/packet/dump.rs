@@ -92,7 +92,6 @@ pub fn dump<W>(sq: &crate::Sq,
                 ]
             },
             Packet::SEIP(_) | Packet::AED(_) => {
-                dumper.flush(output)?;
                 message_encrypted = true;
 
                 let mut success = false;

@@ -9,6 +9,8 @@
 ** Notable fixes
    - `sq packet dump` no longer duplicates the PKESK or SKESK packet
      immediately preceding the SEIPD packet.
+   - `sq key export` and `sq key subkey export` no longer export
+     non-exportable signatures and cert components.
 
 * Changes in 1.1.0
 ** New functionality

@@ -78,7 +78,7 @@ pub fn dispatch(sq: Sq, command: cli::key::export::Command)
 
     if false {
         for cert in results.into_iter() {
-            cert.as_tsk().serialize(&mut output)
+            cert.as_tsk().export(&mut output)
                 .with_context(|| {
                     format!("Serializing {}", cert.fingerprint())
                 })?;
@@ -89,7 +89,7 @@ pub fn dispatch(sq: Sq, command: cli::key::export::Command)
             openpgp::armor::Kind::SecretKey)?;
 
         for cert in results.into_iter() {
-            cert.as_tsk().serialize(&mut output)
+            cert.as_tsk().export(&mut output)
                 .with_context(|| {
                     format!("Serializing {}", cert.fingerprint())
                 })?;

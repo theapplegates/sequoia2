@@ -78,7 +78,7 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::export::Command)
     let mut output = command.output.for_secrets().create_safe(&sq)?;
 
     if false {
-        cert.as_tsk().serialize(&mut output)
+        cert.as_tsk().export(&mut output)
             .with_context(|| {
                 format!("Serializing {}", cert.fingerprint())
             })?;
@@ -87,7 +87,7 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::export::Command)
             output,
             openpgp::armor::Kind::SecretKey)?;
 
-        cert.as_tsk().serialize(&mut output)
+        cert.as_tsk().export(&mut output)
             .with_context(|| {
                 format!("Serializing {}", cert.fingerprint())
             })?;

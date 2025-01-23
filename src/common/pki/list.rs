@@ -77,8 +77,11 @@ where
     } else {
         let (c, e) = sq.resolve_certs_filter(
             &certs, 0, &mut |_designator, cert| {
+                let userids = cert.userids();
+                let cert = cert.to_cert()?;
+
                 let active_certifications = active_certification(
-                    &sq, cert.to_cert()?, cert.userids(),
+                    &sq, cert, userids,
                     certifier.primary_key().key().role_as_unspecified());
 
                 if active_certifications.iter().any(|(_userid, certifications)| {
@@ -90,7 +93,10 @@ where
                         active_certifications);
                     Ok(())
                 } else {
-                    Err(anyhow::anyhow!("not {}", linked))
+                    Err(anyhow::anyhow!("{} {} was never {}",
+                                        cert.fingerprint(),
+                                        sq.best_userid(cert, true),
+                                        linked))
                 }
             })?;
         (Box::new(c.into_iter().map(|c| Arc::new(LazyCert::from(c))))

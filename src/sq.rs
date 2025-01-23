@@ -2206,16 +2206,32 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
             let cert_store = cert_store()?;
             match cert_store.select_userid(q, pattern) {
-                Ok(mut found) => {
+                Ok(found) => {
                     t!("=> {} results", found.len());
 
                     // Apply the filter, if any.
-                    found.retain(|c| filter(designator, &c).is_ok());
+                    let (found, error) = found.into_iter().fold(
+                        (Vec::new(), None),
+                        |(mut found, mut error), c|
+                        {
+                            match filter(designator, &c) {
+                                Ok(()) => found.push(c),
+                                Err(err) => {
+                                    if error.is_none() {
+                                        error = Some(err);
+                                    }
+                                }
+                            }
+
+                            (found, error)
+                        });
 
                     if found.is_empty() {
                         ret(designator,
-                            Err(anyhow::anyhow!(
-                                "query did not match any certificates")),
+                            Err(error.unwrap_or_else(|| {
+                                anyhow::anyhow!(
+                                    "query did not match any certificates")
+                            })),
                             true, None);
                         continue;
                     }

@@ -72,17 +72,9 @@ where
         (cert_store.certs(), Vec::new())
     } else {
         let (c, e) = sq.resolve_certs_filter(
-            &certs, 0, &mut |designator, cert| {
-                let userids = cert.userids().filter(|uid| {
-                    match designator.query_params() {
-                        Err(_) => false,
-                        Ok(None) => true,
-                        Ok(Some((q, p))) => q.check(uid, &p),
-                    }
-                });
-
+            &certs, 0, &mut |_designator, cert| {
                 if active_certification(
-                        &sq, cert.to_cert()?, userids,
+                        &sq, cert.to_cert()?, cert.userids(),
                         certifier.primary_key().key().role_as_unspecified())
                     .into_iter()
                     .filter(|(_uid, certification)| certification.is_some())

@@ -532,7 +532,9 @@ test_examples!(sq_pki_link_retract, RETRACT_EXAMPLES);
 
 This command lists all bindings that are linked or whose link has been \
 retracted.
-",
+
+Returns a non-zero exit code if an explicitly designated certificate
+was never linked.",
     after_help = LIST_EXAMPLES,
 )]
 pub struct ListCommand {

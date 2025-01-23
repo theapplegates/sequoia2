@@ -1799,12 +1799,16 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     /// The filter is applied in such a way that cert designators that
     /// can match more than one certificate (such as `--cert-domain`)
     /// only fail if they don't match any cert after filtering.
+    ///
+    /// Note: just because `filter` is called on a certificate, and it
+    /// returns `Ok` doesn't mean that the certificate will
+    /// necessarily be returned.
     pub fn resolve_certs_filter<Arguments, Prefix, Options, Doc>(
         &self,
         designators: &CertDesignators<Arguments, Prefix, Options, Doc>,
         trust_amount: usize,
-        filter: &mut dyn Fn(&cert_designator::CertDesignator, &LazyCert)
-                            -> Result<()>,
+        filter: &mut dyn FnMut(&cert_designator::CertDesignator, &LazyCert)
+                               -> Result<()>,
     )
         -> Result<(Vec<Cert>, Vec<anyhow::Error>)>
     where
@@ -1821,8 +1825,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         designators: &[cert_designator::CertDesignator],
         prefix: &str,
         trust_amount: usize,
-        filter: &mut dyn Fn(&cert_designator::CertDesignator, &LazyCert)
-                            -> Result<()>,
+        mut filter: &mut dyn FnMut(&cert_designator::CertDesignator, &LazyCert)
+                                   -> Result<()>,
     )
         -> Result<(Vec<Cert>, Vec<anyhow::Error>)>
     {
@@ -1875,7 +1879,10 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         let mut ret = |designator: &cert_designator::CertDesignator,
                        cert: Result<Arc<LazyCert>>,
                        from_cert_store: bool,
-                       apply_filter: bool|
+                       apply_filter: Option<
+                               &mut dyn FnMut(&cert_designator::CertDesignator,
+                                              &LazyCert)
+                                              -> Result<()>>|
         {
             let cert = match cert {
                 Ok(cert) => cert,
@@ -1888,7 +1895,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 }
             };
 
-            if apply_filter {
+            if let Some(filter) = apply_filter {
                 if let Err(err) = filter(designator, &cert) {
                     errors.push(
                         err.context(format!(
@@ -1966,11 +1973,11 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                         Ok(matches) => {
                             for cert in matches.into_iter() {
                                 // We matched on the primary key.
-                                ret(designator, Ok(cert), true, true);
+                                ret(designator, Ok(cert), true, Some(&mut filter));
                             }
                         }
                         Err(err) => {
-                            ret(designator, Err(err), true, true);
+                            ret(designator, Err(err), true, Some(&mut filter));
                         }
                     }
                 }
@@ -1986,7 +1993,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                             unreachable!("designator matches on user IDs"),
 
                         Err(err) =>
-                            ret(designator, Err(err), true, false),
+                            ret(designator, Err(err), true, None),
                     }
                 }
 
@@ -2001,7 +2008,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                             unreachable!("designator matches on user IDs"),
 
                         Err(err) =>
-                            ret(designator, Err(err), true, false),
+                            ret(designator, Err(err), true, None),
                     }
                 }
 
@@ -2016,7 +2023,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                             unreachable!("designator matches on user IDs"),
 
                         Err(err) =>
-                            ret(designator, Err(err), true, false),
+                            ret(designator, Err(err), true, None),
                     }
                 }
 
@@ -2031,7 +2038,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                             unreachable!("designator matches on user IDs"),
 
                         Err(err) =>
-                            ret(designator, Err(err), true, false),
+                            ret(designator, Err(err), true, None),
                     }
                 }
 
@@ -2048,17 +2055,17 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                     Err(anyhow::anyhow!(
                                         "File does not contain any \
                                          certificates")),
-                                    false, true);
+                                    false, Some(&mut filter));
                             } else {
                                 for cert in found.into_iter() {
                                     ret(designator,
                                         Ok(Arc::new(cert.into())),
-                                        false, true);
+                                        false, Some(&mut filter));
                                 }
                             }
                         },
                         Err(err) => {
-                            ret(designator, Err(err), false, true);
+                            ret(designator, Err(err), false, Some(&mut filter));
                         }
                     }
                 }
@@ -2075,12 +2082,12 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                 ret(
                                     designator,
                                     Ok(Arc::new(cert.into())),
-                                    false, true);
+                                    false, Some(&mut filter));
                             }
                             Err(err) => {
                                 ret(designator,
                                     Err(err),
-                                    false, true);
+                                    false, Some(&mut filter));
                                 continue;
                             }
                         }
@@ -2090,7 +2097,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                             designator,
                             Err(anyhow::anyhow!(
                                 "stdin did not contain any certificates")),
-                            false, true);
+                            false, Some(&mut filter));
                     }
                 }
                 cert_designator::CertDesignator::Special(name) => {
@@ -2100,7 +2107,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                             ret(
                                 designator,
                                 Err(err),
-                                true, true);
+                                true, Some(&mut filter));
                             continue;
                         }
                     };
@@ -2140,7 +2147,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                 format!("Looking up special certificate {}",
                                         name)
                             }),
-                        true, true);
+                        true, Some(&mut filter));
                 },
 
                 cert_designator::CertDesignator::Self_ => {
@@ -2169,7 +2176,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                             &openpgp::KeyHandle::from(fp.clone()).into(), 0)?.0;
                         ret(designator,
                             Ok(Arc::new(cert.into())),
-                            true, true);
+                            true, Some(&mut filter));
                         one = true;
                     }
 
@@ -2209,7 +2216,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                         ret(designator,
                             Err(anyhow::anyhow!(
                                 "query did not match any certificates")),
-                            true, false);
+                            true, None);
                         continue;
                     }
 
@@ -2255,7 +2262,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                         }
 
                         if authenticated {
-                            ret(designator, Ok(cert), true, false);
+                            ret(designator, Ok(cert), true, None);
                         }
                     }
 
@@ -2265,19 +2272,19 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                         if hint.is_empty() {
                             ret(designator,
                                 Err(anyhow::anyhow!("Didn't match any certificates")),
-                                true, false);
+                                true, None);
                         } else {
                             for hint in hint.into_iter() {
                                 ret(designator,
                                     hint,
-                                    true, false);
+                                    true, None);
                             }
                         }
                     }
                 }
                 Err(err) => {
                     t!("=> {}", err);
-                    ret(designator, Err(err), true, false);
+                    ret(designator, Err(err), true, None);
                 }
             }
         }

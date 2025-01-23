@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use sequoia_openpgp as openpgp;
@@ -68,18 +69,25 @@ where
         }));
     }
 
+    let mut active_certifications_cache: BTreeMap<Fingerprint, _>
+        = BTreeMap::new();
+
     let (certs, errors) = if certs.is_empty() {
         (cert_store.certs(), Vec::new())
     } else {
         let (c, e) = sq.resolve_certs_filter(
             &certs, 0, &mut |_designator, cert| {
-                if active_certification(
-                        &sq, cert.to_cert()?, cert.userids(),
-                        certifier.primary_key().key().role_as_unspecified())
-                    .into_iter()
-                    .filter(|(_uid, certification)| certification.is_some())
-                    .next().is_some()
+                let active_certifications = active_certification(
+                    &sq, cert.to_cert()?, cert.userids(),
+                    certifier.primary_key().key().role_as_unspecified());
+
+                if active_certifications.iter().any(|(_userid, certifications)| {
+                    certifications.is_some()
+                })
                 {
+                    active_certifications_cache.insert(
+                        cert.fingerprint(),
+                        active_certifications);
                     Ok(())
                 } else {
                     Err(anyhow::anyhow!("not {}", linked))
@@ -108,13 +116,19 @@ where
             continue;
         };
 
-        let userids = cert.userids()
-            .map(|ua| ua.userid().clone())
-            .collect::<Vec<_>>();
+        let active_certifications = if let Some(ac)
+            = active_certifications_cache.remove(&cert.fingerprint())
+        {
+            ac
+        } else {
+            let userids = cert.userids().map(|ua| ua.userid().clone());
 
-        for (userid, certification) in active_certification(
-                &sq, &cert, userids.iter(),
+            active_certification(
+                &sq, &cert, userids,
                 certifier.primary_key().key().role_as_unspecified())
+        };
+
+        for (userid, certification) in active_certifications
             .into_iter()
             .filter_map(|(user, certification)| {
                 if let Some(certification) = certification {
@@ -137,7 +151,7 @@ where
             }
             dirty = true;
 
-            ui::emit_cert_userid(o, &cert, userid)?;
+            ui::emit_cert_userid(o, &cert, &userid)?;
 
             const INDENT: &'static str = "     - ";
 

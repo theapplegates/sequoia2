@@ -285,6 +285,8 @@ particular interface, you need to set this option for every call to \
 This option must be the first option on the command line.
 
 This version of `sq` implements version {}.{}.{} of the CLI interface.
+
+Stable since 1.2.0.
 ",
                             env!("CARGO_PKG_VERSION_MAJOR"),
                             env!("CARGO_PKG_VERSION_MINOR"),

@@ -166,7 +166,7 @@ fn real_main() -> Result<()> {
                     usize::from_str(env!("CARGO_PKG_VERSION_MINOR")).unwrap(),
                     usize::from_str(env!("CARGO_PKG_VERSION_PATCH")).unwrap());
 
-                if ! version.is_acceptable_for(&cli_version) {
+                if ! cli_version.is_acceptable_for(&version) {
                     return Err(anyhow::anyhow!(
                         "The required CLI version, {}, is not compatible with \
                          this version of sq, which implements version {} of \

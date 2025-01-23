@@ -11,6 +11,12 @@
      immediately preceding the SEIPD packet.
    - `sq key export` and `sq key subkey export` no longer export
      non-exportable signatures and cert components.
+   - `sq --cli-version` was broken.  The check was reversed.  That is,
+     instead of `sq` 1.1.0 saying that `sq --cli-version 1.0.0` is
+     compatible, it said it is incompatible, and instead of saying
+     that `sq --cli-version 1.2.0` is incompatible, it said that it is
+     compatible.  In terms of the API, this should be considered a new
+     feature.
 
 * Changes in 1.1.0
 ** New functionality

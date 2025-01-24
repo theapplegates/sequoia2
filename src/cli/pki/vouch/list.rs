@@ -32,12 +32,11 @@ const LIST_EXAMPLES: Actions = Actions {
         ]).build(),
 
         Action::example().comment(
-            "List certifications made by Alice for the email address \
-             bob@example.org.",
+            "List certifications made by Alice for Bob's certificate.",
         ).command(&[
             "sq", "pki", "vouch", "list",
             "--certifier=EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-            "--cert-email=bob@example.org",
+            "--cert=511257EBBF077B7AEDAE5D093F68CB84CE537C9A",
         ]).build(),
     ],
 };

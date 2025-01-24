@@ -22,8 +22,10 @@ pub fn path(sq: Sq, c: Command)
 
     let target = path.last().expect("guaranteed by clap");
     let mut userid = None;
+    // The trust threshold parameter is irrelevant, because we're only
+    // considering fingerprints, and key IDs.
     if let Ok((cert, _cert_handle))
-        = sq.resolve_cert(&target.into(), TrustThreshold::YOLO)
+        = sq.resolve_cert(&target.into(), TrustThreshold::Full)
     {
         if let Ok(vc) = cert.with_policy(sq.policy, sq.time) {
             if let Ok(userids) = userids.resolve(&vc) {

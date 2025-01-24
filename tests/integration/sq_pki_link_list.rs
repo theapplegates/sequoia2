@@ -85,3 +85,74 @@ fn list_uncertified_cert_designator() {
         &[], alice_kh, UserIDArg::Email(alice_two_email)).is_ok());
     sq.pki_link_list(&["--cert-email", alice_two_email]);
 }
+
+#[test]
+fn list_partially_trusted() {
+    // If a certificate is partially trusted, then we should be able
+    // to list it by fingerprint.
+
+    let mut sq = Sq::new();
+
+    let alice_example_email = "alice@example.org";
+    let alice_example_userid = &format!("Alice <{}>", alice_example_email);
+
+    let (alice, alice_pgp, _) = sq.key_generate(
+        &[], &[ alice_example_userid ]);
+
+    let alice_kh = &alice.key_handle().to_string();
+
+    sq.key_import(&alice_pgp);
+
+    // alice@example.org is not authenticated, and can't be used as a
+    // certificate designator.
+    assert!(sq.pki_authenticate(
+        &[], alice_kh, UserIDArg::Email(alice_example_email)).is_err());
+    assert!(sq.try_pki_link_list(&["--cert-email", alice_example_email]).is_err());
+
+    sq.tick(1);
+
+    sq.pki_link_add(
+        &["--amount", "40"], alice.key_handle(), &[ alice_example_userid ]);
+
+    // alice@example.org is NOT authenticated, so we should NOT be
+    // able to use it to designate the certificate.
+    assert!(sq.pki_authenticate(
+        &[], alice_kh, UserIDArg::UserID(alice_example_userid)).is_err());
+    assert!(sq.try_pki_link_list(&["--cert-userid", alice_example_userid]).is_err());
+
+    // But, as always, using the fingerprint should be okay.
+    sq.pki_link_list(&["--cert", alice_kh]);
+}
+
+#[test]
+fn list_with_unauthenticated_handle() {
+    // Make sure it isn't possible to use --cert-email, etc. with an
+    // unauthenticated handle.
+    let sq = Sq::new();
+
+    let alice_name = "Alice Lovelace";
+    let alice_domain = "example.org";
+    let alice_email = &format!("alice@{}", alice_domain);
+    let alice_userid = &format!("{} <{}>", alice_name, alice_email);
+
+    let (alice_cert, alice_cert_path, _rev_path)
+        = sq.key_generate(&[], &[ alice_userid, ]);
+
+    sq.key_import(&alice_cert_path);
+
+    // We need to link a user ID otherwise sq pki link list will
+    // refuse to list the certificate.
+    sq.pki_link_add(
+        &["--amount", "40"], alice_cert.key_handle(), &[ alice_userid ]);
+
+    let list = |args: &[&str], success: bool| {
+        assert_eq!(sq.try_pki_link_list(args).is_ok(), success);
+    };
+
+    list(&["--cert", &alice_cert.fingerprint().to_string()], true);
+    list(&["--cert-userid", alice_userid], false);
+    list(&["--cert-email", alice_email], false);
+    list(&["--cert-domain", alice_domain], false);
+    list(&["--cert-grep", &alice_name[1..]], false);
+}
+

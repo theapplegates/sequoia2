@@ -17,6 +17,10 @@
      that `sq --cli-version 1.2.0` is incompatible, it said that it is
      compatible.  In terms of the API, this should be considered a new
      feature.
+   - `sq cert lint`, `sq inspect`, `sq packet dump`, and `sq pki link
+     list` didn't check that certificates designated by user ID using
+     e.g., `--cert-email`, are actually authenticated.  They are now
+     correctly checked.
 
 * Changes in 1.1.0
 ** New functionality

@@ -77,7 +77,7 @@ where
         (cert_store.certs(), Vec::new())
     } else {
         let (c, e) = sq.resolve_certs_filter(
-            &certs, TrustThreshold::YOLO, &mut |_designator, cert| {
+            &certs, TrustThreshold::Full, &mut |_designator, cert| {
                 let userids = cert.userids();
                 let cert = cert.to_cert()?;
 

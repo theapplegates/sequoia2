@@ -370,6 +370,8 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
         let have_keys: BTreeSet<_> =
             the_keys.keys().map(|a| a.key().fingerprint()).collect();
 
+        // We use a trust threshold of YOLO, because these are not
+        // actually certificate designators, but filters.
         let (certs, errors) = sq.resolve_certs_filter(
             &cmd.certs, TrustThreshold::YOLO,
             &mut |_, cert| {

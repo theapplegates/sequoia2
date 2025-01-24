@@ -79,7 +79,7 @@ pub fn dispatch(mut sq: Sq, c: inspect::Command)
                 Some(&input.to_string()), output,
                 print_certifications, dump_bad_signatures)?;
     } else {
-        for cert in sq.resolve_certs_or_fail(&c.certs, TrustThreshold::YOLO)? {
+        for cert in sq.resolve_certs_or_fail(&c.certs, TrustThreshold::Full)? {
             // Include non-exportable signatures, etc.
             cert.serialize(&mut bytes).context("Serializing certificate")?;
         }

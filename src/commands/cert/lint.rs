@@ -237,7 +237,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
     }
 
     let certs = sq.resolve_certs_or_fail(
-        &args.certs, TrustThreshold::YOLO)?;
+        &args.certs, TrustThreshold::Full)?;
 
     let mut out = if args.output.is_some()
         || args.certs.iter().any(|d| d.from_file() || d.from_stdin())

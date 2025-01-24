@@ -160,6 +160,38 @@ fn list() {
     list(&["--cert-email", &alice_authenticated_email[1..]], false, false);
 }
 
+#[test]
+fn list_with_unauthenticated_handle() {
+    // This is similar to the previous test, but uses a certificate
+    // that only has unauthenticated user IDs.
+
+    let sq = Sq::new();
+
+    let alice_name = "Alice Lovelace";
+    let alice_domain = "example.org";
+    let alice_email = &format!("alice@{}", alice_domain);
+    let alice_userid = &format!("{} <{}>", alice_name, alice_email);
+
+    let (alice_cert, alice_cert_path, _rev_path)
+        = sq.key_generate(&[], &[ alice_userid, ]);
+
+    sq.key_import(&alice_cert_path);
+
+    let list = |args: &[&str], success: bool, gossip_success: bool| {
+        assert_eq!(sq.cert_list_maybe(args).is_ok(), success);
+
+        let mut gossip_args: Vec<&str> = args.to_vec();
+        gossip_args.push("--gossip");
+        assert_eq!(sq.cert_list_maybe(&gossip_args[..]).is_ok(), gossip_success);
+    };
+
+    list(&["--cert", &alice_cert.fingerprint().to_string()], true, true);
+    list(&["--cert-userid", alice_userid], false, true);
+    list(&["--cert-email", alice_email], false, true);
+    list(&["--cert-domain", alice_domain], false, true);
+    list(&["--cert-grep", &alice_name[1..]], false, true);
+}
+
 /// Check that multiple simultaneous queries work.
 #[test]
 fn list_multiple_queries() {
@@ -441,7 +473,6 @@ fn list_sha1_userid() {
         sq.cert_list(&["--gossip", "--unusable", "--cert-userid", &userid[..]]);
     }
 }
-
 
 #[test]
 fn list_revoked_userid() {

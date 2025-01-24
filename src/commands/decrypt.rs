@@ -35,6 +35,7 @@ use crate::{
     common::ui,
     Sq,
     load_keys,
+    sq::TrustThreshold,
 };
 
 pub fn dispatch(sq: Sq, command: cli::decrypt::Command) -> Result<()> {
@@ -44,7 +45,7 @@ pub fn dispatch(sq: Sq, command: cli::decrypt::Command) -> Result<()> {
     let mut output = command.output.create_safe(&sq)?;
 
     let signers =
-        sq.resolve_certs_or_fail(&command.signers, sequoia_wot::FULLY_TRUSTED)?;
+        sq.resolve_certs_or_fail(&command.signers, TrustThreshold::Full)?;
 
     // Fancy default for --signatures.  If you change this,
     // also change the description in the CLI definition.

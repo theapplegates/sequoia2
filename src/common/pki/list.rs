@@ -16,6 +16,7 @@ use crate::cli::types::CertDesignators;
 use crate::cli::types::cert_designator;
 use crate::commands::active_certification;
 use crate::common::ui;
+use crate::sq::TrustThreshold;
 
 /// List the bindings made by `certifier`.
 ///
@@ -76,7 +77,7 @@ where
         (cert_store.certs(), Vec::new())
     } else {
         let (c, e) = sq.resolve_certs_filter(
-            &certs, 0, &mut |_designator, cert| {
+            &certs, TrustThreshold::YOLO, &mut |_designator, cert| {
                 let userids = cert.userids();
                 let cert = cert.to_cert()?;
 

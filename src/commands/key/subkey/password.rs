@@ -10,6 +10,7 @@ use crate::Sq;
 use crate::common::NULL_POLICY;
 use crate::common::key::get_keys;
 use crate::common::key::password;
+use crate::sq::TrustThreshold;
 
 pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::password::Command)
     -> Result<()>
@@ -17,7 +18,7 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::password::Command)
     assert!(! command.keys.is_empty());
 
     let (cert, cert_source)
-        = sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?;
+        = sq.resolve_cert(&command.cert, TrustThreshold::Full)?;
 
     let vc = Cert::with_policy(&cert, NULL_POLICY, sq.time)
         .with_context(|| {

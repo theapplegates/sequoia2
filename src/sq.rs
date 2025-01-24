@@ -88,6 +88,36 @@ enum KeyType {
     KeyFlags(KeyFlags),
 }
 
+/// The degree to which a binding needs to be authenticated.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum TrustThreshold {
+    /// The binding must be fully authenticated.
+    Full = wot::FULLY_TRUSTED as isize,
+    /// The binding must be minimally authenticated (>= 1 out of 120).
+    Minimal = 1,
+    /// The binding doesn't need to be authenticated.
+    YOLO = 0,
+}
+
+impl From<TrustThreshold> for usize {
+    fn from(a: TrustThreshold) -> usize {
+        a as isize as usize
+    }
+}
+
+impl From<&TrustThreshold> for usize {
+    fn from(a: &TrustThreshold) -> usize {
+        *a as isize as usize
+    }
+}
+
+impl std::fmt::Display for TrustThreshold {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", usize::from(self))
+    }
+}
+
+
 // A shorthand for our store type.
 type WotStore<'store, 'rstore>
     = wot::store::CertStore<'store, 'rstore, cert_store::CertStore<'store>>;
@@ -1784,7 +1814,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     pub fn resolve_certs<Arguments, Prefix, Options, Doc>(
         &self,
         designators: &CertDesignators<Arguments, Prefix, Options, Doc>,
-        trust_amount: usize,
+        trust_amount: TrustThreshold,
     )
         -> Result<(Vec<Cert>, Vec<anyhow::Error>)>
     where
@@ -1806,7 +1836,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     pub fn resolve_certs_filter<Arguments, Prefix, Options, Doc>(
         &self,
         designators: &CertDesignators<Arguments, Prefix, Options, Doc>,
-        trust_amount: usize,
+        trust_amount: TrustThreshold,
         filter: &mut dyn FnMut(&cert_designator::CertDesignator, &LazyCert)
                                -> Result<()>,
     )
@@ -1824,7 +1854,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         &self,
         designators: &[cert_designator::CertDesignator],
         prefix: &str,
-        trust_amount: usize,
+        trust_amount: TrustThreshold,
         mut filter: &mut dyn FnMut(&cert_designator::CertDesignator, &LazyCert)
                                    -> Result<()>,
     )
@@ -2173,7 +2203,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     let mut one = false;
                     for fp in certs {
                         let cert = self.resolve_cert(
-                            &openpgp::KeyHandle::from(fp.clone()).into(), 0)?.0;
+                            &openpgp::KeyHandle::from(
+                                fp.clone()).into(), TrustThreshold::YOLO)?.0;
                         ret(designator,
                             Ok(Arc::new(cert.into())),
                             true, Some(&mut filter));
@@ -2243,7 +2274,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
                     for cert in found.into_iter() {
                         let mut authenticated = false;
-                        if trust_amount == 0 {
+                        if trust_amount == TrustThreshold::YOLO {
                             authenticated = true;
                         } else {
                             // Find the matching user ID and
@@ -2252,8 +2283,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                 if q.check(&userid, pattern) {
                                     let paths = n.authenticate(
                                         &userid, cert.fingerprint(),
-                                        trust_amount);
-                                    if paths.amount() < trust_amount {
+                                        trust_amount.into());
+                                    if paths.amount() < trust_amount.into() {
                                         hint.push(Err(anyhow::anyhow!(
                                             "{}, {} cannot be authenticated \
                                              at the required level ({} of {}). \
@@ -2313,7 +2344,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     pub fn resolve_certs_or_fail<Arguments, Prefix, Options, Doc>(
         &self,
         designators: &CertDesignators<Arguments, Prefix, Options, Doc>,
-        trust_amount: usize,
+        trust_amount: TrustThreshold,
     )
         -> Result<Vec<Cert>>
     where
@@ -2339,7 +2370,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
     pub fn resolve_cert<Arguments, Prefix, Options, Doc>(
         &self,
         designators: &CertDesignators<Arguments, Prefix, Options, Doc>,
-        trust_amount: usize,
+        trust_amount: TrustThreshold,
     )
         -> Result<(Cert, FileStdinOrKeyHandle)>
     where
@@ -2354,7 +2385,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         &self,
         designators: &[cert_designator::CertDesignator],
         prefix: &str,
-        trust_amount: usize,
+        trust_amount: TrustThreshold,
     )
         -> Result<(Cert, FileStdinOrKeyHandle)>
     {

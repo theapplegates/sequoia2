@@ -39,6 +39,7 @@ use crate::cli::types::StdinWarning;
 use crate::commands;
 use crate::common::ui;
 use crate::load_keys;
+use crate::sq::TrustThreshold;
 
 pub mod armor;
 pub mod dearmor;
@@ -68,7 +69,7 @@ pub fn dispatch(sq: Sq, command: Command)
                 Box::new(command.input.open("OpenPGP packets")?)
                     as Box<dyn io::Read + Send + Sync>
             } else {
-                let cert = sq.resolve_cert(&command.cert, 0)?.0;
+                let cert = sq.resolve_cert(&command.cert, TrustThreshold::YOLO)?.0;
                 let bytes = cert.as_tsk().to_vec()
                     .context("Serializing certificate")?;
 

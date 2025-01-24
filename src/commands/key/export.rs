@@ -9,6 +9,7 @@ use openpgp::serialize::Serialize;
 use crate::Result;
 use crate::Sq;
 use crate::cli;
+use crate::sq::TrustThreshold;
 
 pub fn dispatch(sq: Sq, command: cli::key::export::Command)
                 -> Result<()>
@@ -17,7 +18,7 @@ pub fn dispatch(sq: Sq, command: cli::key::export::Command)
     let mut ks = ks.lock().unwrap();
 
     let certs = sq.resolve_certs_or_fail(
-        &command.certs, sequoia_wot::FULLY_TRUSTED)?;
+        &command.certs, TrustThreshold::Full)?;
 
     // Note: Sq::resolve_certs already deduped the certificates.
     let mut results = Vec::new();

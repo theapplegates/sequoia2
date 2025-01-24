@@ -16,8 +16,6 @@ use openpgp::types::SignatureType;
 
 use sequoia_cert_store::StoreUpdate;
 
-use sequoia_wot as wot;
-
 use crate::Sq;
 use crate::cli::types::CertDesignators;
 use crate::cli::types::Expiration;
@@ -25,6 +23,7 @@ use crate::cli::types::FileOrStdout;
 use crate::cli::types::KeyDesignators;
 use crate::cli::types::cert_designator;
 use crate::sq::GetKeysOptions;
+use crate::sq::TrustThreshold;
 
 /// cert must resolve to a single certificate.
 ///
@@ -50,7 +49,7 @@ where P: cert_designator::ArgumentPrefix,
     assert!(! optional_value);
 
     let (cert, cert_handle)
-        = sq.resolve_cert(&cert, wot::FULLY_TRUSTED)?;
+        = sq.resolve_cert(&cert, TrustThreshold::Full)?;
 
     let vc = cert.with_policy(sq.policy, sq.time)?;
 

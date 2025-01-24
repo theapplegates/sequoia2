@@ -45,6 +45,7 @@ use crate::commands::packet::dump::PacketDumper;
 use crate::common::NULL_POLICY;
 use crate::common::PreferredUserID;
 use crate::common::ui;
+use crate::sq::TrustThreshold;
 
 /// Width of the largest key of any key, value pair we emit.
 const WIDTH: usize = 17;
@@ -78,7 +79,7 @@ pub fn dispatch(mut sq: Sq, c: inspect::Command)
                 Some(&input.to_string()), output,
                 print_certifications, dump_bad_signatures)?;
     } else {
-        for cert in sq.resolve_certs_or_fail(&c.certs, 0)? {
+        for cert in sq.resolve_certs_or_fail(&c.certs, TrustThreshold::YOLO)? {
             // Include non-exportable signatures, etc.
             cert.serialize(&mut bytes).context("Serializing certificate")?;
         }

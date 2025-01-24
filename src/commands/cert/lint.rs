@@ -33,8 +33,8 @@ use crate::{
     cli::types::cert_designator::CertDesignator,
     commands::FileOrStdout,
     common::ui,
+    sq::TrustThreshold,
 };
-
 
 fn update_cert_revocation(sq: &Sq,
                           cert: &Cert, rev: &Signature,
@@ -236,7 +236,8 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
         args.certs.designators.push(CertDesignator::Stdin);
     }
 
-    let certs = sq.resolve_certs_or_fail(&args.certs, 0)?;
+    let certs = sq.resolve_certs_or_fail(
+        &args.certs, TrustThreshold::YOLO)?;
 
     let mut out = if args.output.is_some()
         || args.certs.iter().any(|d| d.from_file() || d.from_stdin())

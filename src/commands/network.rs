@@ -67,6 +67,7 @@ use crate::{
 };
 
 use crate::cli;
+use crate::sq::TrustThreshold;
 
 /// User agent for http communications.
 pub const USER_AGENT: &'static str = concat!("sq/", env!("CARGO_PKG_VERSION"));
@@ -1154,7 +1155,7 @@ pub fn dispatch_keyserver(
             make_qprintln!(o, sq.quiet());
 
             let (certs, errors) = sq.resolve_certs(
-                &c.certs, sequoia_wot::FULLY_TRUSTED)?;
+                &c.certs, TrustThreshold::Full)?;
             for error in errors.iter() {
                 print_error_chain(error);
             }
@@ -1286,7 +1287,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
             }
 
             let (insert, errors) = sq.resolve_certs(
-                &c.certs, sequoia_wot::FULLY_TRUSTED)?;
+                &c.certs, TrustThreshold::Full)?;
             for error in errors.iter() {
                 print_error_chain(error);
             }
@@ -1593,7 +1594,7 @@ pub fn dispatch_dane(mut sq: Sq, c: cli::network::dane::Command)
             }
 
             let (certs, errors) = sq.resolve_certs(
-                &c.certs, sequoia_wot::FULLY_TRUSTED)?;
+                &c.certs, TrustThreshold::Full)?;
             for error in errors.iter() {
                 print_error_chain(error);
             }

@@ -10,6 +10,7 @@ use crate::Sq;
 use crate::cli::key::revoke::Command;
 use crate::common::get_secret_signer;
 use crate::common::RevocationOutput;
+use crate::sq::TrustThreshold;
 
 /// Handle the revocation of a certificate
 struct CertificateRevocation {
@@ -86,12 +87,12 @@ pub fn certificate_revoke(
     command: Command,
 ) -> Result<()> {
     let cert =
-        sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.0;
+        sq.resolve_cert(&command.cert, TrustThreshold::Full)?.0;
 
     let revoker = if command.revoker.is_empty() {
         None
     } else {
-        Some(sq.resolve_cert(&command.revoker, sequoia_wot::FULLY_TRUSTED)?.0)
+        Some(sq.resolve_cert(&command.revoker, TrustThreshold::Full)?.0)
     };
 
     let notations = command.signature_notations.parse()?;

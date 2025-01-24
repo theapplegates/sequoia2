@@ -16,6 +16,7 @@ use crate::Sq;
 use crate::common::NULL_POLICY;
 use crate::common::RevocationOutput;
 use crate::common::get_secret_signer;
+use crate::sq::TrustThreshold;
 
 /// Handle the revocation of a subkey
 struct SubkeyRevocation {
@@ -113,7 +114,7 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::revoke::Command)
     -> Result<()>
 {
     let (cert, cert_source) =
-        sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?;
+        sq.resolve_cert(&command.cert, TrustThreshold::Full)?;
 
     let vc = Cert::with_policy(&cert, NULL_POLICY, sq.time)
         .with_context(|| {
@@ -127,7 +128,7 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::revoke::Command)
     let revoker = if command.revoker.is_empty() {
         None
     } else {
-        Some(sq.resolve_cert(&command.revoker, sequoia_wot::FULLY_TRUSTED)?.0)
+        Some(sq.resolve_cert(&command.revoker, TrustThreshold::Full)?.0)
     };
 
     let notations = command.signature_notations.parse()?;

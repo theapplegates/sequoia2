@@ -17,6 +17,7 @@ use crate::{
 };
 
 use crate::cli::cert::export;
+use crate::sq::TrustThreshold;
 
 pub fn dispatch(sq: Sq, cmd: export::Command) -> Result<()> {
     let cert_store = sq.cert_store_or_else()?;
@@ -66,7 +67,7 @@ pub fn dispatch(sq: Sq, cmd: export::Command) -> Result<()> {
         exported_something = true;
     } else {
         let (certs, errors)
-            = sq.resolve_certs(&cmd.certs, sequoia_wot::FULLY_TRUSTED)?;
+            = sq.resolve_certs(&cmd.certs, TrustThreshold::Full)?;
         for error in errors.iter() {
             print_error_chain(error);
         }

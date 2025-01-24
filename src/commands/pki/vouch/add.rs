@@ -4,14 +4,15 @@ use openpgp::Result;
 use crate::Sq;
 use crate::cli::pki::vouch::add;
 use crate::commands::FileOrStdout;
+use crate::sq::TrustThreshold;
 
 pub fn add(sq: Sq, mut c: add::Command)
     -> Result<()>
 {
     let certifier =
-        sq.resolve_cert(&c.certifier, sequoia_wot::FULLY_TRUSTED)?.0;
+        sq.resolve_cert(&c.certifier, TrustThreshold::Full)?.0;
 
-    let (cert, source) = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
+    let (cert, source) = sq.resolve_cert(&c.cert, TrustThreshold::Full)?;
     if source.is_file() {
         // If the cert is read from a file, we default to stdout.
         // (None means write to the cert store.)

@@ -19,10 +19,11 @@ use crate::Sq;
 use crate::cli;
 use cli::types::EncryptPurpose;
 use crate::common::password;
+use crate::sq::TrustThreshold;
 
 pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
 {
-    let cert = sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.0;
+    let cert = sq.resolve_cert(&command.cert, TrustThreshold::Full)?.0;
 
     let null_policy_;
     let adoptee_policy: &dyn Policy = if command.allow_broken_crypto {

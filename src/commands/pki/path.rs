@@ -9,6 +9,7 @@ use crate::common::pki::output::print_path;
 use crate::common::pki::output::print_path_error;
 use crate::common::pki::output::print_path_header;
 use crate::common::pki::required_trust_amount;
+use crate::sq::TrustThreshold;
 
 pub fn path(sq: Sq, c: Command)
     -> Result<()>
@@ -21,7 +22,9 @@ pub fn path(sq: Sq, c: Command)
 
     let target = path.last().expect("guaranteed by clap");
     let mut userid = None;
-    if let Ok((cert, _cert_handle)) = sq.resolve_cert(&target.into(), 0) {
+    if let Ok((cert, _cert_handle))
+        = sq.resolve_cert(&target.into(), TrustThreshold::YOLO)
+    {
         if let Ok(vc) = cert.with_policy(sq.policy, sq.time) {
             if let Ok(userids) = userids.resolve(&vc) {
                 assert_eq!(userids.len(), 1);

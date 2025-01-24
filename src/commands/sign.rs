@@ -30,6 +30,7 @@ use crate::cli;
 use crate::cli::sign::Mode;
 use crate::cli::types::FileOrStdin;
 use crate::cli::types::FileOrStdout;
+use crate::sq::TrustThreshold;
 
 mod merge_signatures;
 use merge_signatures::merge_signatures;
@@ -48,7 +49,7 @@ pub fn dispatch(sq: Sq, command: cli::sign::Command) -> Result<()> {
     }
 
     let signers =
-        sq.resolve_certs_or_fail(&command.signers, sequoia_wot::FULLY_TRUSTED)?;
+        sq.resolve_certs_or_fail(&command.signers, TrustThreshold::Full)?;
     let signers = sq.get_signing_keys(&signers, None)?;
     if signers.is_empty() && command.merge.is_none() {
         return Err(anyhow::anyhow!("No signing keys found"));

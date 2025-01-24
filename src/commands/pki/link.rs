@@ -13,6 +13,7 @@ use crate::common::NULL_POLICY;
 use crate::cli::pki::link;
 use crate::cli::types::Expiration;
 use crate::cli::types::TrustAmount;
+use crate::sq::TrustThreshold;
 
 pub fn link(sq: Sq, c: link::Command) -> Result<()> {
     use link::Subcommands::*;
@@ -32,7 +33,7 @@ pub fn add(sq: Sq, c: link::AddCommand)
     let trust_root = trust_root.to_cert()?;
 
     let (cert, _source)
-        = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
+        = sq.resolve_cert(&c.cert, TrustThreshold::Full)?;
 
     let vc = cert.with_policy(sq.policy, Some(sq.time))?;
     let userids = c.userids.resolve(&vc)?;
@@ -83,7 +84,7 @@ pub fn authorize(sq: Sq, c: link::AuthorizeCommand)
     let trust_root = trust_root.to_cert()?;
 
     let (cert, _source)
-        = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
+        = sq.resolve_cert(&c.cert, TrustThreshold::Full)?;
 
     let vc = cert.with_policy(sq.policy, Some(sq.time))?;
     let userids = c.userids.resolve(&vc)?;
@@ -116,7 +117,7 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
     let trust_root = trust_root.to_cert()?;
 
     let (cert, _source)
-        = sq.resolve_cert(&c.cert, sequoia_wot::FULLY_TRUSTED)?;
+        = sq.resolve_cert(&c.cert, TrustThreshold::Full)?;
 
     let vc = cert.with_policy(NULL_POLICY, Some(sq.time))?;
     let userids = c.userids.resolve(&vc)?;

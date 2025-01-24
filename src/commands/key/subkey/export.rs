@@ -9,6 +9,7 @@ use anyhow::Context;
 use crate::Result;
 use crate::Sq;
 use crate::sq::NULL_POLICY;
+use crate::sq::TrustThreshold;
 
 pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::export::Command)
     -> Result<()>
@@ -20,7 +21,7 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::export::Command)
     assert!(command.keys.len() > 0);
 
     let (mut cert, cert_source)
-        = sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?;
+        = sq.resolve_cert(&command.cert, TrustThreshold::Full)?;
 
     // Yes, we unconditionally use the NULL policy.  This is safe as
     // the user explicitly named both the certificate, and keys to

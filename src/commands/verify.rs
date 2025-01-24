@@ -28,6 +28,7 @@ use crate::Result;
 use crate::cli;
 use crate::commands::inspect::Kind;
 use crate::common::{PreferredUserID, ui};
+use crate::sq::TrustThreshold;
 
 pub fn dispatch(sq: Sq, command: cli::verify::Command)
     -> Result<()>
@@ -39,7 +40,7 @@ pub fn dispatch(sq: Sq, command: cli::verify::Command)
     let signatures = command.signatures;
 
     let signers =
-        sq.resolve_certs_or_fail(&command.signers, sequoia_wot::FULLY_TRUSTED)?;
+        sq.resolve_certs_or_fail(&command.signers, TrustThreshold::Full)?;
 
     let result = verify(sq, input,
                         command.detached.clone(),
@@ -287,7 +288,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                             = userids.into_iter().filter(|userid| {
                                 let paths = n.authenticate(
                                     userid, cert.fingerprint(),
-                                    // XXX: Make this user squrable.
+                                    // XXX: Make this user configurable.
                                     sequoia_wot::FULLY_TRUSTED);
 
                                 let amount = paths.amount();
@@ -296,7 +297,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                                                "Fully authenticated \
                                                 ({} of {}) {}, {}",
                                                amount,
-                                               sequoia_wot::FULLY_TRUSTED,
+                                               TrustThreshold::Full,
                                                cert_fpr,
                                                ui::Safe(userid));
                                     true
@@ -305,7 +306,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                                                "Partially authenticated \
                                                 ({} of {}) {}, {} ",
                                                amount,
-                                               sequoia_wot::FULLY_TRUSTED,
+                                               TrustThreshold::Full,
                                                cert_fpr,
                                                ui::Safe(userid));
                                     false
@@ -357,13 +358,13 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                             {
                                 signer_userid = PreferredUserID::from_string(
                                     String::from_utf8_lossy(u),
-                                    sequoia_wot::FULLY_TRUSTED);
+                                    TrustThreshold::Full.into());
                             } else {
                                 // Else just pick the first one.
                                 signer_userid = PreferredUserID::from_string(
                                     String::from_utf8_lossy(
                                         authenticated_userids[0].value()),
-                                    sequoia_wot::FULLY_TRUSTED);
+                                    TrustThreshold::Full.into());
                             }
                         }
                     }

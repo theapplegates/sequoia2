@@ -27,6 +27,7 @@ use crate::cli::types::cert_designator;
 use crate::cli;
 use crate::common::NULL_POLICY;
 use crate::common::ui;
+use crate::sq::TrustThreshold;
 
 /// Keys may either be grouped into a certificate or be bare.
 ///
@@ -370,7 +371,7 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
             the_keys.keys().map(|a| a.key().fingerprint()).collect();
 
         let (certs, errors) = sq.resolve_certs_filter(
-            &cmd.certs, 0,
+            &cmd.certs, TrustThreshold::YOLO,
             &mut |_, cert| {
                 let fp = cert.fingerprint();
                 have_keys.contains(&fp)

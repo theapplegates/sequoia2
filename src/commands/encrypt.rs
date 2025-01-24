@@ -30,8 +30,9 @@ use crate::cli::types::EncryptPurpose;
 use crate::cli::types::FileOrStdin;
 use crate::cli;
 use crate::common::password;
-use crate::print_error_chain;
 use crate::output::pluralize::Pluralize;
+use crate::print_error_chain;
+use crate::sq::TrustThreshold;
 
 use crate::commands::CompressionMode;
 
@@ -39,8 +40,7 @@ pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
     tracer!(TRACE, "decrypt::dispatch");
 
     let (recipients, errors) = sq.resolve_certs(
-        &command.recipients,
-        sequoia_wot::FULLY_TRUSTED)?;
+        &command.recipients, TrustThreshold::Full)?;
     for error in errors.iter() {
         print_error_chain(error);
     }
@@ -56,7 +56,7 @@ pub fn dispatch(sq: Sq, command: cli::encrypt::Command) -> Result<()> {
 
     let signers =
         sq.resolve_certs_or_fail(&command.signers,
-                                 sequoia_wot::FULLY_TRUSTED)?;
+                                 TrustThreshold::Full)?;
     let signers = sq.get_signing_keys(&signers, None)?;
 
     let notations = command.signature_notations.parse()?;

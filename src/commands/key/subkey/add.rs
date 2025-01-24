@@ -13,6 +13,7 @@ use crate::Sq;
 use crate::cli::key::subkey::add::Command;
 use crate::cli::types::EncryptPurpose;
 use crate::common;
+use crate::sq::TrustThreshold;
 
 /// Add a new Subkey for an existing primary key
 ///
@@ -22,7 +23,7 @@ use crate::common;
 pub fn dispatch(sq: Sq, command: Command) -> Result<()>
 {
     let cert =
-        sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.0;
+        sq.resolve_cert(&command.cert, TrustThreshold::Full)?.0;
 
     let valid_cert = cert.with_policy(sq.policy, sq.time)?;
 

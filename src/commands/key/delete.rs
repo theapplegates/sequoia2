@@ -13,12 +13,13 @@ use crate::cli;
 use crate::common::NULL_POLICY;
 use crate::common::key::delete;
 use crate::common::key::get_keys;
+use crate::sq::TrustThreshold;
 
 pub fn dispatch(sq: Sq, command: cli::key::delete::Command)
                 -> Result<()>
 {
     let (cert, cert_source)
-        = sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?;
+        = sq.resolve_cert(&command.cert, TrustThreshold::Full)?;
 
     // Fail if the certificate is not valid under the current policy.
     Cert::with_policy(&cert, sq.policy, sq.time)

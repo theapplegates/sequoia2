@@ -39,9 +39,10 @@ use crate::cli::types::TrustAmount;
 use crate::commands::network::CONNECT_TIMEOUT;
 use crate::commands::network::USER_AGENT;
 use crate::commands::verify::verify;
-use crate::common::ui;
-use crate::common::pki::authenticate;
 use crate::common::pki::authenticate::Query;
+use crate::common::pki::authenticate;
+use crate::common::ui;
+use crate::sq::TrustThreshold;
 
 // So we can deal with either named temp files or files.
 enum SomeFile {
@@ -178,7 +179,7 @@ pub fn dispatch(sq: Sq, c: download::Command)
     let signature_url = c.detached;
     let signatures = c.signatures;
     let signers =
-        sq.resolve_certs_or_fail(&c.signers, sequoia_wot::FULLY_TRUSTED)?;
+        sq.resolve_certs_or_fail(&c.signers, TrustThreshold::Full)?;
     let output = c.output;
 
     if ! sq.quiet() && ! sq.batch {

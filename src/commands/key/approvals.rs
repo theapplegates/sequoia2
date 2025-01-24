@@ -14,6 +14,7 @@ use crate::Sq;
 use crate::cli::key::approvals;
 use crate::cli;
 use crate::common::{ca_creation_time, ui};
+use crate::sq::TrustThreshold;
 
 pub fn dispatch(sq: Sq, command: approvals::Command)
                 -> Result<()>
@@ -30,7 +31,7 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
     let store = sq.cert_store_or_else()?;
 
     let cert =
-        sq.resolve_cert(&cmd.cert, sequoia_wot::FULLY_TRUSTED)?.0;
+        sq.resolve_cert(&cmd.cert, TrustThreshold::Full)?.0;
     let vcert = cert.with_policy(sq.policy, sq.time)?;
     let userids = cmd.userids.resolve(&vcert)?;
 
@@ -164,7 +165,7 @@ fn update(
 ) -> Result<()> {
     let store = sq.cert_store_or_else()?;
 
-    let key = sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.0;
+    let key = sq.resolve_cert(&command.cert, TrustThreshold::Full)?.0;
     let vcert = key.with_policy(sq.policy, sq.time)?;
     let userids = command.userids.resolve(&vcert)?;
 

@@ -34,6 +34,7 @@ use crate::common::userid::{
     lint_names,
     lint_userids,
 };
+use crate::sq::TrustThreshold;
 
 /// Handle the revocation of a User ID
 struct UserIDRevocation {
@@ -128,8 +129,7 @@ fn userid_add(
     sq: Sq,
     mut command: cli::key::userid::AddCommand,
 ) -> Result<()> {
-    let cert =
-        sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.0;
+    let cert = sq.resolve_cert(&command.cert, TrustThreshold::Full)?.0;
 
     let mut signer = sq.get_primary_key(&cert, None)?;
 
@@ -297,8 +297,7 @@ pub fn userid_revoke(
     sq: Sq,
     command: RevokeCommand,
 ) -> Result<()> {
-    let cert =
-        sq.resolve_cert(&command.cert, sequoia_wot::FULLY_TRUSTED)?.0;
+    let cert = sq.resolve_cert(&command.cert, TrustThreshold::Full)?.0;
     // To revoke a user ID, we require the certificate be valid under
     // the current policy.  Users can still revoke user IDs whose
     // binding signature relies on weak cryptography using
@@ -318,7 +317,7 @@ pub fn userid_revoke(
     let revoker = if command.revoker.is_empty() {
         None
     } else {
-        Some(sq.resolve_cert(&command.revoker, sequoia_wot::FULLY_TRUSTED)?.0)
+        Some(sq.resolve_cert(&command.revoker, TrustThreshold::Full)?.0)
     };
 
     let notations = command.signature_notations.parse()?;

@@ -320,6 +320,127 @@ impl std::fmt::Display for UserIDArg<'_> {
     }
 }
 
+/// An enum for user ID arguments.
+#[derive(Debug, Clone)]
+pub enum CertArg<'a> {
+    Stdin(),
+    File(PathBuf),
+    Cert(KeyHandle),
+    UserID(&'a str),
+    Email(&'a str),
+    Domain(&'a str),
+    Grep(&'a str),
+    Special(&'a str),
+    Self_(),
+}
+
+impl From<PathBuf> for CertArg<'_> {
+    fn from(path: PathBuf) -> Self {
+        CertArg::File(path)
+    }
+}
+
+impl<'a> From<&'a Path> for CertArg<'_> {
+    fn from(path: &'a Path) -> Self {
+        CertArg::File(path.to_path_buf())
+    }
+}
+
+impl From<KeyHandle> for CertArg<'_> {
+    fn from(kh: KeyHandle) -> Self {
+        CertArg::Cert(kh)
+    }
+}
+
+impl<'a> From<&'a KeyHandle> for CertArg<'_> {
+    fn from(kh: &'a KeyHandle) -> Self {
+        CertArg::Cert(kh.clone())
+    }
+}
+
+impl From<Fingerprint> for CertArg<'_> {
+    fn from(fpr: Fingerprint) -> Self {
+        CertArg::Cert(fpr.into())
+    }
+}
+
+impl<'a> From<&'a Fingerprint> for CertArg<'_> {
+    fn from(fpr: &'a Fingerprint) -> Self {
+        CertArg::Cert(fpr.into())
+    }
+}
+
+impl<'a> From<&'a Cert> for CertArg<'_> {
+    fn from(cert: &'a Cert) -> Self {
+        CertArg::Cert(cert.key_handle())
+    }
+}
+
+impl CertArg<'_> {
+    /// Add the argument to a `Command`.
+    pub fn as_arg<'a, P>(&self, cmd: &mut Command, prefix: P)
+    where P: Into<Option<&'a str>>
+    {
+        cmd.args(self.raw(prefix));
+    }
+
+    pub fn raw<'a, P>(&self, prefix: P) -> Vec<String>
+    where P: Into<Option<&'a str>>
+    {
+        let prefix = prefix.into();
+
+        let s;
+        let (suffix, value) = match self {
+            CertArg::Stdin() => (Some("file"), Some("-")),
+            CertArg::File(p) => {
+                s = p.display().to_string();
+                (Some("file"), Some(&s[..]))
+            }
+            CertArg::Cert(kh) => {
+                s = kh.to_string();
+                if prefix.is_none() {
+                    (Some("cert"), Some(&s[..]))
+                } else {
+                    (None, Some(&s[..]))
+                }
+            }
+            CertArg::UserID(userid) => (Some("userid"), Some(*userid)),
+            CertArg::Email(email) => (Some("email"), Some(*email)),
+            CertArg::Domain(domain) => (Some("domain"), Some(*domain)),
+            CertArg::Grep(pattern) => (Some("grep"), Some(*pattern)),
+            CertArg::Special(special) => (Some("special"), Some(*special)),
+            CertArg::Self_() => (Some("self"), None),
+        };
+
+        let arg = match (prefix, suffix) {
+            (Some(prefix), Some(suffix)) => {
+                format!("--{}-{}", prefix, suffix)
+            }
+            (None, Some(suffix)) => {
+                format!("--{}", suffix)
+            }
+            (Some(prefix), None) => {
+                format!("--{}", prefix)
+            }
+            (None, None) => panic!("No prefix and no suffix specified"),
+        };
+
+        if let Some(value) = value {
+            vec![ arg, value.to_string() ]
+        } else {
+            vec![ arg ]
+        }
+    }
+}
+
+impl std::fmt::Display for CertArg<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>)
+        -> std::result::Result<(), std::fmt::Error>
+    {
+        write!(f, "{}", self.raw(None).join(" "))
+    }
+}
+
 // When calling a function like `Sq::key_generate` that has an `&[U]
 // where U: Into<UserIDArg` parameter, we can't pass `&[]`, because
 // rust can't infer a type for `U`.  Instead, we can use this.
@@ -1860,24 +1981,22 @@ impl Sq {
     }
 
     /// List certifications made by certifier.
-    pub fn try_pki_vouch_list<H>(&self, extra_args: &[&str], certifier: H)
+    pub fn try_pki_vouch_list<'a, C1, C2>(&self, extra_args: &[&str],
+                                          certifier: C1, cert: C2)
         -> Result<String>
-    where H: Into<FileOrKeyHandle>,
+    where C1: Into<Option<CertArg<'a>>>,
+          C2: Into<Option<CertArg<'a>>>
     {
-        let certifier = certifier.into();
-
         let mut cmd = self.command();
         cmd.args([ "pki", "vouch", "list" ]);
         for arg in extra_args {
             cmd.arg(arg);
         }
-        match &certifier {
-            FileOrKeyHandle::FileOrStdin(file) => {
-                cmd.arg("--certifier-file").arg(file);
-            }
-            FileOrKeyHandle::KeyHandle((_kh, s)) => {
-                cmd.arg("--certifier").arg(s);
-            }
+        if let Some(certifier) = certifier.into() {
+            certifier.as_arg(&mut cmd, "certifier");
+        }
+        if let Some(cert) = cert.into() {
+            cert.as_arg(&mut cmd, "cert");
         }
 
         let output = self.run(cmd, None);
@@ -1891,11 +2010,13 @@ impl Sq {
     }
 
     /// List certifications made by certifier.
-    pub fn pki_vouch_list<H>(&self, extra_args: &[&str], certifier: H)
+    pub fn pki_vouch_list<'a, C1, C2>(&self, extra_args: &[&str],
+                                      certifier: C1, cert: C2)
         -> String
-    where H: Into<FileOrKeyHandle>,
+    where C1: Into<Option<CertArg<'a>>>,
+          C2: Into<Option<CertArg<'a>>>
     {
-        self.try_pki_vouch_list(extra_args, certifier)
+        self.try_pki_vouch_list(extra_args, certifier, cert)
             .expect("success")
     }
 

@@ -94,35 +94,46 @@ fn list_with_unauthenticated_handle() {
         &alice_cert.key_handle(), bob_cert.key_handle(), &[bob_userid],
         None);
 
-    // We need to link a user ID otherwise sq pki link list will
+    // We need to link a user ID otherwise sq pki vouch list will
     // refuse to list the certificate.
     sq.pki_link_add(
         &["--amount", "40"], alice_cert.key_handle(), &[ alice_userid ]);
 
-    sq.pki_vouch_list(&[], CertArg::from(&alice_cert), None);
-    assert!(sq.try_pki_vouch_list(&[],
-                                  CertArg::UserID(alice_userid),
-                                  None).is_err());
-    assert!(sq.try_pki_vouch_list(&[],
-                                  CertArg::Email(alice_email),
-                                  None).is_err());
-    assert!(sq.try_pki_vouch_list(&[],
-                                  CertArg::Domain(alice_domain),
-                                  None).is_err());
+    for linked in [false, true] {
+        if linked {
+            // The second time through we link the certificates and
+            // make sure the certificate designator actually work.
+            sq.pki_link_add(
+                &[], alice_cert.key_handle(), &[ alice_userid ]);
+            sq.pki_link_add(
+                &[], bob_cert.key_handle(), &[ bob_userid ]);
+        }
 
-    sq.pki_vouch_list(&[],
-                      CertArg::from(&alice_cert),
-                      CertArg::from(&bob_cert));
-    assert!(sq.try_pki_vouch_list(&[],
-                                  CertArg::from(&alice_cert),
-                                  CertArg::UserID(bob_userid)).is_err());
-    assert!(sq.try_pki_vouch_list(&[],
-                                  CertArg::from(&alice_cert),
-                                  CertArg::Email(bob_email)).is_err());
-    assert!(sq.try_pki_vouch_list(&[],
-                                  CertArg::from(&alice_cert),
-                                  CertArg::Domain(bob_domain)).is_err());
-    assert!(sq.try_pki_vouch_list(&[],
-                                  CertArg::from(&alice_cert),
-                                  CertArg::Grep(&bob_name[1..])).is_err());
+
+        sq.pki_vouch_list(&[], CertArg::from(&alice_cert), None);
+        assert_eq!(sq.try_pki_vouch_list(&[],
+                                         CertArg::UserID(alice_userid),
+                                         None).is_ok(),
+                   linked);
+        assert_eq!(sq.try_pki_vouch_list(&[],
+                                         CertArg::Email(alice_email),
+                                         None).is_ok(),
+                   linked);
+
+        sq.pki_vouch_list(&[],
+                          CertArg::from(&alice_cert),
+                          CertArg::from(&bob_cert));
+        assert_eq!(sq.try_pki_vouch_list(&[],
+                                         CertArg::from(&alice_cert),
+                                         CertArg::UserID(bob_userid)).is_ok(),
+                   linked);
+        assert_eq!(sq.try_pki_vouch_list(&[],
+                                         CertArg::from(&alice_cert),
+                                         CertArg::Email(bob_email)).is_ok(),
+                   linked);
+        assert_eq!(sq.try_pki_vouch_list(&[],
+                                         CertArg::from(&alice_cert),
+                                         CertArg::Domain(bob_domain)).is_ok(),
+                   linked);
+    }
 }

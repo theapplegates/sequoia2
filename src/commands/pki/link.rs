@@ -4,9 +4,6 @@ use std::{
 
 use anyhow::Result;
 
-use sequoia_cert_store as cert_store;
-use cert_store::Store;
-
 use crate::Sq;
 use crate::common::NULL_POLICY;
 
@@ -15,13 +12,15 @@ use crate::cli::types::Expiration;
 use crate::cli::types::TrustAmount;
 use crate::sq::TrustThreshold;
 
+mod list;
+
 pub fn link(sq: Sq, c: link::Command) -> Result<()> {
     use link::Subcommands::*;
     match c.subcommand {
         Add(c) => add(sq, c)?,
         Authorize(c) => authorize(sq, c)?,
         Retract(c) => retract(sq, c)?,
-        List(c) => list(sq, c)?,
+        List(c) => list::list(sq, c)?,
     }
     Ok(())
 }
@@ -140,19 +139,4 @@ pub fn retract(sq: Sq, c: link::RetractCommand)
         &notations[..],
         None, // Output.
         false) // Binary.
-}
-
-pub fn list(sq: Sq, c: link::ListCommand)
-    -> Result<()>
-{
-    let cert_store = sq.cert_store_or_else()?;
-    cert_store.prefetch_all();
-
-    let trust_root = sq.local_trust_root()?;
-    let trust_root = trust_root.to_cert()?;
-
-    crate::common::pki::list::list(
-        sq, &trust_root, c.certs, c.pattern, c.ca, true)?;
-
-    Ok(())
 }

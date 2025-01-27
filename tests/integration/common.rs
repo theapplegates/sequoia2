@@ -1,6 +1,7 @@
 #![allow(unused)]
 
 use std::borrow::Borrow;
+use std::collections::BTreeMap;
 use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::fs::File;
@@ -63,6 +64,71 @@ pub fn power_set<T: Clone>(set: &[T]) -> Vec<Vec<T>> {
 /// Returns the time formatted as an ISO 8106 string.
 pub fn time_as_string(t: DateTime<Utc>) -> String {
     t.format("%Y-%m-%dT%H:%M:%SZ").to_string()
+}
+
+/// Extracts fingerprints from human readable output and returns a map
+/// from fingerprint to count.
+pub fn extract_fingerprints(output: &str) -> BTreeMap<Fingerprint, usize> {
+    use regex::Regex;
+
+    // v4 fingerprints without spaces.
+    let re = Regex::new(r"(\b[A-F0-9]{40}\b)").unwrap();
+
+    let mut fprs: Vec<(Fingerprint, usize)> = re
+        .captures_iter(output).map(|c| c.extract())
+        .map(|(_, [fpr])| {
+            (fpr.parse::<Fingerprint>().expect("valid fingerprint"), 1)
+        })
+        .collect();
+
+    fprs.sort();
+    fprs.dedup_by(|a, b| {
+            if a.0 == b.0 {
+                // a is removed
+                b.1 += a.1;
+                true
+            } else {
+                false
+            }
+        });
+
+    fprs.into_iter().collect()
+}
+
+pub fn check_fingerprints<B>(output: &str,
+                             expected: B)
+where B: Into<BTreeMap<Fingerprint, usize>>
+{
+    let expected = expected.into();
+
+    let got = extract_fingerprints(output);
+
+    if got == expected {
+        return;
+    }
+
+    let mut bad = false;
+    for (fpr, got_count) in got.iter() {
+        let expected_count = expected.get(&fpr).unwrap_or(&0);
+        if got_count != expected_count {
+            eprintln!("Got {} {} times, but expected it {} times",
+                      fpr, got_count, expected_count);
+            bad = true;
+        }
+    }
+    for (fpr, expected_count) in expected.iter() {
+        let got_count = got.get(&fpr).unwrap_or(&0);
+        if *got_count == 0 && *expected_count > 0 {
+            eprintln!("Got {} {} times, but expected it {} times",
+                      fpr, got_count, expected_count);
+            bad = true;
+        }
+    }
+
+    if bad {
+        eprintln!("Output is:\n{}", output);
+        panic!("Fingerprint mismatch");
+    }
 }
 
 /// Designates a certificate by path, or by key handle.

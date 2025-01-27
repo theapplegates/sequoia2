@@ -45,21 +45,22 @@ test_examples!(sq_pki_vouch_list, LIST_EXAMPLES);
 #[derive(Parser, Debug)]
 #[clap(
     name = "list",
-    about = "List certifications made by a certificate",
+    about = "List certifications",
     long_about = "\
-List certifications made by a certificate
+List certifications
 
-This command lists the most recent active and valid certification for \
-a binding, if any.  An active certification is one that was made prior \
-to the reference time, and has not expired.  A certification is valid \
-if it is well formed, and accepted by the current cryptographic policy.
+If the certifier argument is provided, then certifications made by the \
+specified certificate are shown.  If the certificate argument is \
+provided, then certifications of the specified certificate are shown. \
+If both are provided, then certifications of the specified certificate \
+made by the specified certifier are shown.
 
-Note: this command will list certifications with a trust amount of \
-zero.
+This command lists all of certifications, not just the active \
+certification.
 
 Because certifications are associated with the certificated \
 certificate and not the certifier's certificate, this list is likely \
-to be incomplete.
+incomplete.
 
 Stable since 1.2.0.
 ",
@@ -69,22 +70,10 @@ pub struct Command {
     #[command(flatten)]
     pub certifier: CertDesignators<cert_designator::CertUserIDEmailFileSelfSpecialArgs,
                                    cert_designator::CertifierPrefix,
-                                   cert_designator::OneValue>,
+                                   cert_designator::OneOptionalValue>,
 
     #[command(flatten)]
-    pub certs: CertDesignators<cert_designator::CertUserIDEmailDomainGrepArgs,
-                               cert_designator::CertPrefix,
-                               cert_designator::OptionalValue>,
-
-    /// A pattern to select the bindings to authenticate
-    ///
-    /// The pattern is treated as a UTF-8 encoded string and a
-    /// case insensitive substring search (using the current
-    /// locale) is performed against each User ID.  If a User ID
-    /// is not valid UTF-8, the binding is ignored.
-    #[clap(
-        conflicts_with_all = &["cert", "cert-userid", "cert-email",
-                               "cert-domain", "cert-grep"],
-    )]
-    pub pattern: Option<String>,
+    pub cert: CertDesignators<cert_designator::CertUserIDEmailFileArgs,
+                              cert_designator::CertPrefix,
+                              cert_designator::OneOptionalValue>,
 }

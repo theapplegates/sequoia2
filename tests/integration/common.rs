@@ -2552,13 +2552,13 @@ impl Sq {
         let output = self.run(cmd, None);
 
         if output.status.success() {
-            let parser = None;
+            let mut parser = None;
             if let Some(output_file) = output_file {
                 if PathBuf::from("-").as_path() != output_file {
-                    CertParser::from_file(&output_file)
-                        .expect("can parse certificate");
+                    parser = Some(CertParser::from_file(&output_file)
+                                  .expect("can parse certificate"));
                 }
-            };
+            }
             let parser = if let Some(parser) = parser {
                 parser
             } else {

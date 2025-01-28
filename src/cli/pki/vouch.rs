@@ -3,6 +3,7 @@
 pub mod authorize;
 pub mod add;
 pub mod list;
+pub mod replay;
 
 use clap::{Parser, Subcommand};
 
@@ -101,4 +102,5 @@ pub enum Subcommands {
     Add(add::Command),
     Authorize(authorize::Command),
     List(list::Command),
+    Replay(replay::Command),
 }

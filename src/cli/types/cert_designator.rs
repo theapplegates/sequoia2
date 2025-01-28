@@ -108,6 +108,32 @@ impl ArgumentPrefix for CertifierPrefix {
     }
 }
 
+/// "--source", "--source-userid", "--source-file", etc.
+pub type SourcePrefix = ConcreteArgumentPrefix<typenum::U6>;
+
+impl ArgumentPrefix for SourcePrefix {
+    fn prefix() -> &'static str {
+        "source-"
+    }
+
+    fn name() -> &'static str {
+        "source"
+    }
+}
+
+/// "--target", "--target-userid", "--target-file", etc.
+pub type TargetPrefix = ConcreteArgumentPrefix<typenum::U7>;
+
+impl ArgumentPrefix for TargetPrefix {
+    fn prefix() -> &'static str {
+        "target-"
+    }
+
+    fn name() -> &'static str {
+        "target"
+    }
+}
+
 /// Adds a `--file` argument.
 pub type FileArg = typenum::U1;
 

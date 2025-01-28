@@ -702,6 +702,12 @@ impl Sq {
         self.now += std::time::Duration::new(secs, 0);
     }
 
+    /// Rewinds the clock by `sec` number of seconds.
+    pub fn rewind(&mut self, secs: u64)
+    {
+        self.now -= std::time::Duration::new(secs, 0);
+    }
+
     /// Returns a command that is set to run `sq`.  The home directory
     /// and time are already set.
     pub fn command(&self) -> Command {
@@ -1900,6 +1906,18 @@ impl Sq {
             .expect("can parse certificate")
     }
 
+    pub fn cert_export_all(&self) -> Vec<Cert>
+    {
+        let mut cmd = self.command();
+        cmd.args([ "cert", "export", "--all" ]);
+        let output = self.run(cmd, Some(true));
+
+        CertParser::from_bytes(&output.stdout)
+            .expect("can parse certificate")
+            .collect::<Result<Vec<Cert>>>()
+            .expect("can export")
+    }
+
     /// Try to certify the user ID binding.
     ///
     /// If `output_file` is `Some`, then the output is written to that
@@ -2083,6 +2101,69 @@ impl Sq {
           C2: Into<Option<CertArg<'a>>>
     {
         self.try_pki_vouch_list(extra_args, certifier, cert)
+            .expect("success")
+    }
+
+    /// Replays active certifications made by `source` using `target`.
+    ///
+    /// If `output_file` is not `None`, then the output is parsed and
+    /// returned.  If `output_file` is `None`, then an empty vector is
+    /// returned.
+    pub fn try_pki_vouch_replay<'a, O>(&self, extra_args: &[&str],
+                                       source: CertArg,
+                                       target: CertArg,
+                                       output_file: O)
+        -> Result<Vec<Cert>>
+    where O: Into<Option<&'a Path>>,
+    {
+        let mut cmd = self.command();
+        cmd.args([ "pki", "vouch", "replay" ]);
+        for arg in extra_args {
+            cmd.arg(arg);
+        }
+        if let Some(source) = source.into() {
+            source.as_arg(&mut cmd, "source");
+        }
+        if let Some(target) = target.into() {
+            target.as_arg(&mut cmd, "target");
+        }
+
+        let output = self.run(cmd, None);
+        if output.status.success() {
+            if let Some(output_file) = output_file.into() {
+                let parser = if PathBuf::from("-").as_path() == output_file {
+                    CertParser::from_bytes(&output.stdout)
+                        .expect("can parse certificate")
+                } else {
+                    CertParser::from_file(&output_file)
+                        .expect("can parse certificate")
+                };
+                parser.collect::<Result<Vec<_>>>()
+            } else {
+                // We don't try to figure out what was certificated,
+                // but just return an empty vector.
+                Ok(Vec::new())
+            }
+        } else {
+            Err(anyhow::anyhow!(
+                "Failed: {}",
+                String::from_utf8_lossy(&output.stderr).to_string()))
+        }
+    }
+
+    /// Replays active certifications made by `source` using `target`.
+    ///
+    /// If `output_file` is not `None`, then the output is parsed and
+    /// returned.  If `output_file` is `None`, then an empty vector is
+    /// returned.
+    pub fn pki_vouch_replay<'a, O>(&self, extra_args: &[&str],
+                                   source: CertArg,
+                                   target: CertArg,
+                                   output_file: O)
+        -> Vec<Cert>
+    where O: Into<Option<&'a Path>>,
+    {
+        self.try_pki_vouch_replay(extra_args, source, target, output_file)
             .expect("success")
     }
 

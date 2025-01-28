@@ -6,6 +6,8 @@
 ** New functionality
    - `sq pki vouch list` lists certifications made by a particular
      certificate or made on a particular certificate.
+   - `sq pki vouch replay` replays the certifications made by one
+     certificate using another certificate.
 ** Notable fixes
    - `sq packet dump` no longer duplicates the PKESK or SKESK packet
      immediately preceding the SEIPD packet.

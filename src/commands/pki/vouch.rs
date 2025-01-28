@@ -9,6 +9,7 @@ use crate::Sq;
 pub mod authorize;
 pub mod add;
 pub mod list;
+pub mod replay;
 
 pub fn vouch(sq: Sq, c: vouch::Command, matches: &ArgMatches) -> Result<()> {
     use vouch::Subcommands::*;
@@ -25,6 +26,9 @@ pub fn vouch(sq: Sq, c: vouch::Command, matches: &ArgMatches) -> Result<()> {
         },
         List(c) => {
             list::list(sq, c)
+        },
+        Replay(c) => {
+            replay::replay(sq, c)
         },
     }
 }

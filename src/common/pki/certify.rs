@@ -30,7 +30,10 @@ use crate::cli::types::userid_designator::ResolvedUserID;
 use crate::commands::active_certification;
 use crate::common::ui;
 
-// Returns whether two certifications have the same parameters.
+// Returns whether two certifications have different parameters.
+//
+// Returns true if the parameters are different.  Returns false if
+// they are the same.
 //
 // This does some normalization and only considers things that are
 // relevant to certifications:

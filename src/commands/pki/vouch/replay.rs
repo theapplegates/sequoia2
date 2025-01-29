@@ -66,7 +66,7 @@ pub fn replay(sq: Sq, c: replay::Command)
 
     let source = RefCell::new(source);
     let results = crate::common::pki::replay::replay(
-        &sq, o, RefCell::clone(&source), &target)?;
+        &sq, o, "", RefCell::clone(&source), &target)?;
 
     if results.is_empty() {
         return Ok(());

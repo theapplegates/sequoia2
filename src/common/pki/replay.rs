@@ -20,7 +20,7 @@ use crate::common::pki::list::summarize_certification;
 use crate::common::ui::emit_cert_userid;
 use crate::common::ui;
 
-const TRACE: bool = true;
+const TRACE: bool = false;
 
 /// Replays the active certifications made by source using target.
 ///

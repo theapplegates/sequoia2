@@ -17,6 +17,7 @@ mod integration {
     mod sq_key_list;
     mod sq_key_password;
     mod sq_key_revoke;
+    mod sq_key_rotate;
     mod sq_key_subkey;
     mod sq_key_subkey_bind;
     mod sq_key_subkey_delete;

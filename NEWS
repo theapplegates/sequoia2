@@ -8,6 +8,9 @@
      certificate or made on a particular certificate.
    - `sq pki vouch replay` replays the certifications made by one
      certificate using another certificate.
+   - `sq key rotate` generates a new certificate based on an existing
+     one.  It also copies links, recreates certifications, and retires
+     the old certificate.
 ** Notable fixes
    - `sq packet dump` no longer duplicates the PKESK or SKESK packet
      immediately preceding the SEIPD packet.

@@ -152,6 +152,12 @@ pub const THIRD_PARTY_CERTIFICATION_VALIDITY_DURATION: Duration = Duration::new(
     0,
 );
 
+/// The default time (in days) to retire a certificate after rotation.
+pub const KEY_ROTATE_RETIRE_IN_IN_DAYS: u64 = 182;
+/// The default time to retire a certificate after rotation.
+pub const KEY_ROTATE_RETIRE_IN_DURATION: Duration =
+    Duration::new(SECONDS_IN_DAY * KEY_ROTATE_RETIRE_IN_IN_DAYS, 0);
+
 pub const GLOBAL_OPTIONS_HEADER: &str = "Global Options";
 
 /// Builds the top-level Clap command.

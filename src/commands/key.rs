@@ -17,6 +17,7 @@ use list::list;
 mod generate;
 use generate::generate;
 mod password;
+mod rotate;
 mod revoke;
 use revoke::certificate_revoke;
 mod subkey;
@@ -34,6 +35,11 @@ pub fn dispatch(sq: Sq, command: cli::key::Command, matches: &ArgMatches)
             c.profile_source = matches.value_source("profile");
             generate(sq, c)?
         },
+        Rotate(mut c) => {
+            c.cipher_suite_source = matches.value_source("cipher_suite");
+            c.profile_source = matches.value_source("profile");
+            rotate::dispatch(sq, c)?
+        }
         Import(c) => import(sq, c)?,
         Export(c) => export::dispatch(sq, c)?,
         Delete(c) => delete::dispatch(sq, c)?,

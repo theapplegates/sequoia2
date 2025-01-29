@@ -1163,6 +1163,65 @@ impl Sq {
         (cert, cert_filename, rev_filename)
     }
 
+    /// Run `sq key rotate`.
+    ///
+    /// If `output_file` is not `None`, then it is parsed and
+    /// returned.  Otherwise, an empty vector is returned.
+    pub fn try_key_rotate<'a, O>(&self, extra_args: &[&str],
+                                 cert: CertArg,
+                                 output_file: O)
+        -> Result<Vec<Cert>>
+    where O: Into<Option<&'a Path>>,
+    {
+        let mut cmd = self.command();
+        cmd.args([ "key", "rotate" ]);
+        for arg in extra_args {
+            cmd.arg(arg);
+        }
+        if ! extra_args.contains(&"--new-password-file") {
+            cmd.arg("--without-password");
+        }
+        if let Some(cert) = cert.into() {
+            cert.as_arg(&mut cmd, "cert");
+        }
+
+        let output = self.run(cmd, None);
+        if output.status.success() {
+            if let Some(output_file) = output_file.into() {
+                let parser = if PathBuf::from("-").as_path() == output_file {
+                    CertParser::from_bytes(&output.stdout)
+                        .expect("can parse certificate")
+                } else {
+                    CertParser::from_file(&output_file)
+                        .expect("can parse certificate")
+                };
+                parser.collect::<Result<Vec<_>>>()
+            } else {
+                // We don't try to figure out what was certificated,
+                // but just return an empty vector.
+                Ok(Vec::new())
+            }
+        } else {
+            Err(anyhow::anyhow!(
+                "Failed: {}",
+                String::from_utf8_lossy(&output.stderr).to_string()))
+        }
+    }
+
+    /// Run `sq key rotate`.
+    ///
+    /// If `output_file` is not `None`, then it is parsed and
+    /// returned.  Otherwise, an empty vector is returned.
+    pub fn key_rotate<'a, O>(&self, extra_args: &[&str],
+                             cert: CertArg,
+                             output_file: O)
+        -> Vec<Cert>
+    where O: Into<Option<&'a Path>>,
+    {
+        self.try_key_rotate(extra_args, cert, output_file)
+            .expect("success")
+    }
+
     /// Run `sq inspect` and return stdout.
     pub fn inspect<H>(&self, handle: H) -> String
     where H: Into<FileOrKeyHandle>

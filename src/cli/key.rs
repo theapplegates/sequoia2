@@ -15,6 +15,7 @@ pub mod import;
 pub mod list;
 pub mod password;
 pub mod revoke;
+pub mod rotate;
 pub mod subkey;
 pub mod userid;
 
@@ -81,6 +82,7 @@ pub struct Command {
 pub enum Subcommands {
     List(list::Command),
     Generate(generate::Command),
+    Rotate(rotate::Command),
     Import(import::Command),
     Export(export::Command),
     Delete(delete::Command),

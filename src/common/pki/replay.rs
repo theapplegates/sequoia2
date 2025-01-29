@@ -332,6 +332,9 @@ pub fn replay(sq: &Sq, o: &mut dyn std::io::Write, indent: &str,
                     }
                 }
 
+                wwriteln!(stream = o, indent = strcat(indent, "  "),
+                          "Replayed certification.");
+
                 good = true;
                 break;
             }

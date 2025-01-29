@@ -43,8 +43,13 @@ fn strcat<'a>(a: &'a str, b: &'a str) -> Cow<'a, str> {
 /// Certifications are also not replayed if a binding is invalid (the
 /// certificate is not valid according to the policy, is revoked, or
 /// not live, or the user ID is revoked).
+///
+/// If `certs` is provided, only certifications of the specified
+/// certificates are replyed.  Otherwise, all certificates are
+/// considered.
 pub fn replay(sq: &Sq, o: &mut dyn std::io::Write, indent: &str,
-              source: RefCell<Cert>, target: &Cert)
+              source: RefCell<Cert>, target: &Cert,
+              certs: Option<&[RefCell<Cert>]>)
     -> Result<Vec<Cert>>
 {
     tracer!(TRACE, "pki::replay");
@@ -59,8 +64,19 @@ pub fn replay(sq: &Sq, o: &mut dyn std::io::Write, indent: &str,
     let mut signer = sq.get_certification_key(target, None)?;
 
     // Get all of the certifications that the source made.
-    let certifications = crate::common::pki::list::list_certifications(
-        &sq, Some(RefCell::clone(&source)), None)?;
+    let certifications = if let Some(certs) = certs {
+        let mut results = Vec::new();
+        for cert in certs {
+            results.append(
+                &mut crate::common::pki::list::list_certifications(
+                    &sq, Some(RefCell::clone(&source)),
+                    Some(RefCell::clone(cert)))?);
+        }
+        results
+    } else {
+        crate::common::pki::list::list_certifications(
+            &sq, Some(RefCell::clone(&source)), None)?
+    };
 
     // Drop the certifier (its always source) and convert the
     // certifications to a vector so that we can merge them.

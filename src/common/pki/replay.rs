@@ -10,6 +10,7 @@ use openpgp::Cert;
 use openpgp::Fingerprint;
 use openpgp::Packet;
 use openpgp::Result;
+use openpgp::crypto;
 use openpgp::packet::signature::SignatureBuilder;
 use openpgp::policy::HashAlgoSecurity;
 use openpgp::policy::Policy;
@@ -48,7 +49,9 @@ fn strcat<'a>(a: &'a str, b: &'a str) -> Cow<'a, str> {
 /// certificates are replyed.  Otherwise, all certificates are
 /// considered.
 pub fn replay(sq: &Sq, o: &mut dyn std::io::Write, indent: &str,
-              source: RefCell<Cert>, target: &Cert,
+              source: RefCell<Cert>,
+              target: &Cert,
+              target_signer: Option<&mut Box<dyn crypto::Signer + Send + Sync>>,
               certs: Option<&[RefCell<Cert>]>)
     -> Result<Vec<Cert>>
 {
@@ -61,7 +64,13 @@ pub fn replay(sq: &Sq, o: &mut dyn std::io::Write, indent: &str,
 
     // Get the signer to certify with (and fail early if its not
     // available).
-    let mut signer = sq.get_certification_key(target, None)?;
+    let mut signer_;
+    let signer = if let Some(signer) = target_signer {
+        signer
+    } else {
+        signer_ = sq.get_certification_key(target, None)?;
+        &mut signer_
+    };
 
     // Get all of the certifications that the source made.
     let certifications = if let Some(certs) = certs {
@@ -323,7 +332,7 @@ pub fn replay(sq: &Sq, o: &mut dyn std::io::Write, indent: &str,
                 let builder = builder.set_signature_creation_time(sq.time)?;
 
                 let sig = builder.sign_userid_binding(
-                    &mut signer,
+                    signer,
                     cert.primary_key().key(),
                     &userid)
                     .with_context(|| {

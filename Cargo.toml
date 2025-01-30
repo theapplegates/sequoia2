@@ -42,6 +42,7 @@ sequoia-policy-config = ">= 0.7, <0.8"
 anyhow = "1.0.18"
 chrono = "0.4.10"
 clap = { version = "4", features = ["derive", "env", "string", "wrap_help"] }
+clap_lex = { version = "0.7", default-features = false }
 futures-util = "0.3"
 gethostname = { version = ">=0.4, <0.6" }
 humantime = "2"
@@ -75,6 +76,7 @@ anyhow = "1.0.18"
 buffered-reader = { version = "1.0.0", default-features = false, features = ["compression"] }
 clap = { version = "4", features = ["derive", "env", "string", "wrap_help"] }
 clap_complete = "4"
+clap_lex = { version = "0.7", default-features = false }
 chrono = "0.4.38"
 dirs = "5"
 roff = "0.2.1"

@@ -3723,6 +3723,7 @@ dependencies = [
  "chrono",
  "clap",
  "clap_complete",
+ "clap_lex",
  "culpa",
  "dirs",
  "filetime",

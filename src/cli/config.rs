@@ -2,6 +2,8 @@
 
 use std::{
     collections::BTreeMap,
+    ffi::OsStr,
+    path::PathBuf,
     sync::OnceLock,
 };
 
@@ -9,6 +11,7 @@ use clap::{
     Parser,
     Subcommand,
 };
+use clap_lex::OsStrExt;
 
 use sequoia_directories::Home;
 
@@ -22,7 +25,7 @@ pub mod template;
 ///
 /// This happens notably if `--help` is given.
 pub fn find_home() -> Option<Home> {
-    let args = std::env::args().collect::<Vec<_>>();
+    let args = std::env::args_os().collect::<Vec<_>>();
 
     for (i, arg) in args.iter().enumerate() {
         if arg == "--" {
@@ -30,23 +33,23 @@ pub fn find_home() -> Option<Home> {
         }
 
         if arg.starts_with("--home=") {
-            return handle(Some(arg["--home=".len()..].into()));
+            return handle(arg.strip_prefix("--home="));
         }
 
         if arg == "--home" {
             if let Some(home) = args.get(i + 1) {
-                return handle(Some(home.into()));
+                return handle(Some(home.as_os_str()));
             }
         }
     }
 
     /// Handle the argument to `--home`.
-    fn handle(arg: Option<String>) -> Option<Home> {
+    fn handle(arg: Option<&OsStr>) -> Option<Home> {
         if let Some(arg) = arg {
-            match arg.as_str() {
-                "default" => Home::default().cloned(),
-                "none" => None,
-                _ => Home::new(Some(arg.into())).ok(),
+            match arg.to_str() {
+                Some("default") => Home::default().cloned(),
+                Some("none") => None,
+                _ => Home::new(Some(PathBuf::from(arg))).ok(),
             }
         } else {
             // No argument to `--home` is a syntax error.

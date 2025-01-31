@@ -56,20 +56,29 @@ impl Hint {
 /// A structured command hint.
 pub struct Command {
     hint: Hint,
-    args: Vec<String>,
+    args: Vec<(String, Option<String>)>,
 }
 
 impl Command {
     fn new(hint: Hint, argv0: &str) -> Self {
         Command {
             hint,
-            args: vec![argv0.into()],
+            args: vec![(argv0.into(), None)],
         }
     }
 
     /// Adds `arg` to the command.
     pub fn arg<S: ToString>(mut self, arg: S) -> Self {
-        self.args.push(arg.to_string());
+        self.args.push((arg.to_string(), None));
+        self
+    }
+
+    /// Adds `arg` to the command, but show the user the replacement.
+    pub fn arg_hidden<S: ToString, R: ToString>(
+        mut self, arg: S, replacement: R)
+        -> Self
+    {
+        self.args.push((arg.to_string(), Some(replacement.to_string())));
         self
     }
 
@@ -77,7 +86,23 @@ impl Command {
     pub fn arg_value<S: ToString, V: ToString>(mut self, arg: S, value: V)
                                                -> Self
     {
-        self.args.push(format!("{}={}", arg.to_string(), value.to_string()));
+        self.args.push(
+            (format!("{}={}", arg.to_string(), value.to_string()),
+             None));
+        self
+    }
+
+    /// Adds an argument `arg` with value to the command, but show the
+    /// user the replacement value.
+    pub fn arg_value_hidden<S: ToString, V: ToString, R: ToString>(
+        mut self, arg: S, value: V, replacement_value: R)
+        -> Self
+    {
+        self.args.push(
+            (format!("{}={}", arg.to_string(), value.to_string()),
+             Some(format!("{}={}",
+                          arg.to_string(),
+                          replacement_value.to_string()))));
         self
     }
 
@@ -95,14 +120,27 @@ impl Command {
 
             let width = crate::output::wrapping::stderr_terminal_width();
 
+            let args = self.args.iter()
+                .map(|(arg, replacement)| {
+                    if let Some(replacement) = replacement {
+                        replacement
+                    } else {
+                        arg
+                    }
+                })
+                .collect::<Vec<_>>();
+
             eprintln!();
             eprintln!("{}", crate::cli::examples::wrap_command(
-                &self.args, &[], "  ", width, "    ", width));
+                &args, &[], "  ", width, "    ", width));
         }
 
-        if cfg!(debug_assertions) && self.args[0] == "sq" {
+        if cfg!(debug_assertions) && self.args[0].0 == "sq" {
             let cli = crate::cli::build(false);
-            if let Err(e) = cli.try_get_matches_from(self.args.iter()) {
+
+            if let Err(e)
+                = cli.try_get_matches_from(self.args.iter().map(|(a, _)| a))
+            {
                 panic!("bad hint, parsing {}", e);
             }
         }

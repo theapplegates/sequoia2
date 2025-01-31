@@ -252,6 +252,15 @@ pub fn required_trust_amount(trust_amount: Option<TrustAmount<usize>>,
     Ok(amount)
 }
 
+/// The context in which authenticate is called.
+///
+/// This controls the output.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AuthenticateContext {
+    PKI,
+    Download,
+}
+
 /// Authenticate bindings defined by a Query on a Network
 ///
 /// If `gossip` is specified, paths that are not rooted are still
@@ -259,6 +268,7 @@ pub fn required_trust_amount(trust_amount: Option<TrustAmount<usize>>,
 pub fn authenticate<'store, 'rstore, Q>(
     o: &mut dyn std::io::Write,
     sq: &Sq<'store, 'rstore>,
+    context: AuthenticateContext,
     queries: Vec<Q>,
     gossip: bool,
     unusable: bool,
@@ -770,12 +780,14 @@ where 'store: 'rstore,
         // We didn't show anything.  Try to figure out what was wrong.
         let query = &queries[i];
 
-        if gossip {
-            qprintln!("No valid bindings match {}.",
-                      query.argument.as_deref().unwrap_or("the query"));
-        } else {
-            qprintln!("No bindings matching {} could be authenticated.",
-                      query.argument.as_deref().unwrap_or("the query"));
+        if context == AuthenticateContext::PKI {
+            if gossip {
+                qprintln!("No valid bindings match {}.",
+                          query.argument.as_deref().unwrap_or("the query"));
+            } else {
+                qprintln!("No bindings matching {} could be authenticated.",
+                          query.argument.as_deref().unwrap_or("the query"));
+            }
         }
 
         for (lint, for_cert, is) in lints.iter() {
@@ -802,7 +814,7 @@ where 'store: 'rstore,
     }
 
     // See if the trust roots exist.
-    if unsatisfied > 0 && ! gossip {
+    if unsatisfied > 0 && ! gossip && context == AuthenticateContext::PKI {
         if n.roots().iter().all(|r| {
             let fpr = r.fingerprint();
             if let Err(err) = n.lookup_synopsis_by_fpr(&fpr) {
@@ -818,89 +830,91 @@ where 'store: 'rstore,
         }
     }
 
-    if bindings.is_empty() {
-        // There are no matching bindings.
+    if context == AuthenticateContext::PKI {
+        if bindings.is_empty() {
+            // There are no matching bindings.
 
-        qprintln!("No valid bindings match the query.");
+            qprintln!("No valid bindings match the query.");
 
-        if queries.len() == 1 {
-            if let QueryKind::Pattern(pattern) = &queries[0].kind {
-                // Tell the user about `sq network fetch`.
-                sq.hint(format_args!(
-                    "Try searching public directories:"))
-                    .sq().arg("network").arg("search")
-                    .arg(pattern)
-                    .done();
-            }
-        } else if n.iter_fingerprints().next().is_none() {
-            qprintln!("Warning: The certificate store does not contain any \
-                       certificates.");
+            if queries.len() == 1 {
+                if let QueryKind::Pattern(pattern) = &queries[0].kind {
+                    // Tell the user about `sq network fetch`.
+                    sq.hint(format_args!(
+                        "Try searching public directories:"))
+                        .sq().arg("network").arg("search")
+                        .arg(pattern)
+                        .done();
+                }
+            } else if n.iter_fingerprints().next().is_none() {
+                qprintln!("Warning: The certificate store does not contain any \
+                           certificates.");
 
-            if return_all {
-                sq.hint(format_args!(
-                    "Consider creating a key for yourself:"))
-                    .sq().arg("key").arg("generate")
-                    .arg_value("--name", "your-name")
-                    .arg_value("--email", "your-email-address")
-                    .arg("--own-key")
-                    .done();
+                if return_all {
+                    sq.hint(format_args!(
+                        "Consider creating a key for yourself:"))
+                        .sq().arg("key").arg("generate")
+                        .arg_value("--name", "your-name")
+                        .arg_value("--email", "your-email-address")
+                        .arg("--own-key")
+                        .done();
 
-                sq.hint(format_args!(
-                    "Consider importing other peoples' certificates:"))
-                    .sq().arg("cert").arg("import")
-                    .arg("a-cert-file.pgp")
-                    .done();
+                    sq.hint(format_args!(
+                        "Consider importing other peoples' certificates:"))
+                        .sq().arg("cert").arg("import")
+                        .arg("a-cert-file.pgp")
+                        .done();
 
-                sq.hint(format_args!(
-                    "Try searching public directories for other peoples' \
-                     certificates:"))
+                    sq.hint(format_args!(
+                        "Try searching public directories for other peoples' \
+                         certificates:"))
                     .sq().arg("network").arg("search")
                     .arg("some-mail-address")
                     .done();
+                }
+            }
+        } else if gossip {
+            // We are in gossip mode.  Mention `sq pki link` as a way to
+            // mark bindings as authenticated.
+            if bindings_authenticated > 0 {
+                qprintln!("After checking that a user ID really belongs to \
+                           a certificate, use `sq pki link add` to mark \
+                           the binding as authenticated, or use \
+                           `sq network search FINGERPRINT|EMAIL` to look for \
+                           new certifications.");
+            } else {
+                qprintln!("No bindings are valid.");
             }
         }
-    } else if gossip {
-        // We are in gossip mode.  Mention `sq pki link` as a way to
-        // mark bindings as authenticated.
-        if bindings_authenticated > 0 {
-            qprintln!("After checking that a user ID really belongs to \
-                       a certificate, use `sq pki link add` to mark \
-                       the binding as authenticated, or use \
-                       `sq network search FINGERPRINT|EMAIL` to look for \
-                       new certifications.");
-        } else {
-            qprintln!("No bindings are valid.");
-        }
-    }
 
-    if bindings.len() - bindings_authenticated > 0 {
-        // Some of the matching bindings were not shown.  Tell the
-        // user about the `--gossip` option.
-        let bindings = bindings.len();
-        assert!(bindings > 0);
-        let bindings_not_authenticated
-            = bindings - bindings_authenticated - bindings_unusable;
+        if bindings.len() - bindings_authenticated > 0 {
+            // Some of the matching bindings were not shown.  Tell the
+            // user about the `--gossip` option.
+            let bindings = bindings.len();
+            assert!(bindings > 0);
+            let bindings_not_authenticated
+                = bindings - bindings_authenticated - bindings_unusable;
 
-        if bindings == 1 {
-            qprintln!("1 binding found.");
-        } else {
-            qprintln!("{} bindings found.", bindings);
-        }
+            if bindings == 1 {
+                qprintln!("1 binding found.");
+            } else {
+                qprintln!("{} bindings found.", bindings);
+            }
 
-        if bindings_unusable == 1 {
-            qprintln!("Skipped 1 binding, which is unusable.");
-        } else if bindings_unusable > 1 {
-            qprintln!("Skipped {} bindings, which are unusable.",
-                      bindings_unusable);
-        }
+            if bindings_unusable == 1 {
+                qprintln!("Skipped 1 binding, which is unusable.");
+            } else if bindings_unusable > 1 {
+                qprintln!("Skipped {} bindings, which are unusable.",
+                          bindings_unusable);
+            }
 
-        if bindings_not_authenticated == 1 {
-            qprintln!("Skipped 1 binding, which could not be authenticated.");
-            qprintln!("Pass `--gossip` to see the unauthenticated binding.");
-        } else if bindings_not_authenticated > 1 {
-            qprintln!("Skipped {} bindings, which could not be authenticated.",
-                      bindings_not_authenticated);
-            qprintln!("Pass `--gossip` to see the unauthenticated bindings.");
+            if bindings_not_authenticated == 1 {
+                qprintln!("Skipped 1 binding, which could not be authenticated.");
+                qprintln!("Pass `--gossip` to see the unauthenticated binding.");
+            } else if bindings_not_authenticated > 1 {
+                qprintln!("Skipped {} bindings, which could not be authenticated.",
+                          bindings_not_authenticated);
+                qprintln!("Pass `--gossip` to see the unauthenticated bindings.");
+            }
         }
     }
 

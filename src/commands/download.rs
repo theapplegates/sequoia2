@@ -39,6 +39,7 @@ use crate::cli::types::TrustAmount;
 use crate::commands::network::CONNECT_TIMEOUT;
 use crate::commands::network::USER_AGENT;
 use crate::commands::verify::verify;
+use crate::common::pki::authenticate::AuthenticateContext;
 use crate::common::pki::authenticate::Query;
 use crate::common::pki::authenticate;
 use crate::common::ui;
@@ -401,6 +402,7 @@ pub fn dispatch(sq: Sq, c: download::Command)
                                     let good = authenticate(
                                         &mut std::io::stderr(),
                                         &sq,
+                                        AuthenticateContext::Download,
                                         vec![
                                             Query::for_key_handle(
                                                 None, cert.key_handle())

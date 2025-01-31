@@ -7,9 +7,10 @@ use openpgp::{
 };
 
 use crate::{
-    Sq,
     Result,
+    Sq,
     cli::cert::{Command, list, Subcommands},
+    commands::cert::authenticate::AuthenticateContext,
     commands::cert::authenticate::Query,
     commands::cert::authenticate::QueryKind,
     common::pki::authenticate,
@@ -67,6 +68,7 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
             authenticate(
                 &mut std::io::stdout(),
                 &sq,
+                AuthenticateContext::PKI,
                 certs,
                 *gossip,
                 *unusable,

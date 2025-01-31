@@ -1,12 +1,9 @@
 use std::cell::Ref;
 use std::cell::RefCell;
-use std::collections::BTreeSet;
 
 use sequoia_openpgp as openpgp;
 use openpgp::Cert;
-use openpgp::Fingerprint;
 use openpgp::KeyHandle;
-use openpgp::KeyID;
 use openpgp::Packet;
 use openpgp::packet::Signature;
 use openpgp::packet::Tag;
@@ -19,6 +16,7 @@ use cert_store::Store;
 
 use crate::Result;
 use crate::Sq;
+use crate::common::key_handle_dealias;
 use crate::common::ui;
 
 const TRACE: bool = false;
@@ -110,42 +108,7 @@ pub fn list_certifications(sq: &Sq,
                 } else {
                     // The user wants to know about any certifier.
 
-                    // Deduplicate the issuers.
-                    let mut fprs: Vec<Fingerprint> = issuers.iter()
-                        .filter_map(|kh| {
-                            match kh {
-                                KeyHandle::Fingerprint(fpr) => {
-                                    Some(fpr.clone())
-                                },
-                                KeyHandle::KeyID(_) => None,
-                            }
-                        })
-                        .collect();
-                    fprs.sort();
-                    fprs.dedup();
-
-                    let mut keyids: Vec<KeyID> = issuers.into_iter()
-                        .filter_map(|kh| {
-                            match kh {
-                                KeyHandle::Fingerprint(_) => None,
-                                KeyHandle::KeyID(keyid) => Some(keyid),
-                            }
-                        })
-                        .collect();
-                    keyids.sort();
-                    keyids.dedup();
-
-                    // Remove any key IDs that alias a fingerprint.
-                    let dedup: BTreeSet<KeyID> = fprs
-                        .iter()
-                        .map(|fpr| KeyID::from(fpr))
-                        .collect();
-
-                    keyids.retain(|keyid| ! dedup.contains(keyid));
-
-                    for kh in fprs.into_iter().map(KeyHandle::from)
-                        .chain(keyids.into_iter().map(KeyHandle::from))
-                    {
+                    for kh in key_handle_dealias(&issuers) {
                         if let Ok(certifiers)
                             = sq.lookup(std::iter::once(&kh),
                                         Some(KeyFlags::certification()),

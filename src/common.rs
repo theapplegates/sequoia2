@@ -1,11 +1,15 @@
+use std::collections::BTreeSet;
 use std::time::Duration;
 use std::time::SystemTime;
 
 use anyhow::Result;
 
+use sequoia_openpgp as openpgp;
+use openpgp::Fingerprint;
+use openpgp::KeyHandle;
+use openpgp::KeyID;
 use openpgp::packet::UserID;
 use openpgp::policy::NullPolicy;
-use sequoia_openpgp as openpgp;
 
 use sequoia_wot as wot;
 
@@ -143,4 +147,40 @@ impl PreferredUserID {
 // import it, but it is private.
 pub fn ca_creation_time() -> SystemTime {
     SystemTime::UNIX_EPOCH + Duration::new(1014235320, 0)
+}
+
+/// Dealias and deduplicate a list of key handles.
+///
+/// A signature often has a fingerprint issuer packet and a key ID
+/// issuer packet where the key ID is just the key ID of the
+/// fingerprint.  Remove these aliases.
+pub fn key_handle_dealias(khs: &[KeyHandle]) -> impl Iterator<Item = KeyHandle> {
+    let mut fprs: Vec<Fingerprint> = Vec::with_capacity(khs.len());
+    let mut keyids: Vec<KeyID> = Vec::with_capacity(khs.len());
+
+    khs.iter().fold((&mut fprs, &mut keyids), |(fprs, keyids), kh| {
+        match kh {
+            KeyHandle::Fingerprint(fpr) => fprs.push(fpr.clone()),
+            KeyHandle::KeyID(keyid) => keyids.push(keyid.clone()),
+        }
+
+        (fprs, keyids)
+    });
+
+    fprs.sort();
+    fprs.dedup();
+
+    keyids.sort();
+    keyids.dedup();
+
+    // Remove any key IDs that alias a fingerprint.
+    let dedup: BTreeSet<KeyID> = fprs
+        .iter()
+        .map(|fpr| KeyID::from(fpr))
+        .collect();
+
+    keyids.retain(|keyid| ! dedup.contains(keyid));
+
+    fprs.into_iter().map(KeyHandle::from)
+        .chain(keyids.into_iter().map(KeyHandle::from))
 }

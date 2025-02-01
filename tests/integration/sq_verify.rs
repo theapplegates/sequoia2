@@ -220,8 +220,7 @@ fn sq_verify_policy_as_of_relative_time() -> Result<()> {
     assert!(
         sq.verify_maybe(
             &[
-                // => 2025-11-01
-                "--time", "1y",
+                "--time", "2025-11-01",
                 // => 2021-11-01
                 "--policy-as-of", "-4y",
                 "--signer-file", &cert.display().to_string(),

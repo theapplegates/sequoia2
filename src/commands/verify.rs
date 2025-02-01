@@ -254,7 +254,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
             let cert = ka.cert();
             let cert_fpr = cert.fingerprint();
             let issuer = ka.key().keyid();
-            let mut signer_userid = self.sq.best_userid(ka.cert(), false);
+            let mut signer_userid = self.sq.best_userid(ka.cert(), true);
 
             // Direct trust.
             let mut authenticated = self.trusted.contains(&issuer);

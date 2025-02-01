@@ -273,20 +273,43 @@ pub fn wrap_command<S: AsRef<str>>(command: &[S],
             }
 
             // Quote the argument, if necessary.
-            let arg = if arg.contains(&[
-                '\"',
-            ]) {
-                format!("'{}'", arg)
-            } else if arg.chars().any(char::is_whitespace)
-                || arg.contains(&[
-                    '`', '#', '$', '&', '*', '(', ')',
-                    '\\', '|', '[', ']', '{', '}',
-                    ';', '\'', '<', '>', '?', '!',
-                ])
-            {
-                format!("\"{}\"", arg)
+            let quote = |arg: &str| -> String {
+                if arg.contains(&[
+                    '\"',
+                ]) {
+                    format!("'{}'", arg)
+                } else if arg.chars().any(char::is_whitespace)
+                    || arg.contains(&[
+                        '`', '#', '$', '&', '*', '(', ')',
+                        '\\', '|', '[', ']', '{', '}',
+                        ';', '\'', '<', '>', '?', '!',
+                    ])
+                {
+                    format!("\"{}\"", arg)
+                } else {
+                    arg.to_string()
+                }
+            };
+
+            // If we have --foo=bar, then only but bar in quotes.
+            let mut quoted = None;
+            if arg.starts_with("--") {
+                if let Some(i) = arg.find('=') {
+                    if arg[0..i].chars().all(|c| {
+                        c.is_alphanumeric() || c == '-'
+                    })
+                    {
+                        quoted = Some(format!("{}={}",
+                                              &arg[..i],
+                                              quote(&arg[i + 1..])));
+                    }
+                }
+            }
+
+            let arg = if let Some(quoted) = quoted {
+                quoted
             } else {
-                arg.to_string()
+                quote(arg)
             };
 
             let last = s.last_mut().expect("have one");

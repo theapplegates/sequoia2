@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::io;
 use std::io::IsTerminal;
@@ -24,13 +24,16 @@ use net::reqwest;
 
 use tempfile::NamedTempFile;
 
+use sequoia_openpgp as openpgp;
+use openpgp::Cert;
+use openpgp::Fingerprint;
+use openpgp::KeyHandle;
 use openpgp::Packet;
 use openpgp::parse::PacketParser;
 use openpgp::parse::PacketParserResult;
 use openpgp::parse::Parse;
 use openpgp::parse::buffered_reader::{self, BufferedReader};
 use openpgp::types::KeyFlags;
-use sequoia_openpgp as openpgp;
 
 use crate::Result;
 use crate::Sq;
@@ -39,6 +42,7 @@ use crate::cli::types::TrustAmount;
 use crate::commands::network::CONNECT_TIMEOUT;
 use crate::commands::network::USER_AGENT;
 use crate::commands::verify::verify;
+use crate::common::key_handle_dealias;
 use crate::common::pki::authenticate::AuthenticateContext;
 use crate::common::pki::authenticate::Query;
 use crate::common::pki::authenticate;
@@ -365,14 +369,14 @@ pub fn dispatch(sq: Sq, c: download::Command)
                             "Signature file does not contain any signatures."));
                     }
 
-                    let mut seen = HashSet::new();
+                    let mut seen: BTreeMap<Fingerprint, Cert> = BTreeMap::new();
                     let mut authenticated = false;
                     for sig in signatures.iter() {
                         for issuer in sig.get_issuers() {
                             if let Some(cert)
                                 = signers.iter().find(|c| c.key_handle().aliases(&issuer))
                             {
-                                if ! seen.insert(cert.fingerprint()) {
+                                if seen.contains_key(&cert.fingerprint()) {
                                     // Already saw that certificate.
                                     continue;
                                 }
@@ -381,8 +385,9 @@ pub fn dispatch(sq: Sq, c: download::Command)
 
                                 if let Some(pb) = progress_bar.upgrade() {
                                     pb.suspend(|| {
-                                        eprintln!("Alleged signer {} is good listed.",
-                                                  cert.fingerprint());
+                                        weprintln!(
+                                            "Alleged signer {} is good listed.",
+                                            cert.fingerprint());
                                     })
                                 }
                             } else if let Ok(cert)
@@ -390,16 +395,13 @@ pub fn dispatch(sq: Sq, c: download::Command)
                                                 Some(KeyFlags::signing()),
                                                 false)
                             {
-                                if ! seen.insert(cert.fingerprint()) {
+                                if seen.contains_key(&cert.fingerprint()) {
                                     // Already saw that certificate.
                                     continue;
                                 }
 
                                 let mut auth = || {
-                                    let _ = ui::emit_cert(
-                                        &mut io::stderr(), sq, &cert);
-
-                                    let good = authenticate(
+                                    let result = authenticate(
                                         &mut std::io::stderr(),
                                         &sq,
                                         AuthenticateContext::Download,
@@ -412,19 +414,21 @@ pub fn dispatch(sq: Sq, c: download::Command)
                                         false, // certification network
                                         Some(TrustAmount::Full), // trust amount
                                         true, // show paths
-                                    ).is_ok();
+                                    );
 
-                                    if good {
-                                        weprintln!(initial_indent = "   - ",
-                                                   "authenticated possible \
-                                                    signer");
+                                    if let Err(err) = result {
+                                        weprintln!("Can't authenticate the \
+                                                    alleged signer:");
+                                        let _ = ui::emit_cert(
+                                            &mut io::stderr(),
+                                            sq, &cert);
+
+                                        weprintln!(
+                                            initial_indent = " - ",
+                                            "{}",
+                                            crate::one_line_error_chain(err));
+                                        weprintln!();
                                     } else {
-                                        weprintln!(initial_indent = "   - ",
-                                                   "couldn't authenticate the \
-                                                    alleged signer");
-                                    }
-
-                                    if good {
                                         authenticated = true;
                                     }
                                 };
@@ -434,6 +438,9 @@ pub fn dispatch(sq: Sq, c: download::Command)
                                 } else {
                                     auth();
                                 }
+
+                                seen.insert(cert.fingerprint(),
+                                            cert);
                             }
                         }
                     }
@@ -444,22 +451,72 @@ pub fn dispatch(sq: Sq, c: download::Command)
                         }
 
                         if seen.is_empty() {
-                            eprintln!("Don't have certificates for any of the \
-                                       alleged signers:");
+                            weprintln!("We can't verify the signature, because \
+                                        we don't have certificates for any of \
+                                        the alleged signers:");
                         } else {
-                            eprintln!("Couldn't authenticated any of the alleged \
-                                       signers:");
+                            weprintln!("We can't verify the signature, because \
+                                        we can't authenticate any of the \
+                                        alleged signers:");
                         }
 
-                        eprintln!();
-                        for sig in signatures.iter() {
-                            for issuer in sig.get_issuers() {
-                                eprintln!(" - {}", issuer);
+                        weprintln!();
+                        let issuers = signatures.iter()
+                            .flat_map(|sig| sig.get_issuers().into_iter())
+                            .collect::<Vec<_>>();
+                        let issuers
+                            = key_handle_dealias(&issuers).collect::<Vec<_>>();
+
+                        if issuers.is_empty() {
+                            weprintln!(initial_indent = " - ",
+                                       "No issuers (the signature may be \
+                                       malformed)");
+                        } else {
+                            let mut missing = Vec::new();
+                            for issuer in issuers.iter() {
+                                if let KeyHandle::Fingerprint(fpr) = issuer {
+                                    if let Some(cert) = seen.get(fpr) {
+                                        weprintln!(initial_indent = " - ",
+                                                   "{} {}",
+                                                  issuer,
+                                                  sq.best_userid(cert, true));
+                                    } else {
+                                        weprintln!(initial_indent = " - ",
+                                                   "{} (missing certificate)",
+                                                   issuer);
+                                        missing.push(issuer);
+                                    }
+                                } else {
+                                    weprintln!(initial_indent = " - ",
+                                               "{} (missing certificate)",
+                                               issuer);
+                                    missing.push(issuer);
+                                }
+                            }
+
+                            if ! missing.is_empty() {
+                                let mut hint = sq.hint(format_args!(
+                                    "Try searching public directories:"))
+                                    .sq().arg("network").arg("search");
+                                for issuer in issuers.into_iter() {
+                                    hint = hint.arg(issuer.to_string());
+                                }
+                                hint.done();
+                            }
+                            if let Some(issuer) = seen.keys().next() {
+                                sq.hint(format_args!(
+                                    "Verify that one of the certificates is \
+                                     authentic, and then link it:"))
+                                .sq().arg("pki").arg("link").arg("add")
+                                    .arg_value_hidden("--cert",
+                                                      issuer,
+                                                      "FINGERPRINT")
+                                    .done();
                             }
                         }
 
                         return Err(anyhow::anyhow!("\
-                            Couldn't authenticate any of the alleged signers"));
+                            Can't authenticate any of the alleged signers"));
                     }
 
                     drop(ppr);

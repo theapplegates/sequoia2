@@ -195,15 +195,21 @@ fn filter<F>(sq: &Sq, inputs: Vec<PathBuf>, output: FileOrStdout,
     if !inputs.is_empty() {
         for name in inputs {
             for cert in CertParser::from_file(name.deref())? {
-                let cert = cert.context(
-                    format!("Malformed certificate in keyring {:?}", name.display()))?;
-                certs.push(cert);
+                match cert {
+                    Ok(c) => certs.push(c),
+                    Err(e) =>
+                        weprintln!("Malformed certificate in keyring {}: {}",
+                                   name.display(), e),
+                }
             }
         }
     } else {
         for cert in CertParser::from_reader(StdinWarning::certs())? {
-            let cert = cert.context("Malformed certificate in keyring")?;
-            certs.push(cert);
+            match cert {
+                Ok(c) => certs.push(c),
+                Err(e) =>
+                    weprintln!("Malformed certificate in keyring: {}", e),
+            }
         }
     }
 

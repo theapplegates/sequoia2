@@ -385,7 +385,7 @@ impl Command {
 
         let about = &self.about.clone().unwrap();
         let summary = Builder::summary(about);
-        man.name_section(&self.name(), &summary);
+        man.name_section(&self.manpage_name(), &summary);
 
         man.section("SYNOPSIS");
         let bin_name = builder.maincmd.name();
@@ -462,7 +462,7 @@ impl Command {
 
         let about = &self.about.clone().unwrap();
         let summary = Builder::summary(about);
-        man.name_section(&self.name(), &summary);
+        man.name_section(&self.manpage_name(), &summary);
 
         man.section("SYNOPSIS");
         let bin_name = builder.maincmd.name();

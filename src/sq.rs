@@ -2184,20 +2184,20 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     let (certs, config): (Box<dyn Iterator<Item=&Fingerprint>>, _)
                         = match prefix
                     {
-                        "for" => (
+                        "for-" => (
                             Box::new(self.config.encrypt_for_self().iter()),
                             cli::encrypt::ENCRYPT_FOR_SELF,
                         ),
-                        "signer" => (
+                        "signer-" => (
                             Box::new(self.config.sign_signer_self().iter()),
                             cli::sign::SIGNER_SELF,
                         ),
-                        "certifier" => (
+                        "certifier-" => (
                             Box::new(self.config.pki_vouch_certifier_self().iter()),
                             cli::pki::vouch::CERTIFIER_SELF,
                         ),
                         _ => return Err(anyhow::anyhow!(
-                            "self designator used with unexpected prefix")),
+                            "self designator used with unexpected prefix: {}", prefix)),
                     };
 
                     let mut one = false;

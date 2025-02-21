@@ -144,7 +144,7 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
 
         let mut count = 0;
         for uid in vcert.userids()
-            .filter_map(|uid| std::str::from_utf8(uid.value())
+            .filter_map(|uid| std::str::from_utf8(uid.userid().value())
                         .map(ToString::to_string).ok())
         {
             hint = hint
@@ -302,7 +302,7 @@ fn certify(sq: &Sq,
     if certifications.is_empty() {
         Ok(cert.clone())
     } else {
-        Ok(cert.clone().insert_packets(certifications)?)
+        Ok(cert.clone().insert_packets(certifications)?.0)
     }
 }
 
@@ -445,7 +445,7 @@ impl Query {
         args.iter().map(
             |q| if let Ok(h) = q.parse::<KeyHandle>() {
                 Ok(Query::Handle(h))
-            } else if let Ok(Some(addr)) = UserID::from(q.as_str()).email2() {
+            } else if let Ok(Some(addr)) = UserID::from(q.as_str()).email() {
                 Ok(Query::Address(addr.to_string()))
             } else if let Ok(url) = Url::parse(q.as_str()) {
                 Ok(Query::Url(url))
@@ -462,7 +462,7 @@ impl Query {
         args.iter().map(
             |q| if let Ok(h) = q.parse::<KeyHandle>() {
                 Ok(Query::Handle(h))
-            } else if let Ok(Some(addr)) = UserID::from(q.as_str()).email2() {
+            } else if let Ok(Some(addr)) = UserID::from(q.as_str()).email() {
                 Ok(Query::Address(addr.to_string()))
             } else {
                 Err(anyhow::anyhow!(
@@ -482,7 +482,7 @@ impl Query {
             {
                 fingerprints.insert(cert.fingerprint());
                 for address in cert.userids().filter_map(
-                    |uid| uid.email2().ok().flatten().map(|s| s.to_string()))
+                    |uid| uid.email().ok().flatten().map(|s| s.to_string()))
                 {
                     addresses.insert(address);
                 }
@@ -505,7 +505,7 @@ impl Query {
                 .filter(
                     |c| c.to_cert().map(|c| cert_exportable(c)).unwrap_or(false))
                 .flat_map(|cert| cert.userids().filter_map(
-                    |uid| uid.email2().ok().flatten().map(|s| s.to_string()))
+                    |uid| uid.email().ok().flatten().map(|s| s.to_string()))
                           .collect::<Vec<_>>())
                 .collect::<Vec<_>>();
             addresses.sort_unstable();
@@ -520,7 +520,7 @@ impl Query {
     /// email addresses.
     fn parse_addresses(args: &[String]) -> Result<Vec<Query>> {
         args.iter().map(
-            |q| if let Ok(Some(addr)) = UserID::from(q.as_str()).email2() {
+            |q| if let Ok(Some(addr)) = UserID::from(q.as_str()).email() {
                 Ok(Query::Address(addr.to_string()))
             } else {
                 Err(anyhow::anyhow!(
@@ -1069,7 +1069,7 @@ pub fn dispatch_search(mut sq: Sq, c: cli::network::search::Command)
             queries.push(Query::Handle(cert.key_handle()));
 
             for uid in cert.userids() {
-                if let Ok(Some(addr)) = uid.email2() {
+                if let Ok(Some(addr)) = uid.userid().email() {
                     queries.push(Query::Address(addr.into()));
                 }
             }
@@ -1301,7 +1301,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                     if ! cert.with_policy(sq.policy, sq.time)
                         .ok()
                         .map(|vc| vc.userids().any(
-                            |u| u.userid().email2().ok().flatten().map(
+                            |u| u.userid().email().ok().flatten().map(
                                 |a| a.ends_with(&c.domain))
                                 .unwrap_or(false)))
                         .unwrap_or(false)
@@ -1433,8 +1433,8 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                     // below.  As such, we also handle explicitly
                     // named certificates here.
                     if let Some(update) = insert_ref.remove(&cert.fingerprint()) {
-                        let (cert_, updated_) = cert.insert_packets2(
-                            update.into_packets2())?;
+                        let (cert_, updated_) = cert.insert_packets(
+                            update.into_packets())?;
                         cert = cert_;
                         if updated_ {
                             updated = true;
@@ -1450,8 +1450,8 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                     if let Some(update) = cert_store.as_ref().and_then(|cs| {
                         cs.lookup_by_cert_fpr(&cert.fingerprint()).ok()
                     }) {
-                        let (cert_, updated_) = cert.insert_packets2(
-                            update.to_cert()?.clone().into_packets2())?;
+                        let (cert_, updated_) = cert.insert_packets(
+                            update.to_cert()?.clone().into_packets())?;
                         cert = cert_;
                         if updated_ {
                             updated = true;

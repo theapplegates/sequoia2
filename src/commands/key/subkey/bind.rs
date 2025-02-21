@@ -27,7 +27,7 @@ pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
 
     let null_policy_;
     let adoptee_policy: &dyn Policy = if command.allow_broken_crypto {
-        null_policy_ = openpgp::policy::NullPolicy::new();
+        null_policy_ = unsafe { openpgp::policy::NullPolicy::new() };
         &null_policy_
     } else {
         sq.policy
@@ -56,7 +56,10 @@ pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
             let key = cert.keys().key_handle(kh.clone())
                 .next().expect("have key");
 
-            let sig = key.binding_signature(adoptee_policy, sq.time).ok();
+            use openpgp::cert::amalgamation::ValidateAmalgamation;
+            let sig = key.with_policy(adoptee_policy, sq.time)
+                .map(|k| k.binding_signature())
+                .ok();
             let builder: SignatureBuilder = match sig {
                 Some(sig) if sig.typ() == SignatureType::SubkeyBinding => {
                     sig.clone().into()
@@ -265,7 +268,7 @@ pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
 
                         let mut err = None;
                         for k in &secrets {
-                            match k.secret().clone().decrypt(key.pk_algo(), &p) {
+                            match k.secret().clone().decrypt(&key, &p) {
                                 Ok(decrypted) => {
                                     // Keep the decrypted keypair.
                                     keypair = Some({
@@ -304,7 +307,7 @@ pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
             } else {
                 sq.get_signer(&ka)
                     .with_context(|| {
-                        format!("Getting signer for {}", ka.fingerprint())
+                        format!("Getting signer for {}", ka.key().fingerprint())
                     })?
             };
 
@@ -313,7 +316,7 @@ pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
                 .find(|backsig| {
                     (*backsig)
                         .clone()
-                        .verify_primary_key_binding(&cert.primary_key(), &key)
+                        .verify_primary_key_binding(cert.primary_key().key(), &key)
                         .is_ok()
                 })
                 .map(|sig| SignatureBuilder::from(sig.clone()))
@@ -342,7 +345,7 @@ pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
         packets.push(sig.into());
     }
 
-    let cert = cert.clone().insert_packets(packets.clone())?;
+    let cert = cert.clone().insert_packets(packets.clone())?.0;
 
     let vc = cert.with_policy(sq.policy, None).expect("still valid");
     for pair in packets[..].chunks(2) {
@@ -361,7 +364,7 @@ pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
 
         let mut found = false;
         for key in vc.keys() {
-            if key.fingerprint() == newkey.fingerprint() {
+            if key.key().fingerprint() == newkey.fingerprint() {
                 for sig in key.self_signatures() {
                     if sig == newsig {
                         found = true;

@@ -66,7 +66,7 @@ use crate::print_error_chain;
 
 const TRACE: bool = false;
 
-pub static NULL_POLICY: NullPolicy = NullPolicy::new();
+pub static NULL_POLICY: NullPolicy = unsafe { NullPolicy::new() };
 
 /// Flags for Sq::get_keys and related functions.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -607,10 +607,10 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     };
 
                     let checked_id = or_by_primary
-                        && vc.key_handle().aliases(&kh);
+                        && vc.cert().key_handle().aliases(&kh);
 
                     for ka in vc.keys() {
-                        if checked_id || ka.key_handle().aliases(&kh) {
+                        if checked_id || ka.key().key_handle().aliases(&kh) {
                             if &ka.key_flags().unwrap_or(KeyFlags::empty())
                                 & keyflags
                                 != KeyFlags::empty()
@@ -1270,7 +1270,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 }
 
                 for p in self.password_cache.lock().unwrap().iter() {
-                    if let Ok(unencrypted) = e.decrypt(key.pk_algo(), &p) {
+                    if let Ok(unencrypted) = e.decrypt(&key, &p) {
                         let (key, _) = key.add_secret(unencrypted.into());
                         return Ok(key);
                     }
@@ -1299,7 +1299,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     match result {
                         Ok(None) => break, // Give up.
                         Ok(Some(p)) => {
-                            if let Ok(unencrypted) = e.decrypt(key.pk_algo(), &p) {
+                            if let Ok(unencrypted) = e.decrypt(&key, &p) {
                                 let (key, _) = key.add_secret(unencrypted.into());
                                 self.password_cache.lock().unwrap().push(p);
                                 return Ok(key);
@@ -1352,7 +1352,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         {
             let ks = self.key_store_or_else()?;
             let mut ks = ks.lock().unwrap();
-            if ks.find_key(ka.key_handle())?.is_empty() {
+            if ks.find_key(ka.key().key_handle())?.is_empty() {
                 Err(anyhow!("no secret key material in the store"))
             } else {
                 Ok(())
@@ -1414,7 +1414,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
             let mut ks = ks.lock().unwrap();
 
-            let remote_keys = ks.find_key(ka.key_handle())?;
+            let remote_keys = ks.find_key(ka.key().key_handle())?;
 
             let uid = self.best_userid(ka.cert(), true);
 
@@ -1437,7 +1437,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                         loop {
                             let p = password::prompt_to_unlock(self, &format!(
                                 "{}/{}, {}",
-                                ka.cert().keyid(), ka.keyid(), uid))?;
+                                ka.cert().keyid(), ka.key().keyid(), uid))?;
 
                             if p == "".into() {
                                 weprintln!("Giving up.");
@@ -1542,20 +1542,20 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     ! allow_not_alive && matches!(ka.alive(), Err(_)),
                     ! allow_revoked && matches!(ka.revocation_status(),
                                                 RevocationStatus::Revoked(_)),
-                    ! ka.pk_algo().is_supported(),
+                    ! ka.key().pk_algo().is_supported(),
                     false,
                 ];
                 if bad_.iter().any(|x| *x) {
-                    bad.push((ka.fingerprint(), bad_));
+                    bad.push((ka.key().fingerprint(), bad_));
                     continue;
                 }
 
-                if let Ok(key) = self.get_signer(&ka) {
+                if let Ok(key) = self.get_signer(ka.amalgamation()) {
                     keys.push((cert.clone(), key));
                     continue 'next_cert;
                 } else {
                     bad_[3] = true;
-                    bad.push((ka.fingerprint(), bad_));
+                    bad.push((ka.key().fingerprint(), bad_));
                     continue;
                 }
             }
@@ -2474,7 +2474,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 if only_subkeys && ka.primary() {
                     let err = format!(
                         "Selected key {} is a primary key, not a subkey.",
-                        ka.fingerprint());
+                        ka.key().fingerprint());
                     weprintln!("{}", err);
                     bad.push(anyhow::anyhow!(err));
                     continue;
@@ -2504,7 +2504,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 if hard_revoked {
                     let err = anyhow::anyhow!(
                         "Can't use {}, it is hard revoked",
-                        ka.fingerprint());
+                        ka.key().fingerprint());
                     weprintln!("{}", err);
                     bad.push(err);
                 } else {
@@ -2518,7 +2518,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 // in some way.  This isn't enough to return it, but
                 // we may be able to generate a better error message.
 
-                let fingerprint = ka.fingerprint();
+                let fingerprint = ka.key().fingerprint();
 
                 let err = match ka.with_policy(vc.policy(), vc.time()) {
                     Ok(_) => unreachable!("key magically became usable"),
@@ -2569,13 +2569,13 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         if ! missing.is_empty() {
             weprintln!();
             if only_subkeys {
-                weprintln!("{} has the following subkeys:", vc.fingerprint());
+                weprintln!("{} has the following subkeys:", vc.cert().fingerprint());
             } else {
-                weprintln!("{} has the following keys:", vc.fingerprint());
+                weprintln!("{} has the following keys:", vc.cert().fingerprint());
             }
             weprintln!();
             for ka in vc.keys().skip(if only_subkeys { 1 } else { 0 }) {
-                weprintln!(" - {}", ka.fingerprint());
+                weprintln!(" - {}", ka.key().fingerprint());
             }
         }
 
@@ -2587,8 +2587,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         }
 
         // Dedup.
-        kas.sort_by_key(|ka| ka.fingerprint());
-        kas.dedup_by_key(|ka| ka.fingerprint());
+        kas.sort_by_key(|ka| ka.key().fingerprint());
+        kas.dedup_by_key(|ka| ka.key().fingerprint());
 
         assert!(kas.len() > 0);
 

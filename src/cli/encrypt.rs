@@ -135,7 +135,7 @@ dangerous.",
     #[clap(
         long = "compression",
         value_name = "KIND",
-        default_value_t = CompressionMode::None,
+        default_value_t = CompressionMode::Pad,
         help = "Select compression scheme to use",
         value_enum,
     )]
@@ -169,10 +169,9 @@ As OpenPGP evolves, new versions will become available.  This option \
 selects the version of OpenPGP to use for encrypting messages if the \
 version can not be inferred otherwise.
 
-Currently, sq supports only one version: RFC4880.  Consequently, this \
-is the default.  However, there is already a newer version of the \
-standard: RFC9580.  And, the default will change in a future version of \
-sq."),
+Currently, sq supports two profiles: RFC9580 and RFC4880.  Currently, \
+the default is RFC4880.  However, once support for RFC9580 is rolled \
+out further, the default will change in a future version of sq."),
         value_enum,
     )]
     pub profile: Profile,
@@ -203,7 +202,6 @@ impl AdditionalDocs for SignerDoc {
 #[derive(ValueEnum, Debug, Clone)]
 pub enum CompressionMode {
     None,
-    #[cfg(all(unix, not(unix)))] // Bottom, but: `cfg` predicate key cannot be a literal
     Pad,
     Zip,
     Zlib,

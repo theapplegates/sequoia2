@@ -78,10 +78,8 @@ pub fn dispatch(sq: Sq, command: cli::key::delete::Command)
             // We check that the primary key is valid above.
             continue;
         }
-        if let Err(err) = ka.component_amalgamation().clone()
-            .with_policy(sq.policy, sq.time)
-        {
-            bad.push((ka.fingerprint(), err));
+        if let Err(err) = ka.with_policy(sq.policy, sq.time) {
+            bad.push((ka.key().fingerprint(), err));
         }
     }
     if ! bad.is_empty() {
@@ -112,7 +110,7 @@ pub fn dispatch(sq: Sq, command: cli::key::delete::Command)
         // Make sure this is not ambiguous.
         for (ka, _remote) in to_delete.iter() {
             if let Ok(certs) = sq.lookup_with_policy(
-                std::iter::once(ka.key_handle()),
+                std::iter::once(ka.key().key_handle()),
                 None,
                 true,
                 true,
@@ -122,7 +120,7 @@ pub fn dispatch(sq: Sq, command: cli::key::delete::Command)
                 if certs.len() > 1 {
                     die = true;
                     weprintln!("{} is associated with multiple certificates:",
-                               ka.fingerprint());
+                               ka.key().fingerprint());
                     for cert in certs.iter() {
                         weprintln!(" - {}", cert.fingerprint());
                     }

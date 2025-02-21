@@ -39,12 +39,12 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::export::Command)
     let mut errs = Vec::new();
 
     for ka in kas {
-        if ka.has_secret() {
+        if ka.key().has_secret() {
             // We already have the secret key material.
             continue;
         }
 
-        let key_handle = ka.key_handle();
+        let key_handle = ka.key().key_handle();
 
         for mut remote in ks.find_key(key_handle)? {
             match remote.export() {
@@ -59,7 +59,7 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::export::Command)
                     break;
                 }
                 Err(err) => {
-                    errs.push((ka.fingerprint(), err));
+                    errs.push((ka.key().fingerprint(), err));
                 }
             }
         }
@@ -74,7 +74,7 @@ pub fn dispatch(sq: Sq, command: crate::cli::key::subkey::export::Command)
             cert.fingerprint()));
     }
 
-    cert = cert.insert_packets(secret_keys)?;
+    cert = cert.insert_packets(secret_keys)?.0;
 
     let mut output = command.output.for_secrets().create_safe(&sq)?;
 

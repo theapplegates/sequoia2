@@ -39,7 +39,7 @@ pub fn dispatch(sq: Sq, command: Command) -> Result<()>
             if let Some(pattern) = pattern.as_ref() {
                 let mut query_kind = None;
                 if let Ok(kh) = pattern.parse::<KeyHandle>() {
-                    if matches!(kh, KeyHandle::Fingerprint(Fingerprint::Invalid(_))) {
+                    if matches!(kh, KeyHandle::Fingerprint(Fingerprint::Unknown { .. })) {
                         let hex = pattern.chars()
                             .map(|c| {
                                 if c == ' ' { 0 } else { 1 }

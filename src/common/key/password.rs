@@ -86,7 +86,8 @@ where
                             weprintln!("{}", hint);
                         }
 
-                        let time = key.creation_time().convert().to_string();
+                        let time =
+                            key.key().creation_time().convert().to_string();
 
                         let flags = if let Some(flags) = key.key_flags() {
                             let mut s = Vec::new();
@@ -117,7 +118,7 @@ where
                         loop {
                             let p = password::prompt_to_unlock(&sq, &format!(
                                 "{}, created {}{}",
-                                key.fingerprint(), time, flags))?;
+                                key.key().fingerprint(), time, flags))?;
 
                             match remote_key.unlock(p.clone()) {
                                 Ok(()) => {
@@ -149,10 +150,10 @@ where
 
                 remote_key.change_password(password.as_ref())
                     .with_context(|| {
-                        format!("Changing {}'s password", key.fingerprint())
+                        format!("Changing {}'s password", key.key().fingerprint())
                     })?;
 
-                qprintln!("Changed password for {}", key.fingerprint());
+                qprintln!("Changed password for {}", key.key().fingerprint());
             }
         }
     } else {
@@ -197,7 +198,7 @@ where
             }
         }
 
-        let cert = cert.clone().insert_packets(packets)?;
+        let cert = cert.clone().insert_packets(packets)?.0;
 
         let output = output.unwrap_or_else(|| FileOrStdout::new(None));
         let mut output = output.for_secrets().create_safe(&sq)?;

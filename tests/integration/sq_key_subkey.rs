@@ -95,10 +95,10 @@ fn sq_key_subkey_add_with_password() -> Result<()> {
 
     assert!(cert.is_tsk());
     assert_eq!(cert.keys().subkeys().count(), 0);
-    let key = cert.primary_key();
+    let key = cert.primary_key().key();
     let secret = key.optional_secret().unwrap();
     assert!(secret.is_encrypted());
-    assert!(secret.clone().decrypt(key.pk_algo(), &password2.into()).is_ok());
+    assert!(secret.clone().decrypt(key, &password2.into()).is_ok());
 
     // Add the subkey.
     let password3 = "hunter3";
@@ -123,15 +123,15 @@ fn sq_key_subkey_add_with_password() -> Result<()> {
 
     assert!(cert.is_tsk());
     assert_eq!(cert.keys().subkeys().count(), 1);
-    let key = cert.primary_key();
+    let key = cert.primary_key().key();
     let secret = key.optional_secret().unwrap();
     assert!(secret.is_encrypted());
-    assert!(secret.clone().decrypt(key.pk_algo(), &password2.into()).is_ok());
+    assert!(secret.clone().decrypt(key, &password2.into()).is_ok());
 
-    let key = cert.keys().subkeys().next().unwrap();
+    let key = cert.keys().subkeys().next().unwrap().key();
     let secret = key.optional_secret().unwrap();
     assert!(secret.is_encrypted());
-    assert!(secret.clone().decrypt(key.pk_algo(), &password3.into()).is_ok());
+    assert!(secret.clone().decrypt(key, &password3.into()).is_ok());
 
     Ok(())
 }
@@ -303,8 +303,8 @@ fn sq_key_subkey_revoke() -> Result<()> {
                 .keys()
                 .subkeys()
                 .for_each(|x| {
-                    if x.fingerprint() == subkey_fingerprint {
-                        let status = x.revocation_status(
+                    if x.key().fingerprint() == subkey_fingerprint {
+                        let status = x.bundle().revocation_status(
                             STANDARD_POLICY,
                             revocation_time.map(Into::into),
                         );
@@ -560,8 +560,9 @@ fn sq_key_subkey_revoke_thirdparty() -> Result<()> {
                 .keys()
                 .subkeys()
                 .for_each(|x| {
-                    if x.fingerprint() == subkey_fingerprint {
+                    if x.key().fingerprint() == subkey_fingerprint {
                         if let RevocationStatus::CouldBe(sigs) = x
+                            .bundle()
                             .revocation_status(
                                 STANDARD_POLICY,
                                 revocation_time.map(Into::into),
@@ -584,8 +585,8 @@ fn sq_key_subkey_revoke_thirdparty() -> Result<()> {
                             if sig
                                 .clone()
                                 .verify_subkey_revocation(
-                                    &thirdparty_cert.primary_key(),
-                                    &cert.primary_key(),
+                                    thirdparty_cert.primary_key().key(),
+                                    cert.primary_key().key(),
                                     &subkey,
                                 )
                                 .is_err()

@@ -189,7 +189,7 @@ fn sq_pki_vouch_add() -> Result<()> {
         for ua in vc.userids() {
             if ua.userid().value() == b"<bob@example.org>" {
                 assert_eq!(
-                    ua.bundle().certifications2().count(),
+                    ua.bundle().certifications().count(),
                     certification_count);
                 let certifications: Vec<_>
                     = ua.certifications().collect();
@@ -208,7 +208,7 @@ fn sq_pki_vouch_add() -> Result<()> {
         let mut ok = false;
         for ua in vc.userids() {
             if ua.userid().value() == b"<bob@example.org>" {
-                assert_eq!(ua.bundle().certifications2().count(),
+                assert_eq!(ua.bundle().certifications().count(),
                            certification_count);
 
                 let certifications: Vec<_>
@@ -295,7 +295,7 @@ fn sq_pki_vouch_add_creation_time() -> Result<()>
 
         let vc = cert.with_policy(P, t)?;
 
-        assert_eq!(vc.primary_key().creation_time(), t);
+        assert_eq!(vc.primary_key().key().creation_time(), t);
 
         let mut userid = None;
         for u in vc.userids() {
@@ -395,7 +395,7 @@ fn sq_pki_vouch_add_with_revoked_key() -> Result<()>
         })
         .cloned().collect::<Vec<_>>();
 
-    let alice_key = alice_key.insert_packets(revocation)?;
+    let alice_key = alice_key.insert_packets(revocation)?.0;
     {
         let mut file = File::create(&alice_pgp)?;
         alice_key.as_tsk().serialize(&mut file)?;

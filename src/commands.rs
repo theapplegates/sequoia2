@@ -3,7 +3,6 @@ use std::time::SystemTime;
 use clap::ArgMatches;
 
 use sequoia_openpgp as openpgp;
-use openpgp::cert::prelude::*;
 use openpgp::{Cert, Result};
 use openpgp::packet::prelude::*;
 use openpgp::policy::HashAlgoSecurity;
@@ -108,7 +107,7 @@ where
         //  - Are not expired,
         //  - Alias the issuer, and
         //  - Satisfy the policy.
-        let mut certifications = ua.bundle().certifications2()
+        let mut certifications = ua.bundle().certifications()
             .filter(|sig| {
                 if let Some(ct) = sig.signature_creation_time() {
                     ct <= sq.time

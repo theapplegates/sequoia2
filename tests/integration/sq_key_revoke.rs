@@ -139,7 +139,8 @@ fn sq_key_revoke() -> Result<()> {
                     Some(cert.key_handle())
                 );
 
-                let revoked_cert = cert.clone().insert_packets(sig.clone()).unwrap();
+                let revoked_cert =
+                    cert.clone().insert_packets(sig.clone()).unwrap().0;
                 let status = revoked_cert
                     .revocation_status(
                         STANDARD_POLICY,
@@ -334,8 +335,8 @@ fn sq_key_revoke_thirdparty() -> Result<()> {
                 if sig
                     .clone()
                     .verify_primary_key_revocation(
-                        &thirdparty_cert.primary_key(),
-                        &cert.primary_key(),
+                        thirdparty_cert.primary_key().key(),
+                        cert.primary_key().key(),
                     )
                     .is_err()
                 {

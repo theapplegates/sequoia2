@@ -74,8 +74,8 @@ fn try_encrypt(sq: &Sq, extra_args: &[&str],
 
                 // Process the packet.
                 if let Packet::PKESK(pkesk) = packet {
-                    eprintln!("  PKESK for {}", pkesk.recipient());
-                    actual_recipients.push(pkesk.recipient().clone());
+                    eprintln!("  PKESK for {:?}", pkesk.recipient());
+                    actual_recipients.push(pkesk.recipient().map(KeyID::from));
                 }
             }
             actual_recipients.sort();
@@ -86,14 +86,14 @@ fn try_encrypt(sq: &Sq, extra_args: &[&str],
                 let r2 = &rs[1];
 
                 if r1 == r2 {
-                    eprintln!("Multiple PKESKs for the same recipient ({}).",
+                    eprintln!("Multiple PKESKs for the same recipient ({:?}).",
                               r1);
                     die = true;
                 }
             }
 
             let actual_recipients: HashSet<KeyID>
-                = HashSet::from_iter(actual_recipients.into_iter());
+                = actual_recipients.into_iter().filter_map(|x| x).collect();
 
             let mut decryption_keyids = decryption_keys
                 .iter()
@@ -441,7 +441,7 @@ fn sq_encrypt_cert_designators() -> Result<()>
             = sq.key_generate(&[], userids);
         let cert_vc = cert.with_policy(STANDARD_POLICY, None).expect("valid cert");
         let cert_enc = cert_vc.keys().for_transport_encryption()
-            .map(|ka| ka.fingerprint())
+            .map(|ka| ka.key().fingerprint())
             .collect::<Vec<_>>();
         assert_eq!(cert_enc.len(), 1);
         let cert_enc = cert_enc.into_iter().next().unwrap();
@@ -590,6 +590,7 @@ fn sq_encrypt_not_encryption_capable() -> Result<()>
         .for_storage_encryption()
         .next()
         .expect("have a storage encryption-capable subkey")
+        .key()
         .fingerprint();
 
     let (bob, bob_pgp, _bob_rev) = sq.key_generate(
@@ -633,6 +634,7 @@ fn sq_encrypt_expired() -> Result<()>
         .for_storage_encryption()
         .next()
         .expect("have a storage encryption-capable subkey")
+        .key()
         .fingerprint();
 
     let (bob, bob_pgp, _bob_rev) = sq.key_generate(
@@ -643,7 +645,8 @@ fn sq_encrypt_expired() -> Result<()>
     let bob_enc = bob.keys().with_policy(STANDARD_POLICY, sq.now())
         .for_storage_encryption()
         .next()
-        .expect("have a storage encryption-capable subkey");
+        .expect("have a storage encryption-capable subkey")
+        .key();
 
     sq.tick(1);
 
@@ -698,6 +701,7 @@ fn sq_encrypt_revoked_subkey() -> Result<()>
         .for_storage_encryption()
         .next()
         .expect("have a storage encryption-capable subkey")
+        .key()
         .fingerprint();
 
     let (bob, bob_pgp, _bob_rev) = sq.key_generate(
@@ -708,7 +712,8 @@ fn sq_encrypt_revoked_subkey() -> Result<()>
     let bob_enc = bob.keys().with_policy(STANDARD_POLICY, sq.now())
         .for_storage_encryption()
         .next()
-        .expect("have a storage encryption-capable subkey");
+        .expect("have a storage encryption-capable subkey")
+        .key();
 
     sq.tick(1);
 
@@ -755,6 +760,7 @@ fn sq_encrypt_revoked() -> Result<()>
         .for_storage_encryption()
         .next()
         .expect("have a storage encryption-capable subkey")
+        .key()
         .fingerprint();
 
     let (bob, bob_pgp, _bob_rev) = sq.key_generate(

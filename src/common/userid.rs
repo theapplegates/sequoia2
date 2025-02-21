@@ -96,15 +96,15 @@ pub(crate) fn lint_userid(uid: &UserID)
     // Returning the name (or comment or email address) means
     // checking that the user ID is in canonical form.  Thus,
     // if this fails, the user ID is not in canonical form.
-    if let Some(name) = uid.name2().map_err(map_err)? {
+    if let Some(name) = uid.name().map_err(map_err)? {
         components.push(name.to_string());
     }
 
-    if let Some(comment) = uid.comment2().map_err(map_err)? {
+    if let Some(comment) = uid.comment().map_err(map_err)? {
         components.push(format!("({})", comment));
     }
 
-    let email = if let Some(email) = uid.email2().map_err(map_err)? {
+    let email = if let Some(email) = uid.email().map_err(map_err)? {
         components.push(format!("<{}>", email));
         Some(email)
     } else {
@@ -186,25 +186,25 @@ pub fn lint_name(n: &str) -> Result<(), UserIDLint> {
     // Check for various problems for which we can give concrete
     // advice.
     let e = UserID::from(format!("x <{}>", n));
-    if e.email2().ok().flatten() == Some(n) {
+    if e.email().ok().flatten() == Some(n) {
         return Err(UserIDLint::NameIsBareEmail(n.into()));
     }
 
-    if u.name2().ok().flatten() == Some(n.trim()) && n != n.trim() {
+    if u.name().ok().flatten() == Some(n.trim()) && n != n.trim() {
         return Err(UserIDLint::NameHasExcessSpaces(n.into()));
     }
 
     let c = UserID::from(format!("x {}", n));
-    if let Some(comment) = c.comment2().ok().flatten() {
+    if let Some(comment) = c.comment().ok().flatten() {
         return Err(UserIDLint::NameContainsComment(n.into(), comment.into()));
     }
 
-    if let Some(email) = u.email2().ok().flatten() {
+    if let Some(email) = u.email().ok().flatten() {
         return Err(UserIDLint::NameContainsEmail(n.into(), email.into()));
     }
 
     // This is the only acceptable path, really.
-    if u.name2().ok().flatten() == Some(n) {
+    if u.name().ok().flatten() == Some(n) {
         return Ok(());
     }
 
@@ -253,17 +253,17 @@ pub fn lint_email(n: &str) -> Result<(), UserIDLint> {
     }
 
     let c = UserID::from(format!("x {}", n));
-    if let Some(comment) = c.comment2().ok().flatten() {
+    if let Some(comment) = c.comment().ok().flatten() {
         return Err(UserIDLint::EmailContainsComment(n.into(), comment.into()));
     }
 
     let un = UserID::from(n);
-    if let Some(name) = un.name2().ok().flatten() {
+    if let Some(name) = un.name().ok().flatten() {
         return Err(UserIDLint::EmailContainsName(n.into(), name.into()));
     }
 
     // This is the only acceptable path, really.
-    if u.email2().ok().flatten() == Some(n) {
+    if u.email().ok().flatten() == Some(n) {
         return Ok(());
     }
 

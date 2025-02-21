@@ -131,13 +131,13 @@ fn check(cert: &Cert,
 
     assert_eq!(key_count, vc.keys().count());
 
-    assert_eq!(vc.primary_key().fingerprint(), keys.0.0);
+    assert_eq!(vc.primary_key().key().fingerprint(), keys.0.0);
     assert_eq!(vc.primary_key().key_flags(), Some(keys.0.1));
 
     for (subkey, keyflags) in keys.1 {
         let mut found = false;
         for k in vc.keys().subkeys() {
-            if k.fingerprint() == *subkey {
+            if k.key().fingerprint() == *subkey {
                 assert_eq!(k.key_flags().as_ref(), Some(keyflags));
                 found = true;
                 break;
@@ -683,9 +683,9 @@ fn bind_bare() -> Result<()> {
 
     let mut found = false;
     for k in cert.keys() {
-        let was_bound = k.mpis() == bare.primary_key().mpis();
+        let was_bound = k.key().mpis() == bare.primary_key().key().mpis();
 
-        eprintln!("{}{}", k.fingerprint(),
+        eprintln!("{}{}", k.key().fingerprint(),
                   if was_bound {
                       " (bound)"
                   } else {
@@ -731,18 +731,18 @@ fn key_creation_time() -> Result<()> {
 
     let mut found = false;
     for k in cert.keys() {
-        let was_bound = k.mpis() == bare.primary_key().mpis();
+        let was_bound = k.key().mpis() == bare.primary_key().key().mpis();
 
         eprintln!("{}: {:?}{}",
-                  k.fingerprint(),
-                  k.creation_time(),
+                  k.key().fingerprint(),
+                  k.key().creation_time(),
                   if was_bound {
                       " (bound)"
                   } else {
                       ""
                   });
         if was_bound {
-            assert_eq!(k.creation_time(), time);
+            assert_eq!(k.key().creation_time(), time);
             found = true;
         }
     }

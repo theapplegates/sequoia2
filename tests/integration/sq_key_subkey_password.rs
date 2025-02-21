@@ -63,7 +63,7 @@ fn check(
         eprintln!("  Got:");
 
         let mut changes = 0;
-        for got in got.keys() {
+        for got in got.keys().map(|ka| ka.key()) {
             eprintln!("    {} {} encrypted secret key material",
                       got.fingerprint(),
                       if got.has_unencrypted_secret() {
@@ -129,7 +129,7 @@ fn sq_key_subkey_password_mod(modulus: usize) -> Result<()>
 
     eprintln!("Certificate:");
     for k in cert.keys() {
-        eprintln!("  {}", k.fingerprint());
+        eprintln!("  {}", k.key().fingerprint());
     }
 
     let keys: Vec<Key<_, _>> = cert.keys()
@@ -213,7 +213,7 @@ fn soft_revoked_subkey() {
         if let RevocationStatus::Revoked(_) = k.revocation_status() {
             assert!(revoked.is_none(),
                     "Only expected a single revoked subkey");
-            revoked = Some(k.key_handle());
+            revoked = Some(k.key().key_handle());
         }
     }
     let revoked = if let Some(revoked) = revoked {
@@ -245,7 +245,7 @@ fn hard_revoked_subkey() {
         if let RevocationStatus::Revoked(_) = k.revocation_status() {
             assert!(revoked.is_none(),
                     "Only expected a single revoked subkey");
-            revoked = Some(k.key_handle());
+            revoked = Some(k.key().key_handle());
         }
     }
     let revoked = if let Some(revoked) = revoked {
@@ -273,10 +273,10 @@ fn sha1_subkey() {
 
     // Make sure the subkey key is there and really uses SHA-1.
     let valid_subkeys: Vec<_> = vc.keys().subkeys()
-        .map(|ka| ka.fingerprint())
+        .map(|ka| ka.key().fingerprint())
         .collect();
     let all_subkeys: Vec<_> = cert.keys().subkeys()
-        .map(|ka| ka.fingerprint())
+        .map(|ka| ka.key().fingerprint())
         .collect();
 
     assert_eq!(valid_subkeys.len(), 0);

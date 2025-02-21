@@ -33,7 +33,7 @@ pub fn import_certs(sq: &mut Sq, source: &mut Box<dyn BufferedReader<Cookie>>,
     let from = UserID::from(
         ac.from.as_ref().ok_or(anyhow::anyhow!("no From: header"))?
             .as_str());
-    let from_addr = from.email2()?.ok_or(
+    let from_addr = from.email()?.ok_or(
         anyhow::anyhow!("no email address in From: header"))?;
 
     use autocrypt::AutocryptHeaderType::*;

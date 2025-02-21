@@ -36,12 +36,12 @@ pub fn dispatch(sq: Sq, command: cli::key::export::Command)
         let mut errs = Vec::new();
 
         for ka in vc.keys().into_iter().collect::<Vec<_>>() {
-            if ka.has_secret() {
+            if ka.key().has_secret() {
                 // We already have the secret key material.
                 continue;
             }
 
-            let key_handle = ka.key_handle();
+            let key_handle = ka.key().key_handle();
 
             for mut remote in ks.find_key(key_handle)? {
                 match remote.export() {
@@ -56,7 +56,7 @@ pub fn dispatch(sq: Sq, command: cli::key::export::Command)
                         break;
                     }
                     Err(err) => {
-                        errs.push((ka.fingerprint(), err));
+                        errs.push((ka.key().fingerprint(), err));
                     }
                 }
             }
@@ -71,7 +71,7 @@ pub fn dispatch(sq: Sq, command: cli::key::export::Command)
                 cert.fingerprint()));
         }
 
-        let cert = cert.insert_packets(secret_keys)?;
+        let cert = cert.insert_packets(secret_keys)?.0;
         results.push(cert);
     }
 

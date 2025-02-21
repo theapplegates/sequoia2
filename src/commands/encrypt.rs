@@ -12,11 +12,10 @@ use openpgp::packet::signature::SignatureBuilder;
 use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::policy::Policy;
 use openpgp::serialize::stream::Compressor;
-use openpgp::serialize::stream::Encryptor2 as Encryptor;
+use openpgp::serialize::stream::Encryptor;
 use openpgp::serialize::stream::LiteralWriter;
 use openpgp::serialize::stream::Message;
 use openpgp::serialize::stream::Signer;
-#[cfg(all(unix, not(unix)))] // Bottom, but: `cfg` predicate key cannot be a literal
 use openpgp::serialize::stream::padding::Padder;
 use openpgp::types::CompressionAlgorithm;
 use openpgp::types::KeyFlags;
@@ -180,7 +179,7 @@ pub fn encrypt<'a, 'b: 'a>(
             })?;
 
         for ka in vc.keys() {
-            let fpr = ka.fingerprint();
+            let fpr = ka.key().fingerprint();
             let ka = match ka.with_policy(policy, time) {
                 Ok(ka) => ka,
                 Err(err) => {
@@ -204,12 +203,12 @@ pub fn encrypt<'a, 'b: 'a>(
 
             if ! ka.key().pk_algo().is_supported() {
                 bad.push(format!("{} uses {}, which is not supported",
-                                 ka.fingerprint(),
+                                 ka.key().fingerprint(),
                                  ka.key().pk_algo()));
                 continue;
             }
             if let RevocationStatus::Revoked(_sigs) = ka.revocation_status() {
-                bad.push(format!("{} is revoked", ka.fingerprint()));
+                bad.push(format!("{} is revoked", ka.key().fingerprint()));
                 continue;
             }
             if let Err(err) = ka.alive() {
@@ -244,7 +243,7 @@ pub fn encrypt<'a, 'b: 'a>(
         if selected_keys.is_empty() {
             // We didn't find any keys for this certificate.
             for ka in cert.keys() {
-                let fpr = ka.fingerprint();
+                let fpr = ka.key().fingerprint();
                 if let Err(err) = ka.with_policy(policy, time) {
                     bad.push(format!("{} is not valid: {}",
                                      fpr,
@@ -285,8 +284,8 @@ pub fn encrypt<'a, 'b: 'a>(
                       cert.fingerprint());
 
             for ka in selected_keys {
-                have_one_secret |= sq.have_secret_key(&ka);
-                recipient_subkeys.push(ka.key());
+                have_one_secret |= sq.have_secret_key(ka.amalgamation());
+                recipient_subkeys.push(ka);
             }
         }
     }
@@ -345,7 +344,6 @@ pub fn encrypt<'a, 'b: 'a>(
 
     match compression {
         CompressionMode::None => (),
-        #[cfg(all(unix, not(unix)))] // Bottom, but: `cfg` predicate key cannot be a literal
         CompressionMode::Pad => sink = Padder::new(sink).build()?,
         CompressionMode::Zip => sink =
             Compressor::new(sink).algo(CompressionAlgorithm::Zip).build()?,
@@ -367,13 +365,13 @@ pub fn encrypt<'a, 'b: 'a>(
                 *critical)?;
         }
 
-        let mut signer = Signer::with_template(sink, first.1, builder);
+        let mut signer = Signer::with_template(sink, first.1, builder)?;
 
         if let Some(time) = time {
             signer = signer.creation_time(time);
         }
         for s in signers {
-            signer = signer.add_signer(s.1);
+            signer = signer.add_signer(s.1)?;
         }
         for r in recipients.iter() {
             signer = signer.add_intended_recipient(r);

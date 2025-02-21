@@ -2,6 +2,7 @@ use anyhow::Context as _;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io;
+use std::sync::Arc;
 
 use sequoia_openpgp as openpgp;
 use openpgp::types::SymmetricAlgorithm;
@@ -90,7 +91,7 @@ pub struct Helper<'c, 'store, 'rstore>
 {
     vhelper: VHelper<'c, 'store, 'rstore>,
     secret_keys: HashMap<KeyID, (Cert, Key<key::SecretParts, key::UnspecifiedRole>)>,
-    key_identities: HashMap<KeyID, Fingerprint>,
+    key_identities: HashMap<KeyID, Arc<Cert>>,
     session_keys: Vec<cli::types::SessionKey>,
     dump_session_key: bool,
 
@@ -127,8 +128,9 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
     {
         let mut keys: HashMap<KeyID, (Cert, Key<key::SecretParts, key::UnspecifiedRole>)>
             = HashMap::new();
-        let mut identities: HashMap<KeyID, Fingerprint> = HashMap::new();
+        let mut identities: HashMap<KeyID, Arc<Cert>> = HashMap::new();
         for tsk in secrets {
+            let cert = Arc::new(tsk.clone().strip_secret_key_material());
             for ka in tsk.keys().secret()
                 // XXX: Should use the message's creation time that we do not know.
                 .with_policy(sq.policy, None)
@@ -137,7 +139,7 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
                 let id: KeyID = ka.key().fingerprint().into();
                 let key = ka.key();
                 keys.insert(id.clone(), (tsk.clone(), key.clone()));
-                identities.insert(id.clone(), tsk.fingerprint());
+                identities.insert(id.clone(), cert.clone());
             }
         }
 
@@ -153,25 +155,27 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
 
     /// Checks if a session key can decrypt the packet parser using
     /// `decrypt`.
-    fn try_session_key<D>(&self, fpr: &Fingerprint,
-                          algo: SymmetricAlgorithm, sk: SessionKey,
-                          decrypt: &mut D)
-        -> Option<Option<Fingerprint>>
-        where D: FnMut(SymmetricAlgorithm, &SessionKey) -> bool
+    fn try_session_key(&self, fpr: &Fingerprint,
+                       algo: Option<SymmetricAlgorithm>, sk: SessionKey,
+                       decrypt: &mut dyn FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool)
+                       -> Option<Option<Cert>>
     {
         if decrypt(algo, &sk) {
             if self.dump_session_key {
                 weprintln!("Session key: {}", hex::encode(&sk));
             }
-            let id = self.key_identities.get(&KeyID::from(fpr)).cloned();
-            if let Some(ref id) = id {
+
+            // XXX: make key identities map to certs, and failing that
+            // look into the cert store.
+            let cert = self.key_identities.get(&KeyID::from(fpr)).cloned();
+            if let Some(cert) = &cert {
                 // Prefer the reverse-mapped identity.
-                self.decryptor.replace(Some(id.clone()));
+                self.decryptor.replace(Some(cert.fingerprint()));
             } else {
                 // But fall back to the public key's fingerprint.
                 self.decryptor.replace(Some(fpr.clone()));
             }
-            Some(id)
+            Some(cert.map(|c| (*c).clone()))
         } else {
             None
         }
@@ -179,12 +183,11 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
 
     /// Tries to decrypt the given PKESK packet with `keypair` and try
     /// to decrypt the packet parser using `decrypt`.
-    fn try_decrypt<D>(&self, pkesk: &PKESK,
-                      sym_algo: Option<SymmetricAlgorithm>,
-                      mut keypair: Box<dyn crypto::Decryptor>,
-                      decrypt: &mut D)
-                      -> Option<Option<Fingerprint>>
-        where D: FnMut(SymmetricAlgorithm, &SessionKey) -> bool
+    fn try_decrypt(&self, pkesk: &PKESK,
+                   sym_algo: Option<SymmetricAlgorithm>,
+                   mut keypair: Box<dyn crypto::Decryptor>,
+                   decrypt: &mut dyn FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool)
+                   -> Option<Option<Cert>>
     {
         let fpr = keypair.public().fingerprint();
         let (sym_algo, sk) = pkesk.decrypt(&mut *keypair, sym_algo)?;
@@ -224,23 +227,23 @@ impl<'c, 'store, 'rstore> VerificationHelper for Helper<'c, 'store, 'rstore>
 impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
     where 'store: 'rstore
 {
-    fn decrypt<D>(&mut self, pkesks: &[PKESK], skesks: &[SKESK],
-                  sym_algo: Option<SymmetricAlgorithm>,
-                  mut decrypt: D) -> openpgp::Result<Option<Fingerprint>>
-        where D: FnMut(SymmetricAlgorithm, &SessionKey) -> bool
+    fn decrypt(&mut self, pkesks: &[PKESK], skesks: &[SKESK],
+               sym_algo: Option<SymmetricAlgorithm>,
+               decrypt: &mut dyn FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool)
+               -> openpgp::Result<Option<Cert>>
     {
         make_qprintln!(self.quiet);
 
         // Before anything else, try the session keys
         for sk in &self.session_keys {
             let decrypted = if let Some(sa) = sk.symmetric_algo {
-                decrypt(sa, &sk.session_key)
+                decrypt(Some(sa), &sk.session_key)
             } else {
                 // We don't know which algorithm to use,
                 // try to find one that decrypts the message.
                 (1u8..=19)
                     .map(SymmetricAlgorithm::from)
-                    .any(|sa| decrypt(sa, &sk.session_key))
+                    .any(|sa| decrypt(Some(sa), &sk.session_key))
             };
             if decrypted {
                 qprintln!("Encrypted with Session Key {}",
@@ -259,15 +262,16 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                     let keypair = Box::new(key.into_keypair()
                         .expect("decrypted secret key material"));
 
-                    slf.try_decrypt(pkesk, sym_algo, keypair, &mut decrypt)
+                    slf.try_decrypt(pkesk, sym_algo, keypair, decrypt)
                 })
         };
 
         // First, we try those keys that we can use without prompting
         // for a password.
         for pkesk in pkesks {
-            let keyid = pkesk.recipient();
-            if let Some((cert, key)) = self.secret_keys.get(keyid) {
+            let keyid = pkesk.recipient().map(KeyID::from)
+                .unwrap_or_else(KeyID::wildcard);
+            if let Some((cert, key)) = self.secret_keys.get(&keyid) {
                 if let Some(fp) = decrypt_key(self, pkesk, cert, key, false) {
                     return Ok(fp);
                 }
@@ -282,8 +286,10 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                 continue;
             }
 
-            let keyid = pkesk.recipient();
-            if let Some((cert, key)) = self.secret_keys.get(keyid) {
+            let keyid = pkesk.recipient().map(KeyID::from);
+            if let Some((cert, key)) = keyid.as_ref()
+                .and_then(|k| self.secret_keys.get(k))
+            {
                 if let Some(fp) = decrypt_key(self, pkesk, cert, key, true) {
                     return Ok(fp);
                 }
@@ -293,7 +299,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
         // Third, we try to decrypt PKESK packets with wildcard
         // recipients using those keys that we can use without
         // prompting for a password.
-        for pkesk in pkesks.iter().filter(|p| p.recipient().is_wildcard()) {
+        for pkesk in pkesks.iter().filter(|p| p.recipient().is_none()) {
             for (cert, key) in self.secret_keys.values() {
                 if let Some(fp) = decrypt_key(self, pkesk, cert, key, false) {
                     return Ok(fp);
@@ -303,7 +309,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
 
         // Fourth, we try to decrypt PKESK packets with wildcard
         // recipients using those keys that are encrypted.
-        for pkesk in pkesks.iter().filter(|p| p.recipient().is_wildcard()) {
+        for pkesk in pkesks.iter().filter(|p| p.recipient().is_none()) {
             // Don't ask the user to decrypt a key if we don't support
             // the algorithm.
             if ! pkesk.pk_algo().is_supported() {
@@ -326,7 +332,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                     Ok((_i, fpr, sym_algo, sk)) => {
                         if let Some(fp) =
                             self.try_session_key(
-                                &fpr, sym_algo, sk, &mut decrypt)
+                                &fpr, sym_algo, sk, decrypt)
                         {
                             return Ok(fp);
                         }
@@ -380,7 +386,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
 
                                         let keypair = Box::new(key);
                                         if let Some(fp) = self.try_decrypt(
-                                            &pkesk, sym_algo, keypair, &mut decrypt)
+                                            &pkesk, sym_algo, keypair, decrypt)
                                         {
                                             return Ok(fp);
                                         } else {
@@ -403,52 +409,47 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
         }
 
         if skesks.is_empty() {
-            let recipients = pkesks.iter()
-                .filter_map(|p| {
-                    let recipient = p.recipient();
-                    if recipient.is_wildcard() {
-                        None
-                    } else {
-                        Some(recipient)
-                    }
-                });
             weprintln!("No key to decrypt message.  The message appears \
                         to be encrypted to:");
             weprintln!();
-            for recipient in recipients.into_iter() {
-                let certs = self.sq.lookup(
-                    std::iter::once(KeyHandle::from(recipient)),
-                    Some(KeyFlags::empty()
-                         .set_storage_encryption()
-                         .set_transport_encryption()),
-                    false,
-                    true);
 
-                match certs {
-                    Ok(certs) => {
-                        for cert in certs {
-                            ui::emit_cert(&mut io::stderr(), self.sq, &cert)?;
+            for recipient in pkesks.iter().map(|p| p.recipient()) {
+                if let Some(r) = recipient {
+                    let certs = self.sq.lookup(
+                        std::iter::once(&r),
+                        Some(KeyFlags::empty()
+                             .set_storage_encryption()
+                             .set_transport_encryption()),
+                        false,
+                        true);
+
+                    match certs {
+                        Ok(certs) => {
+                            for cert in certs {
+                                ui::emit_cert(&mut io::stderr(), self.sq, &cert)?;
+                            }
+                        }
+                        Err(err) => {
+                            if let Some(StoreError::NotFound(_))
+                                = err.downcast_ref()
+                            {
+                                weprintln!(initial_indent = " - ",
+                                           "{}, certificate not found", r);
+                            } else {
+                                weprintln!(initial_indent = " - ",
+                                           "{}, error looking up certificate: {}",
+                                           r, err);
+                            }
                         }
                     }
-                    Err(err) => {
-                        if let Some(StoreError::NotFound(_))
-                            = err.downcast_ref()
-                        {
-                            weprintln!(initial_indent = " - ",
-                                       "{}, certificate not found",
-                                       recipient);
-                        } else {
-                            weprintln!(initial_indent = " - ",
-                                       "{}, error looking up certificate: {}",
-                                       recipient, err);
-                        }
-                    }
-                };
+                } else {
+                    weprintln!(initial_indent = " - ",
+                               "anonymous recipient, certificate not found");
+                }
             }
-            weprintln!();
 
-            return
-                Err(anyhow::anyhow!("No key to decrypt message"));
+            weprintln!();
+            return Err(anyhow::anyhow!("No key to decrypt message"));
         }
 
         // Finally, try to decrypt using the SKESKs.  Before
@@ -538,20 +539,19 @@ pub fn decrypt_unwrap(sq: Sq,
     let mut pkesks: Vec<packet::PKESK> = Vec::new();
     let mut skesks: Vec<packet::SKESK> = Vec::new();
     while let PacketParserResult::Some(mut pp) = ppr {
-        let sym_algo_hint = if let Packet::AED(ref aed) = pp.packet {
-            Some(aed.symmetric_algo())
-        } else {
-            None
+        let sym_algo_hint = match &pp.packet {
+            Packet::SEIP(SEIP::V2(seip)) => Some(seip.symmetric_algo()),
+            _ => None,
         };
 
         match pp.packet {
-            Packet::SEIP(_) | Packet::AED(_) => {
+            Packet::SEIP(_) => {
                 {
-                    let decrypt = |algo, secret: &SessionKey| {
+                    let mut decrypt = |algo, secret: &SessionKey| {
                         pp.decrypt(algo, secret).is_ok()
                     };
                     helper.decrypt(&pkesks[..], &skesks[..], sym_algo_hint,
-                                   decrypt)?;
+                                   &mut decrypt)?;
                 }
                 if ! pp.processed() {
                     return Err(

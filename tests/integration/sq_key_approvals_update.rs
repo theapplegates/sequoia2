@@ -50,7 +50,7 @@ fn update_files() -> Result<()> {
         assert_eq!(approval.bad_signatures().count(), 0);
 
         let approval_ua = approval.userids().next().unwrap();
-        assert_eq!(approval_ua.attestations().count(), 1);
+        assert_eq!(approval_ua.approvals().count(), 1);
 
     };
 
@@ -107,9 +107,9 @@ fn update_all() -> Result<()> {
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
-    assert_eq!(approval_ua.attestations().count(), 1);
+    assert_eq!(approval_ua.approvals().count(), 1);
     assert_eq!(approval_ua.with_policy(STANDARD_POLICY, None).unwrap()
-               .attested_certifications().count(), 0);
+               .approved_certifications().count(), 0);
 
     // Have Bob certify Alice.
     let alice2 = sq.pki_vouch_add(&[],
@@ -125,9 +125,9 @@ fn update_all() -> Result<()> {
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
-    assert_eq!(approval_ua.attestations().count(), 2);
+    assert_eq!(approval_ua.approvals().count(), 2);
     assert_eq!(approval_ua.with_policy(STANDARD_POLICY, None).unwrap()
-               .attested_certifications().count(), 1);
+               .approved_certifications().count(), 1);
 
     // Drop the approval of Bob's certification.
     let approval = sq.key_approvals_update(
@@ -135,9 +135,9 @@ fn update_all() -> Result<()> {
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
-    assert_eq!(approval_ua.attestations().count(), 3);
+    assert_eq!(approval_ua.approvals().count(), 3);
     assert_eq!(approval_ua.with_policy(STANDARD_POLICY, None).unwrap()
-               .attested_certifications().count(), 0);
+               .approved_certifications().count(), 0);
 
     Ok(())
 }
@@ -158,9 +158,9 @@ fn update_by() -> Result<()> {
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
-    assert_eq!(approval_ua.attestations().count(), 1);
+    assert_eq!(approval_ua.approvals().count(), 1);
     assert_eq!(approval_ua.with_policy(STANDARD_POLICY, None).unwrap()
-               .attested_certifications().count(), 0);
+               .approved_certifications().count(), 0);
 
     // Have Bob certify Alice.
     let alice2 = sq.pki_vouch_add(&[],
@@ -176,9 +176,9 @@ fn update_by() -> Result<()> {
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
-    assert_eq!(approval_ua.attestations().count(), 2);
+    assert_eq!(approval_ua.approvals().count(), 2);
     assert_eq!(approval_ua.with_policy(STANDARD_POLICY, None).unwrap()
-               .attested_certifications().count(), 1);
+               .approved_certifications().count(), 1);
 
     // Drop the approval of Bob's certification.
     let approval = sq.key_approvals_update(
@@ -186,9 +186,9 @@ fn update_by() -> Result<()> {
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
-    assert_eq!(approval_ua.attestations().count(), 3);
+    assert_eq!(approval_ua.approvals().count(), 3);
     assert_eq!(approval_ua.with_policy(STANDARD_POLICY, None).unwrap()
-               .attested_certifications().count(), 0);
+               .approved_certifications().count(), 0);
 
     Ok(())
 }
@@ -218,9 +218,9 @@ fn update_authenticated() -> Result<()> {
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
-    assert_eq!(approval_ua.attestations().count(), 1);
+    assert_eq!(approval_ua.approvals().count(), 1);
     assert_eq!(approval_ua.with_policy(STANDARD_POLICY, None).unwrap()
-               .attested_certifications().count(), 0);
+               .approved_certifications().count(), 0);
 
     // Link Bob's cert to his user ID.
     let mut link = sq.command();
@@ -235,9 +235,9 @@ fn update_authenticated() -> Result<()> {
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
-    assert_eq!(approval_ua.attestations().count(), 2);
+    assert_eq!(approval_ua.approvals().count(), 2);
     assert_eq!(approval_ua.with_policy(STANDARD_POLICY, None).unwrap()
-               .attested_certifications().count(), 1);
+               .approved_certifications().count(), 1);
 
     Ok(())
 }
@@ -278,11 +278,11 @@ fn ignore_shadow_ca() {
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
-    // We have an attestation key signature.
-    assert_eq!(approval_ua.attestations().count(), 1);
-    // With one attestation (not two!).
+    // We have an approval key signature.
+    assert_eq!(approval_ua.approvals().count(), 1);
+    // With one approval (not two!).
     assert_eq!(approval_ua.with_policy(STANDARD_POLICY, None).unwrap()
-               .attested_certifications().count(), 1);
+               .approved_certifications().count(), 1);
 }
 
 #[test]
@@ -309,14 +309,14 @@ fn ignore_unexportable_certifications() {
 
     assert_eq!(approval.bad_signatures().count(), 0);
     let approval_ua = approval.userids().next().unwrap();
-    for attestation in approval_ua.attestations() {
-        eprintln!(" - {:?}", attestation);
+    for approval in approval_ua.approvals() {
+        eprintln!(" - {:?}", approval);
     }
-    // We have an attestation key signature.
-    assert_eq!(approval_ua.attestations().count(), 1);
-    // With zero attestations.
+    // We have an approval key signature.
+    assert_eq!(approval_ua.approvals().count(), 1);
+    // With zero approvals.
     assert_eq!(approval_ua.with_policy(STANDARD_POLICY, None).unwrap()
-               .attested_certifications().count(), 0);
+               .approved_certifications().count(), 0);
 }
 
 #[test]

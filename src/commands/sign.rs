@@ -201,10 +201,10 @@ fn sign_data<'a, 'store, 'rstore>(
     let mut signer = Signer::with_template(
         message,
         signers.pop().unwrap().1,
-        builder);
+        builder)?;
     signer = signer.creation_time(sq.time);
     for s in signers {
-        signer = signer.add_signer(s.1);
+        signer = signer.add_signer(s.1)?;
     }
     if detached {
         signer = signer.detached();
@@ -349,10 +349,10 @@ fn sign_message_<'a, 'store, 'rstore>(
                 }
 
                 let mut signer = Signer::with_template(
-                    sink, signers.pop().unwrap().1, builder);
+                    sink, signers.pop().unwrap().1, builder)?;
                 signer = signer.creation_time(sq.time);
                 for s in signers.drain(..) {
-                    signer = signer.add_signer(s.1);
+                    signer = signer.add_signer(s.1)?;
                 }
                 sink = signer.build().context("Failed to create signer")?;
                 state = State::Signing { signature_count: 0, };
@@ -484,11 +484,11 @@ pub fn clearsign(sq: Sq,
 
     let message = Message::new(&mut output);
     let mut signer = Signer::with_template(
-        message, signers.pop().unwrap().1, builder)
+        message, signers.pop().unwrap().1, builder)?
         .cleartext();
     signer = signer.creation_time(sq.time);
     for s in signers {
-        signer = signer.add_signer(s.1);
+        signer = signer.add_signer(s.1)?;
     }
     let mut message = signer.build().context("Failed to create signer")?;
 

@@ -37,7 +37,7 @@ fn sq_key_import_export() -> Result<()>
 
     eprintln!("Certificate:");
     for k in cert.keys() {
-        eprintln!("  {}", k.fingerprint());
+        eprintln!("  {}", k.key().fingerprint());
     }
 
     let keys: Vec<Key<_, _>> = cert.keys()
@@ -69,18 +69,18 @@ fn sq_key_import_export() -> Result<()>
             let mut secrets = 0;
             for got in got.keys() {
                 let expected = keys.iter()
-                    .find(|k| k.fingerprint() == got.fingerprint())
+                    .find(|k| k.fingerprint() == got.key().fingerprint())
                     .expect("have key");
 
                 eprintln!("    {} {} secret key material",
-                          got.fingerprint(),
-                          if got.has_secret() {
+                          got.key().fingerprint(),
+                          if got.key().has_secret() {
                               "has"
                           } else {
                               "doesn't have"
                           });
 
-                if let Ok(got) = got.parts_as_secret() {
+                if let Ok(got) = got.key().parts_as_secret() {
                     assert!(
                         selection.contains(&got.fingerprint()),
                         "got secret key material \
@@ -88,15 +88,15 @@ fn sq_key_import_export() -> Result<()>
                         got.fingerprint());
 
                     assert_eq!(expected.parts_as_secret().expect("have secrets"),
-                               got.key());
+                               got);
 
                     secrets += 1;
                 } else {
                     assert!(
-                        ! selection.contains(&got.fingerprint()),
+                        ! selection.contains(&got.key().fingerprint()),
                         "didn't get secret key material \
                          for a key we asked for ({})",
-                        got.fingerprint());
+                        got.key().fingerprint());
 
                     assert_eq!(expected, got.key());
                 }

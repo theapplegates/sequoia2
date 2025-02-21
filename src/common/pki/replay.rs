@@ -349,11 +349,11 @@ pub fn replay(sq: &Sq, o: &mut dyn std::io::Write, indent: &str,
                 match results.entry(cert.fingerprint()) {
                     Entry::Occupied(oe) => {
                         let c = oe.into_mut();
-                        *c = c.clone().insert_packets2(packets.into_iter())?.0;
+                        *c = c.clone().insert_packets(packets.into_iter())?.0;
                     }
                     Entry::Vacant(vc) => {
                         vc.insert(cert.clone()
-                                  .insert_packets2(packets.into_iter())?.0);
+                                  .insert_packets(packets.into_iter())?.0);
                     }
                 }
 

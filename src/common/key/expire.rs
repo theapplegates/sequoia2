@@ -159,7 +159,7 @@ where P: cert_designator::ArgumentPrefix,
                     IssuerFingerprint => strip,
                     PreferredAEADAlgorithms => strip, // Note, "v5".
                     IntendedRecipient => strip,
-                    AttestedCertifications => strip,
+                    ApprovedCertifications => strip,
 
                     // Enum is non-exhaustive, conservative choice is
                     // to keep unknown subpackets.
@@ -198,7 +198,7 @@ where P: cert_designator::ArgumentPrefix,
 
             // Push a copy of the user ID to make reordering easier.
             acc.push(Packet::from(uidb.userid().clone()));
-            acc.push(uidb.bind(
+            acc.push(uidb.userid().bind(
                 &mut primary_signer,
                 &cert,
                 SignatureBuilder::from(template)
@@ -210,7 +210,7 @@ where P: cert_designator::ArgumentPrefix,
     }
 
     // Merge and canonicalize.
-    let cert = cert.insert_packets(acc)?;
+    let cert = cert.insert_packets(acc)?.0;
 
     if let Some(sink) = output {
         let path = sink.path().map(Clone::clone);

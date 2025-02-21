@@ -56,10 +56,10 @@ where
         FileStdinOrKeyHandle::FileOrStdin(ref _file) => {
             // If it is not a TSK, there is nothing to do.
             for ka in kas.into_iter() {
-                let no_secret_key_material = ! ka.has_secret();
+                let no_secret_key_material = ! ka.key().has_secret();
                 if no_secret_key_material {
                     weprintln!("{}{} does not contain any secret key material",
-                               warning, ka.fingerprint());
+                               warning, ka.key().fingerprint());
                     no_secret_key_material_count += 1;
                     continue;
                 }
@@ -72,12 +72,12 @@ where
             let mut ks = ks.lock().unwrap();
 
             for ka in kas.into_iter() {
-                let remote_keys = ks.find_key(ka.key_handle())?;
+                let remote_keys = ks.find_key(ka.key().key_handle())?;
                 let no_secret_key_material = remote_keys.is_empty();
 
                 if no_secret_key_material {
                     weprintln!("{}{} does not contain any secret key material",
-                               warning, ka.fingerprint());
+                               warning, ka.key().fingerprint());
                     no_secret_key_material_count += 1;
                     continue;
                 }

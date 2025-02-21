@@ -54,7 +54,8 @@ pub fn generate(
         KeyFlags::empty().set_group_key()
     };
 
-    let mut builder = CertBuilder::new();
+    let mut builder = CertBuilder::new()
+        .set_profile(command.profile.into())?;
 
     // Names, email addresses, and user IDs.
     lint_names(&command.names)?;

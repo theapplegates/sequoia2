@@ -160,10 +160,9 @@ Canonical user IDs are of the form `Name (Comment) \
 As OpenPGP evolves, new versions will become available.  This option \
 selects the version of OpenPGP to use for the newly generated key.
 
-Currently, sq supports only one version: RFC4880.  Consequently, this \
-is the default.  However, there is already a newer version of the \
-standard: RFC9580.  And, the default will change in a future version of \
-sq."),
+Currently, sq supports two profiles: RFC9580 and RFC4880.  Currently, \
+the default is RFC4880.  However, once support for RFC9580 is rolled \
+out further, the default will change in a future version of sq."),
         value_enum,
     )]
     pub profile: Profile,

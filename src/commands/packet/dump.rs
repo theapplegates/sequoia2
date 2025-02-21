@@ -6,6 +6,7 @@ use openpgp::armor::ReaderMode;
 use self::openpgp::fmt::hex;
 use self::openpgp::crypto::mpi;
 use self::openpgp::{Cert, Packet, Result};
+use self::openpgp::packet;
 use self::openpgp::packet::prelude::*;
 use self::openpgp::packet::header::CTB;
 use self::openpgp::packet::{Header, header::BodyLength, Signature};
@@ -91,24 +92,26 @@ pub fn dump<W>(sq: &crate::Sq,
                             if n == prefix.len() { "..." } else { "" }),
                 ]
             },
-            Packet::SEIP(_) | Packet::AED(_) => {
+            Packet::SEIP(ref s) => {
                 message_encrypted = true;
 
                 let mut success = false;
                 let mut fields = Vec::new();
-                let sym_algo_hint = if let Packet::AED(ref aed) = pp.packet {
-                    Some(aed.symmetric_algo())
+                let sym_algo_hint = if let SEIP::V2(s2) = s {
+                    Some(s2.symmetric_algo())
                 } else {
                     None
                 };
-                let decryption_proxy = |algo, secret: &_| {
-                    // Take the algo from the AED packet over
+
+                let mut decryption_proxy = |algo, secret: &_| {
+                    // Take the algo from the SEIPDv2 packet over
                     // the dummy one from the SKESK5 packet.
-                    let algo = sym_algo_hint.unwrap_or(algo);
                     let result = pp.decrypt(algo, secret);
                     if let Ok(_) = result {
                         fields.push(
                             format!("Session key: {}", &hex::encode(secret)));
+                        let algo = sym_algo_hint.or(algo)
+                            .expect("we know either or");
                         fields.push(format!("Symmetric algo: {}", algo));
                         fields.push("Decryption successful".into());
                         success = true;
@@ -119,7 +122,7 @@ pub fn dump<W>(sq: &crate::Sq,
                 };
 
                 if let Err(e) = helper.decrypt(&pkesks[..], &skesks[..],
-                                               sym_algo_hint, decryption_proxy)
+                                               sym_algo_hint, &mut decryption_proxy)
                 {
                     for algo in session_keys.iter()
                         .filter_map(|sk| sk.symmetric_algo)
@@ -357,6 +360,9 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
                 writeln!(output, "{}  Pk algo: {}", i, o.pk_algo())?;
                 writeln!(output, "{}  Hash algo: {}", i, o.hash_algo())?;
                 writeln!(output, "{}  Issuer: {}", i, o.issuer())?;
+		if let packet::OnePassSig::V6(o) = o {
+                    writeln!(output, "{}  Salt: {}", i, hex::encode(o.salt()))?;
+		}
                 writeln!(output, "{}  Last: {}", i, o.last())?;
             },
 
@@ -375,6 +381,7 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
 
             UserAttribute(ref u) => {
                 use self::openpgp::packet::user_attribute::{Subpacket, Image};
+                use openpgp::serialize::MarshalInto;
 
                 for subpacket in u.subpackets() {
                     match subpacket {
@@ -390,11 +397,19 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
                                 writeln!(output,
                                          "{}    Unknown image({}): {} bytes", i,
                                          n, data.len())?,
+                            _ =>
+                                writeln!(output,
+                                         "{}    Unknown image: {} bytes", i,
+                                         image.serialized_len())?,
                         },
                         Ok(Subpacket::Unknown(n, data)) =>
                             writeln!(output,
                                      "{}    Unknown subpacket({}): {} bytes", i,
                                      n, data.len())?,
+                        Ok(u) =>
+                            writeln!(output,
+                                     "{}    Unknown subpacket: {} bytes", i,
+                                     u.serialized_len())?,
                         Err(e) =>
                             writeln!(output,
                                      "{}    Invalid subpacket encoding: {}", i,
@@ -424,7 +439,9 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
 
             PKESK(ref p) => {
                 writeln!(output, "{}  Version: {}", i, p.version())?;
-                writeln!(output, "{}  Recipient: {}", i, p.recipient())?;
+                writeln!(output, "{}  Recipient: {}", i,
+                         p.recipient().as_ref().map(ToString::to_string)
+                         .unwrap_or_else(|| "<anonymous recipient>".into()))?;
                 writeln!(output, "{}  Pk algo: {}", i, p.pk_algo())?;
                 if self.mpis {
                     writeln!(output, "{}", i)?;
@@ -432,6 +449,14 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
 
                     let ii = format!("{}    ", i);
                     match p.esk() {
+                        mpi::Ciphertext::X25519 { e, key } =>
+                            self.dump_mpis(output, &ii,
+                                           &[&e[..], key],
+                                           &["e", "key"])?,
+                        mpi::Ciphertext::X448 { e, key } =>
+                            self.dump_mpis(output, &ii,
+                                           &[&e[..], key],
+                                           &["e", "key"])?,
                         mpi::Ciphertext::RSA { c } =>
                             self.dump_mpis(output, &ii,
                                            &[c.value()],
@@ -480,23 +505,17 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
                         }
                     },
 
-                    self::openpgp::packet::SKESK::V5(ref s) => {
+                    self::openpgp::packet::SKESK::V6(ref s) => {
                         writeln!(output, "{}  Symmetric algo: {}", i,
                                  s.symmetric_algo())?;
                         writeln!(output, "{}  AEAD: {}", i,
                                  s.aead_algo())?;
                         write!(output, "{}  S2K: ", i)?;
                         self.dump_s2k(output, i, s.s2k())?;
-                        if let Ok(iv) = s.aead_iv() {
-                            writeln!(output, "{}  IV: {}", i,
-                                     hex::encode(iv))?;
-                        }
-                        if let Ok(Some(esk)) = s.esk() {
-                            writeln!(output, "{}  ESK: {}", i,
-                                     hex::encode(esk))?;
-                        }
-                        writeln!(output, "{}  Digest: {}", i,
-                                 hex::encode(s.aead_digest()))?;
+                        writeln!(output, "{}  IV: {}", i,
+                                 hex::encode(s.aead_iv()))?;
+                        writeln!(output, "{}  ESK: {}", i,
+                                 hex::encode(s.esk()))?;
                     },
 
                     // SKESK is non-exhaustive.
@@ -506,6 +525,16 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
 
             SEIP(ref s) => {
                 writeln!(output, "{}  Version: {}", i, s.version())?;
+                match s {
+                    packet::SEIP::V1(_) => (),
+                    packet::SEIP::V2(s) => {
+                        writeln!(output, "{}  Symmetric algo: {}", i, s.symmetric_algo())?;
+                        writeln!(output, "{}  AEAD algo: {}", i, s.aead())?;
+                        writeln!(output, "{}  Chunk size: {}", i, s.chunk_size())?;
+                        writeln!(output, "{}  Salt: {}", i, hex::encode(s.salt()))?;
+                    },
+                    _ => (),
+                }
             },
 
             MDC(ref m) => {
@@ -513,15 +542,13 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
                          i, hex::encode(m.digest()))?;
                 writeln!(output, "{}  Computed digest: {}",
                          i, hex::encode(m.computed_digest()))?;
+                writeln!(output, "{}  Valid: {}",
+                         i, m.valid())?;
             },
 
-            AED(ref a) => {
-                writeln!(output, "{}  Version: {}", i, a.version())?;
-                writeln!(output, "{}  Symmetric algo: {}", i, a.symmetric_algo())?;
-                writeln!(output, "{}  AEAD: {}", i, a.aead())?;
-                writeln!(output, "{}  Chunk size: {}", i, a.chunk_size())?;
-                writeln!(output, "{}  IV: {}", i, hex::encode(a.iv()))?;
-            },
+            Padding(_) => {
+                // Nothing to do.
+            }
 
             // openpgp::Packet is non-exhaustive.
             u => writeln!(output, "{}    Unknown variant: {:?}", i, u)?,
@@ -593,6 +620,14 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
 
             let ii = format!("{}    ", i);
             match k.mpis() {
+                mpi::PublicKey::X25519 { u } =>
+                    self.dump_mpis(output, &ii, &[u], &["u"])?,
+                mpi::PublicKey::X448 { u } =>
+                    self.dump_mpis(output, &ii, &[&u[..]], &["u"])?,
+                mpi::PublicKey::Ed25519 { a } =>
+                    self.dump_mpis(output, &ii, &[a], &["a"])?,
+                mpi::PublicKey::Ed448 { a } =>
+                    self.dump_mpis(output, &ii, &[&a[..]], &["a"])?,
                 mpi::PublicKey::RSA { e, n } =>
                     self.dump_mpis(output, &ii,
                                  &[e.value(), n.value()],
@@ -655,6 +690,18 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
                         u.map(|mpis| -> Result<()> {
                             match mpis
                             {
+                                mpi::SecretKeyMaterial::X25519 { x } =>
+                                    self.dump_mpis(output, &ii,
+                                                   &[x], &["x"])?,
+                                mpi::SecretKeyMaterial::X448 { x } =>
+                                    self.dump_mpis(output, &ii,
+                                                   &[&x[..]], &["x"])?,
+                                mpi::SecretKeyMaterial::Ed25519 { x } =>
+                                    self.dump_mpis(output, &ii,
+                                                   &[x], &["x"])?,
+                                mpi::SecretKeyMaterial::Ed448 { x } =>
+                                    self.dump_mpis(output, &ii,
+                                                   &[&x[..]], &["x"])?,
                                 mpi::SecretKeyMaterial::RSA { d, p, q, u } =>
                                     self.dump_mpis(output, &ii,
                                                  &[d.value(), p.value(),
@@ -744,6 +791,9 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
         }
         writeln!(output, "{}  Digest prefix: {}", i,
                  hex::encode(s.digest_prefix()))?;
+	if let packet::Signature::V6(s) = s {
+            writeln!(output, "{}  Salt: {}", i, hex::encode(s.salt()))?;
+	}
         write!(output, "{}  Level: {} ", i, s.level())?;
         match s.level() {
             0 => writeln!(output, "(signature over data)")?,
@@ -758,6 +808,10 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
 
             let ii = format!("{}    ", i);
             match s.mpis() {
+                mpi::Signature::Ed25519 { s } =>
+                    self.dump_mpis(output, &ii, &[&s[..]], &["s"])?,
+                mpi::Signature::Ed448 { s } =>
+                    self.dump_mpis(output, &ii, &[&s[..]], &["s"])?,
                 mpi::Signature::RSA { s } =>
                     self.dump_mpis(output, &ii,
                                    &[s.value()],
@@ -929,14 +983,11 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
                     write!(output, "{}      {}", i, userid)?;
                 }
             }
-            PreferredAEADAlgorithms(ref c) =>
-                write!(output, "{}    AEAD preferences: {}", i,
-                       c.iter().map(|c| format!("{:?}", c))
-                       .collect::<Vec<String>>().join(", "))?,
+
             IntendedRecipient(ref fp) =>
                 write!(output, "{}    Intended Recipient: {}", i, fp)?,
-            AttestedCertifications(digests) => {
-                write!(output, "{}    Attested Certifications:", i)?;
+            ApprovedCertifications(digests) => {
+                write!(output, "{}    Approved Certifications:", i)?;
                 if digests.is_empty() {
                     writeln!(output, " None")?;
                 } else {
@@ -946,6 +997,11 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
                     }
                 }
             },
+            PreferredAEADCiphersuites(p) =>
+                write!(output, "{}    AEAD preferences: {}", i,
+                       p.iter().map(|(symm, aead)|
+                                    format!("{:?}+{:?}", symm, aead))
+                       .collect::<Vec<String>>().join(", "))?,
 
             // SubpacketValue is non-exhaustive.
             u => writeln!(output, "{}    Unknown variant: {:?}", i, u)?,
@@ -979,6 +1035,9 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
         use self::S2K::*;
         #[allow(deprecated)]
         match s2k {
+            Implicit => {
+                writeln!(output, "Implicit")?;
+            },
             Simple { hash } => {
                 writeln!(output, "Simple")?;
                 writeln!(output, "{}    Hash: {}", i, hash)?;
@@ -993,6 +1052,14 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
                 writeln!(output, "{}    Hash: {}", i, hash)?;
                 writeln!(output, "{}    Salt: {}", i, hex::encode(salt))?;
                 writeln!(output, "{}    Hash bytes: {}", i, hash_bytes)?;
+            },
+            Argon2 { salt, t, p, m } => {
+                writeln!(output, "Argon2")?;
+                writeln!(output, "{}    Salt: {}", i, hex::encode(salt))?;
+                writeln!(output, "{}    Passes: {}", i, t)?;
+                writeln!(output, "{}    Parallelism: {}", i, p)?;
+                writeln!(output, "{}    Memory: {} ({} KiB)", i, m,
+                         2usize.pow((*m).into()))?;
             },
             Private { tag, parameters } => {
                 writeln!(output, "Private")?;

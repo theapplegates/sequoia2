@@ -142,11 +142,13 @@ fn sq_key_userid_revoke() -> Result<()> {
             let mut found_revoked = false;
 
             valid_cert.userids().for_each(|x| {
-                if x.value() == userid_revoke.as_bytes() {
-                    if let RevocationStatus::Revoked(sigs) = x.revocation_status(
-                        STANDARD_POLICY,
-                        revocation_time.map(Into::into),
-                    ) {
+                if x.userid().value() == userid_revoke.as_bytes() {
+                    if let RevocationStatus::Revoked(sigs) = x.bundle()
+                        .revocation_status(
+                            STANDARD_POLICY,
+                            revocation_time.map(Into::into),
+                        )
+                    {
                         // there is only one signature packet
                         assert_eq!(sigs.len(), 1);
                         let sig = sigs.into_iter().next().unwrap();
@@ -313,11 +315,13 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
             let mut found_revoked = false;
 
             revocation_valid_cert.userids().for_each(|x| {
-                if x.value() == userid_revoke.as_bytes() {
-                    if let RevocationStatus::CouldBe(sigs) = x.revocation_status(
-                        STANDARD_POLICY,
-                        revocation_time.map(Into::into),
-                    ) {
+                if x.userid().value() == userid_revoke.as_bytes() {
+                    if let RevocationStatus::CouldBe(sigs) = x.bundle()
+                        .revocation_status(
+                            STANDARD_POLICY,
+                            revocation_time.map(Into::into),
+                        )
+                    {
                         // there is only one signature packet
                         assert_eq!(sigs.len(), 1);
                         let sig = sigs.into_iter().next().unwrap();
@@ -338,8 +342,8 @@ fn sq_key_userid_revoke_thirdparty() -> Result<()> {
                         if sig
                             .clone()
                             .verify_userid_revocation(
-                                &thirdparty_cert.primary_key(),
-                                &revocation_cert.primary_key(),
+                                thirdparty_cert.primary_key().key(),
+                                revocation_cert.primary_key().key(),
                                 &UserID::from(*userid_revoke),
                             )
                             .is_err()
@@ -387,10 +391,10 @@ fn sq_key_userid_add() -> Result<()> {
         ])?;
 
     assert_eq!(key.userids().count(), 3);
-    assert!(key.userids().any(|u| u.value() == b"Joan Clarke"));
-    assert!(key.userids().any(|u| u.value() == b"Joan Clarke Murray"));
+    assert!(key.userids().any(|u| u.userid().value() == b"Joan Clarke"));
+    assert!(key.userids().any(|u| u.userid().value() == b"Joan Clarke Murray"));
     assert!(
-        key.userids().any(|u| u.value() == b"<joan@hut8.bletchley.park>"));
+        key.userids().any(|u| u.userid().value() == b"<joan@hut8.bletchley.park>"));
 
     Ok(())
 }

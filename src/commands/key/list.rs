@@ -180,7 +180,7 @@ fn key_validity(sq: &Sq, cert: &Cert, key: Option<&Fingerprint>) -> Vec<String> 
     let mut info = Vec::new();
 
     if let Some(key) = key {
-        let ka = cert.keys().subkeys().find(|ka| &ka.fingerprint() == key)
+        let ka = cert.keys().subkeys().find(|ka| &ka.key().fingerprint() == key)
             .expect("key is associated with the certificate");
 
         match ka.clone().with_policy(sq.policy, sq.time) {
@@ -267,7 +267,7 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
     if let Some(pattern) = cmd.pattern {
         let mut d = None;
         if let Ok(kh) = pattern.parse::<KeyHandle>() {
-            if matches!(kh, KeyHandle::Fingerprint(Fingerprint::Invalid(_))) {
+            if matches!(kh, KeyHandle::Fingerprint(Fingerprint::Unknown { .. })) {
                 let hex = pattern.chars()
                     .map(|c| {
                         if c == ' ' { 0 } else { 1 }
@@ -306,7 +306,7 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
     // backends discoverable.
     let mut backends = ks.backends()?;
     for backend in &mut backends {
-        let devices = backend.list()?;
+        let devices = backend.devices()?;
         if devices.len() == 0 {
             wwriteln!(stream=o, initial_indent = " - ",
                       "Backend {} has no keys.",
@@ -315,7 +315,7 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
         }
 
         for mut device in devices {
-            let keys = device.list()?;
+            let keys = device.keys()?;
             if keys.len() == 0 {
                 wwriteln!(stream=o, initial_indent = " - ",
                           "Device {}/{} has no keys.",

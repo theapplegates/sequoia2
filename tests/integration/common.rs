@@ -38,7 +38,7 @@ use openpgp::serialize::Serialize;
 use tempfile::TempDir;
 
 pub const STANDARD_POLICY: &StandardPolicy = &StandardPolicy::new();
-pub const NULL_POLICY: &NullPolicy = &NullPolicy::new();
+pub const NULL_POLICY: &NullPolicy = unsafe { &NullPolicy::new() };
 
 pub fn artifact(filename: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -73,8 +73,8 @@ pub fn time_as_string(t: DateTime<Utc>) -> String {
 pub fn extract_fingerprints(output: &str) -> BTreeMap<Fingerprint, usize> {
     use regex::Regex;
 
-    // v4 fingerprints without spaces.
-    let re = Regex::new(r"(\b[A-F0-9]{40}\b)").unwrap();
+    // v6 and v4 fingerprints without spaces.
+    let re = Regex::new(r"(\b[A-F0-9]{64}\b)|(\b[A-F0-9]{40}\b)").unwrap();
 
     let mut fprs: Vec<(Fingerprint, usize)> = re
         .captures_iter(output).map(|c| c.extract())
@@ -111,7 +111,7 @@ where B: Into<BTreeMap<Fingerprint, usize>>
 
     let mut bad = false;
     for (fpr, got_count) in got.iter() {
-        let expected_count = expected.get(&fpr).unwrap_or(&0);
+        let expected_count = expected.get(fpr).unwrap_or(&0);
         if got_count != expected_count {
             eprintln!("Got {} {} times, but expected it {} times",
                       fpr, got_count, expected_count);
@@ -119,7 +119,7 @@ where B: Into<BTreeMap<Fingerprint, usize>>
         }
     }
     for (fpr, expected_count) in expected.iter() {
-        let got_count = got.get(&fpr).unwrap_or(&0);
+        let got_count = got.get(fpr).unwrap_or(&0);
         if *got_count == 0 && *expected_count > 0 {
             eprintln!("Got {} {} times, but expected it {} times",
                       fpr, got_count, expected_count);
@@ -250,7 +250,7 @@ pub fn check_certifications(
 
     let mut bad = false;
     for (certifier, cert, userid, amount, count) in expected.difference(&got) {
-        let certifier_uid = certs.get(&certifier).unwrap()
+        let certifier_uid = certs.get(certifier).unwrap()
             .userids().map(|ua| ua.userid()).next().unwrap().clone();
 
         eprintln!("Expected {} certification(s) by {}, {} for {}, {}, amount: {}",
@@ -261,7 +261,7 @@ pub fn check_certifications(
         bad = true;
     }
     for (certifier, cert, userid, amount, count) in got.difference(&expected) {
-        let certifier_uid = certs.get(&certifier).unwrap()
+        let certifier_uid = certs.get(certifier).unwrap()
             .userids().map(|ua| ua.userid()).next().unwrap().clone();
 
         eprintln!("Unexpectedly got {} certification(s) by {}, {} for {}, {}, amount: {}",

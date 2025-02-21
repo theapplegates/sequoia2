@@ -382,7 +382,7 @@ where 'store: 'rstore,
                 };
 
                 let userid_check = UserID::from(format!("<{}>", email));
-                if let Ok(Some(email_check)) = userid_check.email2() {
+                if let Ok(Some(email_check)) = userid_check.email() {
                     if email != email_check {
                         return Err(anyhow::anyhow!(
                             "{:?} does not appear to be an email address",

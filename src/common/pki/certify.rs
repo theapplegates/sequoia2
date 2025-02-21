@@ -459,7 +459,7 @@ The certifier is the same as the certificate to certify."));
         return Ok(());
     }
 
-    let cert = cert.clone().insert_packets(certifications)?;
+    let cert = cert.clone().insert_packets(certifications)?.0;
 
     if let Some(output) = output {
         // And export it.

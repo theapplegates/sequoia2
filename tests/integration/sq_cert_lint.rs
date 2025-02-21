@@ -177,7 +177,7 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
                         // the number of expected new signatures.
                         let orig_sigs: isize = cert
                             .clone()
-                            .into_packets2()
+                            .into_packets()
                             .map(|p| {
                                 if let Packet::Signature(_) = p {
                                     1
@@ -212,7 +212,7 @@ fn t(base: &str, prv: Option<&str>, passwords: &[&str],
 
                         let fixed_sigs: isize = updated_cert
                             .map(|cert| {
-                                cert.into_packets2()
+                                cert.into_packets()
                                     .map(|p| {
                                         match p {
                                             Packet::Signature(_) => 1,

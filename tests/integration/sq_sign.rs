@@ -237,7 +237,7 @@ fn sq_sign_append_on_compress_then_sign() {
     };
     let keypair = KeyPair::new(key.clone(), sec).unwrap();
     let message = Message::new(File::create(&sig0).unwrap());
-    let signer = Signer::new(message, keypair)
+    let signer = Signer::new(message, keypair).unwrap()
         .creation_time(sq.now())
         .build().unwrap();
     let compressor = Compressor::new(signer)
@@ -730,9 +730,9 @@ fn sq_multiple_signers() -> Result<()> {
     sigs.sort();
 
     let alice_sig_fpr = alice.with_policy(P, None)?
-        .keys().for_signing().next().unwrap().fingerprint();
+        .keys().for_signing().next().unwrap().key().fingerprint();
     let bob_sig_fpr = bob.with_policy(P, None)?
-        .keys().for_signing().next().unwrap().fingerprint();
+        .keys().for_signing().next().unwrap().key().fingerprint();
 
     let mut expected = vec![
         alice_sig_fpr,
@@ -792,7 +792,7 @@ fn sq_sign_using_cert_store() -> Result<()> {
         let alice_signer = alice.with_policy(P, None)?
             .keys().for_signing().next().expect("have one");
         assert_eq!(sig.get_issuers().into_iter().next(),
-                   Some(KeyHandle::from(alice_signer.fingerprint())));
+                   Some(KeyHandle::from(alice_signer.key().fingerprint())));
     } else {
         panic!("expected signature");
     }

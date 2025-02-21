@@ -52,7 +52,7 @@ fn bob_with_alices_primary() -> &'static Cert {
         let bob = bob.strip_secret_key_material().insert_packets(vec![
             Packet::from(k),
             sig.into(),
-        ]).unwrap();
+        ]).unwrap().0;
 
         bob
     })
@@ -116,7 +116,7 @@ fn userid_prune() -> Result<()> {
     assert_eq!(certs[0].fingerprint(),
                "8F17777118A33DDA9BA48E62AACB3243630052D9".parse()?);
     assert_eq!(certs[0].userids().count(), 1);
-    assert_eq!(certs[0].userids().next().unwrap().value(),
+    assert_eq!(certs[0].userids().next().unwrap().userid().value(),
                neals_uid.as_bytes());
 
     Ok(())
@@ -150,7 +150,7 @@ fn domain_prune() -> Result<()> {
     assert_eq!(certs[0].fingerprint(),
                "8F17777118A33DDA9BA48E62AACB3243630052D9".parse()?);
     assert_eq!(certs[0].userids().count(), 1);
-    assert_eq!(certs[0].userids().next().unwrap().value(),
+    assert_eq!(certs[0].userids().next().unwrap().userid().value(),
                b"Neal H. Walfield <neal@sequoia-pgp.org>");
 
     Ok(())

@@ -170,7 +170,7 @@ where
             Packet::Literal(_) => {
                 pp.by_ref().take(40).read_to_end(&mut literal_prefix)?;
             },
-            Packet::SEIP(_) | Packet::AED(_) => {
+            Packet::SEIP(_) => {
                 encrypted = true;
             },
             _ => (),
@@ -227,16 +227,24 @@ where
                 writeln!(output, "      Passwords: {}", n_skesks)?;
             }
             for pkesk in pkesks.iter() {
-                writeln!(output, "      Recipient: {}", pkesk.recipient())?;
+                writeln!(output, "      Recipient: {}",
+                         pkesk.recipient().as_ref().map(ToString::to_string)
+                         .unwrap_or_else(|| "<anonymous recipient>".into()))?;
+
+                let recipient = if let Some(r) = pkesk.recipient() {
+                    r
+                } else {
+                    continue;
+                };
 
                 // Lookup the certificate, if possible.  Prefer a
                 // binding that is valid according to the current
                 // policy.  Otherwise, fall back to the NULL policy.
-                if let Ok(certs) = sq.lookup(Some(KeyHandle::from(pkesk.recipient())),
+                if let Ok(certs) = sq.lookup(Some(&recipient),
                                              None, true, true)
                     .or_else(|_| {
                         sq.lookup_with_policy(
-                            Some(KeyHandle::from(pkesk.recipient())),
+                            Some(recipient),
                             None, true, true,
                             NULL_POLICY, sq.time)
                     })
@@ -541,7 +549,7 @@ fn inspect_key(
         }
     }
     inspect_certifications(sq, output,
-                           bundle.certifications2(),
+                           bundle.certifications(),
                            print_certifications)?;
 
     Ok(())

@@ -14,7 +14,6 @@ use rusqlite::{Connection, OpenFlags};
 use sequoia_openpgp::{
     self as openpgp,
     cert::raw::{RawCert, RawCertParser},
-    crypto::hash::Digest,
     parse::Parse,
     types::HashAlgorithm,
 };
@@ -332,7 +331,8 @@ impl Overlay {
 
     fn mtime_cache_path(&self, of: &Resource) -> PathBuf {
         let mut hash = HashAlgorithm::SHA256.context()
-            .expect("MTI hash algorithm");
+            .expect("MTI hash algorithm")
+            .for_digest();
         hash.update(of.path.to_string_lossy().as_bytes());
 
         let name = format!(

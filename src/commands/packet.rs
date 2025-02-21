@@ -209,8 +209,10 @@ pub fn split(sq: Sq, c: SplitCommand) -> Result<()>
                 ];
 
                 match &pp.packet {
-                    Packet::PKESK(p) => headers.push(
-                        ("Comment", format!("Recipient: {}", p.recipient()))),
+                    Packet::PKESK(p) => if let Some(r) = p.recipient() {
+                        headers.push(
+                            ("Comment", format!("Recipient: {}", r)));
+                    },
                     Packet::PublicKey(k) => headers.push(
                         ("Comment", format!("Fingerprint: {}", k.fingerprint()))),
                     Packet::PublicSubkey(k) => headers.push(

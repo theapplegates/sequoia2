@@ -34,7 +34,7 @@ pub fn list(sq: Sq, c: link::ListCommand)
     if let Some(pattern) = c.pattern {
         let mut d = None;
         if let Ok(kh) = pattern.parse::<KeyHandle>() {
-            if matches!(kh, KeyHandle::Fingerprint(Fingerprint::Invalid(_))) {
+            if matches!(kh, KeyHandle::Fingerprint(Fingerprint::Unknown { .. })) {
                 let hex = pattern.chars()
                     .map(|c| {
                         if c == ' ' { 0 } else { 1 }

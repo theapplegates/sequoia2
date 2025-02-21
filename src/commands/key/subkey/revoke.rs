@@ -43,10 +43,10 @@ impl SubkeyRevocation {
         let mut revoked = BTreeSet::new();
         for ka in kas {
             // Did we already revoke it?
-            if revoked.contains(&ka.fingerprint()) {
+            if revoked.contains(&ka.key().fingerprint()) {
                 continue;
             }
-            revoked.insert(ka.fingerprint());
+            revoked.insert(ka.key().fingerprint());
 
             let mut rev = SubkeyRevocationBuilder::new()
                 .set_reason_for_revocation(reason, message.as_bytes())?;

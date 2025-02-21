@@ -52,7 +52,7 @@ fn sq_cert_export() -> Result<()>
 
         eprintln!("Importing {}", cert.fingerprint());
         for ka in cert.keys().subkeys() {
-            eprintln!("  - {}", ka.fingerprint());
+            eprintln!("  - {}", ka.key().fingerprint());
         }
 
         data.cert = Some(cert);
@@ -150,13 +150,13 @@ fn sq_cert_export() -> Result<()>
                 if authenticated {
                     sq.pki_link_add(
                         &[], cert.key_handle(),
-                        &[std::str::from_utf8(ua.value()).unwrap()]);
+                        &[std::str::from_utf8(ua.userid().value()).unwrap()]);
                 }
 
                 // Export by user id.
                 let userid = String::from_utf8_lossy(
                     ua.userid().value()).into_owned();
-                let email = ua.userid().email2().unwrap().unwrap();
+                let email = ua.userid().email().unwrap().unwrap();
 
                 call(&["--cert-userid", &userid], true && authenticated, &[data]);
                 call(&["--cert-userid", &email], false, &[]);

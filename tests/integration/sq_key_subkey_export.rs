@@ -23,7 +23,7 @@ fn sq_key_subkey_export_syntax() {
     sq.key_subkey_export(cert.key_handle(), vec![ cert.key_handle() ]);
 
     let fpr = cert.fingerprint().to_string();
-    let subkey = cert.keys().subkeys().next().unwrap().fingerprint().to_string();
+    let subkey = cert.keys().subkeys().next().unwrap().key().fingerprint().to_string();
 
     // Make sure "--key" is required.
     let mut cmd = sq.command();
@@ -136,15 +136,15 @@ fn revoked_userid() {
 
     sq.key_import(&cert_path);
 
-    let keys = cert.keys().map(|k| k.fingerprint()).collect::<Vec<_>>();
+    let keys = cert.keys().map(|k| k.key().fingerprint()).collect::<Vec<_>>();
     for selection in power_set(&keys) {
         let exported = sq.key_subkey_export(
             vc.key_handle(), selection.clone());
         for k in exported.keys() {
-            if selection.contains(&k.fingerprint()) {
-                assert!(k.has_secret());
+            if selection.contains(&k.key().fingerprint()) {
+                assert!(k.key().has_secret());
             } else {
-                assert!(! k.has_secret());
+                assert!(! k.key().has_secret());
             }
         }
     }
@@ -186,15 +186,15 @@ fn hard_revoked_subkey() {
 
     sq.key_import(&cert_path);
 
-    let keys = cert.keys().map(|k| k.fingerprint()).collect::<Vec<_>>();
+    let keys = cert.keys().map(|k| k.key().fingerprint()).collect::<Vec<_>>();
     for selection in power_set(&keys) {
         let exported = sq.key_subkey_export(
             vc.key_handle(), selection.clone());
         for k in exported.keys() {
-            if selection.contains(&k.fingerprint()) {
-                assert!(k.has_secret());
+            if selection.contains(&k.key().fingerprint()) {
+                assert!(k.key().has_secret());
             } else {
-                assert!(! k.has_secret());
+                assert!(! k.key().has_secret());
             }
         }
     }
@@ -218,15 +218,15 @@ fn only_sha1() {
 
     sq.key_import(&cert_path);
 
-    let keys = cert.keys().map(|k| k.fingerprint()).collect::<Vec<_>>();
+    let keys = cert.keys().map(|k| k.key().fingerprint()).collect::<Vec<_>>();
     for selection in power_set(&keys) {
         let exported = sq.key_subkey_export(
             cert.key_handle(), selection.clone());
         for k in exported.keys() {
-            if selection.contains(&k.fingerprint()) {
-                assert!(k.has_secret());
+            if selection.contains(&k.key().fingerprint()) {
+                assert!(k.key().has_secret());
             } else {
-                assert!(! k.has_secret());
+                assert!(! k.key().has_secret());
             }
         }
     }
@@ -251,15 +251,15 @@ fn sha1_subkey() {
 
     sq.key_import(&cert_path);
 
-    let keys = cert.keys().map(|k| k.fingerprint()).collect::<Vec<_>>();
+    let keys = cert.keys().map(|k| k.key().fingerprint()).collect::<Vec<_>>();
     for selection in power_set(&keys) {
         let exported = sq.key_subkey_export(
             cert.key_handle(), selection.clone());
         for k in exported.keys() {
-            if selection.contains(&k.fingerprint()) {
-                assert!(k.has_secret());
+            if selection.contains(&k.key().fingerprint()) {
+                assert!(k.key().has_secret());
             } else {
-                assert!(! k.has_secret());
+                assert!(! k.key().has_secret());
             }
         }
     }

@@ -55,8 +55,8 @@ fn sq_key_password() -> Result<()> {
             None, Some(&new_password),
             if keystore { None } else { Some(cert_updated.as_path()) });
         assert!(cert.keys().all(|ka| {
-            ka.has_secret()
-                && ! ka.has_unencrypted_secret()
+            ka.key().has_secret()
+                && ! ka.key().has_unencrypted_secret()
         }));
 
         let cert_handle = if keystore {
@@ -78,7 +78,7 @@ fn sq_key_password() -> Result<()> {
             &cert_handle,
             Some(&new_password), None,
             if keystore { None } else { Some(cert_updated2.as_path()) });
-        assert!(cert.keys().all(|ka| ka.has_unencrypted_secret()));
+        assert!(cert.keys().all(|ka| ka.key().has_unencrypted_secret()));
 
         let cert_handle = if keystore {
             FileOrKeyHandle::from(cert.fingerprint())
@@ -112,9 +112,9 @@ fn unbound_subkey() {
 
     // One subkey should be considered invalid.
     let bound: HashSet<Fingerprint>
-        = HashSet::from_iter(vc.keys().map(|ka| ka.fingerprint()));
+        = HashSet::from_iter(vc.keys().map(|ka| ka.key().fingerprint()));
     let all: HashSet<Fingerprint>
-        = HashSet::from_iter(cert.keys().map(|ka| ka.fingerprint()));
+        = HashSet::from_iter(cert.keys().map(|ka| ka.key().fingerprint()));
     assert!(bound.len() < all.len());
 
 
@@ -123,10 +123,10 @@ fn unbound_subkey() {
 
     // Make sure the password for the unbound key was not changed.
     for ka in result.keys() {
-        if bound.contains(&ka.fingerprint()) {
-            assert!(! ka.has_unencrypted_secret());
+        if bound.contains(&ka.key().fingerprint()) {
+            assert!(! ka.key().has_unencrypted_secret());
         } else {
-            assert!(ka.has_unencrypted_secret());
+            assert!(ka.key().has_unencrypted_secret());
         }
     }
 }
@@ -154,7 +154,7 @@ fn soft_revoked_subkey() {
         if let RevocationStatus::Revoked(_) = k.revocation_status() {
             assert!(revoked.is_none(),
                     "Only expected a single revoked subkey");
-            revoked = Some(k.key_handle());
+            revoked = Some(k.key().key_handle());
         }
     }
     if revoked.is_none() {
@@ -164,7 +164,7 @@ fn soft_revoked_subkey() {
     let updated = sq.key_password(
         cert_path, None, Some(new_password.as_path()), None);
     for ka in updated.keys() {
-        assert!(! ka.has_unencrypted_secret());
+        assert!(! ka.key().has_unencrypted_secret());
     }
 }
 
@@ -191,7 +191,7 @@ fn hard_revoked_subkey() {
         if let RevocationStatus::Revoked(_) = k.revocation_status() {
             assert!(revoked.is_none(),
                     "Only expected a single revoked subkey");
-            revoked = Some(k.key_handle());
+            revoked = Some(k.key().key_handle());
         }
     }
     if revoked.is_none() {
@@ -201,7 +201,7 @@ fn hard_revoked_subkey() {
     let updated = sq.key_password(
         cert_path, None, Some(new_password.as_path()), None);
     for ka in updated.keys() {
-        assert!(! ka.has_unencrypted_secret());
+        assert!(! ka.key().has_unencrypted_secret());
     }
 }
 
@@ -225,10 +225,10 @@ fn sha1_subkey() {
 
     // Make sure the subkey key is there and really uses SHA-1.
     let valid_subkeys: Vec<_> = vc.keys().subkeys()
-        .map(|ka| ka.fingerprint())
+        .map(|ka| ka.key().fingerprint())
         .collect();
     let all_subkeys: Vec<_> = cert.keys().subkeys()
-        .map(|ka| ka.fingerprint())
+        .map(|ka| ka.key().fingerprint())
         .collect();
 
     assert_eq!(valid_subkeys.len(), 0);
@@ -237,7 +237,7 @@ fn sha1_subkey() {
     let updated = sq.key_password(
         cert_path, None, Some(new_password.as_path()), None);
     for ka in updated.keys() {
-        assert!(! ka.has_unencrypted_secret());
+        assert!(! ka.key().has_unencrypted_secret());
     }
 }
 
@@ -254,7 +254,7 @@ fn subkey_without_secret_key_material() {
     let (cert, cert_path, _rev_path) = sq.key_generate(&[], &["alice"]);
 
     // Delete some secret key material.
-    let stripped = cert.keys().subkeys().next().unwrap();
+    let stripped = cert.keys().subkeys().next().unwrap().key();
 
     let update = sq.scratch_file(
         Some(&format!("delete-{}", stripped.fingerprint())[..]));
@@ -264,17 +264,17 @@ fn subkey_without_secret_key_material() {
     // Make sure it is stripped.
     let cert = Cert::from_file(&update).expect("can read");
     for ka in cert.keys() {
-        if ka.fingerprint() == stripped.fingerprint() {
-            assert!(! ka.has_secret(),
-                    "{} still has secret key material", ka.fingerprint());
+        if ka.key().fingerprint() == stripped.fingerprint() {
+            assert!(! ka.key().has_secret(),
+                    "{} still has secret key material", ka.key().fingerprint());
         } else {
-            assert!(ka.has_secret());
+            assert!(ka.key().has_secret());
         }
     }
 
     let updated = sq.key_password(
         &update, None, Some(new_password.as_path()), None);
     for ka in updated.keys() {
-        assert!(! ka.has_unencrypted_secret());
+        assert!(! ka.key().has_unencrypted_secret());
     }
 }

@@ -53,7 +53,7 @@ where
                         }
                     }
                     Err(err).with_context(|| {
-                        format!("Deleting {}", ka.fingerprint())
+                        format!("Deleting {}", ka.key().fingerprint())
                     })?;
                 }
             }
@@ -75,7 +75,7 @@ where
         }
 
         let cert = cert.clone().insert_packets(
-            stripped.into_iter().map(|stripped| Packet::from(stripped)))?;
+            stripped.into_iter().map(|stripped| Packet::from(stripped)))?.0;
 
         let output = output.unwrap_or_else(|| FileOrStdout::new(None));
         let mut output = output.for_secrets().create_safe(&sq)?;

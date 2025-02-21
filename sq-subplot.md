@@ -345,18 +345,33 @@ then stdout contains "Key flags: signing"
 
 
 
-### Generate an elliptic curve key
+### Generate a version four elliptic curve key
 
-_Requirement: We must be able to generate an Curve25519 key_
+_Requirement: We must be able to generate a v4 Curve25519 key_
 
 This is currently the default key, but we check it separately in case
 the default ever changes.
 
 ~~~scenario
 given an installed sq
-when I run sq key generate --own-key --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev --cipher-suite=cv25519
+when I run sq key generate --own-key --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev --cipher-suite=cv25519 --profile=rfc4880
 when I run sq inspect key.pgp
 then stdout contains "Public-key algo: EdDSA"
+then stdout contains "Public-key size: 256 bits"
+~~~
+
+### Generate a version six elliptic curve key
+
+_Requirement: We must be able to generate a v6 Curve25519 key_
+
+This is currently the default key, but we check it separately in case
+the default ever changes.
+
+~~~scenario
+given an installed sq
+when I run sq key generate --own-key --without-password --no-userids --output key.pgp --rev-cert key.pgp.rev --cipher-suite=cv25519 --profile=rfc9580
+when I run sq inspect key.pgp
+then stdout contains "Public-key algo: Ed25519"
 then stdout contains "Public-key size: 256 bits"
 ~~~
 

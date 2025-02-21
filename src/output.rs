@@ -149,16 +149,16 @@ mod keyring {
             // First, apply our policy.
             if let Ok(vcert) = cert.with_policy(sq.policy, None) {
                 if let Ok(primary) = vcert.primary_userid() {
-                    primary_uid = Some(primary.value().to_vec());
+                    primary_uid = Some(primary.userid().value().to_vec());
                 }
             }
 
             // Second, apply the null policy.
             if primary_uid.is_none() {
-                let null = openpgp::policy::NullPolicy::new();
+                let null = unsafe { openpgp::policy::NullPolicy::new() };
                 if let Ok(vcert) = cert.with_policy(&null, None) {
                     if let Ok(primary) = vcert.primary_userid() {
-                        primary_uid = Some(primary.value().to_vec());
+                        primary_uid = Some(primary.userid().value().to_vec());
                     }
                 }
             }
@@ -166,7 +166,7 @@ mod keyring {
             // As a last resort, pick the first user id.
             if primary_uid.is_none() {
                 if let Some(primary) = cert.userids().next() {
-                    primary_uid = Some(primary.value().to_vec());
+                    primary_uid = Some(primary.userid().value().to_vec());
                 }
             }
 
@@ -174,13 +174,13 @@ mod keyring {
             let mut userids = vec![];
             for u in cert.userids() {
                 if primary_uid.as_ref()
-                    .map(|p| &p[..] == u.value()).unwrap_or(false)
+                    .map(|p| &p[..] == u.userid().value()).unwrap_or(false)
                 {
                     // Skip the user id we already handled.
                     continue;
                 }
 
-                userids.push(Self::userid(u.value()));
+                userids.push(Self::userid(u.userid().value()));
             }
 
             Self {

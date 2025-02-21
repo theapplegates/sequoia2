@@ -93,7 +93,7 @@ where
             if all_userids.is_empty() {
                 return Err(anyhow::anyhow!(
                     "{} has no {}user IDs",
-                    vc.fingerprint(),
+                    vc.cert().fingerprint(),
                     if self.all_matches_non_self_signed() {
                         ""
                     } else {
@@ -163,7 +163,7 @@ where
                     let mut found = false;
                     for ua in vc.userids() {
                         if Some(&email_normalized)
-                            == ua.email_normalized().unwrap_or(None).as_ref()
+                            == ua.userid().email_normalized().unwrap_or(None).as_ref()
                         {
                             if found {
                                 weprintln!("{} is ambiguous: it matches \
@@ -211,7 +211,7 @@ where
                 }
                 UserIDDesignator::Name(semantics, name) => {
                     let name_userid = UserID::from(&name[..]);
-                    if name_userid.name2().ok() != Some(Some(&name[..])) {
+                    if name_userid.name().ok() != Some(Some(&name[..])) {
                         let err = format!("{:?} is not a valid display name",
                                           name);
                         weprintln!("{}", err);
@@ -221,7 +221,7 @@ where
 
                     let mut found = false;
                     for ua in vc.userids() {
-                        if let Ok(Some(n)) = ua.userid().name2() {
+                        if let Ok(Some(n)) = ua.userid().name() {
                             if n == name {
                                 if found {
                                     weprintln!("{:?} is ambiguous: it matches \
@@ -272,7 +272,7 @@ where
         }
 
         if missing || ambiguous_email || ambiguous_name {
-            weprintln!("{}'s self-signed user IDs:", vc.fingerprint());
+            weprintln!("{}'s self-signed user IDs:", vc.cert().fingerprint());
             let mut have_valid = false;
             for ua in vc.userids() {
                 if std::str::from_utf8(ua.userid().value()).is_ok() {

@@ -63,21 +63,21 @@ pub fn dispatch(sq: Sq, c: keyring::Command) -> Result<()> {
 
                 for name in &command.name {
                     keep |= uid
-                        .name2().unwrap_or(None)
+                        .name().unwrap_or(None)
                         .map(|n| n == name)
                         .unwrap_or(false);
                 }
 
                 for email in &command.email {
                     keep |= uid
-                        .email2().unwrap_or(None)
+                        .email().unwrap_or(None)
                         .map(|n| n == email)
                         .unwrap_or(false);
                 }
 
                 for domain in &command.domain {
                     keep |= uid
-                        .email2().unwrap_or(None)
+                        .email().unwrap_or(None)
                         .map(|n| n.ends_with(&format!("@{}", domain)))
                         .unwrap_or(false);
                 }
@@ -117,8 +117,8 @@ pub fn dispatch(sq: Sq, c: keyring::Command) -> Result<()> {
                       || any_key_predicates) {
                     // If there are no filters, pass it through.
                     Some(c)
-                } else if ! (c.userids().any(|c| uid_predicate(&c))
-                             || c.user_attributes().any(|c| ua_predicate(&c))
+                } else if ! (c.userids().any(|c| uid_predicate(c.userid()))
+                             || c.user_attributes().any(|c| ua_predicate(c.user_attribute()))
                              || cert_predicate(c.primary_key().key())
                              || key_predicate(c.primary_key().key().role_as_subordinate())
                              || c.keys().subkeys().any(|c| key_predicate(c.key()))) {
@@ -126,10 +126,10 @@ pub fn dispatch(sq: Sq, c: keyring::Command) -> Result<()> {
                 } else if command.prune_certs {
                     let c = c
                         .retain_userids(|c| {
-                            ! any_uid_predicates || uid_predicate(&c)
+                            ! any_uid_predicates || uid_predicate(c.userid())
                         })
                         .retain_user_attributes(|c| {
-                            ! any_ua_predicates || ua_predicate(&c)
+                            ! any_ua_predicates || ua_predicate(c.user_attribute())
                         })
                         .retain_subkeys(|c| {
                             ! any_key_predicates || key_predicate(c.key())
@@ -261,7 +261,7 @@ fn split(input: &mut (dyn io::Read + Sync + Send), prefix: &str, binary: bool)
                     cert.fingerprint());
                 (filename, Ok(cert))
             },
-            Err(mut e) => if let Some(openpgp::Error::UnsupportedCert2(m, p)) =
+            Err(mut e) => if let Some(openpgp::Error::UnsupportedCert(m, p)) =
                 e.downcast_mut::<openpgp::Error>()
             {
                 // We didn't understand the cert.  But, we can still
@@ -281,7 +281,7 @@ fn split(input: &mut (dyn io::Read + Sync + Send), prefix: &str, binary: bool)
         // filename.
         let mut sink = if let Some(f) = cert.as_ref().ok()
             .and_then(|cert| cert.userids().next())
-            .and_then(|uid| uid.email2().unwrap_or(None).map(|e| e.to_string()))
+            .and_then(|uid| uid.userid().email().unwrap_or(None).map(|e| e.to_string()))
             .and_then(to_filename_fragment)
         {
             let filename_email = format!("{}-{}", filename, f);
@@ -441,7 +441,7 @@ fn merge(sq: &Sq, inputs: Vec<PathBuf>, output: FileOrStdout,
                         certs.get_mut(fpr)
                     }
                     KeyHandle::KeyID(keyid) => {
-                        by_keyid.get(&keyid)
+                        by_keyid.get(keyid)
                             .and_then(|fpr| certs.get_mut(fpr))
                     }
                 };
@@ -457,7 +457,7 @@ fn merge(sq: &Sq, inputs: Vec<PathBuf>, output: FileOrStdout,
                     cert.primary_key().key())
                 {
                     Ok(()) => {
-                        *cert = cert.clone().insert_packets(sig.clone())?;
+                        *cert = cert.clone().insert_packets(sig.clone())?.0;
                         continue 'next_rev;
                     }
                     Err(err) => {

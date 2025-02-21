@@ -115,7 +115,7 @@ fn sq_cert_import_rev() -> Result<()>
     // Generate a key.  (We don't use sq on purpose: we want to make
     // sure we have a bare revocation certificate.)
     let (cert, rev) = CertBuilder::general_purpose(
-        None, Some("alice@example.org"))
+        Some("alice@example.org"))
         .set_creation_time(sq.now())
         .generate()?;
 

@@ -39,7 +39,7 @@ fn sq_key_generate_creation_time() -> Result<()>
     ], NO_USERIDS);
     let vc = result.with_policy(common::STANDARD_POLICY, None)?;
 
-    assert_eq!(vc.primary_key().creation_time(),
+    assert_eq!(vc.primary_key().key().creation_time(),
                time::UNIX_EPOCH + time::Duration::new(t, 0));
     assert!(vc.primary_key().key_expiration_time().is_none());
 
@@ -58,10 +58,10 @@ fn sq_key_generate_name_email() -> Result<()> {
         ]);
 
     assert_eq!(cert.userids().count(), 3);
-    assert!(cert.userids().any(|u| u.value() == b"Joan Clarke"));
-    assert!(cert.userids().any(|u| u.value() == b"Joan Clarke Murray"));
+    assert!(cert.userids().any(|u| u.userid().value() == b"Joan Clarke"));
+    assert!(cert.userids().any(|u| u.userid().value() == b"Joan Clarke Murray"));
     assert!(
-        cert.userids().any(|u| u.value() == b"<joan@hut8.bletchley.park>"));
+        cert.userids().any(|u| u.userid().value() == b"<joan@hut8.bletchley.park>"));
 
     Ok(())
 }
@@ -82,9 +82,9 @@ fn sq_key_generate_with_password() -> Result<()> {
 
     let password = password.into();
     for key in cert.keys() {
-        let secret = key.optional_secret().unwrap();
+        let secret = key.key().optional_secret().unwrap();
         assert!(secret.is_encrypted());
-        assert!(secret.clone().decrypt(key.pk_algo(), &password).is_ok());
+        assert!(secret.clone().decrypt(key.key(), &password).is_ok());
     }
 
     Ok(())

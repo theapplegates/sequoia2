@@ -51,7 +51,7 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
                   ui::Safe(uid.userid()));
 
         let approved =
-            uid.attested_certifications().collect::<BTreeSet<_>>();
+            uid.approved_certifications().collect::<BTreeSet<_>>();
 
         let mut any = false;
         for c in uid.certifications() {
@@ -103,7 +103,7 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
                         i.fingerprint(), ui::Safe(uid.userid())));
                     continue;
                 }
-                if i.primary_key().creation_time() == ca_creation_time() {
+                if i.primary_key().key().creation_time() == ca_creation_time() {
                     sq.info(format_args!(
                         "Ignoring certification from local shadow CA \
                          {} on {}.",
@@ -203,7 +203,7 @@ fn update(
                    ui::Safe(uid.userid()));
 
         let previously_approved =
-            uid.attested_certifications().collect::<BTreeSet<_>>();
+            uid.approved_certifications().collect::<BTreeSet<_>>();
 
         // Start from scratch or from the current set?
         let mut next_approved = if command.remove_all {
@@ -283,7 +283,7 @@ fn update(
                         i.fingerprint(), ui::Safe(uid.userid())));
                     continue;
                 }
-                if i.primary_key().creation_time() == ca_creation_time() {
+                if i.primary_key().key().creation_time() == ca_creation_time() {
                     sq.info(format_args!(
                         "Ignoring certification from local shadow CA \
                          {} on {}.",
@@ -405,9 +405,7 @@ fn update(
             weprintln!("    no certifications");
         }
 
-        approval_signatures.append(&mut uid.attest_certifications2(
-            sq.policy,
-            sq.time,
+        approval_signatures.append(&mut uid.approve_of_certifications(
             &mut pk_signer,
             next_approved.into_iter(),
         )?);
@@ -433,7 +431,7 @@ fn update(
     }
 
     // Finally, add the new signatures.
-    let key = key.insert_packets(approval_signatures)?;
+    let key = key.insert_packets(approval_signatures)?.0;
 
     if let Some(sink) = command.output {
         let path = sink.path().map(Clone::clone);

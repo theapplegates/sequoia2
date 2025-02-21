@@ -59,17 +59,17 @@ fn unbound_subkey() {
 
     // One subkey should be considered invalid.
     let bound: HashSet<Fingerprint>
-        = HashSet::from_iter(vc.keys().map(|ka| ka.fingerprint()));
+        = HashSet::from_iter(vc.keys().map(|ka| ka.key().fingerprint()));
     let all: HashSet<Fingerprint>
-        = HashSet::from_iter(cert.keys().map(|ka| ka.fingerprint()));
+        = HashSet::from_iter(cert.keys().map(|ka| ka.key().fingerprint()));
     assert!(bound.len() < all.len());
 
     let result = sq.key_delete(&cert_path, None);
     for ka in result.keys() {
-        if bound.contains(&ka.fingerprint()) {
-            assert!(! ka.has_secret());
+        if bound.contains(&ka.key().fingerprint()) {
+            assert!(! ka.key().has_secret());
         } else {
-            assert!(ka.has_secret());
+            assert!(ka.key().has_secret());
         }
     }
 }
@@ -94,7 +94,7 @@ fn soft_revoked_subkey() {
         if let RevocationStatus::Revoked(_) = k.revocation_status() {
             assert!(revoked.is_none(),
                     "Only expected a single revoked subkey");
-            revoked = Some(k.key_handle());
+            revoked = Some(k.key().key_handle());
         }
     }
     if revoked.is_none() {
@@ -125,7 +125,7 @@ fn hard_revoked_subkey() {
         if let RevocationStatus::Revoked(_) = k.revocation_status() {
             assert!(revoked.is_none(),
                     "Only expected a single revoked subkey");
-            revoked = Some(k.key_handle());
+            revoked = Some(k.key().key_handle());
         }
     }
     if revoked.is_none() {
@@ -153,10 +153,10 @@ fn sha1_subkey() {
 
     // Make sure the subkey key is there and really uses SHA-1.
     let valid_subkeys: Vec<_> = vc.keys().subkeys()
-        .map(|ka| ka.fingerprint())
+        .map(|ka| ka.key().fingerprint())
         .collect();
     let all_subkeys: Vec<_> = cert.keys().subkeys()
-        .map(|ka| ka.fingerprint())
+        .map(|ka| ka.key().fingerprint())
         .collect();
 
     assert_eq!(valid_subkeys.len(), 0);
@@ -185,7 +185,7 @@ fn sha1_subkey_without_secret_key_material() {
     eprintln!("Valid keys:");
     let valid_keys: Vec<_> = vc.keys()
         .map(|ka| {
-            let fpr = ka.fingerprint();
+            let fpr = ka.key().fingerprint();
             eprintln!(" - {}", fpr);
             fpr
         })
@@ -194,7 +194,7 @@ fn sha1_subkey_without_secret_key_material() {
     eprintln!("All keys:");
     let all_keys: Vec<_> = cert.keys()
         .map(|ka| {
-            let fpr = ka.fingerprint();
+            let fpr = ka.key().fingerprint();
             eprintln!(" - {}", fpr);
             fpr
         })
@@ -215,11 +215,11 @@ fn sha1_subkey_without_secret_key_material() {
 
     let cert = Cert::from_file(&update).expect("can read");
     for ka in cert.keys() {
-        if valid_keys.contains(&ka.fingerprint()) {
-            assert!(ka.has_secret());
+        if valid_keys.contains(&ka.key().fingerprint()) {
+            assert!(ka.key().has_secret());
         } else {
-            assert!(! ka.has_secret(),
-                    "{} still has secret key material", ka.fingerprint());
+            assert!(! ka.key().has_secret(),
+                    "{} still has secret key material", ka.key().fingerprint());
         }
     }
 
@@ -239,7 +239,7 @@ fn ambiguous() {
     sq.key_import(&alice1_path);
 
     let common_subkey = alice1.keys().subkeys().take(1)
-        .map(|ka| ka.key_handle())
+        .map(|ka| ka.key().key_handle())
         .collect::<Vec<_>>();
 
     let (alice2, alice2_path, _alice2_rev)

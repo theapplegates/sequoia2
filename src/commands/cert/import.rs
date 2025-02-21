@@ -275,7 +275,7 @@ fn import_rev(o: &mut dyn std::io::Write,
                 cert.primary_key().key(),
                 cert.primary_key().key())
             {
-                let cert = cert.insert_packets(sig.clone())?;
+                let cert = cert.insert_packets(sig.clone())?.0;
 
                 ui::emit_cert(o, sq, &cert)?;
                 if let Err(err) = cert_store.update_by(Arc::new(cert.into()),

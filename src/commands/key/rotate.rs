@@ -356,10 +356,10 @@ pub fn dispatch(
     }
 
     if ! old_cert_updates.is_empty() {
-        old_cert = old_cert.insert_packets(old_cert_updates)?;
+        old_cert = old_cert.insert_packets(old_cert_updates)?.0;
         update(old_cert.clone())?;
 
-        cert = cert.insert_packets(new_cert_updates)?;
+        cert = cert.insert_packets(new_cert_updates)?.0;
         update(cert.clone())?;
     }
 
@@ -412,7 +412,7 @@ pub fn dispatch(
             wwriteln!(stream = o, indent = "  ",
                       "The certificate was never linked.");
         } else {
-            cert = cert.insert_packets(packets)?;
+            cert = cert.insert_packets(packets)?.0;
             update(cert.clone())?;
         }
     }
@@ -452,7 +452,7 @@ pub fn dispatch(
                     .as_bytes())?;
         rev = rev.set_signature_creation_time(retire_at)?;
         let rev = rev.build(&mut old_cert_signer, &old_cert, None)?;
-        update(old_cert.insert_packets(rev)?)?;
+        update(old_cert.insert_packets(rev)?.0)?;
     }
 
     let headers = cert.armor_headers();

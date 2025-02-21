@@ -4,7 +4,6 @@ use std::time::SystemTime;
 use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
-use openpgp::cert::amalgamation::ValidAmalgamation;
 use openpgp::cert::UserIDRevocationBuilder;
 use openpgp::packet::signature::subpacket::NotationData;
 use openpgp::packet::signature::subpacket::SubpacketTag;
@@ -240,7 +239,7 @@ fn userid_add(
         SubpacketTag::ReasonForRevocation,
         SubpacketTag::SignatureTarget,
         SubpacketTag::EmbeddedSignature,
-        SubpacketTag::AttestedCertifications,
+        SubpacketTag::ApprovedCertifications,
     ];
 
     sb = sb.modify_hashed_area(|mut subpacket_area| {
@@ -270,7 +269,7 @@ fn userid_add(
     }
 
     // Merge the new User IDs into cert.
-    let cert = cert.insert_packets(add)?;
+    let cert = cert.insert_packets(add)?.0;
 
     if let Some(output) = command.output {
         let mut sink = output.for_secrets().create_safe(&sq)?;

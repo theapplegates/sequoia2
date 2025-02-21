@@ -8,7 +8,6 @@ use sequoia_openpgp::{
     self as openpgp,
     KeyID,
     Cert,
-    cert::amalgamation::ValidAmalgamation,
     packet::UserID,
     parse::Cookie,
     parse::buffered_reader::BufferedReader,
@@ -238,7 +237,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                     continue;
                 },
                 Err(BadSignature { sig, ka, error }) => {
-                    let issuer = ka.fingerprint().to_string();
+                    let issuer = ka.key().fingerprint().to_string();
                     let what = match sig.level() {
                         0 => "signature".into(),
                         n => format!("level {} notarizing signature", n),
@@ -249,6 +248,18 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                     self.bad_signatures += 1;
                     continue;
                 }
+                Err(UnknownSignature { sig, .. }) => {
+                    weprintln!("Error parsing signature: {}", sig.error());
+                    print_error_chain(sig.error());
+                    self.bad_signatures += 1;
+                    continue;
+                }
+                Err(e) => {
+                    weprintln!("Error parsing signature: {}", e);
+                    self.bad_signatures += 1;
+                    continue;
+                }
+
             };
 
             let cert = ka.cert();

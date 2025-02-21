@@ -31,7 +31,7 @@ pub mod userid;
 pub mod types;
 pub mod ui;
 
-pub const NULL_POLICY: &NullPolicy = &NullPolicy::new();
+pub const NULL_POLICY: &NullPolicy = unsafe { &NullPolicy::new() };
 
 /// Something like a User ID.
 ///

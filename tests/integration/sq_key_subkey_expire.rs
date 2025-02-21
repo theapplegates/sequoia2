@@ -24,7 +24,7 @@ fn sq_key_subkey_expire() -> Result<()> {
     let updated_path = sq.scratch_file("updated.pgp");
     let updated2_path = sq.scratch_file("updated2.pgp");
 
-    let keys = cert.keys().map(|k| k.fingerprint()).collect::<Vec<_>>();
+    let keys = cert.keys().map(|k| k.key().fingerprint()).collect::<Vec<_>>();
 
     // Two days go by.
     sq.tick(2 * 24 * 60 * 60);
@@ -101,10 +101,10 @@ fn sq_key_subkey_expire() -> Result<()> {
             let vc = updated.with_policy(STANDARD_POLICY, t).expect("valid");
             for k in vc.keys() {
                 assert_eq!(
-                    cert_expiring || expiring.contains(&k.fingerprint()),
+                    cert_expiring || expiring.contains(&k.key().fingerprint()),
                     k.alive().is_err(),
                     "{} is {}alive",
-                    k.fingerprint(),
+                    k.key().fingerprint(),
                     if k.alive().is_ok() { "" } else { "NOT "});
             }
 
@@ -153,7 +153,7 @@ fn sq_key_subkey_expire() -> Result<()> {
             let vc = updated.with_policy(STANDARD_POLICY, t).expect("valid");
             for k in vc.keys() {
                 eprintln!("  {} expires at {}",
-                          k.fingerprint(),
+                          k.key().fingerprint(),
                           if let Some(t) = k.key_expiration_time() {
                               time_as_string(t.into())
                           } else {
@@ -161,7 +161,7 @@ fn sq_key_subkey_expire() -> Result<()> {
                           });
                 if let Err(err) = k.alive() {
                     panic!("{} should be alive, but it's not: {}",
-                           k.fingerprint(), err);
+                           k.key().fingerprint(), err);
                 }
             }
 
@@ -171,7 +171,7 @@ fn sq_key_subkey_expire() -> Result<()> {
             let vc = updated.with_policy(STANDARD_POLICY, t).expect("valid");
             for k in vc.keys() {
                 eprintln!("  {} expires at {}",
-                          k.fingerprint(),
+                          k.key().fingerprint(),
                           if let Some(t) = k.key_expiration_time() {
                               time_as_string(t.into())
                           } else {
@@ -179,7 +179,7 @@ fn sq_key_subkey_expire() -> Result<()> {
                           });
                 if let Err(err) = k.alive() {
                     panic!("{} should be alive, but it's not: {}",
-                           k.fingerprint(), err);
+                           k.key().fingerprint(), err);
                 }
             }
         }
@@ -241,7 +241,7 @@ fn soft_revoked_subkey() {
         if let RevocationStatus::Revoked(_) = k.revocation_status() {
             assert!(revoked.is_none(),
                     "Only expected a single revoked subkey");
-            revoked = Some(k.fingerprint());
+            revoked = Some(k.key().fingerprint());
         }
     }
     let revoked = if let Some(revoked) = revoked {
@@ -264,7 +264,7 @@ fn soft_revoked_subkey() {
         .expect("valid cert");
     let mut good = false;
     for k in vc.keys() {
-        if k.fingerprint() == revoked {
+        if k.key().fingerprint() == revoked {
             if let RevocationStatus::Revoked(_) = k.revocation_status() {
                 panic!("{} shouldn't be revoked, but is.",
                        revoked);
@@ -302,7 +302,7 @@ fn hard_revoked_subkey() {
         if let RevocationStatus::Revoked(_) = k.revocation_status() {
             assert!(revoked.is_none(),
                     "Only expected a single revoked subkey");
-            revoked = Some(k.fingerprint());
+            revoked = Some(k.key().fingerprint());
         }
     }
     let revoked = if let Some(revoked) = revoked {
@@ -341,10 +341,10 @@ fn sha1_subkey() {
 
     // Make sure the subkey key is there and really uses SHA-1.
     let valid_subkeys: Vec<_> = vc.keys().subkeys()
-        .map(|ka| ka.fingerprint())
+        .map(|ka| ka.key().fingerprint())
         .collect();
     let all_subkeys: Vec<_> = cert.keys().subkeys()
-        .map(|ka| ka.fingerprint())
+        .map(|ka| ka.key().fingerprint())
         .collect();
 
     assert_eq!(valid_subkeys.len(), 0);

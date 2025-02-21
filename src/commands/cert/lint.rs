@@ -116,9 +116,9 @@ fn update_user_id_binding(sq: &Sq,
             .is_ok());
 
     // Make sure the signature is integrated.
-    assert!(ua.cert().cert().clone()
-        .insert_packets(Packet::from(sig.clone())).unwrap()
-        .into_packets2()
+    assert!(ua.cert().clone()
+        .insert_packets(Packet::from(sig.clone())).unwrap().0
+        .into_packets()
         .any(|p| {
             if let Packet::Signature(s) = p {
                 s == sig
@@ -161,7 +161,7 @@ fn update_subkey_binding<P>(sq: &Sq,
         .nth(0)
     {
         // Derive a signer.
-        let mut subkey_signer = sq.get_signer(&ka)?;
+        let mut subkey_signer = sq.get_signer(ka.amalgamation())?;
 
         let backsig = SignatureBuilder::from(backsig.clone())
             .set_signature_creation_time(reference_time.clone())?
@@ -177,9 +177,9 @@ fn update_subkey_binding<P>(sq: &Sq,
             .is_ok());
 
     // Make sure the signature is integrated.
-    assert!(ka.cert().cert().clone()
-        .insert_packets(Packet::from(sig.clone())).unwrap()
-        .into_packets2()
+    assert!(ka.cert().clone()
+        .insert_packets(Packet::from(sig.clone())).unwrap().0
+        .into_packets()
         .any(|p| {
             if let Packet::Signature(s) = p {
                 s == sig
@@ -287,7 +287,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
             macro_rules! next_cert {
                 () => {{
                     if updates.len() > 0 {
-                        let cert = cert.insert_packets(updates)?;
+                        let cert = cert.insert_packets(updates)?.0;
                         if let Some(mut out) = out.as_mut() {
                             cert.as_tsk().serialize(&mut out)?;
                         } else {
@@ -571,7 +571,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                         diag!("Certificate {}, key {} uses a \
                                SHA-1-protected binding signature.",
                               cert.keyid().to_hex(),
-                              ka.keyid().to_hex());
+                              ka.key().keyid().to_hex());
                         if ! uses_sha1_protected_binding_sig {
                             uses_sha1_protected_binding_sig = true;
                             certs_with_a_sha1_protected_binding_sig += 1;
@@ -587,7 +587,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                                                 Failed to update \
                                                 binding signature: {}",
                                                cert.keyid().to_hex(),
-                                               ka.keyid().to_hex(),
+                                               ka.key().keyid().to_hex(),
                                                err);
                                 }
                             }
@@ -616,7 +616,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                     let mut backsigs: Vec<_> = sig.embedded_signatures()
                         .filter(|backsig| {
                             (*backsig).clone().verify_primary_key_binding(
-                                &cert.primary_key(),
+                                cert.primary_key().key(),
                                 ka.key()).is_ok()
                         })
                         .collect();
@@ -639,7 +639,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                     if backsigs
                         .iter()
                         .any(|s| {
-                            sp.signature(s, ka.hash_algo_security())
+                            sp.signature(s, ka.key().hash_algo_security())
                                 .is_ok()
                         })
                     {
@@ -648,7 +648,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                     } else if backsigs
                         .iter()
                         .any(|s| {
-                            sp_sha1.signature(s, ka.hash_algo_security())
+                            sp_sha1.signature(s, ka.key().hash_algo_security())
                                 .is_ok()
                         })
                     {
@@ -658,7 +658,7 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                                {}-protected binding signature, \
                                but a SHA-1-protected backsig",
                               cert.keyid().to_hex(),
-                              ka.keyid().to_hex(),
+                              ka.key().keyid().to_hex(),
                               sig.hash_algo());
                         if ! uses_sha1_protected_backsig {
                             uses_sha1_protected_backsig = true;
@@ -675,21 +675,21 @@ pub fn lint(sq: Sq, mut args: Command) -> Result<()> {
                                                 Failed to update \
                                                 binding signature: {}",
                                                cert.keyid().to_hex(),
-                                               ka.keyid().to_hex(),
+                                               ka.key().keyid().to_hex(),
                                                err);
                                 }
                             }
                         }
                     } else {
                         let sig = backsigs[0];
-                        let err = sp_sha1.signature(sig, ka.hash_algo_security()).unwrap_err();
+                        let err = sp_sha1.signature(sig, ka.key().hash_algo_security()).unwrap_err();
                         diag!("Cert {}: backsig {:02X}{:02X} for \
                                {} is not valid under SP+SHA-1: {}.  \
                                Ignoring.",
                               cert.keyid().to_hex(),
                               sig.digest_prefix()[0],
                               sig.digest_prefix()[1],
-                              ka.keyid().to_hex(),
+                              ka.key().keyid().to_hex(),
                               err);
                         unfixed_issue += 1;
                     }

@@ -56,7 +56,8 @@ pages:
     - mkdir public
     - mv -v target/doc public/impl
 
-    - for M in /tmp/assets/man-pages/*; do pandoc -s $M -L src/man-pandoc.lua -H src/man-pandoc.inc.html -o $M.html ; done
+    # Man pages.
+    - bash /tmp/assets/man-pages/man2html.sh
     - mkdir public/man
     - mv -v /tmp/assets/man-pages/*.html public/man
 

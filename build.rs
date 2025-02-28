@@ -3,7 +3,6 @@ use clap_complete::Shell;
 use anyhow::Result;
 
 use sequoia_man::asset_out_dir;
-use sequoia_man::generate_man_pages;
 
 pub mod cli {
     #![allow(unused_macros)]
@@ -22,10 +21,7 @@ fn main() {
     let mut sq = cli::build(false);
     generate_shell_completions(&mut sq).unwrap();
 
-    let version = env!("CARGO_PKG_VERSION");
-
-    let man_pages = asset_out_dir("man-pages").unwrap();
-    generate_man_pages(&man_pages, &sq, version, None).unwrap();
+    generate_man_pages(&mut sq).expect("can generate man pages");
 
     lint_help_texts(&sq).unwrap();
 }
@@ -39,6 +35,19 @@ fn generate_shell_completions(sq: &mut clap::Command) -> Result<()> {
     };
 
     println!("cargo:warning=shell completions written to {}", path.display());
+    Ok(())
+}
+
+/// Generates man pages.
+fn generate_man_pages(cli: &mut clap::Command) -> Result<()> {
+    let version = env!("CARGO_PKG_VERSION");
+    let mut builder = sequoia_man::man::Builder::new(cli, version, None);
+    builder.see_also(
+        &[ "For the full documentation see <https://book.sequoia-pgp.org/>." ]);
+
+    let man_pages = asset_out_dir("man-pages")?;
+
+    sequoia_man::generate_man_pages(&man_pages, &builder).unwrap();
     Ok(())
 }
 

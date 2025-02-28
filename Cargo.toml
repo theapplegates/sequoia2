@@ -82,7 +82,7 @@ dirs = "5"
 roff = "0.2.1"
 serde = { version = "1.0.137", features = ["derive"] }
 sequoia-directories = "0.1"
-sequoia-man = "0.2"
+sequoia-man = "0.3"
 sequoia-openpgp = { version = "1.22", default-features = false }
 sequoia-net = { version = "0.29", default-features = false }
 textwrap = ">=0.15, <0.17"

@@ -49,7 +49,7 @@ docker-build-push:
     DOCKER_HOST: tcp://docker:2376
 
 pages:
-  stage: deploy
+  stage: build
   image: jampot.sequoia-pgp.org/sequoia-pgp/build-docker-image/trixie-pandoc:latest
   script:
     - ASSET_OUT_DIR=/tmp/assets cargo doc --no-deps -p sequoia-sq
@@ -68,10 +68,19 @@ pages:
 
     - echo "/sequoia-sq/ /sequoia-sq/man/sq.1.html 302" > public/_redirects
     - echo "/sequoia-sq/impl /sequoia-sq/impl/sq/index.html 302" >> public/_redirects
-    - echo "/sequoia-sq/man /sequoia-sq/man/sq.1.html 302" >> public/_redirects
     - echo "/sequoia-sq/subplot /sequoia-sq/subplot/sq-subplot.html 302" >> public/_redirects
   artifacts:
     paths:
       - public
-  only:
-    - main
+  pages: false
+
+pages-deploy:
+  stage: deploy
+  image: jampot.sequoia-pgp.org/sequoia-pgp/build-docker-image/trixie-pandoc:latest
+  script: echo "publishing"
+  artifacts:
+    paths:
+      - public
+  pages: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'

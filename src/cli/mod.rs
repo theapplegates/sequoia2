@@ -468,12 +468,12 @@ time.  This option allows the user to use a different time.
 TIME is interpreted as an ISO 8601 timestamp.  To set the \
 certification time to July 21, 2013 at midnight UTC, you can do:
 
-$ sq --time 20130721 verify msg.pgp
+$ sq --time 20130721 verify --message msg.pgp
 
 To include a time, say 5:50 AM, add a T, the time and optionally the timezone \
 (the default timezone is UTC):
 
-$ sq --time 20130721T0550+0200 verify msg.pgp
+$ sq --time 20130721T0550+0200 --message verify msg.pgp
 ",
     )]
     pub time: Option<types::Time>,
@@ -501,7 +501,7 @@ message hasn't been tampered with.
 TIME is interpreted as an ISO 8601 timestamp.  To set the \
 policy time to January 1, 2007 at midnight UTC, you can do:
 
-$ sq --policy-as-of 20070101 verify msg.pgp
+$ sq --policy-as-of 20070101 verify --message msg.pgp
 
 Defaults to the reference time, which can be set using --time.
 ",

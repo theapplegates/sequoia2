@@ -80,7 +80,7 @@ fn get(sq: Sq, cmd: config::get::Command) -> Result<()> {
 
     // Display sorted and deduplicated results.
     for (k, v) in acc {
-        eprintln!("{} = {}", k, v);
+        println!("{} = {}", k, v);
     }
 
     Ok(())

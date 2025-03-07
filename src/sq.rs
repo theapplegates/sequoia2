@@ -2213,7 +2213,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
 
                     if ! one {
                         return Err(anyhow::anyhow!(
-                            "`--{}-self` is given but no default \
+                            "`--{}self` is given but no default \
                              is set in the configuration file under `{}`",
                             prefix,
                             config));

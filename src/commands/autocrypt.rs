@@ -42,7 +42,7 @@ pub fn import_certs(sq: &mut Sq, source: &mut Box<dyn BufferedReader<Cookie>>,
     for h in ac.headers.into_iter().filter(|h| h.header_type == Sender) {
         if let Some(addr) = h.attributes.iter()
             .find_map(|a| (&a.key == "addr"
-                           && &a.value == &from_addr)
+                           && a.value.to_lowercase() == from_addr.to_lowercase())
                       .then(|| a.value.clone()))
         {
             if let Some(cert) = h.key {

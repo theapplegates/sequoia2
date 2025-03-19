@@ -867,6 +867,8 @@ impl Sq {
         let mut cmd = Command::cargo_bin("sq")
             .expect("can run sq");
         cmd.current_dir(&self.working_dir);
+        cmd.env("RUST_BACKTRACE", "1");
+        cmd.env("RUST_LOG", "trace");
         cmd.env("SEQUOIA_CRYPTO_POLICY", &self.policy);
         for arg in pre {
             cmd.arg(arg);

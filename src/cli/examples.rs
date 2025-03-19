@@ -408,6 +408,8 @@ macro_rules! test_examples {
 
                     let mut cmd = Command::cargo_bin(command[0]).unwrap();
                     cmd.current_dir(&tmp_dir)
+                        .env("RUST_BACKTRACE", "1")
+                        .env("RUST_LOG", "trace")
                         .env("SEQUOIA_CRYPTO_POLICY", &policy)
                         .env("SEQUOIA_HOME", &home)
                         .env("SEQUOIA_CERT_STORE", &cert_store)

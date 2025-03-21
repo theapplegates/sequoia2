@@ -259,7 +259,7 @@ where
                         writeln!(output, "          {}",
                                  cert.fingerprint())?;
                         writeln!(output, "          {}",
-                                 sq.best_userid(&cert, true))?;
+                                 sq.best_userid(&cert, true).display())?;
                     }
                 } else {
                     writeln!(output, "        Associated certificate not available")?;
@@ -674,7 +674,7 @@ fn inspect_issuers(sq: &mut Sq,
     emit_issuers(sq, |id| match id {
         Ok((kh, uid)) => {
             writeln!(output, "{:>WIDTH$}: {}", "Alleged signer", kh)?;
-            writeln!(output, "{:>WIDTH$}  {}", "", uid)?;
+            writeln!(output, "{:>WIDTH$}  {}", "", uid.display())?;
             Ok(())
         },
         Err((kh, _, _)) => {
@@ -803,7 +803,7 @@ fn inspect_certifications<'a, A>(sq: &mut Sq,
                 Ok((kh, uid)) => {
                     writeln!(output, "{:>WIDTH$}  Alleged certifier: {}",
                              "", kh)?;
-                    writeln!(output, "{:>WIDTH$}      {}", "", uid)?;
+                    writeln!(output, "{:>WIDTH$}      {}", "", uid.display())?;
                     Ok(())
                 },
                 Err((kh, _, _)) => {

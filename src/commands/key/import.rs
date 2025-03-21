@@ -53,7 +53,7 @@ fn import_internal(o: &mut dyn std::io::Write,
 
             let id = format!("{} {}",
                              cert.fingerprint(),
-                             sq.best_userid(&cert, true));
+                             sq.best_userid(&cert, true).display());
 
             let cert_is_tsk = cert.is_tsk();
             match sq.import_key(cert, stats) {

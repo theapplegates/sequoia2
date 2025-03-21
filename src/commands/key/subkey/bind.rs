@@ -251,7 +251,7 @@ pub fn bind(sq: Sq, command: cli::key::subkey::bind::Command) -> Result<()>
                     'password_loop: loop {
                         let p = password::prompt_to_unlock(&sq, &format!(
                             "{}/{}, {}",
-                            cert.keyid(), key.keyid(), uid))?;
+                            cert.keyid(), key.keyid(), uid.display()))?;
 
                         // Empty password given and a key without
                         // encryption?  Pick it.

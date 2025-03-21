@@ -18,7 +18,8 @@ pub use crate::output::sanitize::Safe;
 pub fn emit_cert(o: &mut dyn std::io::Write, sq: &Sq, cert: &openpgp::Cert)
                  -> Result<()>
 {
-    emit_cert_userid_str(o, cert, &sq.best_userid(cert, true).to_string())
+    emit_cert_userid_str(
+        o, cert, &sq.best_userid(cert, true).display().to_string())
 }
 
 /// Emits a certificate header.
@@ -28,7 +29,7 @@ pub fn emit_cert_indent(o: &mut dyn std::io::Write,
                         -> Result<()>
 {
     emit_cert_userid_str_indent(
-        o, indent, cert, &sq.best_userid(cert, true).to_string())
+        o, indent, cert, &sq.best_userid(cert, true).display().to_string())
 }
 
 /// Emits a certificate header.

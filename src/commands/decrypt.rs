@@ -205,7 +205,7 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
             if let Ok(cert) = self.sq.lookup_one(kh, None, true) {
                 qprintln!("Decrypted by {}, {}",
                           cert.fingerprint(),
-                          self.sq.best_userid(&cert, true));
+                          self.sq.best_userid(&cert, true).display());
             } else {
                 qprintln!("Decrypted by {}, unknown", fpr);
             }
@@ -358,13 +358,14 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                                                 "{}, {} is locked, but not \
                                                  prompting for password, \
                                                  because you passed --batch.",
-                                                keyid, userid);
+                                                keyid, userid.display());
                                             break;
                                         }
 
                                         match password::prompt_to_unlock_or_cancel(
                                             self.sq,
-                                            &format!("{}, {}", keyid, userid))
+                                            &format!("{}, {}", keyid,
+                                                     userid.display()))
                                         {
                                             Err(err) => {
                                                 return Err(err).context(
@@ -379,7 +380,8 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                                             Ok(None) => {
                                                 // Cancelled.
                                                 weprintln!("Skipping {}, {}",
-                                                           keyid, userid);
+                                                           keyid,
+                                                           userid.display());
                                                 break;
                                             }
                                         }

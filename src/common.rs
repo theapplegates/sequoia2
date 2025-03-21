@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::time::Duration;
 use std::time::SystemTime;
@@ -57,12 +58,14 @@ pub struct PreferredUserID {
     trust_amount: usize,
 }
 
-impl std::fmt::Display for PreferredUserID {
+struct PreferredUserIDDisplay<'p>(&'p PreferredUserID);
+
+impl<'p> std::fmt::Display for PreferredUserIDDisplay<'p> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>)
         -> Result<(), std::fmt::Error>
     {
         let userid_;
-        let userid = match self.userid {
+        let userid = match self.0.userid {
             UserIDLike::Unknown => {
                 return write!(f, "<unknown>");
             }
@@ -78,11 +81,11 @@ impl std::fmt::Display for PreferredUserID {
         let userid = Safe(userid).to_string();
 
         let suffix_;
-        let suffix = if self.trust_amount == 0 {
+        let suffix = if self.0.trust_amount == 0 {
             "(UNAUTHENTICATED)"
-        } else if self.trust_amount < wot::FULLY_TRUSTED {
+        } else if self.0.trust_amount < wot::FULLY_TRUSTED {
             suffix_ = format!("(partially authenticated, {}/{})",
-                              self.trust_amount, wot::FULLY_TRUSTED);
+                              self.0.trust_amount, wot::FULLY_TRUSTED);
             &suffix_[..]
         } else {
             "(authenticated)"
@@ -130,6 +133,47 @@ impl PreferredUserID {
         Self {
             userid: UserIDLike::Unknown,
             trust_amount: 0,
+        }
+    }
+
+    /// Returns the user ID with authentication information, suitable
+    /// for displaying to the user.
+    ///
+    /// Do not use for arguments in hints.
+    pub fn display<'p>(&'p self) -> impl std::fmt::Display + 'p {
+        PreferredUserIDDisplay(self)
+    }
+
+    /// Returns the user ID without authentication information,
+    /// suitable for use in text for displaying to the user, where a
+    /// best effort string conversion is better than failing, and
+    /// byte-accuracy is not required.
+    ///
+    /// Do not use for general displaying, use
+    /// [`PreferredUserID::display`] for that which includes
+    /// authentication information.
+    ///
+    /// Do not use for arguments in hints.
+    pub fn userid_lossy(&self) -> Cow<str> {
+        match &self.userid {
+            UserIDLike::UserID(u) => String::from_utf8_lossy(u.value()),
+            UserIDLike::String(u) => Cow::Borrowed(&u),
+            UserIDLike::Unknown => Cow::Borrowed("<unknown userid>"),
+        }
+    }
+
+    /// Returns the user ID without authentication information,
+    /// suitable for use as argument in hints.
+    ///
+    /// Do not use for general displaying, use
+    /// [`PreferredUserID::display`] for that which includes
+    /// authentication information.
+    pub fn userid(&self) -> Result<&str> {
+        match &self.userid {
+            UserIDLike::UserID(u) => Ok(std::str::from_utf8(u.value())?),
+            UserIDLike::String(u) => Ok(&u),
+            UserIDLike::Unknown =>
+                Err(anyhow::anyhow!("User ID is unknown")),
         }
     }
 

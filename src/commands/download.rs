@@ -479,7 +479,8 @@ pub fn dispatch(sq: Sq, c: download::Command)
                                         weprintln!(initial_indent = " - ",
                                                    "{} {}",
                                                   issuer,
-                                                  sq.best_userid(cert, true));
+                                                   sq.best_userid(cert, true)
+                                                   .display());
                                     } else {
                                         weprintln!(initial_indent = " - ",
                                                    "{} (missing certificate)",

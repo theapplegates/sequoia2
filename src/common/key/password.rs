@@ -60,7 +60,7 @@ where
     let uid = sq.best_userid(&cert, true);
 
     qprintln!("Changing password for {}, {}",
-              cert.fingerprint(), uid);
+              cert.fingerprint(), uid.display());
 
     let ks = matches!(cert_source, FileStdinOrKeyHandle::KeyHandle(_));
     if ks {

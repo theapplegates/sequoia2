@@ -119,7 +119,7 @@ pub fn list_certifications(sq: &Sq,
                                    target_cert_fpr,
                                    String::from_utf8_lossy(ua.userid().value()),
                                    certifier.fingerprint(),
-                                   sq.best_userid(&certifier, true));
+                                   sq.best_userid(&certifier, true).display());
                                 candidates.push(
                                     (RefCell::new(certifier).into(),
                                      RefCell::clone(&target_cert),

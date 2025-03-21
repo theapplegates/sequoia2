@@ -126,7 +126,7 @@ pub fn import_certs(sq: &Sq, certs: Vec<Cert>) -> Result<()> {
                 let sanitized_userid = sq.best_userid(&cert, true);
 
                 format!("Inserting {}, {}",
-                        cert.fingerprint(), sanitized_userid)
+                        cert.fingerprint(), sanitized_userid.display())
             })?;
     }
 
@@ -645,20 +645,21 @@ impl Method {
         }
 
         if sq.verbose() {
-            let invalid = "invalid data".to_string();
-
             weprintln!(
                 "Created the local CA {} for certifying \
                  certificates downloaded from this service.  \
                  Use `sq pki link authorize --unconstrained --amount N {}` \
                  to change how much it is trusted.  Or \
                  `sq pki link retract {}` to disable it.",
-                if let Ok(cert) = cert.to_cert() {
+                if let Ok(uid) = cert.to_cert()
+                    .and_then(|c| sq.best_userid(c, false).userid()
+                              .map(ToString::to_string))
+                {
                     // We really want the self-signed, primary user
                     // ID.
-                    sq.best_userid(cert, false).to_string()
+                    uid
                 } else {
-                    invalid
+                    "invalid data".to_string()
                 },
                 cert.fingerprint(), cert.fingerprint());
         } else {
@@ -820,7 +821,7 @@ impl Response {
             // Emit metadata.
             qprintln!(initial_indent = " - ", "{}",
                       cert.fingerprint());
-            qprintln!(initial_indent = "   - ", "{}", userid);
+            qprintln!(initial_indent = "   - ", "{}", userid.display());
             qprintln!(initial_indent = "   - ", "created {}",
                       cert.primary_key().key().creation_time().convert());
 
@@ -862,7 +863,8 @@ impl Response {
                                     qprintln!(initial_indent = "     - ",
                                               "by {}, {}",
                                               issuer.fingerprint(),
-                                              sq.best_userid(&issuer, true));
+                                              sq.best_userid(&issuer, true)
+                                              .display());
                                 },
                                 Err(_) =>
                                     qprintln!(initial_indent = "     - ",
@@ -1404,7 +1406,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
 
                 qprintln!(initial_indent = " - ", "{}", cert.fingerprint());
                 qprintln!(initial_indent = "   - ", "{}",
-                          sq_ref.best_userid(&cert, false));
+                          sq_ref.best_userid(&cert, false).display());
                 qprintln!(initial_indent = "   - ", "{}", msg);
                 qprintln!();
             };
@@ -1473,7 +1475,8 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                             .with_context(|| {
                                 format!("Inserting {}, {}",
                                         cert.fingerprint(),
-                                        sq.best_userid(&cert, true))
+                                        sq.best_userid(&cert, true)
+                                        .display())
                             })?;
                         *number_of_changes_ref += 1;
                     }
@@ -1488,7 +1491,7 @@ pub fn dispatch_wkd(mut sq: Sq, c: cli::network::wkd::Command)
                     .with_context(|| {
                         format!("Inserting {}, {}",
                                 cert.fingerprint(),
-                                sq.best_userid(&cert, true))
+                                sq.best_userid(&cert, true).display())
                     })?;
                 number_of_changes += 1;
             }

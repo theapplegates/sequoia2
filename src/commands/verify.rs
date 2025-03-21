@@ -276,7 +276,7 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
 
                 // Web of trust.
                 qprintln!("Authenticating {} ({}) using the web of trust:",
-                          cert_fpr, signer_userid);
+                          cert_fpr, signer_userid.userid_lossy());
 
                 if let Some(cert_store) = self.sq.cert_store()? {
                     // Build the network.
@@ -395,44 +395,48 @@ impl<'c, 'store, 'rstore> VHelper<'c, 'store, 'rstore> {
                 (true,  true)  => {
                     weprintln!(indent=prefix,
                                "Authenticated signature made by {} ({})",
-                               label, signer_userid);
+                               label, signer_userid.userid_lossy());
                 }
                 (false, true)  => {
                     weprintln!(indent=prefix,
                                "Authenticated level {} notarization \
                                 made by {} ({})",
-                               level, label, signer_userid);
+                               level, label, signer_userid.userid_lossy());
                 }
                 (true,  false) => {
                     weprintln!(indent=prefix,
                                "Can't authenticate signature made by {} ({}): \
                                 the certificate can't be authenticated.",
-                               label, signer_userid);
+                               label, signer_userid.userid_lossy());
 
-                    self.sq.hint(format_args!(
-                        "After checking that {} belongs to {}, \
-                         you can mark it as authenticated using:",
-                        cert_fpr, signer_userid))
-                        .sq().arg("pki").arg("link").arg("add")
-                        .arg_value("--cert", cert_fpr)
-                        .arg_value("--userid", signer_userid)
-                        .done();
+                    if let Ok(u) = signer_userid.userid() {
+                        self.sq.hint(format_args!(
+                            "After checking that {} belongs to {}, \
+                             you can mark it as authenticated using:",
+                            cert_fpr, u))
+                            .sq().arg("pki").arg("link").arg("add")
+                            .arg_value("--cert", cert_fpr)
+                            .arg_value("--userid", u)
+                            .done();
+                    }
                 }
                 (false, false) => {
                     weprintln!(indent=prefix,
                                "Can't authenticate level {} notarization \
                                 made by {} ({}): the certificate \
                                 can't be authenticated.",
-                               level, label, signer_userid);
+                               level, label, signer_userid.userid_lossy());
 
-                    self.sq.hint(format_args!(
-                        "After checking that {} belongs to {}, \
-                         you can mark it as authenticated using:",
-                        cert_fpr, signer_userid))
-                        .sq().arg("pki").arg("link").arg("add")
-                        .arg_value("--cert", cert_fpr)
-                        .arg_value("--userid", signer_userid)
-                        .done();
+                    if let Ok(u) = signer_userid.userid() {
+                        self.sq.hint(format_args!(
+                            "After checking that {} belongs to {}, \
+                             you can mark it as authenticated using:",
+                            cert_fpr, u))
+                            .sq().arg("pki").arg("link").arg("add")
+                            .arg_value("--cert", cert_fpr)
+                            .arg_value("--userid", u)
+                            .done();
+                    }
                 }
             };
 

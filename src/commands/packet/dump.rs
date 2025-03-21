@@ -918,7 +918,7 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
                 write!(output, "{}    Issuer: {}", i, is)?;
                 if cert.is_ok() {
                     writeln!(output)?;
-                    write!(output, "{}      {}", i, userid)?;
+                    write!(output, "{}      {}", i, userid.display())?;
                 }
             }
             NotationData(n) => if n.flags().human_readable() {
@@ -980,7 +980,7 @@ impl<'a, 'b, 'c> PacketDumper<'a, 'b, 'c> {
                 write!(output, "{}    Issuer Fingerprint: {}", i, fp)?;
                 if cert.is_ok() {
                     writeln!(output)?;
-                    write!(output, "{}      {}", i, userid)?;
+                    write!(output, "{}      {}", i, userid.display())?;
                 }
             }
 

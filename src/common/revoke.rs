@@ -75,7 +75,7 @@ pub trait RevocationOutput {
                     more.push(format!("This revocation is issued \
                                        by the cert {} ({}).",
                                       revoker.fingerprint(),
-                                      sq.best_userid(revoker, false)));
+                                      sq.best_userid(revoker, false).display()));
                 }
 
                 let headers: Vec<(&str, &str)> = more.iter()

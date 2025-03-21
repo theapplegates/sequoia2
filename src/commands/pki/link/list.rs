@@ -82,7 +82,7 @@ pub fn list(sq: Sq, c: link::ListCommand)
                 } else {
                     Err(anyhow::anyhow!("{} {} was never linked",
                                         cert.fingerprint(),
-                                        sq.best_userid(cert, true)))
+                                        sq.best_userid(cert, true).display()))
                 }
             })?;
         (Box::new(c.into_iter().map(|c| Arc::new(LazyCert::from(c))))

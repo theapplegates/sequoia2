@@ -1279,7 +1279,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 let prompt = if let Some(cert) = cert {
                     format!("{}/{} {}",
                             cert.keyid(), key.keyid(),
-                            self.best_userid(cert, true))
+                            self.best_userid(cert, true).display())
                 } else {
                     format!("{}", key.keyid())
                 };
@@ -1437,7 +1437,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                         loop {
                             let p = password::prompt_to_unlock(self, &format!(
                                 "{}/{}, {}",
-                                ka.cert().keyid(), ka.key().keyid(), uid))?;
+                                ka.cert().keyid(), ka.key().keyid(),
+                                uid.display()))?;
 
                             if p == "".into() {
                                 weprintln!("Giving up.");
@@ -2410,7 +2411,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
             for cert in certs.iter() {
                 eprintln!("  - {} {}",
                           cert.fingerprint(),
-                          self.best_userid(cert, true));
+                          self.best_userid(cert, true).display());
             }
 
             return Err(anyhow::anyhow!(

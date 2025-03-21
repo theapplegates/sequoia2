@@ -233,7 +233,7 @@ pub fn split(sq: Sq, c: SplitCommand) -> Result<()>
                                 headers.push(
                                     ("Comment",
                                      format!("Issuer: {}",
-                                             sq.best_userid(&cert, true))));
+                                             sq.best_userid(&cert, true).display())));
                             }
                         }
                     },

@@ -167,7 +167,7 @@ pub fn encrypt<'a, 'b: 'a>(
             return Err(anyhow::anyhow!(
                 "Can't encrypt to {}, {}: it is revoked",
                 cert.fingerprint(),
-                sq.best_userid(&cert, true)));
+                sq.best_userid(&cert, true).display()));
         }
 
         let vc = cert.with_policy(policy, time)
@@ -175,7 +175,7 @@ pub fn encrypt<'a, 'b: 'a>(
                 format!("{}, {} is not valid according to the \
                          current policy",
                         cert.fingerprint(),
-                        sq.best_userid(&cert, true))
+                        sq.best_userid(&cert, true).display())
             })?;
 
         for ka in vc.keys() {
@@ -254,7 +254,7 @@ pub fn encrypt<'a, 'b: 'a>(
             if ! bad.is_empty() {
                 weprintln!("Cannot encrypt to {}, {}:",
                            cert.fingerprint(),
-                           sq.best_userid(&cert, true));
+                           sq.best_userid(&cert, true).display());
                 for message in bad.into_iter() {
                     weprintln!(initial_indent="  - ", "{}", message);
                 }
@@ -269,17 +269,17 @@ pub fn encrypt<'a, 'b: 'a>(
                 return Err(anyhow::anyhow!(
                     "Cert {}, {} has no suitable encryption key",
                     cert,
-                    sq.best_userid(&cert, true)));
+                    sq.best_userid(&cert, true).display()));
             } else {
                 return Err(anyhow::anyhow!(
                     "Cert {}, {} has no encryption-capable keys",
                     cert,
-                    sq.best_userid(&cert, true)));
+                    sq.best_userid(&cert, true).display()));
             }
         } else {
             qprintln!();
             qprintln!(initial_indent = " - ", "encrypted for {}",
-                      sq.best_userid(&cert, true));
+                      sq.best_userid(&cert, true).display());
             qprintln!(initial_indent = "   - ", "using {}",
                       cert.fingerprint());
 
@@ -307,7 +307,7 @@ pub fn encrypt<'a, 'b: 'a>(
         for (signer, _) in &signers {
             qprintln!();
             qprintln!(initial_indent = " - ", "signed by {}",
-                      sq.best_userid(signer, true));
+                      sq.best_userid(signer, true).display());
             qprintln!(initial_indent = "   - ", "using {}",
                       signer.fingerprint());
         }

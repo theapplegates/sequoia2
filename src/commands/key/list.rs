@@ -487,11 +487,11 @@ pub fn list(sq: Sq, mut cmd: cli::key::list::Command) -> Result<()> {
                     if amount > 0 || self_signed {
                         if userid_count == 1 {
                             wwriteln!(stream=o, initial_indent = "   - ", "user ID: {}{}",
-                                      userid,
+                                      userid.display(),
                                       if revoked { " revoked" } else { "" });
                         } else {
                             wwriteln!(stream=o, initial_indent = "     - ", "{}{}",
-                                      userid,
+                                      userid.display(),
                                       if revoked { " revoked" } else { "" });
                         }
                     }

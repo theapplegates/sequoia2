@@ -119,7 +119,7 @@ fn list(sq: Sq, cmd: approvals::ListCommand) -> Result<()> {
                       .unwrap_or_else(|| "".into()),
                       issuer.as_ref()
                       .and_then(|i| Some(sq.best_userid(i.to_cert().ok()?, true)
-                                         .to_string()))
+                                         .display().to_string()))
                       .or(c.get_issuers().into_iter().next()
                           .map(|h| h.to_string()))
                       .unwrap_or_else(|| "no issuer information".into()),
@@ -381,7 +381,7 @@ fn update(
                        .unwrap_or_else(|| "".into()),
                        issuer.as_ref()
                        .and_then(|i| Some(sq.best_userid(i.to_cert().ok()?, true)
-                                          .to_string()))
+                                          .display().to_string()))
                        .or(c.get_issuers().into_iter().next()
                            .map(|h| h.to_string()))
                        .unwrap_or_else(|| "no issuer information".into()),

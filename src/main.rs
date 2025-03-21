@@ -446,6 +446,11 @@ fn error_chain(err: &anyhow::Error) -> Vec<String> {
 pub fn print_error_chain(err: &anyhow::Error) {
     weprintln!();
     weprintln!(initial_indent="  Error: ", "{}", err);
+
+    if err.backtrace().status() == std::backtrace::BacktraceStatus::Captured {
+        weprintln!();
+        weprintln!(initial_indent="         ", "{}", err.backtrace());
+    }
     err.chain().skip(1).for_each(
         |cause| weprintln!(initial_indent="because: ", "{}", cause));
 }

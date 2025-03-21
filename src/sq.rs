@@ -626,7 +626,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                                    cert.keyid(), keyflags);
                     } else {
                         weprintln!("Error: The subkey {} (cert: {}) \
-                                    does not the required capabilities \
+                                    does not have the required capabilities \
                                     ({:?})",
                                    kh, cert.keyid(), keyflags);
                     }

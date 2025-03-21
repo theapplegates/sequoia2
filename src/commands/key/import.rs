@@ -51,6 +51,7 @@ fn import_internal(o: &mut dyn std::io::Write,
                 }
             };
 
+            let fp = cert.fingerprint();
             let id = format!("{} {}",
                              cert.fingerprint(),
                              sq.best_userid(&cert, true).display());
@@ -65,6 +66,22 @@ fn import_internal(o: &mut dyn std::io::Write,
                               } else {
                                   format!("key {}, cert {}", key, cert)
                               });
+
+                    sq.hint(format_args!("If this is your key, you should  \
+                                          mark it as a fully trusted \
+                                          introducer:"))
+                        .sq().arg("pki").arg("link").arg("authorize")
+                        .arg("--unconstrained")
+                        .arg_value("--cert", &fp)
+                        .arg("--all")
+                        .done();
+
+                    sq.hint(format_args!("Otherwise, consider marking it as \
+                                          authenticated:"))
+                        .sq().arg("pki").arg("link").arg("add")
+                        .arg_value("--cert", &fp)
+                        .arg("--all")
+                        .done();
                 }
 
                 Err(err) => {

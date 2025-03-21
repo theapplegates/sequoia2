@@ -1029,6 +1029,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         // Also insert the certificate into the certificate store.
         // If we can't, we don't fail.  This allows, in
         // particular, `sq --cert-store=none key import` to work.
+        let cert = cert.strip_secret_key_material();
         let fpr = cert.fingerprint();
         let mut cert_import_status = ImportStatus::Unchanged;
         match self.cert_store_or_else() {

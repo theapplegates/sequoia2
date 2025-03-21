@@ -30,7 +30,7 @@ fn sq_sign() {
     let sig = tmp_dir.path().join("sig0");
 
     // Sign message.
-    sq.sign(artifact("keys/dennis-simon-anton-private.pgp"), None,
+    sq.sign(artifact("keys/emmelie-dorothea-dina-samantha-awina-ed25519-private.pgp"), None,
             &artifact("messages/a-cypherpunks-manifesto.txt"), sig.as_path());
 
     // Check that the content is sane.
@@ -58,7 +58,7 @@ fn sq_sign() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP MESSAGE-----\n\n"));
 
     // Verify signed message.
-    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp")],
+    sq.verify(&["--signer-file", &artifact_s("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp")],
               Verify::Message, &sig, None);
 }
 
@@ -72,7 +72,7 @@ fn sq_sign_with_notations() {
     sq.sign_args(&["--signature-notation", "foo", "bar",
                    "--signature-notation", "!foo", "xyzzy",
                    "--signature-notation", "hello@example.org", "1234567890"],
-                 artifact("keys/dennis-simon-anton-private.pgp"), None,
+                 artifact("keys/emmelie-dorothea-dina-samantha-awina-ed25519-private.pgp"), None,
                  &artifact("messages/a-cypherpunks-manifesto.txt"), sig.as_path());
 
     // Check that the content is sane.
@@ -125,7 +125,7 @@ fn sq_sign_with_notations() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP MESSAGE-----\n\n"));
 
     // Verify signed message.
-    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp"),
+    sq.verify(&["--signer-file", &artifact_s("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp"),
                 "--known-notation", "foo"],
               Verify::Message, &sig, None);
 }
@@ -137,7 +137,7 @@ fn sq_sign_append() {
     let sig0 = tmp_dir.path().join("sig0");
 
     // Sign message.
-    sq.sign(artifact("keys/dennis-simon-anton-private.pgp"), None,
+    sq.sign(artifact("keys/emmelie-dorothea-dina-samantha-awina-ed25519-private.pgp"), None,
             &artifact("messages/a-cypherpunks-manifesto.txt"), sig0.as_path());
 
     // Check that the content is sane.
@@ -165,7 +165,7 @@ fn sq_sign_append() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP MESSAGE-----\n\n"));
 
     // Verify signed message.
-    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp")],
+    sq.verify(&["--signer-file", &artifact_s("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp")],
               Verify::Message, &sig0, None);
 
     // Now add a second signature with --append.
@@ -213,7 +213,7 @@ fn sq_sign_append() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP MESSAGE-----\n\n"));
 
     // Verify both signatures of the signed message.
-    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp")],
+    sq.verify(&["--signer-file", &artifact_s("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp")],
               Verify::Message, &sig1, None);
     sq.verify(&["--signer-file", &artifact_s("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")],
               Verify::Message, &sig1, None);
@@ -228,7 +228,7 @@ fn sq_sign_append_on_compress_then_sign() {
 
     // This is quite an odd scheme, so we need to create such a
     // message by foot.
-    let tsk = Cert::from_file(&artifact("keys/dennis-simon-anton-private.pgp"))
+    let tsk = Cert::from_file(&artifact("keys/emmelie-dorothea-dina-samantha-awina-ed25519-private.pgp"))
         .unwrap();
     let key = tsk.keys().with_policy(P, None).for_signing().next().unwrap().key();
     let sec = match key.optional_secret() {
@@ -274,7 +274,7 @@ fn sq_sign_append_on_compress_then_sign() {
     }
 
     // Verify signed message.
-    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp")],
+    sq.verify(&["--signer-file", &artifact_s("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp")],
               Verify::Message, &sig0, None);
 
     // Now add a second signature with --append.
@@ -331,7 +331,7 @@ fn sq_sign_append_on_compress_then_sign() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP MESSAGE-----\n\n"));
 
     // Verify both signatures of the signed message.
-    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp")],
+    sq.verify(&["--signer-file", &artifact_s("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp")],
               Verify::Message, &sig0, None);
     sq.verify(&["--signer-file", &artifact_s("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")],
               Verify::Message, &sig0, None);
@@ -345,7 +345,7 @@ fn sq_sign_detached() {
 
     // Sign detached.
     sq.sign_detached(&[],
-                     artifact("keys/dennis-simon-anton-private.pgp"),
+                     artifact("keys/emmelie-dorothea-dina-samantha-awina-ed25519-private.pgp"),
                      &artifact("messages/a-cypherpunks-manifesto.txt"),
                      sig.as_path());
 
@@ -363,7 +363,7 @@ fn sq_sign_detached() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP SIGNATURE-----\n\n"));
 
     // Verify detached.
-    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp")],
+    sq.verify(&["--signer-file", &artifact_s("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp")],
               Verify::SignatureFile(sig),
               &artifact("messages/a-cypherpunks-manifesto.txt"), None);
 }
@@ -376,7 +376,7 @@ fn sq_sign_detached_append() {
 
     // Sign detached.
     sq.sign_detached(&[],
-                     artifact("keys/dennis-simon-anton-private.pgp"),
+                     artifact("keys/emmelie-dorothea-dina-samantha-awina-ed25519-private.pgp"),
                      &artifact("messages/a-cypherpunks-manifesto.txt"),
                      sig.as_path());
 
@@ -394,7 +394,7 @@ fn sq_sign_detached_append() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP SIGNATURE-----\n\n"));
 
     // Verify detached.
-    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp")],
+    sq.verify(&["--signer-file", &artifact_s("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp")],
               Verify::SignatureFile(sig.clone()),
               &artifact("messages/a-cypherpunks-manifesto.txt"), None);
 
@@ -432,7 +432,7 @@ fn sq_sign_detached_append() {
     assert!(&content[..].starts_with(b"-----BEGIN PGP SIGNATURE-----\n\n"));
 
     // Verify both detached signatures.
-    sq.verify(&["--signer-file", &artifact_s("keys/dennis-simon-anton.pgp")],
+    sq.verify(&["--signer-file", &artifact_s("keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp")],
               Verify::SignatureFile(sig.clone()),
               &artifact("messages/a-cypherpunks-manifesto.txt"), None);
     sq.verify(&["--signer-file", &artifact_s("keys/erika-corinna-daniela-simone-antonia-nistp256.pgp")],

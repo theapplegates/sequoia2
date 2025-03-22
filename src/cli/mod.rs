@@ -439,7 +439,6 @@ store, and the results are merged together."
         help = "Add NOTATION to the list of known notations",
         long_help = "Add NOTATION to the list of known notations
 
-
 This is used when validating signatures. \
 Signatures that have unknown notations with the \
 critical bit set are considered invalid."

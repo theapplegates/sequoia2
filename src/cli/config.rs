@@ -101,11 +101,11 @@ static AUGMENTATIONS: OnceLock<Augmentations> = OnceLock::new();
 #[derive(Debug, Parser)]
 #[clap(
     name = "config",
-    about = "Get configuration options",
+    about = "Query, inspect, and create the configuration file",
     long_about = format!("\
-Get configuration options
+Query, inspect, and create the configuration file
 
-This subcommand can be used to inspect the configuration \
+This subcommand can be used to query and inspect the configuration \
 file{}, and to create a template that can be edited to your liking.
 
 Configuration file: {}

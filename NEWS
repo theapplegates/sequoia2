@@ -2,6 +2,10 @@
 #+TITLE: sequoia-sq NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 1.3.1
+  - This is a bugfix release, fixing and improving displayed hints,
+    improving test vectors so that the tests work fine years into the
+    future, improving some documentation.  No new functionality.
 * Changes in 1.3.0
 ** New functionality
    - This release adds support for RFC 9580.

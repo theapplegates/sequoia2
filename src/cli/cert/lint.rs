@@ -89,10 +89,8 @@ const EXAMPLES: Actions = Actions {
         Action::example().comment(
             "Fix a key with known problems."
         ).command (&[
-            "sq", "key", "export",
-            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0",
-            "|", "sq", "cert", "lint", "--fix", "--cert-file=-",
-            "|", "sq", "cert", "import"
+            "sq", "cert", "lint", "--fix",
+            "--cert", "EB28F26E2739A4870ECC47726F0073F60FD0CBF0"
         ]).build(),
     ],
 };

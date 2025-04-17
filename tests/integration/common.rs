@@ -3,6 +3,7 @@
 use std::borrow::Borrow;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::env;
 use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::fs::File;
@@ -864,8 +865,12 @@ impl Sq {
     /// and time are already set.  The arguments in `pre` are added at
     /// the beginning of the command line.
     pub fn command_args(&self, pre: &[&str]) -> Command {
-        let mut cmd = Command::cargo_bin("sq")
-            .expect("can run sq");
+        let mut cmd = if let Some(p) = env::var_os("SEQUOIA_TEST_BIN") {
+            Command::new(p)
+        } else {
+            Command::cargo_bin("sq")
+                .expect("can run sq")
+        };
         cmd.current_dir(&self.working_dir);
         cmd.env("RUST_BACKTRACE", "1");
         cmd.env("RUST_LOG", "trace");

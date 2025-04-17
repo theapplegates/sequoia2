@@ -406,7 +406,12 @@ macro_rules! test_examples {
                 for command in command.split(|p| *p == "|") {
                     eprintln!("Executing: {:?}", command);
 
-                    let mut cmd = Command::cargo_bin(command[0]).unwrap();
+                    let mut cmd =
+                        if let Some(p) = std::env::var_os("SEQUOIA_TEST_BIN") {
+                            Command::new(p)
+                        } else {
+                            Command::cargo_bin(command[0]).unwrap()
+                        };
                     cmd.current_dir(&tmp_dir)
                         .env("RUST_BACKTRACE", "1")
                         .env("RUST_LOG", "trace")

@@ -57,7 +57,7 @@ impl Display for OutputFormat {
 }
 
 fn dir() -> path::PathBuf {
-    path::Path::new("tests").join("data").join("keyrings")
+    super::common::artifact("keyrings")
 }
 
 fn regexify(needle: &str) -> Regex {

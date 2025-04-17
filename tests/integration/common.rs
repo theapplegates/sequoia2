@@ -41,8 +41,13 @@ use tempfile::TempDir;
 pub const STANDARD_POLICY: &StandardPolicy = &StandardPolicy::new();
 pub const NULL_POLICY: &NullPolicy = unsafe { &NullPolicy::new() };
 
+pub fn manifest_dir() -> PathBuf {
+    PathBuf::from(env::var_os("CARGO_MANIFEST_DIR")
+                  .expect("CARGO_MANIFEST_DIR not set"))
+}
+
 pub fn artifact(filename: &str) -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+    manifest_dir()
         .join("tests").join("data").join(filename)
 }
 
@@ -786,7 +791,7 @@ impl Sq {
 
     /// Returns the path to the test data.
     pub fn test_data(&self) -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        manifest_dir()
             .join("tests").join("data")
     }
 

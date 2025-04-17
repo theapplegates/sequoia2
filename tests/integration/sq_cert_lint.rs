@@ -11,7 +11,7 @@ use openpgp::parse::Parse;
 use super::common::Sq;
 
 fn dir() -> path::PathBuf {
-    path::Path::new("tests").join("data").join("cert-lint")
+    super::common::artifact("cert-lint")
 }
 
 const FROZEN_TIME: &str = "20220101";

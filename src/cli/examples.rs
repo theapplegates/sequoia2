@@ -355,9 +355,10 @@ macro_rules! test_examples {
             use assert_cmd::Command;
 
 
-            let fixtures = PathBuf::from(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/tests/data/examples"));
+            let fixtures =
+                PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR")
+                              .expect("CARGO_MANIFEST_DIR not set"))
+                .join("tests").join("data").join("examples");
 
             let tmp_dir = TempDir::new().unwrap();
 

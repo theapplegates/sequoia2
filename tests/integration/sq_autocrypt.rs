@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use sequoia_openpgp as openpgp;
 use openpgp::{
     KeyHandle,
@@ -23,8 +21,7 @@ fn sq_autocrypt_import() -> Result<()>
         .expect("valid date");
     let sq = Sq::at(t.into());
 
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let eml = manifest_dir.join("tests").join("data").join("autocrypt")
+    let eml = artifact("autocrypt")
         .join("E43FF9D5-ABE5-42D4-852F-4692FB643B10@probier.email.eml");
 
     // Import the message, first without being able to decrypt it.
@@ -79,8 +76,7 @@ fn sq_autocrypt_import_signed() -> Result<()>
         .expect("valid date");
     let sq = Sq::at(t.into());
 
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let eml = manifest_dir.join("tests").join("data").join("autocrypt")
+    let eml = artifact("autocrypt")
         .join("signed.eml");
 
     // Import the message.

@@ -135,7 +135,7 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
             let cert = Arc::new(tsk.clone().strip_secret_key_material());
             for ka in tsk.keys().secret()
                 // XXX: Should use the message's creation time that we do not know.
-                .with_policy(sq.policy, None)
+                .with_policy(sq.policy, sq.time)
                 .for_transport_encryption().for_storage_encryption()
             {
                 let id: KeyID = ka.key().fingerprint().into();

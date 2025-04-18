@@ -364,6 +364,22 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                     Err(err) => {
                         match err.downcast() {
                             Ok(keystore::Error::InaccessibleDecryptionKey(keys)) => {
+                                // Get a reference to the softkeys backend.
+                                let mut softkeys = if let Ok(backends) = ks.backends() {
+                                    let mut softkeys = None;
+                                    for mut backend in backends.into_iter() {
+                                        if let Ok(id) = backend.id() {
+                                            if id == "softkeys" {
+                                                softkeys = Some(backend);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    softkeys
+                                } else {
+                                    None
+                                };
+
                                 for key_status in keys.into_iter() {
                                     let pkesk = key_status.pkesk().clone();
                                     let mut key = key_status.into_key();
@@ -375,11 +391,74 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                                             .set_transport_encryption(),
                                         true);
 
+                                    // If we have any cached
+                                    // passwords, and the key is not
+                                    // protected by a retry counter,
+                                    // try the cached passwords.
+                                    //
+                                    // Right now,we only try the
+                                    // password cache with keys
+                                    // managed by the softkeys
+                                    // backend, which we know are not
+                                    // protected by a retry counter.
+                                    // It would be better to query the
+                                    // key, but the key store doesn't
+                                    // expose that yet information yet
+                                    // so we use this heuristic for
+                                    // now.
+                                    let password_cache
+                                        = self.sq.password_cache.lock().unwrap();
+                                    if ! password_cache.is_empty() {
+                                        // There's currently no way to
+                                        // go from a key handle to the
+                                        // backend.
+                                        let mut on_softkeys = false;
+                                        if let Some(softkeys) = softkeys.as_mut() {
+                                            let devices = softkeys.devices();
+                                            if let Ok(devices) = devices {
+                                                for mut device in devices.into_iter() {
+                                                    let keys = device.keys();
+                                                    if let Ok(keys) = keys {
+                                                        for mut a_key in keys.into_iter() {
+                                                            if let Ok(a_id) = a_key.id() {
+                                                                if key.id().ok() == Some(a_id) {
+                                                                    // Same id.  We have a match.
+                                                                    on_softkeys = true;
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if on_softkeys {
+                                            for password in password_cache.iter() {
+                                                if let Ok(()) = key.unlock(password.clone()) {
+                                                    if let Some(fp) = self.try_decrypt(
+                                                        &pkesk, sym_algo, &mut key, decrypt)
+                                                    {
+                                                        return Ok(fp);
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            eprintln!(
+                                                "{}, {} is locked, but not \
+                                                 trying cached passwords, \
+                                                 because the key may be \
+                                                 protected by a retry counter.",
+                                                keyid, userid.display());
+                                        }
+                                    }
+                                    drop(password_cache);
+
                                     loop {
                                         if self.sq.batch {
                                             eprintln!(
                                                 "{}, {} is locked, but not \
-                                                 prompting for password, \
+                                                 prompting for a password, \
                                                  because you passed --batch.",
                                                 keyid, userid.display());
                                             break;

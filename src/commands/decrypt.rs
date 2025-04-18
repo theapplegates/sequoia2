@@ -8,7 +8,7 @@ use sequoia_openpgp as openpgp;
 use openpgp::types::SymmetricAlgorithm;
 use openpgp::fmt::hex;
 use openpgp::KeyHandle;
-use openpgp::crypto::{self, SessionKey, Decryptor};
+use openpgp::crypto::{self, SessionKey};
 use openpgp::{Fingerprint, Cert, KeyID, Result};
 use openpgp::packet;
 use openpgp::packet::prelude::*;
@@ -187,7 +187,7 @@ impl<'c, 'store, 'rstore> Helper<'c, 'store, 'rstore>
     /// to decrypt the packet parser using `decrypt`.
     fn try_decrypt(&self, pkesk: &PKESK,
                    sym_algo: Option<SymmetricAlgorithm>,
-                   mut keypair: Box<dyn crypto::Decryptor>,
+                   keypair: &mut dyn crypto::Decryptor,
                    decrypt: &mut dyn FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool)
                    -> Option<Option<Cert>>
     {
@@ -277,10 +277,10 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
             slf.vhelper.sq.decrypt_key(Some(cert), key.clone(), prompt, true)
                 .ok()
                 .and_then(|key| {
-                    let keypair = Box::new(key.into_keypair()
-                        .expect("decrypted secret key material"));
+                    let mut keypair = key.into_keypair()
+                        .expect("decrypted secret key material");
 
-                    slf.try_decrypt(pkesk, sym_algo, keypair, decrypt)
+                    slf.try_decrypt(pkesk, sym_algo, &mut keypair, decrypt)
                 })
         };
 
@@ -409,9 +409,8 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                                             }
                                         }
 
-                                        let keypair = Box::new(key);
                                         if let Some(fp) = self.try_decrypt(
-                                            &pkesk, sym_algo, keypair, decrypt)
+                                            &pkesk, sym_algo, &mut key, decrypt)
                                         {
                                             return Ok(fp);
                                         } else {

@@ -1260,22 +1260,38 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
         -> Result<Key<key::SecretParts, R>>
     where R: key::KeyRole + Clone
     {
+        tracer!(TRACE, "decrypt_key");
+        t!("Decrypting {}/{}, may prompt: {}, allow skipping: {}",
+           if let Some(cert) = cert {
+               cert.fingerprint().to_string()
+           } else {
+               "unknown cert".into()
+           },
+           key.fingerprint(),
+           may_prompt,
+           allow_skipping);
         match key.secret() {
             SecretKeyMaterial::Unencrypted(_) => {
+                t!("secret key material is unencrypted");
                 Ok(key)
             }
             SecretKeyMaterial::Encrypted(e) => {
+                t!("secret key material is encrypted");
                 if ! e.s2k().is_supported() {
+                    t!("s2k algorithm is not supported");
                     return Err(anyhow::anyhow!(
                         "Unsupported key protection mechanism"));
                 }
 
-                for p in self.password_cache.lock().unwrap().iter() {
+                let password_cache = self.password_cache.lock().unwrap();
+                t!("Trying password cache ({} entries)", password_cache.len());
+                for p in password_cache.iter() {
                     if let Ok(unencrypted) = e.decrypt(&key, &p) {
                         let (key, _) = key.add_secret(unencrypted.into());
                         return Ok(key);
                     }
                 }
+                drop(password_cache);
 
                 let prompt = if let Some(cert) = cert {
                     format!("{}/{} {}",
@@ -1286,6 +1302,8 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                 };
 
                 if ! may_prompt {
+                    t!("Didn't decrypt the key, and prompting is disabled.  \
+                        Giving up");
                     return Err(anyhow::anyhow!(
                         "Unable to decrypt secret key material for {}", prompt))
                 }
@@ -1315,6 +1333,7 @@ impl<'store: 'rstore, 'rstore> Sq<'store, 'rstore> {
                     }
                 }
 
+                t!("Didn't decrypt the key, and user gave up.");
                 Err(anyhow::anyhow!("Key {}: Unable to decrypt secret key material",
                                     key.keyid().to_hex()))
             }

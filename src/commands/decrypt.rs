@@ -39,6 +39,8 @@ use crate::{
     sq::TrustThreshold,
 };
 
+const TRACE: bool = false;
+
 pub fn dispatch(sq: Sq, command: cli::decrypt::Command) -> Result<()> {
     tracer!(TRACE, "decrypt::dispatch");
 
@@ -232,9 +234,25 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
                decrypt: &mut dyn FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool)
                -> openpgp::Result<Option<Cert>>
     {
+        tracer!(TRACE, "DecryptionHelper::decrypt");
+        t!("{} PKESKs, {} SKESKs", pkesks.len(), skesks.len());
+        if pkesks.len() > 0 {
+            t!("PKESKs: {}",
+               pkesks
+               .iter()
+               .map(|pkesk| {
+                   pkesk.recipient()
+                       .map(|r| r.to_string())
+                       .unwrap_or("wildcard".into())
+               })
+               .collect::<Vec<String>>()
+               .join(", "));
+        }
+
         make_qprintln!(self.quiet);
 
         // Before anything else, try the session keys
+        t!("Trying the {} session keys", self.session_keys.len());
         for sk in &self.session_keys {
             let decrypted = if let Some(sa) = sk.symmetric_algo {
                 decrypt(Some(sa), &sk.session_key)
@@ -268,6 +286,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
 
         // First, we try those keys that we can use without prompting
         // for a password.
+        t!("Trying the unencrypted PKESKs");
         for pkesk in pkesks {
             let keyid = pkesk.recipient().map(KeyID::from)
                 .unwrap_or_else(KeyID::wildcard);
@@ -279,6 +298,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
         }
 
         // Second, we try those keys that are encrypted.
+        t!("Trying the encrypted PKESKs");
         for pkesk in pkesks {
             // Don't ask the user to decrypt a key if we don't support
             // the algorithm.
@@ -299,6 +319,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
         // Third, we try to decrypt PKESK packets with wildcard
         // recipients using those keys that we can use without
         // prompting for a password.
+        t!("Trying unencrypted PKESKs for wildcard recipient");
         for pkesk in pkesks.iter().filter(|p| p.recipient().is_none()) {
             for (cert, key) in self.secret_keys.values() {
                 if let Some(fp) = decrypt_key(self, pkesk, cert, key, false) {
@@ -309,6 +330,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
 
         // Fourth, we try to decrypt PKESK packets with wildcard
         // recipients using those keys that are encrypted.
+        t!("Trying encrypted PKESKs for wildcard recipient");
         for pkesk in pkesks.iter().filter(|p| p.recipient().is_none()) {
             // Don't ask the user to decrypt a key if we don't support
             // the algorithm.
@@ -324,6 +346,7 @@ impl<'c, 'store, 'rstore> DecryptionHelper for Helper<'c, 'store, 'rstore>
         }
 
         // Try the key store.
+        t!("Trying the key store");
         match self.vhelper.sq.key_store_or_else() {
             Ok(ks) => {
                 let mut ks = ks.lock().unwrap();

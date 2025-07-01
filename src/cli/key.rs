@@ -104,21 +104,21 @@ pub enum CipherSuite {
     Rsa4k,
     #[default]
     Cv25519,
-    mldsa87,
-    mldsa85
+    Mldsa85,
+    Mldsa87,
+    Ed448,
 }
 
 impl CipherSuite {
-
-    /// Return a matching `sequoia_openpgp::cert::CipherSuite`
     pub fn as_ciphersuite(&self) -> SqCipherSuite {
         match self {
             CipherSuite::Rsa2k => SqCipherSuite::RSA2k,
             CipherSuite::Rsa3k => SqCipherSuite::RSA3k,
             CipherSuite::Rsa4k => SqCipherSuite::RSA4k,
             CipherSuite::Cv25519 => SqCipherSuite::Cv25519,
-            CipherSuite::MLDSA85 => SqCipherSuite::MLDSA85,
-            CCipherSuite::MLDSA87 => SqCipherSuite::MLDSA87,
+            CipherSuite::Mldsa85 => SqCipherSuite::Mldsa85,
+            CipherSuite::Mldsa87 => SqCipherSuite::Mldsa87,  // Add this line
+            CipherSuite::Ed448 => SqCipherSuite::Ed448,
         }
     }
 }

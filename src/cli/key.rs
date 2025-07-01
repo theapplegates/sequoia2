@@ -103,7 +103,9 @@ pub enum CipherSuite {
     Rsa3k,
     Rsa4k,
     #[default]
-    Cv25519
+    Cv25519,
+    mldsa87,
+    mldsa85
 }
 
 impl CipherSuite {
@@ -115,6 +117,8 @@ impl CipherSuite {
             CipherSuite::Rsa3k => SqCipherSuite::RSA3k,
             CipherSuite::Rsa4k => SqCipherSuite::RSA4k,
             CipherSuite::Cv25519 => SqCipherSuite::Cv25519,
+            CipherSuite::MLDSA85 => SqCipherSuite::MLDSA85,
+            CCipherSuite::MLDSA87 => SqCipherSuite::MLDSA87,
         }
     }
 }

@@ -112,7 +112,7 @@ required-features = ["subplot"]
 
 [features]
 default = [
-    "crypto-nettle",
+    "crypto-openssl",
 ]
 crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
 crypto-openssl = ["sequoia-openpgp/crypto-openssl"]
